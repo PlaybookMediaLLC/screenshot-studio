@@ -9,6 +9,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/collab"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
@@ -40,6 +41,7 @@ type CollabToken struct {
 // CollabGrant is who a connection is and what it may do, for the
 // collaboration server.
 type CollabGrant struct {
+	Kind           string        `json:"kind,omitempty"`
 	Access         collab.Access `json:"access"`
 	DraftID        string        `json:"draftId"`
 	OrganizationID string        `json:"organizationId"`
@@ -110,16 +112,27 @@ func (c *Configuration) collabClaims(ctx context.Context, token, documentName, d
 	if err != nil {
 		return collab.Claims{}, publishing.ErrUnauthorized
 	}
-	if (documentName != "" && documentName != collab.DocumentName(claims.DraftID)) || (draftID != "" && draftID != claims.DraftID) {
+	if (documentName != "" && documentName != collab.DocumentNameFor(claims.Kind, claims.DraftID)) || (draftID != "" && draftID != claims.DraftID) {
 		return collab.Claims{}, publishing.ErrForbidden
 	}
-	owned, err := c.client.ContentDraft.Query().Where(contentdraft.ID(claims.DraftID),
-		contentdraft.OrganizationID(claims.OrganizationID)).Exist(ctx)
+	var owned bool
+	if claims.Kind == "creative-set" {
+		owned, err = c.client.PlatformCreativeSet.Query().Where(platformcreativeset.ID(claims.DraftID), platformcreativeset.OrganizationID(claims.OrganizationID)).Exist(ctx)
+	} else {
+		owned, err = c.client.ContentDraft.Query().Where(contentdraft.ID(claims.DraftID), contentdraft.OrganizationID(claims.OrganizationID)).Exist(ctx)
+	}
 	if err != nil {
 		return collab.Claims{}, err
 	}
 	if !owned {
 		return collab.Claims{}, publishing.ErrNotFound
+	}
+	current, err := memberAccess(ctx, c.client, claims.OrganizationID, claims.UserID)
+	if err != nil {
+		return collab.Claims{}, err
+	}
+	if current != collab.AccessWrite {
+		claims.Access = collab.AccessRead
 	}
 	return claims, nil
 }
@@ -143,7 +156,7 @@ func (c *Configuration) AuthorizeCollab(ctx context.Context, token, documentName
 	if err != nil {
 		return nil, err
 	}
-	grant := &CollabGrant{Access: access, DraftID: claims.DraftID, OrganizationID: claims.OrganizationID}
+	grant := &CollabGrant{Kind: claims.Kind, Access: access, DraftID: claims.DraftID, OrganizationID: claims.OrganizationID}
 	grant.User.ID, grant.User.Name = person.ID, person.Name
 	return grant, nil
 }
@@ -154,6 +167,9 @@ func (c *Configuration) LoadCollabState(ctx context.Context, token, draftID stri
 	claims, err := c.collabClaims(ctx, token, "", draftID, collab.StoreGrace)
 	if err != nil {
 		return nil, err
+	}
+	if claims.Kind == "creative-set" {
+		return nil, publishing.ErrForbidden
 	}
 	row, err := c.client.ContentDraft.Query().Where(contentdraft.ID(draftID),
 		contentdraft.OrganizationID(claims.OrganizationID)).Only(ctx)
@@ -173,7 +189,7 @@ func (c *Configuration) StoreCollabState(ctx context.Context, token, draftID str
 	if err != nil {
 		return err
 	}
-	if claims.Access != collab.AccessWrite {
+	if claims.Access != collab.AccessWrite || claims.Kind == "creative-set" {
 		return publishing.ErrForbidden
 	}
 	if len(state) == 0 || len(state) > collabStateLimit {

@@ -61,6 +61,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -187,6 +189,10 @@ type Client struct {
 	OutboxEvent *OutboxEventClient
 	// PageKnowledge is the client for interacting with the PageKnowledge builders.
 	PageKnowledge *PageKnowledgeClient
+	// PlatformCreativeSet is the client for interacting with the PlatformCreativeSet builders.
+	PlatformCreativeSet *PlatformCreativeSetClient
+	// PlatformCreativeSetVersion is the client for interacting with the PlatformCreativeSetVersion builders.
+	PlatformCreativeSetVersion *PlatformCreativeSetVersionClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
 	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
@@ -298,6 +304,8 @@ func (c *Client) init() {
 	c.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(c.config)
 	c.OutboxEvent = NewOutboxEventClient(c.config)
 	c.PageKnowledge = NewPageKnowledgeClient(c.config)
+	c.PlatformCreativeSet = NewPlatformCreativeSetClient(c.config)
+	c.PlatformCreativeSetVersion = NewPlatformCreativeSetVersionClient(c.config)
 	c.ProductProfile = NewProductProfileClient(c.config)
 	c.ProductSurface = NewProductSurfaceClient(c.config)
 	c.Project = NewProjectClient(c.config)
@@ -463,6 +471,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                    NewOutboxEventClient(cfg),
 		PageKnowledge:                  NewPageKnowledgeClient(cfg),
+		PlatformCreativeSet:            NewPlatformCreativeSetClient(cfg),
+		PlatformCreativeSetVersion:     NewPlatformCreativeSetVersionClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		Project:                        NewProjectClient(cfg),
@@ -555,6 +565,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                    NewOutboxEventClient(cfg),
 		PageKnowledge:                  NewPageKnowledgeClient(cfg),
+		PlatformCreativeSet:            NewPlatformCreativeSetClient(cfg),
+		PlatformCreativeSetVersion:     NewPlatformCreativeSetVersionClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		Project:                        NewProjectClient(cfg),
@@ -623,7 +635,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
 		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PageKnowledge, c.ProductProfile, c.ProductSurface, c.Project,
+		c.OutboxEvent, c.PageKnowledge, c.PlatformCreativeSet,
+		c.PlatformCreativeSetVersion, c.ProductProfile, c.ProductSurface, c.Project,
 		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseDocument,
 		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
 		c.SocialOAuthStart, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
@@ -652,7 +665,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
 		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PageKnowledge, c.ProductProfile, c.ProductSurface, c.Project,
+		c.OutboxEvent, c.PageKnowledge, c.PlatformCreativeSet,
+		c.PlatformCreativeSetVersion, c.ProductProfile, c.ProductSurface, c.Project,
 		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseDocument,
 		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
 		c.SocialOAuthStart, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
@@ -760,6 +774,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.OutboxEvent.mutate(ctx, m)
 	case *PageKnowledgeMutation:
 		return c.PageKnowledge.mutate(ctx, m)
+	case *PlatformCreativeSetMutation:
+		return c.PlatformCreativeSet.mutate(ctx, m)
+	case *PlatformCreativeSetVersionMutation:
+		return c.PlatformCreativeSetVersion.mutate(ctx, m)
 	case *ProductProfileMutation:
 		return c.ProductProfile.mutate(ctx, m)
 	case *ProductSurfaceMutation:
@@ -7017,6 +7035,272 @@ func (c *PageKnowledgeClient) mutate(ctx context.Context, m *PageKnowledgeMutati
 	}
 }
 
+// PlatformCreativeSetClient is a client for the PlatformCreativeSet schema.
+type PlatformCreativeSetClient struct {
+	config
+}
+
+// NewPlatformCreativeSetClient returns a client for the PlatformCreativeSet from the given config.
+func NewPlatformCreativeSetClient(c config) *PlatformCreativeSetClient {
+	return &PlatformCreativeSetClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformcreativeset.Hooks(f(g(h())))`.
+func (c *PlatformCreativeSetClient) Use(hooks ...Hook) {
+	c.hooks.PlatformCreativeSet = append(c.hooks.PlatformCreativeSet, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformcreativeset.Intercept(f(g(h())))`.
+func (c *PlatformCreativeSetClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformCreativeSet = append(c.inters.PlatformCreativeSet, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformCreativeSet entity.
+func (c *PlatformCreativeSetClient) Create() *PlatformCreativeSetCreate {
+	mutation := newPlatformCreativeSetMutation(c.config, OpCreate)
+	return &PlatformCreativeSetCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformCreativeSet entities.
+func (c *PlatformCreativeSetClient) CreateBulk(builders ...*PlatformCreativeSetCreate) *PlatformCreativeSetCreateBulk {
+	return &PlatformCreativeSetCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformCreativeSetClient) MapCreateBulk(slice any, setFunc func(*PlatformCreativeSetCreate, int)) *PlatformCreativeSetCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformCreativeSetCreateBulk{err: fmt.Errorf("calling to PlatformCreativeSetClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformCreativeSetCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformCreativeSetCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformCreativeSet.
+func (c *PlatformCreativeSetClient) Update() *PlatformCreativeSetUpdate {
+	mutation := newPlatformCreativeSetMutation(c.config, OpUpdate)
+	return &PlatformCreativeSetUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformCreativeSetClient) UpdateOne(_m *PlatformCreativeSet) *PlatformCreativeSetUpdateOne {
+	mutation := newPlatformCreativeSetMutation(c.config, OpUpdateOne, withPlatformCreativeSet(_m))
+	return &PlatformCreativeSetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformCreativeSetClient) UpdateOneID(id string) *PlatformCreativeSetUpdateOne {
+	mutation := newPlatformCreativeSetMutation(c.config, OpUpdateOne, withPlatformCreativeSetID(id))
+	return &PlatformCreativeSetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformCreativeSet.
+func (c *PlatformCreativeSetClient) Delete() *PlatformCreativeSetDelete {
+	mutation := newPlatformCreativeSetMutation(c.config, OpDelete)
+	return &PlatformCreativeSetDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformCreativeSetClient) DeleteOne(_m *PlatformCreativeSet) *PlatformCreativeSetDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformCreativeSetClient) DeleteOneID(id string) *PlatformCreativeSetDeleteOne {
+	builder := c.Delete().Where(platformcreativeset.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformCreativeSetDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformCreativeSet.
+func (c *PlatformCreativeSetClient) Query() *PlatformCreativeSetQuery {
+	return &PlatformCreativeSetQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformCreativeSet},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformCreativeSet entity by its id.
+func (c *PlatformCreativeSetClient) Get(ctx context.Context, id string) (*PlatformCreativeSet, error) {
+	return c.Query().Where(platformcreativeset.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformCreativeSetClient) GetX(ctx context.Context, id string) *PlatformCreativeSet {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformCreativeSetClient) Hooks() []Hook {
+	return c.hooks.PlatformCreativeSet
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformCreativeSetClient) Interceptors() []Interceptor {
+	return c.inters.PlatformCreativeSet
+}
+
+func (c *PlatformCreativeSetClient) mutate(ctx context.Context, m *PlatformCreativeSetMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformCreativeSetCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformCreativeSetUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformCreativeSetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformCreativeSetDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformCreativeSet mutation op: %q", m.Op())
+	}
+}
+
+// PlatformCreativeSetVersionClient is a client for the PlatformCreativeSetVersion schema.
+type PlatformCreativeSetVersionClient struct {
+	config
+}
+
+// NewPlatformCreativeSetVersionClient returns a client for the PlatformCreativeSetVersion from the given config.
+func NewPlatformCreativeSetVersionClient(c config) *PlatformCreativeSetVersionClient {
+	return &PlatformCreativeSetVersionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformcreativesetversion.Hooks(f(g(h())))`.
+func (c *PlatformCreativeSetVersionClient) Use(hooks ...Hook) {
+	c.hooks.PlatformCreativeSetVersion = append(c.hooks.PlatformCreativeSetVersion, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformcreativesetversion.Intercept(f(g(h())))`.
+func (c *PlatformCreativeSetVersionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformCreativeSetVersion = append(c.inters.PlatformCreativeSetVersion, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformCreativeSetVersion entity.
+func (c *PlatformCreativeSetVersionClient) Create() *PlatformCreativeSetVersionCreate {
+	mutation := newPlatformCreativeSetVersionMutation(c.config, OpCreate)
+	return &PlatformCreativeSetVersionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformCreativeSetVersion entities.
+func (c *PlatformCreativeSetVersionClient) CreateBulk(builders ...*PlatformCreativeSetVersionCreate) *PlatformCreativeSetVersionCreateBulk {
+	return &PlatformCreativeSetVersionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformCreativeSetVersionClient) MapCreateBulk(slice any, setFunc func(*PlatformCreativeSetVersionCreate, int)) *PlatformCreativeSetVersionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformCreativeSetVersionCreateBulk{err: fmt.Errorf("calling to PlatformCreativeSetVersionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformCreativeSetVersionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformCreativeSetVersionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformCreativeSetVersion.
+func (c *PlatformCreativeSetVersionClient) Update() *PlatformCreativeSetVersionUpdate {
+	mutation := newPlatformCreativeSetVersionMutation(c.config, OpUpdate)
+	return &PlatformCreativeSetVersionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformCreativeSetVersionClient) UpdateOne(_m *PlatformCreativeSetVersion) *PlatformCreativeSetVersionUpdateOne {
+	mutation := newPlatformCreativeSetVersionMutation(c.config, OpUpdateOne, withPlatformCreativeSetVersion(_m))
+	return &PlatformCreativeSetVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformCreativeSetVersionClient) UpdateOneID(id string) *PlatformCreativeSetVersionUpdateOne {
+	mutation := newPlatformCreativeSetVersionMutation(c.config, OpUpdateOne, withPlatformCreativeSetVersionID(id))
+	return &PlatformCreativeSetVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformCreativeSetVersion.
+func (c *PlatformCreativeSetVersionClient) Delete() *PlatformCreativeSetVersionDelete {
+	mutation := newPlatformCreativeSetVersionMutation(c.config, OpDelete)
+	return &PlatformCreativeSetVersionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformCreativeSetVersionClient) DeleteOne(_m *PlatformCreativeSetVersion) *PlatformCreativeSetVersionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformCreativeSetVersionClient) DeleteOneID(id string) *PlatformCreativeSetVersionDeleteOne {
+	builder := c.Delete().Where(platformcreativesetversion.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformCreativeSetVersionDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformCreativeSetVersion.
+func (c *PlatformCreativeSetVersionClient) Query() *PlatformCreativeSetVersionQuery {
+	return &PlatformCreativeSetVersionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformCreativeSetVersion},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformCreativeSetVersion entity by its id.
+func (c *PlatformCreativeSetVersionClient) Get(ctx context.Context, id string) (*PlatformCreativeSetVersion, error) {
+	return c.Query().Where(platformcreativesetversion.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformCreativeSetVersionClient) GetX(ctx context.Context, id string) *PlatformCreativeSetVersion {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformCreativeSetVersionClient) Hooks() []Hook {
+	return c.hooks.PlatformCreativeSetVersion
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformCreativeSetVersionClient) Interceptors() []Interceptor {
+	return c.inters.PlatformCreativeSetVersion
+}
+
+func (c *PlatformCreativeSetVersionClient) mutate(ctx context.Context, m *PlatformCreativeSetVersionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformCreativeSetVersionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformCreativeSetVersionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformCreativeSetVersionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformCreativeSetVersionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformCreativeSetVersion mutation op: %q", m.Op())
+	}
+}
+
 // ProductProfileClient is a client for the ProductProfile schema.
 type ProductProfileClient struct {
 	config
@@ -10669,7 +10953,8 @@ type (
 		Design, EnrichmentRecord, GitHubInstallStart, GitHubInstallation,
 		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
 		LaunchRunStep, Member, OnboardingRun, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge, ProductProfile,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
+		PlatformCreativeSet, PlatformCreativeSetVersion, ProductProfile,
 		ProductSurface, Project, ProjectVersion, PublicationAttempt, Release,
 		ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
 		ShareLink, SocialOAuthStart, SocialTenantBinding, SourceApp, SourceChange,
@@ -10688,7 +10973,8 @@ type (
 		Design, EnrichmentRecord, GitHubInstallStart, GitHubInstallation,
 		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
 		LaunchRunStep, Member, OnboardingRun, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge, ProductProfile,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
+		PlatformCreativeSet, PlatformCreativeSetVersion, ProductProfile,
 		ProductSurface, Project, ProjectVersion, PublicationAttempt, Release,
 		ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
 		ShareLink, SocialOAuthStart, SocialTenantBinding, SourceApp, SourceChange,

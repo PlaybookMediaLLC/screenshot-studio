@@ -35,6 +35,7 @@ var ErrInvalidToken = errors.New("invalid collaboration token")
 
 // Claims are what a token grants: one user, one draft of one workspace.
 type Claims struct {
+	Kind           string `json:"k,omitempty"`
 	Access         Access `json:"a"`
 	DraftID        string `json:"d"`
 	ExpiresAt      int64  `json:"e"`
@@ -44,6 +45,14 @@ type Claims struct {
 
 // DocumentName is the collaboration document a draft is edited in.
 func DocumentName(draftID string) string { return "content-draft:" + draftID }
+
+// DocumentNameFor keeps content draft tokens compatible and isolates Story Set presence rooms.
+func DocumentNameFor(kind, id string) string {
+	if kind == "creative-set" {
+		return "creative-set:" + id
+	}
+	return DocumentName(id)
+}
 
 // Sign returns a token for claims.
 func Sign(key []byte, claims Claims) (string, error) {
@@ -75,7 +84,7 @@ func Verify(key []byte, token string, now time.Time, grace time.Duration) (Claim
 	}
 	var claims Claims
 	if err := json.Unmarshal(payload, &claims); err != nil || claims.DraftID == "" || claims.OrganizationID == "" ||
-		claims.UserID == "" || (claims.Access != AccessRead && claims.Access != AccessWrite) {
+		claims.UserID == "" || (claims.Access != AccessRead && claims.Access != AccessWrite) || (claims.Kind != "" && claims.Kind != "content-draft" && claims.Kind != "creative-set") {
 		return Claims{}, ErrInvalidToken
 	}
 	if now.Add(-grace).Unix() >= claims.ExpiresAt {

@@ -129,6 +129,9 @@ func (c *Configuration) CreateCreativeTemplate(ctx context.Context, actor Actor,
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := requireStoryReusableAssets(ctx, tx, actor.OrganizationID, input.Definition); err != nil {
+		return nil, err
+	}
 	current, err := tx.CreativeTemplate.Query().Where(creativetemplate.OrganizationID(actor.OrganizationID),
 		creativetemplate.Name(input.Name)).Order(ent.Desc(creativetemplate.FieldVersion)).First(ctx)
 	if err != nil && !ent.IsNotFound(err) {

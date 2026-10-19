@@ -17,3 +17,11 @@ func TestValidAssetUploadAcceptsTimelineAudio(t *testing.T) {
 		}
 	}
 }
+
+func TestValidAssetUploadAcceptsNativeStoreFonts(t *testing.T) {
+	for _, mime := range []string{"font/woff", "font/woff2", "font/ttf", "font/otf"} {
+		if !validAssetUpload(AssetUploadInput{Bytes: 1024, Classification: "input", FileName: "brand-font.woff2", ContentType: mime}) {
+			t.Fatalf("%s refused", mime)
+		}
+	}
+}

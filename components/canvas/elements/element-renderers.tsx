@@ -133,7 +133,7 @@ function Callout({ box, element, geometry }: RendererProps<'callout'>) {
   const { props } = element
   const image = fallbackImageRect(geometry)
   const radius =
-    props.shape === 'circle' ? '50%' : props.shape === 'rounded' ? `${Math.min(box.width, box.height) * 0.12}px` : 0
+    props.shape === 'circle' ? '50%' : props.shape === 'rounded' ? `${Math.min(box.width, box.height) * (props.radius ?? 0.12)}px` : 0
   const frame: CSSProperties = {
     border: `${props.borderWidth}px solid ${props.borderColor}`,
     borderRadius: radius,

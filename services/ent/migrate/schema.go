@@ -1429,6 +1429,58 @@ var (
 			},
 		},
 	}
+	// PlatformCreativeSetColumns holds the columns for the "platform_creative_set" table.
+	PlatformCreativeSetColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "document", Type: field.TypeJSON},
+		{Name: "documentVersion", Type: field.TypeInt},
+		{Name: "revision", Type: field.TypeInt, Default: 1},
+		{Name: "archived", Type: field.TypeBool, Default: false},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "updatedByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// PlatformCreativeSetTable holds the schema information for the "platform_creative_set" table.
+	PlatformCreativeSetTable = &schema.Table{
+		Name:       "platform_creative_set",
+		Columns:    PlatformCreativeSetColumns,
+		PrimaryKey: []*schema.Column{PlatformCreativeSetColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformcreativeset_organizationId_updatedAt",
+				Unique:  false,
+				Columns: []*schema.Column{PlatformCreativeSetColumns[1], PlatformCreativeSetColumns[10]},
+			},
+		},
+	}
+	// PlatformCreativeSetVersionColumns holds the columns for the "platform_creative_set_version" table.
+	PlatformCreativeSetVersionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "creativeSetId", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "revision", Type: field.TypeInt},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"autosave", "named", "restore", "duplicate"}},
+		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "document", Type: field.TypeJSON},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// PlatformCreativeSetVersionTable holds the schema information for the "platform_creative_set_version" table.
+	PlatformCreativeSetVersionTable = &schema.Table{
+		Name:       "platform_creative_set_version",
+		Columns:    PlatformCreativeSetVersionColumns,
+		PrimaryKey: []*schema.Column{PlatformCreativeSetVersionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformcreativesetversion_creativeSetId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{PlatformCreativeSetVersionColumns[1], PlatformCreativeSetVersionColumns[8]},
+			},
+		},
+	}
 	// ProductProfileColumns holds the columns for the "product_profile" table.
 	ProductProfileColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -2304,6 +2356,8 @@ var (
 		OrganizationEnterpriseSettingsTable,
 		OutboxEventTable,
 		PageKnowledgeTable,
+		PlatformCreativeSetTable,
+		PlatformCreativeSetVersionTable,
 		ProductProfileTable,
 		ProductSurfaceTable,
 		ProjectTable,
@@ -2474,6 +2528,12 @@ func init() {
 	}
 	PageKnowledgeTable.Annotation = &entsql.Annotation{
 		Table: "page_knowledge",
+	}
+	PlatformCreativeSetTable.Annotation = &entsql.Annotation{
+		Table: "platform_creative_set",
+	}
+	PlatformCreativeSetVersionTable.Annotation = &entsql.Annotation{
+		Table: "platform_creative_set_version",
 	}
 	ProductProfileTable.Annotation = &entsql.Annotation{
 		Table: "product_profile",

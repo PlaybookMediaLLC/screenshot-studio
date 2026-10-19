@@ -28,16 +28,20 @@ export async function prepareSlideLayers(
   size: PixelSize,
   locale: string,
   services: { measurer: TextMeasurer; resolveAsset: AssetResolver },
-  options: { signal?: AbortSignal; onProgress?: (done: number, total: number) => void } = {}
+  options: { signal?: AbortSignal; strict?: boolean; onProgress?: (done: number, total: number) => void } = {}
 ): Promise<SlideLayers[]> {
   const layers: SlideLayers[] = []
   const total = slideIndices.length * 3
   let done = 0
   for (const index of slideIndices) {
     const scene = evaluateSlide(document, index, { size, targetId: 'animation', locale, measurer: services.measurer })
+    if (options.strict) {
+      const clipped = scene.nodes.find((node) => node.type === 'text' && (node.overflow || node.box.x < 0 || node.box.y < 0 || node.box.x + node.box.width > scene.width || node.box.y + node.box.height > scene.height))
+      if (clipped) throw new Error(`Text ${clipped.layerId} clips in this animation size. Adjust its copy, size or placement.`)
+    }
     const rendered = {} as SlideLayers
     for (const layer of animationLayerSchema.options) {
-      rendered[layer] = await renderSceneToCanvas(scene, services.resolveAsset, { signal: options.signal, only: layer })
+      rendered[layer] = await renderSceneToCanvas(scene, services.resolveAsset, { signal: options.signal, only: layer, strict: options.strict })
       done += 1
       options.onProgress?.(done, total)
     }

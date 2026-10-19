@@ -52,6 +52,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -756,6 +758,32 @@ func init() {
 	pageknowledge.DefaultUpdatedAt = pageknowledgeDescUpdatedAt.Default.(func() time.Time)
 	// pageknowledge.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	pageknowledge.UpdateDefaultUpdatedAt = pageknowledgeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	platformcreativesetFields := schema.PlatformCreativeSet{}.Fields()
+	_ = platformcreativesetFields
+	// platformcreativesetDescRevision is the schema descriptor for revision field.
+	platformcreativesetDescRevision := platformcreativesetFields[5].Descriptor()
+	// platformcreativeset.DefaultRevision holds the default value on creation for the revision field.
+	platformcreativeset.DefaultRevision = platformcreativesetDescRevision.Default.(int)
+	// platformcreativesetDescArchived is the schema descriptor for archived field.
+	platformcreativesetDescArchived := platformcreativesetFields[6].Descriptor()
+	// platformcreativeset.DefaultArchived holds the default value on creation for the archived field.
+	platformcreativeset.DefaultArchived = platformcreativesetDescArchived.Default.(bool)
+	// platformcreativesetDescCreatedAt is the schema descriptor for created_at field.
+	platformcreativesetDescCreatedAt := platformcreativesetFields[9].Descriptor()
+	// platformcreativeset.DefaultCreatedAt holds the default value on creation for the created_at field.
+	platformcreativeset.DefaultCreatedAt = platformcreativesetDescCreatedAt.Default.(func() time.Time)
+	// platformcreativesetDescUpdatedAt is the schema descriptor for updated_at field.
+	platformcreativesetDescUpdatedAt := platformcreativesetFields[10].Descriptor()
+	// platformcreativeset.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	platformcreativeset.DefaultUpdatedAt = platformcreativesetDescUpdatedAt.Default.(func() time.Time)
+	// platformcreativeset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	platformcreativeset.UpdateDefaultUpdatedAt = platformcreativesetDescUpdatedAt.UpdateDefault.(func() time.Time)
+	platformcreativesetversionFields := schema.PlatformCreativeSetVersion{}.Fields()
+	_ = platformcreativesetversionFields
+	// platformcreativesetversionDescCreatedAt is the schema descriptor for created_at field.
+	platformcreativesetversionDescCreatedAt := platformcreativesetversionFields[8].Descriptor()
+	// platformcreativesetversion.DefaultCreatedAt holds the default value on creation for the created_at field.
+	platformcreativesetversion.DefaultCreatedAt = platformcreativesetversionDescCreatedAt.Default.(func() time.Time)
 	productprofileFields := schema.ProductProfile{}.Fields()
 	_ = productprofileFields
 	// productprofileDescSummary is the schema descriptor for summary field.

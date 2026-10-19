@@ -35,6 +35,7 @@ services:
       FIGMA_CLIENT_ID: ${FIGMA_CLIENT_ID:-}
       FIGMA_CLIENT_SECRET: ${FIGMA_CLIENT_SECRET:-}
       PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
+      PLATFORM_CREATIVE_SETS: ${PLATFORM_CREATIVE_SETS:-internal}
       PLATFORM_CONTENT_DRAFTS: ${PLATFORM_CONTENT_DRAFTS:-enabled}
       # The browser connects to the collaboration server directly. Only the
       # backend holds the collaboration secrets.
@@ -166,6 +167,7 @@ services:
       DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
+      PLATFORM_CREATIVE_SETS: ${PLATFORM_CREATIVE_SETS:-internal}
       SOCIAL_API_URL: ${SOCIAL_API_URL:-http://screenshot-studio-backend:3000/public/v1}
       # Set by bin/social-gate for its isolated Go destination.
       SOCIAL_API_KEY_GATE: ${SOCIAL_API_KEY_GATE:-}
@@ -351,6 +353,7 @@ services:
       PLATFORM_MCP_URL: http://localhost:3100/mcp
       PLATFORM_QUOTA_REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
+      PLATFORM_CREATIVE_SETS: ${PLATFORM_CREATIVE_SETS:-internal}
       R2_ENDPOINT: ${R2_ENDPOINT:-http://rustfs:9000}
       R2_BROWSER_ENDPOINT: http://localhost:9003
       R2_REGION: ${R2_REGION:-us-east-1}

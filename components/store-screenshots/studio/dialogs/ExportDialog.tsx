@@ -17,6 +17,7 @@ import { useStudioActions } from '../actions'
 import { useEditor } from '../editor-store'
 import { SlideThumbnail } from '../SlideThumbnail'
 import type { DialogProps } from './BasicDialogs'
+import type { StoreDocument } from '@/lib/store-screenshots/document/schema'
 
 /**
  * The export workflow: choose stores, sizes, format, languages, slides, and
@@ -50,10 +51,14 @@ function defaults(slideIds: string[], sourceLocale: string): ExportSettings {
 }
 
 /** The export dialog. */
-export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Element {
+export function ExportDialog({ open, onOpenChange, strict = false, beforeExport, onExport }: DialogProps & {
+  strict?: boolean
+  beforeExport?: (document: StoreDocument) => Promise<void>
+  onExport?: (outputs: ExportOutput[], document: StoreDocument, signal: AbortSignal) => Promise<void>
+}): React.JSX.Element {
   const actions = useStudioActions()
   const document = useEditor((state) => state.document)
-  const { measurer, resolveAsset, whenAssetsReady } = useRenderServices()
+  const { measurer, resolveAsset, whenAssetsReady, fontsVersion } = useRenderServices()
   const allSlideIds = document.slides.map((slide) => slide.id)
   const [settings, setSettings] = React.useState<ExportSettings>(() => {
     const base = defaults(allSlideIds, document.localization.sourceLocale)
@@ -79,7 +84,9 @@ export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
         (index, target, sizeIndex, orientation, locale) =>
           evaluateSlide(document, index, { size: targetPixelSize(target, sizeIndex, orientation), targetId: target.id, locale, measurer })
       ),
-    [document, settings, measurer]
+    // Font readiness changes measured geometry without changing the measurer function.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [document, settings, measurer, fontsVersion]
   )
   const counts = countIssues(issues)
 
@@ -110,17 +117,25 @@ export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
     setProgress({ done: 0, total: files.length, current: files[0] ?? null })
     try {
       await whenAssetsReady(Object.keys(document.assets))
+      await beforeExport?.(document)
+      if (strict) {
+        const checked = runChecks(document, { targets: settings.targets, format: settings.format, locales: settings.locales, slideIds: settings.slideIds },
+          (index, target, sizeIndex, orientation, locale) => evaluateSlide(document, index, { size: targetPixelSize(target, sizeIndex, orientation), targetId: target.id, locale, measurer }))
+        const blocked = checked.filter((issue) => ['overflow', 'clipped', 'empty-device', 'translation-missing', 'translation-outdated'].includes(issue.code))
+        if (blocked.length) throw new Error(blocked.map((issue) => issue.message).join(' '))
+      }
       const job = await runExportJob(
         files,
         async (file, signal) => {
           const target = getStoreTarget(file.targetId)!
           const scene = evaluateSlide(document, file.slideIndex, { size: targetPixelSize(target, file.sizeIndex, file.orientation), targetId: file.targetId, locale: file.locale, measurer })
-          const canvas = await renderSceneToCanvas(scene, resolveAsset, { signal })
+          const canvas = await renderSceneToCanvas(scene, resolveAsset, { signal, strict })
           return encodeCanvas(canvas, file.format, file.quality)
         },
         { signal: controller.signal, onProgress: setProgress }
       )
-      if (job.outputs.length && settings.packaging === 'zip') {
+      if (onExport && job.failures.length === 0) await onExport(job.outputs, document, controller.signal)
+      else if (!onExport && job.outputs.length && settings.packaging === 'zip') {
         setProgress({ done: files.length, total: files.length, current: null })
         const zip = await zipOutputs(job.outputs, controller.signal)
         downloadBlob(zip, `${slugify(settings.prefix || document.name)}-store-screenshots.zip`)

@@ -113,6 +113,8 @@ const calloutSchema = z.object({
     connector: z.boolean(),
     shadow: dropShadow,
     shape: calloutShapeSchema,
+    /** Corner radius as a fraction of the shorter side; omitted preserves the original rounding. */
+    radius: z.number().min(0).max(0.5).optional(),
     /**
      * Centre of the magnified region, as fractions of the screenshot itself,
      * so the callout follows the screenshot when it moves, scales, or is

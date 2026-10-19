@@ -1,3 +1,4 @@
+import { creativeSetRouter } from './routers/creative-set'
 import 'server-only'
 
 import { router } from './init'
@@ -47,6 +48,7 @@ export const appRouter = router({
   productProfile: productProfileRouter,
   productSurface: productSurfaceRouter,
   project: projectRouter,
+  creativeSet: creativeSetRouter,
   release: releaseRouter,
   scheduledPost: scheduledPostRouter,
   shareLink: shareLinkRouter,

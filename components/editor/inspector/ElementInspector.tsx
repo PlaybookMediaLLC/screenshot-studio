@@ -208,6 +208,17 @@ function CalloutFields({ element, update }: { element: ElementOf<'callout'>; upd
         options={choices(calloutShapeSchema.options)}
         value={props.shape}
       />
+      {props.shape === 'rounded' ? (
+        <Slider
+          label="Corner radius"
+          max={0.5}
+          min={0}
+          onValueChange={([radius]) => update({ props: { radius } })}
+          step={0.01}
+          value={[props.radius ?? 0.12]}
+          valueDisplay={percent((props.radius ?? 0.12) * 2)}
+        />
+      ) : null}
       <ColorField label="Border" onChange={(borderColor) => update({ props: { borderColor } })} value={props.borderColor} />
       <Slider
         label="Border width"

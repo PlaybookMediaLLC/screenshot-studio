@@ -70,10 +70,11 @@ function AssetPreview({ asset }: { asset: AssetSummary }) {
   const ref = useRef<HTMLDivElement>(null)
   const [url, setUrl] = useState<string | null>(null)
   const isVideo = asset.mediaType.startsWith('video/')
+  const isFont = asset.mediaType.startsWith('font/')
 
   useEffect(() => {
     const element = ref.current
-    if (!element) return
+    if (!element || isFont) return
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return
@@ -87,14 +88,14 @@ function AssetPreview({ asset }: { asset: AssetSummary }) {
     )
     observer.observe(element)
     return () => observer.disconnect()
-  }, [asset.id, trpcClient])
+  }, [asset.id, trpcClient, isFont])
 
   return (
     <div
       className="relative grid aspect-[16/10] place-items-center overflow-hidden bg-[radial-gradient(circle_at_center,#1a1a1a,#0c0c0c)]"
       ref={ref}
     >
-      {url && isVideo ? (
+      {isFont ? <span className="text-4xl text-neutral-400" aria-label="Font file">Aa</span> : url && isVideo ? (
         <video className="size-full object-contain" muted preload="metadata" src={url} />
       ) : url ? (
         // A signed, short-lived storage URL, so a plain img: next/image would cache it.

@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { toast } from 'sonner'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -58,6 +59,7 @@ import { AccountMenu } from '@/components/auth/AccountMenu'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { hasVisibleMockups, shouldRenderSourceImage } from '@/lib/device-mockups/layouts'
 import { removeScreenshot } from '@/lib/editor/remove-screenshot'
+import { validateImageFile } from '@/lib/editor/import-images'
 import { hasMotionContent } from '@/lib/animation/motion-schema'
 
 /** A quiet square toolbar button with a tooltip; `active` marks a toggled tool. */
@@ -309,13 +311,19 @@ export function EditorHeader() {
           {slides.length > 0 && !isMobile ? (
             <label className="inline-flex shrink-0 cursor-pointer">
               <input
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp"
+                aria-label="Add slides"
                 className="hidden"
                 multiple
                 onChange={(e) => {
-                  if (e.target.files?.length) {
-                    useImageStore.getState().addImages(Array.from(e.target.files))
-                  }
+                  const files = Array.from(e.target.files ?? [])
+                  e.target.value = ''
+                  const accepted = files.filter((file) => {
+                    const error = validateImageFile(file)
+                    if (error) toast.error(error)
+                    return !error
+                  })
+                  if (accepted.length) useImageStore.getState().addImages(accepted)
                 }}
                 type="file"
               />

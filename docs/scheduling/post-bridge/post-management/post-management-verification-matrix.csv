@@ -1,0 +1,79 @@
+id,surface,scenario,classification,result,limit
+PM-001,Routing,Main navigation routes,observed,Six management routes mapped in report,
+PM-002,Routing,Team navigation routes,observed,Calendar and Scheduled omit /posts prefix,
+PM-003,Routing,Workspace switch,executed,Selecting inspected team opens team create chooser,Equivalent current route not retained
+PM-004,All,Main empty state,observed,No posts; Create Post link,
+PM-005,Posted,Main empty state,observed,Generic no-posts state,
+PM-006,Scheduled,Main empty state,observed,No scheduled posts; Create Post link,
+PM-007,Drafts,Main empty state,observed,No draft posts; unscheduled/duplication guidance,
+PM-008,Scheduled,Team empty state,observed,No scheduled posts; team Create Post route,
+PM-009,Drafts,Team empty state,observed,No draft posts; team Create Post route,
+PM-010,All,Populated team dataset,observed,"26 loaded text-post cards, Oct22–30 2025, one X account",Not exhaustive database export
+PM-011,Posted,Populated team dataset,observed,26 loaded posted cards; same historical dataset,
+PM-012,Lists,Oldest First sorting,executed,First date changed from Oct30 to Oct22; count stayed26,
+PM-013,Lists,Today date filter,executed,Historical list reduced to zero; filters remained,No explicit no-matches message observed
+PM-014,Lists,Restore All Time,executed,Historical cards returned,
+PM-015,Lists,Custom Range controls,executed,Two native date inputs exposed,Range application and inclusivity untested
+PM-016,Lists,Trial filter options,observed,All Posts / Trial Reels / Non-Trial,Not a status filter
+PM-017,Lists,Account filter,executed,Search field; one X account option,Option derivation unknown
+PM-018,Lists,URL serialization,observed,Tested sort/date changes did not add query parameters,Reload persistence unknown
+PM-019,Lists,Refresh posts,observed,Control visible,Not clicked
+PM-020,Lists,Pagination and scroll,observed,26 DOM cards; internal scrolling; no visible pager,Loading strategy unknown
+PM-021,Posted,Card detail navigation,executed,Team /create/{postId} result route opened,
+PM-022,Posted,Success detail,observed,"Account Success, View post link, caption, More post info",External link and info control not opened
+PM-023,Posted,Edit/delete/duplicate on result,observed,No such actions visible on inspected result,Does not establish all result variants
+PM-024,Posted,Create a new post,executed,CONFIRMED PM-B01: team result action navigated to Main,Screenshot: posted-new-post-workspace-reset.jpg
+PM-025,Calendar,Month grid,observed,Sunday-first; overflow dates; current day highlighted,
+PM-026,Calendar,Switch Week,executed,Week range shown; ?view=week; week arrows,
+PM-027,Calendar,Switch Month,executed,Month grid; ?view=month; month arrows,
+PM-028,Calendar,Retained view,observed,Week restored after navigation/workspace change,Storage implementation unknown
+PM-029,Calendar,Period navigation,executed,Previous month 12 times displayed October2025,Period not encoded in URL
+PM-030,Calendar,Return to calendar,executed,Current month displayed on return,Global expansion state retained in tested sequence
+PM-031,Calendar,Past/today/future day controls,observed,Add note all current-month dates; create only today/future,
+PM-032,Calendar,Overflow cells,observed,No note/create controls in inspected overflow cells,
+PM-033,Calendar,Schedule Post chooser,executed,Text/Image/Video/Story/Pick from Drafts options,
+PM-034,Calendar,Draft picker,executed,"Selected date, Back, No drafts found",Populated picker untested
+PM-035,Calendar,Date-to-text composer,executed,?date=2026-10-15; schedule checked;12PM local,No persistence
+PM-036,Calendar,Open note form,executed,"Date, title, six colors, Cancel, Add Event",
+PM-037,Calendar,Empty note validation,observed,Add Event disabled,
+PM-038,Calendar,Title and color selection,executed,Nonempty title enabled submit; Purple selected,Whitespace/length validation untested
+PM-039,Calendar,Cancel note,executed,Dialog closed; event not submitted,
+PM-040,Calendar,Historical posted records,observed,Same26 posted records shown despite scheduled-only subtitle,
+PM-041,Calendar,Collapsed day limit,observed,Two posts/day visible; +1more on three-post days;18links,
+PM-042,Calendar,Expand one day,executed,19visible links; Show less,
+PM-043,Calendar,Global Show all,executed,26links; Showing all; per-day expand controls removed,
+PM-044,Calendar,Reset global expansion,executed,Button returned to Show all,
+PM-045,Calendar,Platform menu,executed,Ten named platforms plus All Platforms,Populated filter selection not tested
+PM-046,Calendar,Timezone menu,executed,Eleven labels/IANA zones visible,
+PM-047,Calendar,UK pointer selection,executed,CONFIRMED PM-B02: grid hit target covered timezone; label/times unchanged,Conversion algorithm untested
+PM-048,Calendar,Narrow header layout,observed,Controls overlapped at observed1156px width,No full responsive sweep
+PM-049,Connections,Main account inventory,observed,Five account chips across four providers,
+PM-050,Connections,Team account inventory,observed,20account chips across five providers; team ownership copy,
+PM-051,Connections,Allowance,observed,Main27/99 banner; team banner absent,Aggregation scope unknown
+PM-052,Connections,Connect provider catalog,observed,Ten providers in both inspected workspaces,No OAuth flow started
+PM-053,Connections,Refresh actions,observed,Actions for connected providers,No refresh executed
+PM-054,Connections,Show IDs,observed,"Checkbox available, left off",
+PM-055,Connections,Group dropdown trigger,executed,Adjacent funnel label opens menu; text alone did not,
+PM-056,Connections,Create group form,executed,Name and platform-grouped account checkboxes,No group saved
+PM-057,Connections,Group exclusivity,observed,UI warns reassignment removes prior group membership,Persistence not tested
+PM-058,Connections,Empty group button,observed,Create Group enabled empty,Server/form submission validation unknown
+PM-059,Connections,Cancel group,executed,Form closed without save,
+PM-060,Connections,Invite a client chooser,executed,Nine providers; GoogleBusiness absent,No platform selected or link generated
+PM-061,Connections,Team invitation,observed,No invitation entry visible in team state,Other roles/plans untested
+PM-062,API,Draft representation,documented,is_draft separate from posted/scheduled/processing/failed enum,
+PM-063,API,Scheduled PATCH semantics,documented,Must resend scheduled_at; omission processes immediately,Not executed
+PM-064,API,Delete eligible post,documented,Draft/scheduled only; published excluded,Not executed
+PM-065,API,Post pagination,documented,offset0/limit10; meta total/offset/limit/next,UI query equivalence unknown
+PM-066,API,Public post filters,documented,platform[] OR and status[] OR,UI date/account/trial/sort filters absent from public spec
+PM-067,API,Per-account results,documented,success/error/platform identity; TikTok final video ID can arrive later,No API account request executed
+PM-068,API,Connect link expiry,documented,Default24h;min60s;max7days,No link minted
+PM-069,API,Connect callback and capacity,documented,Return status/platform/account_ids/external_ref; cap can return402,Not executed
+PM-070,API,Account health,documented,needs_reconnect pauses affected Meta destinations; X premium capability,
+PM-071,API,Disconnect,documented,Removes scheduled destination; retains results; last destination removal fails post,Not executed
+PM-072,API,Reconnect after removal,documented,New social account ID,Not executed
+PM-073,Scheduled/Drafts,Populated editing and duplication,untested,No suitable records; requires controlled fixture,
+PM-074,Calendar,Note persistence and edit/delete,untested,Only unsaved form and Cancel tested,
+PM-075,Calendar,Timezone/DST conversion,untested,Selection blocked by menu stacking,
+PM-076,Connections,Group save/reassignment,untested,No group mutation performed,
+PM-077,Publishing,Delivery and partial failure,untested,No post submitted; no processing/failed dataset,
+PM-078,Connections,Authorization and role isolation,untested,No authorization or permission change performed,

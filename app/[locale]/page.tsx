@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { EditorLayout } from '@/components/editor/EditorLayout'
+import { EditorWorkspace } from '@/components/platform-shell/EditorWorkspace'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { FAQ } from '@/components/landing/FAQ'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
@@ -102,7 +102,7 @@ export default async function EditorPage({ params }: EditorPageProps) {
       variant="editor"
     >
       <ErrorBoundary>
-        <EditorLayout />
+        <EditorWorkspace />
       </ErrorBoundary>
       <AgentSummary />
       <FAQ />

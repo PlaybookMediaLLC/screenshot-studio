@@ -246,6 +246,7 @@ schedule.
 30. Store provider verification ([036](docs/rfcs/036-store-provider-e2e-verification.md)): fake Google Play, App Store Connect, Figma, and AI providers on every PR; live runs against test accounts nightly.
 31. Workspaces and content drafts ([037](docs/rfcs/037-workspaces-and-content-drafts.md)): npm workspaces, the vendored Plate.js editor, manual drafts scheduled to several channels, and real-time co-editing.
 32. MCP server and agent integrations ([038](docs/rfcs/038-mcp-and-agent-integrations.md)): Shots tools on the Go MCP server with workspace API keys and OAuth, schemas from `/openapi.json`, and setup guides for Claude, ChatGPT, and coding agents.
+33. Scheduling feature priorities ([039](docs/rfcs/039-scheduling-feature-priorities.md)): more channels with their per-channel options, bulk scheduling into the queue, an analytics dashboard, review and failure mail, and a month calendar, in that order.
 
 ## Where this goes
 

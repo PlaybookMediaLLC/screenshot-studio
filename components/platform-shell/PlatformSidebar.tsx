@@ -37,6 +37,7 @@ import {
   PanelsTopLeft,
   Share2,
   Code2,
+  Bell,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -66,6 +67,7 @@ const SETTINGS_ICONS: Record<SettingId, IconComponent> = {
   audit: ScrollText,
   brand: Palette,
   integrations: Plug,
+  notifications: Bell,
   agents: Bot,
   sharing: Link2,
   product: Package,

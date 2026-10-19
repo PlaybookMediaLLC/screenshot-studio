@@ -44,7 +44,7 @@ export function SegmentedControl({
       aria-label={ariaLabel}
       className={cn(
         'relative flex w-full overflow-hidden border border-foreground/10 bg-foreground/[0.04]',
-        size === 'sm' ? 'h-8 p-0.5 rounded-md max-[768px]:h-11' : 'h-9 p-0.5 rounded-md max-[768px]:h-11',
+        size === 'sm' ? 'h-8 p-0.5 rounded-md max-lg:h-[50px]' : 'h-9 p-0.5 rounded-md max-lg:h-[50px]',
         className
       )}
     >

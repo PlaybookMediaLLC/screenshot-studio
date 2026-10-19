@@ -281,6 +281,7 @@ export const TOOLS: ToolDefinition[] = [
       "Drag a selection over your image or type exact pixel values. Ratio presets cover square, 16:9, 4:3, and the common social sizes, and the crop is applied at full source resolution.",
     features: [
       "Drag to select, or enter exact pixel coordinates",
+      "Freehand mode: draw around any shape and get a transparent cutout",
       "Ratio presets: free, square, 16:9, 4:3, 3:2, 9:16",
       "Cropped at full source resolution, not preview resolution",
       "Live output dimensions as you drag",

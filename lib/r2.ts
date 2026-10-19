@@ -49,15 +49,19 @@ function mapR2PathToLocal(path: string): string {
  * @returns The proxied URL path or local public path
  */
 export function getR2PublicUrl(path: string): string {
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+
+  // Keep the editor's bundled default available even when the R2 proxy fails.
+  if (cleanPath === 'backgrounds/raycast/red_distortion_4.webp') {
+    return mapR2PathToLocal(cleanPath);
+  }
+
   const publicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
 
   if (!publicUrl) {
     // Fall back to local public/ directory with path mapping
     return mapR2PathToLocal(path);
   }
-
-  // Remove leading slash from path if present
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
 
   // Use same-origin proxy to avoid CORS issues with canvas capture
   return `/r2-assets/${cleanPath}`;

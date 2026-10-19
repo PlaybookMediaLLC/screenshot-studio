@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.21.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.21.0...v2.21.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **editor:** integrate App Store studio and preserve editing state ([#204](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/204)) ([f11ed22](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/f11ed2227241d3384577997c81038673a1510ceb))
+
 ## [2.21.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.20.0...v2.21.0) (2026-10-18)
 
 

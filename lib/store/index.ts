@@ -1480,6 +1480,7 @@ export const useImageStore = create<ImageState>()(
         }))
 
         const allSlides = [...slides, ...newSlides]
+        const activeSlide = allSlides.find((slide) => slide.id === get().activeSlideId) ?? allSlides[0]
 
         // Calculate total slideshow duration based on slides and their durations
         const totalSlideDuration = allSlides.reduce((sum, slide) => sum + slide.duration * 1000, 0)
@@ -1487,9 +1488,9 @@ export const useImageStore = create<ImageState>()(
 
         set({
           slides: allSlides,
-          activeSlideId: get().activeSlideId ?? newSlides[0]?.id ?? null,
-          uploadedImageUrl: allSlides[0]?.src ?? null,
-          imageName: allSlides[0]?.name ?? null,
+          activeSlideId: activeSlide?.id ?? null,
+          uploadedImageUrl: activeSlide?.src ?? null,
+          imageName: activeSlide?.name ?? null,
           // Auto-show timeline when multiple slides are added
           showTimeline: allSlides.length > 1 ? true : get().showTimeline,
           // Extend timeline to fit all slides

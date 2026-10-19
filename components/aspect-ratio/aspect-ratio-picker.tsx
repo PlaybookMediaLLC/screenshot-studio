@@ -147,27 +147,33 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
   };
 
   return (
-    <div className="p-3 max-h-[70vh] overflow-y-auto">
+    <div className="p-5 lg:p-3 lg:max-h-[70vh] lg:overflow-y-auto">
       <div className="flex items-center gap-2 mb-4">
-        <div className="flex items-center gap-1.5 flex-1">
-          <label className="text-xs text-muted-foreground font-medium shrink-0">W</label>
+        <label className="flex min-w-0 items-center gap-1.5 flex-1">
+          <span className="text-xs text-muted-foreground font-medium shrink-0">W</span>
           <input
+            aria-label="Canvas width"
+            inputMode="numeric"
+            min={1}
             type="number"
             value={customW}
             onChange={(e) => setCustomW(e.target.value)}
             className="w-full h-8 bg-foreground/[0.04] border border-foreground/10 rounded-md px-2 text-xs text-foreground focus:outline-none focus:border-foreground/25 focus:ring-1 focus:ring-foreground/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
-        </div>
+        </label>
         <span className="text-xs text-muted-foreground">×</span>
-        <div className="flex items-center gap-1.5 flex-1">
-          <label className="text-xs text-muted-foreground font-medium shrink-0">H</label>
+        <label className="flex min-w-0 items-center gap-1.5 flex-1">
+          <span className="text-xs text-muted-foreground font-medium shrink-0">H</span>
           <input
+            aria-label="Canvas height"
+            inputMode="numeric"
+            min={1}
             type="number"
             value={customH}
             onChange={(e) => setCustomH(e.target.value)}
             className="w-full h-8 bg-foreground/[0.04] border border-foreground/10 rounded-md px-2 text-xs text-foreground focus:outline-none focus:border-foreground/25 focus:ring-1 focus:ring-foreground/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
-        </div>
+        </label>
         <button
           onClick={handleSetCustom}
           disabled={!isCustomChanged}
@@ -193,6 +199,7 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
             return (
               <button
                 key={id}
+                aria-pressed={isSelected}
                 onClick={() => handleSelect(id)}
                 className={cn(
                   'flex flex-col items-center justify-between rounded-md p-2 cursor-pointer transition-all border',
@@ -237,6 +244,7 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
                 return (
                   <button
                     key={`${section.name}-${preset.label}`}
+                    aria-pressed={isSelected}
                     onClick={() => handleSelect(preset.id)}
                     className={cn(
                       'flex flex-col items-center justify-between rounded-md p-2 cursor-pointer transition-all border',

@@ -109,6 +109,16 @@ func SkipPrereleases(v bool) predicate.SourceApp {
 	return predicate.SourceApp(sql.FieldEQ(FieldSkipPrereleases, v))
 }
 
+// ReleaseAutomation applies equality check predicate on the "release_automation" field. It's identical to ReleaseAutomationEQ.
+func ReleaseAutomation(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldReleaseAutomation, v))
+}
+
+// AutomationCollectUnmatched applies equality check predicate on the "automation_collect_unmatched" field. It's identical to AutomationCollectUnmatchedEQ.
+func AutomationCollectUnmatched(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldAutomationCollectUnmatched, v))
+}
+
 // GithubInstallationID applies equality check predicate on the "github_installation_id" field. It's identical to GithubInstallationIDEQ.
 func GithubInstallationID(v string) predicate.SourceApp {
 	return predicate.SourceApp(sql.FieldEQ(FieldGithubInstallationID, v))
@@ -637,6 +647,26 @@ func SkipPrereleasesEQ(v bool) predicate.SourceApp {
 // SkipPrereleasesNEQ applies the NEQ predicate on the "skip_prereleases" field.
 func SkipPrereleasesNEQ(v bool) predicate.SourceApp {
 	return predicate.SourceApp(sql.FieldNEQ(FieldSkipPrereleases, v))
+}
+
+// ReleaseAutomationEQ applies the EQ predicate on the "release_automation" field.
+func ReleaseAutomationEQ(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldReleaseAutomation, v))
+}
+
+// ReleaseAutomationNEQ applies the NEQ predicate on the "release_automation" field.
+func ReleaseAutomationNEQ(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNEQ(FieldReleaseAutomation, v))
+}
+
+// AutomationCollectUnmatchedEQ applies the EQ predicate on the "automation_collect_unmatched" field.
+func AutomationCollectUnmatchedEQ(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldAutomationCollectUnmatched, v))
+}
+
+// AutomationCollectUnmatchedNEQ applies the NEQ predicate on the "automation_collect_unmatched" field.
+func AutomationCollectUnmatchedNEQ(v bool) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNEQ(FieldAutomationCollectUnmatched, v))
 }
 
 // GithubInstallationIDEQ applies the EQ predicate on the "github_installation_id" field.

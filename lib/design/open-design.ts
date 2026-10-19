@@ -60,7 +60,7 @@ export function applyStoredDocument(
   trpcClient: TRPCClient<AppRouter>,
   document: DesignDocument,
   history: DesignHistoryMode = 'clear',
-  options: { replace?: boolean } = {}
+  options: { replace?: boolean; signal?: AbortSignal } = {}
 ): Promise<Record<string, string>> {
   // One at a time: two applies in flight would interleave their writes and steps.
   const run = applying.then(() => applyNow(trpcClient, document, history, options))
@@ -75,15 +75,17 @@ async function applyNow(
   trpcClient: TRPCClient<AppRouter>,
   document: DesignDocument,
   history: DesignHistoryMode,
-  { replace = false }: { replace?: boolean }
+  { replace = false, signal }: { replace?: boolean; signal?: AbortSignal }
 ): Promise<Record<string, string>> {
   const sources = await fetchDesignSources(trpcClient, document)
+  signal?.throwIfAborted()
   const resolve = (ref: string) => sources[ref] ?? ref
   const step = history === 'step' ? beginHistoryStep() : null
   if (replace && !document.image.src) useImageStore.getState().clearImage()
   applyDesignDocument(document, resolve, history)
   const preset = getAspectRatioPreset(useImageStore.getState().selectedAspectRatio)
   const canvas = await waitForSettledCanvas(preset ? preset.width / preset.height : null)
+  signal?.throwIfAborted()
   applyDesignLayout(document, resolve, canvas, history)
   if (step) endHistoryStep(step)
   return sources

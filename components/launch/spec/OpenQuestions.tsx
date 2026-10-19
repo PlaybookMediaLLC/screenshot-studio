@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Group, Section } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
 import { type ReleaseSpecContent, SPEC_SECTION_LABELS } from '@/lib/launch/spec-schema'
+import { Textarea } from '@/components/ui/textarea'
 
 type Question = ReleaseSpecContent['openQuestions'][number]
 
@@ -67,7 +68,7 @@ export function OpenQuestions({
                 <p className="text-xs leading-5 text-neutral-500">{question.reason}</p>
               ) : null}
               {editable ? (
-                <textarea
+                <Textarea
                   aria-label={`Answer: ${question.question}`}
                   className="mt-1 min-h-10 w-full rounded-lg bg-white/[0.03] px-3 py-2 text-sm text-neutral-100 ring-1 ring-white/[0.08] outline-none [field-sizing:content] placeholder:text-neutral-600 focus:ring-white/25"
                   maxLength={1_000}

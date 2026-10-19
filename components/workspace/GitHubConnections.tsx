@@ -9,6 +9,13 @@ import { Input } from '@/components/ui/input'
 import { githubChoiceStateSchema, githubChoicesParamSchema } from '@/lib/tenant/github-choices'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
+import {
+  Select as UiSelect,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 type Connection = {
   accountLogin: string
@@ -33,9 +40,7 @@ const selectClass =
   'h-10 w-full rounded-lg border border-white/10 bg-transparent px-3 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-white/20'
 
 /**
- * Connect GitHub App installations and pick repositories to watch. Merges into
- * a watched branch wait for the next published release, which arrives with
- * its notes, features, and screenshots.
+ * Connect GitHub App installations and select workspace repository sources.
  */
 export function GitHubConnections() {
   const trpcClient = useTRPCClient()
@@ -72,7 +77,7 @@ export function GitHubConnections() {
 
   return (
     <Section
-      description="Watch repositories: merges into a branch wait for your next GitHub release, which arrives with its notes, features, and screenshots."
+      description="Connect an installation and choose repositories. Legacy intake holds merged PRs for a published release; Release Automation can define a different release trigger."
       title="GitHub"
     >
       {outcome && OUTCOMES[outcome] ? (
@@ -91,6 +96,13 @@ export function GitHubConnections() {
           </Row>
         ) : (
           <>
+            {state.connections.length === 0 ? (
+              <Row>
+                <p className="text-sm text-muted-foreground">
+                  No GitHub installation is connected to this workspace.
+                </p>
+              </Row>
+            ) : null}
             {state.connections.map((connection) => (
               <ConnectionRow
                 connection={connection}
@@ -189,7 +201,7 @@ function ConnectionRow({
         provider: 'github',
       })
       setMessage(
-        `Watching ${repository.fullName} on ${branch.trim() || repository.defaultBranch}. Its recent releases and merges are being imported.`
+        `Watching ${repository.fullName}. New sources import recent history without running marketing workflows. Reconnected sources keep their existing rules and history.`
       )
       setSelected('')
       setBranch('')
@@ -213,6 +225,13 @@ function ConnectionRow({
           Disconnect {connection.accountLogin}
         </Button>
       </div>
+      {connection.status !== 'ACTIVE' ? (
+        <p className="text-sm text-amber-600">
+          {connection.status === 'SUSPENDED'
+            ? 'Resume this installation in GitHub, then reconnect it here.'
+            : 'Install or link the GitHub App again, then select the repository to restore access.'}
+        </p>
+      ) : null}
       {connection.status !== 'ACTIVE' ? null : repositories === null ? (
         <div>
           <Button onClick={() => void loadRepositories()} size="sm" type="button" variant="outline">
@@ -221,19 +240,24 @@ function ConnectionRow({
         </div>
       ) : (
         <form className="grid gap-3 sm:grid-cols-[1fr_12rem_auto]" onSubmit={watch}>
-          <select
-            aria-label="Repository"
-            className={selectClass}
-            onChange={(event) => setSelected(event.target.value)}
-            value={selected}
+          <UiSelect
+            onValueChange={(nextValue) =>
+              setSelected(nextValue === '__empty_option__' ? '' : nextValue)
+            }
+            value={String(selected) || '__empty_option__'}
           >
-            <option value="">Select a repository</option>
-            {repositories.map((candidate) => (
-              <option key={candidate.id} value={candidate.id}>
-                {candidate.fullName}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger aria-label="Repository" className={selectClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={'__empty_option__'}>Select a repository</SelectItem>
+              {repositories.map((candidate) => (
+                <SelectItem key={candidate.id} value={String(candidate.id)}>
+                  {candidate.fullName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </UiSelect>
           <Input
             aria-label="Branch to watch"
             className="h-10 rounded-lg"

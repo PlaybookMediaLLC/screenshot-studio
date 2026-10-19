@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { draftsApi } from '@/lib/content-drafts/client'
 import { cn } from '@/lib/utils'
 import { LocalTime, useHydrated } from './local-time'
+import { Button } from '@/components/ui/button'
 
 export type DraftListItem = {
   excerpt: string
@@ -163,7 +164,7 @@ function DraftsRail({
                 ? queue.length
                 : drafts.filter((draft) => inTab(draft, item.tab)).length
             return (
-              <button
+              <Button variant="custom" size={null}
                 aria-selected={tab === item.tab}
                 className={cn(
                   'rounded-md px-1 py-1 text-[11px] transition-colors',
@@ -178,13 +179,13 @@ function DraftsRail({
               >
                 {item.label}
                 {count > 0 ? <span className="ml-1 text-neutral-500">{count}</span> : null}
-              </button>
+              </Button>
             )
           })}
         </div>
       </div>
       {canEdit ? (
-        <button
+        <Button variant="custom" size={null}
           className="mx-3 mt-3 flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-neutral-300 transition-colors hover:bg-white/[0.04] hover:text-white disabled:opacity-50"
           disabled={creating}
           onClick={create}
@@ -192,7 +193,7 @@ function DraftsRail({
         >
           <Add01Icon aria-hidden className="size-4" />
           New draft
-        </button>
+        </Button>
       ) : null}
       <nav className="mt-2 min-h-0 flex-1 overflow-y-auto border-t border-white/[0.06]">
         {tab === 'queue' ? (

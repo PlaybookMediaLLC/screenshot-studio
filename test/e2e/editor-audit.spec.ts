@@ -426,7 +426,7 @@ test('Editor and Settings expand inline in the rail and mobile navigation', asyn
   await expect(settings).toHaveAttribute('aria-expanded', 'false')
   await settings.press('Space')
   await expect(settings).toHaveAttribute('aria-expanded', 'true')
-  await expect(settingsLinks.getByRole('link')).toHaveCount(17)
+  await expect(settingsLinks.getByRole('link')).toHaveCount(18)
   await expect(
     settingsLinks.getByRole('link', { name: 'Notifications', exact: true })
   ).toHaveAttribute('href', '/workspace/notifications')

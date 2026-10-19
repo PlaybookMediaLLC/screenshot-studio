@@ -6,6 +6,15 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Group } from '@/components/platform-ui'
 import { CAMPAIGN_STATUSES, CampaignStatusPill, campaignStatusLabel } from './CampaignStatusPill'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 export type CampaignListItem = {
   id: string
@@ -43,35 +52,39 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <label className="relative block w-full md:max-w-64">
+        <Label className="relative block w-full md:max-w-64">
           <span className="sr-only">Search campaigns</span>
           <Search01Icon
             className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500"
             size={15}
           />
-          <input
+          <Input
             className="h-9 w-full rounded-lg bg-white/[0.03] pr-3 pl-9 text-sm text-white ring-1 ring-white/[0.08] outline-none placeholder:text-neutral-600 focus:ring-white/20"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search"
             type="search"
             value={query}
           />
-        </label>
-        <label className="w-full md:w-auto">
+        </Label>
+        <Label className="block w-full md:w-auto">
           <span className="sr-only">Filter by status</span>
-          <select
-            className="h-9 w-full rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none md:w-auto"
-            onChange={(event) => setStatus(event.target.value as CampaignStatus | 'ALL')}
+          <Select
+            onValueChange={(nextValue) => setStatus(nextValue as CampaignStatus | 'ALL')}
             value={status}
           >
-            <option value="ALL">All statuses</option>
-            {CAMPAIGN_STATUSES.map((value) => (
-              <option key={value} value={value}>
-                {campaignStatusLabel(value)}
-              </option>
-            ))}
-          </select>
-        </label>
+            <SelectTrigger className="h-9 w-full rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none md:w-auto">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All statuses</SelectItem>
+              {CAMPAIGN_STATUSES.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {campaignStatusLabel(value)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Label>
       </div>
 
       {visible.length === 0 ? (

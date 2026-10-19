@@ -1,5 +1,7 @@
 "use client";
 
+import { shouldIgnoreEditorShortcut } from "@/lib/editor-shortcuts";
+
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -20,7 +22,7 @@ import {
   Settings02Icon,
   UndoIcon,
 } from "hugeicons-react";
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,15 +32,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+} from '@/components/ui/alert-dialog'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from '@/components/ui/sheet'
 import { MobileBanner } from "@/components/editor/MobileBanner";
 import { StoreExportDialog } from "./StoreExportDialog";
 import {
@@ -89,6 +91,7 @@ import {
 } from "@/lib/store-screenshots/history";
 import { cn } from "@/lib/utils";
 import { showStoreUndoToast } from "./store-undo-toast";
+import { Input } from '@/components/ui/input'
 
 const PAGE_SIZE = 4;
 
@@ -232,7 +235,7 @@ function SlideCard({
 
   return (
     <div className="group relative w-full">
-      <button
+      <Button variant="custom" size={null}
         type="button"
         disabled={disabled}
         onClick={onOpen}
@@ -257,7 +260,7 @@ function SlideCard({
             Edit screenshot
           </span>
         ) : null}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -428,7 +431,7 @@ function StoreOverview({
             </div>
 
             {showStarterChoice && safePage > 0 ? (
-              <button
+              <Button variant="custom" size={null}
                 type="button"
                 onClick={(event) => changePage(safePage - 1, event.detail > 0)}
                 aria-label={`Show screenshots ${Math.max(1, start - PAGE_SIZE + 1)} to ${start}`}
@@ -436,10 +439,10 @@ function StoreOverview({
                 className="absolute -left-14 top-1/2 z-10 hidden h-16 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-xl text-muted-foreground transition-[background-color,color,transform] duration-200 ease-out hover:bg-foreground/[0.08] hover:text-foreground active:scale-[0.97] lg:flex"
               >
                 <ArrowLeft02Icon size={26} strokeWidth={1.8} />
-              </button>
+              </Button>
             ) : null}
             {showStarterChoice && safePage < pages - 1 ? (
-              <button
+              <Button variant="custom" size={null}
                 type="button"
                 onClick={(event) => changePage(safePage + 1, event.detail > 0)}
                 aria-label={`Show screenshots ${start + PAGE_SIZE + 1} to ${Math.min(project.slides.length, start + PAGE_SIZE * 2)}`}
@@ -447,7 +450,7 @@ function StoreOverview({
                 className="absolute -right-14 top-1/2 z-10 hidden h-16 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-xl text-muted-foreground transition-[background-color,color,transform] duration-200 ease-out hover:bg-foreground/[0.08] hover:text-foreground active:scale-[0.97] lg:flex"
               >
                 <ArrowRight02Icon size={26} strokeWidth={1.8} />
-              </button>
+              </Button>
             ) : null}
           </div>
 
@@ -636,7 +639,7 @@ function StoreFocus({
               }}
               className="relative h-14 shrink-0 cursor-grab touch-none select-none active:cursor-grabbing"
             >
-              <button
+              <Button variant="custom" size={null}
                 type="button"
                 aria-label={`Edit screenshot ${index + 1} of ${project.slides.length}`}
                 aria-pressed={slide.id === selectedSlide.id}
@@ -659,9 +662,9 @@ function StoreFocus({
                 )}
               >
                 <StoreSlideCanvas project={project} slide={slide} slideIndex={index} profile={profile} className="h-full w-full" />
-              </button>
+              </Button>
               {slide.id === selectedSlide.id ? (
-                <button
+                <Button variant="custom" size={null}
                   type="button"
                   aria-label={`Delete screenshot ${index + 1}`}
                   title="Delete screenshot"
@@ -675,7 +678,7 @@ function StoreFocus({
                   className="absolute -right-3 -top-3 z-20 flex size-6 cursor-pointer items-center justify-center rounded-full border border-destructive/40 bg-background text-destructive shadow-sm transition-colors hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
                 >
                   <Cancel01Icon size={11} strokeWidth={2.25} />
-                </button>
+                </Button>
               ) : null}
             </Reorder.Item>
           ))}
@@ -915,13 +918,7 @@ export function StoreScreenshotWorkspace({
   React.useEffect(() => {
     const handleHistoryShortcut = (event: KeyboardEvent): void => {
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z") return;
-      const target = event.target;
-      if (target instanceof HTMLElement && (
-        target.isContentEditable
-        || target instanceof HTMLInputElement
-        || target instanceof HTMLTextAreaElement
-        || target instanceof HTMLSelectElement
-      )) return;
+      if (shouldIgnoreEditorShortcut(event)) return;
       event.preventDefault();
       if (event.shiftKey) redo();
       else undo();
@@ -1452,7 +1449,7 @@ export function StoreScreenshotWorkspace({
         ) : null}
       </div>
 
-      <input
+      <Input
         ref={addInputRef}
         type="file"
         multiple

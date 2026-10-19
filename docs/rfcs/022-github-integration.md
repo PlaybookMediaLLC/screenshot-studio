@@ -2,6 +2,7 @@
 
 **Status:** Partially implemented
 **Status note (2026-10-16):** Shipped: the GitHub App, the install handshake, and release backfill. Missing: suggestions.
+**Implementation update (2026-10-19):** [Release automation](../release-automation.md) implements administrator-authored, first-match release definitions and draft/review workflows. Its explicitly activated campaign action supersedes the blanket “never a campaign” statement below for opted-in sources only. Automatic relevance suggestions remain unimplemented; legacy merge collection remains the default.
 **Date:** 2026-08-17
 **Revised:** 2026-10-15
 **Depends on:** RFC 005 and RFC 021
@@ -80,13 +81,13 @@ GitHub has no separate releases permission: the `release` event and every
 release endpoint sit under `Contents: read`. Because merges feed the next
 published release, the App needs it.
 
-Subscribed events: `pull_request` (closed), `release` (published), and the
+Subscribed events: `pull_request` (closed), `release` (published), `deployment_status` (success), and the
 `installation` and `installation_repositories` lifecycle events, which GitHub
 delivers to every App.
 
 Merges arrive as `pull_request` with `action: closed` and `merged: true`, not
-as `push`. A `push` subscription requires `Contents: read`, which this App
-does not request. The consequence is a product promise: the integration
+as `push`. The App requests `Contents: read` for releases but does not subscribe
+to pushes. The consequence is a product promise: the integration
 tracks merged pull requests, not every commit to a branch. A direct push to
 the watched branch produces nothing.
 

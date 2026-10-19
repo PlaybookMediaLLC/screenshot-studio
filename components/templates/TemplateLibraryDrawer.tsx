@@ -12,12 +12,7 @@ import {
   PaintBrush01Icon,
   Video01Icon,
 } from 'hugeicons-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import {
   AnimatedTemplateGallery,
   AnimatedTemplatePreview,
@@ -33,6 +28,7 @@ import {
 import { useImageStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button'
 
 type TemplateFilter = 'all' | 'image' | 'animated';
 type TemplateSelection =
@@ -118,26 +114,26 @@ function TemplateDetail({
       className="flex min-h-0 flex-1 flex-col"
     >
       <div className="grid shrink-0 grid-cols-[44px_1fr_44px] lg:grid-cols-[40px_1fr_40px] items-center border-b border-foreground/10 px-3 py-3">
-        <button
+        <Button variant="custom" size={null}
           type="button"
           onClick={onBack}
           aria-label="Back to templates"
           className="flex size-11 lg:size-9 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
         >
           <ArrowLeft01Icon size={18} />
-        </button>
+        </Button>
         <div className="min-w-0 text-center">
           <SheetTitle className="truncate text-base leading-6">{name}</SheetTitle>
           <SheetDescription className="sr-only">Preview and apply the {name} template.</SheetDescription>
         </div>
-        <button
+        <Button variant="custom" size={null}
           type="button"
           onClick={onClose}
           aria-label="Close templates"
           className="flex size-11 lg:size-9 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
         >
           <Cancel01Icon size={17} />
-        </button>
+        </Button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 scrollbar-hide">
@@ -164,14 +160,14 @@ function TemplateDetail({
       </div>
 
       <div className="shrink-0 border-t border-foreground/10 bg-background/95 px-5 pb-5 pt-4 backdrop-blur-md">
-        <button
+        <Button variant="custom" size={null}
           type="button"
           onClick={handleApply}
           className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-5 text-sm font-semibold text-background outline-none transition-[opacity,transform] duration-150 ease-out hover:opacity-90 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <MagicWand01Icon size={16} />
           Use Template
-        </button>
+        </Button>
         <p className="mx-auto mt-3 max-w-sm text-center text-[11px] leading-4 text-muted-foreground">
           This replaces the current design and animation. Your uploaded media stays.
         </p>
@@ -259,14 +255,14 @@ export function TemplateLibraryDrawer() {
                 <SheetDescription className="sr-only">
                   Browse image and animated templates.
                 </SheetDescription>
-                <button
+                <Button variant="custom" size={null}
                   type="button"
                   onClick={() => handleOpenChange(false)}
                   aria-label="Close templates"
                   className="flex size-11 lg:size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30"
                 >
                   <Cancel01Icon size={17} />
-                </button>
+                </Button>
               </div>
 
               <div className="shrink-0 border-b border-foreground/10 px-5 py-3">
@@ -278,7 +274,7 @@ export function TemplateLibraryDrawer() {
                   {FILTERS.map((item) => {
                     const selected = filter === item.id;
                     return (
-                      <button
+                      <Button variant="custom" size={null}
                         key={item.id}
                         id={`${tabListId}-${item.id}-tab`}
                         type="button"
@@ -298,7 +294,7 @@ export function TemplateLibraryDrawer() {
                       >
                         {item.icon}
                         {item.label}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>

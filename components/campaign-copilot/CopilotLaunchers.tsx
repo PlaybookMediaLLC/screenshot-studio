@@ -5,6 +5,8 @@ import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { CampaignCopilot } from './CampaignCopilot'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Something went wrong.'
@@ -56,11 +58,11 @@ export function ShipInput({ aiEnabled }: { aiEnabled: boolean }) {
         className="flex flex-col gap-2 rounded-2xl bg-white/[0.02] p-4 ring-1 ring-white/[0.06]"
         onSubmit={submit}
       >
-        <label className="text-sm font-medium text-white" htmlFor="ship-input">
+        <Label className="text-sm font-medium text-white" htmlFor="ship-input">
           What did you ship?
-        </label>
+        </Label>
         <div className="flex flex-col gap-2 md:flex-row">
-          <input
+          <Input
             className="h-10 w-full rounded-lg bg-white/[0.03] px-3 text-sm text-white ring-1 ring-white/[0.08] outline-none placeholder:text-neutral-600 focus:ring-white/20"
             disabled={busy}
             id="ship-input"

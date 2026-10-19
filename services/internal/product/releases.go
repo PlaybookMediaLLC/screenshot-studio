@@ -94,17 +94,20 @@ type ReleaseSurface struct {
 }
 
 type ReleaseDetail struct {
-	Audience         *string         `json:"audience"`
-	BenefitStatement string          `json:"benefitStatement"`
-	CreatedAt        time.Time       `json:"createdAt"`
-	Description      *string         `json:"description"`
-	ID               string          `json:"id"`
-	ProductSurface   *ReleaseSurface `json:"productSurface"`
-	ProductSurfaceID *string         `json:"productSurfaceId"`
-	SourceURLs       []string        `json:"sourceUrls"`
-	Status           string          `json:"status"`
-	Title            string          `json:"title"`
-	UpdatedAt        time.Time       `json:"updatedAt"`
+	Audience           *string                `json:"audience"`
+	BenefitStatement   string                 `json:"benefitStatement"`
+	CreatedAt          time.Time              `json:"createdAt"`
+	Description        *string                `json:"description"`
+	Notes              *string                `json:"notes"`
+	Features           []releasenotes.Feature `json:"features"`
+	ScreenshotAssetIDs []string               `json:"screenshotAssetIds"`
+	ID                 string                 `json:"id"`
+	ProductSurface     *ReleaseSurface        `json:"productSurface"`
+	ProductSurfaceID   *string                `json:"productSurfaceId"`
+	SourceURLs         []string               `json:"sourceUrls"`
+	Status             string                 `json:"status"`
+	Title              string                 `json:"title"`
+	UpdatedAt          time.Time              `json:"updatedAt"`
 }
 
 func releaseSummary(row *ent.Release) ReleaseSummary {
@@ -189,10 +192,17 @@ func (c *Configuration) GetRelease(ctx context.Context, actor Actor, id string) 
 	detail := &ReleaseDetail{
 		Audience: row.Audience, BenefitStatement: row.BenefitStatement, CreatedAt: row.CreatedAt,
 		Description: row.Description, ID: row.ID, ProductSurfaceID: row.ProductSurfaceID,
+		Notes: row.Notes, Features: row.Features, ScreenshotAssetIDs: row.ScreenshotAssetIds,
 		SourceURLs: row.SourceUrls, Status: string(row.Status), Title: row.Title, UpdatedAt: row.UpdatedAt,
 	}
 	if detail.SourceURLs == nil {
 		detail.SourceURLs = []string{}
+	}
+	if detail.Features == nil {
+		detail.Features = []releasenotes.Feature{}
+	}
+	if detail.ScreenshotAssetIDs == nil {
+		detail.ScreenshotAssetIDs = []string{}
 	}
 	if row.ProductSurfaceID != nil {
 		surface, err := c.client.ProductSurface.Query().Where(productsurface.ID(*row.ProductSurfaceID),

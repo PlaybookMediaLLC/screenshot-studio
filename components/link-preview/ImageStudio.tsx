@@ -11,6 +11,9 @@ import { cn } from '@/lib/utils'
 import { downloadBlob } from './client'
 import { PANEL } from './MetadataPanels'
 import { hostname } from './PlatformPreviews'
+import { Label as UiLabel } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 /** The canvas is the size every platform recommends for a large card. */
 const WIDTH = 1200
@@ -370,38 +373,38 @@ export function ImageStudio({
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-3">
-          <label className="block space-y-1.5">
+          <UiLabel className="block space-y-1.5">
             <span className="text-xs text-muted-foreground">Headline</span>
-            <input
+            <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               className={INPUT}
             />
-          </label>
-          <label className="block space-y-1.5">
+          </UiLabel>
+          <UiLabel className="block space-y-1.5">
             <span className="text-xs text-muted-foreground">Supporting line</span>
-            <textarea
+            <Textarea
               value={subtitle}
               onChange={(event) => setSubtitle(event.target.value)}
               rows={2}
               className={cn(INPUT, 'resize-none')}
             />
-          </label>
-          <label className="block space-y-1.5">
+          </UiLabel>
+          <UiLabel className="block space-y-1.5">
             <span className="text-xs text-muted-foreground">Label</span>
-            <input
+            <Input
               value={site}
               onChange={(event) => setSite(event.target.value)}
               className={INPUT}
             />
-          </label>
+          </UiLabel>
         </div>
         <div className="space-y-4">
           <div className="space-y-1.5">
             <p className="text-xs text-muted-foreground">Layout</p>
             <div className="flex flex-wrap gap-1.5">
               {TEMPLATES.map((item) => (
-                <button
+                <Button variant="custom" size={null}
                   key={item.id}
                   type="button"
                   onClick={() => setTemplate(item.id)}
@@ -413,7 +416,7 @@ export function ImageStudio({
                   )}
                 >
                   {item.name}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -421,7 +424,7 @@ export function ImageStudio({
             <p className="text-xs text-muted-foreground">Colors</p>
             <div className="flex flex-wrap gap-2">
               {palettes.map((item) => (
-                <button
+                <Button variant="custom" size={null}
                   key={item.name}
                   type="button"
                   title={item.name}

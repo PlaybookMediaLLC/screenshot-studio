@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import { AuthShell } from '@/components/auth/AuthShell'
+import { AgentAccessExpiry } from '@/components/auth/AgentAccessExpiry'
 import { Button } from '@/components/ui/button'
 import { AuthorizationError, requireActiveOrganizationPermission } from '@/lib/auth/access'
 import { apiKeyScopeDescriptions, apiKeyScopes, type ApiKeyScope } from '@/lib/auth/api-key-scopes'
@@ -13,6 +14,9 @@ import {
   requestedScopes,
 } from '@/lib/tenant/agent-access'
 import { approveAgentConnection, denyAgentConnection } from './actions'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export const metadata: Metadata = { robots: { index: false }, title: 'Connect an AI agent' }
 
@@ -85,7 +89,7 @@ export default async function AgentConsentPage({ params, searchParams }: Consent
     >
       <form className="flex flex-col gap-6">
         {hidden.map(([key, value]) => (
-          <input key={key} name={key} type="hidden" value={String(value)} />
+          <Input key={key} name={key} type="hidden" value={value} />
         ))}
         <p className="rounded-xl bg-white/[0.03] p-3 text-sm text-neutral-400 ring-1 ring-white/[0.08]">
           After you approve, you return to{' '}
@@ -95,38 +99,28 @@ export default async function AgentConsentPage({ params, searchParams }: Consent
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-2 text-sm font-medium text-white">What it may do</legend>
           {apiKeyScopes.map((scope) => (
-            <label className="flex items-start gap-3" key={scope}>
-              <input
+            <Label className="flex items-start gap-3" key={scope}>
+              <Checkbox
                 className="mt-1 size-4 accent-white"
                 defaultChecked={checked.includes(scope)}
                 name="scopes"
-                type="checkbox"
                 value={scope}
               />
               <span className="flex flex-col">
                 <span className="font-mono text-xs text-neutral-300">{scope}</span>
                 <span className="text-sm text-neutral-500">{apiKeyScopeDescriptions[scope]}</span>
               </span>
-            </label>
+            </Label>
           ))}
           <p className="text-xs text-neutral-500">
             No agent can approve content; a person does that in Shots. With post:schedule, it can
             schedule and cancel posts a person already approved.
           </p>
         </fieldset>
-        <label className="flex flex-col gap-1.5 text-sm text-neutral-400">
+        <Label className="flex flex-col gap-1.5 text-sm text-neutral-400">
           Access expires
-          <select
-            className="h-10 rounded-lg bg-black/30 px-3 text-white ring-1 ring-white/[0.08]"
-            defaultValue=""
-            name="expiresInDays"
-          >
-            <option value="">Never (revoke it in Settings → AI agents)</option>
-            <option value="30">In 30 days</option>
-            <option value="90">In 90 days</option>
-            <option value="365">In a year</option>
-          </select>
-        </label>
+          <AgentAccessExpiry />
+        </Label>
         <div className="flex gap-3">
           <Button className="flex-1 rounded-lg" formAction={approveAgentConnection} type="submit">
             Approve

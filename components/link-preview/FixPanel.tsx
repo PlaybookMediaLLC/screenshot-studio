@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils'
 import { copyText } from './client'
 import { IssueList, PANEL } from './MetadataPanels'
 import { PLATFORMS, PlatformPreview } from './PlatformPreviews'
+import { Label } from '@/components/ui/label'
 
 /** The code formats the recommended tags come in. */
 export const snippetFormatSchema = z.enum([
@@ -209,7 +210,7 @@ export function FixPanel({
             const shown = value || field.placeholder(preview) || ''
             const Input = field.multiline ? 'textarea' : 'input'
             return (
-              <label key={field.key} className="block space-y-1.5">
+              <Label key={field.key} className="block space-y-1.5">
                 <span className="flex items-center justify-between text-xs text-muted-foreground">
                   {field.label}
                   {field.limit && (
@@ -225,14 +226,14 @@ export function FixPanel({
                   rows={field.multiline ? 3 : undefined}
                   className={cn(INPUT, field.multiline && 'resize-none')}
                 />
-              </label>
+              </Label>
             )
           })}
         </section>
         <section className="space-y-3">
           <div className="flex flex-wrap gap-1.5">
             {PLATFORMS.map((item) => (
-              <button
+              <Button variant="custom" size={null}
                 key={item.id}
                 type="button"
                 onClick={() => setPlatform(item)}
@@ -244,7 +245,7 @@ export function FixPanel({
                 )}
               >
                 {item.name}
-              </button>
+              </Button>
             ))}
           </div>
           <PlatformPreview platform={platform} preview={edited} url={url} />
@@ -267,7 +268,7 @@ export function FixPanel({
               aria-label="Format"
             >
               {SNIPPETS.map((snippet) => (
-                <button
+                <Button variant="custom" size={null}
                   key={snippet.format}
                   type="button"
                   aria-pressed={snippet.format === format.format}
@@ -278,7 +279,7 @@ export function FixPanel({
                   )}
                 >
                   {snippet.label}
-                </button>
+                </Button>
               ))}
             </div>
             <Button

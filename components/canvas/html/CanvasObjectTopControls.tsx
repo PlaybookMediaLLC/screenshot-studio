@@ -1,4 +1,5 @@
 "use client";
+import { Button } from '@/components/ui/button'
 
 interface CanvasObjectTopControlsProps {
   handleScale?: number;
@@ -32,7 +33,7 @@ export function CanvasObjectTopControls({
         }}
       />
 
-      <button
+      <Button variant="custom" size={null}
         type="button"
         data-resize-handle="true"
         onPointerDown={onRotatePointerDown}
@@ -64,9 +65,9 @@ export function CanvasObjectTopControls({
           <path d="M21.5 2v6h-6" />
           <path d="M21.34 13.72A10 10 0 1 1 18.57 4.62L21.5 8" />
         </svg>
-      </button>
+      </Button>
 
-      <button
+      <Button variant="custom" size={null}
         type="button"
         data-resize-handle="true"
         onClick={onRemove}
@@ -97,7 +98,7 @@ export function CanvasObjectTopControls({
           <line x1="18" y1="6" x2="6" y2="18" />
           <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
-      </button>
+      </Button>
     </>
   );
 }

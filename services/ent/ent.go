@@ -58,6 +58,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationinbox"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpolicy"
@@ -72,7 +74,14 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/projectversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
+
+	entreleaseautomation "github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationexecutor"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationnode"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationrun"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasespec"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/screenshotcache"
@@ -199,6 +208,8 @@ func checkColumn(t, c string) error {
 			organizationenterprisesettings.Table: organizationenterprisesettings.ValidColumn,
 			outboxevent.Table:                    outboxevent.ValidColumn,
 			pageknowledge.Table:                  pageknowledge.ValidColumn,
+			platformcreativeset.Table:            platformcreativeset.ValidColumn,
+			platformcreativesetversion.Table:     platformcreativesetversion.ValidColumn,
 			platformnotificationdelivery.Table:   platformnotificationdelivery.ValidColumn,
 			platformnotificationinbox.Table:      platformnotificationinbox.ValidColumn,
 			platformnotificationpolicy.Table:     platformnotificationpolicy.ValidColumn,
@@ -213,7 +224,13 @@ func checkColumn(t, c string) error {
 			projectversion.Table:                 projectversion.ValidColumn,
 			publicationattempt.Table:             publicationattempt.ValidColumn,
 			release.Table:                        release.ValidColumn,
+			entreleaseautomation.Table:           entreleaseautomation.ValidColumn,
+			releaseautomationexecutor.Table:      releaseautomationexecutor.ValidColumn,
+			releaseautomationnode.Table:          releaseautomationnode.ValidColumn,
+			releaseautomationrun.Table:           releaseautomationrun.ValidColumn,
+			releaseautomationversion.Table:       releaseautomationversion.ValidColumn,
 			releasedocument.Table:                releasedocument.ValidColumn,
+			releasesourceevent.Table:             releasesourceevent.ValidColumn,
 			releasespec.Table:                    releasespec.ValidColumn,
 			scheduledpost.Table:                  scheduledpost.ValidColumn,
 			screenshotcache.Table:                screenshotcache.ValidColumn,

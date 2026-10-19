@@ -10,6 +10,18 @@ import type {
 } from './notifications.js'
 export type * from './notifications.js'
 /** Typed client for the Screenshot Studio Go backend. Instantiate on a trusted server. */
+import type {
+  AutomationOverview,
+  SaveAutomationInput,
+  AutomationDefinition,
+  AutomationGraph,
+  AutomationEventSnapshot,
+  AutomationPreview,
+  AutomationHistoryItem,
+  AutomationRunDetail,
+  AutomationVersion,
+} from './release-automation.js'
+export type * from './release-automation.js'
 
 /**
  * Who the web facade acts for. The backend rechecks the principal on every
@@ -560,6 +572,7 @@ export type BackendReleaseListItem = BackendReleaseSummary & {
 export type BackendReleaseDetail = BackendReleaseListItem & {
   audience: string | null
   description: string | null
+  notes?: string | null
   productSurface: {
     environment: string
     id: string
@@ -940,6 +953,46 @@ export type BackendProjectVersion = {
 
 /** Filters for a project list; `cursor` comes from the previous page. */
 export type BackendProjectListQuery = {
+  cursor?: string
+  limit?: number
+  search?: string
+  sort?: 'updated' | 'name'
+}
+
+/** A cloud creativeSet: an editor composition with revision-checked writes. */
+export type BackendCreativeSet = {
+  archived: boolean
+  createdAt: string
+  createdByUserId: string | null
+  document: Record<string, unknown>
+  documentVersion: number
+  id: string
+  name: string
+  organizationId: string
+  /** Every document write is based on this; a stale one is refused with 409. */
+  revision: number
+  updatedAt: string
+  updatedByUserId: string | null
+}
+
+/** How a creativeSet version came to be. */
+export type BackendCreativeSetVersionKind = 'autosave' | 'named' | 'restore' | 'duplicate'
+
+/** A snapshot in a creativeSet's history; `document` is only on a single version. */
+export type BackendCreativeSetVersion = {
+  createdAt: string
+  createdByName: string | null
+  createdByUserId: string | null
+  document?: Record<string, unknown>
+  id: string
+  kind: BackendCreativeSetVersionKind
+  name: string | null
+  creativeSetId: string
+  revision: number
+}
+
+/** Filters for a creativeSet list; `cursor` comes from the previous page. */
+export type BackendCreativeSetListQuery = {
   cursor?: string
   limit?: number
   search?: string
@@ -2242,6 +2295,13 @@ export class ScreenshotStudioBackendSDK {
     }>(`v1/content-drafts/${encodeURIComponent(id)}/schedule`, { body: input, method: 'POST' })
   }
 
+  /** A short-lived presence token; set documents keep their revision-checked persistence. */
+  async createCreativeSetCollabToken(id: string) {
+    return this.request<{ access: 'read' | 'write'; documentName: string; expiresAt: string; token: string }>(
+      `v1/creative-sets/${encodeURIComponent(id)}/collab-token`, { body: {}, method: 'POST' }
+    )
+  }
+
   /** A short-lived token admitting the signed-in member to the draft's live session. */
   async createContentDraftCollabToken(id: string) {
     return this.request<{
@@ -2429,6 +2489,85 @@ export class ScreenshotStudioBackendSDK {
   async restoreProjectVersion(id: string, versionId: string, baseRevision: number) {
     return this.request<BackendProject>(
       `v1/projects/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}/restore`,
+      { body: { baseRevision }, method: 'POST' }
+    )
+  }
+
+  async listCreativeSets(query: BackendCreativeSetListQuery = {}) {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== '') params.set(key, String(value))
+    }
+    return this.request<{ items: BackendCreativeSet[]; nextCursor: string | null }>(
+      `v1/creative-sets?${params}`
+    )
+  }
+
+  async createCreativeSet(input: { id: string; document: unknown; name: string }) {
+    return this.request<BackendCreativeSet>('v1/creative-sets', { body: input, method: 'POST' })
+  }
+
+  async getCreativeSet(id: string) {
+    return this.request<BackendCreativeSet>(`v1/creative-sets/${encodeURIComponent(id)}`)
+  }
+
+  async renameCreativeSet(id: string, name: string) {
+    return this.request<BackendCreativeSet>(`v1/creative-sets/${encodeURIComponent(id)}`, {
+      body: { name },
+      method: 'PATCH',
+    })
+  }
+
+  /** Writes a document based on `baseRevision`; a stale write fails with 409 and `currentRevision`. */
+  async updateCreativeSetDocument(id: string, input: { baseRevision: number; document: unknown }) {
+    return this.request<{ revision: number; updatedAt: string }>(
+      `v1/creative-sets/${encodeURIComponent(id)}/document`,
+      { body: input, method: 'PUT' }
+    )
+  }
+
+  async duplicateCreativeSet(id: string, name?: string) {
+    return this.request<BackendCreativeSet>(`v1/creative-sets/${encodeURIComponent(id)}/duplicate`, {
+      body: name === undefined ? {} : { name },
+      method: 'POST',
+    })
+  }
+
+  async archiveCreativeSet(id: string) {
+    return this.request<{ archived: true }>(`v1/creative-sets/${encodeURIComponent(id)}/archive`, {
+      method: 'POST',
+    })
+  }
+
+  async listCreativeSetVersions(id: string) {
+    return this.request<{ versions: BackendCreativeSetVersion[] }>(
+      `v1/creative-sets/${encodeURIComponent(id)}/versions`
+    )
+  }
+
+  async getCreativeSetVersion(id: string, versionId: string) {
+    return this.request<BackendCreativeSetVersion & { document: Record<string, unknown> }>(
+      `v1/creative-sets/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}`
+    )
+  }
+
+  /** Names the creativeSet's current document as a version. */
+  async createCreativeSetVersion(id: string, name: string, baseRevision?: number) {
+    return this.request<BackendCreativeSetVersion>(`v1/creative-sets/${encodeURIComponent(id)}/versions`, {
+      body: { name, baseRevision },
+      method: 'POST',
+    })
+  }
+
+  /** Attach an immutable delivered revision to campaign review, idempotently. */
+  async attachCreativeSetDelivery(id: string, input: { baseRevision: number; deliveryId: string; campaignId: string; channel: string; copy: string }) {
+    return this.request<{ campaignId: string; designId: string; postId: string }>(`v1/creative-sets/${encodeURIComponent(id)}/campaign`, { body: input, method: 'POST' })
+  }
+
+  /** Makes a version the current document, as a new revision based on `baseRevision`. */
+  async restoreCreativeSetVersion(id: string, versionId: string, baseRevision: number) {
+    return this.request<BackendCreativeSet>(
+      `v1/creative-sets/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}/restore`,
       { body: { baseRevision }, method: 'POST' }
     )
   }
@@ -2921,6 +3060,107 @@ export class ScreenshotStudioBackendSDK {
   /** Begins connecting a GitHub App installation; the state is single-use. */
   async startGitHubConnection() {
     return this.request<{ state: string }>('v1/github/connections/start', { method: 'POST' })
+  }
+
+  /** Durably accept a signature-verified App event and its tenant fan-out. */
+  async acceptGitHubEvent(input: { deliveryId: string; eventName: string; body: unknown }) {
+    return this.request<{ handled: number; duplicates: number }>('v1/internal/github/events', {
+      method: 'POST',
+      body: input,
+    })
+  }
+
+  /** Connections, definitions, resources, and executor capability for this workspace. */
+  async releaseAutomationOverview() {
+    return this.request<AutomationOverview>('v1/release-automation')
+  }
+
+  /** Save a draft with optimistic concurrency; incomplete graphs remain drafts. */
+  async saveReleaseAutomation(input: SaveAutomationInput) {
+    return this.request<AutomationDefinition>('v1/release-automation', {
+      method: 'PUT',
+      body: input,
+    })
+  }
+
+  /** Activate an immutable server-validated graph version. */
+  async activateReleaseAutomation(id: string, revision: number) {
+    return this.request<AutomationDefinition>(
+      `v1/release-automation/${encodeURIComponent(id)}/activation`,
+      { method: 'POST', body: { revision } }
+    )
+  }
+
+  /** Stop new executions and request cancellation without restoring legacy intake. */
+  async disableReleaseAutomation(id: string, revision: number) {
+    return this.request<{ disabled: boolean }>(
+      `v1/release-automation/${encodeURIComponent(id)}/disable`,
+      { method: 'POST', body: { revision } }
+    )
+  }
+
+  /** Explicitly select automation or legacy intake for one source. */
+  async setReleaseAutomationMode(id: string, enabled: boolean, collectUnmatched?: boolean) {
+    return this.request<{ updated: boolean }>(
+      `v1/release-automation/sources/${encodeURIComponent(id)}/mode`,
+      { method: 'PUT', body: { enabled, collectUnmatched } }
+    )
+  }
+
+  /** Predict against an example or stored event; no side effects or external reads. */
+  async previewReleaseAutomation(input: {
+    sourceAppId: string
+    graph: AutomationGraph
+    eventId?: string
+    example?: AutomationEventSnapshot
+  }) {
+    return this.request<AutomationPreview>('v1/release-automation/preview', {
+      method: 'POST',
+      body: input,
+    })
+  }
+
+  /** Stop this workspace's source without changing the shared GitHub installation. */
+  async disconnectReleaseAutomationSource(id: string) {
+    return this.request<{ disconnected: boolean }>(
+      `v1/release-automation/sources/${encodeURIComponent(id)}/disconnect`,
+      { method: 'POST' }
+    )
+  }
+
+  /** Read durable tenant history even while Temporal is unavailable. */
+  async listReleaseAutomationHistory(before = '') {
+    return this.request<{ items: AutomationHistoryItem[] }>(
+      `v1/release-automation/runs?before=${encodeURIComponent(before)}`
+    )
+  }
+
+  /** Read persisted node decisions, attempts, and product output references. */
+  async getReleaseAutomationRun(id: string) {
+    return this.request<AutomationRunDetail>(`v1/release-automation/runs/${encodeURIComponent(id)}`)
+  }
+
+  /** Read the pinned immutable version used by an execution. */
+  async getReleaseAutomationVersion(id: string) {
+    return this.request<AutomationVersion>(
+      `v1/release-automation/versions/${encodeURIComponent(id)}`
+    )
+  }
+
+  /** Request cancellation; already completed provider effects are not reversed. */
+  async cancelReleaseAutomationRun(id: string) {
+    return this.request<{ requested: boolean }>(
+      `v1/release-automation/runs/${encodeURIComponent(id)}/cancel`,
+      { method: 'POST' }
+    )
+  }
+
+  /** Resume eligible failed work with its original version and action identities. */
+  async retryReleaseAutomationRun(id: string) {
+    return this.request<{ requested: boolean }>(
+      `v1/release-automation/runs/${encodeURIComponent(id)}/retry`,
+      { method: 'POST' }
+    )
   }
 
   async completeGitHubConnection(input: { code: string; installationId: number; state: string }) {

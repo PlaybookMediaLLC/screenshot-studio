@@ -2,6 +2,7 @@
 
 **Status:** Not started
 **Status note (2026-10-16):** Nothing in this RFC is built.
+**Implementation boundary (2026-10-19):** [Release automation](../release-automation.md) is an explicitly authorized draft/review workflow, not an autonomy mode. It does not auto-approve, resume after review, schedule, or publish content.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 029 and RFC 030

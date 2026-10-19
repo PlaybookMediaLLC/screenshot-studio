@@ -22,6 +22,7 @@ import {
   TEMPLATE_DEMO_IMAGE_URL,
 } from '@/lib/templates/demo-media';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button'
 
 const TEMPLATE_SCREEN = createDeviceScreen(
   TEMPLATE_DEMO_IMAGE_URL,
@@ -103,7 +104,7 @@ function ImageTemplateCard({
     : editorMode === 'screenshot' && matchingBackground;
 
   return (
-    <button
+    <Button variant="custom" size={null}
       type="button"
       onClick={() => onSelect(template)}
       aria-label={`View image template ${preset.name}`}
@@ -132,7 +133,7 @@ function ImageTemplateCard({
           {preset.name}
         </span>
       </div>
-    </button>
+    </Button>
   );
 }
 

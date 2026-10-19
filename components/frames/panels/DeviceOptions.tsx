@@ -14,6 +14,7 @@ import { useImageStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import type { DeviceFamily } from '@/types/mockup'
 import { changeDevice, type FrameTarget } from './frame-target'
+import { Button } from '@/components/ui/button'
 
 /**
  * Device choice for the Frame panel: every device by family, and for drawn
@@ -67,7 +68,7 @@ export function DeviceOptions({ target }: { target: FrameTarget }) {
           const selected = current?.id === definition.id
           const aspect = deviceGeometry(definition, first?.orientation).aspectRatio
           return (
-            <button
+            <Button variant="custom" size={null}
               aria-pressed={selected}
               className="group flex min-w-0 flex-col gap-1.5 text-left"
               key={definition.id}
@@ -107,7 +108,7 @@ export function DeviceOptions({ target }: { target: FrameTarget }) {
               >
                 {definition.name}
               </span>
-            </button>
+            </Button>
           )
         })}
       </div>
@@ -122,7 +123,7 @@ export function DeviceOptions({ target }: { target: FrameTarget }) {
                 {art.colors.map((color) => {
                   const selected = deviceArtColor(art, first.color).id === color.id
                   return (
-                    <button
+                    <Button variant="custom" size={null}
                       aria-label={color.label}
                       aria-pressed={selected}
                       className={cn(

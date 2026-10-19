@@ -26,6 +26,7 @@ import {
 } from '../blocks'
 import { AuthPath } from '../diagrams/AuthPath'
 import { MONO, Section, SectionIntro, Window } from '../primitives'
+import { Table, TableBody, TableRow, TableCell } from '@/components/ui/table'
 
 const AUDIT_ROWS = [
   ['10:42:07', 'maria@acme.com', 'product.campaign_post_status_changed', 'approve · 6 posts'],
@@ -54,18 +55,18 @@ function AuditWindow() {
   return (
     <Window className="w-full max-w-[900px]" meta="append-only · example" title="Audit log">
       <div className="overflow-x-auto">
-        <table className={cn(MONO, 'w-full min-w-[640px] text-left text-[12px]')}>
-          <tbody className="divide-y divide-white/[0.06]">
+        <Table className={cn(MONO, 'w-full min-w-[640px] text-left text-[12px]')}>
+          <TableBody className="divide-y divide-white/[0.06]">
             {AUDIT_ROWS.map(([time, actor, action, detail]) => (
-              <tr key={time}>
-                <td className="px-4 py-3 text-white/45">{time}</td>
-                <td className="px-4 py-3 text-white/80">{actor}</td>
-                <td className="px-4 py-3 text-white">{action}</td>
-                <td className="px-4 py-3 text-white/55">{detail}</td>
-              </tr>
+              <TableRow key={time}>
+                <TableCell className="whitespace-normal px-4 py-3 text-white/45">{time}</TableCell>
+                <TableCell className="whitespace-normal px-4 py-3 text-white/80">{actor}</TableCell>
+                <TableCell className="whitespace-normal px-4 py-3 text-white">{action}</TableCell>
+                <TableCell className="whitespace-normal px-4 py-3 text-white/55">{detail}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </Window>
   )

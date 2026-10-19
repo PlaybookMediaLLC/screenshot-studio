@@ -142,6 +142,34 @@ func (_c *SourceAppCreate) SetNillableSkipPrereleases(v *bool) *SourceAppCreate 
 	return _c
 }
 
+// SetReleaseAutomation sets the "release_automation" field.
+func (_c *SourceAppCreate) SetReleaseAutomation(v bool) *SourceAppCreate {
+	_c.mutation.SetReleaseAutomation(v)
+	return _c
+}
+
+// SetNillableReleaseAutomation sets the "release_automation" field if the given value is not nil.
+func (_c *SourceAppCreate) SetNillableReleaseAutomation(v *bool) *SourceAppCreate {
+	if v != nil {
+		_c.SetReleaseAutomation(*v)
+	}
+	return _c
+}
+
+// SetAutomationCollectUnmatched sets the "automation_collect_unmatched" field.
+func (_c *SourceAppCreate) SetAutomationCollectUnmatched(v bool) *SourceAppCreate {
+	_c.mutation.SetAutomationCollectUnmatched(v)
+	return _c
+}
+
+// SetNillableAutomationCollectUnmatched sets the "automation_collect_unmatched" field if the given value is not nil.
+func (_c *SourceAppCreate) SetNillableAutomationCollectUnmatched(v *bool) *SourceAppCreate {
+	if v != nil {
+		_c.SetAutomationCollectUnmatched(*v)
+	}
+	return _c
+}
+
 // SetGithubInstallationID sets the "github_installation_id" field.
 func (_c *SourceAppCreate) SetGithubInstallationID(v string) *SourceAppCreate {
 	_c.mutation.SetGithubInstallationID(v)
@@ -255,6 +283,14 @@ func (_c *SourceAppCreate) defaults() {
 		v := sourceapp.DefaultSkipPrereleases
 		_c.mutation.SetSkipPrereleases(v)
 	}
+	if _, ok := _c.mutation.ReleaseAutomation(); !ok {
+		v := sourceapp.DefaultReleaseAutomation
+		_c.mutation.SetReleaseAutomation(v)
+	}
+	if _, ok := _c.mutation.AutomationCollectUnmatched(); !ok {
+		v := sourceapp.DefaultAutomationCollectUnmatched
+		_c.mutation.SetAutomationCollectUnmatched(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := sourceapp.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -291,6 +327,12 @@ func (_c *SourceAppCreate) check() error {
 	}
 	if _, ok := _c.mutation.SkipPrereleases(); !ok {
 		return &ValidationError{Name: "skip_prereleases", err: errors.New(`ent: missing required field "SourceApp.skip_prereleases"`)}
+	}
+	if _, ok := _c.mutation.ReleaseAutomation(); !ok {
+		return &ValidationError{Name: "release_automation", err: errors.New(`ent: missing required field "SourceApp.release_automation"`)}
+	}
+	if _, ok := _c.mutation.AutomationCollectUnmatched(); !ok {
+		return &ValidationError{Name: "automation_collect_unmatched", err: errors.New(`ent: missing required field "SourceApp.automation_collect_unmatched"`)}
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "SourceApp.status"`)}
@@ -384,6 +426,14 @@ func (_c *SourceAppCreate) createSpec() (*SourceApp, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.SkipPrereleases(); ok {
 		_spec.SetField(sourceapp.FieldSkipPrereleases, field.TypeBool, value)
 		_node.SkipPrereleases = value
+	}
+	if value, ok := _c.mutation.ReleaseAutomation(); ok {
+		_spec.SetField(sourceapp.FieldReleaseAutomation, field.TypeBool, value)
+		_node.ReleaseAutomation = value
+	}
+	if value, ok := _c.mutation.AutomationCollectUnmatched(); ok {
+		_spec.SetField(sourceapp.FieldAutomationCollectUnmatched, field.TypeBool, value)
+		_node.AutomationCollectUnmatched = value
 	}
 	if value, ok := _c.mutation.GithubInstallationID(); ok {
 		_spec.SetField(sourceapp.FieldGithubInstallationID, field.TypeString, value)

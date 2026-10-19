@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { CaptionsPanel } from './CaptionsPanel'
 import { useEditorCopilot, type VariantsRequest } from './useEditorCopilot'
 import { VariantsPanel } from './VariantsPanel'
+import { Textarea } from '@/components/ui/textarea'
 
 /**
  * The editor's AI surface: one floating panel with
@@ -173,7 +174,7 @@ export function EditorAiPanel() {
         >
           <header className="flex items-center gap-1 border-b p-2">
             {(['copilot', 'variants', 'captions'] as const).map((value) => (
-              <button
+              <Button variant="custom" size={null}
                 className={cn(
                   'rounded-md px-2.5 py-1 text-sm font-medium',
                   tab === value ? 'bg-muted text-foreground' : 'text-muted-foreground'
@@ -183,7 +184,7 @@ export function EditorAiPanel() {
                 type="button"
               >
                 {TAB_LABELS[value]}
-              </button>
+              </Button>
             ))}
             <span className="flex-1" />
             {tab === 'copilot' && entries.length > 0 ? (
@@ -207,21 +208,21 @@ export function EditorAiPanel() {
               <div className="border-b p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-medium text-muted-foreground">Suggestions</p>
-                  <button
+                  <Button variant="custom" size={null}
                     className="text-xs underline disabled:opacity-50"
                     disabled={reviewing || !hasImage}
                     onClick={() => void review()}
                     type="button"
                   >
                     {reviewing ? 'Reviewing…' : 'Review again'}
-                  </button>
+                  </Button>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {suggestions?.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Looks good. Nothing to fix.</p>
                   ) : null}
                   {suggestions?.map((suggestion) => (
-                    <button
+                    <Button variant="custom" size={null}
                       className="rounded-full border px-2.5 py-1 text-left text-xs hover:bg-muted"
                       key={suggestion.title}
                       onClick={() => void applySuggestion(suggestion)}
@@ -229,7 +230,7 @@ export function EditorAiPanel() {
                       type="button"
                     >
                       {suggestion.title}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -243,7 +244,7 @@ export function EditorAiPanel() {
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {QUICK_PROMPTS.map((prompt) => (
-                        <button
+                        <Button variant="custom" size={null}
                           className="rounded-full border px-2.5 py-1 text-xs hover:bg-muted"
                           disabled={isRunning}
                           key={prompt}
@@ -251,7 +252,7 @@ export function EditorAiPanel() {
                           type="button"
                         >
                           {prompt}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -282,13 +283,13 @@ export function EditorAiPanel() {
                 {selection ? (
                   <p className="mb-1.5 flex items-center gap-1 text-xs text-muted-foreground">
                     Editing {selection}
-                    <button className="underline" onClick={() => setSelection(null)} type="button">
+                    <Button variant="custom" size={null} className="underline" onClick={() => setSelection(null)} type="button">
                       whole design
-                    </button>
+                    </Button>
                   </p>
                 ) : null}
                 <div className="flex items-end gap-2">
-                  <textarea
+                  <Textarea
                     aria-label="Ask the copilot"
                     className="max-h-32 min-h-10 flex-1 resize-none rounded-md border bg-transparent px-3 py-2 text-sm"
                     disabled={isRunning}

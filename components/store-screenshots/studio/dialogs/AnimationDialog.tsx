@@ -3,9 +3,15 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { ANIMATION_PRESETS, frameAt, slideDurations, totalDuration, type AnimationFormat } from '@/lib/store-screenshots/animation/timeline'
-import { deviceMotionSchema, textRevealSchema, transitionSchema } from '@/lib/store-screenshots/document/schema'
+import { deviceMotionSchema, textRevealSchema, transitionSchema, type StoreDocument } from '@/lib/store-screenshots/document/schema'
 import { slugify } from '@/lib/store-screenshots/export/plan'
 import { localeName } from '@/lib/store-screenshots/locales'
 import { terminateFFmpeg } from '@/lib/export/ffmpeg-encoder'
@@ -15,6 +21,13 @@ import { useRenderServices } from '../../render/RenderProvider'
 import { NumberField, SelectField, SliderField } from '../controls'
 import { useEditor, useEditorApi } from '../editor-store'
 import type { DialogProps } from './BasicDialogs'
+import { Slider } from '@/components/ui/slider'
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@/components/ui/accordion'
 
 const PREVIEW_HEIGHT = 520
 /** Seconds into a slide where its entrance has finished, so a still preview shows the whole slide. */
@@ -28,7 +41,11 @@ const MOTION_LABELS = { none: 'None', float: 'Gentle float', rise: 'Rise in' } a
  * Animated preview and GIF/MP4 export. Timing lives in the project, so the
  * preview, every export, and a reopened project use the same settings.
  */
-export function AnimationDialog({ open, onOpenChange }: DialogProps): React.JSX.Element {
+export function AnimationDialog({ open, onOpenChange, strict = false, beforeExport, onExport }: DialogProps & {
+  strict?: boolean
+  beforeExport?: (document: StoreDocument) => Promise<void>
+  onExport?: (result: { blob: Blob; fileName: string; document: StoreDocument; width: number; height: number; locale: string; presetId: string; format: AnimationFormat }, signal: AbortSignal) => Promise<void>
+}): React.JSX.Element {
   const api = useEditorApi()
   const document = useEditor((state) => state.document)
   const editingLocale = useEditor((state) => state.locale)
@@ -98,8 +115,10 @@ export function AnimationDialog({ open, onOpenChange }: DialogProps): React.JSX.
     try {
       setJob({ phase: 'Rendering slides', fraction: 0 })
       await whenAssetsReady(Object.keys(document.assets))
+      await beforeExport?.(document)
       const layers = await prepareSlideLayers(document, document.slides.map((_slide, index) => index), preset, locale, { measurer, resolveAsset }, {
         signal: controller.signal,
+        strict,
         onProgress: (done, count) => setJob({ phase: 'Rendering slides', fraction: (done / count) * 0.3 }),
       })
       setJob({ phase: format === 'gif' ? 'Encoding GIF' : 'Encoding MP4', fraction: 0.3 })
@@ -107,7 +126,10 @@ export function AnimationDialog({ open, onOpenChange }: DialogProps): React.JSX.
         signal: controller.signal,
         onProgress: (fraction) => setJob({ phase: format === 'gif' ? 'Encoding GIF' : 'Encoding MP4', fraction: 0.3 + fraction * 0.7 }),
       })
-      downloadBlob(blob, `${slugify(document.name)}-${preset.id}-${locale}.${format === 'gif' ? 'gif' : 'mp4'}`)
+      const fileName = `${slugify(document.name)}-${preset.id}-${locale}.${format === 'gif' ? 'gif' : 'mp4'}`
+      controller.signal.throwIfAborted()
+      if (onExport) await onExport({ blob, fileName, document, width: preset.width, height: preset.height, locale, presetId: preset.id, format }, controller.signal)
+      else downloadBlob(blob, fileName)
       toast.success(`${format.toUpperCase()} exported`, { description: `${total.toFixed(1)} s · ${preset.width} × ${preset.height} · ${(blob.size / 1024 / 1024).toFixed(1)} MB` })
     } catch (cause) {
       if (controller.signal.aborted) toast('Animation export cancelled')
@@ -135,14 +157,14 @@ export function AnimationDialog({ open, onOpenChange }: DialogProps): React.JSX.
               <Button size="sm" variant="outline" disabled={!previewLayers} onClick={() => setPlaying((value) => !value)} aria-label={playing ? 'Pause' : 'Play'}>
                 {playing ? 'Pause' : 'Play'}
               </Button>
-              <input type="range" aria-label="Timeline position" min={0} max={total} step={0.01} value={time} onChange={(event) => setTime(Number(event.target.value))} className="flex-1" />
+              <Slider  aria-label="Timeline position" min={0} max={total} step={0.01} value={[time]} onValueChange={([nextValue]) => setTime(Number(nextValue))} className="flex-1" />
               <span className="w-20 text-right text-[11px] tabular-nums text-muted-foreground">
                 {time.toFixed(1)} / {total.toFixed(1)} s
               </span>
             </div>
             <div className="flex h-6 overflow-hidden rounded" aria-label="Slide timeline">
               {document.slides.map((slide, index) => (
-                <button
+                <Button variant="custom" size={null}
                   key={slide.id}
                   type="button"
                   title={`${slide.name}: ${durations[index]} s`}
@@ -151,7 +173,7 @@ export function AnimationDialog({ open, onOpenChange }: DialogProps): React.JSX.
                   style={{ width: `${(durations[index] / total) * 100}%` }}
                 >
                   {index + 1}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -167,24 +189,33 @@ export function AnimationDialog({ open, onOpenChange }: DialogProps): React.JSX.
               <NumberField label="Default slide length" unit="s" value={settings.slideDuration} min={0.5} max={15} step={0.5} precision={1} onChange={(slideDuration) => patch({ slideDuration }, 'length')} />
               <NumberField label="Frame rate" unit="fps" value={settings.fps} min={5} max={60} onChange={(fps) => patch({ fps }, 'fps')} hint="GIFs are capped at 15 fps." />
             </div>
-            <details className="text-xs">
-              <summary className="cursor-pointer">Length per slide</summary>
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                {document.slides.map((slide, index) => (
-                  <NumberField
-                    key={slide.id}
-                    label={`${index + 1}. ${slide.name}`}
-                    unit="s"
-                    value={durations[index]}
-                    min={0.5}
-                    max={15}
-                    step={0.5}
-                    precision={1}
-                    onChange={(value) => patch({ slideDurations: { ...settings.slideDurations, [slide.id]: value } }, `length-${slide.id}`)}
-                  />
-                ))}
-              </div>
-            </details>
+            <Accordion type="single" collapsible>
+              <AccordionItem value="details" className="text-xs">
+                <AccordionTrigger className="cursor-pointer">Length per slide</AccordionTrigger>
+                <AccordionContent className="p-0">
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {document.slides.map((slide, index) => (
+                      <NumberField
+                        key={slide.id}
+                        label={`${index + 1}. ${slide.name}`}
+                        unit="s"
+                        value={durations[index]}
+                        min={0.5}
+                        max={15}
+                        step={0.5}
+                        precision={1}
+                        onChange={(value) =>
+                          patch(
+                            { slideDurations: { ...settings.slideDurations, [slide.id]: value } },
+                            `length-${slide.id}`
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
             <div className="grid grid-cols-2 gap-3">
               <SelectField label="Size" value={presetId} options={ANIMATION_PRESETS.map((item) => ({ value: item.id, label: item.name }))} onChange={setPresetId} />
               <SelectField label="Language" value={locale} options={[document.localization.sourceLocale, ...document.localization.locales].map((code) => ({ value: code, label: localeName(code) }))} onChange={setLocale} />

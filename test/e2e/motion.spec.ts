@@ -1,3 +1,4 @@
+import { chooseOption } from './framework/browser'
 import { readFile } from 'node:fs/promises'
 import type { Page } from '@playwright/test'
 import { signUpAndCreateWorkspace } from './framework/auth'
@@ -80,7 +81,10 @@ test('an animated product screenshot exports as an MP4 with its audio and captio
   )
 
   // A custom curve: drag a Bézier control point and type another.
-  await page.getByLabel('Easing into this keyframe', { exact: true }).selectOption('custom')
+  await chooseOption(page.getByLabel('Easing into this keyframe', { exact: true }), 'Custom curve')
+  await expect(page.getByRole('button', { name: 'Add Rotation keyframe' })).toBeVisible()
+  await page.getByLabel('Easing into this keyframe', { exact: true }).press('Delete')
+  await expect(page.locator('[data-keyframe]')).toHaveCount(2)
   const handle = page.locator('[data-bezier-handle="1"]')
   const point = (await handle.boundingBox())!
   await page.mouse.move(point.x + point.width / 2, point.y + point.height / 2)

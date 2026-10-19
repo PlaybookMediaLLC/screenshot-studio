@@ -52,6 +52,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationinbox"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpolicy"
@@ -65,7 +67,12 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/projectversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
+	entreleaseautomation "github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationnode"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationrun"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasespec"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
@@ -88,6 +95,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/profile"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 )
 
@@ -771,6 +779,32 @@ func init() {
 	pageknowledge.DefaultUpdatedAt = pageknowledgeDescUpdatedAt.Default.(func() time.Time)
 	// pageknowledge.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	pageknowledge.UpdateDefaultUpdatedAt = pageknowledgeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	platformcreativesetFields := schema.PlatformCreativeSet{}.Fields()
+	_ = platformcreativesetFields
+	// platformcreativesetDescRevision is the schema descriptor for revision field.
+	platformcreativesetDescRevision := platformcreativesetFields[5].Descriptor()
+	// platformcreativeset.DefaultRevision holds the default value on creation for the revision field.
+	platformcreativeset.DefaultRevision = platformcreativesetDescRevision.Default.(int)
+	// platformcreativesetDescArchived is the schema descriptor for archived field.
+	platformcreativesetDescArchived := platformcreativesetFields[6].Descriptor()
+	// platformcreativeset.DefaultArchived holds the default value on creation for the archived field.
+	platformcreativeset.DefaultArchived = platformcreativesetDescArchived.Default.(bool)
+	// platformcreativesetDescCreatedAt is the schema descriptor for created_at field.
+	platformcreativesetDescCreatedAt := platformcreativesetFields[9].Descriptor()
+	// platformcreativeset.DefaultCreatedAt holds the default value on creation for the created_at field.
+	platformcreativeset.DefaultCreatedAt = platformcreativesetDescCreatedAt.Default.(func() time.Time)
+	// platformcreativesetDescUpdatedAt is the schema descriptor for updated_at field.
+	platformcreativesetDescUpdatedAt := platformcreativesetFields[10].Descriptor()
+	// platformcreativeset.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	platformcreativeset.DefaultUpdatedAt = platformcreativesetDescUpdatedAt.Default.(func() time.Time)
+	// platformcreativeset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	platformcreativeset.UpdateDefaultUpdatedAt = platformcreativesetDescUpdatedAt.UpdateDefault.(func() time.Time)
+	platformcreativesetversionFields := schema.PlatformCreativeSetVersion{}.Fields()
+	_ = platformcreativesetversionFields
+	// platformcreativesetversionDescCreatedAt is the schema descriptor for created_at field.
+	platformcreativesetversionDescCreatedAt := platformcreativesetversionFields[8].Descriptor()
+	// platformcreativesetversion.DefaultCreatedAt holds the default value on creation for the created_at field.
+	platformcreativesetversion.DefaultCreatedAt = platformcreativesetversionDescCreatedAt.Default.(func() time.Time)
 	platformnotificationdeliveryFields := schema.PlatformNotificationDelivery{}.Fields()
 	_ = platformnotificationdeliveryFields
 	// platformnotificationdeliveryDescStatus is the schema descriptor for status field.
@@ -1033,6 +1067,110 @@ func init() {
 	release.DefaultUpdatedAt = releaseDescUpdatedAt.Default.(func() time.Time)
 	// release.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	release.UpdateDefaultUpdatedAt = releaseDescUpdatedAt.UpdateDefault.(func() time.Time)
+	entreleaseautomationFields := schema.ReleaseAutomation{}.Fields()
+	_ = entreleaseautomationFields
+	// entreleaseautomationDescDescription is the schema descriptor for description field.
+	entreleaseautomationDescDescription := entreleaseautomationFields[4].Descriptor()
+	// entreleaseautomation.DefaultDescription holds the default value on creation for the description field.
+	entreleaseautomation.DefaultDescription = entreleaseautomationDescDescription.Default.(string)
+	// entreleaseautomationDescPriority is the schema descriptor for priority field.
+	entreleaseautomationDescPriority := entreleaseautomationFields[6].Descriptor()
+	// entreleaseautomation.DefaultPriority holds the default value on creation for the priority field.
+	entreleaseautomation.DefaultPriority = entreleaseautomationDescPriority.Default.(int)
+	// entreleaseautomationDescRevision is the schema descriptor for revision field.
+	entreleaseautomationDescRevision := entreleaseautomationFields[7].Descriptor()
+	// entreleaseautomation.DefaultRevision holds the default value on creation for the revision field.
+	entreleaseautomation.DefaultRevision = entreleaseautomationDescRevision.Default.(int)
+	// entreleaseautomationDescEnabled is the schema descriptor for enabled field.
+	entreleaseautomationDescEnabled := entreleaseautomationFields[8].Descriptor()
+	// entreleaseautomation.DefaultEnabled holds the default value on creation for the enabled field.
+	entreleaseautomation.DefaultEnabled = entreleaseautomationDescEnabled.Default.(bool)
+	// entreleaseautomationDescActivePriority is the schema descriptor for active_priority field.
+	entreleaseautomationDescActivePriority := entreleaseautomationFields[9].Descriptor()
+	// entreleaseautomation.DefaultActivePriority holds the default value on creation for the active_priority field.
+	entreleaseautomation.DefaultActivePriority = entreleaseautomationDescActivePriority.Default.(int)
+	// entreleaseautomationDescLayout is the schema descriptor for layout field.
+	entreleaseautomationDescLayout := entreleaseautomationFields[12].Descriptor()
+	// entreleaseautomation.DefaultLayout holds the default value on creation for the layout field.
+	entreleaseautomation.DefaultLayout = entreleaseautomationDescLayout.Default.(map[string]releaseautomation.Position)
+	// entreleaseautomationDescCreatedAt is the schema descriptor for created_at field.
+	entreleaseautomationDescCreatedAt := entreleaseautomationFields[14].Descriptor()
+	// entreleaseautomation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	entreleaseautomation.DefaultCreatedAt = entreleaseautomationDescCreatedAt.Default.(func() time.Time)
+	// entreleaseautomationDescUpdatedAt is the schema descriptor for updated_at field.
+	entreleaseautomationDescUpdatedAt := entreleaseautomationFields[15].Descriptor()
+	// entreleaseautomation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	entreleaseautomation.DefaultUpdatedAt = entreleaseautomationDescUpdatedAt.Default.(func() time.Time)
+	// entreleaseautomation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	entreleaseautomation.UpdateDefaultUpdatedAt = entreleaseautomationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	releaseautomationnodeFields := schema.ReleaseAutomationNode{}.Fields()
+	_ = releaseautomationnodeFields
+	// releaseautomationnodeDescStatus is the schema descriptor for status field.
+	releaseautomationnodeDescStatus := releaseautomationnodeFields[5].Descriptor()
+	// releaseautomationnode.DefaultStatus holds the default value on creation for the status field.
+	releaseautomationnode.DefaultStatus = releaseautomationnodeDescStatus.Default.(string)
+	// releaseautomationnodeDescAttempts is the schema descriptor for attempts field.
+	releaseautomationnodeDescAttempts := releaseautomationnodeFields[6].Descriptor()
+	// releaseautomationnode.DefaultAttempts holds the default value on creation for the attempts field.
+	releaseautomationnode.DefaultAttempts = releaseautomationnodeDescAttempts.Default.(int)
+	// releaseautomationnodeDescFailureCode is the schema descriptor for failure_code field.
+	releaseautomationnodeDescFailureCode := releaseautomationnodeFields[7].Descriptor()
+	// releaseautomationnode.DefaultFailureCode holds the default value on creation for the failure_code field.
+	releaseautomationnode.DefaultFailureCode = releaseautomationnodeDescFailureCode.Default.(string)
+	// releaseautomationnodeDescOutputs is the schema descriptor for outputs field.
+	releaseautomationnodeDescOutputs := releaseautomationnodeFields[9].Descriptor()
+	// releaseautomationnode.DefaultOutputs holds the default value on creation for the outputs field.
+	releaseautomationnode.DefaultOutputs = releaseautomationnodeDescOutputs.Default.(releaseautomation.Outputs)
+	// releaseautomationnodeDescStartedAt is the schema descriptor for started_at field.
+	releaseautomationnodeDescStartedAt := releaseautomationnodeFields[10].Descriptor()
+	// releaseautomationnode.DefaultStartedAt holds the default value on creation for the started_at field.
+	releaseautomationnode.DefaultStartedAt = releaseautomationnodeDescStartedAt.Default.(func() time.Time)
+	releaseautomationrunFields := schema.ReleaseAutomationRun{}.Fields()
+	_ = releaseautomationrunFields
+	// releaseautomationrunDescTemporalRunID is the schema descriptor for temporal_run_id field.
+	releaseautomationrunDescTemporalRunID := releaseautomationrunFields[6].Descriptor()
+	// releaseautomationrun.DefaultTemporalRunID holds the default value on creation for the temporal_run_id field.
+	releaseautomationrun.DefaultTemporalRunID = releaseautomationrunDescTemporalRunID.Default.(string)
+	// releaseautomationrunDescStatus is the schema descriptor for status field.
+	releaseautomationrunDescStatus := releaseautomationrunFields[7].Descriptor()
+	// releaseautomationrun.DefaultStatus holds the default value on creation for the status field.
+	releaseautomationrun.DefaultStatus = releaseautomationrunDescStatus.Default.(string)
+	// releaseautomationrunDescCancelRequested is the schema descriptor for cancel_requested field.
+	releaseautomationrunDescCancelRequested := releaseautomationrunFields[8].Descriptor()
+	// releaseautomationrun.DefaultCancelRequested holds the default value on creation for the cancel_requested field.
+	releaseautomationrun.DefaultCancelRequested = releaseautomationrunDescCancelRequested.Default.(bool)
+	// releaseautomationrunDescRecoveryAttempt is the schema descriptor for recovery_attempt field.
+	releaseautomationrunDescRecoveryAttempt := releaseautomationrunFields[9].Descriptor()
+	// releaseautomationrun.DefaultRecoveryAttempt holds the default value on creation for the recovery_attempt field.
+	releaseautomationrun.DefaultRecoveryAttempt = releaseautomationrunDescRecoveryAttempt.Default.(int)
+	// releaseautomationrunDescFailureCode is the schema descriptor for failure_code field.
+	releaseautomationrunDescFailureCode := releaseautomationrunFields[10].Descriptor()
+	// releaseautomationrun.DefaultFailureCode holds the default value on creation for the failure_code field.
+	releaseautomationrun.DefaultFailureCode = releaseautomationrunDescFailureCode.Default.(string)
+	// releaseautomationrunDescReason is the schema descriptor for reason field.
+	releaseautomationrunDescReason := releaseautomationrunFields[11].Descriptor()
+	// releaseautomationrun.DefaultReason holds the default value on creation for the reason field.
+	releaseautomationrun.DefaultReason = releaseautomationrunDescReason.Default.(string)
+	// releaseautomationrunDescOutputs is the schema descriptor for outputs field.
+	releaseautomationrunDescOutputs := releaseautomationrunFields[12].Descriptor()
+	// releaseautomationrun.DefaultOutputs holds the default value on creation for the outputs field.
+	releaseautomationrun.DefaultOutputs = releaseautomationrunDescOutputs.Default.(releaseautomation.Outputs)
+	// releaseautomationrunDescCreatedAt is the schema descriptor for created_at field.
+	releaseautomationrunDescCreatedAt := releaseautomationrunFields[15].Descriptor()
+	// releaseautomationrun.DefaultCreatedAt holds the default value on creation for the created_at field.
+	releaseautomationrun.DefaultCreatedAt = releaseautomationrunDescCreatedAt.Default.(func() time.Time)
+	// releaseautomationrunDescUpdatedAt is the schema descriptor for updated_at field.
+	releaseautomationrunDescUpdatedAt := releaseautomationrunFields[16].Descriptor()
+	// releaseautomationrun.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	releaseautomationrun.DefaultUpdatedAt = releaseautomationrunDescUpdatedAt.Default.(func() time.Time)
+	// releaseautomationrun.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	releaseautomationrun.UpdateDefaultUpdatedAt = releaseautomationrunDescUpdatedAt.UpdateDefault.(func() time.Time)
+	releaseautomationversionFields := schema.ReleaseAutomationVersion{}.Fields()
+	_ = releaseautomationversionFields
+	// releaseautomationversionDescCreatedAt is the schema descriptor for created_at field.
+	releaseautomationversionDescCreatedAt := releaseautomationversionFields[7].Descriptor()
+	// releaseautomationversion.DefaultCreatedAt holds the default value on creation for the created_at field.
+	releaseautomationversion.DefaultCreatedAt = releaseautomationversionDescCreatedAt.Default.(func() time.Time)
 	releasedocumentFields := schema.ReleaseDocument{}.Fields()
 	_ = releasedocumentFields
 	// releasedocumentDescCreatedAt is the schema descriptor for created_at field.
@@ -1045,6 +1183,28 @@ func init() {
 	releasedocument.DefaultUpdatedAt = releasedocumentDescUpdatedAt.Default.(func() time.Time)
 	// releasedocument.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	releasedocument.UpdateDefaultUpdatedAt = releasedocumentDescUpdatedAt.UpdateDefault.(func() time.Time)
+	releasesourceeventFields := schema.ReleaseSourceEvent{}.Fields()
+	_ = releasesourceeventFields
+	// releasesourceeventDescCollectUnmatched is the schema descriptor for collect_unmatched field.
+	releasesourceeventDescCollectUnmatched := releasesourceeventFields[7].Descriptor()
+	// releasesourceevent.DefaultCollectUnmatched holds the default value on creation for the collect_unmatched field.
+	releasesourceevent.DefaultCollectUnmatched = releasesourceeventDescCollectUnmatched.Default.(bool)
+	// releasesourceeventDescDisposition is the schema descriptor for disposition field.
+	releasesourceeventDescDisposition := releasesourceeventFields[9].Descriptor()
+	// releasesourceevent.DefaultDisposition holds the default value on creation for the disposition field.
+	releasesourceevent.DefaultDisposition = releasesourceeventDescDisposition.Default.(string)
+	// releasesourceeventDescReason is the schema descriptor for reason field.
+	releasesourceeventDescReason := releasesourceeventFields[10].Descriptor()
+	// releasesourceevent.DefaultReason holds the default value on creation for the reason field.
+	releasesourceevent.DefaultReason = releasesourceeventDescReason.Default.(string)
+	// releasesourceeventDescEnrichment is the schema descriptor for enrichment field.
+	releasesourceeventDescEnrichment := releasesourceeventFields[11].Descriptor()
+	// releasesourceevent.DefaultEnrichment holds the default value on creation for the enrichment field.
+	releasesourceevent.DefaultEnrichment = releasesourceeventDescEnrichment.Default.(map[string]releaseautomation.Value)
+	// releasesourceeventDescReceivedAt is the schema descriptor for received_at field.
+	releasesourceeventDescReceivedAt := releasesourceeventFields[13].Descriptor()
+	// releasesourceevent.DefaultReceivedAt holds the default value on creation for the received_at field.
+	releasesourceevent.DefaultReceivedAt = releasesourceeventDescReceivedAt.Default.(func() time.Time)
 	releasespecFields := schema.ReleaseSpec{}.Fields()
 	_ = releasespecFields
 	// releasespecDescSources is the schema descriptor for sources field.
@@ -1137,12 +1297,20 @@ func init() {
 	sourceappDescSkipPrereleases := sourceappFields[11].Descriptor()
 	// sourceapp.DefaultSkipPrereleases holds the default value on creation for the skip_prereleases field.
 	sourceapp.DefaultSkipPrereleases = sourceappDescSkipPrereleases.Default.(bool)
+	// sourceappDescReleaseAutomation is the schema descriptor for release_automation field.
+	sourceappDescReleaseAutomation := sourceappFields[12].Descriptor()
+	// sourceapp.DefaultReleaseAutomation holds the default value on creation for the release_automation field.
+	sourceapp.DefaultReleaseAutomation = sourceappDescReleaseAutomation.Default.(bool)
+	// sourceappDescAutomationCollectUnmatched is the schema descriptor for automation_collect_unmatched field.
+	sourceappDescAutomationCollectUnmatched := sourceappFields[13].Descriptor()
+	// sourceapp.DefaultAutomationCollectUnmatched holds the default value on creation for the automation_collect_unmatched field.
+	sourceapp.DefaultAutomationCollectUnmatched = sourceappDescAutomationCollectUnmatched.Default.(bool)
 	// sourceappDescCreatedAt is the schema descriptor for created_at field.
-	sourceappDescCreatedAt := sourceappFields[14].Descriptor()
+	sourceappDescCreatedAt := sourceappFields[16].Descriptor()
 	// sourceapp.DefaultCreatedAt holds the default value on creation for the created_at field.
 	sourceapp.DefaultCreatedAt = sourceappDescCreatedAt.Default.(func() time.Time)
 	// sourceappDescUpdatedAt is the schema descriptor for updated_at field.
-	sourceappDescUpdatedAt := sourceappFields[15].Descriptor()
+	sourceappDescUpdatedAt := sourceappFields[17].Descriptor()
 	// sourceapp.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	sourceapp.DefaultUpdatedAt = sourceappDescUpdatedAt.Default.(func() time.Time)
 	// sourceapp.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

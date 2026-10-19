@@ -3,7 +3,13 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { brandKitFromDocument, type BrandKit, type BrandKitParts } from '@/lib/store-screenshots/brand-kits'
 import { DEVICE_MODELS, getDeviceModel } from '@/lib/store-screenshots/devices'
 import { newId } from '@/lib/store-screenshots/document/factory'
@@ -23,6 +29,16 @@ import { BackgroundField } from '../inspector/BackgroundField'
 import { FontPicker } from '../inspector/FontPicker'
 import { SlideThumbnail } from '../SlideThumbnail'
 import type { DialogProps } from './BasicDialogs'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 
 const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   fitness: 'Fitness',
@@ -70,9 +86,9 @@ export function TemplatesDialog({ open, onOpenChange, onCreateProject }: DialogP
         </DialogHeader>
         <div role="tablist" aria-label="Template category" className="flex flex-wrap gap-1">
           {[null, ...categories].map((item) => (
-            <button key={item ?? 'all'} type="button" role="tab" aria-selected={category === item} onClick={() => setCategory(item)} className={cn('h-8 rounded-md px-2.5 text-xs', category === item ? 'bg-foreground text-background' : 'border border-foreground/10 hover:bg-foreground/[0.04]')}>
+            <Button variant="custom" size={null} key={item ?? 'all'} type="button" role="tab" aria-selected={category === item} onClick={() => setCategory(item)} className={cn('h-8 rounded-md px-2.5 text-xs', category === item ? 'bg-foreground text-background' : 'border border-foreground/10 hover:bg-foreground/[0.04]')}>
               {item === null ? 'All' : CATEGORY_LABELS[item]}
-            </button>
+            </Button>
           ))}
         </div>
         <ul className="space-y-4" aria-label="Templates">
@@ -143,7 +159,7 @@ export function SaveTemplateDialog({ open, onOpenChange }: DialogProps): React.J
             onOpenChange(false)
           }}
         >
-          <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} aria-label="Template name" className="h-9 w-full rounded-md border border-foreground/10 bg-foreground/[0.035] px-3 text-sm outline-none" />
+          <Input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} aria-label="Template name" className="h-9 w-full rounded-md border border-foreground/10 bg-foreground/[0.035] px-3 text-sm outline-none" />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
@@ -234,7 +250,7 @@ export function BrandKitsDialog({ open, onOpenChange }: DialogProps): React.JSX.
             <ul className="space-y-1" aria-label="Brand kits">
               {kits.map((kit) => (
                 <li key={kit.id}>
-                  <button type="button" onClick={() => setEditing(kit)} className={cn('flex w-full items-center gap-2 rounded-md border p-2 text-left text-xs', editing?.id === kit.id ? 'border-foreground/40 bg-foreground/[0.05]' : 'border-foreground/10')}>
+                  <Button variant="custom" size={null} type="button" onClick={() => setEditing(kit)} className={cn('flex w-full items-center gap-2 rounded-md border p-2 text-left text-xs', editing?.id === kit.id ? 'border-foreground/40 bg-foreground/[0.05]' : 'border-foreground/10')}>
                     <span className="flex">
                       {kit.palette.slice(0, 4).map((color) => (
                         <span key={color} className="-ml-1 size-4 rounded-full border border-background first:ml-0" style={{ background: color }} />
@@ -242,7 +258,7 @@ export function BrandKitsDialog({ open, onOpenChange }: DialogProps): React.JSX.
                     </span>
                     <span className="min-w-0 flex-1 truncate font-medium">{kit.name}</span>
                     {document.brandKitId === kit.id ? <span className="text-[10px] text-muted-foreground">in use</span> : null}
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -250,7 +266,7 @@ export function BrandKitsDialog({ open, onOpenChange }: DialogProps): React.JSX.
           {editing ? (
             <div className="space-y-4">
               <div className="flex gap-2">
-                <input key={editing.id} defaultValue={editing.name} aria-label="Kit name" maxLength={80} onBlur={(event) => event.target.value.trim() && event.target.value !== editing.name && void persist({ ...editing, name: event.target.value.trim() })} className="h-9 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-3 text-sm outline-none" />
+                <Input key={editing.id} defaultValue={editing.name} aria-label="Kit name" maxLength={80} onBlur={(event) => event.target.value.trim() && event.target.value !== editing.name && void persist({ ...editing, name: event.target.value.trim() })} className="h-9 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-3 text-sm outline-none" />
                 <Button variant="outline" onClick={() => void persist({ ...editing, id: newId(), name: `${editing.name} copy`, createdAt: Date.now() })}>
                   Duplicate
                 </Button>
@@ -293,16 +309,33 @@ export function BrandKitsDialog({ open, onOpenChange }: DialogProps): React.JSX.
                 <BackgroundField value={editing.background} onChange={(background) => background && background.kind !== 'image' && setEditing({ ...editing, background })} />
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <label className="space-y-1">
+                <Label className="block space-y-1">
                   <span className="text-muted-foreground">Device</span>
-                  <select value={editing.deviceFrame.modelId} onChange={(event) => setEditing({ ...editing, deviceFrame: { ...editing.deviceFrame, modelId: event.target.value, finishId: getDeviceModel(event.target.value).finishes[0].id } })} className="h-8 w-full rounded-md border border-foreground/10 bg-background px-2">
-                    {DEVICE_MODELS.map((model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  <Select
+                    value={editing.deviceFrame.modelId}
+                    onValueChange={(nextValue) =>
+                      setEditing({
+                        ...editing,
+                        deviceFrame: {
+                          ...editing.deviceFrame,
+                          modelId: nextValue,
+                          finishId: getDeviceModel(nextValue).finishes[0].id,
+                        },
+                      })
+                    }
+                  >
+                    <SelectTrigger className="h-8 w-full rounded-md border border-foreground/10 bg-background px-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEVICE_MODELS.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Label>
                 <div className="space-y-1">
                   <span className="text-muted-foreground">Logo</span>
                   <div className="flex gap-1.5">
@@ -315,7 +348,7 @@ export function BrandKitsDialog({ open, onOpenChange }: DialogProps): React.JSX.
                       </Button>
                     ) : null}
                   </div>
-                  <input
+                  <Input
                     ref={logoRef}
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
@@ -340,24 +373,24 @@ export function BrandKitsDialog({ open, onOpenChange }: DialogProps): React.JSX.
               <fieldset className="space-y-2 rounded-md border border-foreground/10 p-3 text-xs">
                 <legend className="px-1 font-medium">Apply</legend>
                 <div className="flex gap-3">
-                  <label className="flex items-center gap-1.5">
-                    <input type="radio" name="kit-scope" checked={scope === 'all'} onChange={() => setScope('all')} /> Whole project
-                  </label>
-                  <label className="flex items-center gap-1.5">
-                    <input type="radio" name="kit-scope" checked={scope === 'selected'} disabled={selectedSlideIds.length === 0} onChange={() => setScope('selected')} /> Selected slides ({selectedSlideIds.length})
-                  </label>
+                  <Label className="flex items-center gap-1.5">
+                    <Input type="radio" name="kit-scope" checked={scope === 'all'} onChange={() => setScope('all')} /> Whole project
+                  </Label>
+                  <Label className="flex items-center gap-1.5">
+                    <Input type="radio" name="kit-scope" checked={scope === 'selected'} disabled={selectedSlideIds.length === 0} onChange={() => setScope('selected')} /> Selected slides ({selectedSlideIds.length})
+                  </Label>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {(['colors', 'fonts', 'background', 'device', 'logo'] as const).map((part) => (
-                    <label key={part} className="flex items-center gap-1.5 capitalize">
-                      <input type="checkbox" checked={parts[part]} onChange={(event) => setParts({ ...parts, [part]: event.target.checked })} />
+                    <Label key={part} className="flex items-center gap-1.5 capitalize">
+                      <Checkbox  checked={parts[part]} onCheckedChange={(checked) => setParts({ ...parts, [part]: (checked === true) })} />
                       {part}
-                    </label>
+                    </Label>
                   ))}
-                  <label className="col-span-3 flex items-center gap-1.5">
-                    <input type="checkbox" checked={parts.keepOverrides} onChange={(event) => setParts({ ...parts, keepOverrides: event.target.checked })} />
+                  <Label className="col-span-3 flex items-center gap-1.5">
+                    <Checkbox  checked={parts.keepOverrides} onCheckedChange={(checked) => setParts({ ...parts, keepOverrides: (checked === true) })} />
                     Keep text styles a slide sets on purpose
-                  </label>
+                  </Label>
                 </div>
                 <Button
                   onClick={async () => {

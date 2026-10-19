@@ -118,6 +118,7 @@ export function toCanvasShadow(shadow: {
   offsetY: number;
   spread: number;
   color: string;
+  opacity?: number;
 }): ShadowConfig {
   const offsetX = shadow.offsetX || Math.round(shadow.blur * 0.3);
   const offsetY = shadow.offsetY || Math.round(shadow.blur * 0.5);
@@ -147,7 +148,7 @@ export function toCanvasShadow(shadow: {
     softness: shadow.blur,
     spread: shadow.spread,
     color,
-    intensity,
+    intensity: shadow.opacity === undefined ? intensity : Math.min(1, Math.max(0, shadow.opacity)),
     offsetX,
     offsetY,
   };

@@ -14,6 +14,7 @@
 /coverage
 /playwright-report/
 /test-results/
+/.context/
 
 # next.js
 /.next/
@@ -46,6 +47,7 @@ next-env.d.ts
 public/backgrounds
 /scripts/*
 !/scripts/e2e-screenshot-mock.mjs
+!/scripts/e2e-release-automation-mock.mjs
 !/scripts/smoke-rate-limit.mjs
 !/scripts/verify-tenant-isolation.ts
 !/scripts/verify-trpc-smoke.ts

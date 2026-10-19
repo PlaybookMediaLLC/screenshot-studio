@@ -22,6 +22,7 @@ import {
 } from '@/lib/tenant/surface-freshness'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
+import { Label } from '@/components/ui/label'
 
 type Surface = Pick<
   ProductSurface,
@@ -126,9 +127,9 @@ function SurfaceForm({
     <form className="flex w-full flex-col gap-3" onSubmit={handleSubmit}>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-name`}>
+          <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-name`}>
             Name
-          </label>
+          </Label>
           <Input
             className="h-10 rounded-lg"
             defaultValue={surface?.name}
@@ -140,9 +141,9 @@ function SurfaceForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-url`}>
+          <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-url`}>
             URL
-          </label>
+          </Label>
           <Input
             className="h-10 rounded-lg"
             defaultValue={surface?.url}
@@ -156,9 +157,9 @@ function SurfaceForm({
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-tags`}>
+        <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-tags`}>
           Feature tags
-        </label>
+        </Label>
         <Input
           aria-describedby={`${id}-tags-hint`}
           className="h-10 rounded-lg"
@@ -172,9 +173,9 @@ function SurfaceForm({
         </p>
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-description`}>
+        <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-description`}>
           Description
-        </label>
+        </Label>
         <Textarea
           className="min-h-16 rounded-lg"
           defaultValue={surface?.description ?? ''}

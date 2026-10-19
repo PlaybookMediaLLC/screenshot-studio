@@ -5,6 +5,12 @@ import { ApproveVisualButton } from '@/components/launch/assets/ApproveVisualBut
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { EmptyState, Pill, type PillTone, Section } from '@/components/platform-ui'
 import type { CampaignPlanContent } from '@/lib/launch/spec-schema'
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@/components/ui/accordion'
 
 /**
  * The campaign's visuals, grouped by the plan asset each one realizes (A1,
@@ -119,20 +125,25 @@ function CritiqueSummary({ critique }: { critique: Critique }) {
         ))}
       </div>
       {critique.issues.length > 0 ? (
-        <details className="group/issues text-xs">
-          <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-neutral-400 transition-colors hover:text-white [&::-webkit-details-marker]:hidden">
-            {critique.issues.length} {critique.issues.length === 1 ? 'issue' : 'issues'} from review
-            <ArrowDown01Icon
-              className="transition-transform group-open/issues:rotate-180"
-              size={14}
-            />
-          </summary>
-          <ul className="mt-2 list-disc space-y-1.5 pl-4 leading-5 text-neutral-400">
-            {critique.issues.map((issue, index) => (
-              <li key={index}>{issue}</li>
-            ))}
-          </ul>
-        </details>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="details" className="group/issues text-xs">
+            <AccordionTrigger className="[&>svg:last-child]:hidden flex w-fit cursor-pointer list-none items-center gap-1 text-neutral-400 transition-colors hover:text-white [&::-webkit-details-marker]:hidden">
+              {critique.issues.length} {critique.issues.length === 1 ? 'issue' : 'issues'} from
+              review
+              <ArrowDown01Icon
+                className="transition-transform group-data-[state=open]/issues:rotate-180"
+                size={14}
+              />
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
+              <ul className="mt-2 list-disc space-y-1.5 pl-4 leading-5 text-neutral-400">
+                {critique.issues.map((issue, index) => (
+                  <li key={index}>{issue}</li>
+                ))}
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       ) : null}
     </div>
   )
@@ -289,23 +300,27 @@ function PlanAssetVisuals({
         visuals={current}
       />
       {earlier.length > 0 ? (
-        <details className="group/earlier">
-          <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-xs font-medium text-neutral-400 transition-colors hover:text-white [&::-webkit-details-marker]:hidden">
-            {earlier.length} earlier {earlier.length === 1 ? 'version' : 'versions'}
-            <ArrowDown01Icon
-              className="transition-transform group-open/earlier:rotate-180"
-              size={14}
-            />
-          </summary>
-          <div className="mt-4">
-            <VisualGrid
-              format={format}
-              options={options}
-              planCreatedAt={planCreatedAt}
-              visuals={earlier}
-            />
-          </div>
-        </details>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="details" className="group/earlier">
+            <AccordionTrigger className="[&>svg:last-child]:hidden flex w-fit cursor-pointer list-none items-center gap-1 text-xs font-medium text-neutral-400 transition-colors hover:text-white [&::-webkit-details-marker]:hidden">
+              {earlier.length} earlier {earlier.length === 1 ? 'version' : 'versions'}
+              <ArrowDown01Icon
+                className="transition-transform group-data-[state=open]/earlier:rotate-180"
+                size={14}
+              />
+            </AccordionTrigger>
+            <AccordionContent className="p-0">
+              <div className="mt-4">
+                <VisualGrid
+                  format={format}
+                  options={options}
+                  planCreatedAt={planCreatedAt}
+                  visuals={earlier}
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       ) : null}
     </>
   )
@@ -348,50 +363,57 @@ function PlanAssetGroup({
 
 function Captures({ captures }: { captures: BoardCapture[] }) {
   return (
-    <details className="group/captures rounded-2xl bg-white/[0.015] ring-1 ring-white/[0.08]">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
-        <span className="min-w-0">
-          <span className="block text-sm font-medium text-white">Captures</span>
-          <span className="mt-0.5 block text-xs text-neutral-500">
-            {captures.length} live {captures.length === 1 ? 'capture' : 'captures'} of the product
-            the visuals were built from.
+    <Accordion type="single" collapsible>
+      <AccordionItem
+        value="details"
+        className="group/captures rounded-2xl bg-white/[0.015] ring-1 ring-white/[0.08]"
+      >
+        <AccordionTrigger className="[&>svg:last-child]:hidden flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0">
+            <span className="block text-sm font-medium text-white">Captures</span>
+            <span className="mt-0.5 block text-xs text-neutral-500">
+              {captures.length} live {captures.length === 1 ? 'capture' : 'captures'} of the product
+              the visuals were built from.
+            </span>
           </span>
-        </span>
-        <ArrowDown01Icon
-          className="shrink-0 text-neutral-500 transition-transform group-open/captures:rotate-180"
-          size={16}
-        />
-      </summary>
-      <ul className="grid gap-4 border-t border-white/[0.06] p-5 sm:grid-cols-2 lg:grid-cols-3">
-        {captures.map((capture) => (
-          <li className="flex min-w-0 flex-col gap-2" key={capture.id}>
-            {capture.url ? (
-              <a
-                className="block overflow-hidden rounded-lg ring-1 ring-white/[0.08] transition hover:ring-white/[0.2]"
-                href={capture.url}
-                rel="noreferrer"
-                target="_blank"
-              >
-                <img
-                  alt={`${capture.device} capture of ${capture.caption ?? 'the product'}`}
-                  className="aspect-[4/3] w-full bg-neutral-900 object-cover object-top"
-                  loading="lazy"
-                  src={capture.url}
-                />
-              </a>
-            ) : (
-              <div className="grid aspect-[4/3] place-items-center rounded-lg text-xs text-neutral-500 ring-1 ring-white/[0.08]">
-                Preview unavailable
-              </div>
-            )}
-            <p className="flex min-w-0 items-center gap-2 text-xs">
-              <Pill>{capture.device}</Pill>
-              <span className="truncate text-neutral-500">{capture.caption}</span>
-            </p>
-          </li>
-        ))}
-      </ul>
-    </details>
+          <ArrowDown01Icon
+            className="shrink-0 text-neutral-500 transition-transform group-data-[state=open]/captures:rotate-180"
+            size={16}
+          />
+        </AccordionTrigger>
+        <AccordionContent className="p-0">
+          <ul className="grid gap-4 border-t border-white/[0.06] p-5 sm:grid-cols-2 lg:grid-cols-3">
+            {captures.map((capture) => (
+              <li className="flex min-w-0 flex-col gap-2" key={capture.id}>
+                {capture.url ? (
+                  <a
+                    className="block overflow-hidden rounded-lg ring-1 ring-white/[0.08] transition hover:ring-white/[0.2]"
+                    href={capture.url}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <img
+                      alt={`${capture.device} capture of ${capture.caption ?? 'the product'}`}
+                      className="aspect-[4/3] w-full bg-neutral-900 object-cover object-top"
+                      loading="lazy"
+                      src={capture.url}
+                    />
+                  </a>
+                ) : (
+                  <div className="grid aspect-[4/3] place-items-center rounded-lg text-xs text-neutral-500 ring-1 ring-white/[0.08]">
+                    Preview unavailable
+                  </div>
+                )}
+                <p className="flex min-w-0 items-center gap-2 text-xs">
+                  <Pill>{capture.device}</Pill>
+                  <span className="truncate text-neutral-500">{capture.caption}</span>
+                </p>
+              </li>
+            ))}
+          </ul>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   )
 }
 

@@ -6,6 +6,8 @@ import { Add01Icon } from "hugeicons-react";
 import { cn } from "@/lib/utils";
 import { TOOL_DROPZONE_ACCEPT } from "./useToolQueue";
 import { DROP_CARD_CLASS, DropSurface } from "./ui";
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface ToolDropzoneProps {
   onFiles: (files: File[]) => void;
@@ -51,7 +53,7 @@ export function ToolDropzone({
 
   if (compact) {
     return (
-      <button
+      <Button variant="custom" size={null}
         type="button"
         onClick={open}
         {...getRootProps({
@@ -61,10 +63,10 @@ export function ToolDropzone({
           ),
         })}
       >
-        <input {...getInputProps()} />
+        <Input {...getInputProps()} />
         <Add01Icon size={16} aria-hidden="true" />
         {isDragActive ? `Drop to add ${plural}` : `Add more ${plural}`}
-      </button>
+      </Button>
     );
   }
 
@@ -76,7 +78,7 @@ export function ToolDropzone({
         "aria-label": `Choose ${plural} to process`,
       })}
     >
-      <input {...getInputProps()} />
+      <Input {...getInputProps()} />
       <DropSurface
         active={isDragActive}
         title={isDragActive ? `Drop to add ${plural}` : `Drop ${plural} here`}

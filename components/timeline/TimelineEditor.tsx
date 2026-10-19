@@ -12,6 +12,7 @@ import type { AnimationClip } from '@/types/animation';
 import { useEditorPanels } from '@/lib/store/editor-panels';
 import { MOTION_ROW_HEIGHT, MotionTracks, motionRowCount } from './MotionTracks';
 import { useAudioPlayback } from '@/lib/animation/use-audio-playback';
+import { Button } from '@/components/ui/button'
 
 const TRACK_LABEL_WIDTH = 120;
 const PIXELS_PER_SECOND = 105;
@@ -296,7 +297,7 @@ function ResizableAnimationClip({
         <span className="truncate text-[10px] font-medium text-foreground/85">{clip.name}</span>
       </div>
 
-      <button
+      <Button variant="custom" size={null}
         type="button"
         className="group/remove pointer-events-auto absolute -right-1.5 -top-1.5 z-10 flex h-4 w-4 cursor-pointer items-center justify-center rounded-md border border-foreground/10 bg-card opacity-0 shadow-sm transition-colors group-hover:opacity-100 hover:border-destructive hover:bg-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
         onMouseDown={(e) => e.stopPropagation()}
@@ -307,7 +308,7 @@ function ResizableAnimationClip({
         aria-label={`Remove ${clip.name} animation`}
       >
         <Cancel01Icon size={8} className="text-foreground group-hover/remove:text-destructive-foreground" />
-      </button>
+      </Button>
     </div>
   );
 }
@@ -352,7 +353,7 @@ function AnimationTrack({ width, onAddAnimation }: { width: number; onAddAnimati
 
         {animationClips.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <button
+            <Button variant="custom" size={null}
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -369,10 +370,10 @@ function AnimationTrack({ width, onAddAnimation }: { width: number; onAddAnimati
             >
               <Add01Icon size={13} />
               <span>Add animation</span>
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
+          <Button variant="custom" size={null}
             type="button"
             onClick={(e) => {
               e.stopPropagation();
@@ -389,7 +390,7 @@ function AnimationTrack({ width, onAddAnimation }: { width: number; onAddAnimati
             )}
           >
             <Add01Icon size={14} />
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -461,7 +462,7 @@ function VideoTrack({ width }: { width: number }) {
                 </div>
 
                 {slides.length > 1 && item.id !== 'main' && (
-                  <button
+                  <Button variant="custom" size={null}
                     type="button"
                     className="absolute top-0.5 right-0.5 z-10 flex h-4 w-4 cursor-pointer items-center justify-center rounded-md border border-foreground/10 bg-card opacity-0 transition-opacity group-hover/clip:opacity-100 hover:bg-destructive"
                     onClick={(e) => {
@@ -471,7 +472,7 @@ function VideoTrack({ width }: { width: number }) {
                     aria-label={`Remove slide ${mediaItems.indexOf(item) + 1}`}
                   >
                     <Cancel01Icon size={8} className="text-foreground" />
-                  </button>
+                  </Button>
                 )}
               </div>
             );

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { Button } from '@/components/ui/button'
 
 const PATH_KEY = "ss-path";
 const PREV_PATH_KEY = "ss-prev-path";
@@ -48,12 +49,12 @@ export function GoBackButton(): React.JSX.Element {
   };
 
   return (
-    <button
+    <Button variant="custom" size={null}
       type="button"
       onClick={handleClick}
       className="inline-flex h-10 cursor-pointer items-center justify-center rounded-md px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground active:scale-[0.99]"
     >
       Go back
-    </button>
+    </Button>
   );
 }

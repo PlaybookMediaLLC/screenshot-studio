@@ -50,7 +50,7 @@ export function WorkspaceSettings({ section, ...props }: WorkspaceSettingsProps)
 
   const current = SETTINGS_SECTIONS.find((item) => item.id === section) ?? SETTINGS_SECTIONS[0]!
   return (
-    <Page title="Settings" width="md">
+    <Page title="Settings" width={section === 'release-automation' ? 'xl' : 'md'}>
       <Section description={current.description} title={current.title}>
         <WorkspaceSettingContent section={section} {...props} />
       </Section>

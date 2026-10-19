@@ -19,6 +19,7 @@ import {
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { isTerminal, ONBOARDING_STAGES, stagePercent, useOnboardingRun } from './run-progress'
+import { Label } from '@/components/ui/label'
 
 type Provenance = StoredProductProfile['provenance'][ProductProfileFieldName]
 
@@ -211,13 +212,13 @@ function ReviewField({
   return (
     <li className="flex flex-col gap-2 border-b border-white/[0.06] py-3 last:border-b-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <label
+        <Label
           className="text-sm font-medium text-neutral-200"
           htmlFor={editing ? id : undefined}
           id={labelId}
         >
           {label}
-        </label>
+        </Label>
         <SourceBadge entry={entry} />
       </div>
       {editing ? (
@@ -474,13 +475,13 @@ export function OnboardingReview({
       </section>
       <EnrichmentFacts findings={findings} />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
+        <Button variant="custom" size={null}
           className="text-sm text-neutral-400 underline underline-offset-4 hover:text-white"
           onClick={onManual}
           type="button"
         >
           Edit everything in a form instead
-        </button>
+        </Button>
         <Button className="rounded-lg" onClick={() => onConfirm(profile)}>
           Looks right
         </Button>

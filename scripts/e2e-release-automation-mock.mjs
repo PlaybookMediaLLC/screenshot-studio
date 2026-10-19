@@ -1,0 +1,91 @@
+import { createServer } from 'node:http'
+
+// Local protocol fixture only: the application still verifies OAuth state,
+// repository access, sessions, tenant ownership, and webhook signatures.
+const port = Number(process.env.E2E_GITHUB_PORT ?? 8039)
+const appURL = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
+const repository = { id: 1001, full_name: 'fixture/product', default_branch: 'main', private: true }
+const installation = {
+  id: 77,
+  account: { login: 'release-fixture', type: 'Organization' },
+  repository_selection: 'selected',
+  suspended_at: null,
+}
+let mailCount = 0
+const server = createServer(async (request, response) => {
+  const url = new URL(request.url, `http://localhost:${port}`)
+  const json = (body, status = 200) => {
+    response.writeHead(status, { 'content-type': 'application/json' })
+    response.end(JSON.stringify(body))
+  }
+  const redirect = (target) => {
+    response.writeHead(302, { location: target })
+    response.end()
+  }
+  if (url.pathname === '/health') return json({ ready: true })
+  if (url.pathname === '/__counts') return json({ mailCount })
+  if (url.pathname === '/login/oauth/authorize') {
+    const callback = new URL('/integrations/github/callback', appURL)
+    callback.searchParams.set('state', url.searchParams.get('state') ?? '')
+    callback.searchParams.set('code', 'fixture-user-code')
+    return redirect(callback.toString())
+  }
+  if (url.pathname === '/apps/release-fixture/installations/new') {
+    const setup = new URL('/integrations/github/setup', appURL)
+    setup.searchParams.set('state', url.searchParams.get('state') ?? '')
+    setup.searchParams.set('installation_id', '77')
+    setup.searchParams.set('setup_action', 'install')
+    return redirect(setup.toString())
+  }
+  if (url.pathname === '/login/oauth/access_token' && request.method === 'POST') {
+    let body = ''
+    for await (const chunk of request) {
+      body += chunk
+      if (body.length > 8192) return json({ error: 'too_large' }, 413)
+    }
+    try {
+      if (JSON.parse(body).code !== 'fixture-user-code') return json({ error: 'bad_code' }, 400)
+    } catch {
+      return json({ error: 'invalid_json' }, 400)
+    }
+    return json({ access_token: 'fixture-user-token' })
+  }
+  if (url.pathname === '/user/installations') {
+    if (request.headers.authorization !== 'Bearer fixture-user-token')
+      return json({ error: 'unauthorized' }, 401)
+    return json({ installations: [installation] })
+  }
+  if (url.pathname === '/app/installations/77') return json(installation)
+  if (url.pathname === '/app/installations/77/access_tokens')
+    return json({
+      token: 'fixture-installation-token',
+      expires_at: new Date(Date.now() + 3_600_000).toISOString(),
+    })
+  if (url.pathname === '/installation/repositories') return json({ repositories: [repository] })
+  if (url.pathname === '/repositories/1001') return json(repository)
+  if (url.pathname === '/repositories/1001/releases' || url.pathname === '/repositories/1001/pulls')
+    return json([])
+  if (/^\/repositories\/1001\/releases\/\d+$/.test(url.pathname)) return json({ body_html: '' })
+  if (/^\/repositories\/1001\/pulls\/\d+$/.test(url.pathname))
+    return json({ changed_files: 101, body_html: '' })
+  if (/^\/repositories\/1001\/pulls\/\d+\/files$/.test(url.pathname)) {
+    return json(
+      url.searchParams.get('page') === '1'
+        ? Array.from({ length: 100 }, (_, i) => ({ filename: `docs/${i}.md` }))
+        : [{ filename: 'src/export.ts' }]
+    )
+  }
+  if (url.pathname === '/mail' && request.method === 'POST') {
+    for await (const _ of request) {
+      /* Drain the transport request without retaining addresses or message bodies. */
+    }
+    mailCount++
+    return json({ accepted: true })
+  }
+  return json({ error: 'fixture_route_not_found' }, 404)
+})
+server.listen(port, '0.0.0.0', () =>
+  process.stdout.write(`Release automation GitHub fixture listening on ${port}\n`)
+)
+process.on('SIGTERM', () => server.close())
+process.on('SIGINT', () => server.close())

@@ -4,6 +4,7 @@ import * as React from 'react'
 import { ColorPicker } from '@/components/ui/color-picker'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 /**
  * Inspector fields shared by every property panel, so a colour, a toggle,
@@ -34,9 +35,9 @@ export function ToggleField({
   const id = React.useId()
   return (
     <div className="flex items-center justify-between gap-2">
-      <label className="text-xs text-muted-foreground" htmlFor={id}>
+      <Label className="text-xs text-muted-foreground" htmlFor={id}>
         {label}
-      </label>
+      </Label>
       <Switch checked={checked} id={id} onCheckedChange={onChange} />
     </div>
   )

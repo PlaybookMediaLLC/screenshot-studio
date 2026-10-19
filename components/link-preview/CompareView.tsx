@@ -11,6 +11,17 @@ import { cn } from '@/lib/utils'
 import { normalizeUrl, requestPreview } from './client'
 import { PANEL } from './MetadataPanels'
 import { hostname, PLATFORMS, PlatformPreview } from './PlatformPreviews'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table'
 
 const { error: ERROR, warning: WARNING } = issueSeveritySchema.enum
 
@@ -137,7 +148,7 @@ export function CompareView({ agent }: { agent: LinkPreviewAgent }) {
         className={cn(PANEL, 'grid items-center gap-2 p-2 md:grid-cols-[1fr_auto_1fr_auto]')}
       >
         {[0, 1].map((index) => (
-          <input
+          <Input
             key={index}
             value={inputs[index]}
             onChange={(event) =>
@@ -192,7 +203,7 @@ export function CompareView({ agent }: { agent: LinkPreviewAgent }) {
               <section className="space-y-3">
                 <div className="flex flex-wrap gap-1.5">
                   {PLATFORMS.map((item) => (
-                    <button
+                    <Button variant="custom" size={null}
                       key={item.id}
                       type="button"
                       onClick={() => setPlatform(item)}
@@ -204,7 +215,7 @@ export function CompareView({ agent }: { agent: LinkPreviewAgent }) {
                       )}
                     >
                       {item.name}
-                    </button>
+                    </Button>
                   ))}
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
@@ -224,51 +235,50 @@ export function CompareView({ agent }: { agent: LinkPreviewAgent }) {
                   <h3 className="text-sm font-medium text-foreground">
                     Tags · {differences} difference{differences === 1 ? '' : 's'}
                   </h3>
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
+                  <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Checkbox
                       checked={onlyDifferences}
-                      onChange={(event) => setOnlyDifferences(event.target.checked)}
+                      onCheckedChange={(checked) => setOnlyDifferences((checked === true))}
                     />
                     Only differences
-                  </label>
+                  </Label>
                 </div>
                 <div className={cn(PANEL, 'overflow-x-auto')}>
-                  <table className="w-full table-fixed text-left text-sm">
+                  <Table className="w-full table-fixed text-left text-sm">
                     <colgroup>
                       <col className="w-40" />
                       <col />
                       <col />
                     </colgroup>
-                    <thead className="text-xs text-muted-foreground">
-                      <tr className="border-b border-white/[0.07]">
-                        <th className="px-4 py-3 font-medium">Tag</th>
-                        <th className="px-4 py-3 font-medium">{hostname(urls[0]!)}</th>
-                        <th className="px-4 py-3 font-medium">{hostname(urls[1]!)}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.07]">
+                    <TableHeader className="text-xs text-muted-foreground">
+                      <TableRow className="border-b border-white/[0.07]">
+                        <TableHead className="whitespace-normal px-4 py-3 font-medium">Tag</TableHead>
+                        <TableHead className="whitespace-normal px-4 py-3 font-medium">{hostname(urls[0]!)}</TableHead>
+                        <TableHead className="whitespace-normal px-4 py-3 font-medium">{hostname(urls[1]!)}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-white/[0.07]">
                       {rows.map(({ label, values }) => {
                         const differs = values[0] !== values[1]
                         return (
-                          <tr
+                          <TableRow
                             key={label}
                             className={cn('align-top', differs && 'bg-amber-500/[0.06]')}
                           >
-                            <td className="px-4 py-2.5 text-muted-foreground">
+                            <TableCell className="whitespace-normal px-4 py-2.5 text-muted-foreground">
                               {label}
                               {differs && <span className="ml-1.5 text-amber-400">●</span>}
-                            </td>
+                            </TableCell>
                             {values.map((value, index) => (
-                              <td key={index} className="break-words px-4 py-2.5 text-foreground">
+                              <TableCell key={index} className="whitespace-normal break-words px-4 py-2.5 text-foreground">
                                 {value ?? <span className="text-muted-foreground">Not set</span>}
-                              </td>
+                              </TableCell>
                             ))}
-                          </tr>
+                          </TableRow>
                         )
                       })}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </section>
             </>

@@ -4,6 +4,8 @@ import * as React from 'react'
 import { useImageStore, type ImageBorder } from '@/lib/store'
 import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 
 const frameOptions = [
   { value: 'none', label: 'None' },
@@ -31,7 +33,7 @@ function FramePreview({
 }) {
   return (
     <div className="flex flex-col items-center gap-2">
-      <button
+      <Button variant="custom" size={null}
         type="button"
         onClick={onSelect}
         aria-selected={selected}
@@ -39,7 +41,7 @@ function FramePreview({
         title={type}
       >
         <div className="relative h-8 w-10">{children}</div>
-      </button>
+      </Button>
       <div className="text-xs text-muted-foreground">{frameOptions.find((f) => f.value === type)?.label}</div>
     </div>
   )
@@ -133,7 +135,7 @@ export function BorderControls() {
       <div className="text-sm font-semibold text-foreground">Frame</div>
       <div className="space-y-4 pt-2">
         <div>
-          <label className="mb-2 block text-xs text-muted-foreground">Style</label>
+          <Label className="mb-2 block text-xs text-muted-foreground">Style</Label>
           <div className="grid grid-cols-4 gap-x-2 gap-y-4">
             {frameOptions.map(({ value }) => (
               <FramePreview
@@ -173,9 +175,9 @@ export function BorderControls() {
 
         {showTitleInput && (
           <div>
-            <label className="text-xs text-muted-foreground mb-2 block">
+            <Label className="text-xs text-muted-foreground mb-2 block">
               {isPhotograph ? 'Caption' : 'Title'}
-            </label>
+            </Label>
             <Input
               type="text"
               value={imageBorder.title || ''}

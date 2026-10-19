@@ -104,6 +104,10 @@ type Tx struct {
 	OutboxEvent *OutboxEventClient
 	// PageKnowledge is the client for interacting with the PageKnowledge builders.
 	PageKnowledge *PageKnowledgeClient
+	// PlatformCreativeSet is the client for interacting with the PlatformCreativeSet builders.
+	PlatformCreativeSet *PlatformCreativeSetClient
+	// PlatformCreativeSetVersion is the client for interacting with the PlatformCreativeSetVersion builders.
+	PlatformCreativeSetVersion *PlatformCreativeSetVersionClient
 	// PlatformNotificationDelivery is the client for interacting with the PlatformNotificationDelivery builders.
 	PlatformNotificationDelivery *PlatformNotificationDeliveryClient
 	// PlatformNotificationInbox is the client for interacting with the PlatformNotificationInbox builders.
@@ -132,8 +136,20 @@ type Tx struct {
 	PublicationAttempt *PublicationAttemptClient
 	// Release is the client for interacting with the Release builders.
 	Release *ReleaseClient
+	// ReleaseAutomation is the client for interacting with the ReleaseAutomation builders.
+	ReleaseAutomation *ReleaseAutomationClient
+	// ReleaseAutomationExecutor is the client for interacting with the ReleaseAutomationExecutor builders.
+	ReleaseAutomationExecutor *ReleaseAutomationExecutorClient
+	// ReleaseAutomationNode is the client for interacting with the ReleaseAutomationNode builders.
+	ReleaseAutomationNode *ReleaseAutomationNodeClient
+	// ReleaseAutomationRun is the client for interacting with the ReleaseAutomationRun builders.
+	ReleaseAutomationRun *ReleaseAutomationRunClient
+	// ReleaseAutomationVersion is the client for interacting with the ReleaseAutomationVersion builders.
+	ReleaseAutomationVersion *ReleaseAutomationVersionClient
 	// ReleaseDocument is the client for interacting with the ReleaseDocument builders.
 	ReleaseDocument *ReleaseDocumentClient
+	// ReleaseSourceEvent is the client for interacting with the ReleaseSourceEvent builders.
+	ReleaseSourceEvent *ReleaseSourceEventClient
 	// ReleaseSpec is the client for interacting with the ReleaseSpec builders.
 	ReleaseSpec *ReleaseSpecClient
 	// ScheduledPost is the client for interacting with the ScheduledPost builders.
@@ -351,6 +367,8 @@ func (tx *Tx) init() {
 	tx.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.PageKnowledge = NewPageKnowledgeClient(tx.config)
+	tx.PlatformCreativeSet = NewPlatformCreativeSetClient(tx.config)
+	tx.PlatformCreativeSetVersion = NewPlatformCreativeSetVersionClient(tx.config)
 	tx.PlatformNotificationDelivery = NewPlatformNotificationDeliveryClient(tx.config)
 	tx.PlatformNotificationInbox = NewPlatformNotificationInboxClient(tx.config)
 	tx.PlatformNotificationPolicy = NewPlatformNotificationPolicyClient(tx.config)
@@ -365,7 +383,13 @@ func (tx *Tx) init() {
 	tx.ProjectVersion = NewProjectVersionClient(tx.config)
 	tx.PublicationAttempt = NewPublicationAttemptClient(tx.config)
 	tx.Release = NewReleaseClient(tx.config)
+	tx.ReleaseAutomation = NewReleaseAutomationClient(tx.config)
+	tx.ReleaseAutomationExecutor = NewReleaseAutomationExecutorClient(tx.config)
+	tx.ReleaseAutomationNode = NewReleaseAutomationNodeClient(tx.config)
+	tx.ReleaseAutomationRun = NewReleaseAutomationRunClient(tx.config)
+	tx.ReleaseAutomationVersion = NewReleaseAutomationVersionClient(tx.config)
 	tx.ReleaseDocument = NewReleaseDocumentClient(tx.config)
+	tx.ReleaseSourceEvent = NewReleaseSourceEventClient(tx.config)
 	tx.ReleaseSpec = NewReleaseSpecClient(tx.config)
 	tx.ScheduledPost = NewScheduledPostClient(tx.config)
 	tx.ScreenshotCache = NewScreenshotCacheClient(tx.config)

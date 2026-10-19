@@ -291,7 +291,7 @@ export function BrandKitDialog({
             <div className="flex flex-wrap items-center gap-1.5 pt-1">
               <span className="mr-1 text-xs text-muted-foreground">Palette</span>
               {draft.palette.map((color, index) => (
-                <button
+                <Button variant="custom" size={null}
                   aria-label={`Remove ${color} from the palette`}
                   className="size-6 rounded-full border border-foreground/15"
                   key={`${color}-${index}`}
@@ -400,7 +400,7 @@ export function BrandKitDialog({
                 ))}
               </ul>
             )}
-            <input
+            <Input
               accept={LOGO_TYPES.join(',')}
               aria-label="Logo files"
               className="hidden"

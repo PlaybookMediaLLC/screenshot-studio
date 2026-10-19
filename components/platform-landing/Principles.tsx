@@ -5,6 +5,7 @@ import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { MUTED } from './primitives'
 import { useHydratedReducedMotion } from './useHydratedReducedMotion'
+import { Button } from '@/components/ui/button'
 
 /** Design commitments behind the platform, in place of testimonials. */
 const PRINCIPLES = [
@@ -67,7 +68,7 @@ export function Principles() {
       </figure>
       <div className="mx-auto mt-16 grid max-w-[1024px] grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-4">
         {PRINCIPLES.map((item, index) => (
-          <button
+          <Button variant="custom" size={null}
             aria-pressed={index === active}
             className="group relative pt-5 text-left"
             key={item.name}
@@ -96,7 +97,7 @@ export function Principles() {
             >
               {item.name}
             </span>
-          </button>
+          </Button>
         ))}
       </div>
     </div>

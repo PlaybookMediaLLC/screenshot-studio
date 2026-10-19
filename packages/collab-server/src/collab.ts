@@ -5,6 +5,7 @@
  * This process holds no database credential and cannot open a draft by itself.
  */
 import type {
+  beforeHandleMessagePayload,
   onAuthenticatePayload,
   onLoadDocumentPayload,
   onRequestPayload,
@@ -14,6 +15,7 @@ import * as Y from "yjs";
 
 /** What the backend grants a connection. */
 export type CollabGrant = {
+  kind?: "content-draft" | "creative-set";
   access: "read" | "write";
   draftId: string;
   organizationId: string;
@@ -162,14 +164,14 @@ export function collabHooks(
       documentName,
       token,
     }: onAuthenticatePayload): Promise<Context> {
-      if (!draftIdOf(documentName)) {
+      if (!draftIdOf(documentName) && !/^creative-set:[a-z0-9-]{10,40}$/i.test(documentName)) {
         log("collab.refused", { documentName, reason: "unknown document" });
         throw new Error("Unknown document.");
       }
       try {
         const grant = await backend.authorize(token, documentName);
-        connectionConfig.readOnly = grant.access !== "write";
-        if (grant.access === "write") await writers.set(documentName, token);
+        connectionConfig.readOnly = grant.kind === "creative-set" || grant.access !== "write";
+        if (grant.kind !== "creative-set" && grant.access === "write") await writers.set(documentName, token);
         log("collab.admitted", {
           access: grant.access,
           documentName,
@@ -187,12 +189,21 @@ export function collabHooks(
       }
     },
 
+    async beforeHandleMessage({ context, documentName, connection }: beforeHandleMessagePayload) {
+      const { grant, token } = context as Context;
+      if (grant.kind !== "creative-set") return;
+      // Presence never carries document changes; revision writes use the Go API.
+      connection.readOnly = true;
+      await backend.authorize(token, documentName);
+    },
+
     async onLoadDocument({
       context,
       document,
       documentName,
     }: onLoadDocumentPayload) {
       const { grant, token } = context as Context;
+      if (grant.kind === "creative-set") return document;
       const state = await backend.load(grant.draftId, token);
       if (state) Y.applyUpdate(document, state);
       log("collab.loaded", { bytes: state?.byteLength ?? 0, documentName });

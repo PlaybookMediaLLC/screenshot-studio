@@ -7,8 +7,8 @@ import {
   Download04Icon,
   RefreshIcon,
 } from 'hugeicons-react';
-import { Button } from '@/components/ui/button';
-import { SegmentedControl } from '@/components/ui/segmented-control';
+import { Button } from '@/components/ui/button'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import { CARD_CLASS, DROP_CARD_CLASS, DropSurface } from '@/components/tools/ui';
 import { cn } from '@/lib/utils';
 import { downloadBlob } from '@/lib/image-tools/download';
@@ -23,6 +23,7 @@ import {
   type RemovalProgress,
   type RemovalResult,
 } from '@/lib/background-removal';
+import { Input } from '@/components/ui/input'
 
 type EngineStatus =
   | { kind: 'checking' }
@@ -122,7 +123,7 @@ function CompareSlider({ sourceUrl, resultUrl, width, height }: {
       <span className="pointer-events-none absolute top-2.5 right-2.5 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
         After
       </span>
-      <input
+      <Input
         type="range"
         min={0}
         max={100}
@@ -130,7 +131,7 @@ function CompareSlider({ sourceUrl, resultUrl, width, height }: {
         value={position}
         onChange={(event) => setPosition(Number(event.target.value))}
         aria-label="Compare before and after"
-        className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0"
+        className="absolute inset-0 h-full w-full cursor-ew-resize border-0 p-0 opacity-0"
       />
     </div>
   );
@@ -317,7 +318,7 @@ export function RemoveBackgroundApp() {
       className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center"
       {...dragHandlers}
     >
-      <input
+      <Input
         ref={inputRef}
         type="file"
         accept={SUPPORTED_TYPES.join(',')}
@@ -333,7 +334,7 @@ export function RemoveBackgroundApp() {
       <div className="w-full max-w-3xl">
         {phase.kind === 'idle' || phase.kind === 'error' ? (
           <div className="flex flex-col items-center gap-4">
-            <button
+            <Button variant="custom" size={null}
               type="button"
               onClick={openPicker}
               disabled={unsupported}
@@ -346,7 +347,7 @@ export function RemoveBackgroundApp() {
                 action="Choose a photo"
                 formats="PNG, JPG, WebP, or AVIF up to 50 MB"
               />
-            </button>
+            </Button>
 
             {phase.kind === 'error' ? (
               <p role="alert" className="text-sm text-destructive">
@@ -453,9 +454,9 @@ export function RemoveBackgroundApp() {
               {phase.result.width}×{phase.result.height} ·{' '}
               {phase.result.backend === 'webgpu' ? 'GPU' : 'CPU'} ·{' '}
               {restyling ? 'applying edge style…' : `${(phase.result.elapsedMs / 1000).toFixed(1)}s`} ·{' '}
-              <button type="button" onClick={reset} className="underline-offset-2 hover:text-foreground hover:underline">
+              <Button variant="custom" size={null} type="button" onClick={reset} className="underline-offset-2 hover:text-foreground hover:underline">
                 Clear
-              </button>
+              </Button>
             </p>
           </div>
         ) : null}

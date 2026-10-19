@@ -11,6 +11,9 @@ import { useActiveScene } from '../active-scene'
 import { ChoiceField, ColorField, IconButton, NumberField, Section, SelectField, SliderField, ToggleField } from '../controls'
 import { ownerLayers, useEditor, useEditorApi } from '../editor-store'
 import { LayerStateSection, TransformSection, useBaseWidth, useLayerPatch } from './shared'
+import { Label as UiLabel } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 /** Inspector for badges, arrows, ratings, and other annotations. */
 export function AnnotationPanel({ owner, layer, node }: { owner: LayerOwner; layer: AnnotationLayer; node: SceneAnnotation | undefined }): React.JSX.Element {
@@ -24,10 +27,10 @@ export function AnnotationPanel({ owner, layer, node }: { owner: LayerOwner; lay
         {hasText ? (
           <>
             <div className="space-y-1">
-              <label className="block text-[11px] text-muted-foreground" htmlFor={`text-${layer.id}`}>
+              <UiLabel className="block text-[11px] text-muted-foreground" htmlFor={`text-${layer.id}`}>
                 {layer.kind === 'rating' ? 'Label (for example “4.8 · 12K ratings”)' : layer.kind === 'step' ? 'Text (empty shows the number)' : 'Text'}
-              </label>
-              <input
+              </UiLabel>
+              <Input
                 id={`text-${layer.id}`}
                 data-inspector-focus="annotation-text"
                 value={layer.text}
@@ -38,10 +41,10 @@ export function AnnotationPanel({ owner, layer, node }: { owner: LayerOwner; lay
             </div>
             {['rating', 'laurel', 'badge', 'label'].includes(layer.kind) ? (
               <div className="space-y-1">
-                <label className="block text-[11px] text-muted-foreground" htmlFor={`caption-${layer.id}`}>
+                <UiLabel className="block text-[11px] text-muted-foreground" htmlFor={`caption-${layer.id}`}>
                   {layer.kind === 'laurel' || layer.kind === 'rating' ? 'Source' : 'Second line'}
-                </label>
-                <input
+                </UiLabel>
+                <Input
                   id={`caption-${layer.id}`}
                   value={layer.caption}
                   maxLength={120}
@@ -100,13 +103,13 @@ export function CalloutPanel({ owner, layer, node }: { owner: LayerOwner; layer:
     <>
       <Section title="Magnified area" description={node?.regionHidden ? 'The chosen area is outside the visible screen. Pick an area again or change the crop.' : 'The callout follows its device when it moves, scales, rotates, or is re-cropped.'}>
         <SelectField label="Source device" value={layer.deviceLayerId} options={devices.map((device) => ({ value: device.id, label: device.name }))} onChange={(deviceLayerId) => props({ deviceLayerId })} />
-        <button
+        <Button variant="custom" size={null}
           type="button"
           onClick={() => api.getState().setPickingCallout(layer.id)}
           className="h-8 w-full rounded-md bg-foreground text-[11px] font-medium text-background"
         >
           Pick area on the screenshot
-        </button>
+        </Button>
         <div className="grid grid-cols-2 gap-2">
           <NumberField label="Area left" unit="%" value={region.x * 100} min={0} max={99} precision={1} onChange={(x) => props({ region: { ...region, x: x / 100 } }, 'region-x')} />
           <NumberField label="Area top" unit="%" value={region.y * 100} min={0} max={99} precision={1} onChange={(y) => props({ region: { ...region, y: y / 100 } }, 'region-y')} />
@@ -233,26 +236,26 @@ export function MultiLayerPanel({ owner, layerIds }: { owner: LayerOwner; layerI
           ))}
         </div>
         <div className="flex gap-2">
-          <button type="button" disabled={nodes.length < 3} onClick={() => distribute('x')} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05] disabled:opacity-40">
+          <Button variant="custom" size={null} type="button" disabled={nodes.length < 3} onClick={() => distribute('x')} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05] disabled:opacity-40">
             Distribute horizontally
-          </button>
-          <button type="button" disabled={nodes.length < 3} onClick={() => distribute('y')} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05] disabled:opacity-40">
+          </Button>
+          <Button variant="custom" size={null} type="button" disabled={nodes.length < 3} onClick={() => distribute('y')} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05] disabled:opacity-40">
             Distribute vertically
-          </button>
+          </Button>
         </div>
         <div className="flex gap-2">
           {grouped ? (
-            <button type="button" onClick={() => api.getState().dispatch({ type: 'layers.ungroup', owner, layerIds })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+            <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'layers.ungroup', owner, layerIds })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
               Ungroup (⇧⌘G)
-            </button>
+            </Button>
           ) : (
-            <button type="button" onClick={() => api.getState().dispatch({ type: 'layers.group', owner, layerIds, groupId: crypto.randomUUID() })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+            <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'layers.group', owner, layerIds, groupId: crypto.randomUUID() })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
               Group (⌘G)
-            </button>
+            </Button>
           )}
-          <button type="button" onClick={() => api.getState().dispatch({ type: 'layers.delete', owner, layerIds })} className="h-8 flex-1 rounded-md border border-destructive/30 text-[11px] text-destructive hover:bg-destructive/10">
+          <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'layers.delete', owner, layerIds })} className="h-8 flex-1 rounded-md border border-destructive/30 text-[11px] text-destructive hover:bg-destructive/10">
             Delete
-          </button>
+          </Button>
         </div>
       </Section>
     </>
@@ -265,9 +268,9 @@ export function PickingHint(): React.JSX.Element {
   return (
     <Section title="Pick the magnified area">
       <p className="text-[11px] leading-relaxed text-muted-foreground">Drag a rectangle over the device screen on the canvas.</p>
-      <button type="button" onClick={() => api.getState().setPickingCallout(null)} className="h-8 w-full rounded-md border border-foreground/10 text-[11px]">
+      <Button variant="custom" size={null} type="button" onClick={() => api.getState().setPickingCallout(null)} className="h-8 w-full rounded-md border border-foreground/10 text-[11px]">
         Cancel
-      </button>
+      </Button>
     </Section>
   )
 }

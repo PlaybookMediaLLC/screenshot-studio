@@ -1,3 +1,4 @@
+import { chooseOption } from './framework/browser'
 import { z } from 'zod'
 import { getE2EUrl, signUpAndCreateWorkspace } from './framework/auth'
 import { trpcMutation, trpcQuery } from './framework/trpc'
@@ -28,7 +29,7 @@ test('a founder connects a product, describes a release, and returns to the same
 
   await page.getByLabel('Product name').fill('Ledgerly')
   await page.getByLabel('App URL').fill('https://app.ledgerly.example')
-  await page.getByLabel('Environment').selectOption('staging')
+  await chooseOption(page.getByLabel('Environment'), 'staging')
   await page.getByLabel('Marketing site URL (optional)').fill('https://ledgerly.example')
   await page.getByLabel('Release title').fill('Recurring invoices')
   await page.getByLabel('Why it matters').fill('Invoices now send themselves every month.')

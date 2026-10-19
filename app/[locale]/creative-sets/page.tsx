@@ -1,0 +1,21 @@
+import { headers } from 'next/headers'
+import { requirePaidPageAccess } from '@/lib/auth/page-access'
+import { hasPermission } from '@/lib/auth/permissions'
+import { PlatformShell } from '@/components/platform-shell/PlatformShell'
+import { StorySetLibrary } from '@/components/creative-sets/StorySetLibrary'
+
+export default async function StorySetsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  const access = await requirePaidPageAccess(await headers(), locale, '/creative-sets')
+  return (
+    <PlatformShell
+      campaignsEnabled={access.campaignWorkflowEnabled}
+      organizationName={access.organization?.name}
+    >
+      <StorySetLibrary
+        canCreate={access.creativeSetsEnabled}
+        canEdit={hasPermission(access.role, 'artifact:edit')}
+      />
+    </PlatformShell>
+  )
+}

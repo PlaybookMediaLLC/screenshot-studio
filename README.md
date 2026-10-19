@@ -131,6 +131,10 @@ tools, or the API ([035](docs/rfcs/035-pricing-and-unit-economics.md)).
 
 ### Implementation plan
 
+Story Sets adds a bounded design-partner workflow for one product story and
+three editable formats. The implementation, rollout flag and customer-validation
+gates are described in [RFC 040](docs/rfcs/040-story-sets.md).
+
 Each step builds only on the steps before it.
 
 **Phase 0: fix what is broken now that every customer pays**

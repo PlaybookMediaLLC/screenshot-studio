@@ -67,6 +67,9 @@ import { XOptions, type XPostOptions, xOptionsForRequest } from './XOptions'
 import { POST_COLUMN } from './layout'
 import { useTRPCClient } from '@/lib/trpc/react'
 import type { DraftEditorUser } from './DraftEditor'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 
 // The editor kit is heavy; only this route loads it, after the page renders.
 const DraftEditor = dynamic(() => import('./DraftEditor'), {
@@ -404,7 +407,7 @@ export function DraftComposer({
         >
           ←
         </Link>
-        <input
+        <Input
           aria-label="Draft title"
           className="min-w-0 max-w-64 flex-1 truncate bg-transparent text-sm text-neutral-300 outline-none placeholder:text-neutral-600 focus:text-white"
           disabled={!canEdit}
@@ -419,7 +422,7 @@ export function DraftComposer({
         {canSchedule && channels.length > 0 ? (
           <Popover>
             <PopoverTrigger asChild>
-              <button
+              <Button variant="custom" size={null}
                 aria-label="Channels"
                 className="flex h-7 items-center gap-1.5 rounded-full border border-white/[0.08] px-2.5 text-xs text-neutral-300 hover:border-white/20 hover:text-white"
                 type="button"
@@ -427,7 +430,7 @@ export function DraftComposer({
                 {previews.length === 0
                   ? 'Choose channels'
                   : previews.map(({ channel, id }) => <ChannelIcon channel={channel} key={id} />)}
-              </button>
+              </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-72 p-2">
               <ChannelToggles channels={channels} onToggle={toggleChannel} selected={selected} />
@@ -585,7 +588,7 @@ export function DraftComposer({
             ) : null}
             <div className="flex flex-wrap gap-1.5">
               {quickTimes().map((option) => (
-                <button
+                <Button variant="custom" size={null}
                   className={cn(
                     'rounded-full border px-2.5 py-1 text-xs transition-colors',
                     scheduledFor === option.value
@@ -597,7 +600,7 @@ export function DraftComposer({
                   type="button"
                 >
                   {option.label}
-                </button>
+                </Button>
               ))}
             </div>
             <Input
@@ -611,7 +614,7 @@ export function DraftComposer({
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-xs text-neutral-500">Best times</span>
               {bestTimes.map((best) => (
-                <button
+                <Button variant="custom" size={null}
                   className="rounded-full border border-emerald-400/30 px-2.5 py-1 text-xs text-emerald-200 hover:border-emerald-300/60"
                   key={best.at}
                   onClick={() => {
@@ -626,7 +629,7 @@ export function DraftComposer({
                     minute: '2-digit',
                     weekday: 'short',
                   })}
-                </button>
+                </Button>
               ))}
             </div>
           ) : null}
@@ -851,7 +854,7 @@ function ChannelToggles({
         const result = results?.get(id)
         return (
           <li className="rounded-lg px-2 py-1.5 hover:bg-white/[0.03]" key={id}>
-            <label className="flex cursor-pointer items-center gap-3 text-sm text-neutral-200">
+            <Label className="flex cursor-pointer items-center gap-3 text-sm text-neutral-200">
               <ChannelIcon channel={channel} className="size-4 text-neutral-400" />
               <span className="min-w-0 flex-1 truncate">
                 {name}
@@ -859,14 +862,13 @@ function ChannelToggles({
                   {handle ? `@${handle}` : CHANNEL_META[channel].label}
                 </span>
               </span>
-              <input
+              <Switch
                 aria-label={`${channel} · ${name}`}
                 checked={selected.includes(id)}
-                className="relative h-5 w-8 shrink-0 cursor-pointer appearance-none rounded-full bg-white/15 outline-none transition-colors before:absolute before:top-[3px] before:left-[3px] before:size-3.5 before:rounded-full before:bg-white before:transition-transform checked:bg-sky-500 checked:before:translate-x-3 focus-visible:ring-2 focus-visible:ring-sky-400/50"
-                onChange={(event) => onToggle(id, event.target.checked)}
-                type="checkbox"
+                className="shrink-0"
+                onCheckedChange={(checked) => onToggle(id, (checked === true))}
               />
-            </label>
+            </Label>
             {result ? (
               <div className="mt-1 flex flex-col gap-0.5 pl-7">
                 <CharacterCount channel={channel} result={result} />
@@ -960,7 +962,7 @@ function PostPreview({
           ) : null}
         </p>
         {onCustomize ? (
-          <button
+          <Button variant="custom" size={null}
             className="text-xs text-neutral-400 hover:text-white"
             onClick={() => {
               if (!editing && !custom)
@@ -970,12 +972,12 @@ function PostPreview({
             type="button"
           >
             {editing ? 'Done' : `Write it differently for ${label}`}
-          </button>
+          </Button>
         ) : null}
       </div>
       {editing && onCustomize ? (
         <div className="mb-3 flex flex-col gap-1.5">
-          <textarea
+          <Textarea
             aria-label={`${label} text`}
             className="min-h-32 w-full rounded-lg border border-white/[0.08] bg-black/40 p-2 text-sm text-neutral-100 outline-none focus:border-sky-400/50"
             onChange={(event) => onCustomize(event.target.value)}
@@ -987,7 +989,7 @@ function PostPreview({
                 ? 'Two empty lines start the next post.'
                 : 'Posted as written.'}
             </span>
-            <button
+            <Button variant="custom" size={null}
               className="hover:text-white"
               onClick={() => {
                 onCustomize(undefined)
@@ -996,7 +998,7 @@ function PostPreview({
               type="button"
             >
               Use the draft&apos;s text
-            </button>
+            </Button>
           </p>
         </div>
       ) : null}

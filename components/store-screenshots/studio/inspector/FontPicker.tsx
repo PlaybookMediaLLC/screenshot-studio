@@ -17,6 +17,19 @@ import {
 import { sha256Hex } from '@/lib/store-screenshots/media/image'
 import { putAsset } from '@/lib/store-screenshots/persistence/projects'
 import { useEditor, useEditorApi } from '../editor-store'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  SelectGroup,
+  SelectLabel,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@/components/ui/button'
 
 /**
  * Font family picker: bundled fonts, fonts added to this project from
@@ -102,40 +115,45 @@ export function FontPicker({ label, value, onChange }: { label: string; value: s
 
   return (
     <div className="space-y-1">
-      <label htmlFor={id} className="block text-[11px] text-muted-foreground">
+      <Label htmlFor={id} className="block text-[11px] text-muted-foreground">
         {label}
-      </label>
+      </Label>
       <div className="flex gap-1.5">
-        <select
-          id={id}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-8 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2 text-xs outline-none focus:border-foreground/30"
-        >
-          {!known ? <option value={value}>Current font</option> : null}
-          <optgroup label="Included">
-            {BUNDLED_FONTS.map((font) => (
-              <option key={font.value} value={font.value}>
-                {font.name}
-              </option>
-            ))}
-          </optgroup>
-          {fonts.length ? (
-            <optgroup label="This project">
-              {fonts.map((font) => (
-                <option key={font.family} value={fontStackFor(font)}>
-                  {font.family}
-                  {font.kind === 'custom' ? ' (uploaded)' : ''}
-                </option>
+        <Select value={value} onValueChange={(nextValue) => onChange(nextValue)}>
+          <SelectTrigger
+            id={id}
+            className="h-8 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2 text-xs outline-none focus:border-foreground/30"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {!known ? <SelectItem value={value}>Current font</SelectItem> : null}
+            <SelectGroup>
+              <SelectLabel>{'Included'}</SelectLabel>
+              {BUNDLED_FONTS.map((font) => (
+                <SelectItem key={font.value} value={font.value}>
+                  {font.name}
+                </SelectItem>
               ))}
-            </optgroup>
-          ) : null}
-        </select>
+            </SelectGroup>
+            {fonts.length ? (
+              <SelectGroup>
+                <SelectLabel>{'This project'}</SelectLabel>
+                {fonts.map((font) => (
+                  <SelectItem key={font.family} value={fontStackFor(font)}>
+                    {font.family}
+                    {font.kind === 'custom' ? ' (uploaded)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ) : null}
+          </SelectContent>
+        </Select>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <button type="button" className="h-8 shrink-0 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]" aria-label="Add a font">
+            <Button variant="custom" size={null} type="button" className="h-8 shrink-0 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]" aria-label="Add a font">
               Add
-            </button>
+            </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72 space-y-3 p-3">
             <form
@@ -145,11 +163,11 @@ export function FontPicker({ label, value, onChange }: { label: string; value: s
                 void addGoogle(family)
               }}
             >
-              <label className="block text-[11px] font-medium" htmlFor={`${id}-google`}>
+              <Label className="block text-[11px] font-medium" htmlFor={`${id}-google`}>
                 Google Fonts family
-              </label>
+              </Label>
               <div className="flex gap-1.5">
-                <input
+                <Input
                   id={`${id}-google`}
                   value={family}
                   onChange={(event) => setFamily(event.target.value)}
@@ -159,29 +177,29 @@ export function FontPicker({ label, value, onChange }: { label: string; value: s
                 />
                 <datalist id={`${id}-suggestions`}>
                   {SUGGESTED_GOOGLE_FONTS.map((name) => (
-                    <option key={name} value={name} />
+                    <SelectItem key={name} value={name} />
                   ))}
                 </datalist>
-                <button type="submit" disabled={busy || !family.trim()} className="h-8 rounded-md bg-foreground px-2.5 text-[11px] text-background disabled:opacity-40">
+                <Button variant="custom" size={null} type="submit" disabled={busy || !family.trim()} className="h-8 rounded-md bg-foreground px-2.5 text-[11px] text-background disabled:opacity-40">
                   Add
-                </button>
+                </Button>
               </div>
               <p className="text-[10px] leading-snug text-muted-foreground">Noto fonts cover Japanese, Korean, Chinese, Arabic, Hebrew, and other scripts.</p>
             </form>
             <div className="space-y-2 border-t border-foreground/10 pt-3">
-              <label className="flex items-start gap-2 text-[11px] leading-snug">
-                <input type="checkbox" checked={licensed} onChange={(event) => setLicensed(event.target.checked)} className="mt-0.5" />
+              <Label className="flex items-start gap-2 text-[11px] leading-snug">
+                <Checkbox  checked={licensed} onCheckedChange={(checked) => setLicensed((checked === true))} className="mt-0.5" />
                 I have a license to use this font in published app store artwork.
-              </label>
-              <button
+              </Label>
+              <Button variant="custom" size={null}
                 type="button"
                 disabled={!licensed}
                 onClick={() => fileRef.current?.click()}
                 className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05] disabled:opacity-40"
               >
                 Upload WOFF2, WOFF, TTF, or OTF
-              </button>
-              <input
+              </Button>
+              <Input
                 ref={fileRef}
                 type="file"
                 accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf"

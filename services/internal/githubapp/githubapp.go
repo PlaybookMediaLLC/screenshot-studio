@@ -57,13 +57,14 @@ type Release struct {
 
 // PullRequest is a pull request with what a release brief needs.
 type PullRequest struct {
-	Number   int        `json:"number"`
-	Title    string     `json:"title"`
-	Body     string     `json:"body"`
-	BodyHTML string     `json:"body_html"`
-	HTMLURL  string     `json:"html_url"`
-	MergedAt *time.Time `json:"merged_at"`
-	Base     struct {
+	ChangedFiles *int       `json:"changed_files"`
+	Number       int        `json:"number"`
+	Title        string     `json:"title"`
+	Body         string     `json:"body"`
+	BodyHTML     string     `json:"body_html"`
+	HTMLURL      string     `json:"html_url"`
+	MergedAt     *time.Time `json:"merged_at"`
+	Base         struct {
 		Ref string `json:"ref"`
 	} `json:"base"`
 	User struct {
@@ -338,20 +339,43 @@ func (a *App) ReleaseHTML(ctx context.Context, installationID int64, repositoryI
 	return out.BodyHTML, err
 }
 
-// PullRequestFiles lists the paths a PR changed, never their contents.
+// PullRequestFiles returns complete path evidence or fails closed. GitHub caps
+// this endpoint at 3000 files; a truncated list cannot decide a false branch.
 func (a *App) PullRequestFiles(ctx context.Context, installationID int64, repositoryID string, number int) ([]string, error) {
-	var out []struct {
-		Filename string `json:"filename"`
-	}
-	if err := a.get(ctx, installationID, fmt.Sprintf("/repositories/%s/pulls/%d/files?per_page=100", url.PathEscape(repositoryID), number), "", &out); err != nil {
+	pr, err := a.PullRequest(ctx, installationID, repositoryID, number)
+	if err != nil {
 		return nil, err
 	}
-	files := make([]string, 0, len(out))
-	for _, file := range out {
-		files = append(files, file.Filename)
+	if pr.ChangedFiles == nil || *pr.ChangedFiles < 0 || *pr.ChangedFiles > 3000 {
+		return nil, ErrIncompleteFiles
+	}
+	files := make([]string, 0, *pr.ChangedFiles)
+	seen := map[string]bool{}
+	for page := 1; len(files) < *pr.ChangedFiles; page++ {
+		var out []struct {
+			Filename string `json:"filename"`
+		}
+		if err := a.get(ctx, installationID, fmt.Sprintf("/repositories/%s/pulls/%d/files?per_page=100&page=%d", url.PathEscape(repositoryID), number, page), "", &out); err != nil {
+			return nil, err
+		}
+		if len(out) == 0 || len(out) > 100 || page > 30 {
+			return nil, ErrIncompleteFiles
+		}
+		for _, file := range out {
+			if file.Filename == "" || seen[file.Filename] {
+				return nil, ErrIncompleteFiles
+			}
+			seen[file.Filename] = true
+			files = append(files, file.Filename)
+		}
+	}
+	if len(files) != *pr.ChangedFiles {
+		return nil, ErrIncompleteFiles
 	}
 	return files, nil
 }
+
+var ErrIncompleteFiles = errors.New("complete GitHub pull request file evidence unavailable")
 
 func (a *App) get(ctx context.Context, installationID int64, path, accept string, out any) error {
 	token, err := a.InstallationToken(ctx, installationID)
@@ -366,7 +390,10 @@ func (a *App) do(ctx context.Context, method, target, authorization string, body
 }
 
 // StatusError is a non-2xx GitHub answer; 404 also covers repositories the App cannot see.
-type StatusError struct{ Status int }
+type StatusError struct {
+	Status      int
+	RateLimited bool
+}
 
 func (e StatusError) Error() string { return fmt.Sprintf("github returned %d", e.Status) }
 
@@ -394,7 +421,7 @@ func (a *App) request(ctx context.Context, method, target, authorization, accept
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode > 299 {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 1<<16))
-		return StatusError{Status: response.StatusCode}
+		return StatusError{Status: response.StatusCode, RateLimited: response.StatusCode == 429 || response.Header.Get("Retry-After") != "" || response.Header.Get("X-RateLimit-Remaining") == "0"}
 	}
 	return json.NewDecoder(io.LimitReader(response.Body, 32<<20)).Decode(out)
 }

@@ -1,0 +1,586 @@
+# Typefully changelog feature backlog
+
+This file lists every entry in the Typefully changelog as a feature to build.
+
+- **Source:** <https://typefully.com/changelog> (RSS: <https://typefully.com/changelog/rss.xml>)
+- **Window:** 2021-02-02 to 2026-10-12 (the full changelog)
+- **Entries:** all 109. The RSS feed and the 6 changelog pages list the same 109 entries.
+- **Read on:** 2026-10-19
+
+## When to start
+
+1. Complete the features in the other subfolders of `docs/scheduling/typefully/` first:
+   - `write/`: use the [Write checklist](write/typefully-write-build-checklist.md).
+   - `plan-and-analyze/`: use the [Plan + Analyze checklist](plan-and-analyze/typefully-plan-analyze-build-checklist.md).
+   - `social-sets-and-teams/`: use the [Social sets, teams, and activity checklist](social-sets-and-teams/typefully-social-teams-activity-checklist.md).
+   - `settings/`: use the [Settings spec](settings/typefully-settings-spec.md).
+   - `brand-kit/` is a UI reference. It has no features to build.
+2. Then start this backlog.
+3. Before you build a feature, check the specs above. If a spec already covers the feature, mark it `[x]`.
+
+## How to use this file
+
+- Each feature has an ID. IDs follow the changelog date, oldest first (`TF-001` to `TF-109`).
+- Entries from 2021 to 2023 use the old names "Twitter" and "tweet". This file uses "X" and "post".
+- Many older entries are the base of a later entry. An "Extended by" note links them.
+- Sections follow a suggested build order. Inside a section, features follow date order.
+- Each feature has a date, a link to the changelog entry, and a list of what to build.
+- Platform limits (characters, file sizes, durations) come from the Typefully changelog. Check them against the platform API docs before you build.
+- "Typefully plan" notes show how Typefully packages the feature. They are not decisions for our product.
+- Mark a feature `[x]` when it ships.
+- [work-items/triage.md](work-items/triage.md) gives the status of each feature in Shots. A `[x]` from the triage means that Shots already has the feature.
+
+## 1. Accounts, sign-in, and platforms
+
+- [x] **TF-010 Multiple X accounts** (2021-11-29, [entry](https://typefully.com/changelog/multi-account-support-is-here-40))
+  - Let one user add and manage more than one X account.
+  - Write, schedule, and publish on each account.
+  - Add accounts from the avatar menu in the top-right corner.
+  - Move drafts between accounts.
+  - Extended by TF-104 (one calendar for all social sets).
+- [x] **TF-035 Cross-post to LinkedIn** (2023-03-08, [entry](https://typefully.com/changelog/publish-to-linkedin-69))
+  - Connect a LinkedIn account.
+  - Cross-post X posts and threads to LinkedIn.
+  - Typefully plan: Creator plan.
+- [x] **TF-041 Standalone LinkedIn posts** (2023-06-13, [entry](https://typefully.com/changelog/publish-standalone-linkedin-posts-75))
+  - Let the user publish a LinkedIn post without an X version.
+  - Turn off the X version of the draft to make a LinkedIn-only post.
+- [x] **TF-047 Create LinkedIn drafts directly** (2023-09-15, [entry](https://typefully.com/changelog/create-linkedin-drafts-82))
+  - Add a drop-down menu to the "New draft" button.
+  - Let the user create a LinkedIn draft directly, without an X draft first.
+  - Typefully plan: Creator plan or higher to connect LinkedIn.
+  - Extended by TF-082 (any platform as the primary platform).
+- [x] **TF-048 Mastodon as a platform** (2023-11-13, [entry](https://typefully.com/changelog/new-platform-mastodon-83))
+  - Write, publish, and schedule Mastodon drafts.
+  - Make the editor and the core model platform-neutral, so that new platforms are easy to add.
+  - Typefully plan: Creator plan.
+- [x] **TF-062 Threads by Meta** (2024-08-27, [entry](https://typefully.com/changelog/threads-by-meta-integration-now-in-beta-100))
+  - Connect a Threads account in account settings.
+  - Support standalone Threads drafts and cross-posts.
+  - Support AI rewrites and rich media on Threads drafts.
+  - Release as a beta first. Give users a "Contact us" path for issues.
+  - Typefully plan: Creator plan or higher.
+- [ ] **TF-067 Bluesky** (2024-11-21, [entry](https://typefully.com/changelog/publish-and-schedule-on-bluesky-104))
+  - Schedule and publish to Bluesky in one click.
+  - Support images, GIFs, and video attachments.
+  - Support AI rewrites on Bluesky drafts.
+  - Connect from account settings and from the platform picker on the draft.
+  - Typefully plan: all plans, including Free.
+- [ ] **TF-082 More sign-in options and platform-neutral cross-posting** (2025-07-30, [entry](https://typefully.com/changelog/new-login-options-and-better-cross-posting-119))
+  - Let users sign up and sign in with Google, email, LinkedIn, or X.
+  - Do not require an X account to join a team or collaborate.
+  - Let clients sign up with LinkedIn.
+  - Let the user set any platform as the primary platform.
+  - Auto-sync drafts so that content cross-posts to the other platforms.
+- [ ] **TF-103 Substack Notes** (2026-07-27, [entry](https://typefully.com/changelog/substack-notes))
+  - Add Substack Notes as a platform in a social set.
+  - Create, schedule, and publish Notes.
+  - Show Notes in the same calendar as other posts.
+  - Typefully plan: all plans, including Free.
+
+## 2. Editor and writing
+
+- [ ] **TF-012 New editor, high-fidelity preview, focus mode, and video** (2022-02-08, [entry](https://typefully.com/changelog/new-writing-experience-and-video-support-42))
+  - Rebuild the thread editor for focused, media-rich writing.
+  - Add a high-fidelity mode that shows the thread as X shows it, while the user writes.
+  - Add a focus mode that hides all other UI.
+  - Add more keyboard shortcuts. Publish a list of the shortcuts.
+  - Let the user drag a video into the editor to attach it.
+- [ ] **TF-016 Automatic thread making from pasted text** (2022-03-15, [entry](https://typefully.com/changelog/automatic-thread-making-46))
+  - Clean text pasted from Notion, Word, Apple Notes, and other sources. Remove useless formatting.
+  - Expand links. Format lists with bullets.
+  - Show a "Make thread" notice. On click, split the text into a thread.
+  - Extended by TF-058 and TF-063.
+- [ ] **TF-020 Automatic thread numbering** (2022-04-15, [entry](https://typefully.com/changelog/automatic-tweet-numbering-51))
+  - Add a button that numbers the posts in a thread.
+  - Let the user pick a numbering style.
+  - Extended by TF-075 (all platforms).
+- [ ] **TF-029 Remove link previews** (2022-10-11, [entry](https://typefully.com/changelog/remove-link-previews-63))
+  - Show an Open Graph preview for links in a post, as X does.
+  - Add a close (×) button to remove the preview. On desktop, show the button on hover.
+- [ ] **TF-049 Write X long-form posts** (2023-12-14, [entry](https://typefully.com/changelog/write-long-form-posts-with-typefully-84))
+  - Let X Premium users write posts longer than the standard limit.
+  - Let users copy the long-form text to post it manually.
+  - Note: TF-061 adds publishing. Build TF-049 and TF-061 together.
+- [ ] **TF-050 Emoji picker** (2024-01-03, [entry](https://typefully.com/changelog/emoji-picker-85))
+  - Add an emoji picker to the editor's bottom toolbar.
+  - Keep the `:alias` shortcut to insert emoji.
+- [ ] **TF-058 Keep formatting when you paste from Google Docs and Notion** (2024-05-16, [entry](https://typefully.com/changelog/better-copypaste-from-gdocs-and-notion-96))
+  - Keep bold and italic text when the user pastes into a long-form draft.
+  - Keep bullet lists.
+  - Keep newlines and paragraphs as in the source document.
+  - Apply the same rules to paste from other common websites.
+- [ ] **TF-061 Publish and schedule X long-form posts** (2024-08-16, [entry](https://typefully.com/changelog/publish-and-schedule-long-form-posts-98))
+  - Publish and schedule long-form posts through the X API.
+  - Use a 4,000-character limit for X Premium accounts.
+- [ ] **TF-063 Configurable thread auto-split for X** (2024-09-02, [entry](https://typefully.com/changelog/better-thread-auto-split-for-drafts-99))
+  - Let the user set the maximum length of each post in an X thread.
+  - Auto-split pasted text with that limit.
+  - Choose the default limit from the account type. X Premium allows up to 25,000 characters.
+- [ ] **TF-075 Auto-numbering for threads** (2025-03-20, [entry](https://typefully.com/changelog/auto-numbering-is-back-112))
+  - Number the posts in a thread automatically.
+  - Let the user pick a numbering style.
+  - Support all platforms.
+  - Typefully plan: paid plans.
+- [ ] **TF-102 X Articles** (2026-07-08, [entry](https://typefully.com/changelog/x-articles))
+  - Add an "Article" option to the New Draft menu.
+  - Write long-form articles with rich media and embedded posts.
+  - Preview how the article looks on the X timeline.
+  - Support comments from teammates on articles.
+  - Publish and schedule articles. Publishing requires X Premium.
+  - Typefully plan: all users can write and preview.
+
+## 3. Media
+
+- [ ] **TF-001 Images, quote links, and @mention suggestions** (2021-02-02, [entry](https://typefully.com/changelog/typefully-20211-images-144))
+  - Drag and drop an image into the editor to upload it.
+  - Copy and paste images between threads.
+  - Show links to other posts as quoted posts.
+  - Suggest users when the user types an `@handle`.
+  - Copy the link to a published thread from the sidebar.
+  - Show the timezone in the schedule modal.
+  - Escape HTML in the thread preview.
+  - Make link previews accurate.
+- [ ] **TF-007 Alt text for images** (2021-10-12, [entry](https://typefully.com/changelog/alt-descriptions-for-your-images-36))
+  - Add a "+ALT" button on each image in the thread preview.
+  - Let the user write an image description (alt text).
+  - Publish the alt text with the image.
+  - Typefully plan: all users.
+  - Extended by TF-087 (AI alt text).
+- [ ] **TF-019 GIF search with GIPHY** (2022-04-06, [entry](https://typefully.com/changelog/giphy-integration-50))
+  - Add a GIF button to the post toolbar.
+  - Search GIPHY and attach a GIF.
+- [ ] **TF-023 Image frames (beta)** (2022-05-26, [entry](https://typefully.com/changelog/image-editing-beta-54))
+  - Let the user add a colored frame to images, to give media a personal brand style.
+  - Release as a beta.
+  - Note: Typefully also ships this as a standalone phone app (tweet.pics).
+- [ ] **TF-038 Tag users in photos** (2023-05-22, [entry](https://typefully.com/changelog/tag-users-in-photos-72))
+  - Add a "Tag people" control under posts with images.
+  - Tag any X user in the image. The tagged user gets a notification.
+  - Tags do not use characters of the post.
+- [ ] **TF-040 Images from links** (2023-06-06, [entry](https://typefully.com/changelog/extract-images-from-links-74))
+  - Extract the image from a link in the post text.
+  - Attach the image to the post. Example: a YouTube video thumbnail.
+- [ ] **TF-066 Videos up to 10 minutes on X** (2024-10-16, [entry](https://typefully.com/changelog/attach-longer-videos-to-your-posts-103))
+  - Schedule and publish X videos up to 10 minutes long.
+  - Do not require X Premium for this limit. The old limit was 2 minutes.
+- [ ] **TF-068 Larger image uploads with auto-resize** (2025-01-08, [entry](https://typefully.com/changelog/higher-quality-image-uploads-105))
+  - Accept images up to 20 MB on paid plans.
+  - Resize each image automatically to the limit of the destination platform.
+  - Keep a 5 MB limit on the free plan.
+- [ ] **TF-076 Mixed media on X posts** (2025-03-28, [entry](https://typefully.com/changelog/mixed-media-support-for-x-posts-113))
+  - Allow up to 4 attachments on one X post.
+  - Allow a mix of videos, images, and GIFs in the same post.
+- [ ] **TF-083 LinkedIn PDF carousels** (2025-08-11, [entry](https://typefully.com/changelog/pdf-carousels-for-linkedin-posts-120))
+  - Let the user upload a PDF to a LinkedIn post.
+  - Publish the PDF as a swipeable carousel.
+  - Support schedule and publish.
+  - Typefully plan: Creator plan or higher.
+- [ ] **TF-092 Reorder media in drafts** (2026-02-13, [entry](https://typefully.com/changelog/reorder-media-in-drafts-132))
+  - Drag and drop media to change the order inside a post.
+  - Drag media from one post to another post in a thread.
+  - Do not require a delete and a new upload.
+  - Typefully plan: all users.
+- [ ] **TF-105 1080p video on X** (2026-09-17, [entry](https://typefully.com/changelog/1080p-video-publishing-on-x))
+  - Publish high-resolution video to X at 1080p, not 720p.
+  - Apply this automatically when the X account has an active X Premium subscription.
+  - Add no new setting.
+
+## 4. Scheduling, queue, and calendar
+
+- [ ] **TF-002 Advanced queue, emoji picker, zen mode, and mobile editor** (2021-06-08, [entry](https://typefully.com/changelog/typefully-20212-advanced-queue-24))
+  - Let the user define a posting schedule and queue posts over the next weeks.
+  - Keep basic scheduling free. Typefully plan: advanced queue on Pro.
+  - Show an emoji picker when the user types `:name`, as in Slack.
+  - Add a zen mode that hides the interface.
+  - Show drafts in tabs with bigger previews. Let the user resize the preview sidebar.
+  - On mobile, resize the editor for the on-screen keyboard.
+  - On mobile, add a floating toolbar to add images or create a draft.
+  - Animate the switch to the thread preview.
+  - Extended by TF-050 (emoji picker button).
+- [x] **TF-008 Best time to post** (2021-11-10, [entry](https://typefully.com/changelog/whats-the-best-time-to-tweet-38))
+  - Show charts of when the account gets the most engagement.
+  - Show the charts in the analytics (Grow) tab.
+  - Add a "+" button on each daily chart to add the suggested slot to the posting schedule.
+- [x] **TF-021 Faster scheduling and a rebuilt queue** (2022-05-09, [entry](https://typefully.com/changelog/revamped-scheduling-53))
+  - Add a "Next free slot" button and a shortcut (⌘⌥Enter).
+  - After the user schedules a draft, open a new empty draft.
+  - Rebuild the queue. Give it its own page.
+  - Show the full queue in the sidebar too.
+  - Let the user create scheduled posts one after another and see them in the queue.
+  - Show when a teammate edits a draft in a team account. See TF-022.
+- [ ] **TF-031 Drag and drop in the queue** (2022-11-23, [entry](https://typefully.com/changelog/drag-and-drop-in-the-queue-65))
+  - Drag a scheduled post into a free slot.
+  - Drop a post on another post to swap them.
+  - Extended by TF-054 (calendar).
+- [ ] **TF-034 Repurpose published posts** (2023-02-22, [entry](https://typefully.com/changelog/repurpose-published-posts-68))
+  - Add a "Pick" action to empty queue slots.
+  - Add a "Repurpose published posts" tab. Let the user fill the slot from a published post.
+- [x] **TF-052 Quick change of the scheduled time** (2024-02-08, [entry](https://typefully.com/changelog/quickly-adjust-scheduled-time-87))
+  - Let the user change the scheduled time from the schedule interface.
+  - Do not require a full reschedule.
+- [ ] **TF-053 Calendar view** (2024-03-18, [entry](https://typefully.com/changelog/calendar-view-88))
+  - Show published and scheduled drafts in a calendar.
+  - Add weekly and monthly views.
+  - Let the user schedule into free slots from the calendar.
+  - Let the user repurpose a draft from the calendar.
+  - Give quick access to schedule settings.
+  - Show tags and filter drafts by tag.
+  - Add keyboard shortcuts to move through the calendar.
+- [ ] **TF-054 Drag and drop in the calendar** (2024-04-05, [entry](https://typefully.com/changelog/drag-and-drop-on-calendar-view-91))
+  - Drag a scheduled draft to a different time.
+  - Drop a draft on another draft to swap the two times.
+- [ ] **TF-069 "Publish now" for scheduled drafts** (2025-01-22, [entry](https://typefully.com/changelog/publish-now-action-for-scheduled-drafts-107))
+  - Add a "Publish now" action to the options menu of a scheduled draft.
+  - Ask the user to confirm. Then publish immediately.
+- [ ] **TF-072 Natural posting times** (2025-02-05, [entry](https://typefully.com/changelog/natural-posting-times-109))
+  - Add a per-draft option: "Use natural posting times for this draft".
+  - When the option is on, publish at a random time within ±4 minutes of the scheduled time.
+- [ ] **TF-081 Drag and drop in the monthly calendar** (2025-07-02, [entry](https://typefully.com/changelog/drag-and-drop-drafts-in-monthly-calendar-view-118))
+  - Add the TF-054 drag-and-drop behavior to the monthly view.
+- [ ] **TF-084 Drafts sidebar and queue view** (2025-08-20, [entry](https://typefully.com/changelog/enhanced-calendar-with-drafts-sidebar-and-queue-121))
+  - Add a drafts sidebar to the calendar.
+  - Drag a draft from the sidebar onto the calendar to schedule it.
+  - Add a kanban-style queue view to schedule a full week at once.
+  - Show empty slots in the monthly view.
+- [ ] **TF-104 Team calendar, planned drafts, and new navigation** (2026-08-05, [entry](https://typefully.com/changelog/plan-mode-calendar-for-teams))
+  - Show every social set in the workspace in one calendar.
+  - Add a "planned" draft state. A planned draft has a date and time but does not publish.
+  - Let the user or the account owner confirm a planned draft. Only a confirmed draft publishes.
+  - Let each person confirm the posts on their own account.
+  - Filter the calendar by social set, team, campaign, status, tag, or platform.
+  - Split the navigation into three modes: Write (editor), Plan (calendar), and Analyze (analytics).
+  - Switch between the modes in one click.
+
+## 5. Post options per platform
+
+- [x] **TF-011 Auto-repost and auto-plug** (2021-12-14, [entry](https://typefully.com/changelog/auto-retweet-and-auto-plug-your-threads-41))
+  - Auto-repost: schedule reposts of a new thread from the engagement it gets. Purpose: reach other timezones.
+  - Auto-plug: attach a plug (for example, a website or newsletter link) only when the thread reaches a set threshold.
+  - In the schedule interface, let the user pick the next free slot or the best time from analytics.
+  - Extended by TF-027 and TF-064.
+- [ ] **TF-018 Quote the first post at the end of a thread** (2022-03-29, [entry](https://typefully.com/changelog/quote-the-first-tweet-of-your-thread-49))
+  - Add a "quote" button to the editor's bottom toolbar.
+  - On click, add a last post that quotes the first post of the thread.
+  - Typefully plan: Pro.
+- [ ] **TF-025 Reply, quote, and continue threads** (2022-07-12, [entry](https://typefully.com/changelog/reply-and-quote-tweets-56))
+  - Quote any X post.
+  - Reply to any X post.
+  - Continue an old thread.
+- [ ] **TF-027 Default auto-repost and auto-plug settings** (2022-08-25, [entry](https://typefully.com/changelog/remember-auto-retweet-and-auto-plug-58))
+  - Let the user save auto-repost and auto-plug settings as defaults for new drafts.
+- [x] **TF-036 Polls on X** (2023-03-14, [entry](https://typefully.com/changelog/polls-70))
+  - Add a "Poll" option on any X post.
+  - Allow up to 4 options.
+  - Extended by TF-109 (polls on more platforms).
+- [ ] **TF-039 Thread finisher templates** (2023-05-30, [entry](https://typefully.com/changelog/thread-finisher-templates-73))
+  - Let the user create any number of thread finisher templates.
+  - A finisher is the last post of a thread. It quotes the first post to increase engagement.
+  - Extended by TF-108 (quotes in finishers on more platforms).
+- [ ] **TF-043 Auto-DMs** (2023-07-20, [entry](https://typefully.com/changelog/boost-your-engagement-with-auto-dms-78))
+  - Let the user start an auto-DM campaign from the publish button on a draft.
+  - Use cases: giveaways, and content delivery to the community.
+  - The changelog does not give the trigger rules. Read the Typefully help page before you build.
+  - Typefully plan: Creator plan.
+- [ ] **TF-064 Auto-reposts for X** (2024-09-17, [entry](https://typefully.com/changelog/better-auto-retweets-for-x-posts-101))
+  - Repost an X post automatically after a set number of hours or days.
+  - Also allow a repost after a set number of days at a different time of day.
+  - Make the setup simple.
+- [ ] **TF-071 First comment on LinkedIn posts** (2025-01-23, [entry](https://typefully.com/changelog/publish-a-linkedin-comment-with-your-post-108))
+  - Add an "Add LinkedIn comment" control under the draft.
+  - Publish the comment automatically when the post goes live.
+  - Show the comment in the realistic preview.
+  - Purpose: start the conversation, and move links out of the post body.
+- [ ] **TF-073 Publish to X Communities** (2025-02-28, [entry](https://typefully.com/changelog/publish-to-x-communities-110))
+  - Let the user pick the audience of an X post when they schedule or publish.
+  - Use "Everyone (Anyone on X)" as the default.
+  - Let the user search for any X Community.
+  - Tell the user that community posts stay visible to everyone on X.
+  - Typefully plan: paid plans.
+- [ ] **TF-077 LinkedIn company mentions** (2025-04-08, [entry](https://typefully.com/changelog/linkedin-company-mentions-114))
+  - Let the user mention companies and pages in LinkedIn posts.
+  - The mentioned organization gets a notification.
+  - Typefully plan: paid plans.
+- [ ] **TF-089 X Community timeline toggle** (2026-01-13, [entry](https://typefully.com/changelog/control-your-x-community-posts-audience-127))
+  - Add a "Share to timeline" toggle in the publish modal when the target is an X Community.
+  - When the toggle is off, keep the post inside the community only.
+  - Expose the same option in the API.
+- [ ] **TF-094 Better LinkedIn mentions for companies and people** (2026-03-10, [entry](https://typefully.com/changelog/improved-linkedin-mentions-for-companies-and-134))
+  - Remember companies that the user mentioned before.
+  - Make those companies easy to search.
+  - Build a company directory over time, so that users do not look up companies manually.
+  - Add mentions of LinkedIn people that the user has access to.
+- [ ] **TF-097 X content disclosures** (2026-04-22, [entry](https://typefully.com/changelog/x-content-disclosures-138))
+  - Add a "Paid Partnership" disclosure. X shows a "Paid Partnership" label on the post.
+  - Add a "Made with AI" disclosure. X shows a "Made with AI" label on the post.
+  - Set both from the editor.
+- [ ] **TF-098 LinkedIn reposts** (2026-04-30, [entry](https://typefully.com/changelog/linkedin-reposts-139))
+  - Let the user paste a LinkedIn post URL and add text above it.
+  - Schedule and publish the repost.
+  - Expose reposts in the API.
+- [ ] **TF-107 X reply settings** (2026-09-20, [entry](https://typefully.com/changelog/x-reply-settings))
+  - Let the user choose who can reply to an X post before it publishes.
+  - Options: everyone, accounts you follow, accounts you mention, verified accounts, or subscribers.
+- [ ] **TF-108 Quote posts on Bluesky, Mastodon, and Substack Notes** (2026-10-09, [entry](https://typefully.com/changelog/bluesky-mastodon-substack-quotes))
+  - Support quote posts on X, LinkedIn, Bluesky, Mastodon, and Substack Notes.
+  - Step 1: the user pastes the link to the post into the draft.
+  - Step 2: the user clicks a button on the link preview to convert it into a quote.
+  - Allow quotes in thread finishers, so the last post can point to the first post.
+- [ ] **TF-109 Polls on LinkedIn, Threads, and Mastodon** (2026-10-12, [entry](https://typefully.com/changelog/polls-linkedin-threads-mastodon))
+  - Write a poll once. Copy the options to each platform in the draft that supports polls.
+  - Keep the settings of each platform separate, for example the poll duration.
+  - Flag options that a platform does not accept before the user publishes.
+  - LinkedIn: a separate question of up to 140 characters, 2 to 4 options of up to 30 characters, duration of 1 day, 3 days, 1 week, or 2 weeks.
+  - Threads: the post text is the question, 2 to 4 options of up to 25 characters, duration of 24 hours.
+  - Mastodon: the post text is the question. Multiple choice is allowed. The server sets the limits for options and duration.
+  - X: keep the existing poll support.
+  - Do not allow images or video on a post with a poll.
+  - Typefully plan: all plans, including Free.
+
+## 6. Realistic previews
+
+- [ ] **TF-057 Realistic preview for LinkedIn** (2024-04-24, [entry](https://typefully.com/changelog/realistic-post-preview-for-linkedin-94))
+  - Add a "Preview" button next to the LinkedIn toggle in the Publish and Schedule modals.
+  - Show the post collapsed by default, with a "See more" button.
+  - Add a "Mobile" toggle to show the phone layout.
+- [ ] **TF-074 X long-form "Show more" cutoff in previews** (2025-03-07, [entry](https://typefully.com/changelog/better-realistic-preview-for-long-form-posts-111))
+  - Show the "Show more" cutoff on X long-form posts as X shows it.
+  - Open the preview from the Publish and Schedule modals.
+- [ ] **TF-078 LinkedIn "...more" cutoff in previews** (2025-04-11, [entry](https://typefully.com/changelog/enhanced-linkedin-realistic-preview-115))
+  - Show only the first lines of a LinkedIn post, then a "...more" separator, as LinkedIn shows it.
+  - Open the preview from "Preview" or from the command bar (⌘K or Ctrl+K).
+- [ ] **TF-085 Exact cutoffs for X and LinkedIn previews** (2025-09-09, [entry](https://typefully.com/changelog/more-accurate-realistic-previews-for-x-and-122))
+  - Calculate exactly when X treats a post as long form.
+  - Show the exact X "Show more" cutoff.
+  - Show the exact number of LinkedIn lines before "...more".
+  - Open the preview from an icon near the publish buttons or from the command bar.
+- [ ] **TF-100 Previews in the editor sidebar** (2026-05-28, [entry](https://typefully.com/changelog/better-smoother-realistic-previews-142))
+  - Open previews in the editor sidebar by default, next to the draft.
+  - Let the user keep writing while the preview is open.
+  - Scale the mobile preview to fit. Do not resize the viewport.
+  - Update the X and Threads preview UI to match the current apps.
+
+## 7. Organization and search
+
+- [ ] **TF-017 Pinned drafts** (2022-03-18, [entry](https://typefully.com/changelog/pinned-drafts-47))
+  - Let the user pin one or more drafts to the top of the sidebar.
+- [ ] **TF-032 Delete multiple drafts** (2023-01-02, [entry](https://typefully.com/changelog/delete-multiple-drafts-66))
+  - Let the user select more than one draft in the sidebar and delete them together.
+- [ ] **TF-045 Tags, internal titles, and a scratchpad** (2023-08-28, [entry](https://typefully.com/changelog/tags-and-metadata-80))
+  - Add tags to drafts.
+  - Add an internal title to each draft.
+  - Add a scratchpad to each draft for private notes.
+  - Filter and search drafts by tag from the command bar (⌘K or Ctrl+K).
+  - Typefully plan: tags on the Creator plan.
+  - Extended by TF-079.
+- [ ] **TF-079 Draft tags** (2025-04-18, [entry](https://typefully.com/changelog/revamped-drafts-tags-116))
+  - Create and edit tags with a simple interface.
+  - Tag drafts by topic, client, status, or any other system.
+  - Filter and search drafts by tag.
+- [ ] **TF-080 Full-text draft search** (2025-04-23, [entry](https://typefully.com/changelog/improved-drafts-search-117))
+  - Search the title and the full text of all drafts.
+  - Open search from a search button and from the command bar (⌘K or Ctrl+K).
+  - Add a "Search Drafts" command that shows only draft results.
+  - Let the user set a title on a draft.
+
+## 8. Team collaboration
+
+- [ ] **TF-009 Share drafts and unroll published threads** (2021-11-23, [entry](https://typefully.com/changelog/share-and-unroll-your-threads-39))
+  - Let the user share a draft link with anyone to get feedback before publishing.
+  - After the thread publishes, show an "unrolled" version of the thread at the same link.
+  - Let the user add the unrolled link to the thread in one click.
+  - Extended by TF-060.
+- [x] **TF-022 Teams** (2022-05-11, [entry](https://typefully.com/changelog/collaboration-52))
+  - Let the user create a team.
+  - Invite any number of teammates.
+  - Set the permissions of each teammate.
+  - Let teammates write, edit, schedule, and publish on shared accounts.
+  - Typefully plan: Team plan, flat price while in beta.
+- [x] **TF-028 Comments on drafts** (2022-09-15, [entry](https://typefully.com/changelog/comments-62))
+  - Let the user select text, or click a comment button under a post, to add a comment.
+  - Let anyone with the share link leave comments, for free.
+  - Extended by TF-095 and TF-099.
+- [ ] **TF-033 Notifications** (2023-01-17, [entry](https://typefully.com/changelog/notifications-67))
+  - Send email notifications for new comments and replies.
+  - Send email notifications for newly published content.
+  - Send email notifications for engagement actions, such as auto-reposts.
+  - Show notifications in an in-app menu.
+  - Let the user choose the email notifications in notification settings.
+  - Let teammates get notifications for posts on shared team accounts.
+- [ ] **TF-060 Better link previews for shared drafts** (2024-07-01, [entry](https://typefully.com/changelog/better-shared-drafts-previews-97))
+  - Make link previews of shared drafts accurate in Slack, Notion, and other websites.
+  - Use the first image of the draft as the preview image.
+  - Keep draft sharing free.
+- [x] **TF-086 Draft locking** (2025-09-17, [entry](https://typefully.com/changelog/smoother-collaboration-for-teams-123))
+  - Lock the editor for other teammates immediately when one teammate edits a draft.
+  - Prevent edit conflicts and overwrites.
+  - Apply the same lock across tabs and browsers of one user.
+- [ ] **TF-090 Draft activity log** (2026-02-05, [entry](https://typefully.com/changelog/draft-activity-130))
+  - Log every change to a draft automatically.
+  - For each change, record who, when, and what changed: content, tags, platforms, scheduling, or publishing.
+  - Record the source of each change. Label changes from agents as "MCP" or "API".
+  - Show the log to all team members.
+- [ ] **TF-095 @mentions in comments and Slack notifications** (2026-03-26, [entry](https://typefully.com/changelog/mention-teammates-and-slack-notifications-136))
+  - Type `@` in a comment to mention a teammate.
+  - Notify Slack when someone comments on a draft.
+  - Notify Slack when a post goes live.
+  - Make comments faster. Open them in a swipeable drawer on mobile.
+  - Support bold, italic, lists, and blockquotes in comments, with markdown and keyboard shortcuts.
+- [ ] **TF-101 Slack channel notification on publish** (2026-06-01, [entry](https://typefully.com/changelog/notify-slack-channels-on-publish-141))
+  - Connect Slack in team settings.
+  - Pick one channel for each team, or a different channel for each social set.
+  - Turn the notification on by default.
+  - Let the user skip the notification on one draft.
+  - Typefully plan: plans with Teams.
+
+## 9. AI writing
+
+- [ ] **TF-026 Writing prompts library** (2022-07-19, [entry](https://typefully.com/changelog/writing-prompts-57))
+  - Add a library of writing prompts and ideas. Give each prompt example posts.
+  - Show a "Writing Prompts" button at the bottom of the editor on an empty draft.
+  - Note: Typefully wrote the library with a partner writer.
+- [ ] **TF-030 AI writing assistant (Vesper)** (2022-11-16, [entry](https://typefully.com/changelog/vesper-your-ai-writing-assistant-64))
+  - Rewrite posts in different styles and fix mistakes.
+  - Continue the text when the user is stuck.
+  - Give feedback comments on a post, as an editor does.
+  - Work inside the editor.
+  - Extended by TF-055 and TF-093.
+- [ ] **TF-046 Add emoji with AI** (2023-09-14, [entry](https://typefully.com/changelog/emojify-your-posts-with-ai-81))
+  - Add AI commands that add emoji to a post.
+  - Open the AI from the ✨ icon or ⌘J (Ctrl+J). Search "emoji" to find the commands.
+- [x] **TF-055 AI rewrite on all platforms** (2024-04-08, [entry](https://typefully.com/changelog/ai-rewriting-on-all-platforms-92))
+  - Enable AI rewrite on X, LinkedIn, and Mastodon drafts.
+  - Let the user select any text and rewrite it.
+  - Include these actions: improve grammar, condense, make punchier.
+- [x] **TF-056 Complex custom AI prompts** (2024-04-10, [entry](https://typefully.com/changelog/smarter-prompts-for-typefully-ai-93))
+  - Accept complex custom instructions in user prompts.
+  - Typefully used GPT-4 Turbo. Use our current default model. Do not copy their model choice.
+- [x] **TF-059 Faster, smarter AI model for rewrites** (2024-06-14, [entry](https://typefully.com/changelog/smarter-typefully-ai-with-gpt-4o-95))
+  - Use a fast, current model for preset rewrite prompts and custom prompts.
+  - Open the AI from a sparkle button and from a shortcut (⌘J or Ctrl+J).
+  - Typefully used GPT-4o. Use our current default model.
+- [ ] **TF-070 Custom instructions for AI** (2025-01-22, [entry](https://typefully.com/changelog/custom-instructions-for-typefully-ai-106))
+  - Let the user write long custom instructions that apply to every AI prompt.
+  - Put the settings behind a gear icon in the AI command bar.
+- [ ] **TF-087 AI image descriptions (alt text)** (2025-11-05, [entry](https://typefully.com/changelog/generate-image-descriptions-with-ai-124))
+  - Add a "Generate descriptions" button on attached images.
+  - Generate alt text for each image with AI.
+  - Typefully plan: paid plans.
+- [ ] **TF-093 Writing assistant** (2026-02-23, [entry](https://typefully.com/changelog/writing-assistant-133))
+  - Learn the user's voice from writing samples and drafts: tone, words, and structure.
+  - Turn voice memos, notes, and rough ideas into drafts.
+  - Flag weak hooks and suggest stronger angles. Push back when a post will not work.
+  - Adapt structure and tone when content moves between X and LinkedIn.
+  - Save user rules (for example, "no em dashes") across all conversations.
+  - Edit directly in the draft.
+  - Do not auto-post, mass-reply, or generate content in one click.
+  - Put the assistant in the top-right corner of the editor.
+  - Typefully plan: Creator plan or higher, or a free trial.
+
+## 10. API, agents, apps, and integrations
+
+- [ ] **TF-013 Create drafts from a URL (iOS Shortcut, Raycast)** (2022-02-09, [entry](https://typefully.com/changelog/ios-shortcut-and-raycast-support-43))
+  - Create a new draft from a URL parameter: `https://typefully.com/?new={content}`.
+  - Use the URL-decoded content as the draft text.
+  - Split the text into separate posts at 4 empty newlines.
+  - Ship an iOS Shortcut and a Raycast Quick Link that use this URL.
+  - Extended by TF-091 (full Raycast extension).
+- [ ] **TF-014 Continue a thread from the X composer (Minimal Twitter)** (2022-02-15, [entry](https://typefully.com/changelog/minimal-twitter-integration-44))
+  - Work with the Minimal Twitter browser extension (Chrome, Firefox, and Edge).
+  - Show a "Continue thread in Typefully" button under the X composer.
+  - Let the user start a thread on X and continue it in Typefully.
+- [ ] **TF-024 Zapier integration** (2022-06-27, [entry](https://typefully.com/changelog/automate-typefully-with-zapier-55))
+  - Connect Typefully to other apps through Zapier.
+  - Example: post a message to Slack when a post publishes.
+  - Example: create drafts from Google Docs.
+  - Example: add scheduled drafts to a calendar.
+  - Example: send an email when a draft publishes.
+  - Extended by TF-088 (Zapier triggers, API v2, MCP, and webhooks).
+- [ ] **TF-037 Mac app** (2023-05-05, [entry](https://typefully.com/changelog/typefully-for-mac-71))
+  - Ship a desktop Mac app for focused writing outside the browser.
+- [ ] **TF-042 Mac app shortcuts** (2023-06-30, [entry](https://typefully.com/changelog/new-mac-app-shortcuts-77))
+  - Switch drafts with ⌘⌥← and ⌘⌥→.
+  - Switch accounts with ⌘⌥↓ and ⌘⌥↑.
+- [ ] **TF-088 Public API v2, Zapier, MCP server, and webhooks** (2025-12-17, [entry](https://typefully.com/changelog/all-new-api-zapier-integration-mcp-and-126))
+  - API v2: create, schedule, and publish to all platforms. Upload media. Manage tags. Filter by status.
+  - Zapier: 6 instant triggers and several actions. Triggers fire when a draft is created, published, scheduled, or updated.
+  - MCP server: manage drafts in natural language from Claude, ChatGPT, or other agents.
+  - Webhooks: send real-time events to Slack, n8n, Make, or custom endpoints.
+  - Use webhooks to publish to platforms that we do not support yet.
+  - Typefully plan: all users.
+- [ ] **TF-091 Raycast extension** (2026-02-10, [entry](https://typefully.com/changelog/new-typefully-raycast-extension-131))
+  - Create drafts for all connected platforms in one command.
+  - Detect the enabled platforms for each social set automatically.
+  - Split text into a thread with `---`.
+  - View, search, and manage drafts, scheduled posts, and published posts.
+  - Add 4 Raycast AI tools: create, list, schedule, and browse drafts.
+  - Remember the preferred social set and platforms.
+  - Support personal and team social sets. Group them in the UI.
+- [ ] **TF-096 Queue, mention, and quote endpoints for agents** (2026-04-05, [entry](https://typefully.com/changelog/api-improvements-for-ai-and-agents-137))
+  - `GET /v2/social-sets/{id}/queue`: list upcoming scheduled content.
+  - `GET /v2/social-sets/{id}/queue/schedule`: read the posting schedule.
+  - `PUT /v2/social-sets/{id}/queue/schedule`: update the posting schedule.
+  - `GET /v2/social-sets/{id}/linkedin/organizations/resolve`: resolve a LinkedIn organization URL.
+  - Parse `@[Company](urn:li:organization:ID)` in post text as a LinkedIn company mention.
+  - Accept `quote_post_url` to create an X quote post.
+  - Document the presigned PUT upload flow exactly, so that uploads do not fail with `SignatureDoesNotMatch`.
+  - Make the MCP server easy to add to Notion agents.
+  - Offer three paths: MCP server, in-app integrations (Settings → Integrations), and an agent skill.
+- [ ] **TF-099 Draft comments API** (2026-05-05, [entry](https://typefully.com/changelog/comments-api-for-agents-140))
+  - Put all endpoints under `/v2/social-sets/{social_set_id}/drafts/{draft_id}/`.
+  - `GET /comment-threads`: list threads. Filter by status and platform.
+  - `POST /comment-threads`: create a thread anchored to a text span or to a whole post.
+  - `POST /comment-threads/{id}/comments`: reply to a thread.
+  - `PATCH /comment-threads/{id}/comments/{comment_id}`: edit a comment.
+  - `DELETE /comment-threads/{id}/comments/{comment_id}`: delete a comment.
+  - `POST /comment-threads/{id}/resolve`: resolve a thread.
+  - `DELETE /comment-threads/{id}`: delete a thread.
+  - Expose the same operations in the MCP server and the agent skill.
+- [ ] **TF-106 Official Claude connector** (2026-09-18, [entry](https://typefully.com/changelog/typefully-claude-connector))
+  - List the MCP server in Claude's connector directory.
+  - Let Claude work across every account in the workspace after one connection.
+  - Let Claude create drafts, schedule or queue posts, and work through draft comments.
+  - Keep workspace permissions. Save every draft for human review before it publishes.
+
+## 11. Profile and analytics
+
+- [ ] **TF-003 Analytics (Grow tab) and accent color** (2021-06-24, [entry](https://typefully.com/changelog/new-typefully-grow-tab-25))
+  - Add an analytics tab for account performance.
+  - Add a profile conversion rate chart: new followers compared with profile clicks from posts.
+  - Show how the last post or thread performs.
+  - Show metrics for all posts, also for posts not published with Typefully.
+  - Let the user change the app accent color to match a brand.
+  - Improve the editor toolbar.
+  - Typefully plan: Pro.
+- [ ] **TF-004 Public analytics link** (2021-07-05, [entry](https://typefully.com/changelog/share-your-twitter-stats-with-anyone-26))
+  - Add a "Share this page" action to the analytics tab.
+  - Create a public link to the metrics dashboard.
+- [ ] **TF-015 Public profiles** (2022-02-23, [entry](https://typefully.com/changelog/typefully-profiles-45))
+  - Turn the user's posts and threads into a public blog page.
+  - Let the user set up the profile from a Profile tab, for free.
+  - Let the user unroll and publish content to the profile.
+  - Give each profile an RSS feed.
+  - Extended by TF-051.
+- [ ] **TF-044 Analytics CSV export** (2023-08-28, [entry](https://typefully.com/changelog/download-analytics-data-as-csv-79))
+  - Let the user download the data of any analytics chart as a CSV file.
+  - Typefully plan: Creator plan or higher.
+- [ ] **TF-051 Discord and Telegram links on the public profile** (2024-01-08, [entry](https://typefully.com/changelog/discord-and-telegram-profile-links-86))
+  - Add Discord and Telegram links to the public profile page.
+  - Edit them from a "Customize" button on the profile.
+  - Keep each published post on its own indexed page.
+- [ ] **TF-065 Weekly and monthly grouping in X analytics** (2024-10-09, [entry](https://typefully.com/changelog/better-analytics-with-weekly-and-monthly-102))
+  - Group X analytics by week and by month.
+  - Apply the grouping to follower growth, impressions, engagement rate, and the other metrics.
+
+## 12. Performance and reliability
+
+- [ ] **TF-005 Scheduling and editor fixes** (2021-08-11, [entry](https://typefully.com/changelog/improvements-and-fixes-29))
+  - Make scheduled publishing reliable.
+  - Make the new-post shortcut (⌘Enter) insert the post below the current post, not at the end.
+  - Do not ask for X authorization again at each sign-in.
+  - Make image upload work with drag and drop and with paste.
+  - Use the account timezone in the queue when it differs from the browser timezone.
+  - Publish image-only posts and threads correctly.
+- [ ] **TF-006 Faster editor and analytics** (2021-09-30, [entry](https://typefully.com/changelog/typefully-gets-faster-35))
+  - Keep the editor fast on long threads with many posts.
+  - Make the analytics charts load fast.

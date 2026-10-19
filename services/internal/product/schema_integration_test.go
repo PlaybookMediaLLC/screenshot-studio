@@ -23,6 +23,12 @@ func TestEntProjectionsMatchMigratedTables(t *testing.T) {
 	t.Cleanup(func() { _ = db.Close() })
 	c := db.Client
 	queries := map[string]func() error{
+		"release_automation":               func() error { _, err := c.ReleaseAutomation.Query().Limit(1).All(ctx); return err },
+		"release_automation_version":       func() error { _, err := c.ReleaseAutomationVersion.Query().Limit(1).All(ctx); return err },
+		"release_source_event":             func() error { _, err := c.ReleaseSourceEvent.Query().Limit(1).All(ctx); return err },
+		"release_automation_run":           func() error { _, err := c.ReleaseAutomationRun.Query().Limit(1).All(ctx); return err },
+		"release_automation_node":          func() error { _, err := c.ReleaseAutomationNode.Query().Limit(1).All(ctx); return err },
+		"release_automation_executor":      func() error { _, err := c.ReleaseAutomationExecutor.Query().Limit(1).All(ctx); return err },
 		"audit_drain":                      func() error { _, err := c.AuditDrain.Query().Limit(1).All(ctx); return err },
 		"content_draft":                    func() error { _, err := c.ContentDraft.Query().Limit(1).All(ctx); return err },
 		"organization_enterprise_settings": func() error { _, err := c.OrganizationEnterpriseSettings.Query().Limit(1).All(ctx); return err },

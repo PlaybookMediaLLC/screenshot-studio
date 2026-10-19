@@ -6,8 +6,11 @@ import type { AnnotationToolType, BlurRegionStyle } from '@/lib/store';
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
 import { ColorPickerIcon, Delete02Icon } from 'hugeicons-react';
-import { Slider } from '@/components/ui/slider';
-import { SegmentedControl } from '@/components/ui/segmented-control';
+import { Slider } from '@/components/ui/slider'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 // ── Tool definitions ──────────────────────────────────────────────────────────
 
@@ -147,7 +150,7 @@ export function AnnotateSection() {
           {TOOLS.map((tool) => {
             const isActive = activeAnnotationTool === tool.id;
             return (
-              <button
+              <Button variant="custom" size={null}
                 key={tool.id}
                 onClick={() => handleToolClick(tool.id)}
                 title={`${tool.label}. Click, then draw on canvas`}
@@ -160,7 +163,7 @@ export function AnnotateSection() {
               >
                 {tool.svg}
                 <span className="leading-none">{tool.label}</span>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -193,7 +196,7 @@ export function AnnotateSection() {
               <span className="text-xs font-medium text-muted-foreground">Color</span>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {COLORS.map(({ value, name }) => (
-                  <button
+                  <Button variant="custom" size={null}
                     key={value}
                     onClick={() => handleColorChange(value)}
                     title={name}
@@ -212,7 +215,7 @@ export function AnnotateSection() {
                   />
                 ))}
                 <div className="w-px h-5 bg-foreground/10 mx-0.5" />
-                <label
+                <Label
                   title="Pick any color"
                   className={cn(
                     'relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full',
@@ -220,7 +223,7 @@ export function AnnotateSection() {
                     'transition-colors hover:bg-foreground/[0.08] hover:text-foreground'
                   )}
                 >
-                  <input
+                  <Input
                     type="color"
                     value={currentColor}
                     onChange={(e) => handleColorChange(e.target.value)}
@@ -236,7 +239,7 @@ export function AnnotateSection() {
                     className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-1.5 border-t border-background/25"
                     style={{ backgroundColor: currentColor }}
                   />
-                </label>
+                </Label>
               </div>
             </div>
 
@@ -271,13 +274,13 @@ export function AnnotateSection() {
                     value={region.style ?? 'blur'}
                     onChange={(style) => updateBlurRegion(region.id, { style: style as BlurRegionStyle })}
                   />
-                  <button
+                  <Button variant="custom" size={null}
                     onClick={() => removeBlurRegion(region.id)}
                     className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0 rounded hover:bg-destructive/10"
                     title="Remove"
                   >
                     <Delete02Icon size={12} />
-                  </button>
+                  </Button>
                 </div>
                 <Slider
                   value={[region.blurAmount]}
@@ -301,12 +304,12 @@ export function AnnotateSection() {
               {annotations.length > 0 && blurRegions.length > 0 && ', '}
               {blurRegions.length > 0 && `${blurRegions.length} blur region${blurRegions.length !== 1 ? 's' : ''}`}
             </span>
-            <button
+            <Button variant="custom" size={null}
               onClick={() => { clearAnnotations(); clearBlurRegions(); }}
               className="text-xs font-medium text-muted-foreground hover:text-destructive transition-colors px-2 py-1 rounded-md hover:bg-destructive/10"
             >
               Clear all
-            </button>
+            </Button>
           </div>
         )}
       </div>

@@ -14,7 +14,7 @@ import (
 // Review notifications (docs/rfcs/019-approval-workflow.md, refinement 4):
 // submitting posts emails the workspace's approvers, and a decision emails
 // the campaign's creator. TransitionCampaignPosts writes the outbox event in
-// its transaction; the maintenance worker hands it back here.
+// its transaction; the notification service dispatches per-recipient jobs.
 const (
 	EventCampaignPostsSubmitted = "campaign_posts.submitted"
 	EventCampaignPostsDecided   = "campaign_posts.decided"
@@ -82,7 +82,7 @@ func (c *Configuration) WithReviewMailer(mailer ReviewMailer) *Configuration {
 }
 
 // reviewEvent queues the notification for a post transition.
-func reviewEvent(ctx context.Context, tx *ent.Tx, actor Actor, campaignID, decision string, postIDs []string, note *string) error {
+func reviewEvent(ctx context.Context, tx *ent.Tx, actor Actor, campaignID, decision string, postIDs []string, note *string, idempotencyKey string) error {
 	kind := EventCampaignPostsDecided
 	if decision == "submit" {
 		kind = EventCampaignPostsSubmitted
@@ -92,7 +92,11 @@ func reviewEvent(ctx context.Context, tx *ent.Tx, actor Actor, campaignID, decis
 		payload["note"] = strings.TrimSpace(*note)
 	}
 	id := cuid.New()
+	key := kind + ":" + id
+	if idempotencyKey != "" {
+		key = "campaign-review:" + campaignID + ":" + idempotencyKey
+	}
 	return tx.OutboxEvent.Create().SetID(id).SetOrganizationID(actor.OrganizationID).SetType(kind).
 		SetAggregateType("campaign").SetAggregateID(campaignID).SetPayload(payload).
-		SetIdempotencyKey(kind + ":" + id).Exec(ctx)
+		SetIdempotencyKey(key).Exec(ctx)
 }

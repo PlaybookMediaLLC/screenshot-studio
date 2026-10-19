@@ -119,3 +119,63 @@ func TestUserVerificationAndRepositoryReads(t *testing.T) {
 		t.Fatalf("missing repository err=%v", err)
 	}
 }
+
+func TestPullRequestFilesRequireCompleteEvidence(t *testing.T) {
+	for _, scenario := range []struct {
+		name  string
+		count *int
+		short bool
+		want  int
+		fail  bool
+	}{
+		{"paginated", intPointer(101), false, 101, false},
+		{"empty", intPointer(0), false, 0, false},
+		{"missing_count", nil, false, 0, true},
+		{"truncated", intPointer(101), true, 0, true},
+		{"provider_limit", intPointer(3001), false, 0, true},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			app, _ := testApp(t, func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case strings.HasSuffix(r.URL.Path, "/access_tokens"):
+					_ = json.NewEncoder(w).Encode(map[string]any{"token": "fixture", "expires_at": time.Now().Add(time.Hour)})
+				case strings.HasSuffix(r.URL.Path, "/pulls/7"):
+					_ = json.NewEncoder(w).Encode(map[string]any{"changed_files": scenario.count})
+				case strings.HasSuffix(r.URL.Path, "/files"):
+					files := []map[string]string{}
+					if r.URL.Query().Get("page") == "1" {
+						for i := 0; i < 100; i++ {
+							files = append(files, map[string]string{"filename": fmt.Sprintf("src/%d.go", i)})
+						}
+					} else if !scenario.short {
+						files = append(files, map[string]string{"filename": "src/last.go"})
+					}
+					_ = json.NewEncoder(w).Encode(files)
+				default:
+					http.NotFound(w, r)
+				}
+			})
+			files, err := app.PullRequestFiles(context.Background(), 77, "9", 7)
+			if scenario.fail {
+				if !errors.Is(err, ErrIncompleteFiles) || files != nil {
+					t.Fatalf("partial evidence accepted: %v %v", files, err)
+				}
+				return
+			}
+			if err != nil || len(files) != scenario.want {
+				t.Fatalf("files=%d err=%v", len(files), err)
+			}
+		})
+	}
+}
+
+func intPointer(value int) *int { return &value }
+
+func TestRateLimitIsDistinguishedFromRevocation(t *testing.T) {
+	app, _ := testApp(t, func(w http.ResponseWriter, _ *http.Request) { w.Header().Set("Retry-After", "60"); w.WriteHeader(403) })
+	err := app.request(context.Background(), http.MethodGet, app.API, "", "", nil, nil)
+	var status StatusError
+	if !errors.As(err, &status) || !status.RateLimited {
+		t.Fatalf("rate limit lost: %v", err)
+	}
+}

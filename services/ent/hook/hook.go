@@ -561,6 +561,30 @@ func (f PageKnowledgeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PageKnowledgeMutation", m)
 }
 
+// The PlatformCreativeSetFunc type is an adapter to allow the use of ordinary
+// function as PlatformCreativeSet mutator.
+type PlatformCreativeSetFunc func(context.Context, *ent.PlatformCreativeSetMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformCreativeSetFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformCreativeSetMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformCreativeSetMutation", m)
+}
+
+// The PlatformCreativeSetVersionFunc type is an adapter to allow the use of ordinary
+// function as PlatformCreativeSetVersion mutator.
+type PlatformCreativeSetVersionFunc func(context.Context, *ent.PlatformCreativeSetVersionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformCreativeSetVersionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformCreativeSetVersionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformCreativeSetVersionMutation", m)
+}
+
 // The PlatformNotificationDeliveryFunc type is an adapter to allow the use of ordinary
 // function as PlatformNotificationDelivery mutator.
 type PlatformNotificationDeliveryFunc func(context.Context, *ent.PlatformNotificationDeliveryMutation) (ent.Value, error)
@@ -729,6 +753,66 @@ func (f ReleaseFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReleaseMutation", m)
 }
 
+// The ReleaseAutomationFunc type is an adapter to allow the use of ordinary
+// function as ReleaseAutomation mutator.
+type ReleaseAutomationFunc func(context.Context, *ent.ReleaseAutomationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ReleaseAutomationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ReleaseAutomationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReleaseAutomationMutation", m)
+}
+
+// The ReleaseAutomationExecutorFunc type is an adapter to allow the use of ordinary
+// function as ReleaseAutomationExecutor mutator.
+type ReleaseAutomationExecutorFunc func(context.Context, *ent.ReleaseAutomationExecutorMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ReleaseAutomationExecutorFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ReleaseAutomationExecutorMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReleaseAutomationExecutorMutation", m)
+}
+
+// The ReleaseAutomationNodeFunc type is an adapter to allow the use of ordinary
+// function as ReleaseAutomationNode mutator.
+type ReleaseAutomationNodeFunc func(context.Context, *ent.ReleaseAutomationNodeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ReleaseAutomationNodeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ReleaseAutomationNodeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReleaseAutomationNodeMutation", m)
+}
+
+// The ReleaseAutomationRunFunc type is an adapter to allow the use of ordinary
+// function as ReleaseAutomationRun mutator.
+type ReleaseAutomationRunFunc func(context.Context, *ent.ReleaseAutomationRunMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ReleaseAutomationRunFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ReleaseAutomationRunMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReleaseAutomationRunMutation", m)
+}
+
+// The ReleaseAutomationVersionFunc type is an adapter to allow the use of ordinary
+// function as ReleaseAutomationVersion mutator.
+type ReleaseAutomationVersionFunc func(context.Context, *ent.ReleaseAutomationVersionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ReleaseAutomationVersionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ReleaseAutomationVersionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReleaseAutomationVersionMutation", m)
+}
+
 // The ReleaseDocumentFunc type is an adapter to allow the use of ordinary
 // function as ReleaseDocument mutator.
 type ReleaseDocumentFunc func(context.Context, *ent.ReleaseDocumentMutation) (ent.Value, error)
@@ -739,6 +823,18 @@ func (f ReleaseDocumentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReleaseDocumentMutation", m)
+}
+
+// The ReleaseSourceEventFunc type is an adapter to allow the use of ordinary
+// function as ReleaseSourceEvent mutator.
+type ReleaseSourceEventFunc func(context.Context, *ent.ReleaseSourceEventMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ReleaseSourceEventFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ReleaseSourceEventMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReleaseSourceEventMutation", m)
 }
 
 // The ReleaseSpecFunc type is an adapter to allow the use of ordinary

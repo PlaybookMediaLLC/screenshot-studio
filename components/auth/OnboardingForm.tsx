@@ -7,6 +7,7 @@ import { workspaceCreateSchema } from '@/lib/workspace/input-schemas'
 import { workspaceInitials } from '@/lib/workspace/initials'
 import { getAuthErrorMessage } from './error-message'
 import { authInputClassName, FormAlert, SubmitButton } from './fields'
+import { Label } from '@/components/ui/label'
 
 function slugify(value: string): string {
   return value
@@ -87,9 +88,9 @@ export function OnboardingForm() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-neutral-300" htmlFor="workspace-name">
+            <Label className="text-sm font-medium text-neutral-300" htmlFor="workspace-name">
               Workspace name
-            </label>
+            </Label>
             <Input
               autoComplete="organization"
               autoFocus
@@ -107,12 +108,12 @@ export function OnboardingForm() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-neutral-300" htmlFor="workspace-slug">
+            <Label className="text-sm font-medium text-neutral-300" htmlFor="workspace-slug">
               Workspace slug
-            </label>
+            </Label>
             <div className="flex h-10 items-center rounded-lg border border-white/[0.08] bg-white/[0.03] transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
               <span className="pl-3.5 text-sm text-neutral-500 select-none">/</span>
-              <input
+              <Input
                 className="h-full min-w-0 flex-1 bg-transparent pr-3.5 pl-1 text-sm outline-none placeholder:text-neutral-600"
                 id="workspace-slug"
                 name="slug"

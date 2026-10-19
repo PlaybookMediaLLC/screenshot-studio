@@ -4,6 +4,7 @@ import * as React from "react";
 import { SectionWrapper } from "./SectionWrapper";
 import { cn } from "@/lib/utils";
 import { useImageStore } from "@/lib/store";
+import { Button } from '@/components/ui/button'
 
 interface DesignTheme {
   id: string;
@@ -122,7 +123,7 @@ export function ScreenshotDesignSection() {
     >
       <div className="grid grid-cols-2 gap-2">
         {themes.map((theme) => (
-          <button
+          <Button variant="custom" size={null}
             key={theme.id}
             onClick={theme.apply}
             className="group relative overflow-hidden rounded-xl border border-border/30 hover:border-border/60 transition-all duration-200 active:scale-[0.98]"
@@ -141,7 +142,7 @@ export function ScreenshotDesignSection() {
               <p className="text-[11px] font-semibold text-foreground">{theme.name}</p>
               <p className="text-[9px] text-muted-foreground truncate">{theme.description}</p>
             </div>
-          </button>
+          </Button>
         ))}
       </div>
     </SectionWrapper>

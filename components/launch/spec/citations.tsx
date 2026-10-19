@@ -6,6 +6,7 @@ import { Group, Pill, type PillTone, Section } from '@/components/platform-ui'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { SpecSource } from '@/lib/launch/spec-schema'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 /** What citation chips resolve against: the brief and the spec version's sources. */
 export type SourceIndex = { brief: string; byId: Map<string, SpecSource> }
@@ -157,14 +158,14 @@ function ExcerptToggle({ text }: { text: string }) {
   const [open, setOpen] = useState(false)
   return (
     <div className="text-xs">
-      <button
+      <Button variant="custom" size={null}
         aria-expanded={open}
         className="inline-flex h-5 items-center text-neutral-500 hover:text-neutral-300"
         onClick={() => setOpen(!open)}
         type="button"
       >
         {open ? 'Hide excerpt' : 'Show excerpt'}
-      </button>
+      </Button>
       {open ? (
         <div className="mt-1.5">
           <Excerpt text={text} />

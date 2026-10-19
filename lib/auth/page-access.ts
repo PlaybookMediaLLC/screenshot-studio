@@ -84,6 +84,7 @@ async function getBackendPageAccess(requestHeaders: Headers, session: SignedInSe
       Boolean(workspace) &&
       (process.env.PLATFORM_CAMPAIGN_WORKFLOW === 'enabled' ||
         features['campaign:workflow'] === true),
+    creativeSetsEnabled: Boolean(workspace) && features['creative-sets:create'] === true,
     hasOrganization: count > 0,
     // The onboarding agent (docs/rfcs/032). The backend decides it, including
     // the PLATFORM_ONBOARDING_AGENT rollback; without it onboarding is manual.

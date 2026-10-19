@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import { SectionWrapper } from "./SectionWrapper";
-import { Slider } from "@/components/ui/slider";
+import { Slider } from '@/components/ui/slider'
 import { useImageStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 import { meshGradients } from "@/lib/constants/mesh-gradients";
+import { Button } from '@/components/ui/button'
 
 export function BackgroundEffectsSection() {
   const { setBackgroundConfig, backgroundNoise, setBackgroundNoise, backgroundBlur, setBackgroundBlur, pattern, setPattern } = useImageStore();
@@ -21,7 +22,7 @@ export function BackgroundEffectsSection() {
           </p>
           <div className="grid grid-cols-3 gap-1.5">
             {Object.entries(meshGradients).map(([id, gradient]) => (
-              <button
+              <Button variant="custom" size={null}
                 key={id}
                 onClick={() =>
                   setBackgroundConfig({
@@ -76,7 +77,7 @@ export function BackgroundEffectsSection() {
               { id: "dots", label: "Dots" },
               { id: "lines", label: "Lines" },
             ].map((p) => (
-              <button
+              <Button variant="custom" size={null}
                 key={p.id}
                 onClick={() =>
                   setPattern({
@@ -99,7 +100,7 @@ export function BackgroundEffectsSection() {
                 )}
               >
                 {p.label}
-              </button>
+              </Button>
             ))}
           </div>
           {pattern.enabled && (

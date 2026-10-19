@@ -1,5 +1,12 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "tw-animate-css";
+
+/* Watch UI sources only; root scanning also watches generated logs in worktrees. */
+@source "./";
+@source "../components";
+@source "../hooks";
+@source "../lib";
+@source "../packages/platejs-editor/src";
 
 /* SF Pro Display - Local Font */
 @font-face {

@@ -25,6 +25,14 @@ import {
 } from "@/lib/seo/guides";
 import { ORGANIZATION_ID } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table'
 
 const PROSE = "text-[17px] leading-[1.75] text-foreground/85";
 
@@ -120,39 +128,39 @@ function RoundupBody({ guide }: { guide: RoundupGuide }): React.JSX.Element {
       <section id="comparison" className="scroll-mt-28">
         <SectionTitle>Quick comparison</SectionTitle>
         <div className="mt-5 overflow-x-auto rounded-2xl ring-1 ring-inset ring-border">
-          <table className="w-full min-w-[560px] border-collapse text-left text-sm">
-            <thead className="bg-foreground/[0.03]">
-              <tr>
+          <Table className="w-full min-w-[560px] border-collapse text-left text-sm">
+            <TableHeader className="bg-foreground/[0.03]">
+              <TableRow>
                 {["Tool", "Best for", "Price", "Runs on"].map((label) => (
-                  <th
+                  <TableHead
                     key={label}
                     scope="col"
-                    className={`${EYEBROW} px-4 py-3 font-normal`}
+                    className={`whitespace-normal ${`${EYEBROW} px-4 py-3 font-normal`}`}
                     style={{ fontFamily: MONO }}
                   >
                     {label}
-                  </th>
+                  </TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {guide.tools.map((tool) => (
-                <tr key={tool.name} className="border-t border-border align-top">
-                  <th scope="row" className="px-4 py-3.5 font-medium text-foreground">
+                <TableRow key={tool.name} className="border-t border-border align-top">
+                  <TableHead scope="row" className="whitespace-normal px-4 py-3.5 font-medium text-foreground">
                     <a
                       href={`#${anchorId(tool.name)}`}
                       className="underline-offset-4 hover:underline"
                     >
                       {tool.name}
                     </a>
-                  </th>
-                  <td className="px-4 py-3.5 text-foreground/75">{tool.bestFor}</td>
-                  <td className="px-4 py-3.5 text-foreground/75">{tool.price}</td>
-                  <td className="px-4 py-3.5 text-foreground/75">{tool.platform}</td>
-                </tr>
+                  </TableHead>
+                  <TableCell className="whitespace-normal px-4 py-3.5 text-foreground/75">{tool.bestFor}</TableCell>
+                  <TableCell className="whitespace-normal px-4 py-3.5 text-foreground/75">{tool.price}</TableCell>
+                  <TableCell className="whitespace-normal px-4 py-3.5 text-foreground/75">{tool.platform}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </section>
 

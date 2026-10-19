@@ -21,6 +21,16 @@ import { AudioImportError, importAudioFile } from '@/lib/editor/import-audio'
 import { useImageStore } from '@/lib/store'
 import { usePlaybackStore } from '@/lib/store/playback'
 import { SecondsField } from './fields'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
 const ACCEPT_AUDIO = 'audio/*,.mp3,.m4a,.aac,.wav,.ogg,.oga,.webm'
 
@@ -52,7 +62,7 @@ export function AudioSection() {
 
   return (
     <SectionWrapper title="Audio">
-      <input
+      <Input
         accept={ACCEPT_AUDIO}
         aria-label="Audio file"
         className="hidden"
@@ -65,7 +75,7 @@ export function AudioSection() {
         ref={inputRef}
         type="file"
       />
-      <button
+      <Button variant="custom" size={null}
         className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-foreground/10 py-2 text-xs font-medium text-foreground hover:bg-foreground/[0.06] disabled:cursor-wait disabled:opacity-60"
         disabled={status.importing}
         onClick={() => inputRef.current?.click()}
@@ -73,7 +83,7 @@ export function AudioSection() {
       >
         <MusicNote01Icon size={14} />
         {status.importing ? 'Importing audio…' : 'Import audio'}
-      </button>
+      </Button>
       {status.error ? (
         <p className="text-xs text-destructive" role="alert">
           {status.error}
@@ -94,14 +104,14 @@ export function AudioSection() {
             <span className="truncate text-xs font-medium text-foreground" title={clip.name}>
               {clip.name}
             </span>
-            <button
+            <Button variant="custom" size={null}
               aria-label={`Remove ${clip.name}`}
               className="cursor-pointer rounded-md p-1 text-destructive hover:bg-destructive/10"
               onClick={() => updateMotion((motion) => removeAudioClip(motion, clip.id))}
               type="button"
             >
               <Delete02Icon size={13} />
-            </button>
+            </Button>
           </div>
           <SecondsField
             label="Start on timeline"
@@ -192,13 +202,13 @@ function CaptionRow({ item }: { item: CaptionItem }) {
         onChange={(end) => updateMotion((motion) => updateCaption(motion, item.id, { end }))}
         valueMs={item.end}
       />
-      <button
+      <Button variant="custom" size={null}
         className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md py-1 text-xs text-destructive hover:bg-destructive/10"
         onClick={() => updateMotion((motion) => removeCaption(motion, item.id))}
         type="button"
       >
         <Delete02Icon size={13} /> Remove caption
-      </button>
+      </Button>
     </div>
   )
 }
@@ -212,7 +222,7 @@ export function CaptionsSection() {
 
   return (
     <SectionWrapper title="Captions">
-      <button
+      <Button variant="custom" size={null}
         className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-foreground/10 py-2 text-xs font-medium text-foreground hover:bg-foreground/[0.06]"
         onClick={() => {
           const start = Math.round(usePlaybackStore.getState().playhead)
@@ -228,32 +238,36 @@ export function CaptionsSection() {
         type="button"
       >
         <Add01Icon size={14} /> Add caption at playhead
-      </button>
+      </Button>
       {captions.items.map((item) => (
         <CaptionRow item={item} key={item.id} />
       ))}
       {captions.items.length > 0 ? (
         <div className="space-y-3 pt-1">
           <div className="flex items-center justify-between gap-2">
-            <label className="text-xs text-muted-foreground" htmlFor={fontId}>
+            <Label className="text-xs text-muted-foreground" htmlFor={fontId}>
               Font
-            </label>
-            <select
-              className="h-7 max-w-40 rounded-md border border-foreground/10 bg-background px-2 text-xs text-foreground"
-              id={fontId}
-              onChange={(event) =>
-                updateMotion((motion) =>
-                  setCaptionStyle(motion, { fontFamily: event.target.value })
-                )
+            </Label>
+            <Select
+              onValueChange={(nextValue) =>
+                updateMotion((motion) => setCaptionStyle(motion, { fontFamily: nextValue }))
               }
               value={style.fontFamily}
             >
-              {fontFamilies.map((font) => (
-                <option key={font.id} value={font.id}>
-                  {font.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                className="h-7 max-w-40 rounded-md border border-foreground/10 bg-background px-2 text-xs text-foreground"
+                id={fontId}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {fontFamilies.map((font) => (
+                  <SelectItem key={font.id} value={font.id}>
+                    {font.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <ChoiceField
             label="Weight"

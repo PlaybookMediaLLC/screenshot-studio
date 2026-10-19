@@ -16,6 +16,8 @@ import { captureCanvasSnapshot } from '@/lib/design/snapshot'
 import { useImageStore } from '@/lib/store'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
 const DEFAULT_CHANNELS: CaptionChannel[] = ['x', 'linkedin', 'instagram']
 
@@ -97,7 +99,7 @@ export function CaptionsPanel({ disabled }: { disabled: boolean }) {
         {captionChannelSchema.options.map((channel) => {
           const on = channels.includes(channel)
           return (
-            <button
+            <Button variant="custom" size={null}
               aria-pressed={on}
               className={cn(
                 'rounded-full border px-2.5 py-1 text-xs',
@@ -112,11 +114,11 @@ export function CaptionsPanel({ disabled }: { disabled: boolean }) {
               type="button"
             >
               {CAPTION_CHANNELS[channel].name}
-            </button>
+            </Button>
           )
         })}
       </div>
-      <textarea
+      <Textarea
         aria-label="Notes for the captions"
         className="w-full resize-none rounded-md border bg-transparent px-3 py-2 text-sm"
         onChange={(event) => setNotes(event.target.value)}
@@ -138,11 +140,11 @@ export function CaptionsPanel({ disabled }: { disabled: boolean }) {
 
       {saved ? (
         <div className="space-y-3">
-          <label className="block space-y-1">
+          <Label className="block space-y-1">
             <span className="flex items-center justify-between text-xs font-medium">
               Alt text <Counter length={(copy.altText ?? '').length} limit={ALT_TEXT_LIMIT} />
             </span>
-            <textarea
+            <Textarea
               className="w-full resize-y rounded-md border bg-transparent px-3 py-2 text-sm"
               maxLength={1000}
               onBlur={commit}
@@ -158,18 +160,18 @@ export function CaptionsPanel({ disabled }: { disabled: boolean }) {
             >
               Copy alt text
             </Button>
-          </label>
+          </Label>
           {captionChannelSchema.options
             .filter((channel) => copy.captions[channel] !== undefined)
             .map((channel) => {
               const text = copy.captions[channel] ?? ''
               const { limit, name } = CAPTION_CHANNELS[channel]
               return (
-                <label className="block space-y-1" key={channel}>
+                <Label className="block space-y-1" key={channel}>
                   <span className="flex items-center justify-between text-xs font-medium">
                     {name} <Counter length={captionLength(text, channel)} limit={limit} />
                   </span>
-                  <textarea
+                  <Textarea
                     aria-label={`${name} caption`}
                     className="w-full resize-y rounded-md border bg-transparent px-3 py-2 text-sm"
                     maxLength={3000}
@@ -191,7 +193,7 @@ export function CaptionsPanel({ disabled }: { disabled: boolean }) {
                   >
                     Copy
                   </Button>
-                </label>
+                </Label>
               )
             })}
         </div>

@@ -61,6 +61,16 @@ import { hasVisibleMockups, shouldRenderSourceImage } from '@/lib/device-mockups
 import { removeScreenshot } from '@/lib/editor/remove-screenshot'
 import { validateImageFile } from '@/lib/editor/import-images'
 import { hasMotionContent } from '@/lib/animation/motion-schema'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 /** A quiet square toolbar button with a tooltip; `active` marks a toggled tool. */
 function ToolButton({
@@ -73,7 +83,7 @@ function ToolButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
+        <Button variant="custom" size={null}
           aria-label={label}
           aria-pressed={props['aria-pressed']}
           className={cn(
@@ -87,7 +97,7 @@ function ToolButton({
           {...props}
         >
           {children}
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom">{label}</TooltipContent>
     </Tooltip>
@@ -211,7 +221,7 @@ export function EditorHeader() {
               />
             </Link>
           ) : null}
-          <button
+          <Button variant="custom" size={null}
             aria-expanded={showTemplates}
             aria-label="Templates"
             className={cn(
@@ -227,7 +237,7 @@ export function EditorHeader() {
           >
             <MagicWand01Icon className="shrink-0" size={15} />
             {!isMobile ? <span>Templates</span> : null}
-          </button>
+          </Button>
           <ProjectMenu compact={isMobile} />
         </div>
 
@@ -256,17 +266,24 @@ export function EditorHeader() {
                 <RulerIcon size={15} />
               </ToolButton>
               {showRulers ? (
-                <select
-                  className="h-7 shrink-0 cursor-pointer rounded-md border-0 bg-transparent px-1 text-[11px] text-muted-foreground outline-none hover:text-foreground"
-                  onChange={(e) => setRulerInterval(Number(e.target.value))}
-                  title="Ruler interval"
-                  value={rulerInterval}
+                <Select
+                  onValueChange={(nextValue) => setRulerInterval(Number(nextValue))}
+                  value={String(rulerInterval)}
                 >
-                  <option value={25}>25px</option>
-                  <option value={50}>50px</option>
-                  <option value={100}>100px</option>
-                  <option value={200}>200px</option>
-                </select>
+                  <SelectTrigger
+                    className="h-7 shrink-0 cursor-pointer rounded-md border-0 bg-transparent px-1 text-[11px] text-muted-foreground outline-none hover:text-foreground"
+                    title="Ruler interval"
+                    aria-label={'Ruler interval'}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={String(25)}>25px</SelectItem>
+                    <SelectItem value={String(50)}>50px</SelectItem>
+                    <SelectItem value={String(100)}>100px</SelectItem>
+                    <SelectItem value={String(200)}>200px</SelectItem>
+                  </SelectContent>
+                </Select>
               ) : null}
               <ToolButton
                 active={showGrid}
@@ -282,7 +299,7 @@ export function EditorHeader() {
 
           <Popover onOpenChange={setAspectRatioOpen} open={aspectRatioOpen}>
             <PopoverTrigger asChild>
-              <button
+              <Button variant="custom" size={null}
                 className={cn(
                   'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg text-muted-foreground',
                   'transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground',
@@ -296,7 +313,7 @@ export function EditorHeader() {
                     ? `${currentAspectRatio.width}:${currentAspectRatio.height}`
                     : 'Auto'}
                 </span>
-              </button>
+              </Button>
             </PopoverTrigger>
             <PopoverContent
               align="center"
@@ -309,8 +326,8 @@ export function EditorHeader() {
           </Popover>
 
           {slides.length > 0 && !isMobile ? (
-            <label className="inline-flex shrink-0 cursor-pointer">
-              <input
+            <Label className="inline-flex shrink-0 cursor-pointer">
+              <Input
                 accept="image/png,image/jpeg,image/webp"
                 aria-label="Add slides"
                 className="hidden"
@@ -331,7 +348,7 @@ export function EditorHeader() {
                 <Add01Icon size={14} />
                 <span>Add Slide</span>
               </span>
-            </label>
+            </Label>
           ) : null}
         </div>
 
@@ -350,14 +367,14 @@ export function EditorHeader() {
           </ToolButton>
 
           {hasImage && showVideoExport && !isMobile ? (
-            <button
+            <Button variant="custom" size={null}
               className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-foreground/[0.08] px-3 text-[13px] font-medium text-foreground transition-colors hover:bg-foreground/[0.06]"
               onClick={() => setExportSlideshowOpen(true)}
               type="button"
             >
               <Video01Icon size={14} />
               <span>Export Video</span>
-            </button>
+            </Button>
           ) : null}
 
           <ShareButton
@@ -370,7 +387,7 @@ export function EditorHeader() {
 
           <Popover onOpenChange={exportBusy ? undefined : setExportOpen} open={exportOpen}>
             <PopoverTrigger asChild>
-              <button
+              <Button variant="custom" size={null}
                 aria-label="Save"
                 className={cn(
                   'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-foreground text-[13px] font-medium text-background',
@@ -383,7 +400,7 @@ export function EditorHeader() {
               >
                 <Download04Icon size={15} />
                 {!isMobile ? <span>Save</span> : null}
-              </button>
+              </Button>
             </PopoverTrigger>
             <PopoverContent
               align="end"
@@ -394,7 +411,7 @@ export function EditorHeader() {
             >
               <ExportPanel
                 embed={
-                  <button
+                  <Button variant="custom" size={null}
                     className="flex w-full cursor-pointer items-center gap-2.5 rounded-md border border-foreground/[0.08] p-2.5 text-left text-xs transition-colors hover:bg-foreground/[0.04]"
                     onClick={() => {
                       setExportOpen(false)
@@ -406,7 +423,7 @@ export function EditorHeader() {
                       <span className="block font-medium text-foreground">Embed or share a link</span>
                       <span className="block text-muted-foreground">Publish this design, then copy an iframe, HTML, or Markdown embed.</span>
                     </span>
-                  </button>
+                  </Button>
                 }
                 onBusyChange={setExportBusy}
                 onExported={() => setExportOpen(false)}
@@ -422,13 +439,13 @@ export function EditorHeader() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <button
+                  <Button variant="custom" size={null}
                     aria-label="More"
                     className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground data-[state=open]:bg-foreground/[0.08] data-[state=open]:text-foreground"
                     type="button"
                   >
                     <MoreHorizontalIcon size={16} />
-                  </button>
+                  </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
               <TooltipContent side="bottom">More</TooltipContent>

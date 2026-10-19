@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import { cn } from "@/lib/utils";
 import {
   FORMAT_LABELS,
@@ -18,6 +18,8 @@ import {
   type RasterFormat,
   type ToolSettings,
 } from "@/lib/image-tools";
+
+
 
 export interface PanelProps {
   settings: ToolSettings;
@@ -105,7 +107,7 @@ function BackgroundPicker({
       hint={`${FORMAT_LABELS[format]} has no transparency, so transparent pixels are filled with this colour.`}
     >
       <div className="flex items-center gap-2">
-        <input
+        <Input
           id={inputId}
           type="color"
           value={value}

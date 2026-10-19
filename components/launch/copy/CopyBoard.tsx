@@ -24,6 +24,9 @@ import { cn } from '@/lib/utils'
 import { PostLinkCheck } from '@/components/link-preview/PostLinkCheck'
 import { LengthCounter, PostEditor } from './PostEditor'
 import { CancelScheduleButton, ScheduleDialog, type ScheduleVisual } from './ScheduleDialog'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export type CopyPost = {
   /** "G1 · Upgrade with one command", from the plan. */
@@ -164,14 +167,14 @@ function ReviewActions({ permissions, post }: { permissions: Permissions; post: 
           }}
         >
           <div className="flex items-baseline justify-between gap-3">
-            <label className="text-xs font-medium text-neutral-400" htmlFor={noteId}>
+            <Label className="text-xs font-medium text-neutral-400" htmlFor={noteId}>
               Review note
-            </label>
+            </Label>
             <span className="text-xs text-neutral-500">
               {noting === 'reject' ? 'Rejecting this post' : 'Requesting changes'}
             </span>
           </div>
-          <textarea
+          <Textarea
             autoFocus
             className="min-h-20 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-white/20"
             id={noteId}
@@ -405,12 +408,11 @@ function PostCard({
       <div className="flex flex-col gap-4 p-5">
         <div className="flex flex-wrap items-center gap-1.5">
           {selectable ? (
-            <input
+            <Checkbox
               aria-label={`Select ${post.title ?? `${channelLabel} post`} for approval`}
               checked={selected}
               className="mr-1 size-4 accent-white"
-              onChange={(event) => onSelect(event.target.checked)}
-              type="checkbox"
+              onCheckedChange={(checked) => onSelect((checked === true))}
             />
           ) : null}
           {post.phase ? <Pill>{post.phase}</Pill> : null}

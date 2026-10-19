@@ -14,6 +14,13 @@ import {
 import type { ShareLink } from '@/lib/sharing/schema'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 type Channel = { id: string; isMember: boolean; isPrivate: boolean; name: string }
 type Page = { id: string; title: string; url: string | null }
@@ -175,20 +182,23 @@ function SlackTarget({
   return (
     <div className="grid gap-2">
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
-      <select
-        aria-label="Slack channel"
-        className={SELECT}
+      <Select
         disabled={!channels}
-        onChange={(event) => setChannelId(event.target.value)}
+        onValueChange={(nextValue) => setChannelId(nextValue)}
         value={channelId}
       >
-        {(channels ?? []).map((channel) => (
-          <option key={channel.id} value={channel.id}>
-            {channel.isPrivate ? '🔒 ' : '#'}
-            {channel.name}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger aria-label="Slack channel" className={SELECT}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {(channels ?? []).map((channel) => (
+            <SelectItem key={channel.id} value={channel.id}>
+              {channel.isPrivate ? '🔒 ' : '#'}
+              {channel.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {chosen?.isPrivate && !chosen.isMember ? (
         <p className="text-xs text-muted-foreground">
           Invite the app to this private channel in Slack first (/invite).

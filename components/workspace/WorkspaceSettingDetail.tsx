@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { ProfileForm } from '@/components/auth/ProfileForm'
+import { ReleaseAutomationSettings } from './release-automation/ReleaseAutomationSettings'
 import { ChannelConnections } from './ChannelConnections'
 import { WorkspaceAgentSettings } from './WorkspaceAgentSettings'
 import { WorkspaceAuditSettings } from './WorkspaceAuditSettings'
@@ -81,6 +82,7 @@ function getDetailContent({
       </>
     ),
     profile: <ProfileForm email={email} name={name} />,
+    'release-automation': <ReleaseAutomationSettings key={organization.id} canManage={canManage} />,
     roles: <WorkspaceRolesSettings />,
     security: <WorkspaceSecuritySettings twoFactorEnabled={twoFactorEnabled} />,
     sharing: <WorkspaceSharedLinks canEdit={hasPermission(role, 'artifact:edit')} />,

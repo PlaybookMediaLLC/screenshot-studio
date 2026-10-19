@@ -26,6 +26,14 @@ import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
 import { PRODUCT_FACTS } from "@/lib/seo/product-facts";
 import { cn } from "@/lib/utils";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table'
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -246,51 +254,51 @@ export default async function ComparisonPage({ params }: PageProps) {
           <section id="features" className="scroll-mt-28">
             <SectionTitle>Feature by feature</SectionTitle>
             <div className={cn(CARD_CLASS, "mt-5 overflow-x-auto")}>
-              <table className="w-full min-w-[560px] border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th
+              <Table className="w-full min-w-[560px] border-collapse text-sm">
+                <TableHeader>
+                  <TableRow className="border-b border-border">
+                    <TableHead
                       scope="col"
-                      className="w-[30%] px-5 py-4 text-left font-medium text-muted-foreground"
+                      className="whitespace-normal w-[30%] px-5 py-4 text-left font-medium text-muted-foreground"
                     >
                       Feature
-                    </th>
-                    <th
+                    </TableHead>
+                    <TableHead
                       scope="col"
-                      className="bg-foreground/[0.03] px-5 py-4 text-left font-semibold text-foreground"
+                      className="whitespace-normal bg-foreground/[0.03] px-5 py-4 text-left font-semibold text-foreground"
                     >
                       Shots
-                    </th>
-                    <th
+                    </TableHead>
+                    <TableHead
                       scope="col"
-                      className="px-5 py-4 text-left font-semibold text-foreground"
+                      className="whitespace-normal px-5 py-4 text-left font-semibold text-foreground"
                     >
                       {data.competitorName}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.features.map((feature) => (
-                    <tr
+                    <TableRow
                       key={feature.name}
                       className="border-b border-border/60 last:border-b-0"
                     >
-                      <th
+                      <TableHead
                         scope="row"
-                        className="px-5 py-3.5 text-left font-medium text-foreground"
+                        className="whitespace-normal px-5 py-3.5 text-left font-medium text-foreground"
                       >
                         {feature.name}
-                      </th>
-                      <td className="bg-foreground/[0.03] px-5 py-3.5 text-foreground">
+                      </TableHead>
+                      <TableCell className="whitespace-normal bg-foreground/[0.03] px-5 py-3.5 text-foreground">
                         <FeatureValue value={feature.studio} />
-                      </td>
-                      <td className="px-5 py-3.5 text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="whitespace-normal px-5 py-3.5 text-muted-foreground">
                         <FeatureValue value={feature.competitor} />
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
             <p className="mt-4 text-xs leading-relaxed text-muted-foreground/80">
               {claimsNote(data)}{" "}

@@ -1,0 +1,186 @@
+package releaseautomation
+
+import (
+	"slices"
+	"testing"
+	"time"
+)
+
+func testGraph() Graph {
+	return Graph{SchemaVersion: 1, Family: Published, Qualification: Condition{Field: "release.tag", Operator: "glob", Values: []string{"v*"}},
+		Nodes: []Node{{ID: "start", Type: "trigger"}, {ID: "stable", Type: "condition", Condition: &Condition{Field: "release.prerelease", Operator: "is_false"}},
+			{ID: "release", Type: "action", Action: &Action{Type: "create_release"}},
+			{ID: "campaign", Type: "action", Action: &Action{Type: "create_campaign", Input: &Reference{NodeID: "release", Output: "releaseId"}, BrandKitID: "brand", DestinationIDs: []string{"channel"}}},
+			{ID: "review", Type: "action", Action: &Action{Type: "submit_review", Input: &Reference{NodeID: "campaign", Output: "campaignId"}}}, {ID: "done", Type: "end", Outcome: "completed"}, {ID: "skip", Type: "end", Outcome: "skipped"}},
+		Edges: []Edge{{"start", "stable", "next"}, {"stable", "release", "true"}, {"stable", "skip", "false"}, {"release", "campaign", "next"}, {"campaign", "review", "next"}, {"review", "done", "next"}}}
+}
+
+func TestPublishedReleasePreview(t *testing.T) {
+	g := testGraph()
+	if issues := Validate(g); len(issues) > 0 {
+		t.Fatal(issues)
+	}
+	e := Event{Family: Published, Fields: map[string]Value{"release.tag": StringValue("v1"), "release.prerelease": BoolValue(false)}}
+	preview := DryRun(g, e)
+	if preview.Outcome != "completed" || len(preview.Steps) != 6 {
+		t.Fatalf("%+v", preview)
+	}
+	e.Fields["release.prerelease"] = BoolValue(true)
+	if result := DryRun(g, e); result.Outcome != "skipped" || len(result.Steps) != 3 {
+		t.Fatal(result)
+	}
+	delete(e.Fields, "release.prerelease")
+	if result := DryRun(g, e); result.Outcome != "unresolved" {
+		t.Fatal(result)
+	}
+	e.Family = Merged
+	if DryRun(g, e).Qualification.Status != "not_applicable" {
+		t.Fatal("wrong family accepted")
+	}
+}
+
+func TestGraphRejectsUnsafeStructures(t *testing.T) {
+	tests := []struct {
+		name, code string
+		change     func(*Graph)
+	}{
+		{"cycle", "cycle", func(g *Graph) { g.Edges[3].To = "release" }},
+		{"unreachable", "unreachable", func(g *Graph) { g.Nodes = append(g.Nodes, Node{ID: "orphan", Type: "end", Outcome: "skipped"}) }},
+		{"duplicate", "node_id", func(g *Graph) { g.Nodes[1].ID = "start" }},
+		{"endpoint", "edge_endpoint", func(g *Graph) { g.Edges[0].To = "missing" }},
+		{"branch", "condition_edges", func(g *Graph) { g.Edges[2].Branch = "true" }},
+		{"cross branch", "unavailable_input", func(g *Graph) { g.Edges[2].To = "campaign"; g.Nodes = g.Nodes[:6] }},
+		{"unknown action", "action", func(g *Graph) { g.Nodes[2].Action.Type = "publish" }},
+		{"foreign field", "condition", func(g *Graph) { g.Nodes[1].Condition.Field = "pr.files" }},
+		{"review continuation", "review_terminal", func(g *Graph) { g.Edges[5].To = "release" }},
+		{"unsupported schema", "schema_version", func(g *Graph) { g.SchemaVersion = 2 }},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			g := testGraph()
+			test.change(&g)
+			issues := Validate(g)
+			if !slices.ContainsFunc(issues, func(i Issue) bool { return i.Code == test.code }) {
+				t.Fatalf("wanted %s: %+v", test.code, issues)
+			}
+		})
+	}
+}
+
+func TestConditionOperators(t *testing.T) {
+	for _, test := range []struct {
+		operator string
+		values   []string
+		want     bool
+	}{
+		{"eq", []string{"v1.2"}, true}, {"ne", []string{"v1.2"}, false}, {"in", []string{"v1.2", "v2"}, true}, {"not_in", []string{"v2"}, true},
+		{"contains", []string{"1."}, true}, {"not_contains", []string{"1."}, false}, {"starts_with", []string{"v"}, true}, {"glob", []string{"v?.[0-9]"}, true},
+		{"exists", nil, true}, {"not_exists", nil, false},
+	} {
+		t.Run(test.operator, func(t *testing.T) {
+			e := Event{Family: Published, Fields: map[string]Value{"release.tag": StringValue("v1.2")}}
+			r := Evaluate(Condition{Field: "release.tag", Operator: test.operator, Values: test.values}, e)
+			if r.Status != "evaluated" || r.Match != test.want {
+				t.Fatal(r)
+			}
+		})
+	}
+	for _, operator := range []string{"is_true", "is_false"} {
+		r := Evaluate(Condition{Field: "pr.bot", Operator: operator}, Event{Family: Merged, Fields: map[string]Value{"pr.bot": BoolValue(true)}})
+		if r.Match != (operator == "is_true") {
+			t.Fatal(r)
+		}
+	}
+}
+
+func TestGroupsCollectionsAndEnrichment(t *testing.T) {
+	file := Condition{Field: "pr.files", Operator: "glob", Values: []string{"app/*"}}
+	label := Condition{Field: "pr.labels", Operator: "contains", Values: []string{"release"}}
+	c := Condition{Group: "ALL", Children: []Condition{file, {Group: "NOT", Children: []Condition{{Group: "ANY", Children: []Condition{label}}}}}}
+	e := Event{Family: Merged, Fields: map[string]Value{"pr.files": StringValue("README.md", "app/index.ts"), "pr.labels": StringValue("release-candidate")}}
+	if r := Evaluate(c, e); r.Status != "evaluated" || !r.Match {
+		t.Fatal(r)
+	}
+	for _, state := range []string{"pending", "unavailable", "not_applicable", "missing"} {
+		e.Fields["pr.files"] = Value{State: state}
+		r := Evaluate(c, e)
+		if r.Status != state || r.Match {
+			t.Fatal(r)
+		}
+	}
+	e.Fields["pr.files"] = StringValue()
+	if r := Evaluate(file, e); r.Status != "evaluated" || r.Match {
+		t.Fatal(r)
+	}
+	file.Operator = "ne"
+	file.Values = []string{"x"}
+	if !Evaluate(file, e).Match {
+		t.Fatal("empty collection is universally unequal")
+	}
+	file.Operator = "glob"
+	file.Values = []string{"**/*.ts"}
+	if ValidateCondition(file, Merged) == "" {
+		t.Fatal("undocumented glob accepted")
+	}
+	for i := 0; i < 9; i++ {
+		c = Condition{Group: "NOT", Children: []Condition{c}}
+	}
+	if ValidateCondition(c, Merged) == "" {
+		t.Fatal("unbounded condition")
+	}
+}
+
+func TestNormalizeIdentityAndIgnoredEvents(t *testing.T) {
+	body := []byte(`{"action":"published","installation":{"id":7},"repository":{"id":42,"full_name":"acme/app"},"release":{"id":19,"tag_name":"v1","name":"Release","body":"notes","published_at":"2026-10-19T10:00:00Z","prerelease":false}}`)
+	installation, event, err := NormalizeGitHub("release", body)
+	if err != nil || installation != 7 || event.SemanticKey != "release:42:19" || event.OccurredAt != time.Date(2026, 10, 19, 10, 0, 0, 0, time.UTC) {
+		t.Fatalf("%+v %v", event, err)
+	}
+	for _, payload := range []string{`{"action":"edited"}`, `{"action":"closed","pull_request":{"merged":false}}`, `{"deployment_status":{"state":"failure"}}`} {
+		for _, name := range []string{"release", "pull_request", "deployment_status"} {
+			if (name == "release" && payload == `{"action":"edited"}`) || (name == "pull_request" && payload == `{"action":"closed","pull_request":{"merged":false}}`) || (name == "deployment_status" && payload == `{"deployment_status":{"state":"failure"}}`) {
+				_, event, err := NormalizeGitHub(name, []byte(payload))
+				if event != nil || err != nil {
+					t.Fatal(name, err)
+				}
+			}
+		}
+	}
+	if _, _, err := NormalizeGitHub("release", []byte(`{"action":"published"}`)); err == nil {
+		t.Fatal("malformed supported event accepted")
+	}
+	if _, e, err := NormalizeGitHub("push", []byte(`not json`)); e != nil || err != nil {
+		t.Fatal("unsupported event parsed")
+	}
+}
+
+func TestIncompleteDraftsStillHaveHardBounds(t *testing.T) {
+	g := Graph{SchemaVersion: 1, Family: Published}
+	if !BoundedDraft(g) || len(Validate(g)) == 0 {
+		t.Fatal("incomplete bounded drafts must save but not activate")
+	}
+	for i := 0; i < 8; i++ {
+		g.Qualification = Condition{Group: "NOT", Children: []Condition{g.Qualification}}
+	}
+	if BoundedDraft(g) {
+		t.Fatal("deep draft accepted")
+	}
+	g = testGraph()
+	g.Nodes[1].Condition = &Condition{Group: "ALL", Children: make([]Condition, 33)}
+	if BoundedDraft(g) {
+		t.Fatal("wide draft accepted")
+	}
+}
+
+func TestNormalizeMergedPRAndDeploymentEvidence(t *testing.T) {
+	pr := []byte(`{"action":"closed","installation":{"id":7},"repository":{"id":42,"full_name":"acme/app"},"pull_request":{"id":1234,"number":17,"title":"Export release","body":"Notes","merged":true,"merged_at":"2026-10-19T10:00:00Z","base":{"ref":"main"},"user":{"login":"robot[bot]","type":"Bot"},"labels":[{"name":"release"}]}}`)
+	_, event, err := NormalizeGitHub("pull_request", pr)
+	if err != nil || event.SemanticKey != "pr:42:17" || event.ObjectID != "1234" || event.Fields["pr.files"].State != "pending" || !*event.Fields["pr.bot"].Boolean || event.Fields["pr.labels"].Values[0] != "release" {
+		t.Fatalf("PR=%+v err=%v", event, err)
+	}
+	deployment := []byte(`{"installation":{"id":7},"repository":{"id":42,"full_name":"acme/app"},"deployment":{"id":99,"environment":"staging","sha":"abc123","production_environment":true},"deployment_status":{"state":"success","environment":"production","created_at":"2026-10-19T10:00:00Z","environment_url":"https://example.com"}}`)
+	_, event, err = NormalizeGitHub("deployment_status", deployment)
+	if err != nil || event.SemanticKey != "deployment:42:99:success" || event.Fields["deployment.environment"].Values[0] != "production" || event.Fields["deployment.sha"].Values[0] != "abc123" {
+		t.Fatalf("deployment=%+v err=%v", event, err)
+	}
+}

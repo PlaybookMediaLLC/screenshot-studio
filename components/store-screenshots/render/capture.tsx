@@ -25,7 +25,7 @@ export class CaptureAbortedError extends Error {
   }
 }
 
-async function settle(host: HTMLElement): Promise<void> {
+async function settle(host: HTMLElement, strict = false): Promise<void> {
   await document.fonts.ready
   const images = Array.from(host.querySelectorAll('img'))
   await Promise.all(
@@ -36,7 +36,10 @@ async function settle(host: HTMLElement): Promise<void> {
           image.addEventListener('error', () => reject(new Error(`An image could not be loaded (${image.src.slice(0, 60)}).`)), { once: true })
         })
       }
-      await image.decode().catch(() => undefined)
+      if (strict) {
+        await image.decode()
+        if (!image.naturalWidth) throw new Error('An image could not be decoded.')
+      } else await image.decode().catch(() => undefined)
     })
   )
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
@@ -46,7 +49,7 @@ async function settle(host: HTMLElement): Promise<void> {
 export async function renderSceneToCanvas(
   scene: Scene,
   resolveAsset: AssetResolver,
-  options: { signal?: AbortSignal; hiddenLayerIds?: ReadonlySet<string>; only?: AnimationLayer } = {}
+  options: { signal?: AbortSignal; hiddenLayerIds?: ReadonlySet<string>; only?: AnimationLayer; strict?: boolean } = {}
 ): Promise<HTMLCanvasElement> {
   if (options.signal?.aborted) throw new CaptureAbortedError()
   const host = document.createElement('div')
@@ -65,7 +68,7 @@ export async function renderSceneToCanvas(
   const root = createRoot(host)
   try {
     flushSync(() => root.render(<SlideRender scene={scene} resolveAsset={resolveAsset} hiddenLayerIds={options.hiddenLayerIds} only={options.only} />))
-    await settle(host)
+    await settle(host, options.strict)
     if (options.signal?.aborted) throw new CaptureAbortedError()
     const node = host.firstElementChild as HTMLElement
     const transparent = options.only === 'content' || options.only === 'text'

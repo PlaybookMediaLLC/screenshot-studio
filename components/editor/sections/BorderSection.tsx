@@ -1,9 +1,10 @@
 'use client';
 
 import { useImageStore } from '@/lib/store';
-import { Slider } from '@/components/ui/slider';
+import { Slider } from '@/components/ui/slider'
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button'
 
 const borderPresets = [
   { value: 0, label: 'Sharp' },
@@ -60,7 +61,7 @@ export function BorderSection() {
           {borderPresets.map(({ value, label }) => {
             const isSelected = borderRadius === value;
             return (
-              <button
+              <Button variant="custom" size={null}
                 key={value}
                 type="button"
                 onClick={() => setBorderRadius(value)}
@@ -84,7 +85,7 @@ export function BorderSection() {
                 >
                   {label}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>

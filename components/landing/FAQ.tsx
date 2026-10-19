@@ -9,6 +9,7 @@ import {
   PRODUCT_FACTS,
   VIDEO_FORMATS_SENTENCE,
 } from "@/lib/seo/product-facts";
+import { Button } from '@/components/ui/button'
 
 interface FAQItem {
   question: string;
@@ -94,7 +95,7 @@ function FAQItemRow({
           : "bg-card ring-border shadow-[var(--card-edge-shadow)] hover:ring-ring/15"
       }`}
     >
-      <button
+      <Button variant="custom" size={null}
         type="button"
         onClick={onClick}
         aria-expanded={isOpen}
@@ -129,7 +130,7 @@ function FAQItemRow({
             <path d="M5 12h14" />
           </svg>
         </div>
-      </button>
+      </Button>
 
       <div
         className={`grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${

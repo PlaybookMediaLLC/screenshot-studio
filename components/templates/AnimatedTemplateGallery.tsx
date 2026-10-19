@@ -21,6 +21,7 @@ import { presets } from '@/lib/constants/presets';
 import { TEMPLATE_DEMO_IMAGE_URL } from '@/lib/templates/demo-media';
 import { getImageTemplateById } from '@/lib/templates/image-templates';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button'
 
 type PreviewAnimation = {
   animate: {
@@ -186,7 +187,7 @@ function AnimatedTemplateCard({
     animationClips[0]?.presetId === template.animationPresetId;
 
   return (
-    <button
+    <Button variant="custom" size={null}
       type="button"
       onClick={() => onSelect(template)}
       onMouseEnter={() => setIsPreviewing(true)}
@@ -220,7 +221,7 @@ function AnimatedTemplateCard({
           {template.name}
         </span>
       </div>
-    </button>
+    </Button>
   );
 }
 

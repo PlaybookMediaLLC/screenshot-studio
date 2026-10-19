@@ -88,7 +88,7 @@ func (s *Store) Outbox(ctx context.Context) (int, error) {
 func productEvent(kind string) bool {
 	switch kind {
 	case "source_change.collected", "release.ingested", "source_app.connected", "deployment.succeeded",
-		"campaign_posts.submitted", "campaign_posts.decided":
+		"campaign_posts.submitted", "campaign_posts.decided", "release_automation.dispatch", "release_automation.cancel":
 		return true
 	}
 	return false

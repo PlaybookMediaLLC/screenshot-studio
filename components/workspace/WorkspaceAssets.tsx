@@ -17,6 +17,14 @@ import {
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { getErrorMessage } from './settings-client'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 /**
  * The assets a workspace has collected.
@@ -70,10 +78,11 @@ function AssetPreview({ asset }: { asset: AssetSummary }) {
   const ref = useRef<HTMLDivElement>(null)
   const [url, setUrl] = useState<string | null>(null)
   const isVideo = asset.mediaType.startsWith('video/')
+  const isFont = asset.mediaType.startsWith('font/')
 
   useEffect(() => {
     const element = ref.current
-    if (!element) return
+    if (!element || isFont) return
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return
@@ -87,14 +96,14 @@ function AssetPreview({ asset }: { asset: AssetSummary }) {
     )
     observer.observe(element)
     return () => observer.disconnect()
-  }, [asset.id, trpcClient])
+  }, [asset.id, trpcClient, isFont])
 
   return (
     <div
       className="relative grid aspect-[16/10] place-items-center overflow-hidden bg-[radial-gradient(circle_at_center,#1a1a1a,#0c0c0c)]"
       ref={ref}
     >
-      {url && isVideo ? (
+      {isFont ? <span className="text-4xl text-neutral-400" aria-label="Font file">Aa</span> : url && isVideo ? (
         <video className="size-full object-contain" muted preload="metadata" src={url} />
       ) : url ? (
         // A signed, short-lived storage URL, so a plain img: next/image would cache it.
@@ -206,7 +215,7 @@ export function WorkspaceAssets() {
           role="group"
         >
           {TYPE_FILTERS.map((filter) => (
-            <button
+            <Button variant="custom" size={null}
               aria-pressed={typeFilter === filter.value}
               className={cn(
                 'rounded-md px-3 py-1 text-sm font-medium transition-colors',
@@ -219,20 +228,24 @@ export function WorkspaceAssets() {
               type="button"
             >
               {filter.label}
-            </button>
+            </Button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-sm text-neutral-500">
+        <Label className="flex items-center gap-2 text-sm text-neutral-500">
           Sort
-          <select
-            className="h-8 rounded-lg bg-white/[0.03] px-2 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none"
-            onChange={(event) => setSort(event.target.value as 'newest' | 'oldest')}
+          <Select
+            onValueChange={(nextValue) => setSort(nextValue as 'newest' | 'oldest')}
             value={sort}
           >
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-          </select>
-        </label>
+            <SelectTrigger className="h-8 rounded-lg bg-white/[0.03] px-2 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest first</SelectItem>
+              <SelectItem value="oldest">Oldest first</SelectItem>
+            </SelectContent>
+          </Select>
+        </Label>
       </div>
 
       {isLoading && assets.length === 0 ? (
@@ -274,13 +287,13 @@ export function WorkspaceAssets() {
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button
+                      <Button variant="custom" size={null}
                         aria-label="Asset actions"
                         className="grid size-7 shrink-0 place-items-center rounded-md text-neutral-500 opacity-60 transition hover:bg-white/[0.06] hover:text-white hover:opacity-100 group-hover:opacity-100"
                         type="button"
                       >
                         <MoreHorizontalIcon size={16} />
-                      </button>
+                      </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-44">
                       {isImage ? (

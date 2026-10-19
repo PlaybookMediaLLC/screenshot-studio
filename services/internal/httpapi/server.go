@@ -55,6 +55,7 @@ type WorkflowScheduler interface {
 
 type ConfigurationStore interface {
 	ProjectStore
+	CreativeSetStore
 	ContentDraftStore
 	ContentDraftPlatformStore
 	LibraryStore
@@ -277,11 +278,13 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 		s.registerConversations(mux)
 		s.registerPlatformControls(mux)
 		s.registerGitHub(mux)
+		s.registerReleaseAutomation(mux)
 		s.registerAnnouncements(mux)
 		s.registerAgentAccess(mux)
 		s.registerScreenshots(mux)
 		s.registerRender(mux)
 		s.registerProjects(mux)
+		s.registerCreativeSets(mux)
 		s.registerContentDrafts(mux)
 		s.registerLibrary(mux)
 		s.registerSharing(mux)
@@ -687,7 +690,11 @@ func connectionResponse(connection *ent.ChannelConnection) map[string]any {
 }
 
 func decodeJSON(r *http.Request, target any) error {
-	r.Body = http.MaxBytesReader(nil, r.Body, 1<<20)
+	return decodeJSONLimit(r, target, 1<<20)
+}
+
+func decodeJSONLimit(r *http.Request, target any, limit int64) error {
+	r.Body = http.MaxBytesReader(nil, r.Body, limit)
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(target); err != nil {

@@ -7,6 +7,7 @@ interface SwitchProps {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   id?: string;
+  disabled?: boolean;
   'aria-label'?: string;
   className?: string;
 }
@@ -26,7 +27,7 @@ export function Switch({
       aria-checked={checked}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        'relative inline-flex h-5 w-8 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+        'relative inline-flex h-5 w-8 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50',
         checked ? 'bg-primary' : 'bg-foreground/15',
         className,
       )}

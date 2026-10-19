@@ -55,6 +55,7 @@ import { hashString } from '@/lib/render/preview-cache'
 import { cn } from '@/lib/utils'
 import { ScaleSlider } from '../ScaleSlider'
 import { SizePicker } from '../SizePicker'
+import { Input } from '@/components/ui/input'
 
 /**
  * A style a batch can apply: the current design, a saved preset, or a brand
@@ -194,7 +195,7 @@ function BatchItemCard({
           ) : null}
         </div>
         {item.status === 'failed' ? (
-          <button
+          <Button variant="custom" size={null}
             aria-label={`Retry ${item.name}`}
             className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-40"
             disabled={locked}
@@ -202,9 +203,9 @@ function BatchItemCard({
             type="button"
           >
             <RefreshIcon size={14} />
-          </button>
+          </Button>
         ) : null}
-        <button
+        <Button variant="custom" size={null}
           aria-label={`Remove ${item.name}`}
           className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-destructive disabled:opacity-40"
           disabled={locked}
@@ -212,7 +213,7 @@ function BatchItemCard({
           type="button"
         >
           <Delete02Icon size={14} />
-        </button>
+        </Button>
       </div>
     </li>
   )
@@ -495,7 +496,7 @@ export function BatchWorkspace({ onOpenChange, open, styleSources = [] }: BatchW
               ) : (
                 <div aria-label="Style" className="space-y-1.5" role="radiogroup">
                   {sources.map((source) => (
-                    <button
+                    <Button variant="custom" size={null}
                       aria-checked={source.id === style?.id}
                       className={cn(
                         'flex w-full cursor-pointer items-center gap-2.5 rounded-md border p-1.5 text-left transition-colors',
@@ -521,7 +522,7 @@ export function BatchWorkspace({ onOpenChange, open, styleSources = [] }: BatchW
                           </span>
                         ) : null}
                       </span>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -593,7 +594,7 @@ export function BatchWorkspace({ onOpenChange, open, styleSources = [] }: BatchW
           </aside>
 
           <section aria-label="Screenshots" className="flex min-h-0 flex-col">
-            <input
+            <Input
               accept="image/png,image/jpeg,image/webp"
               className="hidden"
               multiple
@@ -623,18 +624,18 @@ export function BatchWorkspace({ onOpenChange, open, styleSources = [] }: BatchW
                     {notAdded.length > 5 ? <li>and {notAdded.length - 5} more</li> : null}
                   </ul>
                 </div>
-                <button
+                <Button variant="custom" size={null}
                   className="shrink-0 cursor-pointer rounded px-1.5 py-0.5 hover:bg-destructive/10"
                   onClick={() => setNotAdded([])}
                   type="button"
                 >
                   Dismiss
-                </button>
+                </Button>
               </div>
             ) : null}
             {total === 0 ? (
               <div className="grid flex-1 place-items-center p-6" data-batch-dropzone>
-                <button
+                <Button variant="custom" size={null}
                   className="flex w-full max-w-md cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed border-foreground/20 p-10 text-center transition-colors hover:bg-foreground/[0.03] disabled:cursor-progress"
                   disabled={locked}
                   onClick={() => fileInput.current?.click()}
@@ -649,7 +650,7 @@ export function BatchWorkspace({ onOpenChange, open, styleSources = [] }: BatchW
                   <span className="text-xs text-muted-foreground">
                     Drop, paste, or browse: PNG, JPEG, or WebP, up to {MAX_BATCH_ITEMS}
                   </span>
-                </button>
+                </Button>
               </div>
             ) : (
               <>
@@ -671,14 +672,14 @@ export function BatchWorkspace({ onOpenChange, open, styleSources = [] }: BatchW
                       ? `Importing ${importing.done} of ${importing.total}…`
                       : `${total} of ${MAX_BATCH_ITEMS}`}
                   </span>
-                  <button
+                  <Button variant="custom" size={null}
                     className="ml-auto cursor-pointer rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-foreground/[0.06] hover:text-destructive disabled:opacity-40"
                     disabled={locked}
                     onClick={() => setConfirmClear(true)}
                     type="button"
                   >
                     Clear all
-                  </button>
+                  </Button>
                 </div>
                 <ul
                   aria-label="Batch screenshots"

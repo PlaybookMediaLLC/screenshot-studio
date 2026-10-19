@@ -65,6 +65,21 @@ import {
   previewThemeSchema,
 } from './PlatformPreviews'
 import { PostComposer, SharePanel } from './SharePanel'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@/components/ui/accordion'
 
 const EXAMPLES = [CANONICAL_HOST, 'linear.app', 'vercel.com']
 const RECENT_KEY = 'link-preview:recent'
@@ -168,7 +183,7 @@ function Toggle<T extends string>({
   return (
     <div className="inline-flex rounded-lg bg-muted p-[3px]" role="group" aria-label={label}>
       {options.map((option) => (
-        <button
+        <Button variant="custom" size={null}
           key={option.id}
           type="button"
           aria-pressed={value === option.id}
@@ -179,7 +194,7 @@ function Toggle<T extends string>({
           )}
         >
           {option.label}
-        </button>
+        </Button>
       ))}
     </div>
   )
@@ -265,14 +280,14 @@ function UrlList({ urls, onPick }: { urls: string[]; onPick: (url: string) => vo
     <ul className="flex flex-wrap gap-x-6 gap-y-2">
       {urls.map((url) => (
         <li key={url}>
-          <button
+          <Button variant="custom" size={null}
             type="button"
             onClick={() => onPick(url)}
             className="flex items-center gap-2 text-sm text-foreground transition-colors hover:text-foreground/70"
           >
             <span className="text-muted-foreground">›</span>
             {hostname(url)}
-          </button>
+          </Button>
         </li>
       ))}
     </ul>
@@ -411,7 +426,7 @@ export function LinkPreviewApp() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg bg-muted p-[3px]" role="group" aria-label="Mode">
           {linkPreviewModeSchema.options.map((option) => (
-            <button
+            <Button variant="custom" size={null}
               key={option}
               type="button"
               aria-pressed={mode === option}
@@ -422,25 +437,29 @@ export function LinkPreviewApp() {
               )}
             >
               {MODE_LABELS[option]}
-            </button>
+            </Button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Label className="flex items-center gap-2 text-xs text-muted-foreground">
           Fetch as
-          <select
+          <Select
             value={agent}
-            onChange={(event) => setAgent(linkPreviewAgentSchema.parse(event.target.value))}
-            className="rounded-md bg-white/[0.04] px-2 py-1.5 text-sm text-foreground ring-1 ring-white/[0.08] outline-none"
+            onValueChange={(nextValue) => setAgent(linkPreviewAgentSchema.parse(nextValue))}
           >
-            {linkPreviewAgentSchema.options.map((option) => (
-              <option key={option} value={option}>
-                {option === linkPreviewAgentSchema.enum.default
-                  ? 'Preview bot'
-                  : `${CRAWLERS[option].name} (${CRAWLERS[option].token})`}
-              </option>
-            ))}
-          </select>
-        </label>
+            <SelectTrigger className="rounded-md bg-white/[0.04] px-2 py-1.5 text-sm text-foreground ring-1 ring-white/[0.08] outline-none">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {linkPreviewAgentSchema.options.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option === linkPreviewAgentSchema.enum.default
+                    ? 'Preview bot'
+                    : `${CRAWLERS[option].name} (${CRAWLERS[option].token})`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Label>
       </div>
 
       {mode === MODE.batch ? (
@@ -456,7 +475,7 @@ export function LinkPreviewApp() {
             }}
             className={cn(PANEL, 'flex items-center gap-1 p-2')}
           >
-            <input
+            <Input
               ref={inputRef}
               type="text"
               inputMode="url"
@@ -514,7 +533,7 @@ export function LinkPreviewApp() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">Recent</p>
-                    <button
+                    <Button variant="custom" size={null}
                       type="button"
                       onClick={() => {
                         writeRecent([])
@@ -524,31 +543,35 @@ export function LinkPreviewApp() {
                     >
                       <X className="size-3.5" />
                       Clear
-                    </button>
+                    </Button>
                   </div>
                   <UrlList urls={recent} onPick={pick} />
                 </div>
               )}
-              <details className="group space-y-3">
-                <summary className="flex cursor-pointer list-none items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground [&::-webkit-details-marker]:hidden">
-                  Testing localhost
-                  <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
-                </summary>
-                <p className="pt-3 text-sm text-muted-foreground">
-                  Previews are read from our servers, so they cannot reach your machine. Tunnel your
-                  local server with ngrok and preview the public URL.
-                </p>
-                <ol className="space-y-3">
-                  {LOCALHOST_STEPS.map((step, index) => (
-                    <li key={step.label} className="space-y-1.5">
-                      <p className="text-xs uppercase text-muted-foreground">
-                        {index + 1}. {step.label}
-                      </p>
-                      {step.command && <CopyCommand command={step.command} />}
-                    </li>
-                  ))}
-                </ol>
-              </details>
+              <Accordion type="single" collapsible>
+                <AccordionItem value="details" className="group space-y-3">
+                  <AccordionTrigger className="[&>svg:last-child]:hidden flex cursor-pointer list-none items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground [&::-webkit-details-marker]:hidden">
+                    Testing localhost
+                    <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+                  </AccordionTrigger>
+                  <AccordionContent className="p-0">
+                    <p className="pt-3 text-sm text-muted-foreground">
+                      Previews are read from our servers, so they cannot reach your machine. Tunnel
+                      your local server with ngrok and preview the public URL.
+                    </p>
+                    <ol className="space-y-3">
+                      {LOCALHOST_STEPS.map((step, index) => (
+                        <li key={step.label} className="space-y-1.5">
+                          <p className="text-xs uppercase text-muted-foreground">
+                            {index + 1}. {step.label}
+                          </p>
+                          {step.command && <CopyCommand command={step.command} />}
+                        </li>
+                      ))}
+                    </ol>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             </div>
           )}
 
@@ -635,13 +658,13 @@ export function LinkPreviewApp() {
                   {hasEdits && (
                     <p className="flex items-center justify-between rounded-lg bg-sky-500/10 px-4 py-2 text-sm text-sky-200">
                       Showing your edits from the Fix tab.
-                      <button
+                      <Button variant="custom" size={null}
                         type="button"
                         onClick={() => setEdits(NO_EDITS)}
                         className="text-xs underline-offset-4 hover:underline"
                       >
                         Show the live page
-                      </button>
+                      </Button>
                     </p>
                   )}
                   <PostComposer post={post} onChange={setPost} url={url} />

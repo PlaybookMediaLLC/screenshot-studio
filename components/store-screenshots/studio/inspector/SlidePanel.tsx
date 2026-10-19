@@ -10,6 +10,9 @@ import { useStudioActions } from '../actions'
 import { Section, ToggleField } from '../controls'
 import { useEditor, useEditorApi } from '../editor-store'
 import { BackgroundField } from './BackgroundField'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 /** A small schematic of a layout preset, drawn from its slot geometry. */
 export function LayoutGlyph({ layoutId, className }: { layoutId: LayoutId; className?: string }): React.JSX.Element {
@@ -58,10 +61,10 @@ export function SlidePanel(): React.JSX.Element {
     <>
       <Section title="Slide">
         <div className="space-y-1">
-          <label htmlFor="slide-name" className="block text-[11px] text-muted-foreground">
+          <Label htmlFor="slide-name" className="block text-[11px] text-muted-foreground">
             Name
-          </label>
-          <input
+          </Label>
+          <Input
             id="slide-name"
             key={slide.id}
             defaultValue={slide.name}
@@ -80,7 +83,7 @@ export function SlidePanel(): React.JSX.Element {
       <Section title="Layout" description={slide.layout ? undefined : 'Following the template rhythm. Pick a layout to fix this slide.'}>
         <div className="grid grid-cols-5 gap-1.5" role="radiogroup" aria-label="Layout">
           {LAYOUT_PRESETS.map((preset) => (
-            <button
+            <Button variant="custom" size={null}
               key={preset.id}
               type="button"
               role="radio"
@@ -95,13 +98,13 @@ export function SlidePanel(): React.JSX.Element {
             >
               <LayoutGlyph layoutId={preset.id} className="h-10 w-5" />
               <span className="truncate">{preset.name}</span>
-            </button>
+            </Button>
           ))}
         </div>
         {slide.layout ? (
-          <button type="button" onClick={() => api.getState().dispatch({ type: 'slides.setLayout', slideIds: [slide.id], layout: null })} className="text-[11px] text-muted-foreground underline underline-offset-2">
+          <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'slides.setLayout', slideIds: [slide.id], layout: null })} className="text-[11px] text-muted-foreground underline underline-offset-2">
             Follow the template rhythm again
-          </button>
+          </Button>
         ) : null}
       </Section>
       {membership ? (
@@ -118,12 +121,12 @@ export function SlidePanel(): React.JSX.Element {
             }}
           />
           <div className="flex gap-2">
-            <button type="button" onClick={() => api.getState().dispatch({ type: 'panorama.detach', panoramaId: membership.panorama.id })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]" title="Split into independent slides that keep the same look">
+            <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'panorama.detach', panoramaId: membership.panorama.id })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]" title="Split into independent slides that keep the same look">
               Detach slides
-            </button>
-            <button type="button" onClick={() => api.getState().dispatch({ type: 'panorama.remove', panoramaId: membership.panorama.id })} className="h-8 flex-1 rounded-md border border-destructive/30 text-[11px] text-destructive hover:bg-destructive/10" title="Remove the shared background and layers">
+            </Button>
+            <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'panorama.remove', panoramaId: membership.panorama.id })} className="h-8 flex-1 rounded-md border border-destructive/30 text-[11px] text-destructive hover:bg-destructive/10" title="Remove the shared background and layers">
               Remove panorama
-            </button>
+            </Button>
           </div>
         </Section>
       ) : (
@@ -143,13 +146,13 @@ export function SlidePanel(): React.JSX.Element {
           />
           {nextFree.length > 0 ? (
             <div className="flex gap-2 border-t border-foreground/[0.07] pt-3">
-              <button type="button" onClick={() => api.getState().dispatch({ type: 'panorama.create', slideIds: [slide.id, nextFree[0].id] })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+              <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'panorama.create', slideIds: [slide.id, nextFree[0].id] })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
                 Panorama with next slide
-              </button>
+              </Button>
               {nextFree.length > 1 && nextFree[0].id === next[0]?.id ? (
-                <button type="button" onClick={() => api.getState().dispatch({ type: 'panorama.create', slideIds: [slide.id, nextFree[0].id, nextFree[1].id] })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+                <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'panorama.create', slideIds: [slide.id, nextFree[0].id, nextFree[1].id] })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
                   Across 3 slides
-                </button>
+                </Button>
               ) : null}
             </div>
           ) : null}
@@ -158,7 +161,7 @@ export function SlidePanel(): React.JSX.Element {
       <Section title={`Size: ${target.shortName}`} description="Shared changes adapt to every export size. Turn this on to fine-tune only this size.">
         <ToggleField label="Canvas edits apply to this size only" checked={overrideMode} onChange={(enabled) => api.getState().setTargetOverrideMode(enabled)} />
         {hasOverrides ? (
-          <button
+          <Button variant="custom" size={null}
             type="button"
             onClick={() =>
               api.getState().dispatchMany(
@@ -169,15 +172,15 @@ export function SlidePanel(): React.JSX.Element {
             className="text-[11px] text-muted-foreground underline underline-offset-2"
           >
             Clear adjustments for {target.shortName}
-          </button>
+          </Button>
         ) : null}
       </Section>
       <Section title="Style and reset">
-        <button type="button" onClick={() => actions.openDialog('applyStyle')} className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+        <Button variant="custom" size={null} type="button" onClick={() => actions.openDialog('applyStyle')} className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
           Apply this slide&apos;s style to other slides…
-        </button>
+        </Button>
         <div className="flex gap-2">
-          <button
+          <Button variant="custom" size={null}
             type="button"
             onClick={() => {
               const ids = slide.layers.filter((layer) => layer.type === 'device').map((layer) => layer.id)
@@ -187,8 +190,8 @@ export function SlidePanel(): React.JSX.Element {
             title="Only devices move back; text stays where it is"
           >
             Reset devices
-          </button>
-          <button
+          </Button>
+          <Button variant="custom" size={null}
             type="button"
             onClick={() => {
               const ids = slide.layers.filter((layer) => layer.type === 'text').map((layer) => layer.id)
@@ -198,11 +201,11 @@ export function SlidePanel(): React.JSX.Element {
             title="Only text moves back; devices stay where they are"
           >
             Reset text positions
-          </button>
+          </Button>
         </div>
-        <button type="button" onClick={() => actions.openDialog('resetSlide')} className="h-8 w-full rounded-md border border-destructive/30 text-[11px] text-destructive hover:bg-destructive/10">
+        <Button variant="custom" size={null} type="button" onClick={() => actions.openDialog('resetSlide')} className="h-8 w-full rounded-md border border-destructive/30 text-[11px] text-destructive hover:bg-destructive/10">
           Reset entire slide…
-        </button>
+        </Button>
       </Section>
     </>
   )

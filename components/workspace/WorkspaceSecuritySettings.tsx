@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { authClient } from '@/lib/auth/client'
 import { getAuthErrorMessage } from '@/components/auth/error-message'
+import { Label } from '@/components/ui/label'
 
 const codeSchema = z.string().regex(/^\d{6}$/, 'Enter the six-digit code from your authenticator.')
 
@@ -158,7 +159,7 @@ function VerifySecurityForm({
         </Row>
         <Row
           description="The six-digit code your authenticator shows."
-          label={<label htmlFor="two-factor-code">Verification code</label>}
+          label={<Label htmlFor="two-factor-code">Verification code</Label>}
         >
           <Input
             autoComplete="one-time-code"
@@ -224,7 +225,7 @@ function PasswordField() {
   return (
     <Row
       description="Confirm it is you before changing two-factor settings."
-      label={<label htmlFor="two-factor-password">Current password</label>}
+      label={<Label htmlFor="two-factor-password">Current password</Label>}
     >
       <Input
         autoComplete="current-password"

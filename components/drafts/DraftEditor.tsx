@@ -59,6 +59,8 @@ import {
   ThreadLine,
   threadAsRules,
 } from './thread'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 /**
  * The document editor for a content draft: the vendored Plate.js editor with
@@ -78,7 +80,7 @@ function HashtagChips({ hashtags }: { hashtags: string[] }) {
     <div className={cn('flex flex-wrap items-center gap-1.5 pb-6', POST_COLUMN)}>
       <span className="text-[11px] text-neutral-500">Your hashtags</span>
       {hashtags.map((tag) => (
-        <button
+        <Button variant="custom" size={null}
           className="rounded-full border border-white/[0.08] px-2 py-0.5 text-xs text-neutral-400 hover:border-sky-400/40 hover:text-white"
           key={tag}
           onClick={() => {
@@ -91,7 +93,7 @@ function HashtagChips({ hashtags }: { hashtags: string[] }) {
           type="button"
         >
           #{tag}
-        </button>
+        </Button>
       ))}
     </div>
   )
@@ -266,7 +268,7 @@ function FileButton({
       <ToolbarButton onClick={() => input.current?.click()} tooltip={label}>
         {children}
       </ToolbarButton>
-      <input
+      <Input
         accept={accept}
         aria-label={label}
         className="hidden"
@@ -401,7 +403,7 @@ function DocumentMenu({
         </DropdownMenuContent>
       </DropdownMenu>
       {files.map((file) => (
-        <input
+        <Input
           accept={file.accept}
           aria-label={file.label}
           className="hidden"

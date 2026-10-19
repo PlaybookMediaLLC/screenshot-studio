@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import { WorkspaceAuditLogList } from './WorkspaceAuditLogList'
 import { getErrorMessage, requestJson } from './settings-client'
+import { Label } from '@/components/ui/label'
 
 const auditLogSchema = z.object({
   action: z.string(),
@@ -173,9 +174,9 @@ export function WorkspaceAuditSettings({
       <ScopedError error={error} scope="load" />
       <Section title="Recent events">
         <div className="flex flex-col gap-3">
-          <label className="sr-only" htmlFor="audit-search">
+          <Label className="sr-only" htmlFor="audit-search">
             Search audit events
-          </label>
+          </Label>
           <Input
             className="h-10 rounded-lg"
             id="audit-search"
@@ -235,7 +236,7 @@ function RetentionForm({
         <Group>
           <Row
             description="Between 30 and 3650 days."
-            label={<label htmlFor="retention-days">Retention days</label>}
+            label={<Label htmlFor="retention-days">Retention days</Label>}
           >
             <Input
               className="h-10 rounded-lg md:w-40"
@@ -250,7 +251,7 @@ function RetentionForm({
           </Row>
           <Row
             description="Keeps every event past the retention window."
-            label={<label htmlFor="legal-hold">Place audit data on legal hold</label>}
+            label={<Label htmlFor="legal-hold">Place audit data on legal hold</Label>}
             layout="inline"
           >
             <Checkbox defaultChecked={retention.legalHold} id="legal-hold" name="legalHold" />
@@ -279,9 +280,9 @@ function DrainForm({
       <h3 className="text-sm font-medium text-white">Add a drain</h3>
       <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
         <div className="flex flex-col gap-1.5">
-          <label className={fieldLabel} htmlFor="drain-name">
+          <Label className={fieldLabel} htmlFor="drain-name">
             Drain name
-          </label>
+          </Label>
           <Input
             className="h-10 rounded-lg"
             id="drain-name"
@@ -291,9 +292,9 @@ function DrainForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className={fieldLabel} htmlFor="drain-provider">
+          <Label className={fieldLabel} htmlFor="drain-provider">
             Provider
-          </label>
+          </Label>
           <Select defaultValue="GENERIC" name="provider">
             <SelectTrigger className="h-10 w-full rounded-lg" id="drain-provider">
               <SelectValue />
@@ -307,9 +308,9 @@ function DrainForm({
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className={fieldLabel} htmlFor="drain-endpoint">
+        <Label className={fieldLabel} htmlFor="drain-endpoint">
           Endpoint URL
-        </label>
+        </Label>
         <Input
           className="h-10 rounded-lg"
           id="drain-endpoint"
@@ -320,9 +321,9 @@ function DrainForm({
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className={fieldLabel} htmlFor="drain-signing-secret">
+        <Label className={fieldLabel} htmlFor="drain-signing-secret">
           Signing secret
-        </label>
+        </Label>
         <Input
           className="h-10 rounded-lg"
           id="drain-signing-secret"

@@ -14,6 +14,9 @@ import {
   AppStoreIcon,
   ChromeIcon,
 } from 'hugeicons-react';
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface AspectRatioPickerProps {
   onSelect?: () => void;
@@ -149,9 +152,9 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
   return (
     <div className="p-5 lg:p-3 lg:max-h-[70vh] lg:overflow-y-auto">
       <div className="flex items-center gap-2 mb-4">
-        <label className="flex min-w-0 items-center gap-1.5 flex-1">
+        <Label className="flex min-w-0 items-center gap-1.5 flex-1">
           <span className="text-xs text-muted-foreground font-medium shrink-0">W</span>
-          <input
+          <Input
             aria-label="Canvas width"
             inputMode="numeric"
             min={1}
@@ -160,11 +163,11 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
             onChange={(e) => setCustomW(e.target.value)}
             className="w-full h-8 bg-foreground/[0.04] border border-foreground/10 rounded-md px-2 text-xs text-foreground focus:outline-none focus:border-foreground/25 focus:ring-1 focus:ring-foreground/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
-        </label>
+        </Label>
         <span className="text-xs text-muted-foreground">×</span>
-        <label className="flex min-w-0 items-center gap-1.5 flex-1">
+        <Label className="flex min-w-0 items-center gap-1.5 flex-1">
           <span className="text-xs text-muted-foreground font-medium shrink-0">H</span>
-          <input
+          <Input
             aria-label="Canvas height"
             inputMode="numeric"
             min={1}
@@ -173,8 +176,8 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
             onChange={(e) => setCustomH(e.target.value)}
             className="w-full h-8 bg-foreground/[0.04] border border-foreground/10 rounded-md px-2 text-xs text-foreground focus:outline-none focus:border-foreground/25 focus:ring-1 focus:ring-foreground/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
-        </label>
-        <button
+        </Label>
+        <Button variant="custom" size={null}
           onClick={handleSetCustom}
           disabled={!isCustomChanged}
           className={cn(
@@ -185,7 +188,7 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
           )}
         >
           Set
-        </button>
+        </Button>
       </div>
 
       <div className="mb-3">
@@ -197,7 +200,7 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
             const isSelected = selectedAspectRatio === id;
             const { w, h } = getShapeDimensions(ar.width, ar.height);
             return (
-              <button
+              <Button variant="custom" size={null}
                 key={id}
                 aria-pressed={isSelected}
                 onClick={() => handleSelect(id)}
@@ -220,7 +223,7 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
                 <span className="text-[10px] text-muted-foreground mt-1">
                   {ar.width}:{ar.height}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -242,7 +245,7 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
                 const { w, h } = getShapeDimensions(rW, rH);
                 const iconSize = Math.min(w, h) * 0.45;
                 return (
-                  <button
+                  <Button variant="custom" size={null}
                     key={`${section.name}-${preset.label}`}
                     aria-pressed={isSelected}
                     onClick={() => handleSelect(preset.id)}
@@ -280,7 +283,7 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
                         {preset.ratio}
                       </span>
                     </div>
-                  </button>
+                  </Button>
                 );
               })}
             </div>

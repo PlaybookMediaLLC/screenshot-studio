@@ -23,6 +23,8 @@ import { TemplateLibraryDrawer } from '@/components/templates/TemplateLibraryDra
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants'
 import { useDeviceUIStore } from '@/lib/store/device-ui'
 import { hasTemplateDemoMedia, isTemplateDemoMedia } from '@/lib/templates/demo-media'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 
 const TimelineEditor = dynamic(
   () => import('@/components/timeline').then((module) => module.TimelineEditor),
@@ -102,8 +104,8 @@ function TemplateMediaPrompt() {
 
   return (
     <div className="absolute left-1/2 top-3 z-20 -translate-x-1/2">
-      <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-foreground/10 bg-card/95 px-3 text-xs font-medium text-foreground shadow-md backdrop-blur-md transition-[background-color,transform] duration-150 hover:bg-muted active:scale-[0.98]">
-        <input
+      <Label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-foreground/10 bg-card/95 px-3 text-xs font-medium text-foreground shadow-md backdrop-blur-md transition-[background-color,transform] duration-150 hover:bg-muted active:scale-[0.98]">
+        <Input
           type="file"
           accept="image/png,image/jpeg,image/webp"
           onChange={(event) => void handleUpload(event)}
@@ -111,7 +113,7 @@ function TemplateMediaPrompt() {
         />
         <Upload01Icon size={14} />
         <span>{error ?? 'Upload your media'}</span>
-      </label>
+      </Label>
     </div>
   )
 }
@@ -185,7 +187,7 @@ function EditorMain() {
               <TemplateMediaPrompt />
 
               {hasContent && !showTimeline && !isMobile && (
-                <button
+                <Button variant="custom" size={null}
                   type="button"
                   onClick={toggleTimeline}
                   className={cn(
@@ -201,7 +203,7 @@ function EditorMain() {
                 >
                   <VideoReplayIcon size={15} className="text-foreground" />
                   <span>Animate</span>
-                </button>
+                </Button>
               )}
             </div>
           </div>

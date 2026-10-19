@@ -69,7 +69,7 @@ func (s *Store) purgeWorkspace(ctx context.Context, id, org string) error {
 		// children before parents; tenant predicates apply even to cascading tables.
 		// These tables were added by a newer web release. Delete them when
 		// present while retaining compatibility during a rolling web upgrade.
-		for _, table := range []string{"social_oauth_start", "social_tenant_binding", "github_install_start", "workspace_github_installation", "source_change", "deployment_event", "surface_capture", "product_profile", "conversation_message", "conversation", "launch_run_step", "page_knowledge", "enrichment_record", "ideal_customer_profile", "onboarding_run"} {
+		for _, table := range []string{"release_automation_node", "release_automation_run", "release_source_event", "release_automation_version", "release_automation", "social_oauth_start", "social_tenant_binding", "github_install_start", "workspace_github_installation", "source_change", "deployment_event", "surface_capture", "product_profile", "conversation_message", "conversation", "launch_run_step", "page_knowledge", "enrichment_record", "ideal_customer_profile", "onboarding_run"} {
 			var exists bool
 			if err := tx.QueryRowContext(ctx, `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 				return err

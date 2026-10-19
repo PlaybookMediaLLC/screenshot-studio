@@ -2,6 +2,21 @@
 
 import * as React from 'react'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@/components/ui/accordion'
+import { Button } from '@/components/ui/button'
 
 /** One X post's follow-ups and poll, as the schedule request carries them. */
 export type XPostOptions = {
@@ -48,121 +63,146 @@ export function XOptions({
     })
   const field = 'h-8 text-xs'
   return (
-    <details className="mt-1 rounded-lg border border-white/[0.06] px-3 py-2 text-xs text-neutral-400">
-      <summary className="cursor-pointer select-none text-neutral-300">
-        X extras: follow-ups and a poll
-      </summary>
-      <div className="mt-2 grid gap-2">
-        <label className="flex items-center gap-2">
-          Repost it at
-          <Input
-            aria-label="Repost at likes"
-            className={`${field} w-20`}
-            inputMode="numeric"
-            onChange={(event) => set({ repostAtLikes: count(event.target.value) })}
-            value={actions.repostAtLikes ?? ''}
-          />
-          likes
-        </label>
-        <label className="flex items-center gap-2">
-          Reply at
-          <Input
-            aria-label="Auto reply at likes"
-            className={`${field} w-20`}
-            inputMode="numeric"
-            onChange={(event) => set({ plugAtLikes: count(event.target.value) })}
-            value={actions.plugAtLikes ?? ''}
-          />
-          likes with
-        </label>
-        <Input
-          aria-label="Auto reply text"
-          className={field}
-          onChange={(event) => set({ plugText: event.target.value })}
-          placeholder="Thanks for the love — here's the link: …"
-          value={actions.plugText ?? ''}
-        />
-        <label className="flex items-center gap-2">
-          Quote it again after
-          <Input
-            aria-label="Quote after hours"
-            className={`${field} w-20`}
-            inputMode="numeric"
-            onChange={(event) => set({ quoteAfterHours: count(event.target.value) })}
-            value={actions.quoteAfterHours ?? ''}
-          />
-          hours with
-        </label>
-        <Input
-          aria-label="Quote text"
-          className={field}
-          onChange={(event) => set({ quoteText: event.target.value })}
-          placeholder="In case you missed it:"
-          value={actions.quoteText ?? ''}
-        />
-        <div className="mt-1 flex items-center justify-between">
-          <span className="text-neutral-300">Poll</span>
-          {poll ? (
-            <button className="hover:text-white" onClick={() => setPoll(null)} type="button">
-              Remove poll
-            </button>
-          ) : (
-            <button
-              className="hover:text-white disabled:opacity-40"
-              disabled={hasImages}
-              onClick={() => setPoll({})}
-              title={hasImages ? 'An X poll cannot have images.' : undefined}
-              type="button"
-            >
-              Add a poll
-            </button>
-          )}
-        </div>
-        {poll ? (
-          <div className="grid gap-1.5">
-            {options.map((option, index) => (
+    <Accordion type="single" collapsible>
+      <AccordionItem
+        value="details"
+        className="mt-1 rounded-lg border border-white/[0.06] px-3 py-2 text-xs text-neutral-400"
+      >
+        <AccordionTrigger className="cursor-pointer select-none text-neutral-300">
+          X extras: follow-ups and a poll
+        </AccordionTrigger>
+        <AccordionContent className="p-0">
+          <div className="mt-2 grid gap-2">
+            <Label className="flex items-center gap-2">
+              Repost it at
               <Input
-                aria-label={`Poll choice ${index + 1}`}
-                className={field}
-                // biome-ignore lint/suspicious/noArrayIndexKey: choices are positional
-                key={index}
-                maxLength={25}
-                onChange={(event) =>
-                  setPoll({
-                    options: options.map((item, at) => (at === index ? event.target.value : item)),
-                  })
-                }
-                value={option}
+                aria-label="Repost at likes"
+                className={`${field} w-20`}
+                inputMode="numeric"
+                onChange={(event) => set({ repostAtLikes: count(event.target.value) })}
+                value={actions.repostAtLikes ?? ''}
               />
-            ))}
-            {options.length < 4 ? (
-              <button
-                className="justify-self-start hover:text-white"
-                onClick={() => setPoll({ options: [...options, ''] })}
-                type="button"
-              >
-                + Choice
-              </button>
-            ) : null}
-            <label className="flex items-center gap-2">
-              Open for
-              <select
-                aria-label="Poll length"
-                className="h-8 rounded-md border border-white/[0.08] bg-transparent px-2"
-                onChange={(event) => setPoll({ durationMinutes: Number(event.target.value) })}
-                value={poll.durationMinutes}
-              >
-                {[60, 360, 1440, 4320, 10080].map((minutes) => (
-                  <option key={minutes} value={minutes}>
-                    {minutes < 1440 ? `${minutes / 60} hours` : `${minutes / 1440} days`}
-                  </option>
+              likes
+            </Label>
+            <Label className="flex items-center gap-2">
+              Reply at
+              <Input
+                aria-label="Auto reply at likes"
+                className={`${field} w-20`}
+                inputMode="numeric"
+                onChange={(event) => set({ plugAtLikes: count(event.target.value) })}
+                value={actions.plugAtLikes ?? ''}
+              />
+              likes with
+            </Label>
+            <Input
+              aria-label="Auto reply text"
+              className={field}
+              onChange={(event) => set({ plugText: event.target.value })}
+              placeholder="Thanks for the love — here's the link: …"
+              value={actions.plugText ?? ''}
+            />
+            <Label className="flex items-center gap-2">
+              Quote it again after
+              <Input
+                aria-label="Quote after hours"
+                className={`${field} w-20`}
+                inputMode="numeric"
+                onChange={(event) => set({ quoteAfterHours: count(event.target.value) })}
+                value={actions.quoteAfterHours ?? ''}
+              />
+              hours with
+            </Label>
+            <Input
+              aria-label="Quote text"
+              className={field}
+              onChange={(event) => set({ quoteText: event.target.value })}
+              placeholder="In case you missed it:"
+              value={actions.quoteText ?? ''}
+            />
+            <div className="mt-1 flex items-center justify-between">
+              <span className="text-neutral-300">Poll</span>
+              {poll ? (
+                <Button
+                  variant="custom"
+                  size={null}
+                  className="hover:text-white"
+                  onClick={() => setPoll(null)}
+                  type="button"
+                >
+                  Remove poll
+                </Button>
+              ) : (
+                <Button
+                  variant="custom"
+                  size={null}
+                  className="hover:text-white disabled:opacity-40"
+                  disabled={hasImages}
+                  onClick={() => setPoll({})}
+                  title={hasImages ? 'An X poll cannot have images.' : undefined}
+                  type="button"
+                >
+                  Add a poll
+                </Button>
+              )}
+            </div>
+            {poll ? (
+              <div className="grid gap-1.5">
+                {options.map((option, index) => (
+                  <Input
+                    aria-label={`Poll choice ${index + 1}`}
+                    className={field}
+                    // biome-ignore lint/suspicious/noArrayIndexKey: choices are positional
+                    key={index}
+                    maxLength={25}
+                    onChange={(event) =>
+                      setPoll({
+                        options: options.map((item, at) =>
+                          at === index ? event.target.value : item
+                        ),
+                      })
+                    }
+                    value={option}
+                  />
                 ))}
-              </select>
-            </label>
+                {options.length < 4 ? (
+                  <Button
+                    variant="custom"
+                    size={null}
+                    className="justify-self-start hover:text-white"
+                    onClick={() => setPoll({ options: [...options, ''] })}
+                    type="button"
+                  >
+                    + Choice
+                  </Button>
+                ) : null}
+                <Label className="flex items-center gap-2">
+                  Open for
+                  <Select
+                    onValueChange={(nextValue) => setPoll({ durationMinutes: Number(nextValue) })}
+                    value={String(poll.durationMinutes)}
+                  >
+                    <SelectTrigger
+                      aria-label="Poll length"
+                      className="h-8 rounded-md border border-white/[0.08] bg-transparent px-2"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[60, 360, 1440, 4320, 10080].map((minutes) => (
+                        <SelectItem key={minutes} value={String(minutes)}>
+                          {minutes < 1440 ? `${minutes / 60} hours` : `${minutes / 1440} days`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Label>
+              </div>
+            ) : null}
           </div>
-        ) : null}
-      </div>
-    </details>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   )
 }
 

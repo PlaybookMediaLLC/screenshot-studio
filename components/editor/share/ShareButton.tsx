@@ -4,6 +4,7 @@ import { Share08Icon } from 'hugeicons-react'
 import { useHydratedSession } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
 import { ShareDialog } from './ShareDialog'
+import { Button } from '@/components/ui/button'
 
 /**
  * The editor's Share button: publish the design at a link (signed-in
@@ -26,7 +27,7 @@ export function ShareButton({
   if (isPending || !session) return null
   return (
     <>
-      <button
+      <Button variant="custom" size={null}
         aria-label="Share"
         className={cn(
           'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg text-[13px] font-medium text-muted-foreground',
@@ -39,7 +40,7 @@ export function ShareButton({
       >
         <Share08Icon size={15} />
         {!compact ? <span>Share</span> : null}
-      </button>
+      </Button>
       <ShareDialog onOpenChange={setOpen} open={open} render={render} />
     </>
   )

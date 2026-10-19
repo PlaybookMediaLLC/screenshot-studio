@@ -206,9 +206,9 @@ function NewKeyNotice({ apiKey, onDismiss }: { apiKey: string; onDismiss: () => 
 function SetupValue({ id, label, value }: { id: string; label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className={fieldLabel} htmlFor={id}>
+      <Label className={fieldLabel} htmlFor={id}>
         {label}
-      </label>
+      </Label>
       <div className="flex gap-2">
         <Input className="h-9 rounded-lg font-mono text-xs" id={id} readOnly value={value} />
         <Button
@@ -246,8 +246,8 @@ function NewSourceNotice({ onDismiss, source }: { onDismiss: () => void; source:
         <p className="text-sm text-neutral-400">
           In GitHub, open the repository’s Settings, then Webhooks, then Add webhook. Paste the
           payload URL and secret, choose “Let me select individual events”, and select Pull requests
-          and Releases. Merges into the branch you chose, and published releases, become releases
-          here.
+          and Releases. Merged PRs are held as changes for a published release. To define PR or
+          deployment release triggers, connect the GitHub App in Release automation settings.
         </p>
       ) : null}
       <div className="flex">
@@ -271,9 +271,9 @@ function ApiKeyForm({
       <h3 className="text-sm font-medium text-white">Create a key</h3>
       <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
         <div className="flex flex-col gap-1.5">
-          <label className={fieldLabel} htmlFor="api-key-name">
+          <Label className={fieldLabel} htmlFor="api-key-name">
             Key name
-          </label>
+          </Label>
           <Input
             className="h-10 rounded-lg"
             id="api-key-name"
@@ -283,9 +283,9 @@ function ApiKeyForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className={fieldLabel} htmlFor="api-key-expires">
+          <Label className={fieldLabel} htmlFor="api-key-expires">
             Expiry (optional)
-          </label>
+          </Label>
           <Input
             className="h-10 rounded-lg"
             id="api-key-expires"
@@ -371,9 +371,9 @@ function SourceForm({
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
       <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
         <div className="flex flex-col gap-1.5">
-          <label className={fieldLabel} htmlFor="source-name">
+          <Label className={fieldLabel} htmlFor="source-name">
             Source name
-          </label>
+          </Label>
           <Input
             className="h-10 rounded-lg"
             id="source-name"
@@ -383,9 +383,9 @@ function SourceForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className={fieldLabel} htmlFor="source-provider">
+          <Label className={fieldLabel} htmlFor="source-provider">
             Provider
-          </label>
+          </Label>
           <Select defaultValue="github" name="provider">
             <SelectTrigger className="h-10 w-full rounded-lg" id="source-provider">
               <SelectValue />
@@ -399,9 +399,9 @@ function SourceForm({
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className={fieldLabel} htmlFor="source-branch">
+        <Label className={fieldLabel} htmlFor="source-branch">
           Branch
-        </label>
+        </Label>
         <Input
           className="h-10 rounded-lg"
           id="source-branch"
@@ -410,9 +410,9 @@ function SourceForm({
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className={fieldLabel} htmlFor="source-allowed-host">
+        <Label className={fieldLabel} htmlFor="source-allowed-host">
           Allowed host
-        </label>
+        </Label>
         <Input
           className="h-10 rounded-lg"
           id="source-allowed-host"

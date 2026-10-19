@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { authClient } from '@/lib/auth/client'
 import { getAuthErrorMessage } from './error-message'
+import { Label } from '@/components/ui/label'
 
 const profileSchema = z.object({
   name: z.string().trim().min(1, 'Enter your name.').max(100),
@@ -53,7 +54,7 @@ export function ProfileForm({ email, name }: ProfileFormProps) {
       <Group>
         <Row
           description="Shown to your teammates across the workspace."
-          label={<label htmlFor="profile-name">Name</label>}
+          label={<Label htmlFor="profile-name">Name</Label>}
         >
           <Input
             autoComplete="name"
@@ -66,7 +67,7 @@ export function ProfileForm({ email, name }: ProfileFormProps) {
         </Row>
         <Row
           description="Used to sign in. It cannot be changed here."
-          label={<label htmlFor="profile-email">Email</label>}
+          label={<Label htmlFor="profile-email">Email</Label>}
         >
           <Input
             className="h-10 cursor-not-allowed rounded-lg text-neutral-500 md:w-72"

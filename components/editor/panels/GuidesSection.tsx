@@ -6,6 +6,14 @@ import { SAFE_ZONES } from '@/lib/editor/snapping'
 import { type SafeZone, safeZoneSchema, useCanvasGuides } from '@/lib/store/canvas-guides'
 import { ToggleField } from '../inspector/fields'
 import { SectionWrapper } from '../sections'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 /** Snapping and composition guides. Guides never reach exports unless asked to. */
 export function GuidesSection() {
@@ -39,21 +47,27 @@ export function GuidesSection() {
           </>
         ) : null}
         <ToggleField checked={guides.showThirds} label="Rule of thirds" onChange={(showThirds) => guides.setGuides({ showThirds })} />
-        <label className="block space-y-1.5">
+        <Label className="block space-y-1.5">
           <span className="text-xs text-muted-foreground">Safe zone</span>
-          <select
-            className="h-8 w-full rounded-md border border-foreground/10 bg-background px-2 text-xs"
-            onChange={(event) => guides.setGuides({ safeZone: safeZoneSchema.parse(event.target.value) })}
+          <Select
+            onValueChange={(nextValue) =>
+              guides.setGuides({ safeZone: safeZoneSchema.parse(nextValue) })
+            }
             value={guides.safeZone}
           >
-            <option value={safeZoneSchema.enum.none}>None</option>
-            {(Object.keys(SAFE_ZONES) as Exclude<SafeZone, 'none'>[]).map((zone) => (
-              <option key={zone} value={zone}>
-                {SAFE_ZONES[zone].label}
-              </option>
-            ))}
-          </select>
-        </label>
+            <SelectTrigger className="h-8 w-full rounded-md border border-foreground/10 bg-background px-2 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={safeZoneSchema.enum.none}>None</SelectItem>
+              {(Object.keys(SAFE_ZONES) as Exclude<SafeZone, 'none'>[]).map((zone) => (
+                <SelectItem key={zone} value={zone}>
+                  {SAFE_ZONES[zone].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Label>
         {zoneNote ? <p className="text-[11px] leading-snug text-muted-foreground">{zoneNote} Approximate; platforms change their layouts.</p> : null}
         <ToggleField
           checked={guides.guidesInExport}

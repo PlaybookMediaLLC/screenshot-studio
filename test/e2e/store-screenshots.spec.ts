@@ -96,7 +96,9 @@ test('share a read-only review link, comment through it, resolve, and revoke', a
     .getByRole('textbox', { name: 'Comment', exact: true })
     .fill('Headline is too long on small phones')
   await reviewPage.getByRole('button', { name: 'Comment', exact: true }).click()
-  await expect(reviewPage.getByText('Headline is too long on small phones')).toBeVisible()
+  await expect(
+    reviewPage.getByRole('article').getByText('Headline is too long on small phones')
+  ).toBeVisible()
 
   await dialog.getByRole('button', { name: 'Close' }).click()
   // Reorder: the commented slide moves to position 2, and its comment must follow it.

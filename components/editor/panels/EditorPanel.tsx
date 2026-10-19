@@ -5,6 +5,7 @@ import { SegmentedControl } from '@/components/ui/segmented-control'
 import { cn } from '@/lib/utils'
 import { type EditorPanelTab, useEditorPanels } from '@/lib/store/editor-panels'
 import { COMPOSE_TABS, INSPECTOR_TABS, type PanelTabDefinition, PanelTabContent } from './panel-tabs'
+import { Button } from '@/components/ui/button'
 
 /** A side panel: one row of tabs and the active tab's content. */
 function SidePanel<Tab extends EditorPanelTab>({
@@ -79,14 +80,14 @@ export function MobilePanel({ onClose }: { onClose?: () => void }) {
           />
         </div>
         {onClose ? (
-          <button
+          <Button variant="custom" size={null}
             aria-label="Close settings"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
             onClick={onClose}
             type="button"
           >
             ×
-          </button>
+          </Button>
         ) : null}
       </div>
       <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-hide">

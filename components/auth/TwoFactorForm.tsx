@@ -7,6 +7,9 @@ import { z } from 'zod'
 import { authClient } from '@/lib/auth/client'
 import { getAuthErrorMessage } from './error-message'
 import { AuthField, FormAlert, SubmitButton } from './fields'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@/components/ui/button'
 
 const totpCodeSchema = z
   .string()
@@ -70,29 +73,28 @@ export function TwoFactorForm() {
         placeholder={isBackupCode ? undefined : '123456'}
         required
       />
-      <label className="flex items-center gap-2.5 text-sm text-muted-foreground">
-        <input
+      <Label className="flex items-center gap-2.5 text-sm text-muted-foreground">
+        <Checkbox
           checked={trustDevice}
           className="size-4 rounded accent-foreground"
           disabled={!isHydrated}
-          onChange={(event) => setTrustDevice(event.target.checked)}
-          type="checkbox"
+          onCheckedChange={(checked) => setTrustDevice((checked === true))}
         />
         Trust this device for 30 days
-      </label>
+      </Label>
       {error ? <FormAlert>{error}</FormAlert> : null}
       <SubmitButton busy={isSubmitting} busyLabel="Verifying…" disabled={!isHydrated}>
         Verify and sign in
       </SubmitButton>
       <div className="flex items-center justify-between text-sm">
-        <button
+        <Button variant="custom" size={null}
           className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
           disabled={!isHydrated}
           onClick={() => setIsBackupCode((value) => !value)}
           type="button"
         >
           {isBackupCode ? 'Use an authenticator code' : 'Use a recovery code'}
-        </button>
+        </Button>
         <Link
           className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           href="/sign-in"

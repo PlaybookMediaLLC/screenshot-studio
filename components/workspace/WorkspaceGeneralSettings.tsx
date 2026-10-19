@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
 import { WorkspaceDeletionSettings } from './WorkspaceDeletionSettings'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 type WorkspaceGeneralSettingsProps = {
   canManage: boolean
@@ -64,7 +66,7 @@ export function WorkspaceGeneralSettings({
   }
 
   const field = 'h-10 rounded-lg md:w-72'
-  const label = (htmlFor: string, text: string) => <label htmlFor={htmlFor}>{text}</label>
+  const label = (htmlFor: string, text: string) => <Label htmlFor={htmlFor}>{text}</Label>
 
   return (
     <div className="flex flex-col gap-10">
@@ -113,7 +115,7 @@ export function WorkspaceGeneralSettings({
             label={label('workspace-description', 'Description')}
             layout="stacked"
           >
-            <textarea
+            <Textarea
               className="min-h-20 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm dark:bg-input/30"
               defaultValue={organization.workspaceSettings?.description ?? ''}
               disabled={!canManage}

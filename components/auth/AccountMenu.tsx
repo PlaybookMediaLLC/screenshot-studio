@@ -6,6 +6,7 @@ import { authClient, useHydratedSession } from '@/lib/auth/client'
 import { resetUser } from '@/lib/analytics'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useTRPCClient } from '@/lib/trpc/react'
+import { Button } from '@/components/ui/button'
 
 function getInitial(name: string | null | undefined, email: string): string {
   return (name || email).trim().charAt(0).toUpperCase()
@@ -104,7 +105,7 @@ export function AccountMenu({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
+        <Button variant="custom" size={null}
           aria-label="Open account menu"
           className={
             triggerClassName ??
@@ -113,7 +114,7 @@ export function AccountMenu({
           type="button"
         >
           {children ?? getInitial(session.user.name, session.user.email)}
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent align={align} className="w-64 p-2" side={side}>
         <div className="border-b px-2 py-2.5">
@@ -131,7 +132,7 @@ export function AccountMenu({
             {workspaces.map((workspace) => {
               const isActive = workspace.id === session.session.activeOrganizationId
               return (
-                <button
+                <Button variant="custom" size={null}
                   aria-current={isActive ? 'page' : undefined}
                   aria-label={`Switch to ${workspace.name}`}
                   className="w-full rounded-md px-2 py-2 text-left text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
@@ -144,7 +145,7 @@ export function AccountMenu({
                   {workspace.isScheduledForDeletion ? (
                     <span className="block text-xs text-destructive">Deletion scheduled</span>
                   ) : null}
-                </button>
+                </Button>
               )
             })}
           </div>
@@ -166,14 +167,14 @@ export function AccountMenu({
             Workspace settings
           </Link>
         </div>
-        <button
+        <Button variant="custom" size={null}
           className="w-full rounded-md px-2 py-2 text-left text-sm text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isSigningOut}
           onClick={handleSignOut}
           type="button"
         >
           {isSigningOut ? 'Signing out…' : 'Sign out'}
-        </button>
+        </Button>
       </PopoverContent>
     </Popover>
   )

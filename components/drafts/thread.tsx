@@ -15,6 +15,7 @@ import { KEYS, type Value } from '@shots/platejs-editor/platejs'
 import { POST_BREAK } from '@/lib/content-drafts/serialize'
 import { cn } from '@/lib/utils'
 import { POST_COLUMN } from './layout'
+import { Button } from '@/components/ui/button'
 
 /**
  * Threads (RFC 037): a draft is one or more posts. A post break block starts
@@ -201,7 +202,7 @@ function PostHead({ number }: { number: number }) {
           >
             ⠿
           </span>
-          <button
+          <Button variant="custom" size={null}
             aria-label={`Move post ${number} up`}
             className={button}
             disabled={number === 1}
@@ -209,8 +210,8 @@ function PostHead({ number }: { number: number }) {
             type="button"
           >
             ↑
-          </button>
-          <button
+          </Button>
+          <Button variant="custom" size={null}
             aria-label={`Move post ${number} down`}
             className={button}
             disabled={number === count}
@@ -218,9 +219,9 @@ function PostHead({ number }: { number: number }) {
             type="button"
           >
             ↓
-          </button>
+          </Button>
           {tools.addImage ? (
-            <button
+            <Button variant="custom" size={null}
               aria-label={`Add an image to post ${number}`}
               className={button}
               onClick={() => {
@@ -230,16 +231,16 @@ function PostHead({ number }: { number: number }) {
               type="button"
             >
               ▣
-            </button>
+            </Button>
           ) : null}
-          <button
+          <Button variant="custom" size={null}
             aria-label={`Delete post ${number}`}
             className={cn(button, 'hover:text-red-400')}
             onClick={() => deletePost(editor, number)}
             type="button"
           >
             ✕
-          </button>
+          </Button>
         </div>
       )}
     </div>

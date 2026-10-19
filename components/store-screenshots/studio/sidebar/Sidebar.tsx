@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { cn } from '@/lib/utils'
 import { LayersPanel } from './LayersPanel'
 import { InsertPanel, LanguagesPanel, StylePanel } from './SidebarPanels'
+import { Button } from '@/components/ui/button'
 
 /** Sidebar tabs. */
 export const sidebarTabSchema = z.enum(['layers', 'insert', 'style', 'languages'])
@@ -21,7 +22,7 @@ export function Sidebar(): React.JSX.Element {
     <aside aria-label="Tools" className="flex h-full w-[264px] shrink-0 flex-col overflow-hidden border-r border-foreground/10 bg-background">
       <div role="tablist" aria-label="Sidebar" className="grid shrink-0 grid-cols-4 gap-0.5 border-b border-foreground/10 p-1.5">
         {sidebarTabSchema.options.map((item) => (
-          <button
+          <Button variant="custom" size={null}
             key={item}
             type="button"
             role="tab"
@@ -32,7 +33,7 @@ export function Sidebar(): React.JSX.Element {
             className={cn('h-7 rounded-md text-[11px] font-medium', tab === item ? 'bg-foreground/[0.1] text-foreground' : 'text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground')}
           >
             {TABS[item]}
-          </button>
+          </Button>
         ))}
       </div>
       <div role="tabpanel" id={`sidebar-panel-${tab}`} aria-labelledby={`sidebar-tab-${tab}`} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">

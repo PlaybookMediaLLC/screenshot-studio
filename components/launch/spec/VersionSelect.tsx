@@ -1,8 +1,14 @@
 'use client'
 
-import { ArrowDown01Icon } from 'hugeicons-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Pill } from '@/components/platform-ui'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 /** One saved version of a spec or plan, newest first in lists. */
 export type VersionOption = {
@@ -43,25 +49,27 @@ export function VersionSelect({
   const pathname = usePathname()
   return (
     <span className="relative inline-flex">
-      <select
-        aria-label="Version"
-        className="h-8 appearance-none rounded-lg bg-white/[0.03] pr-8 pl-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none hover:bg-white/[0.05] focus-visible:ring-white/25"
-        onChange={(event) => {
-          const id = event.target.value
+      <Select
+        onValueChange={(nextValue) => {
+          const id = nextValue
           router.push(id === versions[0]?.id ? pathname : `${pathname}?version=${id}`)
         }}
         value={current}
       >
-        {versions.map((option) => (
-          <option key={option.id} value={option.id}>
-            {`v${option.version} · ${ORIGIN[option.origin] ?? option.origin} · ${shortDate(option.createdAt)}${option.status === 'APPROVED' ? ' · Approved' : ''}`}
-          </option>
-        ))}
-      </select>
-      <ArrowDown01Icon
-        className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-neutral-500"
-        size={14}
-      />
+        <SelectTrigger
+          aria-label="Version"
+          className="h-8 rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none hover:bg-white/[0.05] focus-visible:ring-white/25"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {versions.map((option) => (
+            <SelectItem key={option.id} value={option.id}>
+              {`v${option.version} · ${ORIGIN[option.origin] ?? option.origin} · ${shortDate(option.createdAt)}${option.status === 'APPROVED' ? ' · Approved' : ''}`}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </span>
   )
 }

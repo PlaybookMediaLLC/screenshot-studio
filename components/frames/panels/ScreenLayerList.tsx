@@ -10,6 +10,7 @@ import { useImageStore } from '@/lib/store'
 import { useDeviceUIStore } from '@/lib/store/device-ui'
 import { useEditorPanels } from '@/lib/store/editor-panels'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 /**
  * The composition's screens in the Layers panel, top to bottom. Drag a row
@@ -124,7 +125,7 @@ export function ScreenLayerList() {
                     {frameLabel(mockup)}
                   </span>
                 </span>
-                <button
+                <Button variant="custom" size={null}
                   aria-label={mockup.isVisible ? 'Hide screen' : 'Show screen'}
                   className="grid size-7 place-items-center rounded text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
                   onClick={(event) => {
@@ -134,7 +135,7 @@ export function ScreenLayerList() {
                   type="button"
                 >
                   {mockup.isVisible ? <ViewIcon size={13} /> : <ViewOffSlashIcon size={13} />}
-                </button>
+                </Button>
               </div>
             </li>
           )

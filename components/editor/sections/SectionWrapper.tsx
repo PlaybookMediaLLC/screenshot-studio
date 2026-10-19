@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { ArrowDown01Icon } from 'hugeicons-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button'
 
 interface SectionWrapperProps {
   title: string;
@@ -27,7 +28,7 @@ export function SectionWrapper({
       <div
         className="w-full flex items-center justify-between gap-2 px-2 group"
       >
-        <button
+        <Button variant="custom" size={null}
           onClick={() => setIsOpen(!isOpen)}
           aria-expanded={isOpen}
           aria-controls={contentId}
@@ -43,7 +44,7 @@ export function SectionWrapper({
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-foreground">
             {title}
           </span>
-        </button>
+        </Button>
         {action && <div>{action}</div>}
       </div>
 

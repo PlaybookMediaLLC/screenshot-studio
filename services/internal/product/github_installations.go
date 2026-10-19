@@ -299,6 +299,15 @@ func (c *Configuration) UnlinkGitHubInstallation(ctx context.Context, actor Acto
 		SetStatus(sourceapp.StatusARCHIVED).Save(ctx); err != nil {
 		return err
 	}
+	sources, err := tx.SourceApp.Query().Where(sourceapp.OrganizationID(actor.OrganizationID), sourceapp.GithubInstallationID(row.ID)).All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, source := range sources {
+		if err := cancelAutomationRuns(ctx, tx, source.OrganizationID, source.ID, nil); err != nil {
+			return err
+		}
+	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.github_installation_unlinked", "github_installation", row.ID); err != nil {
 		return err
 	}
@@ -354,6 +363,17 @@ func (c *Configuration) SetGitHubInstallationStatus(ctx context.Context, install
 			return 0, err
 		}
 	}
+	if status == GitHubInstallationSuspended {
+		sources, err := tx.SourceApp.Query().Where(sourceapp.GithubInstallationID(row.ID)).All(ctx)
+		if err != nil {
+			return 0, err
+		}
+		for _, source := range sources {
+			if err := cancelAutomationRuns(ctx, tx, source.OrganizationID, source.ID, nil); err != nil {
+				return 0, err
+			}
+		}
+	}
 	return archived, tx.Commit()
 }
 
@@ -393,6 +413,9 @@ func archiveGitHubSources(ctx context.Context, tx *ent.Tx, installationRowID str
 	}
 	for _, source := range sources {
 		if _, err := source.Update().SetStatus(sourceapp.StatusARCHIVED).Save(ctx); err != nil {
+			return 0, err
+		}
+		if err := cancelAutomationRuns(ctx, tx, source.OrganizationID, source.ID, nil); err != nil {
 			return 0, err
 		}
 		actor := Actor{OrganizationID: source.OrganizationID, Kind: "service", Display: "github"}

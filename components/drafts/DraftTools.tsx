@@ -14,6 +14,10 @@ import {
 } from '@/components/ui/sheet'
 import { type DraftWire, draftsApi, type RevisionWire } from '@/lib/content-drafts/client'
 import { LocalTime, useHydrated } from './local-time'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : 'The request could not be completed.'
@@ -75,11 +79,11 @@ export function ReviewControls({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button aria-label="Review" className="flex items-center" type="button">
+        <Button variant="custom" size={null} aria-label="Review" className="flex items-center" type="button">
           <Pill tone={approved ? 'green' : review.reviewStatus === 'pending' ? 'blue' : 'gray'}>
             {label}
           </Pill>
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="flex w-72 flex-col gap-2 p-3 text-sm">
         <p className="font-medium text-white">Review</p>
@@ -88,7 +92,7 @@ export function ReviewControls({
             {review.reviewNote}
           </p>
         ) : null}
-        <textarea
+        <Textarea
           aria-label="Review note"
           className="min-h-16 rounded-md border border-white/[0.08] bg-transparent p-2 text-xs outline-none focus:border-sky-400/50"
           onChange={(event) => setNote(event.target.value)}
@@ -151,20 +155,19 @@ export function ShareMenu({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="flex w-80 flex-col gap-3 p-3 text-sm">
-        <label className="flex items-center justify-between gap-3 text-neutral-200">
+        <Label className="flex items-center justify-between gap-3 text-neutral-200">
           Anyone with the link can read and comment
-          <input
+          <Switch
             aria-label="Share link"
             checked={Boolean(shareToken)}
-            className="relative h-5 w-8 shrink-0 cursor-pointer appearance-none rounded-full bg-white/15 transition-colors before:absolute before:top-[3px] before:left-[3px] before:size-3.5 before:rounded-full before:bg-white before:transition-transform checked:bg-sky-500 checked:before:translate-x-3 disabled:opacity-50"
+            className="shrink-0"
             disabled={!canEdit || busy}
-            onChange={(event) => void toggle(event.target.checked)}
-            type="checkbox"
+            onCheckedChange={(checked) => void toggle((checked === true))}
           />
-        </label>
+        </Label>
         {link ? (
           <div className="flex gap-2">
-            <input
+            <Input
               aria-label="Link to share"
               className="min-w-0 flex-1 rounded-md border border-white/[0.08] bg-transparent px-2 py-1 text-xs text-neutral-300"
               readOnly
@@ -242,13 +245,13 @@ export function HistorySheet({
                 <span>
                   {new Date(item.createdAt).toLocaleString()} · version {item.version}
                 </span>
-                <button
+                <Button variant="custom" size={null}
                   className="text-sky-300 hover:text-sky-200"
                   onClick={() => void restore(item.id)}
                   type="button"
                 >
                   Restore
-                </button>
+                </Button>
               </p>
               <p className="mt-1 line-clamp-3 text-sm text-neutral-200">
                 {item.plainText || 'Empty draft'}

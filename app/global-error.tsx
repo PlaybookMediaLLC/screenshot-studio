@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Button } from '@/components/ui/button'
 
 export default function GlobalError({
   error,
@@ -151,7 +152,7 @@ export default function GlobalError({
                 gap: "0.75rem",
               }}
             >
-              <button
+              <Button variant="custom" size={null}
                 onClick={() => reset()}
                 style={{
                   padding: "0.625rem 1.5rem",
@@ -165,7 +166,7 @@ export default function GlobalError({
                 }}
               >
                 Try Again
-              </button>
+              </Button>
               <a
                 href="/editor"
                 style={{

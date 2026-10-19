@@ -9,7 +9,8 @@ import { getBackgroundCSS } from '@/lib/constants/backgrounds';
 import { cn } from '@/lib/utils';
 import { useCustomPresets } from '@/hooks/useCustomPresets';
 import { Delete02Icon } from 'hugeicons-react';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface PresetGalleryProps {
   onPresetSelect?: (preset: PresetConfig) => void;
@@ -323,7 +324,7 @@ function PresetCard({
   onApply: () => void;
 }) {
   return (
-    <button
+    <Button variant="custom" size={null}
       onClick={onApply}
       className={cn(
         'w-full rounded-md border transition-all overflow-hidden text-left cursor-pointer',
@@ -349,7 +350,7 @@ function PresetCard({
         </div>
         <div className={cn("text-xs text-muted-foreground mt-0.5", isActive && "ml-3.5")}>{preset.description}</div>
       </div>
-    </button>
+    </Button>
   );
 }
 
@@ -462,12 +463,12 @@ export function PresetGallery({
     <div className="space-y-3">
       {showSavePreset ? <div>
         {!showSaveForm ? (
-          <button
+          <Button variant="custom" size={null}
             onClick={() => setShowSaveForm(true)}
             className="w-full rounded-md border border-dashed border-foreground/15 hover:border-foreground/30 hover:bg-foreground/[0.04] p-4 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             + Save Current as Preset
-          </button>
+          </Button>
         ) : (
           <div className="flex gap-2">
             <Input
@@ -482,13 +483,13 @@ export function PresetGallery({
               placeholder="Preset name"
               className="h-9 text-sm bg-foreground/[0.04] border-foreground/10"
             />
-            <button
+            <Button variant="custom" size={null}
               onClick={handleSavePreset}
               disabled={!presetName.trim()}
               className="shrink-0 h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-foreground/90 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
             >
               Save
-            </button>
+            </Button>
           </div>
         )}
       </div> : null}
@@ -507,7 +508,7 @@ export function PresetGallery({
                   previewImageUrl={previewImageUrl}
                   onApply={() => applyPreset(preset)}
                 />
-                <button
+                <Button variant="custom" size={null}
                   onClick={(e) => {
                     e.stopPropagation();
                     deletePreset(preset.id);
@@ -516,7 +517,7 @@ export function PresetGallery({
                   aria-label={`Delete ${preset.name}`}
                 >
                   <Delete02Icon size={14} />
-                </button>
+                </Button>
               </div>
             ))}
           </div>

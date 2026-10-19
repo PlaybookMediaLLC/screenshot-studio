@@ -8,6 +8,9 @@ import type { SceneNode } from '@/lib/store-screenshots/engine/scene'
 import { useActiveScene } from '../active-scene'
 import { NumberField, Section, SliderField } from '../controls'
 import { useEditor, useEditorApi } from '../editor-store'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 /** Patch helpers bound to one layer owner. Continuous edits coalesce by key. */
 export function useLayerPatch(owner: LayerOwner) {
@@ -102,10 +105,10 @@ export function LayerStateSection({ owner, layer }: { owner: LayerOwner; layer: 
   return (
     <Section title="Layer">
       <div className="space-y-1">
-        <label className="block text-[11px] text-muted-foreground" htmlFor={`name-${layer.id}`}>
+        <Label className="block text-[11px] text-muted-foreground" htmlFor={`name-${layer.id}`}>
           Name
-        </label>
-        <input
+        </Label>
+        <Input
           id={`name-${layer.id}`}
           defaultValue={layer.name}
           key={layer.name}
@@ -122,12 +125,12 @@ export function LayerStateSection({ owner, layer }: { owner: LayerOwner; layer: 
       </div>
       <SliderField label="Opacity" unit="%" value={Math.round(layer.opacity * 100)} min={0} max={100} onChange={(value) => patch([layer.id], { opacity: value / 100 }, 'opacity')} />
       <div className="flex gap-2">
-        <button type="button" onClick={() => patch([layer.id], { hidden: !layer.hidden })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+        <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { hidden: !layer.hidden })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
           {layer.hidden ? 'Show layer' : 'Hide layer'}
-        </button>
-        <button type="button" onClick={() => patch([layer.id], { locked: !layer.locked })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+        </Button>
+        <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { locked: !layer.locked })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
           {layer.locked ? 'Unlock' : 'Lock'}
-        </button>
+        </Button>
       </div>
     </Section>
   )

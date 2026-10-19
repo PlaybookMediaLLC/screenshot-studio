@@ -2,6 +2,7 @@
 
 **Status:** Partially implemented
 **Status note (2026-10-16):** Shipped: inbound GitHub, GitLab, and generic signed webhooks, the GitHub App, and social API OAuth. Missing: outbound webhooks.
+**Implementation update (2026-10-19):** [Release automation](../release-automation.md) adds atomic tenant event/outbox acceptance and versioned Temporal execution to the existing App flow. It supersedes synchronous App-event processing; outbound webhook delivery remains outside this feature.
 **Date:** 2026-08-13
 **Depends on:** RFC 001, RFC 002, RFC 003, and RFC 004
 **Owners:** Product, Engineering, and Security

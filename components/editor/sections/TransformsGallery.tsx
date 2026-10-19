@@ -8,6 +8,7 @@ import { DocumentPreview } from '@/components/design/DocumentPreview';
 import type { DesignDocument } from '@/lib/design/document';
 import { useEditorDocument } from '@/lib/design/use-editor-document';
 import { SectionWrapper } from './SectionWrapper';
+import { Button } from '@/components/ui/button'
 
 /** A 3D layout preset: the main image's perspective values. */
 export interface TransformPreset {
@@ -173,7 +174,7 @@ export function TransformsGallery() {
               const globalIndex = getGlobalIndex(categoryIndex, presetIndex);
               const isSelected = selectedIndex === globalIndex;
               return (
-                <button
+                <Button variant="custom" size={null}
                   key={preset.name}
                   type="button"
                   aria-label={`Apply ${preset.name}`}
@@ -206,7 +207,7 @@ export function TransformsGallery() {
                       {preset.name}
                     </span>
                   </div>
-                </button>
+                </Button>
               );
             })}
           </div>

@@ -3,7 +3,13 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { MAX_PROJECT_SLIDES } from '@/lib/store-screenshots/commands/apply'
 import { DEVICE_MODELS, getDeviceModel } from '@/lib/store-screenshots/devices'
 import { createStandardSlide } from '@/lib/store-screenshots/document/factory'
@@ -13,6 +19,9 @@ import { cn } from '@/lib/utils'
 import { useEditor, useEditorApi } from '../editor-store'
 import type { DialogProps } from './BasicDialogs'
 import { FigmaImport } from './FigmaImport'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 
 /**
  * Bulk import: choose or drop many screenshots, review and reorder them,
@@ -161,7 +170,7 @@ export function ImportDialog({ open, onOpenChange, initialFiles }: DialogProps &
           <span className="font-medium">Drop screenshots here or click to choose</span>
           <span className="text-xs text-muted-foreground">iOS Simulator captures (⌘S in Simulator, or `xcrun simctl io booted screenshot`) import directly.</span>
         </div>
-        <input ref={inputRef} type="file" multiple accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => {
+        <Input ref={inputRef} type="file" multiple accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => {
           void addFiles(Array.from(event.target.files ?? []))
           event.currentTarget.value = ''
         }} />
@@ -173,9 +182,9 @@ export function ImportDialog({ open, onOpenChange, initialFiles }: DialogProps &
                 {valid.length} ready{items.length > valid.length ? `, ${items.length - valid.length} can't be imported` : ''}
                 {valid.length > room ? ` · only the first ${room} fit in this project` : ''}
               </span>
-              <button type="button" className="underline underline-offset-2" onClick={() => setItems((current) => [...current].sort((a, b) => a.file.name.localeCompare(b.file.name, undefined, { numeric: true })))}>
+              <Button variant="custom" size={null} type="button" className="underline underline-offset-2" onClick={() => setItems((current) => [...current].sort((a, b) => a.file.name.localeCompare(b.file.name, undefined, { numeric: true })))}>
                 Sort by name
-              </button>
+              </Button>
             </div>
             <ol aria-label="Screenshots to import" className="max-h-80 space-y-1 overflow-y-auto">
               {items.map((item, index) => (
@@ -186,13 +195,13 @@ export function ImportDialog({ open, onOpenChange, initialFiles }: DialogProps &
                     <span className="block truncate text-xs">{item.file.name}</span>
                     <span className={cn('block text-[10px]', item.problem ? 'text-destructive' : 'text-muted-foreground')}>{item.problem ?? `${(item.file.size / 1024 / 1024).toFixed(1)} MB`}</span>
                   </span>
-                  <button type="button" aria-label={`Move ${item.file.name} up`} disabled={index === 0} onClick={() => move(index, -1)} className="flex size-7 items-center justify-center rounded hover:bg-foreground/[0.06] disabled:opacity-30">
+                  <Button variant="custom" size={null} type="button" aria-label={`Move ${item.file.name} up`} disabled={index === 0} onClick={() => move(index, -1)} className="flex size-7 items-center justify-center rounded hover:bg-foreground/[0.06] disabled:opacity-30">
                     ↑
-                  </button>
-                  <button type="button" aria-label={`Move ${item.file.name} down`} disabled={index === items.length - 1} onClick={() => move(index, 1)} className="flex size-7 items-center justify-center rounded hover:bg-foreground/[0.06] disabled:opacity-30">
+                  </Button>
+                  <Button variant="custom" size={null} type="button" aria-label={`Move ${item.file.name} down`} disabled={index === items.length - 1} onClick={() => move(index, 1)} className="flex size-7 items-center justify-center rounded hover:bg-foreground/[0.06] disabled:opacity-30">
                     ↓
-                  </button>
-                  <button
+                  </Button>
+                  <Button variant="custom" size={null}
                     type="button"
                     aria-label={`Remove ${item.file.name}`}
                     onClick={() => {
@@ -202,17 +211,17 @@ export function ImportDialog({ open, onOpenChange, initialFiles }: DialogProps &
                     className="flex size-7 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   >
                     ×
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ol>
           </div>
         ) : null}
         {onlySamples ? (
-          <label className="flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={replaceSamples} onChange={(event) => setReplaceSamples(event.target.checked)} />
+          <Label className="flex items-center gap-2 text-xs">
+            <Checkbox  checked={replaceSamples} onCheckedChange={(checked) => setReplaceSamples((checked === true))} />
             Replace the sample slides
-          </label>
+          </Label>
         ) : null}
         {progress ? (
           <div className="space-y-1.5" role="status" aria-live="polite">
@@ -220,9 +229,9 @@ export function ImportDialog({ open, onOpenChange, initialFiles }: DialogProps &
               <span>
                 Importing {progress.done} of {progress.total}
               </span>
-              <button type="button" className="underline underline-offset-2" onClick={() => abortRef.current?.abort()}>
+              <Button variant="custom" size={null} type="button" className="underline underline-offset-2" onClick={() => abortRef.current?.abort()}>
                 Stop
-              </button>
+              </Button>
             </div>
             <progress className="h-1.5 w-full" max={progress.total} value={progress.done} aria-label="Import progress" />
           </div>

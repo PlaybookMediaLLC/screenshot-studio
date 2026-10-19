@@ -8,6 +8,14 @@ import { type CrawlerFetch, linkPreviewAgentSchema } from '@/lib/api/contracts/l
 import { CRAWLERS } from '@/lib/link-preview/crawlers'
 import { cn } from '@/lib/utils'
 import { PANEL } from './MetadataPanels'
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table'
 
 const BROWSER = linkPreviewAgentSchema.enum.default
 
@@ -93,38 +101,38 @@ export function CrawlerMatrix({ url }: { url: string }) {
             </p>
           )}
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-muted-foreground">
-                <tr className="border-b border-white/[0.07]">
-                  <th className="py-2 pr-4 font-medium">Crawler</th>
-                  <th className="py-2 pr-4 font-medium">Status</th>
-                  <th className="py-2 pr-4 font-medium">Time</th>
-                  <th className="py-2 font-medium">What differs</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.07]">
+            <Table className="w-full text-left text-sm">
+              <TableHeader className="text-xs text-muted-foreground">
+                <TableRow className="border-b border-white/[0.07]">
+                  <TableHead className="whitespace-normal py-2 pr-4 font-medium">Crawler</TableHead>
+                  <TableHead className="whitespace-normal py-2 pr-4 font-medium">Status</TableHead>
+                  <TableHead className="whitespace-normal py-2 pr-4 font-medium">Time</TableHead>
+                  <TableHead className="whitespace-normal py-2 font-medium">What differs</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-white/[0.07]">
                 {results.map((result) => {
                   const notes = differences(result, baseline)
                   return (
-                    <tr
+                    <TableRow
                       key={result.agent}
                       className={cn('align-top', notes.length && 'bg-amber-500/[0.05]')}
                     >
-                      <td className="py-2.5 pr-4">
+                      <TableCell className="whitespace-normal py-2.5 pr-4">
                         {result.agent === BROWSER
                           ? 'Browser-like bot'
                           : CRAWLERS[result.agent].name}
                         <span className="block text-xs text-muted-foreground">
                           {result.agent === BROWSER ? 'baseline' : CRAWLERS[result.agent].token}
                         </span>
-                      </td>
-                      <td className="py-2.5 pr-4">
+                      </TableCell>
+                      <TableCell className="whitespace-normal py-2.5 pr-4">
                         <Pill tone={statusTone(result.status)}>{result.status ?? 'Failed'}</Pill>
-                      </td>
-                      <td className="py-2.5 pr-4 tabular-nums text-muted-foreground">
+                      </TableCell>
+                      <TableCell className="whitespace-normal py-2.5 pr-4 tabular-nums text-muted-foreground">
                         {(result.durationMs / 1000).toFixed(1)} s
-                      </td>
-                      <td className="py-2.5">
+                      </TableCell>
+                      <TableCell className="whitespace-normal py-2.5">
                         {notes.length ? (
                           <ul className="space-y-0.5 text-amber-200">
                             {notes.map((note) => (
@@ -134,12 +142,12 @@ export function CrawlerMatrix({ url }: { url: string }) {
                         ) : (
                           <span className="text-muted-foreground">Same as the browser</span>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </>
       )}

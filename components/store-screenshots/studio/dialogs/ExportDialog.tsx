@@ -3,7 +3,13 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { countIssues, runChecks } from '@/lib/store-screenshots/compliance'
 import { evaluateSlide } from '@/lib/store-screenshots/engine/scene'
 import { ExportCancelledError, runExportJob, zipOutputs, type ExportFailure, type ExportOutput, type ExportProgress } from '@/lib/store-screenshots/export/job'
@@ -17,6 +23,17 @@ import { useStudioActions } from '../actions'
 import { useEditor } from '../editor-store'
 import { SlideThumbnail } from '../SlideThumbnail'
 import type { DialogProps } from './BasicDialogs'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Slider } from '@/components/ui/slider'
 
 /**
  * The export workflow: choose stores, sizes, format, languages, slides, and
@@ -159,8 +176,8 @@ export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
                   const choice = settings.targets.find((item) => item.targetId === target.id)
                   return (
                     <div key={target.id} className={cn('rounded-md border p-2', choice ? 'border-foreground/25 bg-foreground/[0.03]' : 'border-foreground/10')}>
-                      <label className="flex cursor-pointer items-start gap-2 text-xs">
-                        <input type="checkbox" checked={Boolean(choice)} onChange={(event) => toggleTarget(target.id, event.target.checked)} className="mt-0.5" />
+                      <Label className="flex cursor-pointer items-start gap-2 text-xs">
+                        <Checkbox  checked={Boolean(choice)} onCheckedChange={(checked) => toggleTarget(target.id, (checked === true))} className="mt-0.5" />
                         <span className="min-w-0 flex-1">
                           <span className="font-medium">{target.shortName}</span> <span className="text-muted-foreground">· {target.name}</span>
                           <span className="block text-[10px] text-muted-foreground">{target.devices}</span>
@@ -168,25 +185,53 @@ export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
                         <span className={cn('shrink-0 rounded px-1.5 py-0.5 text-[10px]', target.requirement === 'required' ? 'bg-foreground text-background' : 'bg-foreground/[0.07] text-muted-foreground')} title={target.requirementNote}>
                           {REQUIREMENT_BADGE[target.requirement]}
                         </span>
-                      </label>
+                      </Label>
                       {choice ? (
                         <div className="mt-2 flex flex-wrap gap-2 pl-5">
-                          <select aria-label={`${target.shortName} size`} value={choice.sizeIndex} onChange={(event) => setTargetOption(target.id, { sizeIndex: Number(event.target.value) })} className="h-7 rounded border border-foreground/10 bg-background px-1.5 text-[11px]">
-                            {target.portraitSizes.map((size, index) => (
-                              <option key={index} value={index}>
-                                {sizeLabel(targetPixelSize(target, index, choice.orientation))}
-                                {index === 0 ? ' (largest)' : ''}
-                              </option>
-                            ))}
-                          </select>
-                          {target.orientations.length > 1 ? (
-                            <select aria-label={`${target.shortName} orientation`} value={choice.orientation} onChange={(event) => setTargetOption(target.id, { orientation: event.target.value as ExportOrientation })} className="h-7 rounded border border-foreground/10 bg-background px-1.5 text-[11px]">
-                              {target.orientations.map((orientation) => (
-                                <option key={orientation} value={orientation}>
-                                  {orientation === 'portrait' ? 'Portrait' : 'Landscape'}
-                                </option>
+                          <Select
+                            value={String(choice.sizeIndex)}
+                            onValueChange={(nextValue) =>
+                              setTargetOption(target.id, { sizeIndex: Number(nextValue) })
+                            }
+                          >
+                            <SelectTrigger
+                              aria-label={`${target.shortName} size`}
+                              className="h-7 rounded border border-foreground/10 bg-background px-1.5 text-[11px]"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {target.portraitSizes.map((size, index) => (
+                                <SelectItem key={index} value={String(index)}>
+                                  {sizeLabel(targetPixelSize(target, index, choice.orientation))}
+                                  {index === 0 ? ' (largest)' : ''}
+                                </SelectItem>
                               ))}
-                            </select>
+                            </SelectContent>
+                          </Select>
+                          {target.orientations.length > 1 ? (
+                            <Select
+                              value={choice.orientation}
+                              onValueChange={(nextValue) =>
+                                setTargetOption(target.id, {
+                                  orientation: nextValue as ExportOrientation,
+                                })
+                              }
+                            >
+                              <SelectTrigger
+                                aria-label={`${target.shortName} orientation`}
+                                className="h-7 rounded border border-foreground/10 bg-background px-1.5 text-[11px]"
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {target.orientations.map((orientation) => (
+                                  <SelectItem key={orientation} value={orientation}>
+                                    {orientation === 'portrait' ? 'Portrait' : 'Landscape'}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           ) : null}
                           <span className="self-center text-[10px] text-muted-foreground">Up to {target.maxCount} per language</span>
                         </div>
@@ -203,33 +248,32 @@ export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
               <legend className="mb-1 text-xs font-semibold">Format</legend>
               <div className="flex gap-2">
                 {(['png', 'jpeg'] as const).map((format) => (
-                  <label key={format} className="flex items-center gap-1.5 text-xs">
-                    <input type="radio" name="export-format" checked={settings.format === format} onChange={() => update({ format })} />
+                  <Label key={format} className="flex items-center gap-1.5 text-xs">
+                    <Input type="radio" name="export-format" checked={settings.format === format} onChange={() => update({ format })} />
                     {format === 'png' ? 'PNG (lossless)' : 'JPEG (smaller)'}
-                  </label>
+                  </Label>
                 ))}
               </div>
               {settings.format === 'jpeg' ? (
-                <label className="block text-xs">
+                <Label className="block text-xs">
                   Quality {Math.round(settings.quality * 100)}%
-                  <input type="range" min={60} max={100} value={Math.round(settings.quality * 100)} onChange={(event) => update({ quality: Number(event.target.value) / 100 })} className="mt-1 w-full" />
-                </label>
+                  <Slider aria-label="Export quality"  min={60} max={100} value={[Math.round(settings.quality * 100)]} onValueChange={([nextValue]) => update({ quality: Number(nextValue) / 100 })} className="mt-1 w-full" />
+                </Label>
               ) : null}
             </fieldset>
             <fieldset disabled={running} className="space-y-1.5">
               <legend className="mb-1 text-xs font-semibold">Languages</legend>
               {[document.localization.sourceLocale, ...document.localization.locales].map((code) => (
-                <label key={code} className="flex items-center gap-2 text-xs">
-                  <input
-                    type="checkbox"
+                <Label key={code} className="flex items-center gap-2 text-xs">
+                  <Checkbox
                     checked={settings.locales.includes(code)}
-                    onChange={(event) => {
-                      const locales = event.target.checked ? [...settings.locales, code] : settings.locales.filter((item) => item !== code)
+                    onCheckedChange={(checked) => {
+                      const locales = (checked === true) ? [...settings.locales, code] : settings.locales.filter((item) => item !== code)
                       if (locales.length) update({ locales })
                     }}
                   />
                   {localeName(code)}
-                </label>
+                </Label>
               ))}
             </fieldset>
             <fieldset disabled={running} className="space-y-1.5">
@@ -237,15 +281,15 @@ export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
                 <span>
                   Slides ({settings.slideIds.length} of {document.slides.length})
                 </span>
-                <button type="button" className="text-[11px] font-normal underline underline-offset-2" onClick={() => update({ slideIds: allSlideIds })}>
+                <Button variant="custom" size={null} type="button" className="text-[11px] font-normal underline underline-offset-2" onClick={() => update({ slideIds: allSlideIds })}>
                   All
-                </button>
+                </Button>
               </legend>
               <div className="flex flex-wrap gap-1">
                 {document.slides.map((slide, index) => {
                   const included = settings.slideIds.includes(slide.id)
                   return (
-                    <button
+                    <Button variant="custom" size={null}
                       key={slide.id}
                       type="button"
                       aria-pressed={included}
@@ -257,7 +301,7 @@ export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
                       className={cn('h-7 min-w-7 rounded border px-1.5 text-[11px] tabular-nums', included ? 'border-foreground/40 bg-foreground/[0.1]' : 'border-foreground/10 text-muted-foreground line-through')}
                     >
                       {index + 1}
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -265,27 +309,35 @@ export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
             <fieldset disabled={running} className="space-y-2">
               <legend className="mb-1 text-xs font-semibold">Files</legend>
               <div className="flex gap-3 text-xs">
-                <label className="flex items-center gap-1.5">
-                  <input type="radio" name="packaging" checked={settings.packaging === 'zip'} onChange={() => update({ packaging: 'zip' })} />
+                <Label className="flex items-center gap-1.5">
+                  <Input type="radio" name="packaging" checked={settings.packaging === 'zip'} onChange={() => update({ packaging: 'zip' })} />
                   One ZIP
-                </label>
-                <label className="flex items-center gap-1.5">
-                  <input type="radio" name="packaging" checked={settings.packaging === 'files'} onChange={() => update({ packaging: 'files' })} />
+                </Label>
+                <Label className="flex items-center gap-1.5">
+                  <Input type="radio" name="packaging" checked={settings.packaging === 'files'} onChange={() => update({ packaging: 'files' })} />
                   Separate images
-                </label>
+                </Label>
               </div>
-              <label className="block text-xs">
+              <Label className="block text-xs">
                 <span className="text-muted-foreground">Folders</span>
-                <select value={settings.folderLayout} onChange={(event) => update({ folderLayout: event.target.value as FolderLayout })} className="mt-1 h-8 w-full rounded-md border border-foreground/10 bg-background px-2 text-xs">
-                  <option value="store-locale-device">store / language / device</option>
-                  <option value="locale-device">language / device</option>
-                  <option value="flat">No folders</option>
-                </select>
-              </label>
-              <label className="block text-xs">
+                <Select
+                  value={settings.folderLayout}
+                  onValueChange={(nextValue) => update({ folderLayout: nextValue as FolderLayout })}
+                >
+                  <SelectTrigger className="mt-1 h-8 w-full rounded-md border border-foreground/10 bg-background px-2 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="store-locale-device">store / language / device</SelectItem>
+                    <SelectItem value="locale-device">language / device</SelectItem>
+                    <SelectItem value="flat">No folders</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Label>
+              <Label className="block text-xs">
                 <span className="text-muted-foreground">File name prefix</span>
-                <input value={settings.prefix} maxLength={40} onChange={(event) => update({ prefix: event.target.value })} placeholder="e.g. your app name" className="mt-1 h-8 w-full rounded-md border border-foreground/10 bg-background px-2 text-xs" />
-              </label>
+                <Input value={settings.prefix} maxLength={40} onChange={(event) => update({ prefix: event.target.value })} placeholder="e.g. your app name" className="mt-1 h-8 w-full rounded-md border border-foreground/10 bg-background px-2 text-xs" />
+              </Label>
               <p className="break-all text-[10px] text-muted-foreground">Example: {files[0]?.path ?? '—'}</p>
             </fieldset>
           </div>
@@ -330,9 +382,9 @@ export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
               {counts.requirements ? <span className="font-medium text-destructive">{counts.requirements} store requirement issues</span> : null}
               {counts.requirements && counts.recommendations ? ' · ' : ''}
               {counts.recommendations ? <span className="text-amber-700 dark:text-amber-300">{counts.recommendations} design suggestions</span> : null}{' '}
-              <button type="button" className="underline underline-offset-2" onClick={() => actions.openDialog('checks')}>
+              <Button variant="custom" size={null} type="button" className="underline underline-offset-2" onClick={() => actions.openDialog('checks')}>
                 Review
-              </button>
+              </Button>
             </p>
           ) : (
             <p className="text-muted-foreground">No problems found. Store review can still reject screenshots for content reasons.</p>
@@ -378,9 +430,9 @@ export function ExportDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
                 {result.outputs.map((output) => (
                   <li key={output.file.path} className="flex items-center justify-between gap-2">
                     <span className="truncate">{output.file.path}</span>
-                    <button type="button" className="shrink-0 underline underline-offset-2" onClick={() => downloadBlob(output.blob, output.file.path.split('/').pop()!)}>
+                    <Button variant="custom" size={null} type="button" className="shrink-0 underline underline-offset-2" onClick={() => downloadBlob(output.blob, output.file.path.split('/').pop()!)}>
                       Download
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>

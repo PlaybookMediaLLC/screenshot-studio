@@ -8,6 +8,8 @@ import { panoramaFor } from '@/lib/store-screenshots/engine/scene'
 import { cn } from '@/lib/utils'
 import { useActiveScene } from '../active-scene'
 import { useEditor, useEditorApi } from '../editor-store'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 /**
  * The layer list for the active slide, top of the stack first. Selection is
@@ -89,7 +91,7 @@ function LayerRow({
           </span>
           {layer.groupId ? <span aria-hidden="true" className="h-4 w-0.5 shrink-0 rounded bg-violet-400" title="Grouped" /> : null}
           {renaming ? (
-            <input
+            <Input
               autoFocus
               defaultValue={layer.name}
               aria-label="Layer name"
@@ -112,7 +114,7 @@ function LayerRow({
             <span className={cn('min-w-0 flex-1 truncate', (layer.hidden || hiddenByLayout) && 'opacity-50')}>{layer.name}</span>
           )}
           {hiddenByLayout ? <span className="shrink-0 text-[9px] text-amber-600" title="This layout shows fewer devices; the device is kept">not in layout</span> : null}
-          <button
+          <Button variant="custom" size={null}
             type="button"
             aria-label={layer.hidden ? `Show ${layer.name}` : `Hide ${layer.name}`}
             title={layer.hidden ? 'Show' : 'Hide'}
@@ -127,8 +129,8 @@ function LayerRow({
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               {layer.hidden ? <path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A10 10 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 3.9M6.6 6.6C3.9 8.4 2 12 2 12s4 7 10 7a9.7 9.7 0 0 0 5.4-1.6" /> : <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />}
             </svg>
-          </button>
-          <button
+          </Button>
+          <Button variant="custom" size={null}
             type="button"
             aria-label={layer.locked ? `Unlock ${layer.name}` : `Lock ${layer.name}`}
             title={layer.locked ? 'Unlock' : 'Lock'}
@@ -144,7 +146,7 @@ function LayerRow({
               <rect x="5" y="11" width="14" height="10" rx="2" />
               <path d={layer.locked ? 'M8 11V7a4 4 0 0 1 8 0v4' : 'M8 11V7a4 4 0 0 1 7.5-2'} />
             </svg>
-          </button>
+          </Button>
           <span className="sr-only">
             Layer {count - index} of {count}
           </span>
@@ -273,10 +275,10 @@ export function LayersPanel(): React.JSX.Element {
     <div className="space-y-4 p-3">
       <LayerList owner={{ kind: 'slide', id: slide.id }} layers={slide.layers} title={`${slide.name} layers`} />
       {membership ? <LayerList owner={{ kind: 'panorama', id: membership.panorama.id }} layers={membership.panorama.layers} title="Shared across panorama" /> : null}
-      <button type="button" onClick={() => api.getState().clearSelection()} className="flex h-8 w-full items-center gap-1.5 rounded-md px-1.5 text-xs text-muted-foreground hover:bg-foreground/[0.05]">
+      <Button variant="custom" size={null} type="button" onClick={() => api.getState().clearSelection()} className="flex h-8 w-full items-center gap-1.5 rounded-md px-1.5 text-xs text-muted-foreground hover:bg-foreground/[0.05]">
         <span aria-hidden="true" className="w-4 text-center">▦</span>
         Background and slide settings
-      </button>
+      </Button>
     </div>
   )
 }

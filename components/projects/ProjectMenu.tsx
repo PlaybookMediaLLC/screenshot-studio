@@ -46,6 +46,7 @@ import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { ProjectNameDialog } from './ProjectNameDialog'
 import { VersionHistoryDialog } from './VersionHistoryDialog'
+import { Button } from '@/components/ui/button'
 
 const STATUS_LABELS: Record<ProjectSaveStatus, string> = {
   conflict: 'Not saved: changed elsewhere',
@@ -165,7 +166,7 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
   if (!project.projectId) {
     return (
       <>
-        <button
+        <Button variant="custom" size={null}
           className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
           onClick={() => setNameDialog('create')}
           type="button"
@@ -173,7 +174,7 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
           <FloppyDiskIcon className="shrink-0" size={15} />
           {!compact ? <span>Save as project</span> : null}
           {compact ? <span className="sr-only">Save as project</span> : null}
-        </button>
+        </Button>
         {dialogs}
       </>
     )
@@ -186,7 +187,7 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
+          <Button variant="custom" size={null}
             aria-label={`Project ${project.name || ''}: ${statusLabel}`}
             className="inline-flex h-8 min-w-0 max-w-[260px] shrink cursor-pointer items-center gap-2 rounded-lg px-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-foreground/[0.06] data-[state=open]:bg-foreground/[0.08]"
             type="button"
@@ -199,7 +200,7 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
               <span className="truncate">{project.name || 'Opening project…'}</span>
             ) : null}
             <ArrowDown01Icon className="shrink-0 text-muted-foreground" size={13} />
-          </button>
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-64" sideOffset={8}>
           <DropdownMenuLabel className="font-normal">

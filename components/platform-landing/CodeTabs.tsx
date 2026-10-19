@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { z } from 'zod'
 import { cn } from '@/lib/utils'
 import { MONO } from './primitives'
+import { Button } from '@/components/ui/button'
 
 /** Integration examples shown in the developer section. */
 export const codeTabSchema = z.enum(['curl', 'typescript', 'webhook'])
@@ -104,7 +105,7 @@ export function CodeTabs() {
         aria-label="Integration examples"
       >
         {codeTabSchema.options.map((id) => (
-          <button
+          <Button variant="custom" size={null}
             aria-controls={`code-panel-${id}`}
             aria-selected={tab === id}
             className={cn(
@@ -118,7 +119,7 @@ export function CodeTabs() {
             type="button"
           >
             {EXAMPLES[id].label}
-          </button>
+          </Button>
         ))}
       </div>
       <div

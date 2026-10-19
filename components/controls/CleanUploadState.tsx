@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { getBackgroundCSS } from '@/lib/constants/backgrounds'
 import { useBackgroundImageReady } from '@/hooks/useBackgroundImageReady'
+import { Label } from '@/components/ui/label'
 
 const TRANSITION_DURATION = 400 // ms
 type ColorScheme = 'light' | 'dark'
@@ -249,7 +250,7 @@ export function CleanUploadState() {
         <div className="absolute inset-0 scale-110 blur-2xl" style={placeholderStyle} />
         {!backgroundReady && <div className="canvas-stage-shimmer absolute inset-0" />}
       </div>
-      <input
+      <Input
         accept="image/jpeg,image/png,image/webp"
         aria-label="Upload image"
         className="sr-only"
@@ -259,7 +260,7 @@ export function CleanUploadState() {
         type="file"
       />
 
-      <label
+      <Label
         htmlFor="editor-image-upload"
         className={cn(
           'relative z-10 flex flex-col items-center justify-center cursor-pointer',
@@ -385,7 +386,7 @@ export function CleanUploadState() {
             {error}
           </div>
         )}
-      </label>
+      </Label>
     </div>
   )
 }

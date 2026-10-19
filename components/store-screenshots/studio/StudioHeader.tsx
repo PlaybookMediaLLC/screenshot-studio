@@ -20,6 +20,15 @@ import { cn } from '@/lib/utils'
 import { useStudioActions } from './actions'
 import { IconButton } from './controls'
 import { useEditor, useEditorApi, type SaveStatus, type ViewOptions } from './editor-store'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 
 const SAVE_LABELS: Record<SaveStatus, string> = {
   saved: 'Saved',
@@ -70,7 +79,7 @@ export function StudioHeader({
       </Link>
       <div className="flex min-w-0 items-center gap-2">
         {renaming ? (
-          <input
+          <Input
             autoFocus
             defaultValue={name}
             aria-label="Project name"
@@ -87,9 +96,9 @@ export function StudioHeader({
             className="h-8 w-48 rounded-md border border-foreground/20 bg-background px-2 text-sm outline-none"
           />
         ) : (
-          <button type="button" onClick={() => setRenaming(true)} title="Rename project" className="max-w-56 truncate rounded-md px-1.5 py-1 text-sm font-medium hover:bg-foreground/[0.05]">
+          <Button variant="custom" size={null} type="button" onClick={() => setRenaming(true)} title="Rename project" className="max-w-56 truncate rounded-md px-1.5 py-1 text-sm font-medium hover:bg-foreground/[0.05]">
             {name}
-          </button>
+          </Button>
         )}
         <span
           role="status"
@@ -103,12 +112,12 @@ export function StudioHeader({
         </span>
         {saveStatus === 'conflict' ? (
           <span className="flex items-center gap-1">
-            <button type="button" onClick={onLoadTheirs} className="h-7 rounded-md border border-foreground/15 px-2 text-[11px]">
+            <Button variant="custom" size={null} type="button" onClick={onLoadTheirs} className="h-7 rounded-md border border-foreground/15 px-2 text-[11px]">
               Load their version
-            </button>
-            <button type="button" onClick={onKeepMine} className="h-7 rounded-md bg-foreground px-2 text-[11px] text-background">
+            </Button>
+            <Button variant="custom" size={null} type="button" onClick={onKeepMine} className="h-7 rounded-md bg-foreground px-2 text-[11px] text-background">
               Keep mine
-            </button>
+            </Button>
           </span>
         ) : null}
       </div>
@@ -121,34 +130,52 @@ export function StudioHeader({
           <RedoIcon size={15} />
         </IconButton>
         <span aria-hidden="true" className="mx-1 h-5 w-px bg-foreground/10" />
-        <label className="sr-only" htmlFor="canvas-target">
+        <Label className="sr-only" htmlFor="canvas-target">
           Canvas size
-        </label>
-        <select
-          id="canvas-target"
+        </Label>
+        <Select
           value={targetId}
-          onChange={(event) => api.getState().setTarget(event.target.value)}
-          title="Preview and adjust the design at a store size"
-          className="h-8 max-w-40 rounded-md border border-foreground/10 bg-background px-2 text-xs"
+          onValueChange={(nextValue) => api.getState().setTarget(nextValue)}
         >
-          {STORE_TARGETS.map((target) => (
-            <option key={target.id} value={target.id}>
-              {target.shortName}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            id="canvas-target"
+            title="Preview and adjust the design at a store size"
+            className="h-8 max-w-40 rounded-md border border-foreground/10 bg-background px-2 text-xs"
+            aria-label={'Preview and adjust the design at a store size'}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STORE_TARGETS.map((target) => (
+              <SelectItem key={target.id} value={target.id}>
+                {target.shortName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {localization.locales.length ? (
           <>
-            <label className="sr-only" htmlFor="canvas-locale">
+            <Label className="sr-only" htmlFor="canvas-locale">
               Editing language
-            </label>
-            <select id="canvas-locale" value={locale} onChange={(event) => api.getState().setLocale(event.target.value)} className="h-8 max-w-36 rounded-md border border-foreground/10 bg-background px-2 text-xs">
-              {[localization.sourceLocale, ...localization.locales].map((code) => (
-                <option key={code} value={code}>
-                  {localeName(code)}
-                </option>
-              ))}
-            </select>
+            </Label>
+            <Select
+              value={locale}
+              onValueChange={(nextValue) => api.getState().setLocale(nextValue)}
+            >
+              <SelectTrigger
+                id="canvas-locale"
+                className="h-8 max-w-36 rounded-md border border-foreground/10 bg-background px-2 text-xs"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[localization.sourceLocale, ...localization.locales].map((code) => (
+                  <SelectItem key={code} value={code}>
+                    {localeName(code)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </>
         ) : null}
         <DropdownMenu>

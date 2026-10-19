@@ -13,9 +13,9 @@ import { selectScreenshot, useImageStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { ANIMATION_PRESETS, CATEGORY_LABELS } from '@/lib/animation/presets';
 import type { AnimationPreset } from '@/types/animation';
-import { Slider } from '@/components/ui/slider';
-import { Button } from '@/components/ui/button';
-import { SegmentedControl } from '@/components/ui/segmented-control';
+import { Slider } from '@/components/ui/slider'
+import { Button } from '@/components/ui/button'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import { getBackgroundCSS } from '@/lib/constants/backgrounds';
 import { useDrag } from '@use-gesture/react';
 import { aspectRatios } from '@/lib/constants/aspect-ratios';
@@ -471,7 +471,7 @@ export function AnimationControls() {
               {presets.map((preset) => {
                 const isApplied = animationClips.some((c) => c.presetId === preset.id);
                 return (
-                  <button
+                  <Button variant="custom" size={null}
                     key={preset.id}
                     type="button"
                     onClick={() => handlePresetClick(preset)}
@@ -517,7 +517,7 @@ export function AnimationControls() {
                         {preset.name}
                       </span>
                     </div>
-                  </button>
+                  </Button>
                 );
               })}
             </div>

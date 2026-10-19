@@ -4,6 +4,9 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { draftsApi, type SettingsWire } from '@/lib/content-drafts/client'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -58,7 +61,7 @@ export function DraftSettingsForm({
                   >
                     {slot.time}
                     {canManage ? (
-                      <button
+                      <Button variant="custom" size={null}
                         aria-label={`Remove ${name} ${slot.time}`}
                         className="text-neutral-500 hover:text-red-400"
                         onClick={() =>
@@ -67,13 +70,13 @@ export function DraftSettingsForm({
                         type="button"
                       >
                         ✕
-                      </button>
+                      </Button>
                     ) : null}
                   </span>
                 ))}
                 {canManage ? (
                   <span className="ml-auto flex items-center gap-1">
-                    <input
+                    <Input
                       aria-label={`New ${name} time`}
                       className="h-7 rounded-md border border-white/[0.08] bg-transparent px-1 text-xs text-neutral-200"
                       onChange={(event) =>
@@ -82,7 +85,7 @@ export function DraftSettingsForm({
                       type="time"
                       value={adding[weekday] ?? ''}
                     />
-                    <button
+                    <Button variant="custom" size={null}
                       className="text-xs text-sky-300 hover:text-sky-200 disabled:opacity-40"
                       disabled={!adding[weekday]}
                       onClick={() => {
@@ -98,7 +101,7 @@ export function DraftSettingsForm({
                       type="button"
                     >
                       Add
-                    </button>
+                    </Button>
                   </span>
                 ) : null}
               </li>
@@ -108,17 +111,16 @@ export function DraftSettingsForm({
       </section>
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-medium text-neutral-200">Approvals</h3>
-        <label className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] px-4 py-3 text-sm text-neutral-300">
+        <Label className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] px-4 py-3 text-sm text-neutral-300">
           A publisher or admin approves each draft before it is scheduled
-          <input
+          <Switch
             aria-label="Require approval"
             checked={requireApproval}
-            className="relative h-5 w-8 shrink-0 cursor-pointer appearance-none rounded-full bg-white/15 transition-colors before:absolute before:top-[3px] before:left-[3px] before:size-3.5 before:rounded-full before:bg-white before:transition-transform checked:bg-sky-500 checked:before:translate-x-3 disabled:opacity-50"
+            className="shrink-0"
             disabled={!canManage}
-            onChange={(event) => setRequireApproval(event.target.checked)}
-            type="checkbox"
+            onCheckedChange={(checked) => setRequireApproval((checked === true))}
           />
-        </label>
+        </Label>
       </section>
       {canManage ? (
         <div>

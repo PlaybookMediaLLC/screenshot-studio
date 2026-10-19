@@ -65,7 +65,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/projectversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
+	entreleaseautomation "github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationexecutor"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationnode"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationrun"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasespec"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
@@ -90,6 +96,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/profile"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 )
@@ -155,7 +162,13 @@ const (
 	TypeProjectVersion                 = "ProjectVersion"
 	TypePublicationAttempt             = "PublicationAttempt"
 	TypeRelease                        = "Release"
+	TypeReleaseAutomation              = "ReleaseAutomation"
+	TypeReleaseAutomationExecutor      = "ReleaseAutomationExecutor"
+	TypeReleaseAutomationNode          = "ReleaseAutomationNode"
+	TypeReleaseAutomationRun           = "ReleaseAutomationRun"
+	TypeReleaseAutomationVersion       = "ReleaseAutomationVersion"
 	TypeReleaseDocument                = "ReleaseDocument"
+	TypeReleaseSourceEvent             = "ReleaseSourceEvent"
 	TypeReleaseSpec                    = "ReleaseSpec"
 	TypeScheduledPost                  = "ScheduledPost"
 	TypeScreenshotCache                = "ScreenshotCache"
@@ -49281,6 +49294,4538 @@ func (m *ReleaseMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Release edge %s", name)
 }
 
+// ReleaseAutomationMutation represents an operation that mutates the ReleaseAutomation nodes in the graph.
+type ReleaseAutomationMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *string
+	organization_id    *string
+	source_app_id      *string
+	name               *string
+	description        *string
+	family             *string
+	priority           *int
+	addpriority        *int
+	revision           *int
+	addrevision        *int
+	enabled            *bool
+	active_priority    *int
+	addactive_priority *int
+	active_version_id  *string
+	draft              *releaseautomation.Graph
+	layout             *map[string]releaseautomation.Position
+	modified_by        *string
+	created_at         *time.Time
+	updated_at         *time.Time
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*ReleaseAutomation, error)
+	predicates         []predicate.ReleaseAutomation
+}
+
+var _ ent.Mutation = (*ReleaseAutomationMutation)(nil)
+
+// releaseautomationOption allows management of the mutation configuration using functional options.
+type releaseautomationOption func(*ReleaseAutomationMutation)
+
+// newReleaseAutomationMutation creates new mutation for the ReleaseAutomation entity.
+func newReleaseAutomationMutation(c config, op Op, opts ...releaseautomationOption) *ReleaseAutomationMutation {
+	m := &ReleaseAutomationMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeReleaseAutomation,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withReleaseAutomationID sets the ID field of the mutation.
+func withReleaseAutomationID(id string) releaseautomationOption {
+	return func(m *ReleaseAutomationMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ReleaseAutomation
+		)
+		m.oldValue = func(ctx context.Context) (*ReleaseAutomation, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ReleaseAutomation.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withReleaseAutomation sets the old ReleaseAutomation of the mutation.
+func withReleaseAutomation(node *ReleaseAutomation) releaseautomationOption {
+	return func(m *ReleaseAutomationMutation) {
+		m.oldValue = func(context.Context) (*ReleaseAutomation, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ReleaseAutomationMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ReleaseAutomationMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ReleaseAutomation entities.
+func (m *ReleaseAutomationMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ReleaseAutomationMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ReleaseAutomationMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ReleaseAutomation.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *ReleaseAutomationMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *ReleaseAutomationMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *ReleaseAutomationMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetSourceAppID sets the "source_app_id" field.
+func (m *ReleaseAutomationMutation) SetSourceAppID(s string) {
+	m.source_app_id = &s
+}
+
+// SourceAppID returns the value of the "source_app_id" field in the mutation.
+func (m *ReleaseAutomationMutation) SourceAppID() (r string, exists bool) {
+	v := m.source_app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceAppID returns the old "source_app_id" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldSourceAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceAppID: %w", err)
+	}
+	return oldValue.SourceAppID, nil
+}
+
+// ResetSourceAppID resets all changes to the "source_app_id" field.
+func (m *ReleaseAutomationMutation) ResetSourceAppID() {
+	m.source_app_id = nil
+}
+
+// SetName sets the "name" field.
+func (m *ReleaseAutomationMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ReleaseAutomationMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ReleaseAutomationMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *ReleaseAutomationMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *ReleaseAutomationMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *ReleaseAutomationMutation) ResetDescription() {
+	m.description = nil
+}
+
+// SetFamily sets the "family" field.
+func (m *ReleaseAutomationMutation) SetFamily(s string) {
+	m.family = &s
+}
+
+// Family returns the value of the "family" field in the mutation.
+func (m *ReleaseAutomationMutation) Family() (r string, exists bool) {
+	v := m.family
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFamily returns the old "family" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldFamily(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFamily is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFamily requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFamily: %w", err)
+	}
+	return oldValue.Family, nil
+}
+
+// ResetFamily resets all changes to the "family" field.
+func (m *ReleaseAutomationMutation) ResetFamily() {
+	m.family = nil
+}
+
+// SetPriority sets the "priority" field.
+func (m *ReleaseAutomationMutation) SetPriority(i int) {
+	m.priority = &i
+	m.addpriority = nil
+}
+
+// Priority returns the value of the "priority" field in the mutation.
+func (m *ReleaseAutomationMutation) Priority() (r int, exists bool) {
+	v := m.priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPriority returns the old "priority" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldPriority(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPriority: %w", err)
+	}
+	return oldValue.Priority, nil
+}
+
+// AddPriority adds i to the "priority" field.
+func (m *ReleaseAutomationMutation) AddPriority(i int) {
+	if m.addpriority != nil {
+		*m.addpriority += i
+	} else {
+		m.addpriority = &i
+	}
+}
+
+// AddedPriority returns the value that was added to the "priority" field in this mutation.
+func (m *ReleaseAutomationMutation) AddedPriority() (r int, exists bool) {
+	v := m.addpriority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPriority resets all changes to the "priority" field.
+func (m *ReleaseAutomationMutation) ResetPriority() {
+	m.priority = nil
+	m.addpriority = nil
+}
+
+// SetRevision sets the "revision" field.
+func (m *ReleaseAutomationMutation) SetRevision(i int) {
+	m.revision = &i
+	m.addrevision = nil
+}
+
+// Revision returns the value of the "revision" field in the mutation.
+func (m *ReleaseAutomationMutation) Revision() (r int, exists bool) {
+	v := m.revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevision returns the old "revision" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldRevision(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevision: %w", err)
+	}
+	return oldValue.Revision, nil
+}
+
+// AddRevision adds i to the "revision" field.
+func (m *ReleaseAutomationMutation) AddRevision(i int) {
+	if m.addrevision != nil {
+		*m.addrevision += i
+	} else {
+		m.addrevision = &i
+	}
+}
+
+// AddedRevision returns the value that was added to the "revision" field in this mutation.
+func (m *ReleaseAutomationMutation) AddedRevision() (r int, exists bool) {
+	v := m.addrevision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRevision resets all changes to the "revision" field.
+func (m *ReleaseAutomationMutation) ResetRevision() {
+	m.revision = nil
+	m.addrevision = nil
+}
+
+// SetEnabled sets the "enabled" field.
+func (m *ReleaseAutomationMutation) SetEnabled(b bool) {
+	m.enabled = &b
+}
+
+// Enabled returns the value of the "enabled" field in the mutation.
+func (m *ReleaseAutomationMutation) Enabled() (r bool, exists bool) {
+	v := m.enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnabled returns the old "enabled" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnabled: %w", err)
+	}
+	return oldValue.Enabled, nil
+}
+
+// ResetEnabled resets all changes to the "enabled" field.
+func (m *ReleaseAutomationMutation) ResetEnabled() {
+	m.enabled = nil
+}
+
+// SetActivePriority sets the "active_priority" field.
+func (m *ReleaseAutomationMutation) SetActivePriority(i int) {
+	m.active_priority = &i
+	m.addactive_priority = nil
+}
+
+// ActivePriority returns the value of the "active_priority" field in the mutation.
+func (m *ReleaseAutomationMutation) ActivePriority() (r int, exists bool) {
+	v := m.active_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActivePriority returns the old "active_priority" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldActivePriority(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActivePriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActivePriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActivePriority: %w", err)
+	}
+	return oldValue.ActivePriority, nil
+}
+
+// AddActivePriority adds i to the "active_priority" field.
+func (m *ReleaseAutomationMutation) AddActivePriority(i int) {
+	if m.addactive_priority != nil {
+		*m.addactive_priority += i
+	} else {
+		m.addactive_priority = &i
+	}
+}
+
+// AddedActivePriority returns the value that was added to the "active_priority" field in this mutation.
+func (m *ReleaseAutomationMutation) AddedActivePriority() (r int, exists bool) {
+	v := m.addactive_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetActivePriority resets all changes to the "active_priority" field.
+func (m *ReleaseAutomationMutation) ResetActivePriority() {
+	m.active_priority = nil
+	m.addactive_priority = nil
+}
+
+// SetActiveVersionID sets the "active_version_id" field.
+func (m *ReleaseAutomationMutation) SetActiveVersionID(s string) {
+	m.active_version_id = &s
+}
+
+// ActiveVersionID returns the value of the "active_version_id" field in the mutation.
+func (m *ReleaseAutomationMutation) ActiveVersionID() (r string, exists bool) {
+	v := m.active_version_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActiveVersionID returns the old "active_version_id" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldActiveVersionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActiveVersionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActiveVersionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActiveVersionID: %w", err)
+	}
+	return oldValue.ActiveVersionID, nil
+}
+
+// ClearActiveVersionID clears the value of the "active_version_id" field.
+func (m *ReleaseAutomationMutation) ClearActiveVersionID() {
+	m.active_version_id = nil
+	m.clearedFields[entreleaseautomation.FieldActiveVersionID] = struct{}{}
+}
+
+// ActiveVersionIDCleared returns if the "active_version_id" field was cleared in this mutation.
+func (m *ReleaseAutomationMutation) ActiveVersionIDCleared() bool {
+	_, ok := m.clearedFields[entreleaseautomation.FieldActiveVersionID]
+	return ok
+}
+
+// ResetActiveVersionID resets all changes to the "active_version_id" field.
+func (m *ReleaseAutomationMutation) ResetActiveVersionID() {
+	m.active_version_id = nil
+	delete(m.clearedFields, entreleaseautomation.FieldActiveVersionID)
+}
+
+// SetDraft sets the "draft" field.
+func (m *ReleaseAutomationMutation) SetDraft(r releaseautomation.Graph) {
+	m.draft = &r
+}
+
+// Draft returns the value of the "draft" field in the mutation.
+func (m *ReleaseAutomationMutation) Draft() (r releaseautomation.Graph, exists bool) {
+	v := m.draft
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDraft returns the old "draft" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldDraft(ctx context.Context) (v releaseautomation.Graph, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDraft is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDraft requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDraft: %w", err)
+	}
+	return oldValue.Draft, nil
+}
+
+// ResetDraft resets all changes to the "draft" field.
+func (m *ReleaseAutomationMutation) ResetDraft() {
+	m.draft = nil
+}
+
+// SetLayout sets the "layout" field.
+func (m *ReleaseAutomationMutation) SetLayout(value map[string]releaseautomation.Position) {
+	m.layout = &value
+}
+
+// Layout returns the value of the "layout" field in the mutation.
+func (m *ReleaseAutomationMutation) Layout() (r map[string]releaseautomation.Position, exists bool) {
+	v := m.layout
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLayout returns the old "layout" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldLayout(ctx context.Context) (v map[string]releaseautomation.Position, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLayout is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLayout requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLayout: %w", err)
+	}
+	return oldValue.Layout, nil
+}
+
+// ResetLayout resets all changes to the "layout" field.
+func (m *ReleaseAutomationMutation) ResetLayout() {
+	m.layout = nil
+}
+
+// SetModifiedBy sets the "modified_by" field.
+func (m *ReleaseAutomationMutation) SetModifiedBy(s string) {
+	m.modified_by = &s
+}
+
+// ModifiedBy returns the value of the "modified_by" field in the mutation.
+func (m *ReleaseAutomationMutation) ModifiedBy() (r string, exists bool) {
+	v := m.modified_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModifiedBy returns the old "modified_by" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldModifiedBy(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModifiedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModifiedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModifiedBy: %w", err)
+	}
+	return oldValue.ModifiedBy, nil
+}
+
+// ResetModifiedBy resets all changes to the "modified_by" field.
+func (m *ReleaseAutomationMutation) ResetModifiedBy() {
+	m.modified_by = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ReleaseAutomationMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ReleaseAutomationMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ReleaseAutomationMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ReleaseAutomationMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ReleaseAutomationMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ReleaseAutomationMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the ReleaseAutomationMutation builder.
+func (m *ReleaseAutomationMutation) Where(ps ...predicate.ReleaseAutomation) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ReleaseAutomationMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ReleaseAutomationMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ReleaseAutomation, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ReleaseAutomationMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ReleaseAutomationMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ReleaseAutomation).
+func (m *ReleaseAutomationMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ReleaseAutomationMutation) Fields() []string {
+	fields := make([]string, 0, 15)
+	if m.organization_id != nil {
+		fields = append(fields, entreleaseautomation.FieldOrganizationID)
+	}
+	if m.source_app_id != nil {
+		fields = append(fields, entreleaseautomation.FieldSourceAppID)
+	}
+	if m.name != nil {
+		fields = append(fields, entreleaseautomation.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, entreleaseautomation.FieldDescription)
+	}
+	if m.family != nil {
+		fields = append(fields, entreleaseautomation.FieldFamily)
+	}
+	if m.priority != nil {
+		fields = append(fields, entreleaseautomation.FieldPriority)
+	}
+	if m.revision != nil {
+		fields = append(fields, entreleaseautomation.FieldRevision)
+	}
+	if m.enabled != nil {
+		fields = append(fields, entreleaseautomation.FieldEnabled)
+	}
+	if m.active_priority != nil {
+		fields = append(fields, entreleaseautomation.FieldActivePriority)
+	}
+	if m.active_version_id != nil {
+		fields = append(fields, entreleaseautomation.FieldActiveVersionID)
+	}
+	if m.draft != nil {
+		fields = append(fields, entreleaseautomation.FieldDraft)
+	}
+	if m.layout != nil {
+		fields = append(fields, entreleaseautomation.FieldLayout)
+	}
+	if m.modified_by != nil {
+		fields = append(fields, entreleaseautomation.FieldModifiedBy)
+	}
+	if m.created_at != nil {
+		fields = append(fields, entreleaseautomation.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, entreleaseautomation.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ReleaseAutomationMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case entreleaseautomation.FieldOrganizationID:
+		return m.OrganizationID()
+	case entreleaseautomation.FieldSourceAppID:
+		return m.SourceAppID()
+	case entreleaseautomation.FieldName:
+		return m.Name()
+	case entreleaseautomation.FieldDescription:
+		return m.Description()
+	case entreleaseautomation.FieldFamily:
+		return m.Family()
+	case entreleaseautomation.FieldPriority:
+		return m.Priority()
+	case entreleaseautomation.FieldRevision:
+		return m.Revision()
+	case entreleaseautomation.FieldEnabled:
+		return m.Enabled()
+	case entreleaseautomation.FieldActivePriority:
+		return m.ActivePriority()
+	case entreleaseautomation.FieldActiveVersionID:
+		return m.ActiveVersionID()
+	case entreleaseautomation.FieldDraft:
+		return m.Draft()
+	case entreleaseautomation.FieldLayout:
+		return m.Layout()
+	case entreleaseautomation.FieldModifiedBy:
+		return m.ModifiedBy()
+	case entreleaseautomation.FieldCreatedAt:
+		return m.CreatedAt()
+	case entreleaseautomation.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ReleaseAutomationMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case entreleaseautomation.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case entreleaseautomation.FieldSourceAppID:
+		return m.OldSourceAppID(ctx)
+	case entreleaseautomation.FieldName:
+		return m.OldName(ctx)
+	case entreleaseautomation.FieldDescription:
+		return m.OldDescription(ctx)
+	case entreleaseautomation.FieldFamily:
+		return m.OldFamily(ctx)
+	case entreleaseautomation.FieldPriority:
+		return m.OldPriority(ctx)
+	case entreleaseautomation.FieldRevision:
+		return m.OldRevision(ctx)
+	case entreleaseautomation.FieldEnabled:
+		return m.OldEnabled(ctx)
+	case entreleaseautomation.FieldActivePriority:
+		return m.OldActivePriority(ctx)
+	case entreleaseautomation.FieldActiveVersionID:
+		return m.OldActiveVersionID(ctx)
+	case entreleaseautomation.FieldDraft:
+		return m.OldDraft(ctx)
+	case entreleaseautomation.FieldLayout:
+		return m.OldLayout(ctx)
+	case entreleaseautomation.FieldModifiedBy:
+		return m.OldModifiedBy(ctx)
+	case entreleaseautomation.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case entreleaseautomation.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ReleaseAutomation field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseAutomationMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case entreleaseautomation.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case entreleaseautomation.FieldSourceAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceAppID(v)
+		return nil
+	case entreleaseautomation.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case entreleaseautomation.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case entreleaseautomation.FieldFamily:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFamily(v)
+		return nil
+	case entreleaseautomation.FieldPriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPriority(v)
+		return nil
+	case entreleaseautomation.FieldRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevision(v)
+		return nil
+	case entreleaseautomation.FieldEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnabled(v)
+		return nil
+	case entreleaseautomation.FieldActivePriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActivePriority(v)
+		return nil
+	case entreleaseautomation.FieldActiveVersionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActiveVersionID(v)
+		return nil
+	case entreleaseautomation.FieldDraft:
+		v, ok := value.(releaseautomation.Graph)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDraft(v)
+		return nil
+	case entreleaseautomation.FieldLayout:
+		v, ok := value.(map[string]releaseautomation.Position)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLayout(v)
+		return nil
+	case entreleaseautomation.FieldModifiedBy:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModifiedBy(v)
+		return nil
+	case entreleaseautomation.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case entreleaseautomation.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomation field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ReleaseAutomationMutation) AddedFields() []string {
+	var fields []string
+	if m.addpriority != nil {
+		fields = append(fields, entreleaseautomation.FieldPriority)
+	}
+	if m.addrevision != nil {
+		fields = append(fields, entreleaseautomation.FieldRevision)
+	}
+	if m.addactive_priority != nil {
+		fields = append(fields, entreleaseautomation.FieldActivePriority)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ReleaseAutomationMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case entreleaseautomation.FieldPriority:
+		return m.AddedPriority()
+	case entreleaseautomation.FieldRevision:
+		return m.AddedRevision()
+	case entreleaseautomation.FieldActivePriority:
+		return m.AddedActivePriority()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseAutomationMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case entreleaseautomation.FieldPriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPriority(v)
+		return nil
+	case entreleaseautomation.FieldRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRevision(v)
+		return nil
+	case entreleaseautomation.FieldActivePriority:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddActivePriority(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomation numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ReleaseAutomationMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(entreleaseautomation.FieldActiveVersionID) {
+		fields = append(fields, entreleaseautomation.FieldActiveVersionID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ReleaseAutomationMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ReleaseAutomationMutation) ClearField(name string) error {
+	switch name {
+	case entreleaseautomation.FieldActiveVersionID:
+		m.ClearActiveVersionID()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomation nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ReleaseAutomationMutation) ResetField(name string) error {
+	switch name {
+	case entreleaseautomation.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case entreleaseautomation.FieldSourceAppID:
+		m.ResetSourceAppID()
+		return nil
+	case entreleaseautomation.FieldName:
+		m.ResetName()
+		return nil
+	case entreleaseautomation.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case entreleaseautomation.FieldFamily:
+		m.ResetFamily()
+		return nil
+	case entreleaseautomation.FieldPriority:
+		m.ResetPriority()
+		return nil
+	case entreleaseautomation.FieldRevision:
+		m.ResetRevision()
+		return nil
+	case entreleaseautomation.FieldEnabled:
+		m.ResetEnabled()
+		return nil
+	case entreleaseautomation.FieldActivePriority:
+		m.ResetActivePriority()
+		return nil
+	case entreleaseautomation.FieldActiveVersionID:
+		m.ResetActiveVersionID()
+		return nil
+	case entreleaseautomation.FieldDraft:
+		m.ResetDraft()
+		return nil
+	case entreleaseautomation.FieldLayout:
+		m.ResetLayout()
+		return nil
+	case entreleaseautomation.FieldModifiedBy:
+		m.ResetModifiedBy()
+		return nil
+	case entreleaseautomation.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case entreleaseautomation.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomation field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ReleaseAutomationMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ReleaseAutomationMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ReleaseAutomationMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ReleaseAutomationMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ReleaseAutomationMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ReleaseAutomationMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ReleaseAutomationMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomation unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ReleaseAutomationMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomation edge %s", name)
+}
+
+// ReleaseAutomationExecutorMutation represents an operation that mutates the ReleaseAutomationExecutor nodes in the graph.
+type ReleaseAutomationExecutorMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *string
+	schema_version    *int
+	addschema_version *int
+	expires_at        *time.Time
+	clearedFields     map[string]struct{}
+	done              bool
+	oldValue          func(context.Context) (*ReleaseAutomationExecutor, error)
+	predicates        []predicate.ReleaseAutomationExecutor
+}
+
+var _ ent.Mutation = (*ReleaseAutomationExecutorMutation)(nil)
+
+// releaseautomationexecutorOption allows management of the mutation configuration using functional options.
+type releaseautomationexecutorOption func(*ReleaseAutomationExecutorMutation)
+
+// newReleaseAutomationExecutorMutation creates new mutation for the ReleaseAutomationExecutor entity.
+func newReleaseAutomationExecutorMutation(c config, op Op, opts ...releaseautomationexecutorOption) *ReleaseAutomationExecutorMutation {
+	m := &ReleaseAutomationExecutorMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeReleaseAutomationExecutor,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withReleaseAutomationExecutorID sets the ID field of the mutation.
+func withReleaseAutomationExecutorID(id string) releaseautomationexecutorOption {
+	return func(m *ReleaseAutomationExecutorMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ReleaseAutomationExecutor
+		)
+		m.oldValue = func(ctx context.Context) (*ReleaseAutomationExecutor, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ReleaseAutomationExecutor.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withReleaseAutomationExecutor sets the old ReleaseAutomationExecutor of the mutation.
+func withReleaseAutomationExecutor(node *ReleaseAutomationExecutor) releaseautomationexecutorOption {
+	return func(m *ReleaseAutomationExecutorMutation) {
+		m.oldValue = func(context.Context) (*ReleaseAutomationExecutor, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ReleaseAutomationExecutorMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ReleaseAutomationExecutorMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ReleaseAutomationExecutor entities.
+func (m *ReleaseAutomationExecutorMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ReleaseAutomationExecutorMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ReleaseAutomationExecutorMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ReleaseAutomationExecutor.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetSchemaVersion sets the "schema_version" field.
+func (m *ReleaseAutomationExecutorMutation) SetSchemaVersion(i int) {
+	m.schema_version = &i
+	m.addschema_version = nil
+}
+
+// SchemaVersion returns the value of the "schema_version" field in the mutation.
+func (m *ReleaseAutomationExecutorMutation) SchemaVersion() (r int, exists bool) {
+	v := m.schema_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSchemaVersion returns the old "schema_version" field's value of the ReleaseAutomationExecutor entity.
+// If the ReleaseAutomationExecutor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationExecutorMutation) OldSchemaVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSchemaVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSchemaVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSchemaVersion: %w", err)
+	}
+	return oldValue.SchemaVersion, nil
+}
+
+// AddSchemaVersion adds i to the "schema_version" field.
+func (m *ReleaseAutomationExecutorMutation) AddSchemaVersion(i int) {
+	if m.addschema_version != nil {
+		*m.addschema_version += i
+	} else {
+		m.addschema_version = &i
+	}
+}
+
+// AddedSchemaVersion returns the value that was added to the "schema_version" field in this mutation.
+func (m *ReleaseAutomationExecutorMutation) AddedSchemaVersion() (r int, exists bool) {
+	v := m.addschema_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSchemaVersion resets all changes to the "schema_version" field.
+func (m *ReleaseAutomationExecutorMutation) ResetSchemaVersion() {
+	m.schema_version = nil
+	m.addschema_version = nil
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *ReleaseAutomationExecutorMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *ReleaseAutomationExecutorMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the ReleaseAutomationExecutor entity.
+// If the ReleaseAutomationExecutor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationExecutorMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *ReleaseAutomationExecutorMutation) ResetExpiresAt() {
+	m.expires_at = nil
+}
+
+// Where appends a list predicates to the ReleaseAutomationExecutorMutation builder.
+func (m *ReleaseAutomationExecutorMutation) Where(ps ...predicate.ReleaseAutomationExecutor) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ReleaseAutomationExecutorMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ReleaseAutomationExecutorMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ReleaseAutomationExecutor, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ReleaseAutomationExecutorMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ReleaseAutomationExecutorMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ReleaseAutomationExecutor).
+func (m *ReleaseAutomationExecutorMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ReleaseAutomationExecutorMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.schema_version != nil {
+		fields = append(fields, releaseautomationexecutor.FieldSchemaVersion)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, releaseautomationexecutor.FieldExpiresAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ReleaseAutomationExecutorMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case releaseautomationexecutor.FieldSchemaVersion:
+		return m.SchemaVersion()
+	case releaseautomationexecutor.FieldExpiresAt:
+		return m.ExpiresAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ReleaseAutomationExecutorMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case releaseautomationexecutor.FieldSchemaVersion:
+		return m.OldSchemaVersion(ctx)
+	case releaseautomationexecutor.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ReleaseAutomationExecutor field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseAutomationExecutorMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case releaseautomationexecutor.FieldSchemaVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSchemaVersion(v)
+		return nil
+	case releaseautomationexecutor.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationExecutor field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ReleaseAutomationExecutorMutation) AddedFields() []string {
+	var fields []string
+	if m.addschema_version != nil {
+		fields = append(fields, releaseautomationexecutor.FieldSchemaVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ReleaseAutomationExecutorMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case releaseautomationexecutor.FieldSchemaVersion:
+		return m.AddedSchemaVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseAutomationExecutorMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case releaseautomationexecutor.FieldSchemaVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSchemaVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationExecutor numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ReleaseAutomationExecutorMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ReleaseAutomationExecutorMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ReleaseAutomationExecutorMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomationExecutor nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ReleaseAutomationExecutorMutation) ResetField(name string) error {
+	switch name {
+	case releaseautomationexecutor.FieldSchemaVersion:
+		m.ResetSchemaVersion()
+		return nil
+	case releaseautomationexecutor.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationExecutor field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ReleaseAutomationExecutorMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ReleaseAutomationExecutorMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ReleaseAutomationExecutorMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ReleaseAutomationExecutorMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ReleaseAutomationExecutorMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ReleaseAutomationExecutorMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ReleaseAutomationExecutorMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomationExecutor unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ReleaseAutomationExecutorMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomationExecutor edge %s", name)
+}
+
+// ReleaseAutomationNodeMutation represents an operation that mutates the ReleaseAutomationNode nodes in the graph.
+type ReleaseAutomationNodeMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	run_id          *string
+	node_id         *string
+	action_key      *string
+	status          *string
+	attempts        *int
+	addattempts     *int
+	failure_code    *string
+	decision        *releaseautomation.Decision
+	outputs         *releaseautomation.Outputs
+	started_at      *time.Time
+	completed_at    *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*ReleaseAutomationNode, error)
+	predicates      []predicate.ReleaseAutomationNode
+}
+
+var _ ent.Mutation = (*ReleaseAutomationNodeMutation)(nil)
+
+// releaseautomationnodeOption allows management of the mutation configuration using functional options.
+type releaseautomationnodeOption func(*ReleaseAutomationNodeMutation)
+
+// newReleaseAutomationNodeMutation creates new mutation for the ReleaseAutomationNode entity.
+func newReleaseAutomationNodeMutation(c config, op Op, opts ...releaseautomationnodeOption) *ReleaseAutomationNodeMutation {
+	m := &ReleaseAutomationNodeMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeReleaseAutomationNode,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withReleaseAutomationNodeID sets the ID field of the mutation.
+func withReleaseAutomationNodeID(id string) releaseautomationnodeOption {
+	return func(m *ReleaseAutomationNodeMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ReleaseAutomationNode
+		)
+		m.oldValue = func(ctx context.Context) (*ReleaseAutomationNode, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ReleaseAutomationNode.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withReleaseAutomationNode sets the old ReleaseAutomationNode of the mutation.
+func withReleaseAutomationNode(node *ReleaseAutomationNode) releaseautomationnodeOption {
+	return func(m *ReleaseAutomationNodeMutation) {
+		m.oldValue = func(context.Context) (*ReleaseAutomationNode, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ReleaseAutomationNodeMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ReleaseAutomationNodeMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ReleaseAutomationNode entities.
+func (m *ReleaseAutomationNodeMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ReleaseAutomationNodeMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ReleaseAutomationNodeMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ReleaseAutomationNode.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *ReleaseAutomationNodeMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *ReleaseAutomationNodeMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetRunID sets the "run_id" field.
+func (m *ReleaseAutomationNodeMutation) SetRunID(s string) {
+	m.run_id = &s
+}
+
+// RunID returns the value of the "run_id" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) RunID() (r string, exists bool) {
+	v := m.run_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRunID returns the old "run_id" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldRunID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRunID: %w", err)
+	}
+	return oldValue.RunID, nil
+}
+
+// ResetRunID resets all changes to the "run_id" field.
+func (m *ReleaseAutomationNodeMutation) ResetRunID() {
+	m.run_id = nil
+}
+
+// SetNodeID sets the "node_id" field.
+func (m *ReleaseAutomationNodeMutation) SetNodeID(s string) {
+	m.node_id = &s
+}
+
+// NodeID returns the value of the "node_id" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) NodeID() (r string, exists bool) {
+	v := m.node_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNodeID returns the old "node_id" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldNodeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNodeID: %w", err)
+	}
+	return oldValue.NodeID, nil
+}
+
+// ResetNodeID resets all changes to the "node_id" field.
+func (m *ReleaseAutomationNodeMutation) ResetNodeID() {
+	m.node_id = nil
+}
+
+// SetActionKey sets the "action_key" field.
+func (m *ReleaseAutomationNodeMutation) SetActionKey(s string) {
+	m.action_key = &s
+}
+
+// ActionKey returns the value of the "action_key" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) ActionKey() (r string, exists bool) {
+	v := m.action_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActionKey returns the old "action_key" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldActionKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActionKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActionKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActionKey: %w", err)
+	}
+	return oldValue.ActionKey, nil
+}
+
+// ResetActionKey resets all changes to the "action_key" field.
+func (m *ReleaseAutomationNodeMutation) ResetActionKey() {
+	m.action_key = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *ReleaseAutomationNodeMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ReleaseAutomationNodeMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetAttempts sets the "attempts" field.
+func (m *ReleaseAutomationNodeMutation) SetAttempts(i int) {
+	m.attempts = &i
+	m.addattempts = nil
+}
+
+// Attempts returns the value of the "attempts" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) Attempts() (r int, exists bool) {
+	v := m.attempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAttempts returns the old "attempts" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldAttempts(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAttempts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAttempts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAttempts: %w", err)
+	}
+	return oldValue.Attempts, nil
+}
+
+// AddAttempts adds i to the "attempts" field.
+func (m *ReleaseAutomationNodeMutation) AddAttempts(i int) {
+	if m.addattempts != nil {
+		*m.addattempts += i
+	} else {
+		m.addattempts = &i
+	}
+}
+
+// AddedAttempts returns the value that was added to the "attempts" field in this mutation.
+func (m *ReleaseAutomationNodeMutation) AddedAttempts() (r int, exists bool) {
+	v := m.addattempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAttempts resets all changes to the "attempts" field.
+func (m *ReleaseAutomationNodeMutation) ResetAttempts() {
+	m.attempts = nil
+	m.addattempts = nil
+}
+
+// SetFailureCode sets the "failure_code" field.
+func (m *ReleaseAutomationNodeMutation) SetFailureCode(s string) {
+	m.failure_code = &s
+}
+
+// FailureCode returns the value of the "failure_code" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) FailureCode() (r string, exists bool) {
+	v := m.failure_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailureCode returns the old "failure_code" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldFailureCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailureCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailureCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailureCode: %w", err)
+	}
+	return oldValue.FailureCode, nil
+}
+
+// ResetFailureCode resets all changes to the "failure_code" field.
+func (m *ReleaseAutomationNodeMutation) ResetFailureCode() {
+	m.failure_code = nil
+}
+
+// SetDecision sets the "decision" field.
+func (m *ReleaseAutomationNodeMutation) SetDecision(r releaseautomation.Decision) {
+	m.decision = &r
+}
+
+// Decision returns the value of the "decision" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) Decision() (r releaseautomation.Decision, exists bool) {
+	v := m.decision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDecision returns the old "decision" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldDecision(ctx context.Context) (v releaseautomation.Decision, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDecision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDecision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDecision: %w", err)
+	}
+	return oldValue.Decision, nil
+}
+
+// ClearDecision clears the value of the "decision" field.
+func (m *ReleaseAutomationNodeMutation) ClearDecision() {
+	m.decision = nil
+	m.clearedFields[releaseautomationnode.FieldDecision] = struct{}{}
+}
+
+// DecisionCleared returns if the "decision" field was cleared in this mutation.
+func (m *ReleaseAutomationNodeMutation) DecisionCleared() bool {
+	_, ok := m.clearedFields[releaseautomationnode.FieldDecision]
+	return ok
+}
+
+// ResetDecision resets all changes to the "decision" field.
+func (m *ReleaseAutomationNodeMutation) ResetDecision() {
+	m.decision = nil
+	delete(m.clearedFields, releaseautomationnode.FieldDecision)
+}
+
+// SetOutputs sets the "outputs" field.
+func (m *ReleaseAutomationNodeMutation) SetOutputs(r releaseautomation.Outputs) {
+	m.outputs = &r
+}
+
+// Outputs returns the value of the "outputs" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) Outputs() (r releaseautomation.Outputs, exists bool) {
+	v := m.outputs
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOutputs returns the old "outputs" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldOutputs(ctx context.Context) (v releaseautomation.Outputs, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOutputs is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOutputs requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOutputs: %w", err)
+	}
+	return oldValue.Outputs, nil
+}
+
+// ResetOutputs resets all changes to the "outputs" field.
+func (m *ReleaseAutomationNodeMutation) ResetOutputs() {
+	m.outputs = nil
+}
+
+// SetStartedAt sets the "started_at" field.
+func (m *ReleaseAutomationNodeMutation) SetStartedAt(t time.Time) {
+	m.started_at = &t
+}
+
+// StartedAt returns the value of the "started_at" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) StartedAt() (r time.Time, exists bool) {
+	v := m.started_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartedAt returns the old "started_at" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldStartedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStartedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStartedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartedAt: %w", err)
+	}
+	return oldValue.StartedAt, nil
+}
+
+// ResetStartedAt resets all changes to the "started_at" field.
+func (m *ReleaseAutomationNodeMutation) ResetStartedAt() {
+	m.started_at = nil
+}
+
+// SetCompletedAt sets the "completed_at" field.
+func (m *ReleaseAutomationNodeMutation) SetCompletedAt(t time.Time) {
+	m.completed_at = &t
+}
+
+// CompletedAt returns the value of the "completed_at" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) CompletedAt() (r time.Time, exists bool) {
+	v := m.completed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompletedAt returns the old "completed_at" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldCompletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompletedAt: %w", err)
+	}
+	return oldValue.CompletedAt, nil
+}
+
+// ClearCompletedAt clears the value of the "completed_at" field.
+func (m *ReleaseAutomationNodeMutation) ClearCompletedAt() {
+	m.completed_at = nil
+	m.clearedFields[releaseautomationnode.FieldCompletedAt] = struct{}{}
+}
+
+// CompletedAtCleared returns if the "completed_at" field was cleared in this mutation.
+func (m *ReleaseAutomationNodeMutation) CompletedAtCleared() bool {
+	_, ok := m.clearedFields[releaseautomationnode.FieldCompletedAt]
+	return ok
+}
+
+// ResetCompletedAt resets all changes to the "completed_at" field.
+func (m *ReleaseAutomationNodeMutation) ResetCompletedAt() {
+	m.completed_at = nil
+	delete(m.clearedFields, releaseautomationnode.FieldCompletedAt)
+}
+
+// Where appends a list predicates to the ReleaseAutomationNodeMutation builder.
+func (m *ReleaseAutomationNodeMutation) Where(ps ...predicate.ReleaseAutomationNode) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ReleaseAutomationNodeMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ReleaseAutomationNodeMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ReleaseAutomationNode, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ReleaseAutomationNodeMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ReleaseAutomationNodeMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ReleaseAutomationNode).
+func (m *ReleaseAutomationNodeMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ReleaseAutomationNodeMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.organization_id != nil {
+		fields = append(fields, releaseautomationnode.FieldOrganizationID)
+	}
+	if m.run_id != nil {
+		fields = append(fields, releaseautomationnode.FieldRunID)
+	}
+	if m.node_id != nil {
+		fields = append(fields, releaseautomationnode.FieldNodeID)
+	}
+	if m.action_key != nil {
+		fields = append(fields, releaseautomationnode.FieldActionKey)
+	}
+	if m.status != nil {
+		fields = append(fields, releaseautomationnode.FieldStatus)
+	}
+	if m.attempts != nil {
+		fields = append(fields, releaseautomationnode.FieldAttempts)
+	}
+	if m.failure_code != nil {
+		fields = append(fields, releaseautomationnode.FieldFailureCode)
+	}
+	if m.decision != nil {
+		fields = append(fields, releaseautomationnode.FieldDecision)
+	}
+	if m.outputs != nil {
+		fields = append(fields, releaseautomationnode.FieldOutputs)
+	}
+	if m.started_at != nil {
+		fields = append(fields, releaseautomationnode.FieldStartedAt)
+	}
+	if m.completed_at != nil {
+		fields = append(fields, releaseautomationnode.FieldCompletedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ReleaseAutomationNodeMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case releaseautomationnode.FieldOrganizationID:
+		return m.OrganizationID()
+	case releaseautomationnode.FieldRunID:
+		return m.RunID()
+	case releaseautomationnode.FieldNodeID:
+		return m.NodeID()
+	case releaseautomationnode.FieldActionKey:
+		return m.ActionKey()
+	case releaseautomationnode.FieldStatus:
+		return m.Status()
+	case releaseautomationnode.FieldAttempts:
+		return m.Attempts()
+	case releaseautomationnode.FieldFailureCode:
+		return m.FailureCode()
+	case releaseautomationnode.FieldDecision:
+		return m.Decision()
+	case releaseautomationnode.FieldOutputs:
+		return m.Outputs()
+	case releaseautomationnode.FieldStartedAt:
+		return m.StartedAt()
+	case releaseautomationnode.FieldCompletedAt:
+		return m.CompletedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ReleaseAutomationNodeMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case releaseautomationnode.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case releaseautomationnode.FieldRunID:
+		return m.OldRunID(ctx)
+	case releaseautomationnode.FieldNodeID:
+		return m.OldNodeID(ctx)
+	case releaseautomationnode.FieldActionKey:
+		return m.OldActionKey(ctx)
+	case releaseautomationnode.FieldStatus:
+		return m.OldStatus(ctx)
+	case releaseautomationnode.FieldAttempts:
+		return m.OldAttempts(ctx)
+	case releaseautomationnode.FieldFailureCode:
+		return m.OldFailureCode(ctx)
+	case releaseautomationnode.FieldDecision:
+		return m.OldDecision(ctx)
+	case releaseautomationnode.FieldOutputs:
+		return m.OldOutputs(ctx)
+	case releaseautomationnode.FieldStartedAt:
+		return m.OldStartedAt(ctx)
+	case releaseautomationnode.FieldCompletedAt:
+		return m.OldCompletedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ReleaseAutomationNode field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseAutomationNodeMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case releaseautomationnode.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case releaseautomationnode.FieldRunID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRunID(v)
+		return nil
+	case releaseautomationnode.FieldNodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNodeID(v)
+		return nil
+	case releaseautomationnode.FieldActionKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActionKey(v)
+		return nil
+	case releaseautomationnode.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case releaseautomationnode.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAttempts(v)
+		return nil
+	case releaseautomationnode.FieldFailureCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailureCode(v)
+		return nil
+	case releaseautomationnode.FieldDecision:
+		v, ok := value.(releaseautomation.Decision)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDecision(v)
+		return nil
+	case releaseautomationnode.FieldOutputs:
+		v, ok := value.(releaseautomation.Outputs)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOutputs(v)
+		return nil
+	case releaseautomationnode.FieldStartedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartedAt(v)
+		return nil
+	case releaseautomationnode.FieldCompletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompletedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationNode field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ReleaseAutomationNodeMutation) AddedFields() []string {
+	var fields []string
+	if m.addattempts != nil {
+		fields = append(fields, releaseautomationnode.FieldAttempts)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ReleaseAutomationNodeMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case releaseautomationnode.FieldAttempts:
+		return m.AddedAttempts()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseAutomationNodeMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case releaseautomationnode.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAttempts(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationNode numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ReleaseAutomationNodeMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(releaseautomationnode.FieldDecision) {
+		fields = append(fields, releaseautomationnode.FieldDecision)
+	}
+	if m.FieldCleared(releaseautomationnode.FieldCompletedAt) {
+		fields = append(fields, releaseautomationnode.FieldCompletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ReleaseAutomationNodeMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ReleaseAutomationNodeMutation) ClearField(name string) error {
+	switch name {
+	case releaseautomationnode.FieldDecision:
+		m.ClearDecision()
+		return nil
+	case releaseautomationnode.FieldCompletedAt:
+		m.ClearCompletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationNode nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ReleaseAutomationNodeMutation) ResetField(name string) error {
+	switch name {
+	case releaseautomationnode.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case releaseautomationnode.FieldRunID:
+		m.ResetRunID()
+		return nil
+	case releaseautomationnode.FieldNodeID:
+		m.ResetNodeID()
+		return nil
+	case releaseautomationnode.FieldActionKey:
+		m.ResetActionKey()
+		return nil
+	case releaseautomationnode.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case releaseautomationnode.FieldAttempts:
+		m.ResetAttempts()
+		return nil
+	case releaseautomationnode.FieldFailureCode:
+		m.ResetFailureCode()
+		return nil
+	case releaseautomationnode.FieldDecision:
+		m.ResetDecision()
+		return nil
+	case releaseautomationnode.FieldOutputs:
+		m.ResetOutputs()
+		return nil
+	case releaseautomationnode.FieldStartedAt:
+		m.ResetStartedAt()
+		return nil
+	case releaseautomationnode.FieldCompletedAt:
+		m.ResetCompletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationNode field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ReleaseAutomationNodeMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ReleaseAutomationNodeMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ReleaseAutomationNodeMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ReleaseAutomationNodeMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ReleaseAutomationNodeMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ReleaseAutomationNodeMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ReleaseAutomationNodeMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomationNode unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ReleaseAutomationNodeMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomationNode edge %s", name)
+}
+
+// ReleaseAutomationRunMutation represents an operation that mutates the ReleaseAutomationRun nodes in the graph.
+type ReleaseAutomationRunMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *string
+	organization_id     *string
+	event_id            *string
+	definition_id       *string
+	version_id          *string
+	workflow_id         *string
+	temporal_run_id     *string
+	status              *string
+	cancel_requested    *bool
+	recovery_attempt    *int
+	addrecovery_attempt *int
+	failure_code        *string
+	reason              *string
+	outputs             *releaseautomation.Outputs
+	started_at          *time.Time
+	completed_at        *time.Time
+	created_at          *time.Time
+	updated_at          *time.Time
+	clearedFields       map[string]struct{}
+	done                bool
+	oldValue            func(context.Context) (*ReleaseAutomationRun, error)
+	predicates          []predicate.ReleaseAutomationRun
+}
+
+var _ ent.Mutation = (*ReleaseAutomationRunMutation)(nil)
+
+// releaseautomationrunOption allows management of the mutation configuration using functional options.
+type releaseautomationrunOption func(*ReleaseAutomationRunMutation)
+
+// newReleaseAutomationRunMutation creates new mutation for the ReleaseAutomationRun entity.
+func newReleaseAutomationRunMutation(c config, op Op, opts ...releaseautomationrunOption) *ReleaseAutomationRunMutation {
+	m := &ReleaseAutomationRunMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeReleaseAutomationRun,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withReleaseAutomationRunID sets the ID field of the mutation.
+func withReleaseAutomationRunID(id string) releaseautomationrunOption {
+	return func(m *ReleaseAutomationRunMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ReleaseAutomationRun
+		)
+		m.oldValue = func(ctx context.Context) (*ReleaseAutomationRun, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ReleaseAutomationRun.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withReleaseAutomationRun sets the old ReleaseAutomationRun of the mutation.
+func withReleaseAutomationRun(node *ReleaseAutomationRun) releaseautomationrunOption {
+	return func(m *ReleaseAutomationRunMutation) {
+		m.oldValue = func(context.Context) (*ReleaseAutomationRun, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ReleaseAutomationRunMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ReleaseAutomationRunMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ReleaseAutomationRun entities.
+func (m *ReleaseAutomationRunMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ReleaseAutomationRunMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ReleaseAutomationRunMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ReleaseAutomationRun.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *ReleaseAutomationRunMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *ReleaseAutomationRunMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *ReleaseAutomationRunMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetEventID sets the "event_id" field.
+func (m *ReleaseAutomationRunMutation) SetEventID(s string) {
+	m.event_id = &s
+}
+
+// EventID returns the value of the "event_id" field in the mutation.
+func (m *ReleaseAutomationRunMutation) EventID() (r string, exists bool) {
+	v := m.event_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEventID returns the old "event_id" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldEventID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEventID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEventID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEventID: %w", err)
+	}
+	return oldValue.EventID, nil
+}
+
+// ResetEventID resets all changes to the "event_id" field.
+func (m *ReleaseAutomationRunMutation) ResetEventID() {
+	m.event_id = nil
+}
+
+// SetDefinitionID sets the "definition_id" field.
+func (m *ReleaseAutomationRunMutation) SetDefinitionID(s string) {
+	m.definition_id = &s
+}
+
+// DefinitionID returns the value of the "definition_id" field in the mutation.
+func (m *ReleaseAutomationRunMutation) DefinitionID() (r string, exists bool) {
+	v := m.definition_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDefinitionID returns the old "definition_id" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldDefinitionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDefinitionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDefinitionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDefinitionID: %w", err)
+	}
+	return oldValue.DefinitionID, nil
+}
+
+// ClearDefinitionID clears the value of the "definition_id" field.
+func (m *ReleaseAutomationRunMutation) ClearDefinitionID() {
+	m.definition_id = nil
+	m.clearedFields[releaseautomationrun.FieldDefinitionID] = struct{}{}
+}
+
+// DefinitionIDCleared returns if the "definition_id" field was cleared in this mutation.
+func (m *ReleaseAutomationRunMutation) DefinitionIDCleared() bool {
+	_, ok := m.clearedFields[releaseautomationrun.FieldDefinitionID]
+	return ok
+}
+
+// ResetDefinitionID resets all changes to the "definition_id" field.
+func (m *ReleaseAutomationRunMutation) ResetDefinitionID() {
+	m.definition_id = nil
+	delete(m.clearedFields, releaseautomationrun.FieldDefinitionID)
+}
+
+// SetVersionID sets the "version_id" field.
+func (m *ReleaseAutomationRunMutation) SetVersionID(s string) {
+	m.version_id = &s
+}
+
+// VersionID returns the value of the "version_id" field in the mutation.
+func (m *ReleaseAutomationRunMutation) VersionID() (r string, exists bool) {
+	v := m.version_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersionID returns the old "version_id" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldVersionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersionID: %w", err)
+	}
+	return oldValue.VersionID, nil
+}
+
+// ClearVersionID clears the value of the "version_id" field.
+func (m *ReleaseAutomationRunMutation) ClearVersionID() {
+	m.version_id = nil
+	m.clearedFields[releaseautomationrun.FieldVersionID] = struct{}{}
+}
+
+// VersionIDCleared returns if the "version_id" field was cleared in this mutation.
+func (m *ReleaseAutomationRunMutation) VersionIDCleared() bool {
+	_, ok := m.clearedFields[releaseautomationrun.FieldVersionID]
+	return ok
+}
+
+// ResetVersionID resets all changes to the "version_id" field.
+func (m *ReleaseAutomationRunMutation) ResetVersionID() {
+	m.version_id = nil
+	delete(m.clearedFields, releaseautomationrun.FieldVersionID)
+}
+
+// SetWorkflowID sets the "workflow_id" field.
+func (m *ReleaseAutomationRunMutation) SetWorkflowID(s string) {
+	m.workflow_id = &s
+}
+
+// WorkflowID returns the value of the "workflow_id" field in the mutation.
+func (m *ReleaseAutomationRunMutation) WorkflowID() (r string, exists bool) {
+	v := m.workflow_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkflowID returns the old "workflow_id" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldWorkflowID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkflowID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkflowID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkflowID: %w", err)
+	}
+	return oldValue.WorkflowID, nil
+}
+
+// ResetWorkflowID resets all changes to the "workflow_id" field.
+func (m *ReleaseAutomationRunMutation) ResetWorkflowID() {
+	m.workflow_id = nil
+}
+
+// SetTemporalRunID sets the "temporal_run_id" field.
+func (m *ReleaseAutomationRunMutation) SetTemporalRunID(s string) {
+	m.temporal_run_id = &s
+}
+
+// TemporalRunID returns the value of the "temporal_run_id" field in the mutation.
+func (m *ReleaseAutomationRunMutation) TemporalRunID() (r string, exists bool) {
+	v := m.temporal_run_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTemporalRunID returns the old "temporal_run_id" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldTemporalRunID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTemporalRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTemporalRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTemporalRunID: %w", err)
+	}
+	return oldValue.TemporalRunID, nil
+}
+
+// ResetTemporalRunID resets all changes to the "temporal_run_id" field.
+func (m *ReleaseAutomationRunMutation) ResetTemporalRunID() {
+	m.temporal_run_id = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *ReleaseAutomationRunMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ReleaseAutomationRunMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ReleaseAutomationRunMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetCancelRequested sets the "cancel_requested" field.
+func (m *ReleaseAutomationRunMutation) SetCancelRequested(b bool) {
+	m.cancel_requested = &b
+}
+
+// CancelRequested returns the value of the "cancel_requested" field in the mutation.
+func (m *ReleaseAutomationRunMutation) CancelRequested() (r bool, exists bool) {
+	v := m.cancel_requested
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCancelRequested returns the old "cancel_requested" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldCancelRequested(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCancelRequested is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCancelRequested requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCancelRequested: %w", err)
+	}
+	return oldValue.CancelRequested, nil
+}
+
+// ResetCancelRequested resets all changes to the "cancel_requested" field.
+func (m *ReleaseAutomationRunMutation) ResetCancelRequested() {
+	m.cancel_requested = nil
+}
+
+// SetRecoveryAttempt sets the "recovery_attempt" field.
+func (m *ReleaseAutomationRunMutation) SetRecoveryAttempt(i int) {
+	m.recovery_attempt = &i
+	m.addrecovery_attempt = nil
+}
+
+// RecoveryAttempt returns the value of the "recovery_attempt" field in the mutation.
+func (m *ReleaseAutomationRunMutation) RecoveryAttempt() (r int, exists bool) {
+	v := m.recovery_attempt
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRecoveryAttempt returns the old "recovery_attempt" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldRecoveryAttempt(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRecoveryAttempt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRecoveryAttempt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRecoveryAttempt: %w", err)
+	}
+	return oldValue.RecoveryAttempt, nil
+}
+
+// AddRecoveryAttempt adds i to the "recovery_attempt" field.
+func (m *ReleaseAutomationRunMutation) AddRecoveryAttempt(i int) {
+	if m.addrecovery_attempt != nil {
+		*m.addrecovery_attempt += i
+	} else {
+		m.addrecovery_attempt = &i
+	}
+}
+
+// AddedRecoveryAttempt returns the value that was added to the "recovery_attempt" field in this mutation.
+func (m *ReleaseAutomationRunMutation) AddedRecoveryAttempt() (r int, exists bool) {
+	v := m.addrecovery_attempt
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRecoveryAttempt resets all changes to the "recovery_attempt" field.
+func (m *ReleaseAutomationRunMutation) ResetRecoveryAttempt() {
+	m.recovery_attempt = nil
+	m.addrecovery_attempt = nil
+}
+
+// SetFailureCode sets the "failure_code" field.
+func (m *ReleaseAutomationRunMutation) SetFailureCode(s string) {
+	m.failure_code = &s
+}
+
+// FailureCode returns the value of the "failure_code" field in the mutation.
+func (m *ReleaseAutomationRunMutation) FailureCode() (r string, exists bool) {
+	v := m.failure_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailureCode returns the old "failure_code" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldFailureCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailureCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailureCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailureCode: %w", err)
+	}
+	return oldValue.FailureCode, nil
+}
+
+// ResetFailureCode resets all changes to the "failure_code" field.
+func (m *ReleaseAutomationRunMutation) ResetFailureCode() {
+	m.failure_code = nil
+}
+
+// SetReason sets the "reason" field.
+func (m *ReleaseAutomationRunMutation) SetReason(s string) {
+	m.reason = &s
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *ReleaseAutomationRunMutation) Reason() (r string, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *ReleaseAutomationRunMutation) ResetReason() {
+	m.reason = nil
+}
+
+// SetOutputs sets the "outputs" field.
+func (m *ReleaseAutomationRunMutation) SetOutputs(r releaseautomation.Outputs) {
+	m.outputs = &r
+}
+
+// Outputs returns the value of the "outputs" field in the mutation.
+func (m *ReleaseAutomationRunMutation) Outputs() (r releaseautomation.Outputs, exists bool) {
+	v := m.outputs
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOutputs returns the old "outputs" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldOutputs(ctx context.Context) (v releaseautomation.Outputs, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOutputs is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOutputs requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOutputs: %w", err)
+	}
+	return oldValue.Outputs, nil
+}
+
+// ResetOutputs resets all changes to the "outputs" field.
+func (m *ReleaseAutomationRunMutation) ResetOutputs() {
+	m.outputs = nil
+}
+
+// SetStartedAt sets the "started_at" field.
+func (m *ReleaseAutomationRunMutation) SetStartedAt(t time.Time) {
+	m.started_at = &t
+}
+
+// StartedAt returns the value of the "started_at" field in the mutation.
+func (m *ReleaseAutomationRunMutation) StartedAt() (r time.Time, exists bool) {
+	v := m.started_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartedAt returns the old "started_at" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldStartedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStartedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStartedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartedAt: %w", err)
+	}
+	return oldValue.StartedAt, nil
+}
+
+// ClearStartedAt clears the value of the "started_at" field.
+func (m *ReleaseAutomationRunMutation) ClearStartedAt() {
+	m.started_at = nil
+	m.clearedFields[releaseautomationrun.FieldStartedAt] = struct{}{}
+}
+
+// StartedAtCleared returns if the "started_at" field was cleared in this mutation.
+func (m *ReleaseAutomationRunMutation) StartedAtCleared() bool {
+	_, ok := m.clearedFields[releaseautomationrun.FieldStartedAt]
+	return ok
+}
+
+// ResetStartedAt resets all changes to the "started_at" field.
+func (m *ReleaseAutomationRunMutation) ResetStartedAt() {
+	m.started_at = nil
+	delete(m.clearedFields, releaseautomationrun.FieldStartedAt)
+}
+
+// SetCompletedAt sets the "completed_at" field.
+func (m *ReleaseAutomationRunMutation) SetCompletedAt(t time.Time) {
+	m.completed_at = &t
+}
+
+// CompletedAt returns the value of the "completed_at" field in the mutation.
+func (m *ReleaseAutomationRunMutation) CompletedAt() (r time.Time, exists bool) {
+	v := m.completed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompletedAt returns the old "completed_at" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldCompletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompletedAt: %w", err)
+	}
+	return oldValue.CompletedAt, nil
+}
+
+// ClearCompletedAt clears the value of the "completed_at" field.
+func (m *ReleaseAutomationRunMutation) ClearCompletedAt() {
+	m.completed_at = nil
+	m.clearedFields[releaseautomationrun.FieldCompletedAt] = struct{}{}
+}
+
+// CompletedAtCleared returns if the "completed_at" field was cleared in this mutation.
+func (m *ReleaseAutomationRunMutation) CompletedAtCleared() bool {
+	_, ok := m.clearedFields[releaseautomationrun.FieldCompletedAt]
+	return ok
+}
+
+// ResetCompletedAt resets all changes to the "completed_at" field.
+func (m *ReleaseAutomationRunMutation) ResetCompletedAt() {
+	m.completed_at = nil
+	delete(m.clearedFields, releaseautomationrun.FieldCompletedAt)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ReleaseAutomationRunMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ReleaseAutomationRunMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ReleaseAutomationRunMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ReleaseAutomationRunMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ReleaseAutomationRunMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ReleaseAutomationRun entity.
+// If the ReleaseAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationRunMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ReleaseAutomationRunMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the ReleaseAutomationRunMutation builder.
+func (m *ReleaseAutomationRunMutation) Where(ps ...predicate.ReleaseAutomationRun) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ReleaseAutomationRunMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ReleaseAutomationRunMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ReleaseAutomationRun, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ReleaseAutomationRunMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ReleaseAutomationRunMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ReleaseAutomationRun).
+func (m *ReleaseAutomationRunMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ReleaseAutomationRunMutation) Fields() []string {
+	fields := make([]string, 0, 16)
+	if m.organization_id != nil {
+		fields = append(fields, releaseautomationrun.FieldOrganizationID)
+	}
+	if m.event_id != nil {
+		fields = append(fields, releaseautomationrun.FieldEventID)
+	}
+	if m.definition_id != nil {
+		fields = append(fields, releaseautomationrun.FieldDefinitionID)
+	}
+	if m.version_id != nil {
+		fields = append(fields, releaseautomationrun.FieldVersionID)
+	}
+	if m.workflow_id != nil {
+		fields = append(fields, releaseautomationrun.FieldWorkflowID)
+	}
+	if m.temporal_run_id != nil {
+		fields = append(fields, releaseautomationrun.FieldTemporalRunID)
+	}
+	if m.status != nil {
+		fields = append(fields, releaseautomationrun.FieldStatus)
+	}
+	if m.cancel_requested != nil {
+		fields = append(fields, releaseautomationrun.FieldCancelRequested)
+	}
+	if m.recovery_attempt != nil {
+		fields = append(fields, releaseautomationrun.FieldRecoveryAttempt)
+	}
+	if m.failure_code != nil {
+		fields = append(fields, releaseautomationrun.FieldFailureCode)
+	}
+	if m.reason != nil {
+		fields = append(fields, releaseautomationrun.FieldReason)
+	}
+	if m.outputs != nil {
+		fields = append(fields, releaseautomationrun.FieldOutputs)
+	}
+	if m.started_at != nil {
+		fields = append(fields, releaseautomationrun.FieldStartedAt)
+	}
+	if m.completed_at != nil {
+		fields = append(fields, releaseautomationrun.FieldCompletedAt)
+	}
+	if m.created_at != nil {
+		fields = append(fields, releaseautomationrun.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, releaseautomationrun.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ReleaseAutomationRunMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case releaseautomationrun.FieldOrganizationID:
+		return m.OrganizationID()
+	case releaseautomationrun.FieldEventID:
+		return m.EventID()
+	case releaseautomationrun.FieldDefinitionID:
+		return m.DefinitionID()
+	case releaseautomationrun.FieldVersionID:
+		return m.VersionID()
+	case releaseautomationrun.FieldWorkflowID:
+		return m.WorkflowID()
+	case releaseautomationrun.FieldTemporalRunID:
+		return m.TemporalRunID()
+	case releaseautomationrun.FieldStatus:
+		return m.Status()
+	case releaseautomationrun.FieldCancelRequested:
+		return m.CancelRequested()
+	case releaseautomationrun.FieldRecoveryAttempt:
+		return m.RecoveryAttempt()
+	case releaseautomationrun.FieldFailureCode:
+		return m.FailureCode()
+	case releaseautomationrun.FieldReason:
+		return m.Reason()
+	case releaseautomationrun.FieldOutputs:
+		return m.Outputs()
+	case releaseautomationrun.FieldStartedAt:
+		return m.StartedAt()
+	case releaseautomationrun.FieldCompletedAt:
+		return m.CompletedAt()
+	case releaseautomationrun.FieldCreatedAt:
+		return m.CreatedAt()
+	case releaseautomationrun.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ReleaseAutomationRunMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case releaseautomationrun.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case releaseautomationrun.FieldEventID:
+		return m.OldEventID(ctx)
+	case releaseautomationrun.FieldDefinitionID:
+		return m.OldDefinitionID(ctx)
+	case releaseautomationrun.FieldVersionID:
+		return m.OldVersionID(ctx)
+	case releaseautomationrun.FieldWorkflowID:
+		return m.OldWorkflowID(ctx)
+	case releaseautomationrun.FieldTemporalRunID:
+		return m.OldTemporalRunID(ctx)
+	case releaseautomationrun.FieldStatus:
+		return m.OldStatus(ctx)
+	case releaseautomationrun.FieldCancelRequested:
+		return m.OldCancelRequested(ctx)
+	case releaseautomationrun.FieldRecoveryAttempt:
+		return m.OldRecoveryAttempt(ctx)
+	case releaseautomationrun.FieldFailureCode:
+		return m.OldFailureCode(ctx)
+	case releaseautomationrun.FieldReason:
+		return m.OldReason(ctx)
+	case releaseautomationrun.FieldOutputs:
+		return m.OldOutputs(ctx)
+	case releaseautomationrun.FieldStartedAt:
+		return m.OldStartedAt(ctx)
+	case releaseautomationrun.FieldCompletedAt:
+		return m.OldCompletedAt(ctx)
+	case releaseautomationrun.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case releaseautomationrun.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ReleaseAutomationRun field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseAutomationRunMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case releaseautomationrun.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case releaseautomationrun.FieldEventID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEventID(v)
+		return nil
+	case releaseautomationrun.FieldDefinitionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDefinitionID(v)
+		return nil
+	case releaseautomationrun.FieldVersionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersionID(v)
+		return nil
+	case releaseautomationrun.FieldWorkflowID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkflowID(v)
+		return nil
+	case releaseautomationrun.FieldTemporalRunID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTemporalRunID(v)
+		return nil
+	case releaseautomationrun.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case releaseautomationrun.FieldCancelRequested:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCancelRequested(v)
+		return nil
+	case releaseautomationrun.FieldRecoveryAttempt:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRecoveryAttempt(v)
+		return nil
+	case releaseautomationrun.FieldFailureCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailureCode(v)
+		return nil
+	case releaseautomationrun.FieldReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
+		return nil
+	case releaseautomationrun.FieldOutputs:
+		v, ok := value.(releaseautomation.Outputs)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOutputs(v)
+		return nil
+	case releaseautomationrun.FieldStartedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartedAt(v)
+		return nil
+	case releaseautomationrun.FieldCompletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompletedAt(v)
+		return nil
+	case releaseautomationrun.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case releaseautomationrun.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationRun field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ReleaseAutomationRunMutation) AddedFields() []string {
+	var fields []string
+	if m.addrecovery_attempt != nil {
+		fields = append(fields, releaseautomationrun.FieldRecoveryAttempt)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ReleaseAutomationRunMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case releaseautomationrun.FieldRecoveryAttempt:
+		return m.AddedRecoveryAttempt()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseAutomationRunMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case releaseautomationrun.FieldRecoveryAttempt:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRecoveryAttempt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationRun numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ReleaseAutomationRunMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(releaseautomationrun.FieldDefinitionID) {
+		fields = append(fields, releaseautomationrun.FieldDefinitionID)
+	}
+	if m.FieldCleared(releaseautomationrun.FieldVersionID) {
+		fields = append(fields, releaseautomationrun.FieldVersionID)
+	}
+	if m.FieldCleared(releaseautomationrun.FieldStartedAt) {
+		fields = append(fields, releaseautomationrun.FieldStartedAt)
+	}
+	if m.FieldCleared(releaseautomationrun.FieldCompletedAt) {
+		fields = append(fields, releaseautomationrun.FieldCompletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ReleaseAutomationRunMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ReleaseAutomationRunMutation) ClearField(name string) error {
+	switch name {
+	case releaseautomationrun.FieldDefinitionID:
+		m.ClearDefinitionID()
+		return nil
+	case releaseautomationrun.FieldVersionID:
+		m.ClearVersionID()
+		return nil
+	case releaseautomationrun.FieldStartedAt:
+		m.ClearStartedAt()
+		return nil
+	case releaseautomationrun.FieldCompletedAt:
+		m.ClearCompletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationRun nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ReleaseAutomationRunMutation) ResetField(name string) error {
+	switch name {
+	case releaseautomationrun.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case releaseautomationrun.FieldEventID:
+		m.ResetEventID()
+		return nil
+	case releaseautomationrun.FieldDefinitionID:
+		m.ResetDefinitionID()
+		return nil
+	case releaseautomationrun.FieldVersionID:
+		m.ResetVersionID()
+		return nil
+	case releaseautomationrun.FieldWorkflowID:
+		m.ResetWorkflowID()
+		return nil
+	case releaseautomationrun.FieldTemporalRunID:
+		m.ResetTemporalRunID()
+		return nil
+	case releaseautomationrun.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case releaseautomationrun.FieldCancelRequested:
+		m.ResetCancelRequested()
+		return nil
+	case releaseautomationrun.FieldRecoveryAttempt:
+		m.ResetRecoveryAttempt()
+		return nil
+	case releaseautomationrun.FieldFailureCode:
+		m.ResetFailureCode()
+		return nil
+	case releaseautomationrun.FieldReason:
+		m.ResetReason()
+		return nil
+	case releaseautomationrun.FieldOutputs:
+		m.ResetOutputs()
+		return nil
+	case releaseautomationrun.FieldStartedAt:
+		m.ResetStartedAt()
+		return nil
+	case releaseautomationrun.FieldCompletedAt:
+		m.ResetCompletedAt()
+		return nil
+	case releaseautomationrun.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case releaseautomationrun.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationRun field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ReleaseAutomationRunMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ReleaseAutomationRunMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ReleaseAutomationRunMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ReleaseAutomationRunMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ReleaseAutomationRunMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ReleaseAutomationRunMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ReleaseAutomationRunMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomationRun unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ReleaseAutomationRunMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomationRun edge %s", name)
+}
+
+// ReleaseAutomationVersionMutation represents an operation that mutates the ReleaseAutomationVersion nodes in the graph.
+type ReleaseAutomationVersionMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	definition_id   *string
+	revision        *int
+	addrevision     *int
+	graph           *releaseautomation.Graph
+	content_hash    *string
+	activated_by    *string
+	created_at      *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*ReleaseAutomationVersion, error)
+	predicates      []predicate.ReleaseAutomationVersion
+}
+
+var _ ent.Mutation = (*ReleaseAutomationVersionMutation)(nil)
+
+// releaseautomationversionOption allows management of the mutation configuration using functional options.
+type releaseautomationversionOption func(*ReleaseAutomationVersionMutation)
+
+// newReleaseAutomationVersionMutation creates new mutation for the ReleaseAutomationVersion entity.
+func newReleaseAutomationVersionMutation(c config, op Op, opts ...releaseautomationversionOption) *ReleaseAutomationVersionMutation {
+	m := &ReleaseAutomationVersionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeReleaseAutomationVersion,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withReleaseAutomationVersionID sets the ID field of the mutation.
+func withReleaseAutomationVersionID(id string) releaseautomationversionOption {
+	return func(m *ReleaseAutomationVersionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ReleaseAutomationVersion
+		)
+		m.oldValue = func(ctx context.Context) (*ReleaseAutomationVersion, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ReleaseAutomationVersion.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withReleaseAutomationVersion sets the old ReleaseAutomationVersion of the mutation.
+func withReleaseAutomationVersion(node *ReleaseAutomationVersion) releaseautomationversionOption {
+	return func(m *ReleaseAutomationVersionMutation) {
+		m.oldValue = func(context.Context) (*ReleaseAutomationVersion, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ReleaseAutomationVersionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ReleaseAutomationVersionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ReleaseAutomationVersion entities.
+func (m *ReleaseAutomationVersionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ReleaseAutomationVersionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ReleaseAutomationVersionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ReleaseAutomationVersion.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *ReleaseAutomationVersionMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *ReleaseAutomationVersionMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the ReleaseAutomationVersion entity.
+// If the ReleaseAutomationVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationVersionMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *ReleaseAutomationVersionMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetDefinitionID sets the "definition_id" field.
+func (m *ReleaseAutomationVersionMutation) SetDefinitionID(s string) {
+	m.definition_id = &s
+}
+
+// DefinitionID returns the value of the "definition_id" field in the mutation.
+func (m *ReleaseAutomationVersionMutation) DefinitionID() (r string, exists bool) {
+	v := m.definition_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDefinitionID returns the old "definition_id" field's value of the ReleaseAutomationVersion entity.
+// If the ReleaseAutomationVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationVersionMutation) OldDefinitionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDefinitionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDefinitionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDefinitionID: %w", err)
+	}
+	return oldValue.DefinitionID, nil
+}
+
+// ResetDefinitionID resets all changes to the "definition_id" field.
+func (m *ReleaseAutomationVersionMutation) ResetDefinitionID() {
+	m.definition_id = nil
+}
+
+// SetRevision sets the "revision" field.
+func (m *ReleaseAutomationVersionMutation) SetRevision(i int) {
+	m.revision = &i
+	m.addrevision = nil
+}
+
+// Revision returns the value of the "revision" field in the mutation.
+func (m *ReleaseAutomationVersionMutation) Revision() (r int, exists bool) {
+	v := m.revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevision returns the old "revision" field's value of the ReleaseAutomationVersion entity.
+// If the ReleaseAutomationVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationVersionMutation) OldRevision(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevision: %w", err)
+	}
+	return oldValue.Revision, nil
+}
+
+// AddRevision adds i to the "revision" field.
+func (m *ReleaseAutomationVersionMutation) AddRevision(i int) {
+	if m.addrevision != nil {
+		*m.addrevision += i
+	} else {
+		m.addrevision = &i
+	}
+}
+
+// AddedRevision returns the value that was added to the "revision" field in this mutation.
+func (m *ReleaseAutomationVersionMutation) AddedRevision() (r int, exists bool) {
+	v := m.addrevision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRevision resets all changes to the "revision" field.
+func (m *ReleaseAutomationVersionMutation) ResetRevision() {
+	m.revision = nil
+	m.addrevision = nil
+}
+
+// SetGraph sets the "graph" field.
+func (m *ReleaseAutomationVersionMutation) SetGraph(r releaseautomation.Graph) {
+	m.graph = &r
+}
+
+// Graph returns the value of the "graph" field in the mutation.
+func (m *ReleaseAutomationVersionMutation) Graph() (r releaseautomation.Graph, exists bool) {
+	v := m.graph
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGraph returns the old "graph" field's value of the ReleaseAutomationVersion entity.
+// If the ReleaseAutomationVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationVersionMutation) OldGraph(ctx context.Context) (v releaseautomation.Graph, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGraph is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGraph requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGraph: %w", err)
+	}
+	return oldValue.Graph, nil
+}
+
+// ResetGraph resets all changes to the "graph" field.
+func (m *ReleaseAutomationVersionMutation) ResetGraph() {
+	m.graph = nil
+}
+
+// SetContentHash sets the "content_hash" field.
+func (m *ReleaseAutomationVersionMutation) SetContentHash(s string) {
+	m.content_hash = &s
+}
+
+// ContentHash returns the value of the "content_hash" field in the mutation.
+func (m *ReleaseAutomationVersionMutation) ContentHash() (r string, exists bool) {
+	v := m.content_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContentHash returns the old "content_hash" field's value of the ReleaseAutomationVersion entity.
+// If the ReleaseAutomationVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationVersionMutation) OldContentHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContentHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContentHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContentHash: %w", err)
+	}
+	return oldValue.ContentHash, nil
+}
+
+// ResetContentHash resets all changes to the "content_hash" field.
+func (m *ReleaseAutomationVersionMutation) ResetContentHash() {
+	m.content_hash = nil
+}
+
+// SetActivatedBy sets the "activated_by" field.
+func (m *ReleaseAutomationVersionMutation) SetActivatedBy(s string) {
+	m.activated_by = &s
+}
+
+// ActivatedBy returns the value of the "activated_by" field in the mutation.
+func (m *ReleaseAutomationVersionMutation) ActivatedBy() (r string, exists bool) {
+	v := m.activated_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActivatedBy returns the old "activated_by" field's value of the ReleaseAutomationVersion entity.
+// If the ReleaseAutomationVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationVersionMutation) OldActivatedBy(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActivatedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActivatedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActivatedBy: %w", err)
+	}
+	return oldValue.ActivatedBy, nil
+}
+
+// ResetActivatedBy resets all changes to the "activated_by" field.
+func (m *ReleaseAutomationVersionMutation) ResetActivatedBy() {
+	m.activated_by = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ReleaseAutomationVersionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ReleaseAutomationVersionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ReleaseAutomationVersion entity.
+// If the ReleaseAutomationVersion object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationVersionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ReleaseAutomationVersionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the ReleaseAutomationVersionMutation builder.
+func (m *ReleaseAutomationVersionMutation) Where(ps ...predicate.ReleaseAutomationVersion) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ReleaseAutomationVersionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ReleaseAutomationVersionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ReleaseAutomationVersion, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ReleaseAutomationVersionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ReleaseAutomationVersionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ReleaseAutomationVersion).
+func (m *ReleaseAutomationVersionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ReleaseAutomationVersionMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.organization_id != nil {
+		fields = append(fields, releaseautomationversion.FieldOrganizationID)
+	}
+	if m.definition_id != nil {
+		fields = append(fields, releaseautomationversion.FieldDefinitionID)
+	}
+	if m.revision != nil {
+		fields = append(fields, releaseautomationversion.FieldRevision)
+	}
+	if m.graph != nil {
+		fields = append(fields, releaseautomationversion.FieldGraph)
+	}
+	if m.content_hash != nil {
+		fields = append(fields, releaseautomationversion.FieldContentHash)
+	}
+	if m.activated_by != nil {
+		fields = append(fields, releaseautomationversion.FieldActivatedBy)
+	}
+	if m.created_at != nil {
+		fields = append(fields, releaseautomationversion.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ReleaseAutomationVersionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case releaseautomationversion.FieldOrganizationID:
+		return m.OrganizationID()
+	case releaseautomationversion.FieldDefinitionID:
+		return m.DefinitionID()
+	case releaseautomationversion.FieldRevision:
+		return m.Revision()
+	case releaseautomationversion.FieldGraph:
+		return m.Graph()
+	case releaseautomationversion.FieldContentHash:
+		return m.ContentHash()
+	case releaseautomationversion.FieldActivatedBy:
+		return m.ActivatedBy()
+	case releaseautomationversion.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ReleaseAutomationVersionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case releaseautomationversion.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case releaseautomationversion.FieldDefinitionID:
+		return m.OldDefinitionID(ctx)
+	case releaseautomationversion.FieldRevision:
+		return m.OldRevision(ctx)
+	case releaseautomationversion.FieldGraph:
+		return m.OldGraph(ctx)
+	case releaseautomationversion.FieldContentHash:
+		return m.OldContentHash(ctx)
+	case releaseautomationversion.FieldActivatedBy:
+		return m.OldActivatedBy(ctx)
+	case releaseautomationversion.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ReleaseAutomationVersion field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseAutomationVersionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case releaseautomationversion.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case releaseautomationversion.FieldDefinitionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDefinitionID(v)
+		return nil
+	case releaseautomationversion.FieldRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevision(v)
+		return nil
+	case releaseautomationversion.FieldGraph:
+		v, ok := value.(releaseautomation.Graph)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGraph(v)
+		return nil
+	case releaseautomationversion.FieldContentHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContentHash(v)
+		return nil
+	case releaseautomationversion.FieldActivatedBy:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActivatedBy(v)
+		return nil
+	case releaseautomationversion.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationVersion field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ReleaseAutomationVersionMutation) AddedFields() []string {
+	var fields []string
+	if m.addrevision != nil {
+		fields = append(fields, releaseautomationversion.FieldRevision)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ReleaseAutomationVersionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case releaseautomationversion.FieldRevision:
+		return m.AddedRevision()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseAutomationVersionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case releaseautomationversion.FieldRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRevision(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationVersion numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ReleaseAutomationVersionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ReleaseAutomationVersionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ReleaseAutomationVersionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomationVersion nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ReleaseAutomationVersionMutation) ResetField(name string) error {
+	switch name {
+	case releaseautomationversion.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case releaseautomationversion.FieldDefinitionID:
+		m.ResetDefinitionID()
+		return nil
+	case releaseautomationversion.FieldRevision:
+		m.ResetRevision()
+		return nil
+	case releaseautomationversion.FieldGraph:
+		m.ResetGraph()
+		return nil
+	case releaseautomationversion.FieldContentHash:
+		m.ResetContentHash()
+		return nil
+	case releaseautomationversion.FieldActivatedBy:
+		m.ResetActivatedBy()
+		return nil
+	case releaseautomationversion.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseAutomationVersion field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ReleaseAutomationVersionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ReleaseAutomationVersionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ReleaseAutomationVersionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ReleaseAutomationVersionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ReleaseAutomationVersionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ReleaseAutomationVersionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ReleaseAutomationVersionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomationVersion unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ReleaseAutomationVersionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseAutomationVersion edge %s", name)
+}
+
 // ReleaseDocumentMutation represents an operation that mutates the ReleaseDocument nodes in the graph.
 type ReleaseDocumentMutation struct {
 	config
@@ -50190,6 +54735,1024 @@ func (m *ReleaseDocumentMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ReleaseDocumentMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ReleaseDocument edge %s", name)
+}
+
+// ReleaseSourceEventMutation represents an operation that mutates the ReleaseSourceEvent nodes in the graph.
+type ReleaseSourceEventMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *string
+	organization_id   *string
+	source_app_id     *string
+	semantic_key      *string
+	delivery_id       *string
+	snapshot          *releaseautomation.Event
+	version_ids       *[]string
+	appendversion_ids []string
+	collect_unmatched *bool
+	mode              *string
+	disposition       *string
+	reason            *string
+	enrichment        *map[string]releaseautomation.Value
+	enriched_at       *time.Time
+	received_at       *time.Time
+	clearedFields     map[string]struct{}
+	done              bool
+	oldValue          func(context.Context) (*ReleaseSourceEvent, error)
+	predicates        []predicate.ReleaseSourceEvent
+}
+
+var _ ent.Mutation = (*ReleaseSourceEventMutation)(nil)
+
+// releasesourceeventOption allows management of the mutation configuration using functional options.
+type releasesourceeventOption func(*ReleaseSourceEventMutation)
+
+// newReleaseSourceEventMutation creates new mutation for the ReleaseSourceEvent entity.
+func newReleaseSourceEventMutation(c config, op Op, opts ...releasesourceeventOption) *ReleaseSourceEventMutation {
+	m := &ReleaseSourceEventMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeReleaseSourceEvent,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withReleaseSourceEventID sets the ID field of the mutation.
+func withReleaseSourceEventID(id string) releasesourceeventOption {
+	return func(m *ReleaseSourceEventMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ReleaseSourceEvent
+		)
+		m.oldValue = func(ctx context.Context) (*ReleaseSourceEvent, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ReleaseSourceEvent.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withReleaseSourceEvent sets the old ReleaseSourceEvent of the mutation.
+func withReleaseSourceEvent(node *ReleaseSourceEvent) releasesourceeventOption {
+	return func(m *ReleaseSourceEventMutation) {
+		m.oldValue = func(context.Context) (*ReleaseSourceEvent, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ReleaseSourceEventMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ReleaseSourceEventMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ReleaseSourceEvent entities.
+func (m *ReleaseSourceEventMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ReleaseSourceEventMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ReleaseSourceEventMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ReleaseSourceEvent.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *ReleaseSourceEventMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *ReleaseSourceEventMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *ReleaseSourceEventMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetSourceAppID sets the "source_app_id" field.
+func (m *ReleaseSourceEventMutation) SetSourceAppID(s string) {
+	m.source_app_id = &s
+}
+
+// SourceAppID returns the value of the "source_app_id" field in the mutation.
+func (m *ReleaseSourceEventMutation) SourceAppID() (r string, exists bool) {
+	v := m.source_app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceAppID returns the old "source_app_id" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldSourceAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceAppID: %w", err)
+	}
+	return oldValue.SourceAppID, nil
+}
+
+// ResetSourceAppID resets all changes to the "source_app_id" field.
+func (m *ReleaseSourceEventMutation) ResetSourceAppID() {
+	m.source_app_id = nil
+}
+
+// SetSemanticKey sets the "semantic_key" field.
+func (m *ReleaseSourceEventMutation) SetSemanticKey(s string) {
+	m.semantic_key = &s
+}
+
+// SemanticKey returns the value of the "semantic_key" field in the mutation.
+func (m *ReleaseSourceEventMutation) SemanticKey() (r string, exists bool) {
+	v := m.semantic_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSemanticKey returns the old "semantic_key" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldSemanticKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSemanticKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSemanticKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSemanticKey: %w", err)
+	}
+	return oldValue.SemanticKey, nil
+}
+
+// ResetSemanticKey resets all changes to the "semantic_key" field.
+func (m *ReleaseSourceEventMutation) ResetSemanticKey() {
+	m.semantic_key = nil
+}
+
+// SetDeliveryID sets the "delivery_id" field.
+func (m *ReleaseSourceEventMutation) SetDeliveryID(s string) {
+	m.delivery_id = &s
+}
+
+// DeliveryID returns the value of the "delivery_id" field in the mutation.
+func (m *ReleaseSourceEventMutation) DeliveryID() (r string, exists bool) {
+	v := m.delivery_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeliveryID returns the old "delivery_id" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldDeliveryID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeliveryID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeliveryID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeliveryID: %w", err)
+	}
+	return oldValue.DeliveryID, nil
+}
+
+// ResetDeliveryID resets all changes to the "delivery_id" field.
+func (m *ReleaseSourceEventMutation) ResetDeliveryID() {
+	m.delivery_id = nil
+}
+
+// SetSnapshot sets the "snapshot" field.
+func (m *ReleaseSourceEventMutation) SetSnapshot(r releaseautomation.Event) {
+	m.snapshot = &r
+}
+
+// Snapshot returns the value of the "snapshot" field in the mutation.
+func (m *ReleaseSourceEventMutation) Snapshot() (r releaseautomation.Event, exists bool) {
+	v := m.snapshot
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSnapshot returns the old "snapshot" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldSnapshot(ctx context.Context) (v releaseautomation.Event, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSnapshot is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSnapshot requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSnapshot: %w", err)
+	}
+	return oldValue.Snapshot, nil
+}
+
+// ResetSnapshot resets all changes to the "snapshot" field.
+func (m *ReleaseSourceEventMutation) ResetSnapshot() {
+	m.snapshot = nil
+}
+
+// SetVersionIds sets the "version_ids" field.
+func (m *ReleaseSourceEventMutation) SetVersionIds(s []string) {
+	m.version_ids = &s
+	m.appendversion_ids = nil
+}
+
+// VersionIds returns the value of the "version_ids" field in the mutation.
+func (m *ReleaseSourceEventMutation) VersionIds() (r []string, exists bool) {
+	v := m.version_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersionIds returns the old "version_ids" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldVersionIds(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersionIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersionIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersionIds: %w", err)
+	}
+	return oldValue.VersionIds, nil
+}
+
+// AppendVersionIds adds s to the "version_ids" field.
+func (m *ReleaseSourceEventMutation) AppendVersionIds(s []string) {
+	m.appendversion_ids = append(m.appendversion_ids, s...)
+}
+
+// AppendedVersionIds returns the list of values that were appended to the "version_ids" field in this mutation.
+func (m *ReleaseSourceEventMutation) AppendedVersionIds() ([]string, bool) {
+	if len(m.appendversion_ids) == 0 {
+		return nil, false
+	}
+	return m.appendversion_ids, true
+}
+
+// ResetVersionIds resets all changes to the "version_ids" field.
+func (m *ReleaseSourceEventMutation) ResetVersionIds() {
+	m.version_ids = nil
+	m.appendversion_ids = nil
+}
+
+// SetCollectUnmatched sets the "collect_unmatched" field.
+func (m *ReleaseSourceEventMutation) SetCollectUnmatched(b bool) {
+	m.collect_unmatched = &b
+}
+
+// CollectUnmatched returns the value of the "collect_unmatched" field in the mutation.
+func (m *ReleaseSourceEventMutation) CollectUnmatched() (r bool, exists bool) {
+	v := m.collect_unmatched
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCollectUnmatched returns the old "collect_unmatched" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldCollectUnmatched(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCollectUnmatched is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCollectUnmatched requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCollectUnmatched: %w", err)
+	}
+	return oldValue.CollectUnmatched, nil
+}
+
+// ResetCollectUnmatched resets all changes to the "collect_unmatched" field.
+func (m *ReleaseSourceEventMutation) ResetCollectUnmatched() {
+	m.collect_unmatched = nil
+}
+
+// SetMode sets the "mode" field.
+func (m *ReleaseSourceEventMutation) SetMode(s string) {
+	m.mode = &s
+}
+
+// Mode returns the value of the "mode" field in the mutation.
+func (m *ReleaseSourceEventMutation) Mode() (r string, exists bool) {
+	v := m.mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMode returns the old "mode" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldMode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMode: %w", err)
+	}
+	return oldValue.Mode, nil
+}
+
+// ResetMode resets all changes to the "mode" field.
+func (m *ReleaseSourceEventMutation) ResetMode() {
+	m.mode = nil
+}
+
+// SetDisposition sets the "disposition" field.
+func (m *ReleaseSourceEventMutation) SetDisposition(s string) {
+	m.disposition = &s
+}
+
+// Disposition returns the value of the "disposition" field in the mutation.
+func (m *ReleaseSourceEventMutation) Disposition() (r string, exists bool) {
+	v := m.disposition
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisposition returns the old "disposition" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldDisposition(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisposition is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisposition requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisposition: %w", err)
+	}
+	return oldValue.Disposition, nil
+}
+
+// ResetDisposition resets all changes to the "disposition" field.
+func (m *ReleaseSourceEventMutation) ResetDisposition() {
+	m.disposition = nil
+}
+
+// SetReason sets the "reason" field.
+func (m *ReleaseSourceEventMutation) SetReason(s string) {
+	m.reason = &s
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *ReleaseSourceEventMutation) Reason() (r string, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *ReleaseSourceEventMutation) ResetReason() {
+	m.reason = nil
+}
+
+// SetEnrichment sets the "enrichment" field.
+func (m *ReleaseSourceEventMutation) SetEnrichment(value map[string]releaseautomation.Value) {
+	m.enrichment = &value
+}
+
+// Enrichment returns the value of the "enrichment" field in the mutation.
+func (m *ReleaseSourceEventMutation) Enrichment() (r map[string]releaseautomation.Value, exists bool) {
+	v := m.enrichment
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnrichment returns the old "enrichment" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldEnrichment(ctx context.Context) (v map[string]releaseautomation.Value, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnrichment is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnrichment requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnrichment: %w", err)
+	}
+	return oldValue.Enrichment, nil
+}
+
+// ResetEnrichment resets all changes to the "enrichment" field.
+func (m *ReleaseSourceEventMutation) ResetEnrichment() {
+	m.enrichment = nil
+}
+
+// SetEnrichedAt sets the "enriched_at" field.
+func (m *ReleaseSourceEventMutation) SetEnrichedAt(t time.Time) {
+	m.enriched_at = &t
+}
+
+// EnrichedAt returns the value of the "enriched_at" field in the mutation.
+func (m *ReleaseSourceEventMutation) EnrichedAt() (r time.Time, exists bool) {
+	v := m.enriched_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnrichedAt returns the old "enriched_at" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldEnrichedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnrichedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnrichedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnrichedAt: %w", err)
+	}
+	return oldValue.EnrichedAt, nil
+}
+
+// ClearEnrichedAt clears the value of the "enriched_at" field.
+func (m *ReleaseSourceEventMutation) ClearEnrichedAt() {
+	m.enriched_at = nil
+	m.clearedFields[releasesourceevent.FieldEnrichedAt] = struct{}{}
+}
+
+// EnrichedAtCleared returns if the "enriched_at" field was cleared in this mutation.
+func (m *ReleaseSourceEventMutation) EnrichedAtCleared() bool {
+	_, ok := m.clearedFields[releasesourceevent.FieldEnrichedAt]
+	return ok
+}
+
+// ResetEnrichedAt resets all changes to the "enriched_at" field.
+func (m *ReleaseSourceEventMutation) ResetEnrichedAt() {
+	m.enriched_at = nil
+	delete(m.clearedFields, releasesourceevent.FieldEnrichedAt)
+}
+
+// SetReceivedAt sets the "received_at" field.
+func (m *ReleaseSourceEventMutation) SetReceivedAt(t time.Time) {
+	m.received_at = &t
+}
+
+// ReceivedAt returns the value of the "received_at" field in the mutation.
+func (m *ReleaseSourceEventMutation) ReceivedAt() (r time.Time, exists bool) {
+	v := m.received_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReceivedAt returns the old "received_at" field's value of the ReleaseSourceEvent entity.
+// If the ReleaseSourceEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseSourceEventMutation) OldReceivedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReceivedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReceivedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReceivedAt: %w", err)
+	}
+	return oldValue.ReceivedAt, nil
+}
+
+// ResetReceivedAt resets all changes to the "received_at" field.
+func (m *ReleaseSourceEventMutation) ResetReceivedAt() {
+	m.received_at = nil
+}
+
+// Where appends a list predicates to the ReleaseSourceEventMutation builder.
+func (m *ReleaseSourceEventMutation) Where(ps ...predicate.ReleaseSourceEvent) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ReleaseSourceEventMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ReleaseSourceEventMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ReleaseSourceEvent, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ReleaseSourceEventMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ReleaseSourceEventMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ReleaseSourceEvent).
+func (m *ReleaseSourceEventMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ReleaseSourceEventMutation) Fields() []string {
+	fields := make([]string, 0, 13)
+	if m.organization_id != nil {
+		fields = append(fields, releasesourceevent.FieldOrganizationID)
+	}
+	if m.source_app_id != nil {
+		fields = append(fields, releasesourceevent.FieldSourceAppID)
+	}
+	if m.semantic_key != nil {
+		fields = append(fields, releasesourceevent.FieldSemanticKey)
+	}
+	if m.delivery_id != nil {
+		fields = append(fields, releasesourceevent.FieldDeliveryID)
+	}
+	if m.snapshot != nil {
+		fields = append(fields, releasesourceevent.FieldSnapshot)
+	}
+	if m.version_ids != nil {
+		fields = append(fields, releasesourceevent.FieldVersionIds)
+	}
+	if m.collect_unmatched != nil {
+		fields = append(fields, releasesourceevent.FieldCollectUnmatched)
+	}
+	if m.mode != nil {
+		fields = append(fields, releasesourceevent.FieldMode)
+	}
+	if m.disposition != nil {
+		fields = append(fields, releasesourceevent.FieldDisposition)
+	}
+	if m.reason != nil {
+		fields = append(fields, releasesourceevent.FieldReason)
+	}
+	if m.enrichment != nil {
+		fields = append(fields, releasesourceevent.FieldEnrichment)
+	}
+	if m.enriched_at != nil {
+		fields = append(fields, releasesourceevent.FieldEnrichedAt)
+	}
+	if m.received_at != nil {
+		fields = append(fields, releasesourceevent.FieldReceivedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ReleaseSourceEventMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case releasesourceevent.FieldOrganizationID:
+		return m.OrganizationID()
+	case releasesourceevent.FieldSourceAppID:
+		return m.SourceAppID()
+	case releasesourceevent.FieldSemanticKey:
+		return m.SemanticKey()
+	case releasesourceevent.FieldDeliveryID:
+		return m.DeliveryID()
+	case releasesourceevent.FieldSnapshot:
+		return m.Snapshot()
+	case releasesourceevent.FieldVersionIds:
+		return m.VersionIds()
+	case releasesourceevent.FieldCollectUnmatched:
+		return m.CollectUnmatched()
+	case releasesourceevent.FieldMode:
+		return m.Mode()
+	case releasesourceevent.FieldDisposition:
+		return m.Disposition()
+	case releasesourceevent.FieldReason:
+		return m.Reason()
+	case releasesourceevent.FieldEnrichment:
+		return m.Enrichment()
+	case releasesourceevent.FieldEnrichedAt:
+		return m.EnrichedAt()
+	case releasesourceevent.FieldReceivedAt:
+		return m.ReceivedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ReleaseSourceEventMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case releasesourceevent.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case releasesourceevent.FieldSourceAppID:
+		return m.OldSourceAppID(ctx)
+	case releasesourceevent.FieldSemanticKey:
+		return m.OldSemanticKey(ctx)
+	case releasesourceevent.FieldDeliveryID:
+		return m.OldDeliveryID(ctx)
+	case releasesourceevent.FieldSnapshot:
+		return m.OldSnapshot(ctx)
+	case releasesourceevent.FieldVersionIds:
+		return m.OldVersionIds(ctx)
+	case releasesourceevent.FieldCollectUnmatched:
+		return m.OldCollectUnmatched(ctx)
+	case releasesourceevent.FieldMode:
+		return m.OldMode(ctx)
+	case releasesourceevent.FieldDisposition:
+		return m.OldDisposition(ctx)
+	case releasesourceevent.FieldReason:
+		return m.OldReason(ctx)
+	case releasesourceevent.FieldEnrichment:
+		return m.OldEnrichment(ctx)
+	case releasesourceevent.FieldEnrichedAt:
+		return m.OldEnrichedAt(ctx)
+	case releasesourceevent.FieldReceivedAt:
+		return m.OldReceivedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ReleaseSourceEvent field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseSourceEventMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case releasesourceevent.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case releasesourceevent.FieldSourceAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceAppID(v)
+		return nil
+	case releasesourceevent.FieldSemanticKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSemanticKey(v)
+		return nil
+	case releasesourceevent.FieldDeliveryID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeliveryID(v)
+		return nil
+	case releasesourceevent.FieldSnapshot:
+		v, ok := value.(releaseautomation.Event)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSnapshot(v)
+		return nil
+	case releasesourceevent.FieldVersionIds:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersionIds(v)
+		return nil
+	case releasesourceevent.FieldCollectUnmatched:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCollectUnmatched(v)
+		return nil
+	case releasesourceevent.FieldMode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMode(v)
+		return nil
+	case releasesourceevent.FieldDisposition:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisposition(v)
+		return nil
+	case releasesourceevent.FieldReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
+		return nil
+	case releasesourceevent.FieldEnrichment:
+		v, ok := value.(map[string]releaseautomation.Value)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnrichment(v)
+		return nil
+	case releasesourceevent.FieldEnrichedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnrichedAt(v)
+		return nil
+	case releasesourceevent.FieldReceivedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReceivedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseSourceEvent field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ReleaseSourceEventMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ReleaseSourceEventMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseSourceEventMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ReleaseSourceEvent numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ReleaseSourceEventMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(releasesourceevent.FieldEnrichedAt) {
+		fields = append(fields, releasesourceevent.FieldEnrichedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ReleaseSourceEventMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ReleaseSourceEventMutation) ClearField(name string) error {
+	switch name {
+	case releasesourceevent.FieldEnrichedAt:
+		m.ClearEnrichedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseSourceEvent nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ReleaseSourceEventMutation) ResetField(name string) error {
+	switch name {
+	case releasesourceevent.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case releasesourceevent.FieldSourceAppID:
+		m.ResetSourceAppID()
+		return nil
+	case releasesourceevent.FieldSemanticKey:
+		m.ResetSemanticKey()
+		return nil
+	case releasesourceevent.FieldDeliveryID:
+		m.ResetDeliveryID()
+		return nil
+	case releasesourceevent.FieldSnapshot:
+		m.ResetSnapshot()
+		return nil
+	case releasesourceevent.FieldVersionIds:
+		m.ResetVersionIds()
+		return nil
+	case releasesourceevent.FieldCollectUnmatched:
+		m.ResetCollectUnmatched()
+		return nil
+	case releasesourceevent.FieldMode:
+		m.ResetMode()
+		return nil
+	case releasesourceevent.FieldDisposition:
+		m.ResetDisposition()
+		return nil
+	case releasesourceevent.FieldReason:
+		m.ResetReason()
+		return nil
+	case releasesourceevent.FieldEnrichment:
+		m.ResetEnrichment()
+		return nil
+	case releasesourceevent.FieldEnrichedAt:
+		m.ResetEnrichedAt()
+		return nil
+	case releasesourceevent.FieldReceivedAt:
+		m.ResetReceivedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseSourceEvent field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ReleaseSourceEventMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ReleaseSourceEventMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ReleaseSourceEventMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ReleaseSourceEventMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ReleaseSourceEventMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ReleaseSourceEventMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ReleaseSourceEventMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseSourceEvent unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ReleaseSourceEventMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseSourceEvent edge %s", name)
 }
 
 // ReleaseSpecMutation represents an operation that mutates the ReleaseSpec nodes in the graph.
@@ -56759,6 +62322,8 @@ type SourceAppMutation struct {
 	ignored_pull_request_authors       *[]string
 	appendignored_pull_request_authors []string
 	skip_prereleases                   *bool
+	release_automation                 *bool
+	automation_collect_unmatched       *bool
 	github_installation_id             *string
 	status                             *sourceapp.Status
 	created_at                         *time.Time
@@ -57302,6 +62867,78 @@ func (m *SourceAppMutation) ResetSkipPrereleases() {
 	m.skip_prereleases = nil
 }
 
+// SetReleaseAutomation sets the "release_automation" field.
+func (m *SourceAppMutation) SetReleaseAutomation(b bool) {
+	m.release_automation = &b
+}
+
+// ReleaseAutomation returns the value of the "release_automation" field in the mutation.
+func (m *SourceAppMutation) ReleaseAutomation() (r bool, exists bool) {
+	v := m.release_automation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReleaseAutomation returns the old "release_automation" field's value of the SourceApp entity.
+// If the SourceApp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SourceAppMutation) OldReleaseAutomation(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReleaseAutomation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReleaseAutomation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReleaseAutomation: %w", err)
+	}
+	return oldValue.ReleaseAutomation, nil
+}
+
+// ResetReleaseAutomation resets all changes to the "release_automation" field.
+func (m *SourceAppMutation) ResetReleaseAutomation() {
+	m.release_automation = nil
+}
+
+// SetAutomationCollectUnmatched sets the "automation_collect_unmatched" field.
+func (m *SourceAppMutation) SetAutomationCollectUnmatched(b bool) {
+	m.automation_collect_unmatched = &b
+}
+
+// AutomationCollectUnmatched returns the value of the "automation_collect_unmatched" field in the mutation.
+func (m *SourceAppMutation) AutomationCollectUnmatched() (r bool, exists bool) {
+	v := m.automation_collect_unmatched
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAutomationCollectUnmatched returns the old "automation_collect_unmatched" field's value of the SourceApp entity.
+// If the SourceApp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SourceAppMutation) OldAutomationCollectUnmatched(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAutomationCollectUnmatched is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAutomationCollectUnmatched requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAutomationCollectUnmatched: %w", err)
+	}
+	return oldValue.AutomationCollectUnmatched, nil
+}
+
+// ResetAutomationCollectUnmatched resets all changes to the "automation_collect_unmatched" field.
+func (m *SourceAppMutation) ResetAutomationCollectUnmatched() {
+	m.automation_collect_unmatched = nil
+}
+
 // SetGithubInstallationID sets the "github_installation_id" field.
 func (m *SourceAppMutation) SetGithubInstallationID(s string) {
 	m.github_installation_id = &s
@@ -57493,7 +63130,7 @@ func (m *SourceAppMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SourceAppMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 16)
 	if m.organization_id != nil {
 		fields = append(fields, sourceapp.FieldOrganizationID)
 	}
@@ -57523,6 +63160,12 @@ func (m *SourceAppMutation) Fields() []string {
 	}
 	if m.skip_prereleases != nil {
 		fields = append(fields, sourceapp.FieldSkipPrereleases)
+	}
+	if m.release_automation != nil {
+		fields = append(fields, sourceapp.FieldReleaseAutomation)
+	}
+	if m.automation_collect_unmatched != nil {
+		fields = append(fields, sourceapp.FieldAutomationCollectUnmatched)
 	}
 	if m.github_installation_id != nil {
 		fields = append(fields, sourceapp.FieldGithubInstallationID)
@@ -57564,6 +63207,10 @@ func (m *SourceAppMutation) Field(name string) (ent.Value, bool) {
 		return m.IgnoredPullRequestAuthors()
 	case sourceapp.FieldSkipPrereleases:
 		return m.SkipPrereleases()
+	case sourceapp.FieldReleaseAutomation:
+		return m.ReleaseAutomation()
+	case sourceapp.FieldAutomationCollectUnmatched:
+		return m.AutomationCollectUnmatched()
 	case sourceapp.FieldGithubInstallationID:
 		return m.GithubInstallationID()
 	case sourceapp.FieldStatus:
@@ -57601,6 +63248,10 @@ func (m *SourceAppMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldIgnoredPullRequestAuthors(ctx)
 	case sourceapp.FieldSkipPrereleases:
 		return m.OldSkipPrereleases(ctx)
+	case sourceapp.FieldReleaseAutomation:
+		return m.OldReleaseAutomation(ctx)
+	case sourceapp.FieldAutomationCollectUnmatched:
+		return m.OldAutomationCollectUnmatched(ctx)
 	case sourceapp.FieldGithubInstallationID:
 		return m.OldGithubInstallationID(ctx)
 	case sourceapp.FieldStatus:
@@ -57687,6 +63338,20 @@ func (m *SourceAppMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSkipPrereleases(v)
+		return nil
+	case sourceapp.FieldReleaseAutomation:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReleaseAutomation(v)
+		return nil
+	case sourceapp.FieldAutomationCollectUnmatched:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAutomationCollectUnmatched(v)
 		return nil
 	case sourceapp.FieldGithubInstallationID:
 		v, ok := value.(string)
@@ -57821,6 +63486,12 @@ func (m *SourceAppMutation) ResetField(name string) error {
 		return nil
 	case sourceapp.FieldSkipPrereleases:
 		m.ResetSkipPrereleases()
+		return nil
+	case sourceapp.FieldReleaseAutomation:
+		m.ResetReleaseAutomation()
+		return nil
+	case sourceapp.FieldAutomationCollectUnmatched:
+		m.ResetAutomationCollectUnmatched()
 		return nil
 	case sourceapp.FieldGithubInstallationID:
 		m.ResetGithubInstallationID()

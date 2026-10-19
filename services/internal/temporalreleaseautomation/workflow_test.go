@@ -1,0 +1,228 @@
+package temporalreleaseautomation
+
+import (
+	"context"
+	"errors"
+	"reflect"
+	"testing"
+	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
+	"github.com/stretchr/testify/mock"
+	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/temporal"
+	"go.temporal.io/sdk/testsuite"
+	"go.temporal.io/sdk/workflow"
+)
+
+type executionFixture struct {
+	loaded    product.AutomationRunInput
+	selected  string
+	nodes     []string
+	collected int
+	legacy    int
+	finish    Finish
+	enrich    func() (automation.Event, error)
+	node      func(NodeInput) error
+}
+
+func testGraph() automation.Graph {
+	return automation.Graph{SchemaVersion: 1, Family: automation.Published,
+		Qualification: automation.Condition{Field: "release.tag", Operator: "glob", Values: []string{"v*"}},
+		Nodes:         []automation.Node{{ID: "start", Type: "trigger"}, {ID: "stable", Type: "condition", Condition: &automation.Condition{Field: "release.prerelease", Operator: "is_false"}}, {ID: "release", Type: "action", Action: &automation.Action{Type: "create_release"}}, {ID: "end", Type: "end", Outcome: "completed"}, {ID: "skip", Type: "end", Outcome: "skipped"}},
+		Edges:         []automation.Edge{{From: "start", To: "stable", Branch: "next"}, {From: "stable", To: "release", Branch: "true"}, {From: "stable", To: "skip", Branch: "false"}, {From: "release", To: "end", Branch: "next"}},
+	}
+}
+
+func fixture() *executionFixture {
+	return &executionFixture{loaded: product.AutomationRunInput{Mode: "automation", Event: automation.Event{Family: automation.Published, Origin: "live", Fields: map[string]automation.Value{"release.tag": automation.StringValue("v1"), "release.prerelease": automation.BoolValue(false)}}, Plans: []product.AutomationPlan{{DefinitionID: "definition-1", VersionID: "version-1", Graph: testGraph()}, {DefinitionID: "definition-2", VersionID: "version-2", Graph: testGraph()}}}}
+}
+
+func environment(t *testing.T, f *executionFixture) *testsuite.TestWorkflowEnvironment {
+	t.Helper()
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	env.RegisterWorkflowWithOptions(Workflow, workflow.RegisterOptions{Name: WorkflowName})
+	env.RegisterActivityWithOptions(func(context.Context, Input) (product.AutomationRunInput, error) { return f.loaded, nil }, activity.RegisterOptions{Name: LoadActivity})
+	env.RegisterActivityWithOptions(func(_ context.Context, input Selection) error { f.selected = input.VersionID; return nil }, activity.RegisterOptions{Name: SelectActivity})
+	env.RegisterActivityWithOptions(func(_ context.Context, input NodeInput) (automation.Outputs, error) {
+		f.nodes = append(f.nodes, input.NodeID)
+		if f.node != nil {
+			return automation.Outputs{}, f.node(input)
+		}
+		return automation.Outputs{}, nil
+	}, activity.RegisterOptions{Name: NodeActivity})
+	env.RegisterActivityWithOptions(func(context.Context, Input) (automation.Event, error) { return f.enrich() }, activity.RegisterOptions{Name: EnrichActivity})
+	env.RegisterActivityWithOptions(func(context.Context, Input) error { f.collected++; return nil }, activity.RegisterOptions{Name: CollectActivity})
+	env.RegisterActivityWithOptions(func(context.Context, Input) error { f.legacy++; return nil }, activity.RegisterOptions{Name: LegacyActivity})
+	env.RegisterActivityWithOptions(func(_ context.Context, value Finish) error { f.finish = value; return nil }, activity.RegisterOptions{Name: FinishActivity})
+	return env
+}
+
+func TestInterpreterFirstMatchAndBranches(t *testing.T) {
+	for _, prerelease := range []bool{false, true} {
+		f := fixture()
+		f.loaded.Event.Fields["release.prerelease"] = automation.BoolValue(prerelease)
+		env := environment(t, f)
+		env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+		if err := env.GetWorkflowError(); err != nil {
+			t.Fatal(err)
+		}
+		want := []string{"start", "stable", "release", "end"}
+		status := "succeeded"
+		if prerelease {
+			want = []string{"start", "stable", "skip"}
+			status = "skipped"
+		}
+		if f.selected != "version-1" || !reflect.DeepEqual(f.nodes, want) || f.finish.Status != status {
+			t.Fatalf("selection=%s nodes=%v finish=%+v", f.selected, f.nodes, f.finish)
+		}
+	}
+}
+
+func TestInterpreterMissingEvidenceNeverTakesFalseBranch(t *testing.T) {
+	f := fixture()
+	f.loaded.Event.Fields["release.prerelease"] = automation.Value{State: "missing"}
+	env := environment(t, f)
+	env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+	if err := env.GetWorkflowError(); err != nil {
+		t.Fatal(err)
+	}
+	if f.finish.Status != "needs_attention" || !reflect.DeepEqual(f.nodes, []string{"start", "stable"}) {
+		t.Fatalf("nodes=%v finish=%+v", f.nodes, f.finish)
+	}
+}
+
+func TestInterpreterRetriesSameLogicalNode(t *testing.T) {
+	f := fixture()
+	attempts := 0
+	f.node = func(input NodeInput) error {
+		if input.Run.Attempt != 2 || input.Run.RunID != "run" {
+			t.Errorf("identity changed: %+v", input)
+		}
+		if input.NodeID == "release" {
+			attempts++
+			if attempts == 1 {
+				return errors.New("database unavailable")
+			}
+		}
+		return nil
+	}
+	env := environment(t, f)
+	env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run", Attempt: 2})
+	if err := env.GetWorkflowError(); err != nil {
+		t.Fatal(err)
+	}
+	if attempts != 2 || f.finish.Status != "succeeded" {
+		t.Fatalf("attempts=%d finish=%+v", attempts, f.finish)
+	}
+}
+
+func TestInterpreterRevokedAccessStopsActions(t *testing.T) {
+	f := fixture()
+	f.node = func(input NodeInput) error {
+		if input.NodeID == "release" {
+			return temporal.NewNonRetryableApplicationError("revoked", StoppedError, nil)
+		}
+		return nil
+	}
+	env := environment(t, f)
+	env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+	if env.GetWorkflowError() == nil || f.finish.Status != "cancelled" || len(f.nodes) != 3 {
+		t.Fatalf("nodes=%v finish=%+v", f.nodes, f.finish)
+	}
+}
+
+func TestInterpreterHistoricalAndLegacySeparation(t *testing.T) {
+	f := fixture()
+	f.loaded.Event.Origin = "historical"
+	env := environment(t, f)
+	env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+	if env.GetWorkflowError() != nil || f.finish.Status != "skipped" || len(f.nodes) > 0 {
+		t.Fatalf("historical ran actions: %+v", f)
+	}
+	f = fixture()
+	f.loaded.Mode = "legacy"
+	env = environment(t, f)
+	env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+	if env.GetWorkflowError() != nil || f.legacy != 1 || len(f.nodes) > 0 {
+		t.Fatalf("legacy used graph: %+v", f)
+	}
+}
+
+func TestInterpreterFailedEnrichmentStopsBeforeSelection(t *testing.T) {
+	f := fixture()
+	f.loaded.Event.Family = automation.Merged
+	f.loaded.Event.Fields = map[string]automation.Value{"pr.files": {State: "pending"}}
+	g := testGraph()
+	g.Family = automation.Merged
+	g.Qualification = automation.Condition{Field: "pr.files", Operator: "glob", Values: []string{"src/*"}}
+	g.Nodes[1].Condition = &automation.Condition{Field: "pr.files", Operator: "exists"}
+	f.loaded.Plans = []product.AutomationPlan{{VersionID: "version-1", Graph: g}}
+	f.enrich = func() (automation.Event, error) {
+		return automation.Event{}, temporal.NewNonRetryableApplicationError("incomplete", PermanentError, nil)
+	}
+	env := environment(t, f)
+	env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+	if env.GetWorkflowError() == nil || f.selected != "" || len(f.nodes) > 0 || f.finish.Status != "needs_attention" {
+		t.Fatalf("failed evidence executed: %+v", f)
+	}
+}
+
+func TestInterpreterCancellationPersistsOutcome(t *testing.T) {
+	f := fixture()
+	env := environment(t, f)
+	env.OnActivity(LoadActivity, mock.Anything, mock.Anything).Return(func(context.Context, Input) (product.AutomationRunInput, error) { return f.loaded, nil }).After(time.Minute)
+	env.RegisterDelayedCallback(env.CancelWorkflow, time.Second)
+	env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+	if env.GetWorkflowError() == nil || f.finish.Status != "cancelled" || len(f.nodes) > 0 {
+		t.Fatalf("cancelled workflow: %+v", f)
+	}
+}
+
+func TestInterpreterUnmatchedPRCollectionPolicy(t *testing.T) {
+	for _, collect := range []bool{false, true} {
+		f := fixture()
+		f.loaded.Plans = nil
+		f.loaded.Event.Family = automation.Merged
+		f.loaded.CollectUnmatched = collect
+		env := environment(t, f)
+		env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+		want := 0
+		if collect {
+			want = 1
+		}
+		if env.GetWorkflowError() != nil || f.collected != want || f.finish.Status != "skipped" || len(f.nodes) != 0 {
+			t.Fatalf("policy=%t fixture=%+v", collect, f)
+		}
+	}
+}
+
+func TestInterpreterDeploymentCaptureSurvivesNoMatch(t *testing.T) {
+	f := fixture()
+	f.loaded.Plans = nil
+	f.loaded.Event.Family = automation.Deployed
+	env := environment(t, f)
+	env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+	if env.GetWorkflowError() != nil || f.collected != 1 || f.finish.Status != "skipped" {
+		t.Fatalf("capture=%+v", f)
+	}
+}
+
+func TestInterpreterExhaustedRetriesStopLaterNodes(t *testing.T) {
+	f := fixture()
+	attempts := 0
+	f.node = func(input NodeInput) error {
+		if input.NodeID == "release" {
+			attempts++
+			return errors.New("temporary database failure")
+		}
+		return nil
+	}
+	env := environment(t, f)
+	env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+	if env.GetWorkflowError() == nil || attempts != 4 || f.finish.Status != "failed" || f.finish.Code != "activity_failed" || f.nodes[len(f.nodes)-1] != "release" {
+		t.Fatalf("attempts=%d fixture=%+v", attempts, f)
+	}
+}

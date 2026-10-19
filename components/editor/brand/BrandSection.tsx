@@ -116,7 +116,7 @@ export function BrandSection() {
     <SectionWrapper
       action={
         session && canManage ? (
-          <button
+          <Button variant="custom" size={null}
             aria-label="New brand kit"
             className="flex h-6 items-center gap-1 rounded-md bg-muted/60 px-2 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             onClick={() => setEditing({})}
@@ -124,7 +124,7 @@ export function BrandSection() {
           >
             <PlusSignIcon size={10} />
             New
-          </button>
+          </Button>
         ) : null
       }
       title="Brand"
@@ -152,7 +152,7 @@ export function BrandSection() {
               const isSelected = kit.name === selected?.name
               return (
                 <li className="relative" key={kit.id}>
-                  <button
+                  <Button variant="custom" size={null}
                     aria-pressed={isSelected}
                     className={cn(
                       'flex w-full items-center gap-2 rounded-md border px-2 py-1.5 pr-7 text-left transition-colors',
@@ -189,7 +189,7 @@ export function BrandSection() {
                         {binding?.name === kit.name ? ` · applied (v${binding.version})` : ''}
                       </span>
                     </span>
-                  </button>
+                  </Button>
                   {canManage ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger
@@ -223,7 +223,7 @@ export function BrandSection() {
                   const enabled = available(selected, category)
                   const on = enabled && categories.has(category)
                   return (
-                    <button
+                    <Button variant="custom" size={null}
                       aria-pressed={on}
                       className={cn(
                         'h-6 rounded-md border px-2 text-[10px] transition-colors disabled:opacity-40',
@@ -249,7 +249,7 @@ export function BrandSection() {
                       type="button"
                     >
                       {CATEGORY_LABELS[category]}
-                    </button>
+                    </Button>
                   )
                 })}
               </div>

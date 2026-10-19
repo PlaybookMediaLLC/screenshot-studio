@@ -3,7 +3,14 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { ChoiceField } from '@/components/editor/inspector/fields'
 import {
   redactImage,
@@ -14,6 +21,7 @@ import {
 import type { Finding, FindingKind, ImageBox } from '@/lib/redaction/patterns'
 import { type ScanProgress, scanImage } from '@/lib/redaction/scan'
 import { cn } from '@/lib/utils'
+import { Checkbox } from '@/components/ui/checkbox'
 
 /** Suggestions at or above this confidence start approved; the rest wait for a decision. */
 const AUTO_APPROVE = 0.75
@@ -141,7 +149,7 @@ function RegionCanvas({
       >
         <img alt="Screenshot under review" className="block max-h-[60vh] max-w-full" data-image="true" draggable={false} src={imageUrl} />
         {items.map((item) => (
-          <button
+          <Button variant="custom" size={null}
             aria-label={`${KIND_LABELS[item.kind]}${item.approved ? ', will be redacted' : ', skipped'}`}
             aria-pressed={item.approved}
             className={cn('absolute rounded-[2px] outline-offset-1', selectedId === item.id && 'outline outline-2 outline-white')}
@@ -181,7 +189,7 @@ function RegionCanvas({
                 onPointerUp={endPointer}
               />
             ) : null}
-          </button>
+          </Button>
         ))}
         {drawing ? (
           <div
@@ -343,13 +351,13 @@ export function RedactionReviewDialog({
                   {items.length === 0 ? 'No regions yet' : `${approved.length} of ${items.length} will be redacted`}
                 </p>
                 {items.length > 0 ? (
-                  <button
+                  <Button variant="custom" size={null}
                     className="text-[11px] text-muted-foreground hover:text-foreground"
                     onClick={() => setItems((current) => current.map((item) => ({ ...item, approved: true })))}
                     type="button"
                   >
                     Approve all
-                  </button>
+                  </Button>
                 ) : null}
               </div>
               <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto" aria-label="Redaction suggestions">
@@ -361,31 +369,28 @@ export function RedactionReviewDialog({
                     )}
                     key={item.id}
                   >
-                    <input
+                    <Checkbox
                       aria-label={`Redact ${KIND_LABELS[item.kind]}`}
                       checked={item.approved}
-                      onChange={() =>
-                        setItems((current) => current.map((other) => (other.id === item.id ? { ...other, approved: !other.approved } : other)))
-                      }
-                      type="checkbox"
+                      onCheckedChange={() => setItems((current) => current.map((other) => (other.id === item.id ? { ...other, approved: !other.approved } : other)))}
                     />
                     <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: KIND_COLORS[item.kind] }} />
-                    <button className="min-w-0 flex-1 truncate text-left" onClick={() => setSelectedId(item.id)} type="button">
+                    <Button variant="custom" size={null} className="min-w-0 flex-1 truncate text-left" onClick={() => setSelectedId(item.id)} type="button">
                       {item.kind === 'manual' ? KIND_LABELS.manual : item.label}
-                    </button>
+                    </Button>
                     {item.confidence !== null ? (
                       <span className="tabular-nums text-muted-foreground" title="Detector confidence">
                         {Math.round(item.confidence * 100)}%
                       </span>
                     ) : null}
-                    <button
+                    <Button variant="custom" size={null}
                       aria-label="Remove region"
                       className="text-muted-foreground hover:text-destructive"
                       onClick={() => setItems((current) => current.filter((other) => other.id !== item.id))}
                       type="button"
                     >
                       ×
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>

@@ -1,0 +1,166 @@
+/** The v1 execution language; the Go validator is the execution authority. */
+export type AutomationFamily = 'release.published' | 'pull_request.merged' | 'deployment.succeeded'
+export type AutomationCondition = {
+  group?: 'ALL' | 'ANY' | 'NOT'
+  children?: AutomationCondition[]
+  field?: string
+  operator?: string
+  values?: string[]
+}
+export type AutomationAction = {
+  type: 'create_release' | 'create_campaign' | 'submit_review'
+  input?: { nodeId: string; output: string }
+  brandKitId?: string
+  destinationIds?: string[]
+  audience?: string
+  callToAction?: string
+}
+export type AutomationNode = {
+  id: string
+  type: 'trigger' | 'condition' | 'action' | 'end'
+  condition?: AutomationCondition
+  action?: AutomationAction
+  outcome?: string
+}
+export type AutomationGraph = {
+  schemaVersion: number
+  family: AutomationFamily
+  qualification: AutomationCondition
+  nodes: AutomationNode[]
+  edges: { from: string; to: string; branch: string }[]
+}
+export type AutomationLayout = Record<string, { x: number; y: number }>
+export type AutomationIssue = { nodeId: string; code: string; message: string }
+export type AutomationDefinition = {
+  id: string
+  sourceAppId: string
+  name: string
+  description: string
+  priority: number
+  revision: number
+  enabled: boolean
+  activeVersionId: string | null
+  activePriority: number
+  draft: AutomationGraph
+  layout: AutomationLayout
+  modifiedBy: string
+  updatedAt: string
+  issues: AutomationIssue[]
+}
+export type SaveAutomationInput = {
+  id: string
+  sourceAppId: string
+  name: string
+  description: string
+  priority: number
+  expectedRevision: number
+  graph: AutomationGraph
+  layout: AutomationLayout
+}
+export type AutomationValue = { state: string; values?: string[]; boolean?: boolean }
+export type AutomationEventSnapshot = {
+  family: AutomationFamily
+  semanticKey: string
+  repositoryId: string
+  repositoryName: string
+  objectId: string
+  number?: number
+  occurredAt: string
+  origin: string
+  title: string
+  notes: string
+  url: string
+  defaultBranch?: string
+  fields: Record<string, AutomationValue>
+}
+export type AutomationDecision = { status: string; match: boolean; reason: string }
+export type AutomationPreview = {
+  issues: AutomationIssue[]
+  qualification: AutomationDecision
+  steps: {
+    nodeId: string
+    type: string
+    decision?: AutomationDecision
+    action?: string
+    outcome?: string
+  }[]
+  outcome: string
+  evidence: string
+}
+export type AutomationOverview = {
+  definitions: AutomationDefinition[]
+  sources: {
+    id: string
+    name: string
+    repositoryId: string
+    status: string
+    mode: string
+    account: string
+    installationStatus: string
+    connectionState: string
+    collectUnmatched: boolean
+  }[]
+  brands: { id: string; name: string }[]
+  destinations: { id: string; name: string }[]
+  fields: Record<AutomationFamily, Record<string, string>>
+  executorAvailable: boolean
+}
+export type AutomationOutputs = {
+  releaseId?: string
+  campaignId?: string
+  postIds?: string[]
+  brandKitId?: string
+  brandKitVersion?: number
+  destinationIds?: string[]
+}
+export type AutomationHistoryItem = {
+  event: {
+    id: string
+    sourceAppId: string
+    deliveryId: string
+    snapshot: AutomationEventSnapshot
+    versionIds: string[]
+    mode: string
+    disposition: string
+    reason: string
+    receivedAt: string
+    enrichedAt: string | null
+    enrichment: Record<string, AutomationValue>
+  }
+  run: {
+    id: string
+    eventId: string
+    definitionId: string | null
+    versionId: string | null
+    workflowId: string
+    temporalRunId: string
+    status: string
+    cancelRequested: boolean
+    recoveryAttempt: number
+    failureCode: string
+    reason: string
+    outputs: AutomationOutputs
+    createdAt: string
+    completedAt: string | null
+  }
+}
+export type AutomationRunDetail = AutomationHistoryItem & {
+  nodes: {
+    nodeId: string
+    actionKey: string
+    status: string
+    attempts: number
+    failureCode: string
+    decision: AutomationDecision
+    outputs: AutomationOutputs
+    startedAt: string
+    completedAt: string | null
+  }[]
+}
+export type AutomationVersion = {
+  id: string
+  definitionId: string
+  revision: number
+  graph: AutomationGraph
+  contentHash: string
+}

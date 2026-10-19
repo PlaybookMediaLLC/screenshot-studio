@@ -13,8 +13,9 @@ import {
 } from 'hugeicons-react';
 import { useImageStore } from '@/lib/store';
 import { usePlaybackStore } from '@/lib/store/playback';
-import { Slider } from '@/components/ui/slider';
+import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button'
 
 function formatTimeDisplay(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
@@ -52,7 +53,7 @@ export function TimelineControls({ onAddAnimation, onClose }: TimelineControlsPr
   return (
     <div className="grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-foreground/10 bg-background px-3">
       <div className="flex min-w-0 items-center">
-        <button
+        <Button variant="custom" size={null}
           type="button"
           onClick={onAddAnimation}
           aria-label="Add animation"
@@ -68,11 +69,11 @@ export function TimelineControls({ onAddAnimation, onClose }: TimelineControlsPr
         >
           <Add01Icon size={14} className="text-foreground" />
           <span className="max-[1100px]:hidden">Add animation</span>
-        </button>
+        </Button>
       </div>
 
       <div className="flex items-center justify-center gap-2">
-        <button
+        <Button variant="custom" size={null}
           type="button"
           className={cn(
             'flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors duration-150',
@@ -87,9 +88,9 @@ export function TimelineControls({ onAddAnimation, onClose }: TimelineControlsPr
           aria-pressed={isLooping}
         >
           {isLooping ? <RepeatIcon size={15} /> : <RepeatOffIcon size={15} />}
-        </button>
+        </Button>
 
-        <button
+        <Button variant="custom" size={null}
           type="button"
           className={cn(
             'inline-flex h-8 w-[72px] cursor-pointer items-center justify-center rounded-md',
@@ -103,7 +104,7 @@ export function TimelineControls({ onAddAnimation, onClose }: TimelineControlsPr
           aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
         >
           {isPlaying ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
-        </button>
+        </Button>
 
         <div className="flex min-w-[66px] items-center tabular-nums">
           <span className="text-[11px] font-medium text-foreground">
@@ -134,7 +135,7 @@ export function TimelineControls({ onAddAnimation, onClose }: TimelineControlsPr
         </div>
 
         {hasAnimations ? (
-          <button
+          <Button variant="custom" size={null}
             type="button"
             onClick={clearAnimationClips}
             className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
@@ -142,12 +143,12 @@ export function TimelineControls({ onAddAnimation, onClose }: TimelineControlsPr
             aria-label="Clear animations"
           >
             <Delete02Icon size={15} />
-          </button>
+          </Button>
         ) : null}
 
         <div className="mx-0.5 h-4 w-px bg-foreground/10" aria-hidden />
 
-        <button
+        <Button variant="custom" size={null}
           type="button"
           onClick={onClose}
           className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
@@ -155,7 +156,7 @@ export function TimelineControls({ onAddAnimation, onClose }: TimelineControlsPr
           aria-label="Close timeline"
         >
           <Cancel01Icon size={15} />
-        </button>
+        </Button>
       </div>
     </div>
   );

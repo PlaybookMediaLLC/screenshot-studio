@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto'
 import { signUpAndCreateWorkspace } from './framework/auth'
-import { browserRequest } from './framework/browser'
+import { browserRequest, chooseOption } from './framework/browser'
 import { configureE2EFlow, expect, test } from './framework/flow'
+import { createE2EDatabase } from './framework/services'
 
 configureE2EFlow()
 
@@ -56,4 +58,56 @@ test('the consent page refuses an unregistered client without redirecting', asyn
   )
   await expect(page.getByRole('heading', { name: /can’t be approved/ })).toBeVisible()
   expect(page.url()).toContain('/oauth/authorize')
+})
+
+test('agent consent serializes selected scopes and supports clearing an expiry', async ({
+  identity,
+  page,
+}) => {
+  await signUpAndCreateWorkspace(identity, page)
+  const database = createE2EDatabase()
+  const clientId = `e2e-consent-${randomUUID()}`
+  const redirectUri = 'https://agent.example.test/callback'
+  try {
+    await database.query(
+      `INSERT INTO "OAuthApp" (id, name, "redirectUrl", "clientId", "createdAt", "updatedAt")
+       VALUES ($1, 'UI consent fixture', $2, $1, now(), now())`,
+      [clientId, redirectUri]
+    )
+    await page.goto(
+      `/oauth/authorize?${new URLSearchParams({
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: redirectUri,
+      })}`
+    )
+    const form = page
+      .locator('form')
+      .filter({ has: page.getByRole('button', { name: 'Approve', exact: true }) })
+    await expect(page.getByRole('heading', { name: 'Connect UI consent fixture?' })).toBeVisible()
+    const submittedChoices = () =>
+      form.evaluate((element) => {
+        const data = new FormData(element as HTMLFormElement)
+        return { expiry: data.get('expiresInDays'), scopes: data.getAll('scopes') }
+      })
+    await expect
+      .poll(submittedChoices)
+      .toEqual({ expiry: '', scopes: ['artifact:read', 'release:create'] })
+    await page.getByLabel(/release:create/).uncheck()
+    await page.getByLabel(/asset:write/).check()
+    const expiry = page.getByRole('combobox', { name: 'Access expires', exact: true })
+    await expiry.press('Space')
+    await page.getByRole('option', { name: 'In 30 days', exact: true }).focus()
+    await page.keyboard.press('Enter')
+    await expect
+      .poll(submittedChoices)
+      .toEqual({ expiry: '30', scopes: ['artifact:read', 'asset:write'] })
+    await chooseOption(expiry, 'Never (revoke it in Settings → AI agents)')
+    await expect
+      .poll(submittedChoices)
+      .toEqual({ expiry: '', scopes: ['artifact:read', 'asset:write'] })
+  } finally {
+    await database.query('DELETE FROM "OAuthApp" WHERE id=$1', [clientId])
+    await database.end()
+  }
 })

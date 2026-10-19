@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils'
 import { EasingField } from './EasingField'
 import { formatSeconds, NumberField, SecondsField } from './fields'
 import { AudioSection, CaptionsSection } from './MediaSections'
+import { Button } from '@/components/ui/button'
 
 /**
  * The Motion tab's own sections: keyframes for the selected layer, the
@@ -137,7 +138,7 @@ function PropertyRow({
 
   return (
     <div className="flex items-center gap-2" data-property-row={property}>
-      <button
+      <Button variant="custom" size={null}
         aria-label={atPlayhead ? `Remove ${label} keyframe` : `Add ${label} keyframe`}
         aria-pressed={Boolean(atPlayhead)}
         className={cn(
@@ -162,7 +163,7 @@ function PropertyRow({
         type="button"
       >
         <DiamondIcon size={13} />
-      </button>
+      </Button>
       <div className="min-w-0 flex-1">
         <NumberField
           label={label}
@@ -224,7 +225,7 @@ function SelectedKeyframeSection() {
         value={keyframe}
       />
       <div className="flex gap-2">
-        <button
+        <Button variant="custom" size={null}
           className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md py-1.5 text-xs text-foreground hover:bg-foreground/[0.06]"
           onClick={() => {
             // To the playhead, or half a second later when the keyframe is already there.
@@ -240,8 +241,8 @@ function SelectedKeyframeSection() {
           type="button"
         >
           <Copy01Icon size={13} /> Duplicate
-        </button>
-        <button
+        </Button>
+        <Button variant="custom" size={null}
           className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md py-1.5 text-xs text-destructive hover:bg-destructive/10"
           onClick={() => {
             updateMotion((motion) => removeKeyframe(motion, track.id, keyframe.id))
@@ -250,7 +251,7 @@ function SelectedKeyframeSection() {
           type="button"
         >
           <Delete02Icon size={13} /> Delete
-        </button>
+        </Button>
       </div>
     </SectionWrapper>
   )
@@ -459,7 +460,7 @@ function ScrollSection({ target }: { target: ScrollTarget }) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Pauses</span>
-              <button
+              <Button variant="custom" size={null}
                 className="cursor-pointer rounded-md px-2 py-1 text-xs text-foreground hover:bg-foreground/[0.06]"
                 onClick={() =>
                   save({
@@ -469,7 +470,7 @@ function ScrollSection({ target }: { target: ScrollTarget }) {
                 type="button"
               >
                 Add pause
-              </button>
+              </Button>
             </div>
             {scroll.pauses.map((pause, index) => (
               <div className="space-y-1.5 rounded-md border border-foreground/10 p-2" key={index}>
@@ -502,7 +503,7 @@ function ScrollSection({ target }: { target: ScrollTarget }) {
                       valueMs={pause.hold}
                     />
                   </div>
-                  <button
+                  <Button variant="custom" size={null}
                     aria-label={`Remove pause ${index + 1}`}
                     className="cursor-pointer rounded-md p-1 text-destructive hover:bg-destructive/10"
                     onClick={() =>
@@ -511,7 +512,7 @@ function ScrollSection({ target }: { target: ScrollTarget }) {
                     type="button"
                   >
                     <Delete02Icon size={13} />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}

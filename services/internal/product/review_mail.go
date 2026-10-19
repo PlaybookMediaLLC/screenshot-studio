@@ -9,6 +9,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
@@ -90,7 +91,7 @@ func (c *Configuration) WithReviewMailer(mailer ReviewMailer) *Configuration {
 }
 
 // reviewEvent queues the notification for a post transition.
-func reviewEvent(ctx context.Context, tx *ent.Tx, actor Actor, campaignID, decision string, postIDs []string, note *string) error {
+func reviewEvent(ctx context.Context, tx *ent.Tx, actor Actor, campaignID, decision string, postIDs []string, note *string, idempotencyKey string) error {
 	kind := EventCampaignPostsDecided
 	if decision == "submit" {
 		kind = EventCampaignPostsSubmitted
@@ -100,15 +101,19 @@ func reviewEvent(ctx context.Context, tx *ent.Tx, actor Actor, campaignID, decis
 		payload["note"] = strings.TrimSpace(*note)
 	}
 	id := cuid.New()
+	key := kind + ":" + id
+	if idempotencyKey != "" {
+		key = "campaign-review:" + campaignID + ":" + idempotencyKey
+	}
 	return tx.OutboxEvent.Create().SetID(id).SetOrganizationID(actor.OrganizationID).SetType(kind).
 		SetAggregateType("campaign").SetAggregateID(campaignID).SetPayload(payload).
-		SetIdempotencyKey(kind + ":" + id).Exec(ctx)
+		SetIdempotencyKey(key).Exec(ctx)
 }
 
 // notifyReview emails the people a transition concerns. The actor is never
 // emailed about their own action.
-// ponytail: one failed recipient retries the whole event, so the others may
-// get a duplicate; record per-recipient delivery if that becomes noise.
+// A durable per-recipient claim prevents retries after an uncertain send.
+// Unacknowledged claims require operator reconciliation through the outbox.
 func (c *Configuration) notifyReview(ctx context.Context, eventID, organizationID, campaignID string) error {
 	event, err := c.client.OutboxEvent.Query().Where(outboxevent.ID(eventID), outboxevent.OrganizationID(organizationID)).Only(ctx)
 	if err != nil {
@@ -162,10 +167,36 @@ func (c *Configuration) notifyReview(ctx context.Context, eventID, organizationI
 	}
 	var failed error
 	for _, person := range people {
+		key := "review-recipient:" + eventID + ":" + person.ID
+		receipt, err := c.client.OutboxEvent.Query().Where(outboxevent.OrganizationID(organizationID), outboxevent.IdempotencyKey(key)).Only(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return err
+		}
+		if receipt != nil {
+			if receipt.Payload["status"] != "DELIVERED" {
+				failed = ErrReviewDeliveryUnknown
+			}
+			continue
+		}
+		receipt, err = c.client.OutboxEvent.Create().SetID(cuid.New()).SetOrganizationID(organizationID).
+			SetType("review_notification.receipt").SetAggregateType("campaign").SetAggregateID(campaignID).
+			SetIdempotencyKey(key).SetDeliveredAt(time.Now()).SetPayload(map[string]any{"status": "UNKNOWN_DELIVERY", "eventId": eventID, "recipientUserId": person.ID}).Save(ctx)
+		if ent.IsConstraintError(err) {
+			return ErrReviewDeliveryUnknown
+		}
+		if err != nil {
+			return err
+		}
 		if err := c.reviews.SendReviewNotification(ctx, ReviewNotification{ActorName: actorName, CampaignName: row.Name,
 			CampaignURL: link, Decision: decision, Email: person.Email, Note: note, PostCount: len(postIDs)}); err != nil {
-			failed = err
+			failed = ErrReviewDeliveryUnknown
+			continue
+		}
+		if err := receipt.Update().SetPayload(map[string]any{"status": "DELIVERED", "eventId": eventID, "recipientUserId": person.ID}).Exec(ctx); err != nil {
+			return err
 		}
 	}
 	return failed
 }
+
+var ErrReviewDeliveryUnknown = errors.New("review notification delivery requires reconciliation; automatic resend is disabled")

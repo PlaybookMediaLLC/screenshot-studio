@@ -10,9 +10,9 @@ import {
   RefreshIcon,
   Settings02Icon,
 } from 'hugeicons-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { SegmentedControl } from '@/components/ui/segmented-control';
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import { OptionGroup } from '@/components/tools/ToolOptions';
 import { CARD_CLASS, DROP_CARD_CLASS, DropSurface } from '@/components/tools/ui';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,10 @@ import {
   type SizeMode,
   type VideoInfo,
 } from '@/lib/video-compression';
+
+
+
+
 
 interface Source {
   file: File;
@@ -339,7 +343,7 @@ export function CompressVideoApp() {
   };
 
   const fileInput = (
-    <input
+    <Input
       ref={inputRef}
       type="file"
       accept={ACCEPT}
@@ -357,7 +361,7 @@ export function CompressVideoApp() {
     return (
       <div data-local-dropzone="" className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4" {...dragHandlers}>
         {fileInput}
-        <button type="button" onClick={openPicker} className={DROP_CARD_CLASS}>
+        <Button variant="custom" size={null} type="button" onClick={openPicker} className={DROP_CARD_CLASS}>
           <DropSurface
             active={dragging}
             title={dragging ? 'Release to open' : 'Drop a video here'}
@@ -365,7 +369,7 @@ export function CompressVideoApp() {
             action="Choose a video"
             formats="MP4, MOV, WebM, or MKV up to 1 GB"
           />
-        </button>
+        </Button>
         {error ? (
           <p role="alert" className="text-sm text-destructive">
             {error}
@@ -540,7 +544,7 @@ export function CompressVideoApp() {
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {TARGET_PRESETS.map((preset) => (
-                    <button
+                    <Button variant="custom" size={null}
                       key={preset}
                       type="button"
                       disabled={controlsDisabled}
@@ -552,7 +556,7 @@ export function CompressVideoApp() {
                       )}
                     >
                       {preset} MB
-                    </button>
+                    </Button>
                   ))}
                 </div>
                 {targetProblem ? (

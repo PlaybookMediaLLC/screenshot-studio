@@ -7,9 +7,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useImageStore } from "@/lib/store";
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
@@ -24,6 +24,7 @@ import { isFFmpegLoaded } from "@/lib/export/ffmpeg-encoder";
 import { useExportProgress } from "@/hooks/useExportProgress";
 import { isMp4Supported, type VideoFormat, type VideoQuality } from "@/lib/export/video-encoder";
 import { hasMotionContent } from "@/lib/animation/motion-schema";
+import { Label } from '@/components/ui/label'
 
 type ExportMode = "slideshow" | "animation";
 
@@ -231,9 +232,9 @@ export function ExportSlideshowDialog({
               {/* Export Mode Selection */}
               {(hasAnimation || hasSlides) && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground/90">Export Type</label>
+                  <Label className="text-sm font-medium text-foreground/90">Export Type</Label>
                   <div className="grid grid-cols-2 gap-2">
-                    <button
+                    <Button variant="custom" size={null}
                       onClick={() => setExportMode("animation")}
                       className={`
                         relative p-3 rounded-lg border text-left transition-all
@@ -247,8 +248,8 @@ export function ExportSlideshowDialog({
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {(timeline.duration / 1000).toFixed(1)}s video
                       </div>
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="custom" size={null}
                       onClick={() => setExportMode("slideshow")}
                       className={`
                         relative p-3 rounded-lg border text-left transition-all
@@ -262,19 +263,19 @@ export function ExportSlideshowDialog({
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {slides.length > 0 ? `${slides.length} slide${slides.length > 1 ? 's' : ''}` : 'Single image'}
                       </div>
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
 
               {/* Format Selection */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground/90">Format</label>
+                <Label className="text-sm font-medium text-foreground/90">Format</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {FORMAT_OPTIONS.map((opt) => {
                     const isDisabled = opt.value === "mp4" && !mp4Supported;
                     return (
-                      <button
+                      <Button variant="custom" size={null}
                         key={opt.value}
                         onClick={() => !isDisabled && setFormat(opt.value)}
                         disabled={isDisabled}
@@ -292,7 +293,7 @@ export function ExportSlideshowDialog({
                         {isDisabled && (
                           <div className="text-xs text-amber-400 mt-1">Browser not supported</div>
                         )}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -300,10 +301,10 @@ export function ExportSlideshowDialog({
 
               {/* Quality Selection */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground/90">Quality</label>
+                <Label className="text-sm font-medium text-foreground/90">Quality</Label>
                 <div className="flex gap-2">
                   {QUALITY_OPTIONS.map((opt) => (
-                    <button
+                    <Button variant="custom" size={null}
                       key={opt.value}
                       onClick={() => setQuality(opt.value)}
                       className={`
@@ -316,7 +317,7 @@ export function ExportSlideshowDialog({
                     >
                       <div className="font-medium text-sm text-foreground/90">{opt.label}</div>
                       <div className="text-xs text-muted-foreground">{opt.bitrate}</div>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -324,9 +325,9 @@ export function ExportSlideshowDialog({
               {/* Slide Duration */}
               {exportMode === "slideshow" && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground/90">
+                  <Label className="text-sm font-medium text-foreground/90">
                     Slide Duration
-                  </label>
+                  </Label>
                   <div className="flex items-center gap-3">
                     <Input
                       type="number"

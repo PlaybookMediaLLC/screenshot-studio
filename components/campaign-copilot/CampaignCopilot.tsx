@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/sheet'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 type Client = ReturnType<typeof useTRPCClient>
 type ConversationView = Awaited<ReturnType<Client['conversation']['get']['query']>>
@@ -344,10 +346,10 @@ export function CampaignCopilot({
           ) : null}
           {aiEnabled ? (
             <form className="flex flex-col gap-2" onSubmit={submit}>
-              <label className="sr-only" htmlFor="campaign-copilot-message">
+              <Label className="sr-only" htmlFor="campaign-copilot-message">
                 Message
-              </label>
-              <textarea
+              </Label>
+              <Textarea
                 className="min-h-20 w-full resize-none rounded-lg bg-white/[0.03] px-3 py-2 text-sm text-white ring-1 ring-white/[0.08] outline-none placeholder:text-neutral-600 focus:ring-white/20"
                 disabled={busy || running}
                 id="campaign-copilot-message"

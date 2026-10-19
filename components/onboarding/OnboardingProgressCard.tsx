@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import type { StoredOnboardingRun } from '@/lib/tenant/onboarding-runs'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { isTerminal, stageLabel, useOnboardingRun } from './run-progress'
+import { Button } from '@/components/ui/button'
 
 /** A finished run's card stays this long after the run ends, until dismissed. */
 const SHOW_FINISHED_MS = 30 * 60 * 1_000
@@ -41,7 +42,7 @@ function Card({ initial }: { initial: StoredOnboardingRun }) {
         </p>
         <div className="flex items-center gap-2">
           <span className="text-neutral-300 tabular-nums">{run.progress}%</span>
-          <button
+          <Button variant="custom" size={null}
             aria-label="Dismiss"
             className="text-neutral-500 hover:text-white"
             onClick={() => {
@@ -51,7 +52,7 @@ function Card({ initial }: { initial: StoredOnboardingRun }) {
             type="button"
           >
             <X aria-hidden className="size-4" />
-          </button>
+          </Button>
         </div>
       </div>
       <div

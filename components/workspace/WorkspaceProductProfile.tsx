@@ -16,6 +16,7 @@ import {
 } from '@/lib/tenant/product-profile-schema'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
+import { Label } from '@/components/ui/label'
 
 type FormValues = Record<ProductProfileFieldName, string>
 
@@ -142,13 +143,13 @@ export function Provenance({
         <Lock aria-hidden className="size-3" />
         Edited by you
         {canManage ? (
-          <button
+          <Button variant="custom" size={null}
             className="text-neutral-300 underline underline-offset-2 hover:text-white"
             onClick={onUnlock}
             type="button"
           >
             Let Shots update this
-          </button>
+          </Button>
         ) : null}
       </span>
     )
@@ -272,7 +273,7 @@ export function ProductProfileForm({
                   ) : undefined
                 }
                 key={spec.field}
-                label={<label htmlFor={id}>{spec.label}</label>}
+                label={<Label htmlFor={id}>{spec.label}</Label>}
                 layout="stacked"
               >
                 {spec.kind === 'input' ? (

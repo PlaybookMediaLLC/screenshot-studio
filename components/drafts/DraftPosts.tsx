@@ -143,7 +143,7 @@ export function DraftPosts({
                   ) : (
                     <span>No engagement read yet.</span>
                   )}
-                  <button
+                  <Button variant="custom" size={null}
                     className="text-neutral-500 hover:text-white disabled:opacity-50"
                     disabled={busy === post.id}
                     onClick={() =>
@@ -162,7 +162,7 @@ export function DraftPosts({
                     ) : (
                       'Read engagement'
                     )}
-                  </button>
+                  </Button>
                 </div>
               ) : null}
             </li>

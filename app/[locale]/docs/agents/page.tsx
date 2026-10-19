@@ -6,6 +6,14 @@ import { API_KEY_PLACEHOLDER, MCP_CLIENTS, MCP_TOOLS, MCP_URL } from '@/lib/agen
 import { apiKeyScopeDescriptions, apiKeyScopes } from '@/lib/auth/api-key-scopes'
 import { INTER, codeBlockClassName, linkClassName } from '@/lib/seo/docs-shared'
 import { OG_DEFAULTS } from '@/lib/seo/metadata'
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/docs/agents' },
@@ -61,24 +69,24 @@ export default function AgentsDocsPage() {
               Settings.
             </p>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="py-2 pr-4 font-medium text-foreground">Scope</th>
-                    <th className="py-2 font-medium text-foreground">Lets the agent</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="w-full text-left text-sm">
+                <TableHeader>
+                  <TableRow className="border-b border-border">
+                    <TableHead className="whitespace-normal py-2 pr-4 font-medium text-foreground">Scope</TableHead>
+                    <TableHead className="whitespace-normal py-2 font-medium text-foreground">Lets the agent</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {apiKeyScopes.map((scope) => (
-                    <tr className="border-b border-border/60" key={scope}>
-                      <td className="py-2 pr-4 font-mono text-xs text-foreground">{scope}</td>
-                      <td className="py-2 text-muted-foreground">
+                    <TableRow className="border-b border-border/60" key={scope}>
+                      <TableCell className="whitespace-normal py-2 pr-4 font-mono text-xs text-foreground">{scope}</TableCell>
+                      <TableCell className="whitespace-normal py-2 text-muted-foreground">
                         {apiKeyScopeDescriptions[scope]}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
             <p className="mt-4 leading-relaxed text-muted-foreground">
               Calls pass the same checks as the API: the key&apos;s scope, an active plan, the
@@ -100,26 +108,26 @@ export default function AgentsDocsPage() {
               agent sees only the tools its key&apos;s scopes allow.
             </p>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="py-2 pr-4 font-medium text-foreground">Tool</th>
-                    <th className="py-2 pr-4 font-medium text-foreground">Scope</th>
-                    <th className="py-2 font-medium text-foreground">Does</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="w-full text-left text-sm">
+                <TableHeader>
+                  <TableRow className="border-b border-border">
+                    <TableHead className="whitespace-normal py-2 pr-4 font-medium text-foreground">Tool</TableHead>
+                    <TableHead className="whitespace-normal py-2 pr-4 font-medium text-foreground">Scope</TableHead>
+                    <TableHead className="whitespace-normal py-2 font-medium text-foreground">Does</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {MCP_TOOLS.map((tool) => (
-                    <tr className="border-b border-border/60" key={tool.name}>
-                      <td className="py-2 pr-4 font-mono text-xs text-foreground">{tool.name}</td>
-                      <td className="py-2 pr-4 font-mono text-xs text-muted-foreground">
+                    <TableRow className="border-b border-border/60" key={tool.name}>
+                      <TableCell className="whitespace-normal py-2 pr-4 font-mono text-xs text-foreground">{tool.name}</TableCell>
+                      <TableCell className="whitespace-normal py-2 pr-4 font-mono text-xs text-muted-foreground">
                         {tool.scope}
-                      </td>
-                      <td className="py-2 text-muted-foreground">{tool.summary}</td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="whitespace-normal py-2 text-muted-foreground">{tool.summary}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </section>
 

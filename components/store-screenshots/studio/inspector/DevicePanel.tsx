@@ -12,6 +12,9 @@ import { useStudioActions } from '../actions'
 import { ChoiceField, NumberField, Section, SelectField, SliderField, ToggleField } from '../controls'
 import { useEditor, useEditorApi } from '../editor-store'
 import { LayerStateSection, TransformSection, useLayerPatch } from './shared'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 const FAMILY_LABELS = { phone: 'Phones', tablet: 'Tablets', laptop: 'Mac', watch: 'Watch', headset: 'Vision Pro' } as const
 
@@ -33,13 +36,13 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
       <Section title="Screenshot">
         <div className="flex items-center gap-2 rounded-md border border-foreground/10 bg-foreground/[0.025] p-2">
           <span className="min-w-0 flex-1 truncate text-[11px]">{asset ? `${asset.name} · ${asset.width} × ${asset.height}` : 'No screenshot yet'}</span>
-          <button
+          <Button variant="custom" size={null}
             type="button"
             onClick={() => actions.chooseScreenshot(owner.kind === 'slide' ? { slideId: owner.id, layerId: layer.id } : null)}
             className="h-7 shrink-0 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]"
           >
             {asset ? 'Replace' : 'Choose'}
-          </button>
+          </Button>
         </div>
         {asset ? (
           <>
@@ -61,7 +64,7 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
               }}
             />
             <div className="flex gap-2">
-              <button
+              <Button variant="custom" size={null}
                 type="button"
                 onClick={() => {
                   api.getState().selectLayers(owner, [layer.id], 'replace', { deep: true })
@@ -70,13 +73,13 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
                 className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]"
               >
                 Crop on canvas
-              </button>
-              <button type="button" onClick={() => patch([layer.id], { image: { mode: 'fill', scale: 1, offsetX: 0, offsetY: 0 } })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+              </Button>
+              <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { image: { mode: 'fill', scale: 1, offsetX: 0, offsetY: 0 } })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
                 Reset crop
-              </button>
+              </Button>
             </div>
             {owner.kind === 'slide' ? (
-              <button
+              <Button variant="custom" size={null}
                 type="button"
                 onClick={() => {
                   const callout = createCallout(layer.id)
@@ -87,7 +90,7 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
                 className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]"
               >
                 Add magnified callout
-              </button>
+              </Button>
             ) : null}
           </>
         ) : null}
@@ -107,7 +110,7 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
           <span className="block text-[11px] text-muted-foreground">Finish</span>
           <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Finish">
             {model.finishes.map((finish) => (
-              <button
+              <Button variant="custom" size={null}
                 key={finish.id}
                 type="button"
                 role="radio"
@@ -159,20 +162,20 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
                 ) : null}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <label className="block text-[11px] text-muted-foreground" htmlFor={`time-${layer.id}`}>
+                    <Label className="block text-[11px] text-muted-foreground" htmlFor={`time-${layer.id}`}>
                       Time
-                    </label>
+                    </Label>
                     <div className="flex gap-1">
-                      <input
+                      <Input
                         id={`time-${layer.id}`}
                         value={bar.time}
                         maxLength={8}
                         onChange={(event) => patch([layer.id], { statusBar: { time: event.target.value } }, 'bar-time')}
                         className="h-8 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2 text-xs outline-none"
                       />
-                      <button type="button" onClick={() => patch([layer.id], { statusBar: { time: '9:41' } })} className="h-8 rounded-md border border-foreground/10 px-1.5 text-[10px]">
+                      <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { statusBar: { time: '9:41' } })} className="h-8 rounded-md border border-foreground/10 px-1.5 text-[10px]">
                         9:41
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   <NumberField label="Battery" unit="%" value={bar.battery} min={0} max={100} onChange={(battery) => patch([layer.id], { statusBar: { battery } }, 'bar-battery')} />
@@ -180,10 +183,10 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
                   <NumberField label="Wi-Fi bars" value={bar.wifi} min={0} max={3} onChange={(wifi) => patch([layer.id], { statusBar: { wifi } }, 'bar-wifi')} hint="0 hides Wi-Fi" />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-[11px] text-muted-foreground" htmlFor={`carrier-${layer.id}`}>
+                  <Label className="block text-[11px] text-muted-foreground" htmlFor={`carrier-${layer.id}`}>
                     Carrier
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     id={`carrier-${layer.id}`}
                     value={bar.carrier}
                     maxLength={24}
@@ -223,12 +226,12 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
       <TransformSection owner={owner} layer={layer} node={node} tilt title="Position and tilt" />
       <Section title="Reset">
         <div className="flex gap-2">
-          <button type="button" onClick={() => api.getState().dispatch({ type: 'reset.devices', owner, layerIds: [layer.id] })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]" title="Moves the device back to its layout position. Text is not affected.">
+          <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'reset.devices', owner, layerIds: [layer.id] })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]" title="Moves the device back to its layout position. Text is not affected.">
             Reset device position
-          </button>
-          <button type="button" onClick={() => api.getState().dispatch({ type: 'reset.layer', owner, layerId: layer.id })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]" title="Position, crop, and adjustments">
+          </Button>
+          <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'reset.layer', owner, layerId: layer.id })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]" title="Position, crop, and adjustments">
             Reset all
-          </button>
+          </Button>
         </div>
         {layer.placement.mode === 'auto' ? (
           <p className="text-[10px] text-muted-foreground">Placed by the {slide.layout ?? 'template'} layout, slot {layer.placement.slot + 1}.</p>

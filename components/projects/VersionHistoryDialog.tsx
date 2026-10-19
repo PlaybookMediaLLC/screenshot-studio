@@ -171,7 +171,7 @@ export function VersionHistoryDialog({
               <ul aria-label="Versions" className="divide-y">
                 {versions.value.map((item) => (
                   <li key={item.id}>
-                    <button
+                    <Button variant="custom" size={null}
                       aria-current={item.id === selectedId ? 'true' : undefined}
                       className={cn(
                         'w-full px-3 py-2.5 text-left transition-colors hover:bg-foreground/[0.04]',
@@ -187,7 +187,7 @@ export function VersionHistoryDialog({
                         {formatTime(item.createdAt)}
                         {item.createdByName ? ` · ${item.createdByName}` : ''}
                       </span>
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>

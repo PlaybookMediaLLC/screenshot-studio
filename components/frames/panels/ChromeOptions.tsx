@@ -16,6 +16,9 @@ import {
 } from '@/lib/frames/schema'
 import { cn } from '@/lib/utils'
 import { ChromeFrame } from '../ChromeFrame'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 /**
  * Options for browser and window frames: which browser or window, light or
@@ -41,10 +44,10 @@ export function TextField({
   const id = React.useId()
   return (
     <div className="space-y-1.5">
-      <label className="text-xs text-muted-foreground" htmlFor={id}>
+      <Label className="text-xs text-muted-foreground" htmlFor={id}>
         {label}
-      </label>
-      <input
+      </Label>
+      <Input
         className={fieldClass}
         id={id}
         onChange={(event) => onChange(event.target.value)}
@@ -70,7 +73,7 @@ function Preview({
 }) {
   const tone = resolveAppearance(chrome.appearance, chrome.tone)
   return (
-    <button
+    <Button variant="custom" size={null}
       aria-label={label}
       aria-pressed={selected}
       className="group flex min-w-0 flex-col items-center gap-1.5"
@@ -107,7 +110,7 @@ function Preview({
       >
         {label}
       </span>
-    </button>
+    </Button>
   )
 }
 
@@ -159,7 +162,7 @@ function TabsField({
       <legend className="text-xs text-muted-foreground">Tabs</legend>
       {tabs.map((title, index) => (
         <div className="flex items-center gap-1.5" key={index}>
-          <input
+          <Input
             aria-label={`Tab ${index + 1} is the active tab`}
             checked={Math.min(chrome.activeTab, tabs.length - 1) === index}
             className="size-3.5 accent-foreground"
@@ -167,7 +170,7 @@ function TabsField({
             onChange={() => onChange({ activeTab: index })}
             type="radio"
           />
-          <input
+          <Input
             aria-label={`Tab ${index + 1} title`}
             className={fieldClass}
             maxLength={60}
@@ -178,7 +181,7 @@ function TabsField({
             value={title}
           />
           {tabs.length > 1 ? (
-            <button
+            <Button variant="custom" size={null}
               aria-label={`Remove tab ${index + 1}`}
               className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               onClick={() =>
@@ -190,12 +193,12 @@ function TabsField({
               type="button"
             >
               <Delete02Icon size={13} />
-            </button>
+            </Button>
           ) : null}
         </div>
       ))}
       {tabs.length < MAX_FRAME_TABS ? (
-        <button
+        <Button variant="custom" size={null}
           className="flex h-7 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground"
           onClick={() =>
             write([
@@ -206,7 +209,7 @@ function TabsField({
           type="button"
         >
           <Add01Icon size={12} /> Add tab
-        </button>
+        </Button>
       ) : null}
     </fieldset>
   )

@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils'
 import { SETTINGS_SECTIONS, settingsHref } from '@/components/workspace/settings-sections'
 import { workspaceInitials } from '@/lib/workspace/initials'
 import { surface } from './shell-config'
+import { Button } from '@/components/ui/button'
 
 type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
 type SubItem = { href: string; label: string }
@@ -167,7 +168,7 @@ function NavLink({
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
+          <Button variant="custom" size={null}
             aria-label={label}
             className={cn(
               'grid size-8 cursor-pointer place-items-center rounded-lg border transition-colors',
@@ -178,7 +179,7 @@ function NavLink({
             type="button"
           >
             <Icon className="shrink-0" size={16} strokeWidth={1.8} />
-          </button>
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-52" side="right" sideOffset={10}>
           <DropdownMenuLabel className="text-xs text-muted-foreground">{label}</DropdownMenuLabel>
@@ -340,13 +341,13 @@ export function PlatformSidebar({
         >
           <Sheet onOpenChange={setMobileOpen} open={mobileOpen}>
             <SheetTrigger asChild>
-              <button
+              <Button variant="custom" size={null}
                 aria-label="Open navigation"
                 className="grid size-9 place-items-center rounded-lg text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-100"
                 type="button"
               >
                 <Menu01Icon size={18} strokeWidth={1.8} />
-              </button>
+              </Button>
             </SheetTrigger>
             <SheetContent
               className={cn('w-72 gap-0 border-white/[0.06] p-3', surface.base)}

@@ -169,6 +169,34 @@ func (_u *SourceAppUpdate) SetNillableSkipPrereleases(v *bool) *SourceAppUpdate 
 	return _u
 }
 
+// SetReleaseAutomation sets the "release_automation" field.
+func (_u *SourceAppUpdate) SetReleaseAutomation(v bool) *SourceAppUpdate {
+	_u.mutation.SetReleaseAutomation(v)
+	return _u
+}
+
+// SetNillableReleaseAutomation sets the "release_automation" field if the given value is not nil.
+func (_u *SourceAppUpdate) SetNillableReleaseAutomation(v *bool) *SourceAppUpdate {
+	if v != nil {
+		_u.SetReleaseAutomation(*v)
+	}
+	return _u
+}
+
+// SetAutomationCollectUnmatched sets the "automation_collect_unmatched" field.
+func (_u *SourceAppUpdate) SetAutomationCollectUnmatched(v bool) *SourceAppUpdate {
+	_u.mutation.SetAutomationCollectUnmatched(v)
+	return _u
+}
+
+// SetNillableAutomationCollectUnmatched sets the "automation_collect_unmatched" field if the given value is not nil.
+func (_u *SourceAppUpdate) SetNillableAutomationCollectUnmatched(v *bool) *SourceAppUpdate {
+	if v != nil {
+		_u.SetAutomationCollectUnmatched(*v)
+	}
+	return _u
+}
+
 // SetGithubInstallationID sets the "github_installation_id" field.
 func (_u *SourceAppUpdate) SetGithubInstallationID(v string) *SourceAppUpdate {
 	_u.mutation.SetGithubInstallationID(v)
@@ -317,6 +345,12 @@ func (_u *SourceAppUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.SkipPrereleases(); ok {
 		_spec.SetField(sourceapp.FieldSkipPrereleases, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.ReleaseAutomation(); ok {
+		_spec.SetField(sourceapp.FieldReleaseAutomation, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.AutomationCollectUnmatched(); ok {
+		_spec.SetField(sourceapp.FieldAutomationCollectUnmatched, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.GithubInstallationID(); ok {
 		_spec.SetField(sourceapp.FieldGithubInstallationID, field.TypeString, value)
@@ -486,6 +520,34 @@ func (_u *SourceAppUpdateOne) SetSkipPrereleases(v bool) *SourceAppUpdateOne {
 func (_u *SourceAppUpdateOne) SetNillableSkipPrereleases(v *bool) *SourceAppUpdateOne {
 	if v != nil {
 		_u.SetSkipPrereleases(*v)
+	}
+	return _u
+}
+
+// SetReleaseAutomation sets the "release_automation" field.
+func (_u *SourceAppUpdateOne) SetReleaseAutomation(v bool) *SourceAppUpdateOne {
+	_u.mutation.SetReleaseAutomation(v)
+	return _u
+}
+
+// SetNillableReleaseAutomation sets the "release_automation" field if the given value is not nil.
+func (_u *SourceAppUpdateOne) SetNillableReleaseAutomation(v *bool) *SourceAppUpdateOne {
+	if v != nil {
+		_u.SetReleaseAutomation(*v)
+	}
+	return _u
+}
+
+// SetAutomationCollectUnmatched sets the "automation_collect_unmatched" field.
+func (_u *SourceAppUpdateOne) SetAutomationCollectUnmatched(v bool) *SourceAppUpdateOne {
+	_u.mutation.SetAutomationCollectUnmatched(v)
+	return _u
+}
+
+// SetNillableAutomationCollectUnmatched sets the "automation_collect_unmatched" field if the given value is not nil.
+func (_u *SourceAppUpdateOne) SetNillableAutomationCollectUnmatched(v *bool) *SourceAppUpdateOne {
+	if v != nil {
+		_u.SetAutomationCollectUnmatched(*v)
 	}
 	return _u
 }
@@ -668,6 +730,12 @@ func (_u *SourceAppUpdateOne) sqlSave(ctx context.Context) (_node *SourceApp, er
 	}
 	if value, ok := _u.mutation.SkipPrereleases(); ok {
 		_spec.SetField(sourceapp.FieldSkipPrereleases, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.ReleaseAutomation(); ok {
+		_spec.SetField(sourceapp.FieldReleaseAutomation, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.AutomationCollectUnmatched(); ok {
+		_spec.SetField(sourceapp.FieldAutomationCollectUnmatched, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.GithubInstallationID(); ok {
 		_spec.SetField(sourceapp.FieldGithubInstallationID, field.TypeString, value)

@@ -12,11 +12,20 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { slideScopeSchema, styleGroupSchema, type SlideScope, type StyleGroup } from '@/lib/store-screenshots/commands/schema'
 import { cn } from '@/lib/utils'
 import { useEditor, useEditorApi } from '../editor-store'
 import { SHORTCUTS } from '../shortcuts'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 
 /** Props shared by studio dialogs. */
 export type DialogProps = { open: boolean; onOpenChange: (open: boolean) => void }
@@ -106,22 +115,22 @@ export function ApplyStyleDialog({ open, onOpenChange }: DialogProps): React.JSX
         <fieldset className="space-y-2">
           <legend className="mb-1 text-xs font-medium">Apply to</legend>
           {slideScopeSchema.exclude(['active']).options.map((value) => (
-            <label key={value} className="flex items-center gap-2 text-xs">
-              <input type="radio" name="apply-scope" checked={scope === value} onChange={() => setScope(value)} disabled={value === 'selected' && selectedSlideIds.length < 2} />
+            <Label key={value} className="flex items-center gap-2 text-xs">
+              <Input type="radio" name="apply-scope" checked={scope === value} onChange={() => setScope(value)} disabled={value === 'selected' && selectedSlideIds.length < 2} />
               {value === 'all' ? `All slides (${document.slides.length - 1} others)` : `Selected slides (${Math.max(0, selectedSlideIds.length - 1)} others)`}
-            </label>
+            </Label>
           ))}
         </fieldset>
         <fieldset className="grid grid-cols-2 gap-2">
           <legend className="mb-1 text-xs font-medium">Properties</legend>
           {styleGroupSchema.options.map((group) => (
-            <label key={group} className={cn('flex cursor-pointer items-start gap-2 rounded-md border p-2 text-xs', groups.includes(group) ? 'border-foreground/30 bg-foreground/[0.05]' : 'border-foreground/10')}>
-              <input type="checkbox" checked={groups.includes(group)} onChange={(event) => setGroups(event.target.checked ? [...groups, group] : groups.filter((item) => item !== group))} className="mt-0.5" />
+            <Label key={group} className={cn('flex cursor-pointer items-start gap-2 rounded-md border p-2 text-xs', groups.includes(group) ? 'border-foreground/30 bg-foreground/[0.05]' : 'border-foreground/10')}>
+              <Checkbox  checked={groups.includes(group)} onCheckedChange={(checked) => setGroups((checked === true) ? [...groups, group] : groups.filter((item) => item !== group))} className="mt-0.5" />
               <span>
                 <span className="block font-medium">{GROUP_LABELS[group].label}</span>
                 <span className="block text-[10px] text-muted-foreground">{GROUP_LABELS[group].hint}</span>
               </span>
-            </label>
+            </Label>
           ))}
         </fieldset>
         <div className="flex justify-end gap-2">

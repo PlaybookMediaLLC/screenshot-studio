@@ -14,7 +14,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import type { StoreDocument } from '@/lib/store-screenshots/document/schema'
 import {
   createVersion,
@@ -31,6 +37,7 @@ import {
 import { useEditor } from '../editor-store'
 import type { NewProjectKind } from '../StoreStudio'
 import type { DialogProps } from './BasicDialogs'
+import { Input } from '@/components/ui/input'
 
 /** The project library: search, open, rename, duplicate, delete, create. */
 export function ProjectsDialog({
@@ -63,7 +70,7 @@ export function ProjectsDialog({
             <DialogDescription>Projects are saved in this browser automatically. Images are stored once and shared between versions.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-wrap items-center gap-2">
-            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search projects" aria-label="Search projects" className="h-9 min-w-48 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-3 text-sm outline-none" />
+            <Input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search projects" aria-label="Search projects" className="h-9 min-w-48 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-3 text-sm outline-none" />
             <Button variant="outline" onClick={() => onNewProject('scratch')}>
               New blank project
             </Button>
@@ -77,16 +84,16 @@ export function ProjectsDialog({
             <ul className="grid gap-3 sm:grid-cols-3" aria-label="Saved projects">
               {shown.map((project) => (
                 <li key={project.id} className="group flex flex-col overflow-hidden rounded-lg border border-foreground/10">
-                  <button type="button" onClick={() => onOpenProject(project.id)} className="flex aspect-[4/3] items-center justify-center bg-foreground/[0.04]" aria-label={`Open ${project.name}`}>
+                  <Button variant="custom" size={null} type="button" onClick={() => onOpenProject(project.id)} className="flex aspect-[4/3] items-center justify-center bg-foreground/[0.04]" aria-label={`Open ${project.name}`}>
                     {project.thumbnail ? (
                       <img src={project.thumbnail} alt="" className="h-full object-contain" />
                     ) : (
                       <span className="text-xs text-muted-foreground">{project.slideCount} slides</span>
                     )}
-                  </button>
+                  </Button>
                   <div className="space-y-1 p-2">
                     {renaming === project.id ? (
-                      <input
+                      <Input
                         autoFocus
                         defaultValue={project.name}
                         aria-label="Project name"
@@ -114,10 +121,10 @@ export function ProjectsDialog({
                       {project.slideCount} slides · {formatDistanceToNow(project.updatedAt, { addSuffix: true })}
                     </p>
                     <div className="flex gap-1 text-[11px]">
-                      <button type="button" className="rounded px-1.5 py-0.5 hover:bg-foreground/[0.06]" onClick={() => setRenaming(project.id)}>
+                      <Button variant="custom" size={null} type="button" className="rounded px-1.5 py-0.5 hover:bg-foreground/[0.06]" onClick={() => setRenaming(project.id)}>
                         Rename
-                      </button>
-                      <button
+                      </Button>
+                      <Button variant="custom" size={null}
                         type="button"
                         className="rounded px-1.5 py-0.5 hover:bg-foreground/[0.06]"
                         onClick={async () => {
@@ -126,10 +133,10 @@ export function ProjectsDialog({
                         }}
                       >
                         Duplicate
-                      </button>
-                      <button type="button" className="rounded px-1.5 py-0.5 text-destructive hover:bg-destructive/10" onClick={() => setConfirmDelete(project)}>
+                      </Button>
+                      <Button variant="custom" size={null} type="button" className="rounded px-1.5 py-0.5 text-destructive hover:bg-destructive/10" onClick={() => setConfirmDelete(project)}>
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </li>
@@ -201,7 +208,7 @@ export function VersionsDialog({
             refresh()
           }}
         >
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Version name, e.g. “Before holiday campaign”" aria-label="Version name" maxLength={80} className="h-9 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-3 text-sm outline-none" />
+          <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Version name, e.g. “Before holiday campaign”" aria-label="Version name" maxLength={80} className="h-9 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-3 text-sm outline-none" />
           <Button type="submit">Save version</Button>
         </form>
         {versions === null ? (

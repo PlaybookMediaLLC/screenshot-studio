@@ -290,7 +290,7 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
     const dialog = page.getByRole('dialog')
     const submitSchedule = async (label: 'Reschedule' | 'Schedule', done: RegExp) => {
       await xCard.getByRole('button', { name: label, exact: true }).click()
-      await expect(dialog.getByLabel('Account')).toHaveValue(/.+/)
+      await expect(dialog.getByLabel('Account')).toHaveText('launch-x-integration (x)')
       await dialog.getByRole('button', { name: label, exact: true }).click()
       // Mock links preview badly; skipping the check is the user's call.
       const skip = dialog.getByRole('button', { name: 'Schedule without the link check' })

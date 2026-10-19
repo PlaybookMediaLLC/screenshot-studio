@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.23.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.22.0...v2.23.0) (2026-10-19)
+
+
+### Features
+
+* **creative-sets:** add connected Story Sets and polished product visuals ([#210](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/210)) ([a53b4f6](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/a53b4f62e249aed1c741e336ca2c6e365c3b5778))
+
 ## [2.22.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.21.1...v2.22.0) (2026-10-19)
 
 

@@ -3,7 +3,7 @@ package social
 import "testing"
 
 // Every provider must report a unique identifier and the registry must match
-// Postiz's 35 providers.
+// the original app's 35 providers.
 func TestRegistry(t *testing.T) {
 	seen := map[string]bool{}
 	for _, p := range All() {

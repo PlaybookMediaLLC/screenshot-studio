@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
@@ -28,28 +28,28 @@ type fakeStore struct {
 }
 
 type fakeVerifier struct {
-	input         postiz.VerifyDestinationInput
+	input         socialapi.VerifyDestinationInput
 	exchangeCalls int
 	pageCalls     int
 }
 
-func (f *fakeVerifier) Profiles(context.Context, string) (map[string]postiz.DestinationProfile, error) {
-	return map[string]postiz.DestinationProfile{"postiz-x": {Handle: "shots_app", Name: "Shots"}}, nil
+func (f *fakeVerifier) Profiles(context.Context, string) (map[string]socialapi.DestinationProfile, error) {
+	return map[string]socialapi.DestinationProfile{"social-x": {Handle: "shots_app", Name: "Shots"}}, nil
 }
 
-func (f *fakeVerifier) VerifyDestination(_ context.Context, input postiz.VerifyDestinationInput) error {
+func (f *fakeVerifier) VerifyDestination(_ context.Context, input socialapi.VerifyDestinationInput) error {
 	f.input = input
 	return nil
 }
-func (f *fakeVerifier) BeginOAuth(context.Context, postiz.BeginOAuthInput) (string, error) {
+func (f *fakeVerifier) BeginOAuth(context.Context, socialapi.BeginOAuthInput) (string, error) {
 	return "https://api.x.com/oauth/authorize?oauth_token=test-state", nil
 }
-func (f *fakeVerifier) ExchangeOAuth(_ context.Context, provider, code, state string) (postiz.OAuthExchange, error) {
+func (f *fakeVerifier) ExchangeOAuth(_ context.Context, provider, code, state string) (socialapi.OAuthExchange, error) {
 	f.exchangeCalls++
 	if provider != "x" || code != "test-code" || state != "test-state" {
-		return postiz.OAuthExchange{}, fmt.Errorf("unexpected OAuth exchange")
+		return socialapi.OAuthExchange{}, fmt.Errorf("unexpected OAuth exchange")
 	}
-	return postiz.OAuthExchange{ID: "destination-1"}, nil
+	return socialapi.OAuthExchange{ID: "destination-1"}, nil
 }
 func (f *fakeVerifier) SelectInstagramPage(context.Context, string, string, string, string) error {
 	f.pageCalls++
@@ -79,8 +79,8 @@ func (f *fakeStore) AuthorizeAPIKeyScope(_ context.Context, _, _, scope string) 
 	f.keyScope = scope
 	return f.authError
 }
-func (f *fakeStore) Binding(context.Context, string) (*ent.PostizTenantBinding, error) {
-	return &ent.PostizTenantBinding{GoOrganizationID: "go-org-1", SecretReference: "POSTIZ_API_KEY"}, nil
+func (f *fakeStore) Binding(context.Context, string) (*ent.SocialTenantBinding, error) {
+	return &ent.SocialTenantBinding{GoOrganizationID: "go-org-1", SecretReference: "SOCIAL_API_KEY"}, nil
 }
 func (f *fakeStore) StartOAuth(_ context.Context, _ publishing.Actor, session, state, provider, _ string) error {
 	f.oauthState = state
@@ -92,7 +92,7 @@ func (f *fakeStore) OAuthStart(_ context.Context, _ publishing.Actor, session, s
 	if state != f.oauthState || session != f.oauthSession || provider != f.oauthProvider {
 		return nil, publishing.ErrNotFound
 	}
-	return &ent.SocialOAuthStart{SecretReference: "POSTIZ_API_KEY"}, nil
+	return &ent.SocialOAuthStart{SecretReference: "SOCIAL_API_KEY"}, nil
 }
 func (f *fakeStore) RememberInstagramIntegration(context.Context, publishing.Actor, string, string, string) error {
 	return nil
@@ -267,7 +267,7 @@ func TestCreateScheduledPost(t *testing.T) {
 	}
 }
 
-func TestCreateConnectionAppliesPostizDefaults(t *testing.T) {
+func TestCreateConnectionAppliesSocialDefaults(t *testing.T) {
 	store := &fakeStore{}
 	verifier := &fakeVerifier{}
 	handler := New(store, &fakeScheduler{}, verifier, "secret")
@@ -281,7 +281,7 @@ func TestCreateConnectionAppliesPostizDefaults(t *testing.T) {
 	if response.Code != http.StatusCreated {
 		t.Fatalf("status = %d body=%s", response.Code, response.Body.String())
 	}
-	if store.connection.Platform != "x" || store.connection.SecretReference != "POSTIZ_API_KEY" {
+	if store.connection.Platform != "x" || store.connection.SecretReference != "SOCIAL_API_KEY" {
 		t.Fatalf("unexpected connection defaults: %#v", store.connection)
 	}
 	if verifier.input.DestinationID != "account-1" || verifier.input.ExpectedGoOrganizationID != "go-org-1" {
@@ -304,8 +304,8 @@ func TestCreateScheduledPostRejectsPastTime(t *testing.T) {
 	}
 }
 
-func TestListConnectionsNamesAccountsFromPostiz(t *testing.T) {
-	store := &fakeStore{connections: []*ent.ChannelConnection{{ID: "c1", ExternalAccountID: "postiz-x", Platform: "x", Status: "ACTIVE"}}}
+func TestListConnectionsNamesAccountsFromSocialAPI(t *testing.T) {
+	store := &fakeStore{connections: []*ent.ChannelConnection{{ID: "c1", ExternalAccountID: "social-x", Platform: "x", Status: "ACTIVE"}}}
 	handler := New(store, &fakeScheduler{}, &fakeVerifier{}, "secret")
 	request := httptest.NewRequest(http.MethodGet, "/v1/channel-connections", nil)
 	request.Header.Set("Authorization", "Bearer secret")

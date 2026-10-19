@@ -1,4 +1,4 @@
-// Package agencies holds Postiz's dtos/agencies.
+// Package agencies holds the original app's dtos/agencies.
 package agencies
 
 type CreateAgencyLogoDto struct {
@@ -6,7 +6,7 @@ type CreateAgencyLogoDto struct {
 	Path string `json:"path"`
 }
 
-// CreateAgencyDto: logo has no @ValidateNested in Postiz, so its fields are
+// CreateAgencyDto: logo has no @ValidateNested in the original app, so its fields are
 // not validated. Facebook, LinkedIn and YouTube are only checked when set
 // (@ValidateIf(o => o.facebook)).
 type CreateAgencyDto struct {

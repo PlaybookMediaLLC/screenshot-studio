@@ -124,7 +124,7 @@ func HandleErrors(body string, status int) *integrations.HandledError {
 	// The token is valid but belongs to the user, not to the page - the page
 	// was never granted to the app, so only reconnecting can fix it
 	case has("Unpublished posts must be posted to a page as the page itself"):
-		return h("refresh-token", "Postiz is not authorized to publish as this page, please reconnect the channel")
+		return h("refresh-token", "Shots is not authorized to publish as this page, please reconnect the channel")
 	case has("(#200)"):
 		return h("bad-body", "Facebook rejected the post due to missing permissions. Make sure your Facebook account has full content access to the Page, then reconnect the channel.")
 	case has("1366046"):

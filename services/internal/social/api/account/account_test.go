@@ -148,7 +148,7 @@ type env struct {
 
 func newEnv(t *testing.T) *env {
 	t.Setenv("JWT_SECRET", "test-secret")
-	t.Setenv("FRONTEND_URL", "https://app.postiz.com")
+	t.Setenv("FRONTEND_URL", "https://app.sample.com")
 	t.Setenv("STRIPE_PUBLISHABLE_KEY", "")
 	t.Setenv("NOT_SECURED", "")
 	client := dbtest.Open(t)
@@ -297,7 +297,7 @@ func TestAuthRegisterLogin(t *testing.T) {
 		t.Fatalf("headers: %v", rec.Header())
 	}
 	line := setCookieLine(rec, "auth")
-	for _, part := range []string{"Path=/", "Domain=postiz.com", "Expires=", "HttpOnly", "Secure", "SameSite=None"} {
+	for _, part := range []string{"Path=/", "Domain=sample.com", "Expires=", "HttpOnly", "Secure", "SameSite=None"} {
 		if !strings.Contains(line, part) {
 			t.Fatalf("auth cookie %q misses %q", line, part)
 		}
@@ -343,11 +343,11 @@ func TestAuthRegisterActivationRequired(t *testing.T) {
 func TestAuthRedirectsAndState(t *testing.T) {
 	e := newEnv(t)
 	rec := e.do("GET", "/auth/oauth-mobile-callback?code=a+b&state=x~y", "")
-	if rec.Code != 302 || rec.Header().Get("Location") != "postiz://auth/callback?code=a+b&state=x%7Ey" {
+	if rec.Code != 302 || rec.Header().Get("Location") != "shots://auth/callback?code=a+b&state=x%7Ey" {
 		t.Fatalf("mobile callback %d %q", rec.Code, rec.Header().Get("Location"))
 	}
 	rec = e.do("POST", "/auth/oauth/github/redirect", `{"code":"c1","state":"s1"}`)
-	if rec.Code != 303 || rec.Header().Get("Location") != "https://app.postiz.com/auth?code=c1&state=s1&provider=GITHUB" {
+	if rec.Code != 303 || rec.Header().Get("Location") != "https://app.sample.com/auth?code=c1&state=s1&provider=GITHUB" {
 		t.Fatalf("redirect %d %q", rec.Code, rec.Header().Get("Location"))
 	}
 	rec = e.do("POST", "/auth/oauth/github/exists", "code=1", func(r *http.Request) {
@@ -436,8 +436,8 @@ func TestSettingsPoliciesAndValidation(t *testing.T) {
 
 	// with billing on, a FREE org has no team members: 402 before validation
 	t.Setenv("STRIPE_PUBLISHABLE_KEY", "pk")
-	expect(t, e.do("GET", "/settings/team", ""), 402, `{"statusCode":402,"url":"https://app.postiz.com/billing"}`)
-	expect(t, e.do("POST", "/settings/team", `{}`), 402, `{"statusCode":402,"url":"https://app.postiz.com/billing"}`)
+	expect(t, e.do("GET", "/settings/team", ""), 402, `{"statusCode":402,"url":"https://app.sample.com/billing"}`)
+	expect(t, e.do("POST", "/settings/team", `{}`), 402, `{"statusCode":402,"url":"https://app.sample.com/billing"}`)
 }
 
 func TestBillingController(t *testing.T) {

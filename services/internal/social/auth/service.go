@@ -254,7 +254,7 @@ func (s *AuthService) loginOrRegisterProvider(ctx context.Context, provider user
 
 var datafastURL = "https://datafa.st/api/v1/goals"
 
-// track reports a DataFast goal; failures are ignored like Postiz's catch.
+// track reports a DataFast goal; failures are ignored like the original app's catch.
 func (s *AuthService) track(ctx context.Context, name, email, datafastVisitorID string) {
 	if email == "" || datafastVisitorID == "" || os.Getenv("DATAFAST_API_KEY") == "" {
 		return
@@ -297,7 +297,7 @@ func (s *AuthService) Forgot(ctx context.Context, email string) error {
 
 // ForgotReturn sets the new password when the reset token is still valid: it
 // must carry a valid `expires` that is not past. An invalid token is an error
-// (Postiz lets verifyJWT throw).
+// (the original app lets verifyJWT throw).
 func (s *AuthService) ForgotReturn(ctx context.Context, token, password string) (bool, error) {
 	claims, err := helpers.VerifyJWT(token)
 	if err != nil {
@@ -429,7 +429,7 @@ func (s *AuthService) jwt(u *ent.User) (string, error) {
 	return signUserClaims(claims)
 }
 
-// signUserClaims never signs a `password` key. (Postiz only deleted a truthy
+// signUserClaims never signs a `password` key. (the original app only deleted a truthy
 // password, so provider users' JWTs carried `password: ""`.)
 func signUserClaims(claims map[string]any) (string, error) {
 	delete(claims, "password")
@@ -437,11 +437,11 @@ func signUserClaims(claims map[string]any) (string, error) {
 }
 
 // dayjsFormat is dayjs's REGEX_PARSE for strings without a Z/offset (parsed
-// as local time, which is UTC in Postiz).
+// as local time, which is UTC in the original app).
 var dayjsFormat = regexp.MustCompile(`^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$`)
 
 // notExpired reports whether a JWT date claim is present, valid and not in
-// the past. (Postiz read a missing claim as "now" and an invalid one as an
+// the past. (the original app read a missing claim as "now" and an invalid one as an
 // Invalid Date that compares false, so both passed its expiry checks.)
 func notExpired(claim any) bool {
 	t, ok := dayjs(claim)

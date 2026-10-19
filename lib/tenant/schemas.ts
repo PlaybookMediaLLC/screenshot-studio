@@ -371,9 +371,9 @@ export const sourceAppUpdateSchema = z
     'Change at least one rule.'
   )
 
-const postizSecretReferenceSchema = z
+const socialSecretReferenceSchema = z
   .string()
-  .regex(/^POSTIZ_(?:API_KEY|OAUTH_TOKEN)(?:_[A-Z0-9_]+)?$/)
+  .regex(/^SOCIAL_(?:API_KEY|OAUTH_TOKEN)(?:_[A-Z0-9_]+)?$/)
 
 const providerSettingsSchema = z.record(z.string(), z.json()).default({})
 
@@ -387,7 +387,7 @@ export const channelConnectionCreateSchema = z.object({
     .max(64)
     .default('x'),
   providerSettings: providerSettingsSchema,
-  secretReference: postizSecretReferenceSchema.default('POSTIZ_API_KEY'),
+  secretReference: socialSecretReferenceSchema.default('SOCIAL_API_KEY'),
 })
 
 export const scheduledPostCreateSchema = z.object({

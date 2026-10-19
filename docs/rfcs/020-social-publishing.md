@@ -1,4 +1,4 @@
-# RFC 020: Postiz Publishing Abstraction
+# RFC 020: Social Publishing Abstraction
 
 **Status:** Partially implemented (see `lib/tenant/publishing-backend.ts` and `services/internal/publishing`)
 **Status note (2026-10-17):** Settings → Channels connects X, LinkedIn and Instagram, and the launch Schedule dialog schedules approved posts (#129). Missing: disconnect, provider token revocation, and publishing for the Facebook Login Instagram flow.
@@ -11,12 +11,12 @@
 
 ## Decision
 
-Keep Postiz as the social infrastructure. Do not build direct Twitter,
-LinkedIn, or Instagram integrations. Hide Postiz behind one application-owned
+Keep the social API as the social infrastructure. Do not build direct Twitter,
+LinkedIn, or Instagram integrations. Hide the social API behind one application-owned
 abstraction so it stays replaceable.
 
 The application owns scheduling, state, idempotency, retries, and recovery.
-The provider owns only the final network call. If Postiz disappeared, the
+The provider owns only the final network call. If the social API disappeared, the
 `ScheduledPost` lifecycle would be unchanged and a replacement adapter would
 implement one function.
 
@@ -58,10 +58,10 @@ ScheduledPost row               durable state, idempotency key, timing
 publishDueScheduledPosts        claim, verify, attempt, record
         │
         ▼
-publishPostizPost               the only provider-aware function
+publishSocialPost               the only provider-aware function
         │
         ▼
-Postiz HTTP API                 upload media, create post
+social HTTP API                 upload media, create post
         │
         ▼
 X / LinkedIn / Instagram
@@ -69,7 +69,7 @@ X / LinkedIn / Instagram
 
 The Go backend owns provider calls and scheduling state; the web reaches it
 only through `lib/tenant/publishing-backend.ts`. The backend also checks the
-operator-provisioned web-to-Go organization binding on the Postiz path, and
+operator-provisioned web-to-Go organization binding on the social path, and
 the OAuth routes register returned Go destinations against that binding.
 
 ## Provider contract
@@ -118,7 +118,7 @@ error location but not a correctness failure.
 
 The shipped model is deliberately conservative. `ChannelConnection.secretReference`
 stores an environment variable **name**, not a secret. The name must match
-`^POSTIZ_(?:API_KEY|OAUTH_TOKEN)(?:_[A-Z0-9_]+)?$`. The publish path reads
+`^SOCIAL_(?:API_KEY|OAUTH_TOKEN)(?:_[A-Z0-9_]+)?$`. The publish path reads
 `process.env[secretReference]` at call time.
 
 This gives three properties:
@@ -131,7 +131,7 @@ This gives three properties:
    without the pattern check it would be an environment-variable disclosure
    primitive.
 
-An operator creates a one-to-one `PostizTenantBinding` between the web
+An operator creates a one-to-one `SocialTenantBinding` between the web
 organization, Go organization, and credential reference. The binding command
 reads Go `/public/v1/me` before writing it. Channel registration requires the
 same reference and checks Go `/me` and `/integrations`; publishing checks them
@@ -215,7 +215,7 @@ enforced structurally rather than by convention.
 
 1. Look for an existing post with the same key. If found, return it with
    `created: false`. The call is safely repeatable.
-2. Verify the connection is `ACTIVE`, `postiz`, and organization-owned.
+2. Verify the connection is `ACTIVE`, `social`, and organization-owned.
 3. Verify the variant is `APPROVED` with an `APPROVED` `Approval` row.
 4. Insert the row as `SCHEDULED` and write `post.scheduled` to the audit log in
    the same transaction.
@@ -288,7 +288,7 @@ Retry policy is narrow by design:
 - Retry only `429` responses, and only up to 3 attempts.
 - Every other failure, including timeouts and `5xx`, is terminal for that post.
 
-The reason is that a social post is not idempotent at the provider. Postiz's
+The reason is that a social post is not idempotent at the provider. The social API's
 create-post endpoint accepts no idempotency key, so a retried request after an
 ambiguous failure can produce a duplicate public post. A duplicate post is
 worse for a founder than a failed post, because the failure is recoverable and
@@ -326,7 +326,7 @@ not here.
 ## Media handling
 
 The worker reads the asset from the private R2 bucket using the tenant-scoped
-object key, uploads it to Postiz as multipart form data, and references the
+object key, uploads it to the social API as multipart form data, and references the
 returned upload in the post payload. The asset bytes never pass through a
 public URL, and the provider never receives a signed link into the bucket.
 
@@ -358,10 +358,10 @@ foreign keys, so attribution is a join rather than an inference.
 
 | Failure                           | Detection                    | Behavior                              |
 | --------------------------------- | ---------------------------- | ------------------------------------- |
-| Postiz unreachable                | fetch throws, 15s timeout    | Attempt fails, post `FAILED`          |
-| Postiz `429`                      | status check                 | Requeue, up to 3 attempts             |
-| Postiz `4xx` other                | status check                 | Post `FAILED`, no retry               |
-| Postiz `5xx`                      | status check                 | Post `FAILED`, no retry               |
+| Social unreachable                | fetch throws, 15s timeout    | Attempt fails, post `FAILED`          |
+| Social `429`                      | status check                 | Requeue, up to 3 attempts             |
+| Social `4xx` other                | status check                 | Post `FAILED`, no retry               |
+| Social `5xx`                      | status check                 | Post `FAILED`, no retry               |
 | Malformed provider response       | Zod parse failure            | Post `FAILED`                         |
 | Missing credential env var        | lookup returns undefined     | Post `FAILED` before any network call |
 | Invalid secret reference pattern  | regex check                  | Post `FAILED` before any lookup       |
@@ -426,7 +426,7 @@ a broken product even though every state transition was correct.
    requirements into the capability table above and validate at schedule time.
 3. **Future-dated provider scheduling.** The adapter currently sends
    `type: 'now'` with the current timestamp, so our worker owns timing entirely.
-   Handing `scheduledFor` to Postiz would reduce lag but move timing authority
+   Handing `scheduledFor` to the social API would reduce lag but move timing authority
    to the provider and complicate cancellation. Keep worker-owned timing unless
    measured lag justifies the change.
 4. **Reconciliation sweep.** A periodic job that lists recent provider posts and

@@ -42,7 +42,7 @@ func (f *fakeRunner) Run(ctx context.Context, input RunAgentInput) (<-chan json.
 	return ch, nil
 }
 
-func newServer(t *testing.T, postiz AgentRunner) *httptest.Server {
+func newServer(t *testing.T, agent AgentRunner) *httptest.Server {
 	t.Helper()
 	t.Setenv("OPENAI_API_KEY", "sk-test")
 	t.Setenv("FRONTEND_URL", "http://app.test")
@@ -53,7 +53,7 @@ func newServer(t *testing.T, postiz AgentRunner) *httptest.Server {
 	threads.Lock()
 	threads.m = map[string]*thread{} // the store is process-wide
 	threads.Unlock()
-	rt := New(postiz)
+	rt := New(agent)
 	r := httpx.NewRouter()
 	r.Use(func(c *httpx.Ctx) error {
 		c.Org = &ent.Organization{ID: "org-1"}
@@ -120,7 +120,7 @@ func TestInfoDiscovery(t *testing.T) {
 
 	for _, tc := range []struct{ path, agents string }{
 		{"/copilot/chat", `{"default":{"name":"default","description":"","className":"BuiltInAgent","capabilities":{"tools":{"supported":true,"clientProvided":true},"transport":{"streaming":true},"humanInTheLoop":{"interrupts":true}}}}`},
-		{"/copilot/agent", `{"postiz":{"name":"postiz","description":"","className":"e"}}`},
+		{"/copilot/agent", `{"social":{"name":"social","description":"","className":"e"}}`},
 	} {
 		resp, body := post(t, srv.URL+tc.path, `{"method":"info"}`)
 		if resp.StatusCode != 200 || body != `{"version":"1.72.0","agents":`+tc.agents+`,`+tail {
@@ -143,9 +143,9 @@ func TestEnvelopeErrors(t *testing.T) {
 		{`{}`, 400, `{"error":"invalid_request","message":"Missing method field"}`},
 		{`{"method":"agent/nope"}`, 400, `{"error":"invalid_request","message":"Unsupported method 'agent/nope'"}`},
 		{`{"method":"agent/run","body":` + run + `}`, 400, `{"error":"invalid_request","message":"Missing or invalid parameter 'agentId'"}`},
-		{`{"method":"agent/run","params":{"agentId":"postiz"}}`, 400, `{"error":"invalid_request","message":"Missing request body for JSON handler"}`},
+		{`{"method":"agent/run","params":{"agentId":"social"}}`, 400, `{"error":"invalid_request","message":"Missing request body for JSON handler"}`},
 		{`{"method":"agent/run","params":{"agentId":"default"},"body":` + run + `}`, 404, `{"error":"Agent not found","message":"Agent 'default' does not exist"}`},
-		{`{"method":"agent/stop","params":{"agentId":"postiz","threadId":"idle"}}`, 200, `{"stopped":false,"message":"No active run for thread 'idle'."}`},
+		{`{"method":"agent/stop","params":{"agentId":"social","threadId":"idle"}}`, 200, `{"stopped":false,"message":"No active run for thread 'idle'."}`},
 	} {
 		resp, body := post(t, srv.URL+"/copilot/agent", tc.body)
 		if resp.StatusCode != tc.status || body != tc.want {
@@ -153,7 +153,7 @@ func TestEnvelopeErrors(t *testing.T) {
 		}
 	}
 
-	resp, body := post(t, srv.URL+"/copilot/agent", `{"method":"agent/run","params":{"agentId":"postiz"},"body":{"runId":"r","messages":[],"tools":[],"context":[]}}`)
+	resp, body := post(t, srv.URL+"/copilot/agent", `{"method":"agent/run","params":{"agentId":"social"},"body":{"runId":"r","messages":[],"tools":[],"context":[]}}`)
 	if resp.StatusCode != 400 || !strings.Contains(body, `"error":"Invalid request body"`) || !strings.Contains(body, `\"threadId\"`) {
 		t.Fatalf("invalid body: %d %s", resp.StatusCode, body)
 	}
@@ -264,7 +264,7 @@ func TestAgentRunWithToolCallThenConnectReplays(t *testing.T) {
 	srv := newServer(t, runner)
 
 	input := `{"threadId":"t-agent","runId":"r1","messages":[{"id":"u1","role":"user","content":"Post tomorrow"}],"tools":[],"context":[],"forwardedProps":{"integrations":[{"id":"i1"}]}}`
-	resp, body := post(t, srv.URL+"/copilot/agent", `{"method":"agent/run","params":{"agentId":"postiz"},"body":`+input+`}`)
+	resp, body := post(t, srv.URL+"/copilot/agent", `{"method":"agent/run","params":{"agentId":"social"},"body":`+input+`}`)
 	want := []string{
 		`{"type":"RUN_STARTED","threadId":"t-agent","runId":"r1","input":` + input + `}`,
 		`{"type":"TEXT_MESSAGE_START","messageId":"m1","role":"assistant"}`,
@@ -283,14 +283,14 @@ func TestAgentRunWithToolCallThenConnectReplays(t *testing.T) {
 	}
 
 	// agent/connect replays the thread history.
-	resp, body = post(t, srv.URL+"/copilot/agent", `{"method":"agent/connect","params":{"agentId":"postiz"},"body":{"threadId":"t-agent","runId":"c1","messages":[],"tools":[],"context":[]}}`)
+	resp, body = post(t, srv.URL+"/copilot/agent", `{"method":"agent/connect","params":{"agentId":"social"},"body":{"threadId":"t-agent","runId":"c1","messages":[],"tools":[],"context":[]}}`)
 	equalEvents(t, sse(t, resp, body), want)
 
 	// The next run's RUN_STARTED input carries only messages new to the thread.
 	next := `{"threadId":"t-agent","runId":"r2","messages":[{"id":"u1","role":"user","content":"Post tomorrow"},{"id":"m1","role":"assistant","content":"Scheduling"},{"id":"u2","role":"user","content":"Thanks"}],"tools":[],"context":[]}`
 	runner.events[0] = `{"type":"RUN_STARTED","threadId":"t-agent","runId":"r2"}`
 	runner.events = runner.events[:1]
-	resp, body = post(t, srv.URL+"/copilot/agent", `{"method":"agent/run","params":{"agentId":"postiz"},"body":`+next+`}`)
+	resp, body = post(t, srv.URL+"/copilot/agent", `{"method":"agent/run","params":{"agentId":"social"},"body":`+next+`}`)
 	equalEvents(t, sse(t, resp, body), []string{
 		`{"type":"RUN_STARTED","threadId":"t-agent","runId":"r2","input":{"threadId":"t-agent","runId":"r2","messages":[{"id":"u2","role":"user","content":"Thanks"}],"tools":[],"context":[]}}`,
 		`{"type":"RUN_ERROR","message":"Run ended without emitting a terminal event","code":"INCOMPLETE_STREAM"}`,
@@ -307,7 +307,7 @@ func TestAgentStop(t *testing.T) {
 
 	done := make(chan []string)
 	go func() {
-		resp, body := post(t, srv.URL+"/copilot/agent", `{"method":"agent/run","params":{"agentId":"postiz"},"body":`+input+`}`)
+		resp, body := post(t, srv.URL+"/copilot/agent", `{"method":"agent/run","params":{"agentId":"social"},"body":`+input+`}`)
 		done <- sse(t, resp, body)
 	}()
 	for deadline := time.Now().Add(5 * time.Second); ; {
@@ -324,12 +324,12 @@ func TestAgentStop(t *testing.T) {
 	}
 
 	// A second run on a running thread opens and closes an empty stream.
-	resp, body := post(t, srv.URL+"/copilot/agent", `{"method":"agent/run","params":{"agentId":"postiz"},"body":`+input+`}`)
+	resp, body := post(t, srv.URL+"/copilot/agent", `{"method":"agent/run","params":{"agentId":"social"},"body":`+input+`}`)
 	if resp.StatusCode != 200 || body != "" {
 		t.Fatalf("concurrent run: %d %q", resp.StatusCode, body)
 	}
 
-	resp, body = post(t, srv.URL+"/copilot/agent", `{"method":"agent/stop","params":{"agentId":"postiz","threadId":"t-stop"}}`)
+	resp, body = post(t, srv.URL+"/copilot/agent", `{"method":"agent/stop","params":{"agentId":"social","threadId":"t-stop"}}`)
 	if body != `{"stopped":true,"interrupt":{"type":"RUN_ERROR","message":"Run stopped by user","code":"STOPPED"}}` {
 		t.Fatalf("stop: %s", body)
 	}

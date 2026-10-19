@@ -23,22 +23,22 @@ type PrivateMediaSigner struct {
 	client *s3.PresignClient
 }
 
-// NewPrivateMediaSigner reads the dedicated Postiz bucket configuration. Nil
+// NewPrivateMediaSigner reads the dedicated social bucket configuration. Nil
 // means the existing public-bucket or local-storage behavior is in use.
 func NewPrivateMediaSigner() (*PrivateMediaSigner, error) {
-	if os.Getenv("POSTIZ_PRIVATE_MEDIA") != "true" {
+	if os.Getenv("SOCIAL_PRIVATE_MEDIA") != "true" {
 		return nil, nil
 	}
 	if os.Getenv("STORAGE_PROVIDER") != "cloudflare" {
-		return nil, errors.New("POSTIZ_PRIVATE_MEDIA requires STORAGE_PROVIDER=cloudflare")
+		return nil, errors.New("SOCIAL_PRIVATE_MEDIA requires STORAGE_PROVIDER=cloudflare")
 	}
 	base, err := url.Parse(strings.TrimRight(os.Getenv("CLOUDFLARE_BUCKET_URL"), "/"))
 	if err != nil || base == nil || (base.Scheme != "https" && base.Scheme != "http") || base.Host == "" || base.RawQuery != "" || base.Fragment != "" {
-		return nil, errors.New("POSTIZ_PRIVATE_MEDIA requires a valid CLOUDFLARE_BUCKET_URL")
+		return nil, errors.New("SOCIAL_PRIVATE_MEDIA requires a valid CLOUDFLARE_BUCKET_URL")
 	}
 	for _, name := range []string{"CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_ACCESS_KEY", "CLOUDFLARE_SECRET_ACCESS_KEY", "CLOUDFLARE_BUCKETNAME"} {
 		if os.Getenv(name) == "" {
-			return nil, fmt.Errorf("POSTIZ_PRIVATE_MEDIA requires %s", name)
+			return nil, fmt.Errorf("SOCIAL_PRIVATE_MEDIA requires %s", name)
 		}
 	}
 	region := os.Getenv("CLOUDFLARE_REGION")
@@ -96,7 +96,7 @@ func (s *PrivateMediaSigner) SignManagedURL(ctx context.Context, raw string) (st
 }
 
 func privateMediaACL() types.ObjectCannedACL {
-	if os.Getenv("POSTIZ_PRIVATE_MEDIA") == "true" {
+	if os.Getenv("SOCIAL_PRIVATE_MEDIA") == "true" {
 		return ""
 	}
 	return types.ObjectCannedACLPublicRead

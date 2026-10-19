@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
 
 type activityStore struct {
@@ -41,8 +41,8 @@ func (s *activityStore) StartAttempt(context.Context, *ent.ScheduledPost, string
 
 type rateLimitedProvider struct{}
 
-func (rateLimitedProvider) Publish(context.Context, postiz.PublishInput) (string, error) {
-	return "", &postiz.Error{Status: 429}
+func (rateLimitedProvider) Publish(context.Context, socialapi.PublishInput) (string, error) {
+	return "", &socialapi.Error{Status: 429}
 }
 
 type uncertainProvider struct{}
@@ -50,10 +50,10 @@ type uncertainProvider struct{}
 type directProvider struct{}
 
 func (directProvider) PublishesSynchronously() bool { return true }
-func (directProvider) Publish(context.Context, postiz.PublishInput) (string, error) {
+func (directProvider) Publish(context.Context, socialapi.PublishInput) (string, error) {
 	return "remote-post-1", nil
 }
-func (directProvider) Status(context.Context, postiz.StatusInput) (postiz.StatusResult, error) {
+func (directProvider) Status(context.Context, socialapi.StatusInput) (socialapi.StatusResult, error) {
 	panic("direct provider receipt must not be polled")
 }
 
@@ -65,11 +65,11 @@ func TestSubmitActivityUsesDirectRemoteReceipt(t *testing.T) {
 	}
 }
 
-func (uncertainProvider) Publish(context.Context, postiz.PublishInput) (string, error) {
-	return "", &postiz.Error{Status: 500, UnknownDelivery: true}
+func (uncertainProvider) Publish(context.Context, socialapi.PublishInput) (string, error) {
+	return "", &socialapi.Error{Status: 500, UnknownDelivery: true}
 }
-func (uncertainProvider) Status(context.Context, postiz.StatusInput) (postiz.StatusResult, error) {
-	return postiz.StatusResult{}, nil
+func (uncertainProvider) Status(context.Context, socialapi.StatusInput) (socialapi.StatusResult, error) {
+	return socialapi.StatusResult{}, nil
 }
 
 func TestPublishActivityMarksUncertainDeliveryWithoutRetry(t *testing.T) {
@@ -83,8 +83,8 @@ func TestPublishActivityMarksUncertainDeliveryWithoutRetry(t *testing.T) {
 		t.Fatalf("result=%#v unknown=%v retryAt=%v err=%v", result, store.unknown, store.retryAt, err)
 	}
 }
-func (rateLimitedProvider) Status(context.Context, postiz.StatusInput) (postiz.StatusResult, error) {
-	return postiz.StatusResult{}, nil
+func (rateLimitedProvider) Status(context.Context, socialapi.StatusInput) (socialapi.StatusResult, error) {
+	return socialapi.StatusResult{}, nil
 }
 
 func TestPublishActivityReturnsDurableRateLimitRetry(t *testing.T) {

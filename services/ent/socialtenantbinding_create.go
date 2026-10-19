@@ -10,36 +10,36 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 )
 
-// PostizTenantBindingCreate is the builder for creating a PostizTenantBinding entity.
-type PostizTenantBindingCreate struct {
+// SocialTenantBindingCreate is the builder for creating a SocialTenantBinding entity.
+type SocialTenantBindingCreate struct {
 	config
-	mutation *PostizTenantBindingMutation
+	mutation *SocialTenantBindingMutation
 	hooks    []Hook
 }
 
 // SetGoOrganizationID sets the "go_organization_id" field.
-func (_c *PostizTenantBindingCreate) SetGoOrganizationID(v string) *PostizTenantBindingCreate {
+func (_c *SocialTenantBindingCreate) SetGoOrganizationID(v string) *SocialTenantBindingCreate {
 	_c.mutation.SetGoOrganizationID(v)
 	return _c
 }
 
 // SetSecretReference sets the "secret_reference" field.
-func (_c *PostizTenantBindingCreate) SetSecretReference(v string) *PostizTenantBindingCreate {
+func (_c *SocialTenantBindingCreate) SetSecretReference(v string) *SocialTenantBindingCreate {
 	_c.mutation.SetSecretReference(v)
 	return _c
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (_c *PostizTenantBindingCreate) SetCreatedAt(v time.Time) *PostizTenantBindingCreate {
+func (_c *SocialTenantBindingCreate) SetCreatedAt(v time.Time) *SocialTenantBindingCreate {
 	_c.mutation.SetCreatedAt(v)
 	return _c
 }
 
 // SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (_c *PostizTenantBindingCreate) SetNillableCreatedAt(v *time.Time) *PostizTenantBindingCreate {
+func (_c *SocialTenantBindingCreate) SetNillableCreatedAt(v *time.Time) *SocialTenantBindingCreate {
 	if v != nil {
 		_c.SetCreatedAt(*v)
 	}
@@ -47,24 +47,24 @@ func (_c *PostizTenantBindingCreate) SetNillableCreatedAt(v *time.Time) *PostizT
 }
 
 // SetID sets the "id" field.
-func (_c *PostizTenantBindingCreate) SetID(v string) *PostizTenantBindingCreate {
+func (_c *SocialTenantBindingCreate) SetID(v string) *SocialTenantBindingCreate {
 	_c.mutation.SetID(v)
 	return _c
 }
 
-// Mutation returns the PostizTenantBindingMutation object of the builder.
-func (_c *PostizTenantBindingCreate) Mutation() *PostizTenantBindingMutation {
+// Mutation returns the SocialTenantBindingMutation object of the builder.
+func (_c *SocialTenantBindingCreate) Mutation() *SocialTenantBindingMutation {
 	return _c.mutation
 }
 
-// Save creates the PostizTenantBinding in the database.
-func (_c *PostizTenantBindingCreate) Save(ctx context.Context) (*PostizTenantBinding, error) {
+// Save creates the SocialTenantBinding in the database.
+func (_c *SocialTenantBindingCreate) Save(ctx context.Context) (*SocialTenantBinding, error) {
 	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
-func (_c *PostizTenantBindingCreate) SaveX(ctx context.Context) *PostizTenantBinding {
+func (_c *SocialTenantBindingCreate) SaveX(ctx context.Context) *SocialTenantBinding {
 	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
@@ -73,41 +73,41 @@ func (_c *PostizTenantBindingCreate) SaveX(ctx context.Context) *PostizTenantBin
 }
 
 // Exec executes the query.
-func (_c *PostizTenantBindingCreate) Exec(ctx context.Context) error {
+func (_c *SocialTenantBindingCreate) Exec(ctx context.Context) error {
 	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_c *PostizTenantBindingCreate) ExecX(ctx context.Context) {
+func (_c *SocialTenantBindingCreate) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
 
 // defaults sets the default values of the builder before save.
-func (_c *PostizTenantBindingCreate) defaults() {
+func (_c *SocialTenantBindingCreate) defaults() {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
-		v := postiztenantbinding.DefaultCreatedAt()
+		v := socialtenantbinding.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 }
 
 // check runs all checks and user-defined validators on the builder.
-func (_c *PostizTenantBindingCreate) check() error {
+func (_c *SocialTenantBindingCreate) check() error {
 	if _, ok := _c.mutation.GoOrganizationID(); !ok {
-		return &ValidationError{Name: "go_organization_id", err: errors.New(`ent: missing required field "PostizTenantBinding.go_organization_id"`)}
+		return &ValidationError{Name: "go_organization_id", err: errors.New(`ent: missing required field "SocialTenantBinding.go_organization_id"`)}
 	}
 	if _, ok := _c.mutation.SecretReference(); !ok {
-		return &ValidationError{Name: "secret_reference", err: errors.New(`ent: missing required field "PostizTenantBinding.secret_reference"`)}
+		return &ValidationError{Name: "secret_reference", err: errors.New(`ent: missing required field "SocialTenantBinding.secret_reference"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "PostizTenantBinding.created_at"`)}
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SocialTenantBinding.created_at"`)}
 	}
 	return nil
 }
 
-func (_c *PostizTenantBindingCreate) sqlSave(ctx context.Context) (*PostizTenantBinding, error) {
+func (_c *SocialTenantBindingCreate) sqlSave(ctx context.Context) (*SocialTenantBinding, error) {
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (_c *PostizTenantBindingCreate) sqlSave(ctx context.Context) (*PostizTenant
 		if id, ok := _spec.ID.Value.(string); ok {
 			_node.ID = id
 		} else {
-			return nil, fmt.Errorf("unexpected PostizTenantBinding.ID type: %T", _spec.ID.Value)
+			return nil, fmt.Errorf("unexpected SocialTenantBinding.ID type: %T", _spec.ID.Value)
 		}
 	}
 	_c.mutation.id = &_node.ID
@@ -130,51 +130,51 @@ func (_c *PostizTenantBindingCreate) sqlSave(ctx context.Context) (*PostizTenant
 	return _node, nil
 }
 
-func (_c *PostizTenantBindingCreate) createSpec() (*PostizTenantBinding, *sqlgraph.CreateSpec) {
+func (_c *SocialTenantBindingCreate) createSpec() (*SocialTenantBinding, *sqlgraph.CreateSpec) {
 	var (
-		_node = &PostizTenantBinding{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(postiztenantbinding.Table, sqlgraph.NewFieldSpec(postiztenantbinding.FieldID, field.TypeString))
+		_node = &SocialTenantBinding{config: _c.config}
+		_spec = sqlgraph.NewCreateSpec(socialtenantbinding.Table, sqlgraph.NewFieldSpec(socialtenantbinding.FieldID, field.TypeString))
 	)
 	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
 	if value, ok := _c.mutation.GoOrganizationID(); ok {
-		_spec.SetField(postiztenantbinding.FieldGoOrganizationID, field.TypeString, value)
+		_spec.SetField(socialtenantbinding.FieldGoOrganizationID, field.TypeString, value)
 		_node.GoOrganizationID = value
 	}
 	if value, ok := _c.mutation.SecretReference(); ok {
-		_spec.SetField(postiztenantbinding.FieldSecretReference, field.TypeString, value)
+		_spec.SetField(socialtenantbinding.FieldSecretReference, field.TypeString, value)
 		_node.SecretReference = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(postiztenantbinding.FieldCreatedAt, field.TypeTime, value)
+		_spec.SetField(socialtenantbinding.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
 	return _node, _spec
 }
 
-// PostizTenantBindingCreateBulk is the builder for creating many PostizTenantBinding entities in bulk.
-type PostizTenantBindingCreateBulk struct {
+// SocialTenantBindingCreateBulk is the builder for creating many SocialTenantBinding entities in bulk.
+type SocialTenantBindingCreateBulk struct {
 	config
 	err      error
-	builders []*PostizTenantBindingCreate
+	builders []*SocialTenantBindingCreate
 }
 
-// Save creates the PostizTenantBinding entities in the database.
-func (_c *PostizTenantBindingCreateBulk) Save(ctx context.Context) ([]*PostizTenantBinding, error) {
+// Save creates the SocialTenantBinding entities in the database.
+func (_c *SocialTenantBindingCreateBulk) Save(ctx context.Context) ([]*SocialTenantBinding, error) {
 	if _c.err != nil {
 		return nil, _c.err
 	}
 	specs := make([]*sqlgraph.CreateSpec, len(_c.builders))
-	nodes := make([]*PostizTenantBinding, len(_c.builders))
+	nodes := make([]*SocialTenantBinding, len(_c.builders))
 	mutators := make([]Mutator, len(_c.builders))
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
 			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-				mutation, ok := m.(*PostizTenantBindingMutation)
+				mutation, ok := m.(*SocialTenantBindingMutation)
 				if !ok {
 					return nil, fmt.Errorf("unexpected mutation type %T", m)
 				}
@@ -217,7 +217,7 @@ func (_c *PostizTenantBindingCreateBulk) Save(ctx context.Context) ([]*PostizTen
 }
 
 // SaveX is like Save, but panics if an error occurs.
-func (_c *PostizTenantBindingCreateBulk) SaveX(ctx context.Context) []*PostizTenantBinding {
+func (_c *SocialTenantBindingCreateBulk) SaveX(ctx context.Context) []*SocialTenantBinding {
 	v, err := _c.Save(ctx)
 	if err != nil {
 		panic(err)
@@ -226,13 +226,13 @@ func (_c *PostizTenantBindingCreateBulk) SaveX(ctx context.Context) []*PostizTen
 }
 
 // Exec executes the query.
-func (_c *PostizTenantBindingCreateBulk) Exec(ctx context.Context) error {
+func (_c *SocialTenantBindingCreateBulk) Exec(ctx context.Context) error {
 	_, err := _c.Save(ctx)
 	return err
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_c *PostizTenantBindingCreateBulk) ExecX(ctx context.Context) {
+func (_c *SocialTenantBindingCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
 		panic(err)
 	}

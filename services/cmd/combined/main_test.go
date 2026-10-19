@@ -8,7 +8,7 @@ import (
 func TestPublishingEnvKeepsTenantCredentialsSeparate(t *testing.T) {
 	environ := []string{
 		"DATABASE_URL=postgresql://social:one@db:5432/screenshot_studio",
-		"TEMPORAL_NAMESPACE=postiz-namespace",
+		"TEMPORAL_NAMESPACE=social-namespace",
 		"TENANT_DATABASE_URL=postgresql://tenant:two@db:5432/screenshot_studio",
 		"TENANT_TEMPORAL_ADDRESS=tenant-temporal:7233",
 		"TENANT_TEMPORAL_NAMESPACE=tenant-namespace",
@@ -27,7 +27,7 @@ func TestPublishingEnvKeepsTenantCredentialsSeparate(t *testing.T) {
 			t.Errorf("missing %s", strings.SplitN(expected, "=", 2)[0])
 		}
 	}
-	for _, forbidden := range []string{"DATABASE_URL=postgresql://social:one@db:5432/screenshot_studio", "TEMPORAL_NAMESPACE=postiz-namespace", "PORT=9999"} {
+	for _, forbidden := range []string{"DATABASE_URL=postgresql://social:one@db:5432/screenshot_studio", "TEMPORAL_NAMESPACE=social-namespace", "PORT=9999"} {
 		if hasEntry(result, forbidden) {
 			t.Errorf("unexpected %s", forbidden)
 		}

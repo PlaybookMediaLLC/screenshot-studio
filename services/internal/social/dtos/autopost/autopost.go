@@ -1,4 +1,4 @@
-// Package autopost holds Postiz's dtos/autopost.
+// Package autopost holds the original app's dtos/autopost.
 package autopost
 
 import (

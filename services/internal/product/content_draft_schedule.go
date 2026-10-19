@@ -179,7 +179,7 @@ func draftTargetConnections(ctx context.Context, tx *ent.Tx, organizationID stri
 		if err != nil {
 			return nil, nil, err
 		}
-		if connection.Status != channelconnection.StatusACTIVE || connection.Provider != "postiz" {
+		if connection.Status != channelconnection.StatusACTIVE || connection.Provider != "social" {
 			return nil, nil, publishing.ErrNotEligible
 		}
 		channel, ok := draftPlatformChannels[connection.Platform]

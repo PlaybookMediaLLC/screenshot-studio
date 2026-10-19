@@ -1,5 +1,5 @@
-// Package dbtest gives tests a migrated, empty Postiz database. Set
-// POSTIZ_TEST_DATABASE_URL to a disposable server database (its name must
+// Package dbtest gives tests a migrated, empty social database. Set
+// SOCIAL_TEST_DATABASE_URL to a disposable server database (its name must
 // contain "test"); tests skip when it is unset.
 package dbtest
 
@@ -17,25 +17,25 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Open creates a fresh database for the test, applies the Postiz migrations,
+// Open creates a fresh database for the test, applies the social migrations,
 // and drops it when the test ends.
 func Open(t *testing.T) *ent.Client {
 	t.Helper()
-	// Postiz runs with TZ=UTC: timestamp columns hold UTC wall time.
+	// The original app runs with TZ=UTC: timestamp columns hold UTC wall time.
 	time.Local = time.UTC
-	base := os.Getenv("POSTIZ_TEST_DATABASE_URL")
+	base := os.Getenv("SOCIAL_TEST_DATABASE_URL")
 	if base == "" {
-		t.Skip("POSTIZ_TEST_DATABASE_URL is not set")
+		t.Skip("SOCIAL_TEST_DATABASE_URL is not set")
 	}
 	if !strings.Contains(base, "test") {
-		t.Fatal("POSTIZ_TEST_DATABASE_URL must name a disposable test database")
+		t.Fatal("SOCIAL_TEST_DATABASE_URL must name a disposable test database")
 	}
 	ctx := context.Background()
 	admin, err := database.Open(ctx, base)
 	if err != nil {
 		t.Fatal(err)
 	}
-	name := "postiz_test_" + strings.ToLower(cuid.New())
+	name := "social_test_" + strings.ToLower(cuid.New())
 	if _, err := admin.SQL.ExecContext(ctx, "CREATE DATABASE "+name); err != nil {
 		t.Fatal(err)
 	}

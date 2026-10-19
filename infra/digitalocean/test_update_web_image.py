@@ -22,7 +22,7 @@ class UpdateWebImageTest(unittest.TestCase):
             ],
             "jobs": [
                 {"name": "platform-migrate", "image": {"tag": "social-backend-sha"}},
-                {"name": "postiz-migrate"},
+                {"name": "social-migrate"},
             ],
             "domains": [{"domain": "shots.oppulence.io"}],
         }}
@@ -103,6 +103,6 @@ class UpdateWebImageTest(unittest.TestCase):
             module.update_web_image(bad, tag)
         with self.assertRaisesRegex(ValueError, "commit SHA"):
             module.update_web_image(self.base, "latest")
-        legacy = {"spec": {**self.base["spec"], "jobs": [{"name": "web-migrate"}, {"name": "postiz-migrate"}]}}
+        legacy = {"spec": {**self.base["spec"], "jobs": [{"name": "web-migrate"}, {"name": "social-migrate"}]}}
         with self.assertRaisesRegex(ValueError, "Deploy the backend first"):
             module.update_web_image(legacy, tag)

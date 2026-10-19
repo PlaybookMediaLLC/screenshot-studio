@@ -13,10 +13,10 @@ production; Compose can start the social API separately for local testing.
 | `cmd/social-api` | The social API (`:3000`), the MCP server, and the social workers when `RUN_WORKER=true`. |
 | `cmd/combined` | The production entry point. It starts the three processes above in one container. |
 | `cmd/platform-migrate` | The one migration command for the product and social SQL. |
-| `cmd/postiz-migrate` | The social SQL only, for isolated social tests. |
+| `cmd/social-migrate` | The social SQL only, for isolated social tests. |
 | `internal/httpapi` | The product API's HTTP handlers. |
 | `internal/<domain>` | The product domain packages. |
-| `internal/social` | The Go port of Postiz: social controllers, workers, and provider adapters. |
+| `internal/social` | The Go port of the original social app: social controllers, workers, and provider adapters. |
 | `ent`, `internal/social/ent` | The product and social Ent clients. |
 | `platformmigrations`, `internal/social/migrations` | The reviewed product and social SQL. |
 
@@ -29,7 +29,7 @@ each service: `/publishing-backend`, `/publishing-orchestrator`,
 
 The services split into a control plane and an execution plane:
 
-- **The product API** is the control plane. It exposes tenant-scoped APIs for Postiz
+- **The product API** is the control plane. It exposes tenant-scoped APIs for the social API
   channel connections and scheduled posts, validates approved creative variants,
   preserves idempotency, and writes audit records.
 - **The product worker** is the Temporal execution plane. It runs the versioned post
@@ -41,8 +41,8 @@ The services split into a control plane and an execution plane:
   calls the published SDK and never opens a database connection.
 
 Each scheduled post maps to one Temporal workflow: workflow ID `post_<post-id>`,
-workflow type `PostWorkflowV2`, workflow task queue `main`, and Postiz activity
-task queue `postiz`. `PostWorkflowV1` remains registered for replay safety. The
+workflow type `PostWorkflowV2`, workflow task queue `main`, and social activity
+task queue `social`. `PostWorkflowV1` remains registered for replay safety. The
 workflow owns the scheduled timer, `cancel` and `poke` signals, and bounded
 provider retry timers. The V2 activity calls the provider adapter directly and
 stores its remote receipt on the canonical attempt. An ambiguous failure is
@@ -97,7 +97,7 @@ The backend listens on `:8080` by default:
 | --- | --- | --- |
 | `GET` | `/healthz` | Process health |
 | `GET` | `/readyz` | Database and Temporal readiness |
-| `GET` / `POST` | `/v1/channel-connections` | List or create Postiz destinations |
+| `GET` / `POST` | `/v1/channel-connections` | List or create social destinations |
 | `GET` / `POST` | `/v1/scheduled-posts` | List or create scheduled posts |
 | `POST` | `/v1/scheduled-posts/{id}/cancel` | Cancel an unpublished post |
 
@@ -119,17 +119,17 @@ orchestrator also requires:
 
 - `R2_ENDPOINT`, `R2_BUCKET_NAME`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
   (and optional `R2_REGION`, `R2_BROWSER_ENDPOINT`) for private tenant media
-- `POSTIZ_API_URL` and an allow-listed API key reference for social OAuth and
+- `SOCIAL_API_URL` and an allow-listed API key reference for social OAuth and
   destination verification. They are held by the product backend, not the web.
   The publishing worker reads social integration rows from the shared database
   and signs the canonical private asset when due.
 
 Optional workflow controls are `TEMPORAL_TASK_QUEUE`,
-`TEMPORAL_POSTIZ_TASK_QUEUE`,
+`TEMPORAL_SOCIAL_TASK_QUEUE`,
 `TEMPORAL_MAX_CONCURRENT_ACTIVITY_TASK_EXECUTORS`,
 `EXCLUDE_QUEUE`, `WORKER_CONCURRENCY_DIVIDER`, `RUN_CRON`,
 `PUBLISHING_ACTIVITY_TIMEOUT`, `PUBLISHING_RETRY_DELAY`,
-`PUBLISHING_MAX_ATTEMPTS`, and `POSTIZ_REQUEST_TIMEOUT`.
+`PUBLISHING_MAX_ATTEMPTS`, and `SOCIAL_REQUEST_TIMEOUT`.
 
 ## Development
 
@@ -183,7 +183,7 @@ tenant's `TENANT_R2_*`), `PLATFORM_QUOTA_REDIS_URL` (default `REDIS_URL`),
 `PLATFORM_CAMPAIGN_WORKFLOW`, `SCREENSHOT_API_URL`, and `PLATFORM_MCP_URL`, the
 public MCP URL, which must sit at a host root for OAuth discovery: production
 is `https://shots-mcp.playbookmedia.io/mcp`. Locally, `./bin/studio
-postiz-go-up` serves it at `http://localhost:3100/mcp`.
+social-up` serves it at `http://localhost:3100/mcp`.
 
 ## Social services (`internal/social`)
 
@@ -219,14 +219,14 @@ Layout:
 
 **Migrations.** Run `/platform-migrate` before the API and workers. It applies
 both Ent-backed SQL sets to one database, records their history, and adopts
-compatible tables from the earlier Prisma deployment. `/postiz-migrate`
+compatible tables from the earlier Prisma deployment. `/social-migrate`
 remains in the image for isolated social backend tests; it is not a second
 production migration job. See [the deployment guide](../docs/social-backend-deployment.md)
 for the local and App Platform configuration.
 
 ```sh
 go build ./cmd/social-api
-POSTIZ_TEST_DATABASE_URL=postgresql://postgres@localhost:55432/postiz_test?sslmode=disable go test ./internal/social/...
+SOCIAL_TEST_DATABASE_URL=postgresql://postgres@localhost:55432/social_test?sslmode=disable go test ./internal/social/...
 temporal server start-dev   # then run cmd/social-api with RUN_WORKER=true and the variables above
 ```
 

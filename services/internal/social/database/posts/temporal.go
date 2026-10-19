@@ -20,7 +20,7 @@ type postWorkflowInput struct {
 }
 
 // terminateRunning terminates every running workflow of the post. Failures
-// are ignored, like Postiz.
+// are ignored, like the original app.
 func (s *Service) terminateRunning(ctx context.Context, postID string) {
 	if s.temporal == nil {
 		return
@@ -53,7 +53,7 @@ func (s *Service) terminateRunning(ctx context.Context, postID string) {
 
 // StartWorkflow terminates the post's running workflows and, unless it is a
 // draft, starts postWorkflowV112 on the main queue; taskQueue is the
-// provider's activity queue. Failures are ignored, like Postiz.
+// provider's activity queue. Failures are ignored, like the original app.
 func (s *Service) StartWorkflow(ctx context.Context, taskQueue, postID, orgID string, state post.State) {
 	s.terminateRunning(ctx, postID)
 

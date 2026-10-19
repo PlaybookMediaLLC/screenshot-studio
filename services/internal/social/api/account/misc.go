@@ -138,7 +138,7 @@ func parseInt(value string) int {
 }
 
 // dayjsFormat is dayjs's REGEX_PARSE for strings without a Z/offset (local
-// time, which is UTC in Postiz).
+// time, which is UTC in the original app).
 var dayjsFormat = regexp.MustCompile(`^(\d{4})[-/]?(\d{1,2})?[-/]?(\d{0,2})[Tt\s]*(\d{1,2})?:?(\d{1,2})?:?(\d{1,2})?[.:]?(\d+)?$`)
 
 // parseDayjs is dayjs(value) converted to UTC; an invalid date is an error

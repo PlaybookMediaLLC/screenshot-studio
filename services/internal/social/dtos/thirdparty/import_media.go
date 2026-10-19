@@ -1,4 +1,4 @@
-// Package thirdparty holds Postiz's dtos/third-party.
+// Package thirdparty holds the original app's dtos/third-party.
 package thirdparty
 
 import (

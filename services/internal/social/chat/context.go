@@ -18,7 +18,7 @@ type RequestContext struct {
 	UI string
 }
 
-// SelfHostedInstance is a self-hosted Postiz an MCP connection is relayed to.
+// SelfHostedInstance is a self-hosted social instance an MCP connection is relayed to.
 type SelfHostedInstance struct {
 	ID     string `json:"id,omitempty"`
 	MCPURL string `json:"mcpUrl"`

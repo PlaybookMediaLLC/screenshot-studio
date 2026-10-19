@@ -37,13 +37,13 @@ func override(t *testing.T, target *string, value string) {
 func TestGithubProvider(t *testing.T) {
 	t.Setenv("GITHUB_CLIENT_ID", "cid")
 	t.Setenv("GITHUB_CLIENT_SECRET", "secret")
-	t.Setenv("FRONTEND_URL", "https://app.postiz.com")
+	t.Setenv("FRONTEND_URL", "https://app.sample.com")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/login/oauth/access_token":
 			var body map[string]string
 			_ = json.NewDecoder(r.Body).Decode(&body)
-			if body["code"] != "c1" || body["client_secret"] != "secret" || body["redirect_uri"] != "https://app.postiz.com/settings" || r.Header.Get("Accept") != "application/json" {
+			if body["code"] != "c1" || body["client_secret"] != "secret" || body["redirect_uri"] != "https://app.sample.com/settings" || r.Header.Get("Accept") != "application/json" {
 				t.Errorf("token body %v", body)
 			}
 			_, _ = io.WriteString(w, `{"access_token":"gho"}`)
@@ -62,7 +62,7 @@ func TestGithubProvider(t *testing.T) {
 
 	p := githubProvider{}
 	link, _ := p.GenerateLink(context.Background(), map[string]string{})
-	if link != srv.URL+"/login/oauth/authorize?client_id=cid&scope=user:email&state=login&redirect_uri=https%3A%2F%2Fapp.postiz.com%2Fsettings" {
+	if link != srv.URL+"/login/oauth/authorize?client_id=cid&scope=user:email&state=login&redirect_uri=https%3A%2F%2Fapp.sample.com%2Fsettings" {
 		t.Fatal(link)
 	}
 	token, err := p.GetToken(context.Background(), "c1", "")
@@ -78,7 +78,7 @@ func TestGithubProvider(t *testing.T) {
 func TestGoogleProvider(t *testing.T) {
 	t.Setenv("YOUTUBE_CLIENT_ID", "gid")
 	t.Setenv("YOUTUBE_CLIENT_SECRET", "gsecret")
-	t.Setenv("FRONTEND_URL", "https://app.postiz.com")
+	t.Setenv("FRONTEND_URL", "https://app.sample.com")
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/token":
@@ -91,7 +91,7 @@ func TestGoogleProvider(t *testing.T) {
 				w.WriteHeader(401)
 				_, _ = io.WriteString(w, `{"error":"invalid_client"}`)
 			default:
-				if r.Form.Get("redirect_uri") != "https://app.postiz.com/integrations/social/youtube" || r.Form.Get("client_secret") != "gsecret" {
+				if r.Form.Get("redirect_uri") != "https://app.sample.com/integrations/social/youtube" || r.Form.Get("client_secret") != "gsecret" {
 					t.Errorf("form %v", r.Form)
 				}
 				_, _ = io.WriteString(w, `{"access_token":"ya29"}`)
@@ -110,7 +110,7 @@ func TestGoogleProvider(t *testing.T) {
 
 	p := googleProvider{}
 	link, _ := p.GenerateLink(context.Background(), map[string]string{"state": "s1"})
-	if link != "https://accounts.google.com/o/oauth2/v2/auth?access_type=online&prompt=consent&state=s1&redirect_uri=https%3A%2F%2Fapp.postiz.com%2Fintegrations%2Fsocial%2Fyoutube&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&response_type=code&client_id=gid" {
+	if link != "https://accounts.google.com/o/oauth2/v2/auth?access_type=online&prompt=consent&state=s1&redirect_uri=https%3A%2F%2Fapp.sample.com%2Fintegrations%2Fsocial%2Fyoutube&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&response_type=code&client_id=gid" {
 		t.Fatal(link)
 	}
 	token, err := p.GetToken(context.Background(), "ok", "")
@@ -155,18 +155,18 @@ func TestGenericOAuthProvider(t *testing.T) {
 	defer srv.Close()
 
 	p := oauthProvider{}
-	if _, err := p.GenerateLink(context.Background(), nil); err == nil || err.Error() != "POSTIZ_OAUTH environment variables are not set" {
+	if _, err := p.GenerateLink(context.Background(), nil); err == nil || err.Error() != "SOCIAL_OAUTH environment variables are not set" {
 		t.Fatal(err)
 	}
-	t.Setenv("POSTIZ_OAUTH_AUTH_URL", srv.URL+"/authorize")
-	t.Setenv("POSTIZ_OAUTH_CLIENT_ID", "cid")
-	t.Setenv("POSTIZ_OAUTH_CLIENT_SECRET", "cs")
-	t.Setenv("POSTIZ_OAUTH_TOKEN_URL", srv.URL+"/token")
-	t.Setenv("POSTIZ_OAUTH_USERINFO_URL", srv.URL+"/userinfo")
-	t.Setenv("FRONTEND_URL", "https://app.postiz.com")
+	t.Setenv("SOCIAL_OAUTH_AUTH_URL", srv.URL+"/authorize")
+	t.Setenv("SOCIAL_OAUTH_CLIENT_ID", "cid")
+	t.Setenv("SOCIAL_OAUTH_CLIENT_SECRET", "cs")
+	t.Setenv("SOCIAL_OAUTH_TOKEN_URL", srv.URL+"/token")
+	t.Setenv("SOCIAL_OAUTH_USERINFO_URL", srv.URL+"/userinfo")
+	t.Setenv("FRONTEND_URL", "https://app.sample.com")
 
 	link, _ := p.GenerateLink(context.Background(), map[string]string{"state": "st"})
-	if link != srv.URL+"/authorize?client_id=cid&scope=openid+profile+email&response_type=code&state=st&redirect_uri=https%3A%2F%2Fapp.postiz.com%2Fsettings" {
+	if link != srv.URL+"/authorize?client_id=cid&scope=openid+profile+email&response_type=code&state=st&redirect_uri=https%3A%2F%2Fapp.sample.com%2Fsettings" {
 		t.Fatal(link)
 	}
 	if _, err := p.GetToken(context.Background(), "bad", ""); err == nil || err.Error() != "Token request failed: nope" {
@@ -186,12 +186,12 @@ func TestAppleProvider(t *testing.T) {
 	ecKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	der, _ := x509.MarshalPKCS8PrivateKey(ecKey)
 	pemKey := strings.ReplaceAll(string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})), "\n", `\n`)
-	t.Setenv("APPLE_CLIENT_ID", "com.postiz.web")
+	t.Setenv("APPLE_CLIENT_ID", "com.shots.web")
 	t.Setenv("APPLE_TEAM_ID", "TEAM")
 	t.Setenv("APPLE_KEY_ID", "KEY")
 	t.Setenv("APPLE_PRIVATE_KEY", pemKey)
-	t.Setenv("APPLE_APP_BUNDLE_ID", "com.postiz.app")
-	t.Setenv("NEXT_PUBLIC_BACKEND_URL", "https://api.postiz.com")
+	t.Setenv("APPLE_APP_BUNDLE_ID", "com.shots.app")
+	t.Setenv("NEXT_PUBLIC_BACKEND_URL", "https://api.sample.com")
 
 	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	idToken := func(aud string) string {
@@ -215,12 +215,12 @@ func TestAppleProvider(t *testing.T) {
 			_ = r.ParseForm()
 			secret, err := jwt.Parse(r.Form.Get("client_secret"), func(*jwt.Token) (any, error) { return &ecKey.PublicKey, nil },
 				jwt.WithValidMethods([]string{"ES256"}), jwt.WithAudience("https://appleid.apple.com"), jwt.WithIssuer("TEAM"))
-			if err != nil || secret.Header["kid"] != "KEY" || r.Form.Get("redirect_uri") != "https://api.postiz.com/auth/oauth/apple/redirect" {
+			if err != nil || secret.Header["kid"] != "KEY" || r.Form.Get("redirect_uri") != "https://api.sample.com/auth/oauth/apple/redirect" {
 				w.WriteHeader(400)
 				_, _ = io.WriteString(w, `{"error":"invalid_client"}`)
 				return
 			}
-			_ = json.NewEncoder(w).Encode(map[string]string{"id_token": idToken("com.postiz.web")})
+			_ = json.NewEncoder(w).Encode(map[string]string{"id_token": idToken("com.shots.web")})
 		}
 	}))
 	defer srv.Close()
@@ -229,7 +229,7 @@ func TestAppleProvider(t *testing.T) {
 	p := appleProvider{}
 	link, _ := p.GenerateLink(context.Background(), map[string]string{"state": "s"})
 	parsed, _ := url.Parse(link)
-	if q := parsed.Query(); q.Get("response_mode") != "form_post" || q.Get("scope") != "name email" || q.Get("client_id") != "com.postiz.web" {
+	if q := parsed.Query(); q.Get("response_mode") != "form_post" || q.Get("scope") != "name email" || q.Get("client_id") != "com.shots.web" {
 		t.Fatal(link)
 	}
 
@@ -243,7 +243,7 @@ func TestAppleProvider(t *testing.T) {
 	}
 
 	// native iOS sends the id_token itself, with the bundle id as audience
-	native := idToken("com.postiz.app")
+	native := idToken("com.shots.app")
 	if got, _ := p.GetToken(context.Background(), native, ""); got != native {
 		t.Fatal("native id_token must pass through")
 	}

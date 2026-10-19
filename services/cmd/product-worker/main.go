@@ -99,10 +99,10 @@ func main() {
 	workflowWorker.RegisterActivityWithOptions(activities.MarkUnknown, activity.RegisterOptions{Name: temporalpublishing.MarkUnknownActivityName})
 	workflowWorker.RegisterActivityWithOptions(recovery.Recover, activity.RegisterOptions{Name: temporalpublishing.RecoverActivityName})
 
-	var activityWorker worker.Worker
-	if !slices.Contains(cfg.ExcludedQueues, cfg.ActivityTaskQueue) {
+	var activityWorker, legacyActivityWorker worker.Worker
+	newActivityWorker := func(queue string) worker.Worker {
 		concurrency := max(1, cfg.ActivityConcurrency/cfg.WorkerConcurrencyDivider)
-		activityWorker = worker.New(temporalClient, cfg.ActivityTaskQueue, worker.Options{
+		activityWorker := worker.New(temporalClient, queue, worker.Options{
 			DisableWorkflowWorker: true, MaxConcurrentActivityExecutionSize: concurrency,
 			MaxHeartbeatThrottleInterval: 15 * time.Second,
 			OnFatalError:                 func(err error) { slog.Error("Temporal activity worker failed", "error", err); stop() },
@@ -114,6 +114,15 @@ func main() {
 		activityWorker.RegisterActivityWithOptions(activities.Submit, activity.RegisterOptions{Name: temporalpublishing.SubmitActivityName})
 		activityWorker.RegisterActivityWithOptions(activities.RunAutoActions, activity.RegisterOptions{Name: temporalpublishing.AutoActionsActivityName})
 		activityWorker.RegisterActivityWithOptions(activities.Check, activity.RegisterOptions{Name: temporalpublishing.CheckActivityName})
+		return activityWorker
+	}
+	if !slices.Contains(cfg.ExcludedQueues, cfg.ActivityTaskQueue) {
+		activityWorker = newActivityWorker(cfg.ActivityTaskQueue)
+		// cutover: workflows started before the queue rename carry the legacy queue
+		// in their input. Poll it until they drain, then delete this worker.
+		if cfg.ActivityTaskQueue != temporalpublishing.LegacyActivityQueue {
+			legacyActivityWorker = newActivityWorker(temporalpublishing.LegacyActivityQueue)
+		}
 	}
 
 	// The onboarding agent's background read (docs/rfcs/032) on its own queue.
@@ -210,6 +219,13 @@ func main() {
 			slog.Error("Temporal activity worker did not start", "error", err)
 			os.Exit(1)
 		}
+	}
+	if legacyActivityWorker != nil {
+		if err := legacyActivityWorker.Start(); err != nil {
+			slog.Error("Temporal legacy activity worker did not start", "error", err)
+			os.Exit(1)
+		}
+		defer legacyActivityWorker.Stop()
 	}
 	if err := workflowWorker.Start(); err != nil {
 		if activityWorker != nil {

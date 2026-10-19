@@ -1,4 +1,4 @@
-package postiz
+package socialapi
 
 import (
 	"bytes"
@@ -91,7 +91,7 @@ func (input PublishInput) Media() []publishing.MediaAsset {
 	return []publishing.MediaAsset{{MediaType: input.AssetMediaType, ObjectKey: input.AssetObjectKey}}
 }
 
-// uploadAll stages each file with Postiz, in order.
+// uploadAll stages each file with the social API, in order.
 func (c *Client) uploadAll(ctx context.Context, token, organizationID string, media []publishing.MediaAsset) ([]any, error) {
 	images := []any{}
 	for _, file := range media {
@@ -165,11 +165,11 @@ func (c *Client) BeginOAuth(ctx context.Context, input BeginOAuthInput) (string,
 		return "", &Error{Status: http.StatusBadRequest, message: "unsupported social provider"}
 	}
 	if !publishing.IsSecretReference(input.SecretReference) {
-		return "", &Error{Status: http.StatusConflict, message: "invalid Postiz credential reference"}
+		return "", &Error{Status: http.StatusConflict, message: "invalid social API credential reference"}
 	}
 	token := os.Getenv(input.SecretReference)
 	if token == "" {
-		return "", &Error{Status: http.StatusServiceUnavailable, message: "Postiz credentials are unavailable"}
+		return "", &Error{Status: http.StatusServiceUnavailable, message: "Social API credentials are unavailable"}
 	}
 	var me struct {
 		Organization struct {
@@ -180,7 +180,7 @@ func (c *Client) BeginOAuth(ctx context.Context, input BeginOAuthInput) (string,
 		return "", err
 	}
 	if me.Organization.ID == "" || me.Organization.ID != input.ExpectedGoOrganizationID {
-		return "", &Error{Status: http.StatusConflict, message: "Postiz organization does not match this workspace"}
+		return "", &Error{Status: http.StatusConflict, message: "Social API organization does not match this workspace"}
 	}
 	var result struct {
 		URL string `json:"url"`
@@ -189,7 +189,7 @@ func (c *Client) BeginOAuth(ctx context.Context, input BeginOAuthInput) (string,
 		return "", err
 	}
 	if result.URL == "" {
-		return "", &Error{Status: http.StatusBadGateway, message: "Postiz returned an invalid authorization URL"}
+		return "", &Error{Status: http.StatusBadGateway, message: "Social API returned an invalid authorization URL"}
 	}
 	return result.URL, nil
 }
@@ -251,11 +251,11 @@ func (c *Client) postOAuthJSON(ctx context.Context, endpoint string, input, outp
 
 func (c *Client) VerifyDestination(ctx context.Context, input VerifyDestinationInput) error {
 	if !publishing.IsSecretReference(input.SecretReference) {
-		return &Error{Status: http.StatusConflict, message: "invalid Postiz credential reference"}
+		return &Error{Status: http.StatusConflict, message: "invalid social API credential reference"}
 	}
 	token := os.Getenv(input.SecretReference)
 	if token == "" {
-		return &Error{Status: http.StatusConflict, message: "Postiz credentials are unavailable"}
+		return &Error{Status: http.StatusConflict, message: "Social API credentials are unavailable"}
 	}
 	var me struct {
 		Organization struct {
@@ -266,7 +266,7 @@ func (c *Client) VerifyDestination(ctx context.Context, input VerifyDestinationI
 		return err
 	}
 	if me.Organization.ID == "" || me.Organization.ID != input.ExpectedGoOrganizationID {
-		return &Error{Status: http.StatusConflict, message: "Postiz organization does not match this workspace"}
+		return &Error{Status: http.StatusConflict, message: "Social API organization does not match this workspace"}
 	}
 	var integrations []struct {
 		ID         string `json:"id"`
@@ -281,7 +281,7 @@ func (c *Client) VerifyDestination(ctx context.Context, input VerifyDestinationI
 			return nil
 		}
 	}
-	return &Error{Status: http.StatusNotFound, message: "Postiz destination was not found"}
+	return &Error{Status: http.StatusNotFound, message: "Social destination was not found"}
 }
 
 // DestinationProfile is a connected account as its platform shows it.
@@ -294,11 +294,11 @@ type DestinationProfile struct {
 // Profiles reads every destination's name, handle and picture, by id.
 func (c *Client) Profiles(ctx context.Context, secretReference string) (map[string]DestinationProfile, error) {
 	if !publishing.IsSecretReference(secretReference) {
-		return nil, &Error{Status: http.StatusConflict, message: "invalid Postiz credential reference"}
+		return nil, &Error{Status: http.StatusConflict, message: "invalid social API credential reference"}
 	}
 	token := os.Getenv(secretReference)
 	if token == "" {
-		return nil, &Error{Status: http.StatusConflict, message: "Postiz credentials are unavailable"}
+		return nil, &Error{Status: http.StatusConflict, message: "Social API credentials are unavailable"}
 	}
 	var integrations []struct {
 		ID      string `json:"id"`
@@ -312,7 +312,7 @@ func (c *Client) Profiles(ctx context.Context, secretReference string) (map[stri
 	profiles := make(map[string]DestinationProfile, len(integrations))
 	for _, integration := range integrations {
 		avatar := integration.Picture
-		// Only an absolute https picture can be shown; uploads paths are Postiz's own.
+		// Only an absolute https picture can be shown; uploads paths are the social API's own.
 		if !strings.HasPrefix(avatar, "https://") {
 			avatar = ""
 		}
@@ -331,33 +331,33 @@ func (c *Client) getJSON(ctx context.Context, token, relative string, target any
 	request.Header.Set("Authorization", token)
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return &Error{Status: http.StatusServiceUnavailable, message: "Postiz destination is unavailable"}
+		return &Error{Status: http.StatusServiceUnavailable, message: "Social destination is unavailable"}
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
-		return &Error{Status: response.StatusCode, message: "Postiz destination is unavailable"}
+		return &Error{Status: response.StatusCode, message: "Social destination is unavailable"}
 	}
 	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(target); err != nil {
-		return &Error{Status: http.StatusBadGateway, message: "Postiz returned an invalid destination response"}
+		return &Error{Status: http.StatusBadGateway, message: "Social API returned an invalid destination response"}
 	}
 	return nil
 }
 
 func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error) {
 	if !publishing.IsSecretReference(input.SecretReference) {
-		return "", &Error{message: "invalid Postiz credential reference"}
+		return "", &Error{message: "invalid social API credential reference"}
 	}
 	token, ok := os.LookupEnv(input.SecretReference)
 	if !ok || token == "" {
-		return "", &Error{message: "Postiz credentials are unavailable"}
+		return "", &Error{message: "Social API credentials are unavailable"}
 	}
 	// A content draft post without an image publishes as text (RFC 037).
 	images, err := c.uploadAll(ctx, token, input.OrganizationID, input.Media())
 	if err != nil {
 		return "", err
 	}
-	// Postiz posts a thread from the value list: the post, then each reply.
+	// social API posts a thread from the value list: the post, then each reply.
 	values := []any{map[string]any{"content": input.Caption, "image": images}}
 	for _, reply := range input.Replies {
 		replyImages, err := c.uploadAll(ctx, token, input.OrganizationID, reply.Assets)
@@ -391,16 +391,16 @@ func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error
 	request.Header.Set("Content-Type", "application/json")
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return "", &Error{UnknownDelivery: true, message: "Postiz post outcome is unknown: " + err.Error()}
+		return "", &Error{UnknownDelivery: true, message: "Social API post outcome is unknown: " + err.Error()}
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
-		return "", &Error{Status: response.StatusCode, UnknownDelivery: response.StatusCode >= 500, message: fmt.Sprintf("Postiz post failed with status %d", response.StatusCode)}
+		return "", &Error{Status: response.StatusCode, UnknownDelivery: response.StatusCode >= 500, message: fmt.Sprintf("Social API post failed with status %d", response.StatusCode)}
 	}
 	var result json.RawMessage
 	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&result); err != nil {
-		return "", &Error{UnknownDelivery: true, message: "Postiz returned an invalid post receipt"}
+		return "", &Error{UnknownDelivery: true, message: "Social API returned an invalid post receipt"}
 	}
 	var current []struct {
 		PostID string `json:"postId"`
@@ -420,7 +420,7 @@ func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error
 			return legacy.ID, nil
 		}
 	}
-	return "", &Error{UnknownDelivery: true, message: "Postiz returned an invalid post receipt"}
+	return "", &Error{UnknownDelivery: true, message: "Social API returned an invalid post receipt"}
 }
 
 // UploadAsset stages media for the provider adapters without creating a
@@ -453,11 +453,11 @@ func (c *Client) UploadAsset(ctx context.Context, input PublishInput) (string, e
 
 func (c *Client) Status(ctx context.Context, input StatusInput) (StatusResult, error) {
 	if !publishing.IsSecretReference(input.SecretReference) {
-		return StatusResult{}, &Error{message: "invalid Postiz credential reference"}
+		return StatusResult{}, &Error{message: "invalid social API credential reference"}
 	}
 	token, ok := os.LookupEnv(input.SecretReference)
 	if !ok || token == "" {
-		return StatusResult{}, &Error{message: "Postiz credentials are unavailable"}
+		return StatusResult{}, &Error{message: "Social API credentials are unavailable"}
 	}
 	now := time.Now().UTC()
 	query := url.Values{
@@ -471,12 +471,12 @@ func (c *Client) Status(ctx context.Context, input StatusInput) (StatusResult, e
 	request.Header.Set("Authorization", token)
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return StatusResult{}, &Error{message: "Postiz status is unavailable: " + err.Error()}
+		return StatusResult{}, &Error{message: "Social API status is unavailable: " + err.Error()}
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
-		return StatusResult{}, &Error{Status: response.StatusCode, message: fmt.Sprintf("Postiz status failed with status %d", response.StatusCode)}
+		return StatusResult{}, &Error{Status: response.StatusCode, message: fmt.Sprintf("Social API status failed with status %d", response.StatusCode)}
 	}
 	var result struct {
 		Posts []struct {
@@ -487,14 +487,14 @@ func (c *Client) Status(ctx context.Context, input StatusInput) (StatusResult, e
 		} `json:"posts"`
 	}
 	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&result); err != nil {
-		return StatusResult{}, &Error{message: "Postiz returned an invalid status response"}
+		return StatusResult{}, &Error{message: "Social API returned an invalid status response"}
 	}
 	for _, post := range result.Posts {
 		if post.ID == input.PostID {
 			return StatusResult{ProviderPostID: post.ReleaseID, State: strings.ToUpper(post.State)}, nil
 		}
 	}
-	return StatusResult{}, &Error{Status: http.StatusNotFound, message: "Postiz post status was not found"}
+	return StatusResult{}, &Error{Status: http.StatusNotFound, message: "Social API post status was not found"}
 }
 
 func (c *Client) upload(ctx context.Context, token, objectKey, mediaType string, content []byte) (map[string]any, error) {
@@ -522,19 +522,19 @@ func (c *Client) upload(ctx context.Context, token, objectKey, mediaType string,
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return nil, &Error{message: "Postiz upload is unavailable: " + err.Error()}
+		return nil, &Error{message: "Social API upload is unavailable: " + err.Error()}
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
-		return nil, &Error{Status: response.StatusCode, message: fmt.Sprintf("Postiz upload failed with status %d", response.StatusCode)}
+		return nil, &Error{Status: response.StatusCode, message: fmt.Sprintf("Social API upload failed with status %d", response.StatusCode)}
 	}
 	var result struct {
 		ID   string `json:"id"`
 		Path string `json:"path"`
 	}
 	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&result); err != nil || result.ID == "" || result.Path == "" {
-		return nil, &Error{message: "Postiz returned an invalid upload receipt"}
+		return nil, &Error{message: "Social API returned an invalid upload receipt"}
 	}
 	return map[string]any{"id": result.ID, "path": result.Path}, nil
 }

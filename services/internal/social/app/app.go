@@ -50,7 +50,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/videos"
 )
 
-// App is every service of the Postiz backend and orchestrator. Fields typed
+// App is every service of the original app's backend and orchestrator. Fields typed
 // by a consumer interface hold the adapter that consumer needs.
 type App struct {
 	DB       *database.Database
@@ -114,7 +114,7 @@ type App struct {
 }
 
 // New connects to Postgres, Redis and Temporal and wires every service.
-// Migrations only run with POSTIZ_GO_MIGRATE=true: Postiz migrates with
+// Migrations only run with SOCIAL_MIGRATE=true: the original app migrates with
 // Prisma, so by default the Go services use the schema as they find it.
 func New(ctx context.Context) (*App, error) {
 	a := &App{}
@@ -122,7 +122,7 @@ func New(ctx context.Context) (*App, error) {
 	if a.DB, err = database.Open(ctx, os.Getenv("DATABASE_URL")); err != nil {
 		return nil, err
 	}
-	if os.Getenv("POSTIZ_GO_MIGRATE") == "true" {
+	if os.Getenv("SOCIAL_MIGRATE") == "true" {
 		if err := migrations.Apply(ctx, a.DB.SQL); err != nil {
 			a.Close()
 			return nil, fmt.Errorf("migrate: %w", err)

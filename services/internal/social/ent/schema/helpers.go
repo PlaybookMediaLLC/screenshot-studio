@@ -11,7 +11,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// The Postiz tables are created by Postiz's Prisma schema (see
+// The the original app tables are created by the original app's Prisma schema (see
 // internal/social/migrations). Every schema here maps onto that DDL exactly: Prisma
 // model names are table names and Prisma field names are column names. Prisma
 // generates uuid()/cuid() ids and @updatedAt values client side, so Ent does

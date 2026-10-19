@@ -125,7 +125,7 @@ export type ChannelConnection = {
   provider: string
   providerSettings: Record<string, unknown>
   status: 'ACTIVE' | 'DISABLED' | 'REVOKED'
-  /** The account as its platform shows it, once Postiz has named it. */
+  /** The account as its platform shows it, once the social API has named it. */
   avatarUrl?: string | null
   displayName?: string | null
   handle?: string | null

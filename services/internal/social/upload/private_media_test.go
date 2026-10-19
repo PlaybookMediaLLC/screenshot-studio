@@ -9,13 +9,13 @@ import (
 
 func privateMediaEnv(t *testing.T) {
 	t.Helper()
-	t.Setenv("POSTIZ_PRIVATE_MEDIA", "true")
+	t.Setenv("SOCIAL_PRIVATE_MEDIA", "true")
 	t.Setenv("STORAGE_PROVIDER", "cloudflare")
 	t.Setenv("CLOUDFLARE_ACCOUNT_ID", "account")
 	t.Setenv("CLOUDFLARE_ACCESS_KEY", "test-access")
 	t.Setenv("CLOUDFLARE_SECRET_ACCESS_KEY", "test-secret")
-	t.Setenv("CLOUDFLARE_BUCKETNAME", "postiz-media")
-	t.Setenv("CLOUDFLARE_BUCKET_URL", "https://account.r2.cloudflarestorage.com/postiz-media")
+	t.Setenv("CLOUDFLARE_BUCKETNAME", "social-media")
+	t.Setenv("CLOUDFLARE_BUCKET_URL", "https://account.r2.cloudflarestorage.com/social-media")
 }
 
 func TestPrivateMediaSignsAtPublishTime(t *testing.T) {
@@ -24,7 +24,7 @@ func TestPrivateMediaSignsAtPublishTime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stored := "https://account.r2.cloudflarestorage.com/postiz-media/old/image.png"
+	stored := "https://account.r2.cloudflarestorage.com/social-media/old/image.png"
 	signed, err := signer.SignURL(context.Background(), stored)
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestPrivateMediaSignsAtPublishTime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if u.Path != "/postiz-media/old/image.png" || u.Query().Get("X-Amz-Expires") != "86400" || u.Query().Get("X-Amz-Signature") == "" {
+	if u.Path != "/social-media/old/image.png" || u.Query().Get("X-Amz-Expires") != "86400" || u.Query().Get("X-Amz-Signature") == "" {
 		t.Fatalf("private R2 URL was not signed for 24 hours: path=%q expires=%q signature=%t", u.Path, u.Query().Get("X-Amz-Expires"), u.Query().Get("X-Amz-Signature") != "")
 	}
 	if strings.Contains(stored, "X-Amz-") {
@@ -57,8 +57,8 @@ func TestPrivateMediaLeavesOtherURLsAlone(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, original := range []string{
-		"https://other.example/postiz-media/image.png",
-		"https://account.r2.cloudflarestorage.com/postiz-media-other/image.png",
+		"https://other.example/social-media/image.png",
+		"https://account.r2.cloudflarestorage.com/social-media-other/image.png",
 		"/tmp/image.png",
 		"",
 	} {
@@ -81,7 +81,7 @@ func TestPrivateMediaRequiresCredentialsAndOmitsPublicACL(t *testing.T) {
 	if _, err := NewPrivateMediaSigner(); err == nil {
 		t.Fatal("missing private-bucket credentials must fail closed")
 	}
-	t.Setenv("POSTIZ_PRIVATE_MEDIA", "false")
+	t.Setenv("SOCIAL_PRIVATE_MEDIA", "false")
 	if signer, err := NewPrivateMediaSigner(); err != nil || signer != nil || privateMediaACL() == "" {
 		t.Fatal("public-bucket behavior should be unchanged")
 	}

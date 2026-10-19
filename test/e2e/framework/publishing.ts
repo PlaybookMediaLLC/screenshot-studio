@@ -217,20 +217,20 @@ export async function createScheduledPost(
   return { response, scheduledPost: scheduledPostSchema.parse(response.body).scheduledPost }
 }
 
-/** The Postiz credential the e2e stack binds test workspaces to. */
-export const e2eSecretReference = 'POSTIZ_API_KEY_E2E'
+/** The social API credential the e2e stack binds test workspaces to. */
+export const e2eSecretReference = 'SOCIAL_API_KEY_E2E'
 
-/** Bind the active workspace to the Postiz mock's organization, `go-<organizationId>`. */
+/** Bind the active workspace to the social API mock's organization, `go-<organizationId>`. */
 export async function bindTestGoOrganization(page: Page): Promise<string> {
   const organizationId = await getActiveOrganizationId(page)
   const goOrganizationId = `go-${organizationId}`
   const database = createE2EDatabase()
   try {
-    await database.query('DELETE FROM postiz_tenant_binding WHERE "secretReference" = $1', [
+    await database.query('DELETE FROM social_tenant_binding WHERE "secretReference" = $1', [
       e2eSecretReference,
     ])
     await database.query(
-      `INSERT INTO postiz_tenant_binding ("organizationId", "goOrganizationId", "secretReference")
+      `INSERT INTO social_tenant_binding ("organizationId", "goOrganizationId", "secretReference")
        VALUES ($1, $2, $3)`,
       [organizationId, goOrganizationId, e2eSecretReference]
     )
@@ -245,7 +245,7 @@ export async function unbindTestGoOrganization(organizationId: string | null): P
   const database = createE2EDatabase()
   try {
     await database.query(
-      'DELETE FROM postiz_tenant_binding WHERE "organizationId" = $1 AND "secretReference" = $2',
+      'DELETE FROM social_tenant_binding WHERE "organizationId" = $1 AND "secretReference" = $2',
       [organizationId, e2eSecretReference]
     )
   } finally {

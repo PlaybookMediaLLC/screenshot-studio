@@ -1,4 +1,4 @@
-// Package newsletter is Postiz's NewsletterService: registers new users with
+// Package newsletter is the original app's NewsletterService: registers new users with
 // Beehiiv or Listmonk when configured.
 package newsletter
 
@@ -141,7 +141,7 @@ func (ListmonkProvider) Register(ctx context.Context, email string) error {
 	res, err = postJSON(ctx, os.Getenv("LISTMONK_DOMAIN")+"/api/tx", map[string]any{
 		"subscriber_id": created.Data.ID,
 		"template_id":   templateID,
-		"subject":       "Welcome to Postiz 🚀",
+		"subject":       "Welcome to Shots 🚀",
 	}, headers)
 	if err == nil {
 		res.Body.Close()

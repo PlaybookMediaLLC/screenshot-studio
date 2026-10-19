@@ -150,7 +150,7 @@ func TestDayjsMonthHelpers(t *testing.T) {
 
 func TestCheckPoliciesGuard(t *testing.T) {
 	t.Setenv("STRIPE_PUBLISHABLE_KEY", "pk")
-	t.Setenv("FRONTEND_URL", "https://app.postiz.com")
+	t.Setenv("FRONTEND_URL", "https://app.sample.com")
 	p := perms(&fakePerms{})
 	withOrg := func(c *httpx.Ctx) error {
 		c.Org = &ent.Organization{ID: "o", Edges: ent.OrganizationEdges{Users: []*ent.UserOrganization{{Role: userorganization.RoleUSER}}}}
@@ -164,11 +164,11 @@ func TestCheckPoliciesGuard(t *testing.T) {
 	}
 
 	code, body := run("/posts", Policy(ActionCreate, SectionPostsPerMonth))
-	if code != 402 || body != `{"statusCode":402,"message":"You have reached the maximum number of posts for your subscription. Please upgrade your subscription to add more posts.","url":"https://app.postiz.com/billing"}` {
+	if code != 402 || body != `{"statusCode":402,"message":"You have reached the maximum number of posts for your subscription. Please upgrade your subscription to add more posts.","url":"https://app.sample.com/billing"}` {
 		t.Fatalf("%d %s", code, body)
 	}
 	code, body = run("/settings/team", Policy(ActionCreate, SectionTeamMembers))
-	if code != 402 || body != `{"statusCode":402,"url":"https://app.postiz.com/billing"}` {
+	if code != 402 || body != `{"statusCode":402,"url":"https://app.sample.com/billing"}` {
 		t.Fatalf("%d %s", code, body)
 	}
 	if code, _ := run("/integrations/social-connect/x", Policy(ActionCreate, SectionChannel)); code != 201 {

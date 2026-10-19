@@ -25,7 +25,10 @@ const (
 	CancelSignalName        = "cancel"
 	PokeSignalName          = "poke"
 	DefaultWorkflowQueue    = "main"
-	DefaultActivityQueue    = "postiz"
+	DefaultActivityQueue    = "social"
+	// cutover: the activity queue before the rename. Workflows started earlier
+	// carry it in their input; delete it once they drain.
+	LegacyActivityQueue = "postiz"
 )
 
 const (

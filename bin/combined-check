@@ -22,7 +22,7 @@ chmod 600 "$COMBINED_ENV"
 
 combined_compose() {
   docker compose --env-file .local/dev.env --file compose.yaml --file compose.combined.yaml \
-    --project-name screenshot-studio-combined --profile postiz-go --profile combined "$@"
+    --project-name screenshot-studio-combined --profile social --profile combined "$@"
 }
 
 cleanup() {

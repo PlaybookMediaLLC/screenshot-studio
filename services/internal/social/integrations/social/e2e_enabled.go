@@ -10,7 +10,7 @@ import (
 )
 
 func e2eProviders() []integrations.Provider {
-	if endpoint := os.Getenv("POSTIZ_E2E_SOCIAL_URL"); endpoint != "" {
+	if endpoint := os.Getenv("SOCIAL_E2E_URL"); endpoint != "" {
 		return []integrations.Provider{e2eprovider.New(endpoint)}
 	}
 	return nil

@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { chmod, writeFile } from 'node:fs/promises'
 
-const base = process.env.POSTIZ_SOCIAL_GATE_URL ?? 'http://127.0.0.1:3110'
+const base = process.env.SOCIAL_GATE_URL ?? 'http://127.0.0.1:3110'
 const output = process.argv[2]
 if (!output) throw new Error('Usage: node test/e2e/fixtures/bootstrap-go.mjs <private-output-file>')
 

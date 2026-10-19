@@ -597,7 +597,7 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 		t.Fatalf("audit count=%d err=%v", auditCount, err)
 	}
 	connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: orgID, UserID: userID, RequestID: actor.RequestID, Type: "USER"},
-		publishing.CreateConnectionInput{ExternalAccountID: "canary", Platform: "linkedin", ProviderSettings: map[string]any{}, SecretReference: "POSTIZ_API_KEY"})
+		publishing.CreateConnectionInput{ExternalAccountID: "canary", Platform: "linkedin", ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
 	if err != nil {
 		t.Fatal(err)
 	}

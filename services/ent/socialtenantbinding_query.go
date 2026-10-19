@@ -11,68 +11,68 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 )
 
-// PostizTenantBindingQuery is the builder for querying PostizTenantBinding entities.
-type PostizTenantBindingQuery struct {
+// SocialTenantBindingQuery is the builder for querying SocialTenantBinding entities.
+type SocialTenantBindingQuery struct {
 	config
 	ctx        *QueryContext
-	order      []postiztenantbinding.OrderOption
+	order      []socialtenantbinding.OrderOption
 	inters     []Interceptor
-	predicates []predicate.PostizTenantBinding
+	predicates []predicate.SocialTenantBinding
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the PostizTenantBindingQuery builder.
-func (_q *PostizTenantBindingQuery) Where(ps ...predicate.PostizTenantBinding) *PostizTenantBindingQuery {
+// Where adds a new predicate for the SocialTenantBindingQuery builder.
+func (_q *SocialTenantBindingQuery) Where(ps ...predicate.SocialTenantBinding) *SocialTenantBindingQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *PostizTenantBindingQuery) Limit(limit int) *PostizTenantBindingQuery {
+func (_q *SocialTenantBindingQuery) Limit(limit int) *SocialTenantBindingQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *PostizTenantBindingQuery) Offset(offset int) *PostizTenantBindingQuery {
+func (_q *SocialTenantBindingQuery) Offset(offset int) *SocialTenantBindingQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *PostizTenantBindingQuery) Unique(unique bool) *PostizTenantBindingQuery {
+func (_q *SocialTenantBindingQuery) Unique(unique bool) *SocialTenantBindingQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *PostizTenantBindingQuery) Order(o ...postiztenantbinding.OrderOption) *PostizTenantBindingQuery {
+func (_q *SocialTenantBindingQuery) Order(o ...socialtenantbinding.OrderOption) *SocialTenantBindingQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// First returns the first PostizTenantBinding entity from the query.
-// Returns a *NotFoundError when no PostizTenantBinding was found.
-func (_q *PostizTenantBindingQuery) First(ctx context.Context) (*PostizTenantBinding, error) {
+// First returns the first SocialTenantBinding entity from the query.
+// Returns a *NotFoundError when no SocialTenantBinding was found.
+func (_q *SocialTenantBindingQuery) First(ctx context.Context) (*SocialTenantBinding, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{postiztenantbinding.Label}
+		return nil, &NotFoundError{socialtenantbinding.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *PostizTenantBindingQuery) FirstX(ctx context.Context) *PostizTenantBinding {
+func (_q *SocialTenantBindingQuery) FirstX(ctx context.Context) *SocialTenantBinding {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -80,22 +80,22 @@ func (_q *PostizTenantBindingQuery) FirstX(ctx context.Context) *PostizTenantBin
 	return node
 }
 
-// FirstID returns the first PostizTenantBinding ID from the query.
-// Returns a *NotFoundError when no PostizTenantBinding ID was found.
-func (_q *PostizTenantBindingQuery) FirstID(ctx context.Context) (id string, err error) {
+// FirstID returns the first SocialTenantBinding ID from the query.
+// Returns a *NotFoundError when no SocialTenantBinding ID was found.
+func (_q *SocialTenantBindingQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{postiztenantbinding.Label}
+		err = &NotFoundError{socialtenantbinding.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *PostizTenantBindingQuery) FirstIDX(ctx context.Context) string {
+func (_q *SocialTenantBindingQuery) FirstIDX(ctx context.Context) string {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -103,10 +103,10 @@ func (_q *PostizTenantBindingQuery) FirstIDX(ctx context.Context) string {
 	return id
 }
 
-// Only returns a single PostizTenantBinding entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one PostizTenantBinding entity is found.
-// Returns a *NotFoundError when no PostizTenantBinding entities are found.
-func (_q *PostizTenantBindingQuery) Only(ctx context.Context) (*PostizTenantBinding, error) {
+// Only returns a single SocialTenantBinding entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one SocialTenantBinding entity is found.
+// Returns a *NotFoundError when no SocialTenantBinding entities are found.
+func (_q *SocialTenantBindingQuery) Only(ctx context.Context) (*SocialTenantBinding, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -115,14 +115,14 @@ func (_q *PostizTenantBindingQuery) Only(ctx context.Context) (*PostizTenantBind
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{postiztenantbinding.Label}
+		return nil, &NotFoundError{socialtenantbinding.Label}
 	default:
-		return nil, &NotSingularError{postiztenantbinding.Label}
+		return nil, &NotSingularError{socialtenantbinding.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *PostizTenantBindingQuery) OnlyX(ctx context.Context) *PostizTenantBinding {
+func (_q *SocialTenantBindingQuery) OnlyX(ctx context.Context) *SocialTenantBinding {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -130,10 +130,10 @@ func (_q *PostizTenantBindingQuery) OnlyX(ctx context.Context) *PostizTenantBind
 	return node
 }
 
-// OnlyID is like Only, but returns the only PostizTenantBinding ID in the query.
-// Returns a *NotSingularError when more than one PostizTenantBinding ID is found.
+// OnlyID is like Only, but returns the only SocialTenantBinding ID in the query.
+// Returns a *NotSingularError when more than one SocialTenantBinding ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *PostizTenantBindingQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *SocialTenantBindingQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -142,15 +142,15 @@ func (_q *PostizTenantBindingQuery) OnlyID(ctx context.Context) (id string, err 
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{postiztenantbinding.Label}
+		err = &NotFoundError{socialtenantbinding.Label}
 	default:
-		err = &NotSingularError{postiztenantbinding.Label}
+		err = &NotSingularError{socialtenantbinding.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *PostizTenantBindingQuery) OnlyIDX(ctx context.Context) string {
+func (_q *SocialTenantBindingQuery) OnlyIDX(ctx context.Context) string {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -158,18 +158,18 @@ func (_q *PostizTenantBindingQuery) OnlyIDX(ctx context.Context) string {
 	return id
 }
 
-// All executes the query and returns a list of PostizTenantBindings.
-func (_q *PostizTenantBindingQuery) All(ctx context.Context) ([]*PostizTenantBinding, error) {
+// All executes the query and returns a list of SocialTenantBindings.
+func (_q *SocialTenantBindingQuery) All(ctx context.Context) ([]*SocialTenantBinding, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*PostizTenantBinding, *PostizTenantBindingQuery]()
-	return withInterceptors[[]*PostizTenantBinding](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*SocialTenantBinding, *SocialTenantBindingQuery]()
+	return withInterceptors[[]*SocialTenantBinding](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *PostizTenantBindingQuery) AllX(ctx context.Context) []*PostizTenantBinding {
+func (_q *SocialTenantBindingQuery) AllX(ctx context.Context) []*SocialTenantBinding {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -177,20 +177,20 @@ func (_q *PostizTenantBindingQuery) AllX(ctx context.Context) []*PostizTenantBin
 	return nodes
 }
 
-// IDs executes the query and returns a list of PostizTenantBinding IDs.
-func (_q *PostizTenantBindingQuery) IDs(ctx context.Context) (ids []string, err error) {
+// IDs executes the query and returns a list of SocialTenantBinding IDs.
+func (_q *SocialTenantBindingQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(postiztenantbinding.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(socialtenantbinding.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *PostizTenantBindingQuery) IDsX(ctx context.Context) []string {
+func (_q *SocialTenantBindingQuery) IDsX(ctx context.Context) []string {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -199,16 +199,16 @@ func (_q *PostizTenantBindingQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (_q *PostizTenantBindingQuery) Count(ctx context.Context) (int, error) {
+func (_q *SocialTenantBindingQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*PostizTenantBindingQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*SocialTenantBindingQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *PostizTenantBindingQuery) CountX(ctx context.Context) int {
+func (_q *SocialTenantBindingQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -217,7 +217,7 @@ func (_q *PostizTenantBindingQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *PostizTenantBindingQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *SocialTenantBindingQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -230,7 +230,7 @@ func (_q *PostizTenantBindingQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *PostizTenantBindingQuery) ExistX(ctx context.Context) bool {
+func (_q *SocialTenantBindingQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -238,18 +238,18 @@ func (_q *PostizTenantBindingQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the PostizTenantBindingQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the SocialTenantBindingQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *PostizTenantBindingQuery) Clone() *PostizTenantBindingQuery {
+func (_q *SocialTenantBindingQuery) Clone() *SocialTenantBindingQuery {
 	if _q == nil {
 		return nil
 	}
-	return &PostizTenantBindingQuery{
+	return &SocialTenantBindingQuery{
 		config:     _q.config,
 		ctx:        _q.ctx.Clone(),
-		order:      append([]postiztenantbinding.OrderOption{}, _q.order...),
+		order:      append([]socialtenantbinding.OrderOption{}, _q.order...),
 		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.PostizTenantBinding{}, _q.predicates...),
+		predicates: append([]predicate.SocialTenantBinding{}, _q.predicates...),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -266,15 +266,15 @@ func (_q *PostizTenantBindingQuery) Clone() *PostizTenantBindingQuery {
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.PostizTenantBinding.Query().
-//		GroupBy(postiztenantbinding.FieldGoOrganizationID).
+//	client.SocialTenantBinding.Query().
+//		GroupBy(socialtenantbinding.FieldGoOrganizationID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *PostizTenantBindingQuery) GroupBy(field string, fields ...string) *PostizTenantBindingGroupBy {
+func (_q *SocialTenantBindingQuery) GroupBy(field string, fields ...string) *SocialTenantBindingGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &PostizTenantBindingGroupBy{build: _q}
+	grbuild := &SocialTenantBindingGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = postiztenantbinding.Label
+	grbuild.label = socialtenantbinding.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -288,23 +288,23 @@ func (_q *PostizTenantBindingQuery) GroupBy(field string, fields ...string) *Pos
 //		GoOrganizationID string `json:"go_organization_id,omitempty"`
 //	}
 //
-//	client.PostizTenantBinding.Query().
-//		Select(postiztenantbinding.FieldGoOrganizationID).
+//	client.SocialTenantBinding.Query().
+//		Select(socialtenantbinding.FieldGoOrganizationID).
 //		Scan(ctx, &v)
-func (_q *PostizTenantBindingQuery) Select(fields ...string) *PostizTenantBindingSelect {
+func (_q *SocialTenantBindingQuery) Select(fields ...string) *SocialTenantBindingSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &PostizTenantBindingSelect{PostizTenantBindingQuery: _q}
-	sbuild.label = postiztenantbinding.Label
+	sbuild := &SocialTenantBindingSelect{SocialTenantBindingQuery: _q}
+	sbuild.label = socialtenantbinding.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a PostizTenantBindingSelect configured with the given aggregations.
-func (_q *PostizTenantBindingQuery) Aggregate(fns ...AggregateFunc) *PostizTenantBindingSelect {
+// Aggregate returns a SocialTenantBindingSelect configured with the given aggregations.
+func (_q *SocialTenantBindingQuery) Aggregate(fns ...AggregateFunc) *SocialTenantBindingSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *PostizTenantBindingQuery) prepareQuery(ctx context.Context) error {
+func (_q *SocialTenantBindingQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -316,7 +316,7 @@ func (_q *PostizTenantBindingQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !postiztenantbinding.ValidColumn(f) {
+		if !socialtenantbinding.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -330,16 +330,16 @@ func (_q *PostizTenantBindingQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *PostizTenantBindingQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*PostizTenantBinding, error) {
+func (_q *SocialTenantBindingQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*SocialTenantBinding, error) {
 	var (
-		nodes = []*PostizTenantBinding{}
+		nodes = []*SocialTenantBinding{}
 		_spec = _q.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*PostizTenantBinding).scanValues(nil, columns)
+		return (*SocialTenantBinding).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &PostizTenantBinding{config: _q.config}
+		node := &SocialTenantBinding{config: _q.config}
 		nodes = append(nodes, node)
 		return node.assignValues(columns, values)
 	}
@@ -355,7 +355,7 @@ func (_q *PostizTenantBindingQuery) sqlAll(ctx context.Context, hooks ...queryHo
 	return nodes, nil
 }
 
-func (_q *PostizTenantBindingQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *SocialTenantBindingQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
@@ -364,8 +364,8 @@ func (_q *PostizTenantBindingQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *PostizTenantBindingQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(postiztenantbinding.Table, postiztenantbinding.Columns, sqlgraph.NewFieldSpec(postiztenantbinding.FieldID, field.TypeString))
+func (_q *SocialTenantBindingQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(socialtenantbinding.Table, socialtenantbinding.Columns, sqlgraph.NewFieldSpec(socialtenantbinding.FieldID, field.TypeString))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -374,9 +374,9 @@ func (_q *PostizTenantBindingQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, postiztenantbinding.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, socialtenantbinding.FieldID)
 		for i := range fields {
-			if fields[i] != postiztenantbinding.FieldID {
+			if fields[i] != socialtenantbinding.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -404,12 +404,12 @@ func (_q *PostizTenantBindingQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *PostizTenantBindingQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *SocialTenantBindingQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(postiztenantbinding.Table)
+	t1 := builder.Table(socialtenantbinding.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = postiztenantbinding.Columns
+		columns = socialtenantbinding.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -436,28 +436,28 @@ func (_q *PostizTenantBindingQuery) sqlQuery(ctx context.Context) *sql.Selector 
 	return selector
 }
 
-// PostizTenantBindingGroupBy is the group-by builder for PostizTenantBinding entities.
-type PostizTenantBindingGroupBy struct {
+// SocialTenantBindingGroupBy is the group-by builder for SocialTenantBinding entities.
+type SocialTenantBindingGroupBy struct {
 	selector
-	build *PostizTenantBindingQuery
+	build *SocialTenantBindingQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *PostizTenantBindingGroupBy) Aggregate(fns ...AggregateFunc) *PostizTenantBindingGroupBy {
+func (_g *SocialTenantBindingGroupBy) Aggregate(fns ...AggregateFunc) *SocialTenantBindingGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *PostizTenantBindingGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *SocialTenantBindingGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*PostizTenantBindingQuery, *PostizTenantBindingGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*SocialTenantBindingQuery, *SocialTenantBindingGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *PostizTenantBindingGroupBy) sqlScan(ctx context.Context, root *PostizTenantBindingQuery, v any) error {
+func (_g *SocialTenantBindingGroupBy) sqlScan(ctx context.Context, root *SocialTenantBindingQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -484,28 +484,28 @@ func (_g *PostizTenantBindingGroupBy) sqlScan(ctx context.Context, root *PostizT
 	return sql.ScanSlice(rows, v)
 }
 
-// PostizTenantBindingSelect is the builder for selecting fields of PostizTenantBinding entities.
-type PostizTenantBindingSelect struct {
-	*PostizTenantBindingQuery
+// SocialTenantBindingSelect is the builder for selecting fields of SocialTenantBinding entities.
+type SocialTenantBindingSelect struct {
+	*SocialTenantBindingQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *PostizTenantBindingSelect) Aggregate(fns ...AggregateFunc) *PostizTenantBindingSelect {
+func (_s *SocialTenantBindingSelect) Aggregate(fns ...AggregateFunc) *SocialTenantBindingSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *PostizTenantBindingSelect) Scan(ctx context.Context, v any) error {
+func (_s *SocialTenantBindingSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*PostizTenantBindingQuery, *PostizTenantBindingSelect](ctx, _s.PostizTenantBindingQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*SocialTenantBindingQuery, *SocialTenantBindingSelect](ctx, _s.SocialTenantBindingQuery, _s, _s.inters, v)
 }
 
-func (_s *PostizTenantBindingSelect) sqlScan(ctx context.Context, root *PostizTenantBindingQuery, v any) error {
+func (_s *SocialTenantBindingSelect) sqlScan(ctx context.Context, root *SocialTenantBindingQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

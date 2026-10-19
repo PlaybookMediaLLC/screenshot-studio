@@ -400,7 +400,7 @@ func (h *integrationsController) mentions(c *httpx.Ctx) (any, error) {
 		if json.Unmarshal(newList, &obj) == nil && truthy(obj["none"]) {
 			return newList, nil
 		}
-		// [...newList] of a non-array throws in Postiz too
+		// [...newList] of a non-array throws in the original app too
 		return nil, errors.New("newList is not iterable")
 	}
 

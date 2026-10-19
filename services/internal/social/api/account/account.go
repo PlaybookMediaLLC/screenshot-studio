@@ -1,4 +1,4 @@
-// Package account ports the Postiz account controllers of apps/backend
+// Package account ports the original app's account controllers of apps/backend
 // (root, monitor, auth, users, settings, billing, payment, stripe,
 // notifications, analytics, admin, announcements, enterprise).
 package account
@@ -39,7 +39,7 @@ type PostsService interface {
 
 const year = 365 * 24 * time.Hour
 
-// setCookie is Postiz's
+// setCookie is the original app's
 //
 //	response.cookie(name, value, {
 //	  domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),

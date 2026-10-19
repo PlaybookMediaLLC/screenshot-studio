@@ -21,7 +21,7 @@ type threadSummary struct {
 }
 
 // RegisterCopilotController registers CopilotController (/copilot) behind the
-// auth middleware. runner is the Mastra 'postiz' agent behind /copilot/agent.
+// auth middleware. runner is the Mastra 'social' agent behind /copilot/agent.
 func RegisterCopilotController(r *httpx.Router, authMiddleware httpx.Middleware, perms *auth.PermissionsService,
 	subscriptionService *subscriptions.Service, runner copilot.AgentRunner, memory AgentMemory) {
 	h := &copilotController{subscriptions: subscriptionService, memory: memory}

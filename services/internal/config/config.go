@@ -151,7 +151,7 @@ func loadTemporal() (Temporal, error) {
 	}
 	return Temporal{
 		APIKey:            os.Getenv("TEMPORAL_API_KEY"),
-		ActivityTaskQueue: envString("TEMPORAL_POSTIZ_TASK_QUEUE", "postiz"),
+		ActivityTaskQueue: envString("TEMPORAL_SOCIAL_TASK_QUEUE", "social"),
 		Address:           envString("TEMPORAL_ADDRESS", "127.0.0.1:7233"),
 		Namespace:         envString("TEMPORAL_NAMESPACE", "default"),
 		TLS:               tlsEnabled,

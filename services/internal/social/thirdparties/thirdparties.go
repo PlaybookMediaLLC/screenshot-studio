@@ -1,4 +1,4 @@
-// Package thirdparties is Postiz's 3rdparties/* folder: the ThirdPartyManager
+// Package thirdparties is the original app's 3rdparties/* folder: the ThirdPartyManager
 // registry (what the @ThirdParty decorator collects) and the HeyGen and
 // Reel.Farm providers.
 package thirdparties

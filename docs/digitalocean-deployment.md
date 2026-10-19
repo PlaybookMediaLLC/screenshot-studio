@@ -3,7 +3,7 @@
 **Cutover status (2026-10-16):** The single-database Go product/SDK cutover is
 applied in production. `doctl apps get` shows the `web`, `storage`, and combined
 `screenshot-studio-backend` services, the `platform-migrate` and
-`postiz-migrate` pre-deploy jobs, and no `web-migrate`; the active deployment
+`social-migrate` pre-deploy jobs, and no `web-migrate`; the active deployment
 runs the images built from `d2482e6`. Every push to `main` now deploys the
 backend first and the web second. Live social canaries on the cutover
 architecture are still outstanding; see
@@ -22,7 +22,7 @@ webhooks configured with the old host. The local `doctl` context is
 | `screenshot-studio-backend` | Public GHCR image built on GitHub | `/readyz`, port 3003 | Internal only: ports 3003 and 8082; the social API on 3000 is loopback-only |
 
 The web component retains its two replicas. The single Go
-backend container starts the Postiz API and worker plus the tenant publishing
+backend container starts the social API and worker plus the tenant publishing
 and maintenance orchestrator. Its readiness endpoint checks all three local
 HTTP endpoints, including the tenant database and Temporal namespace. The
 backend image is built on GitHub and selected by a unique commit SHA tag in
@@ -51,19 +51,19 @@ and [app spec reference](https://docs.digitalocean.com/products/app-platform/ref
 
 - PlanetScale: the cutover uses one Screenshot Studio PostgreSQL logical
   database and its `public` schema for auth, product, and social tables.
-  Previous application, storage, and Postiz databases remain read-only for
+  Previous application, storage, and social databases remain read-only for
   rollback until the cutover is accepted; they are not runtime dependencies.
-- Upstash: the existing Screenshot Studio Redis instance. Postiz uses that
-  instance too; its URL is independently configurable with `POSTIZ_REDIS_URL`.
+- Upstash: the existing Screenshot Studio Redis instance. The social API uses that
+  instance too; its URL is independently configurable with `SOCIAL_REDIS_URL`.
 - R2: the private product media bucket (`screenshot-studio`) contains
   canonical assets and has no public domain. Editor backgrounds and overlays
   live in the separate public bucket `screenshot-studio-public-assets` at
   `shots-assets.oppulence.io` ([storage guide](tenant-storage.md#public-editor-assets)).
-  The legacy Postiz media bucket may remain for rollback, but customer
+  The legacy social media bucket may remain for rollback, but customer
   publishing signs the product asset directly at dispatch. No local filesystem
   is durable media.
 - Temporal Cloud: `screenshot-studio-publishing.kpisa` and
-  `screenshot-studio-postiz.kpisa`, both in AWS US East, with seven-day history
+  the social namespace, both in AWS US East, with seven-day history
   retention. Each registers `organizationId` and `postId` as Keyword search
   attributes. These namespaces must remain separate because both stacks use
   the `main` task queue with different workflow registrations.
@@ -72,7 +72,7 @@ The Temporal service account `screenshot-studio-production` has Write access
 to these two namespaces. Its deployment API key expires on 2027-10-13; rotate
 it in Infisical and redeploy before then. It does not use Rowboat's API key.
 
-The Postiz service organization is `screenshot-studio-production`. Its public
+The social service organization is `screenshot-studio-production`. Its public
 API key is stored in Infisical. Social channels must be connected to this
 production organization separately; a healthy backend does not imply a
 connected social account. No customer social post is part of deployment checks.
@@ -175,7 +175,7 @@ seven services and both migration jobs. Live checks passed for:
 - Readiness of all six adjacent services from the web container.
 - Signed storage upload and download through the deployed Storage API and R2;
   the probe object was deleted afterward.
-- Authenticated Postiz integrations read and anonymous rejection.
+- Authenticated social integrations read and anonymous rejection.
 - A Temporal recovery activity completing and entering its next timer.
 
 The deployment-spec unit tests, 273 JavaScript tests, lint, focused Go tests,

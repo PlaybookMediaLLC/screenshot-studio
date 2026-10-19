@@ -1,9 +1,9 @@
-// Package migrations holds the Postiz schema DDL. 0001_init.sql is generated
-// from Postiz's Prisma schema (prisma migrate diff --from-empty), so a
-// database created here is identical to one Postiz created, and an existing
-// Postiz database is used as-is. Apply records applied files in
-// "_postiz_go_migrations" and skips 0001 when Postiz already created the
-// tables.
+// Package migrations holds the social schema DDL. 0001_init.sql is generated
+// from the original app's Prisma schema (prisma migrate diff --from-empty), so
+// a database created here is identical to one the original app created, and an
+// existing database of the original app is used as-is. Apply records applied
+// files in "_social_migrations" and skips 0001 when the original app already
+// created the tables.
 package migrations
 
 import (
@@ -18,7 +18,17 @@ import (
 var files embed.FS
 
 func Apply(ctx context.Context, db *sql.DB) error {
-	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS "_postiz_go_migrations" (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`); err != nil {
+	// cutover: keep the applied state recorded under the legacy table name.
+	// Delete once every database has run this release.
+	if _, err := db.ExecContext(ctx, `DO $$ BEGIN
+		IF to_regclass('public."_postiz_go_migrations"') IS NOT NULL THEN
+			ALTER TABLE "_postiz_go_migrations" RENAME TO "_social_migrations";
+			ALTER TABLE "_social_migrations" RENAME CONSTRAINT "_postiz_go_migrations_pkey" TO "_social_migrations_pkey";
+		END IF;
+	END $$`); err != nil {
+		return fmt.Errorf("rename migrations table: %w", err)
+	}
+	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS "_social_migrations" (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`); err != nil {
 		return fmt.Errorf("create migrations table: %w", err)
 	}
 	entries, err := files.ReadDir(".")
@@ -32,7 +42,7 @@ func Apply(ctx context.Context, db *sql.DB) error {
 	sort.Strings(names)
 	for _, name := range names {
 		var done bool
-		if err := db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM "_postiz_go_migrations" WHERE name = $1)`, name).Scan(&done); err != nil {
+		if err := db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM "_social_migrations" WHERE name = $1)`, name).Scan(&done); err != nil {
 			return err
 		}
 		if done {
@@ -44,7 +54,7 @@ func Apply(ctx context.Context, db *sql.DB) error {
 				return err
 			}
 			if exists {
-				if _, err := db.ExecContext(ctx, `INSERT INTO "_postiz_go_migrations" (name) VALUES ($1)`, name); err != nil {
+				if _, err := db.ExecContext(ctx, `INSERT INTO "_social_migrations" (name) VALUES ($1)`, name); err != nil {
 					return err
 				}
 				continue
@@ -62,7 +72,7 @@ func Apply(ctx context.Context, db *sql.DB) error {
 			tx.Rollback()
 			return fmt.Errorf("apply %s: %w", name, err)
 		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO "_postiz_go_migrations" (name) VALUES ($1)`, name); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO "_social_migrations" (name) VALUES ($1)`, name); err != nil {
 			tx.Rollback()
 			return err
 		}

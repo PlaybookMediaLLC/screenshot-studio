@@ -3,7 +3,7 @@ import { createServer } from 'node:http'
 
 // State contains receipts only. Never expose credentials or signed media URLs.
 const state = { mode: 'normal', requests: 0, posts: [] }
-const mediaOrigin = process.env.POSTIZ_E2E_MEDIA_ORIGIN
+const mediaOrigin = process.env.SOCIAL_E2E_MEDIA_ORIGIN
 
 function reply(response, status, body) {
   const bytes = Buffer.from(JSON.stringify(body))

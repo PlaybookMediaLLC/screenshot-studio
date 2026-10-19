@@ -22,8 +22,8 @@ import (
 
 // MCP Apps widget URIs (chat/ui).
 const (
-	UploadWidgetURI   = "ui://postiz/upload"
-	ClippingWidgetURI = "ui://postiz/clipping"
+	UploadWidgetURI   = "ui://social/upload"
+	ClippingWidgetURI = "ui://social/clipping"
 )
 
 // refreshWait is the pause after a token refresh for refreshWait providers.
@@ -369,7 +369,7 @@ func integrationTriggerTool(s Services) *Tool {
 						if err := s.Integrations.DisconnectChannel(ctx, org.ID, integration); err != nil {
 							return nil, err
 						}
-						return nil, errors.New("The channel was disconnected because its token expired, the user needs to reconnect it in Postiz")
+						return nil, errors.New("The channel was disconnected because its token expired, the user needs to reconnect it in Shots")
 					}
 					if details.AccessToken != "" {
 						integration.Token = details.AccessToken
@@ -380,7 +380,7 @@ func integrationTriggerTool(s Services) *Tool {
 					}
 				}
 				if isRefresh {
-					return nil, errors.New("The provider rejected the credentials even after refreshing the token, the user needs to reconnect the channel in Postiz")
+					return nil, errors.New("The provider rejected the credentials even after refreshing the token, the user needs to reconnect the channel in Shots")
 				}
 				message := temporalx.FailureMessage(err)
 				if message == "" {
@@ -598,7 +598,7 @@ func postsListTool(s Services) *Tool {
 		Name:        "postsListTool",
 		ID:          "postsListTool",
 		Annotations: annotations("List Posts", true, false, true, false),
-		Description: "\nList the organization's posts scheduled to be published between two dates (the same data as the \"List Posts\" API endpoint).\nReturns every post in the window whatever its state (scheduled, draft, published, errored).\n\"startDate\" and \"endDate\" are required (UTC) - to list all upcoming posts, pass a wide window (for example from now to a year ahead).\nEach item has an \"id\", its publish date, state, error (for errored posts), content, channel and current provider settings.\nPosts cannot be deleted through the Postiz tools - if the user wants to delete a post, tell them to do it themselves in the Postiz app; never offer to delete a post.\n",
+		Description: "\nList the organization's posts scheduled to be published between two dates (the same data as the \"List Posts\" API endpoint).\nReturns every post in the window whatever its state (scheduled, draft, published, errored).\n\"startDate\" and \"endDate\" are required (UTC) - to list all upcoming posts, pass a wide window (for example from now to a year ahead).\nEach item has an \"id\", its publish date, state, error (for errored posts), content, channel and current provider settings.\nPosts cannot be deleted through these tools - if the user wants to delete a post, tell them to do it themselves in the Shots app; never offer to delete a post.\n",
 		InputSchema: zObject(
 			field("startDate", zString().describe("Start of the window (UTC), for example 2026-07-20T00:00:00")),
 			field("endDate", zString().describe("End of the window (UTC), for example 2026-08-20T00:00:00")),
@@ -1114,10 +1114,10 @@ func uploadFromURLTool(s Services) *Tool {
 	return &Tool{
 		Name:        "uploadFromUrlTool",
 		ID:          "uploadFromUrlTool",
-		Description: "Upload a remote image or video into the media library from a public http(s) URL.\nLocal or private files cannot be fetched by this tool: upload them with the Postiz CLI (postiz upload, https://docs.postiz.com/cli/introduction) or the public API (POST /public/v1/upload with an API key, https://docs.postiz.com/public-api/introduction).\nUse this before scheduling a post when the user provides an external media URL (not already hosted on our domain),\nso the attachment passes the upload-domain validation. Returns the hosted media { id, path } to use as an attachment (or as the src of an <img> in the content, when the channel rules say pictures go inside the content), or { error } on failure.",
+		Description: "Upload a remote image or video into the media library from a public http(s) URL.\nLocal or private files cannot be fetched by this tool: upload them with the public API (POST /public/v1/upload with an API key).\nUse this before scheduling a post when the user provides an external media URL (not already hosted on our domain),\nso the attachment passes the upload-domain validation. Returns the hosted media { id, path } to use as an attachment (or as the src of an <img> in the content, when the channel rules say pictures go inside the content), or { error } on failure.",
 		Annotations: annotations("Upload Media From URL", false, false, false, true),
 		InputSchema: zObject(
-			field("url", zString().url().describe("The public http(s) URL of the image or video to upload. Local files and private hosts are not supported, use the Postiz CLI (postiz upload) or POST /public/v1/upload instead")),
+			field("url", zString().url().describe("The public http(s) URL of the image or video to upload. Local files and private hosts are not supported, use POST /public/v1/upload instead")),
 		),
 		// Mastra validates a tool's return against this schema, so it must
 		// also allow the graceful { error } shape.
@@ -1153,7 +1153,7 @@ func uploadFromURLTool(s Services) *Tool {
 				if len(causes) > 0 {
 					causeText = " (" + strings.Join(causes, ": ") + ")"
 				}
-				return map[string]any{"error": fmt.Sprintf("Failed to upload media from URL: %s%s. Only public http(s) URLs work: upload local or private files with the Postiz CLI (postiz upload, https://docs.postiz.com/cli/introduction) or the public API (POST /public/v1/upload with an API key, https://docs.postiz.com/public-api/introduction)", message, causeText)}, nil
+				return map[string]any{"error": fmt.Sprintf("Failed to upload media from URL: %s%s. Only public http(s) URLs work: upload local or private files with the public API (POST /public/v1/upload with an API key)", message, causeText)}, nil
 			}
 			return mediaRef{ID: media.ID, Path: media.Path}, nil
 		},
@@ -1221,7 +1221,7 @@ func uploadWidgetTool(s Services) *Tool {
 		Name:        "uploadWidgetTool",
 		ID:          "uploadWidgetTool",
 		MCPOnly:     true,
-		Description: "Show the user an upload widget to add images or videos from their own device to the media library.\nUse this when the user wants to attach a local file to a post. When the media is already available on a public URL, use uploadFromUrlTool instead.\nThe widget is only displayed by apps that support MCP Apps (interactive UI); in any other app no widget appears, and local files go through the Postiz CLI (postiz upload, https://docs.postiz.com/cli/introduction) or the public API (POST /public/v1/upload with an API key, https://docs.postiz.com/public-api/introduction). uploadFromUrlTool is only for public URLs.\nReturns a sessionId: the files the user uploads are reported in the conversation, and can also be read with uploadWidgetStatusTool.",
+		Description: "Show the user an upload widget to add images or videos from their own device to the media library.\nUse this when the user wants to attach a local file to a post. When the media is already available on a public URL, use uploadFromUrlTool instead.\nThe widget is only displayed by apps that support MCP Apps (interactive UI); in any other app no widget appears, and local files go through the public API (POST /public/v1/upload with an API key). uploadFromUrlTool is only for public URLs.\nReturns a sessionId: the files the user uploads are reported in the conversation, and can also be read with uploadWidgetStatusTool.",
 		Annotations: annotations("Upload Media From Device", false, false, false, false),
 		Meta:        map[string]any{"ui": map[string]any{"resourceUri": UploadWidgetURI}},
 		InputSchema: zObject(),

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cut over the existing production spec to one image-backed backend service.
+"""Deploy a new backend image to the production spec.
 
 The input is a fresh `doctl apps get -o json` export. Keep input and output
 private: both contain App Platform encrypted secret values.
@@ -13,19 +13,19 @@ import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
-OLD_BACKENDS = {"postiz-backend", "postiz-orchestrator", "publishing-backend", "publishing-orchestrator"}
 BACKEND = "screenshot-studio-backend"
+MIGRATION_JOB = "social-migrate"
 IMAGE = {"registry_type": "GHCR", "registry": "playbookmediallc", "repository": "screenshot-studio"}
 SOCIAL_SECRET_SOURCES = {
-    "REDIS_URL": "POSTIZ_REDIS_URL",
-    "JWT_SECRET": "POSTIZ_JWT_SECRET",
-    "TEMPORAL_API_KEY": "POSTIZ_TEMPORAL_API_KEY",
-    "X_API_KEY": "POSTIZ_GO_X_API_KEY",
-    "X_API_SECRET": "POSTIZ_GO_X_API_SECRET",
-    "FACEBOOK_APP_ID": "POSTIZ_GO_FACEBOOK_APP_ID",
-    "FACEBOOK_APP_SECRET": "POSTIZ_GO_FACEBOOK_APP_SECRET",
-    "INSTAGRAM_APP_ID": "POSTIZ_GO_INSTAGRAM_APP_ID",
-    "INSTAGRAM_APP_SECRET": "POSTIZ_GO_INSTAGRAM_APP_SECRET",
+    "REDIS_URL": "SOCIAL_REDIS_URL",
+    "JWT_SECRET": "SOCIAL_JWT_SECRET",
+    "TEMPORAL_API_KEY": "SOCIAL_TEMPORAL_API_KEY",
+    "X_API_KEY": "SOCIAL_X_API_KEY",
+    "X_API_SECRET": "SOCIAL_X_API_SECRET",
+    "FACEBOOK_APP_ID": "SOCIAL_FACEBOOK_APP_ID",
+    "FACEBOOK_APP_SECRET": "SOCIAL_FACEBOOK_APP_SECRET",
+    "INSTAGRAM_APP_ID": "SOCIAL_INSTAGRAM_APP_ID",
+    "INSTAGRAM_APP_SECRET": "SOCIAL_INSTAGRAM_APP_SECRET",
 }
 OPTIONAL_SOCIAL_SECRETS = (
     "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "X_API_KEY", "X_API_SECRET",
@@ -35,6 +35,36 @@ OPTIONAL_SOCIAL_SECRETS = (
 # drafts from page metadata and skips Exa.
 OPTIONAL_TENANT_SECRETS = ("OPENROUTER_API_KEY", "PLATFORM_ENRICHMENT_EXA_API_KEY")
 OPTIONAL_TENANT_KEYS = {"TENANT_" + key for key in OPTIONAL_TENANT_SECRETS}
+
+
+# cutover: the live spec and Infisical still hold the legacy prefix. Each deploy
+# moves both to the social names; delete this once Infisical and the live app
+# are moved.
+LEGACY_PREFIXES = (("POSTIZ_GO_", "SOCIAL_"), ("POSTIZ_", "SOCIAL_"))
+LEGACY_MIGRATION_JOB = "postiz-migrate"
+LEGACY_TASK_QUEUE = "postiz"
+
+
+def social_name(key):
+    for legacy, name in LEGACY_PREFIXES:
+        if legacy in key:
+            return key.replace(legacy, name, 1)
+    return key
+
+
+def move_legacy_names(spec, secrets):
+    if secrets is not None:
+        for key, value in list(secrets.items()):
+            secrets.setdefault(social_name(key), value)
+    for component in spec.get("services", []) + spec.get("jobs", []):
+        envs = component.get("envs", [])
+        for item in envs:
+            item["key"] = social_name(item["key"])
+        # The default queue is social now; an override of the legacy one would pin it.
+        envs[:] = [item for item in envs if (item["key"], item.get("value")) != (
+            "TEMPORAL_SOCIAL_TASK_QUEUE", LEGACY_TASK_QUEUE)]
+        if component["name"] == LEGACY_MIGRATION_JOB:
+            component["name"] = MIGRATION_JOB
 
 
 def set_env(envs, key, value):
@@ -68,7 +98,7 @@ def configure_publishing_api(backend, web, token, direct_enabled=False):
     set_env(backend["envs"], "TENANT_PUBLISHING_DIRECT_PROVIDER", "true" if direct_enabled else "false")
     if direct_enabled:
         social = {item["key"]: item for item in backend["envs"]}
-        for key in ("POSTIZ_PRIVATE_MEDIA", "STORAGE_PROVIDER", "CLOUDFLARE_ACCOUNT_ID",
+        for key in ("SOCIAL_PRIVATE_MEDIA", "STORAGE_PROVIDER", "CLOUDFLARE_ACCOUNT_ID",
                     "CLOUDFLARE_BUCKETNAME", "CLOUDFLARE_BUCKET_URL", "CLOUDFLARE_ACCESS_KEY",
                     "CLOUDFLARE_SECRET_ACCESS_KEY"):
             if key not in social:
@@ -126,11 +156,11 @@ def shared_database(backend, migration, secrets=None):
     # Migrations need DDL; the runtime role can only read and write rows.
     owner = secrets.get("MIGRATION_DATABASE_URL") if secrets is not None else value
     if not owner:
-        raise ValueError("MIGRATION_DATABASE_URL is required for the Postiz migration")
+        raise ValueError("MIGRATION_DATABASE_URL is required for the social migration")
     set_secret_env(migration["envs"], "DATABASE_URL", owner)
 
 
-def platform_migration(spec, postiz_migration, secrets=None):
+def platform_migration(spec, social_migration, secrets=None):
     """Replace the web's Prisma job with the Go platform migrator in the backend image."""
     names = ("platform-migrate", "web-migrate")
     previous = next((item for item in spec.get("jobs", []) if item["name"] in names), None)
@@ -140,7 +170,7 @@ def platform_migration(spec, postiz_migration, secrets=None):
                 next((item["value"] for item in previous.get("envs", []) if item["key"] == "DATABASE_URL"), None))
     if not database:
         raise ValueError("MIGRATION_DATABASE_URL is required for the platform migration")
-    job = dict(copy.deepcopy(postiz_migration), name="platform-migrate", run_command="/platform-migrate",
+    job = dict(copy.deepcopy(social_migration), name="platform-migrate", run_command="/platform-migrate",
                envs=[{"key": "DATABASE_URL", "value": database, "type": "SECRET", "scope": "RUN_TIME"}])
     spec["jobs"] = [job if item is previous else item for item in spec["jobs"]
                     if item is previous or item["name"] not in names]
@@ -263,86 +293,28 @@ def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
             raise ValueError("Expected one DigitalOcean app")
         base = base[0]
     spec = copy.deepcopy(base.get("spec", base))
+    move_legacy_names(spec, secrets)
     services = {item["name"]: item for item in spec["services"]}
     # The web deploy retires design-renderer; both shapes are current.
-    if set(services) - {"design-renderer", COLLAB} == {"web", "storage", BACKEND}:
-        backend = services[BACKEND]
-        if backend.get("image", {}).get("registry_type") != "GHCR":
-            raise ValueError("Combined backend image source changed")
-        configure_collab(spec, backend, secrets, collab_tag)
-        configure_mcp(spec, backend, services["web"], secrets)
-        refresh_secrets(backend["envs"], secrets)
-        add_optional_social_secrets(backend["envs"], secrets)
-        configure_publishing_api(backend, services["web"], publishing_token(services, secrets),
-                                 secrets is not None and secrets.get("ENABLE_DIRECT_PROVIDER") == "true")
-        configure_product_api(backend, secrets)
-        backend["image"] = image
-        migration = next((item for item in spec.get("jobs", []) if item["name"] == "postiz-migrate"), None)
-        if migration is None:
-            raise ValueError("Postiz migration job is missing")
-        migration["image"] = copy.deepcopy(image)
-        shared_database(backend, migration, secrets)
-        platform_migration(spec, migration, secrets)
-        return spec
-    if set(services) != {"web", "storage", "design-renderer"} | OLD_BACKENDS:
-        raise ValueError("Production topology changed; inspect the app before cutting over")
-    if {item["name"] for item in spec.get("jobs", [])} != {"web-migrate", "postiz-migrate"}:
-        raise ValueError("Production jobs changed; inspect the app before cutting over")
-
-    social = copy.deepcopy(services["postiz-backend"])
-    tenant = services["publishing-orchestrator"]
-    social_env = social["envs"]
-    tenant_env = tenant["envs"]
-    required = {"DATABASE_URL", "TEMPORAL_ADDRESS", "TEMPORAL_NAMESPACE", "TEMPORAL_API_KEY",
-                "AUDIT_RETENTION_DATABASE_URL", "AUDIT_DRAIN_ENCRYPTION_KEY", "RESEND_API_KEY",
-                "STORAGE_SERVICE_KEY", "STORAGE_BUCKET", "STORAGE_API_URL", "BETTER_AUTH_SECRET",
-                "BETTER_AUTH_URL", "AUTH_EMAIL_FROM", "RUN_MAINTENANCE", "RUN_CRON"}
-    if not required <= {item["key"] for item in tenant_env}:
-        raise ValueError("Tenant orchestrator is missing required runtime settings")
-    refresh_secrets(social_env, secrets)
-    add_optional_social_secrets(social_env, secrets)
-    for item in tenant_env:
-        entry = copy.deepcopy(item)
-        entry["key"] = "TENANT_" + entry["key"]
-        social_env.append(entry)
-    refresh_secrets([item for item in social_env if item["key"].startswith("TENANT_")], secrets)
-    set_env(social_env, "RUN_WORKER", "true")
-    set_env(social_env, "ORCHESTRATOR_PORT", "3002")
-    set_env(social_env, "BACKEND_INTERNAL_URL", "http://127.0.0.1:3000")
-    set_env(social_env, "TENANT_POSTIZ_API_URL", "http://127.0.0.1:3000/public/v1")
-    set_env(social_env, "TENANT_PORT", "8081")
-    set_env(social_env, "TENANT_RUN_MAINTENANCE", "true")
-    set_env(social_env, "TENANT_RUN_CRON", "true")
-    configure_publishing_api(social, services["web"], publishing_token(services, secrets),
+    if set(services) - {"design-renderer", COLLAB} != {"web", "storage", BACKEND}:
+        raise ValueError("Production topology changed; inspect the app before deploying")
+    backend = services[BACKEND]
+    if backend.get("image", {}).get("registry_type") != "GHCR":
+        raise ValueError("Combined backend image source changed")
+    configure_collab(spec, backend, secrets, collab_tag)
+    configure_mcp(spec, backend, services["web"], secrets)
+    refresh_secrets(backend["envs"], secrets)
+    add_optional_social_secrets(backend["envs"], secrets)
+    configure_publishing_api(backend, services["web"], publishing_token(services, secrets),
                              secrets is not None and secrets.get("ENABLE_DIRECT_PROVIDER") == "true")
-    configure_product_api(social, secrets)
-    if len({item["key"] for item in social_env}) != len(social_env):
-        raise ValueError("Backend environment contains duplicate keys")
-    social["name"] = BACKEND
-    for key in ("git", "source_dir", "dockerfile_path"):
-        social.pop(key, None)
-    social["image"] = copy.deepcopy(image)
-    social["instance_size_slug"] = "apps-s-1vcpu-2gb"
-    social["http_port"] = 3000
-    social["internal_ports"] = [3003, 8082]
-    social["health_check"] = {
-        "http_path": "/readyz", "port": 3003,
-        "initial_delay_seconds": 45, "period_seconds": 15,
-        "timeout_seconds": 10, "failure_threshold": 6,
-    }
-
-    spec["services"] = [item for item in spec["services"] if item["name"] not in OLD_BACKENDS] + [social]
-    for rule in spec["ingress"]["rules"]:
-        if rule["component"]["name"] == "postiz-backend":
-            rule["component"]["name"] = BACKEND
-    web = services["web"]
-    set_env(web["envs"], "POSTIZ_API_URL", f"http://{BACKEND}:3000/public/v1")
-
-    migration = next(item for item in spec["jobs"] if item["name"] == "postiz-migrate")
-    for key in ("git", "source_dir", "dockerfile_path"):
-        migration.pop(key, None)
+    configure_product_api(backend, secrets)
+    backend["image"] = image
+    migration = next((item for item in spec.get("jobs", []) if item["name"] == MIGRATION_JOB), None)
+    if migration is None:
+        raise ValueError("Social migration job is missing")
     migration["image"] = copy.deepcopy(image)
-    shared_database(social, migration, secrets)
+    migration["run_command"] = "/" + MIGRATION_JOB
+    shared_database(backend, migration, secrets)
     platform_migration(spec, migration, secrets)
     return spec
 

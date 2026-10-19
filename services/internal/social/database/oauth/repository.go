@@ -1,4 +1,4 @@
-// Package oauth ports database/prisma/oauth: Postiz as an OAuth provider
+// Package oauth ports database/prisma/oauth: the social API as an OAuth provider
 // (static apps, dynamic client registration, authorization codes with PKCE,
 // access tokens, revocation, and codes relayed to self-hosted instances).
 package oauth

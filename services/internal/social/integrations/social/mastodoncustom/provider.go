@@ -1,5 +1,5 @@
 // Package mastodoncustom is the custom Mastodon provider:
-// Mastodon on a user-supplied instance. Postiz does not register it in its
+// Mastodon on a user-supplied instance. the original app does not register it in its
 // provider list; it is ported anyway.
 package mastodoncustom
 
@@ -47,10 +47,10 @@ func (p *Provider) Info() integrations.Info {
 	return info
 }
 
-// ExternalURL registers Postiz as an app on the instance.
+// ExternalURL registers Shots as an app on the instance.
 func (p *Provider) ExternalURL(ctx context.Context, url string) (*integrations.ClientInformation, error) {
 	body, contentType := mastodon.Form(
-		"client_name", "Postiz",
+		"client_name", "Shots",
 		"redirect_uris", os.Getenv("FRONTEND_URL")+"/integrations/social/mastodon",
 		"scopes", strings.Join(mastodon.Scopes, " "),
 		"website", os.Getenv("FRONTEND_URL"),

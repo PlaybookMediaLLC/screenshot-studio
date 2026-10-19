@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
 
 type oauthRequest struct {
@@ -70,7 +70,7 @@ func validatedAuthorizationURL(raw, provider string) (string, string, error) {
 }
 
 type socialOAuthExchanger interface {
-	ExchangeOAuth(context.Context, string, string, string) (postiz.OAuthExchange, error)
+	ExchangeOAuth(context.Context, string, string, string) (socialapi.OAuthExchange, error)
 	SelectInstagramPage(context.Context, string, string, string, string) error
 }
 
@@ -164,7 +164,7 @@ func (s *Server) beginSocialOAuth(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "social OAuth is unavailable")
 		return
 	}
-	raw, err := s.verifier.BeginOAuth(r.Context(), postiz.BeginOAuthInput{
+	raw, err := s.verifier.BeginOAuth(r.Context(), socialapi.BeginOAuthInput{
 		ExpectedGoOrganizationID: binding.GoOrganizationID,
 		Provider:                 input.Provider, SecretReference: binding.SecretReference,
 	})
@@ -247,7 +247,7 @@ func (s *Server) completeSocialOAuth(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "social connection is unavailable for this workspace")
 		return
 	}
-	if err := s.verifier.VerifyDestination(r.Context(), postiz.VerifyDestinationInput{
+	if err := s.verifier.VerifyDestination(r.Context(), socialapi.VerifyDestinationInput{
 		DestinationID: input.IntegrationID, ExpectedGoOrganizationID: binding.GoOrganizationID,
 		Platform: input.Provider, SecretReference: start.SecretReference,
 	}); err != nil {

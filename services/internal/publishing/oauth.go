@@ -95,14 +95,14 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 	}
 	connection, err := tx.ChannelConnection.Query().Where(
 		channelconnection.OrganizationID(actor.Organization),
-		channelconnection.Provider("postiz"),
+		channelconnection.Provider("social"),
 		channelconnection.ExternalAccountID(integrationID),
 	).Only(ctx)
 	if ent.IsNotFound(err) {
 		connection, err = tx.ChannelConnection.Create().
 			SetID(cuid.New()).
 			SetOrganizationID(actor.Organization).
-			SetProvider("postiz").
+			SetProvider("social").
 			SetExternalAccountID(integrationID).
 			SetPlatform(provider).
 			SetProviderSettings(map[string]any{}).

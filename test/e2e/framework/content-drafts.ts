@@ -12,13 +12,13 @@ import {
 
 /**
  * Setup for the content draft flows (RFC 037): a paid workspace bound to the
- * Postiz mock, with one connected channel per platform. The mock answers the
+ * social API mock, with one connected channel per platform. The mock answers the
  * destination checks only; posts are scheduled for later, so nothing
  * publishes during a test.
  */
 
-/** The suite's Postiz mock port; the stack's POSTIZ_API_URL points at it. */
-export const postizMockPort = Number(process.env.E2E_POSTIZ_MOCK_PORT ?? 5679)
+/** The suite's social API mock port; the stack's SOCIAL_API_URL points at it. */
+export const socialMockPort = Number(process.env.E2E_SOCIAL_MOCK_PORT ?? 5679)
 
 export type DraftWorkspace = {
   channels: Record<string, string>
@@ -40,7 +40,7 @@ export async function createDraftWorkspace(
       return {
         body: platforms.map((platform) => ({
           disabled: false,
-          id: `postiz-${platform}`,
+          id: `social-${platform}`,
           identifier: platform,
           name: `Shots on ${platform}`,
           picture: '',
@@ -49,7 +49,7 @@ export async function createDraftWorkspace(
       }
     }
     return { body: { error: 'Unexpected request.' }, status: 500 }
-  }, postizMockPort)
+  }, socialMockPort)
   await createPublishingWorkspace(identity, page)
   // Connecting a channel and cancelling a post are sensitive actions.
   await enablePublishingTwoFactor(page, identity.password)
@@ -57,7 +57,7 @@ export async function createDraftWorkspace(
   const channels: Record<string, string> = {}
   for (const platform of platforms) {
     const response = await trpcMutation(page, 'channelConnection.create', {
-      externalAccountId: `postiz-${platform}`,
+      externalAccountId: `social-${platform}`,
       platform,
       secretReference: e2eSecretReference,
     })

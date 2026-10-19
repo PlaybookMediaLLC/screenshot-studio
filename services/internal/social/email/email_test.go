@@ -50,8 +50,8 @@ func TestResendProvider(t *testing.T) {
 	resendURL = srv.URL
 	t.Setenv("RESEND_API_KEY", "")
 
-	_, err := ResendProvider{}.SendEmail(context.Background(), "a@b.c", "Hi", "<p>x</p>", "Postiz", "no@postiz.com", "")
-	if err != nil || auth != "Bearer re_132" || got["from"] != "Postiz <no@postiz.com>" || got["to"] != "a@b.c" {
+	_, err := ResendProvider{}.SendEmail(context.Background(), "a@b.c", "Hi", "<p>x</p>", "Sample", "no@sample.com", "")
+	if err != nil || auth != "Bearer re_132" || got["from"] != "Sample <no@sample.com>" || got["to"] != "a@b.c" {
 		t.Fatalf("send: %v %q %v", err, auth, got)
 	}
 	if _, has := got["reply_to"]; has {
@@ -82,8 +82,8 @@ func (f *flaky) SendEmail(_ context.Context, _, _, html, _, _, _ string) (any, e
 }
 
 func TestSendEmailSyncRetries(t *testing.T) {
-	t.Setenv("EMAIL_FROM_ADDRESS", "no@postiz.com")
-	t.Setenv("EMAIL_FROM_NAME", "Postiz")
+	t.Setenv("EMAIL_FROM_ADDRESS", "no@sample.com")
+	t.Setenv("EMAIL_FROM_NAME", "Sample")
 	t.Setenv("FRONTEND_URL", "https://app")
 	provider := &flaky{}
 	s := &Service{EmailService: provider}
@@ -96,7 +96,7 @@ func TestSendEmailSyncRetries(t *testing.T) {
 	if provider.calls != 3 {
 		t.Errorf("calls %d", provider.calls)
 	}
-	for _, want := range []string{">Subject</h1>", "<b>body</b>", ">Postiz</h2>", `href="https://app/settings"`} {
+	for _, want := range []string{">Subject</h1>", "<b>body</b>", ">Sample</h2>", `href="https://app/settings"`} {
 		if !strings.Contains(provider.html, want) {
 			t.Errorf("layout misses %q", want)
 		}

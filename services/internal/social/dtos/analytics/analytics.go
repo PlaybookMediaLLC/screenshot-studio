@@ -1,4 +1,4 @@
-// Package analytics holds Postiz's dtos/analytics. Both are query DTOs: bind
+// Package analytics holds the original app's dtos/analytics. Both are query DTOs: bind
 // with c.BindQuery, then call Validate (ValidationPipe messages, empty means
 // valid).
 package analytics

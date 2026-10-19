@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 30
     env:
       MAINTENANCE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/maintenance_test?sslmode=disable
-      POSTIZ_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postiz_test?sslmode=disable
+      SOCIAL_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/social_test?sslmode=disable
       PUBLISHING_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/shared_cutover_test?sslmode=disable
     services:
       postgres:
@@ -48,8 +48,8 @@ jobs:
       - run: go generate ./ent ./internal/social/ent
       - name: Verify generated Ent clients are current
         run: git diff --exit-code -- ent internal/social/ent
-      - name: Create the Postiz Go test database
-        run: psql postgresql://postgres:postgres@127.0.0.1:5432/publishing_acceptance -c 'CREATE DATABASE postiz_test'
+      - name: Create the social test database
+        run: psql postgresql://postgres:postgres@127.0.0.1:5432/publishing_acceptance -c 'CREATE DATABASE social_test'
       - name: Create and migrate maintenance test database
         run: |
           psql postgresql://postgres:postgres@127.0.0.1:5432/publishing_acceptance -c 'CREATE DATABASE maintenance_test'
@@ -63,11 +63,11 @@ jobs:
       - name: Verify Go formatting
         run: test -z "$(gofmt -l .)"
       - run: go test ./...
-      - name: Verify Postiz migrations are repeatable
+      - name: Verify social migrations are repeatable
         run: |
-          DATABASE_URL="$POSTIZ_TEST_DATABASE_URL" go run ./cmd/postiz-migrate
-          DATABASE_URL="$POSTIZ_TEST_DATABASE_URL" go run ./cmd/postiz-migrate
-      - run: go test -race ./internal/httpapi ./internal/postiz ./internal/publishing ./internal/temporalpublishing ./internal/maintenance ./internal/temporalmaintenance ./internal/onboarding ./internal/temporalonboarding ./internal/enrichment ./internal/social/tenantpublishing
+          DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
+          DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
+      - run: go test -race ./internal/httpapi ./internal/socialapi ./internal/publishing ./internal/temporalpublishing ./internal/maintenance ./internal/temporalmaintenance ./internal/onboarding ./internal/temporalonboarding ./internal/enrichment ./internal/social/tenantpublishing
       - run: go test -race ./internal/social/auth ./internal/social/database/users ./internal/social/activities ./internal/social/worker ./internal/social/workflows ./internal/social/chat/mcp ./internal/shotsapi
       - run: go vet ./...
       - name: Build the backend image

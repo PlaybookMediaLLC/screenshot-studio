@@ -23,7 +23,7 @@ import (
 
 const (
 	identifier = "wordpress"
-	userAgent  = "Postiz/1.0 (+https://postiz.com)"
+	userAgent  = "Shots/1.0 (+https://shots.playbookmedia.io)"
 )
 
 type Provider struct {

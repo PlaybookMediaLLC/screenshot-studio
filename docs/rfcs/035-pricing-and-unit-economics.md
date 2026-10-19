@@ -68,7 +68,7 @@ The platform does a job that today takes a stack of tools and a person:
 | Release notes and changelog | LaunchNotes, Beamer, AnnounceKit | $99–$249             | $249–$799              |
 | Launch copy                 | Jasper, Typefully, Taplio        | $20–$207             | custom–$1,000          |
 | Screenshots and mockups     | Shots.so, Pika                   | $15–$30              | $100                   |
-| Scheduling and approvals    | Buffer Team, Postiz, Hootsuite   | $36–$297             | $120–$1,990            |
+| Scheduling and approvals    | Buffer Team, Hootsuite   | $36–$297             | $120–$1,990            |
 | **Total stack**             |                                  | **≈ $350/mo**        | **≈ $1,200–$3,900/mo** |
 
 The stack still needs someone to write the brief, design the visuals, and
@@ -275,7 +275,7 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
       social OAuth or creating a connection checks the limit; reconnecting an
       account the workspace already holds does not count again. The check
       runs after the OAuth exchange, so a refused connection can leave an
-      unused integration in Postiz, as a disconnect does today.
+      unused integration in the social API, as a disconnect does today.
     - **Products.** A workspace has one product profile (RFC 012), so the
       product limit is one per workspace on every plan.
     - Existing members and channels above a lower plan's limit are kept after

@@ -95,7 +95,7 @@ The private audit report lists each change with evidence and size. The IDs are:
 | P7  | `/.well-known/security.txt` and a security mailbox                       |
 | P8  | A social channel disconnect that deletes tokens, and a Meta deletion URL |
 | P9  | Encryption at rest for social and sign-in OAuth tokens                   |
-| P10 | A review of the public `/postiz` routes                                  |
+| P10 | A review of the public social API routes                                  |
 | P11 | AI provider data controls set in code                                    |
 | P12 | Retention jobs for AI history, sessions, and inactive workspaces         |
 | P13 | Labels for AI-generated content                                          |

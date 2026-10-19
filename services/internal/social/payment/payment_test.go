@@ -410,7 +410,7 @@ func TestStripeEmbeddedCheckoutParams(t *testing.T) {
 		"customer": "cus_1", "status": "all", "expand[0]": "data.latest_invoice",
 	})
 	exactForm(t, "customer", srv.forms["POST /v1/customers/cus_1"], map[string]string{
-		"email":                           "jane@postiz.com",
+		"email":                           "jane@shots.playbookmedia.io",
 		"metadata[dubCustomerExternalId]": "user_1",
 		"metadata[dubClickId]":            "dub_1",
 	})
@@ -655,10 +655,10 @@ func TestRevenueCatSync(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth, path = r.Header.Get("Authorization"), r.URL.Path
 		fmt.Fprintf(w, `{"subscriber":{"subscriptions":{
-			"com.postiz.mob.standard.monthly":{"expires_date":%q,"period_type":"normal"},
-			"com.postiz.mob.pro_yearly":{"expires_date":%q,"period_type":"trial","unsubscribe_detected_at":%q},
-			"com.postiz.mob.team.yearly":{"expires_date":%q,"is_sandbox":true},
-			"com.postiz.mob.ultimate.monthly":{"expires_date":%q}
+			"com.shots.mob.standard.monthly":{"expires_date":%q,"period_type":"normal"},
+			"com.shots.mob.pro_yearly":{"expires_date":%q,"period_type":"trial","unsubscribe_detected_at":%q},
+			"com.shots.mob.team.yearly":{"expires_date":%q,"is_sandbox":true},
+			"com.shots.mob.ultimate.monthly":{"expires_date":%q}
 		}}}`, future, later, past, later, past)
 	}))
 	defer srv.Close()
@@ -680,7 +680,7 @@ func TestRevenueCatSync(t *testing.T) {
 		t.Fatalf("calls = %#v", subs.calls)
 	}
 	a := subs.calls[0].args
-	if fmt.Sprint(a[:7]...) != fmt.Sprint(true, "org_1", "revenuecat", "com.postiz.mob.pro_yearly", 30, "PRO", "YEARLY") {
+	if fmt.Sprint(a[:7]...) != fmt.Sprint(true, "org_1", "revenuecat", "com.shots.mob.pro_yearly", 30, "PRO", "YEARLY") {
 		t.Fatalf("args = %v", a)
 	}
 	laterT, _ := time.Parse(time.RFC3339, later)
@@ -711,12 +711,12 @@ func TestRevenueCatSyncNoActiveDeletes(t *testing.T) {
 
 func TestParseProductID(t *testing.T) {
 	for in, want := range map[string]string{
-		"com.postiz.mob.pro.yearly":   "PRO YEARLY",
-		"com.postiz.mob.team_monthly": "TEAM MONTHLY",
-		"standard.MONTHLY":            "STANDARD MONTHLY",
-		"com.postiz.mob.gold.monthly": "",
-		"com.postiz.mob.pro.weekly":   "",
-		"monthly":                     "",
+		"com.shots.mob.pro.yearly":   "PRO YEARLY",
+		"com.shots.mob.team_monthly": "TEAM MONTHLY",
+		"standard.MONTHLY":           "STANDARD MONTHLY",
+		"com.shots.mob.gold.monthly": "",
+		"com.shots.mob.pro.weekly":   "",
+		"monthly":                    "",
 	} {
 		billing, period, err := parseProductID(in)
 		got := billing + " " + period

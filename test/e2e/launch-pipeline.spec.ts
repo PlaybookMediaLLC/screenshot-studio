@@ -16,7 +16,7 @@ import { trpcMutation } from './framework/trpc'
  * links becomes a cited spec (the injection attempt in one source is flagged
  * and ignored), a plan, a produced campaign with provenance, and a reviewer's
  * AI revision that changes one post and nothing else. Then the copy is
- * approved, a visual is approved, and an X post is scheduled to a Postiz
+ * approved, a visual is approved, and an X post is scheduled to a social API
  * destination (mocked), cancelled, and rescheduled. The app runs with the
  * scripted model (PLATFORM_AI_SCRIPTED=1, see bin/studio), so this needs no
  * provider key; the mock serves the sources and a real product screenshot.
@@ -73,8 +73,8 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
 
   const database = createE2EDatabase()
   let boundOrganizationId: string | null = null
-  // The Postiz mock: the destination check reads the account and its integrations.
-  const postiz = await startHttpMockServer((request) => {
+  // The social API mock: the destination check reads the account and its integrations.
+  const socialApi = await startHttpMockServer((request) => {
     if (request.url === '/api/public/v1/me') {
       return { body: { organization: { id: `go-${boundOrganizationId}` } } }
     }
@@ -340,7 +340,7 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
       expect(actions).toContain(action)
     }
   } finally {
-    await postiz.close()
+    await socialApi.close()
     await unbindTestGoOrganization(boundOrganizationId)
     await database.end()
   }

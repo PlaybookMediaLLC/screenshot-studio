@@ -2,14 +2,14 @@ import {
   completeSocialOAuth,
   isSocialOAuthProvider,
   selectInstagramAccount,
-} from '@/lib/tenant/postiz-oauth-callback'
+} from '@/lib/tenant/social-oauth-callback'
 import {
   exchangeSocialOAuthCallback,
   registerSocialOAuthDestination,
   rememberInstagramIntegration,
   selectInstagramOAuthPage,
   socialOAuthErrorResponse,
-} from '@/lib/tenant/postiz-oauth-start'
+} from '@/lib/tenant/social-oauth-start'
 
 type Context = { params: Promise<{ provider: string }> }
 

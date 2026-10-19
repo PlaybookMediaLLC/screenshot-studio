@@ -104,7 +104,7 @@ async function draftPosts(draftId: string): Promise<PostRow[]> {
 
 // RFC 037: a hand-written draft, saved, reloaded, checked per channel, and
 // scheduled to two channels through the existing scheduler. Posts are queued
-// for later, so the Postiz mock only answers the destination checks.
+// for later, so the social API mock only answers the destination checks.
 test('a draft is written, saved, scheduled to two channels once, and one post is cancelled', async ({
   browser,
   identity,

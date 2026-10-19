@@ -12,7 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/post"
 )
 
-// The Ent schema must read and write Postiz's Prisma tables, and rows must
+// The Ent schema must read and write the original app's Prisma tables, and rows must
 // serialize the way Prisma does.
 func TestEntMatchesPrismaSchema(t *testing.T) {
 	client := dbtest.Open(t)

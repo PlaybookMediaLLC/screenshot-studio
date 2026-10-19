@@ -25,7 +25,7 @@ import subprocess
 import sys
 
 RFC_DIR = "docs/rfcs"
-IMPLEMENTED = ["019-approval-workflow.md", "020-postiz-publishing.md"]
+IMPLEMENTED = ["019-approval-workflow.md", "020-social-publishing.md"]
 
 # Declared as a prerequisite by RFC 010 rather than claimed to exist.
 ALLOWED_MISSING_IDENTIFIERS = {"creative:render", "post:schedule"}

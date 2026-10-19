@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-// This file is the slice of the openai npm SDK Postiz uses: authenticated
+// This file is the slice of the openai npm SDK the original app uses: authenticated
 // JSON requests with the SDK's retry rules, and chat.completions.parse.
 
 // baseURL is the SDK default; OPENAI_BASE_URL overrides it like in the SDK.

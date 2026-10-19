@@ -13,9 +13,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/lucsky/cuid"
@@ -30,8 +30,8 @@ func (r *Repository) Ping(ctx context.Context) error {
 	return err
 }
 
-func (r *Repository) Binding(ctx context.Context, organizationID string) (*ent.PostizTenantBinding, error) {
-	binding, err := r.client.PostizTenantBinding.Query().Where(postiztenantbinding.ID(organizationID)).Only(ctx)
+func (r *Repository) Binding(ctx context.Context, organizationID string) (*ent.SocialTenantBinding, error) {
+	binding, err := r.client.SocialTenantBinding.Query().Where(socialtenantbinding.ID(organizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return nil, ErrNotFound
 	}
@@ -47,7 +47,7 @@ func (r *Repository) CreateConnection(ctx context.Context, actor Actor, input Cr
 	connection, err := tx.ChannelConnection.Create().
 		SetID(cuid.New()).
 		SetOrganizationID(actor.Organization).
-		SetProvider("postiz").
+		SetProvider("social").
 		SetExternalAccountID(input.ExternalAccountID).
 		SetPlatform(input.Platform).
 		SetProviderSettings(input.ProviderSettings).
@@ -198,7 +198,7 @@ func (r *Repository) isEligible(ctx context.Context, organizationID, variantID, 
 	connectionExists, err := r.client.ChannelConnection.Query().Where(
 		channelconnection.ID(connectionID),
 		channelconnection.OrganizationID(organizationID),
-		channelconnection.Provider("postiz"),
+		channelconnection.Provider("social"),
 		channelconnection.StatusEQ(channelconnection.StatusACTIVE),
 	).Exist(ctx)
 	if err != nil || !connectionExists || variantID == "" {
@@ -689,7 +689,7 @@ func ProviderFailureCode(status int, unknown bool) string {
 	return strconv.Itoa(status)
 }
 
-var secretReferencePattern = regexp.MustCompile(`^POSTIZ_(?:API_KEY|OAUTH_TOKEN)(?:_[A-Z0-9_]+)?$`)
+var secretReferencePattern = regexp.MustCompile(`^SOCIAL_(?:API_KEY|OAUTH_TOKEN)(?:_[A-Z0-9_]+)?$`)
 
 func IsSecretReference(value string) bool {
 	return secretReferencePattern.MatchString(value)

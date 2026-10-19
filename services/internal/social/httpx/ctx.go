@@ -17,11 +17,11 @@ import (
 )
 
 // MaxBody is the default JSON body limit (Express's json() default is 100kb;
-// Postiz raises /posts and /copilot to 50mb, which BodyLimit restores).
+// the original app raises /posts and /copilot to 50mb, which BodyLimit restores).
 const MaxBody = 100 << 10
 
 // Ctx carries one request through middleware and the handler. The auth
-// middleware fills User and Org the way Postiz fills req.user and req.org.
+// middleware fills User and Org the way the original app fills req.user and req.org.
 type Ctx struct {
 	W      http.ResponseWriter
 	R      *http.Request

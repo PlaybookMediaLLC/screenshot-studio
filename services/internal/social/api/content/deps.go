@@ -76,8 +76,8 @@ type Thread struct {
 	Title string
 }
 
-// AgentMemory is the memory of the Mastra 'postiz' agent
-// (mastra.getAgent('postiz').getMemory(), internal/chat).
+// AgentMemory is the memory of the Mastra 'social' agent
+// (mastra.getAgent('social').getMemory(), internal/chat).
 type AgentMemory interface {
 	// Recall is memory.recall({ resourceId, threadId }).
 	Recall(ctx context.Context, resourceID, threadID string) (any, error)

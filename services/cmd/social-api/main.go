@@ -138,8 +138,8 @@ func cors() httpx.CORS {
 	return httpx.CORS{
 		Origins:     origins,
 		Credentials: !notSecured,
-		AllowedHeaders: []string{"Content-Type", "Authorization", "auth", "showorg", "impersonate", "x-postiz-org",
-			"x-postiz-include-deleted", "x-copilotkit-runtime-client-gql-version"},
+		AllowedHeaders: []string{"Content-Type", "Authorization", "auth", "showorg", "impersonate", "x-social-org",
+			"x-social-include-deleted", "x-copilotkit-runtime-client-gql-version"},
 		ExposedHeaders: exposed,
 	}
 }

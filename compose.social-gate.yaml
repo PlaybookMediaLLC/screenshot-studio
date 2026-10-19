@@ -32,8 +32,8 @@ services:
     environment:
       BETTER_AUTH_URL: http://localhost:3010
       R2_BROWSER_ENDPOINT: http://localhost:9013
-      POSTIZ_API_URL: http://screenshot-studio-backend:3000/public/v1
-      POSTIZ_API_KEY_SOCIAL_GATE: ${POSTIZ_API_KEY_SOCIAL_GATE:-}
+      SOCIAL_API_URL: http://screenshot-studio-backend:3000/public/v1
+      SOCIAL_API_KEY_GATE: ${SOCIAL_API_KEY_GATE:-}
     ports: !override
       - '127.0.0.1:8180:8080'
 
@@ -49,7 +49,7 @@ services:
       args:
         GO_BUILD_TAGS: e2e
     environment:
-      POSTIZ_E2E_SOCIAL_URL: http://fake-social:8080
+      SOCIAL_E2E_URL: http://fake-social:8080
     ports: !override
       - '127.0.0.1:8181:8081'
     depends_on:
@@ -59,7 +59,7 @@ services:
   temporal:
     ports: !override []
 
-  postiz-go-temporal:
+  social-temporal:
     ports: !override []
 
   screenshot-studio-backend:
@@ -71,7 +71,7 @@ services:
       FRONTEND_URL: http://localhost:3010
       MAIN_URL: http://localhost:3110
       NEXT_PUBLIC_BACKEND_URL: http://localhost:3110
-      POSTIZ_E2E_SOCIAL_URL: http://fake-social:8080
+      SOCIAL_E2E_URL: http://fake-social:8080
     ports: !override
       - '127.0.0.1:3110:3000'
       - '127.0.0.1:3112:3002'
@@ -83,7 +83,7 @@ services:
     image: node:22-alpine
     command: node /fake-social.mjs
     environment:
-      POSTIZ_E2E_MEDIA_ORIGIN: http://rustfs:9000
+      SOCIAL_E2E_MEDIA_ORIGIN: http://rustfs:9000
     volumes:
       - ./test/e2e/fixtures/fake-social.mjs:/fake-social.mjs:ro
     ports:

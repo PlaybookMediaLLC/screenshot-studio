@@ -312,7 +312,7 @@ claim becomes a measured contention point.
 
 Trigger.dev continues to own the publishing calendar. A Trigger task performs
 the final authorization and idempotency claim before it sends an approved,
-verified artifact to Buffer, PostBridge, Postiz, or another provider. It may
+verified artifact to Buffer, PostBridge, the social API, or another provider. It may
 request a time-limited asset stream from the application after checking the
 tenant and artifact version.
 

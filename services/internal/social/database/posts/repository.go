@@ -302,7 +302,7 @@ func (r *Repository) GetPosts(ctx context.Context, orgID string, query *dtos.Get
 	out := []CalendarPost{}
 	for _, p := range list {
 		item := CalendarPost{ListPost: listPost(p), Error: curatedError(p.Error), Settings: p.Settings}
-		// ponytail: a negative interval would loop forever (as in Postiz), so it shows once
+		// ponytail: a negative interval would loop forever (as in the original app), so it shows once
 		if p.IntervalInDays == nil || *p.IntervalInDays <= 0 {
 			out = append(out, item)
 			continue
@@ -984,7 +984,7 @@ func (r *Repository) FindPopularPosts(ctx context.Context, category, topic strin
 	return out, nil
 }
 
-// CreatePopularPosts stores the literal placeholders, exactly like Postiz.
+// CreatePopularPosts stores the literal placeholders, exactly like the original app.
 func (r *Repository) CreatePopularPosts(ctx context.Context, _ PopularPostInput) (*ent.PopularPosts, error) {
 	return r.client.PopularPosts.Create().SetCategory("category").SetTopic("topic").SetContent("content").SetHook("hook").Save(ctx)
 }
@@ -1068,7 +1068,7 @@ func (r *Repository) CreateTag(ctx context.Context, orgID string, body *dtos.Cre
 	return r.client.Tags.Create().SetOrgID(orgID).SetName(body.Name).SetColor(body.Color).Save(ctx)
 }
 
-// EditTag updates by id only, like Postiz.
+// EditTag updates by id only, like the original app.
 func (r *Repository) EditTag(ctx context.Context, id, orgID string, body *dtos.CreateTagDto) (*ent.Tags, error) {
 	return r.client.Tags.UpdateOneID(id).SetName(body.Name).SetColor(body.Color).Save(ctx)
 }

@@ -1,7 +1,7 @@
 # RFC 005: Repository, Webhook, and Scheduling Provider Integrations
 
 **Status:** Partially implemented
-**Status note (2026-10-16):** Shipped: inbound GitHub, GitLab, and generic signed webhooks, the GitHub App, and Postiz OAuth. Missing: outbound webhooks.
+**Status note (2026-10-16):** Shipped: inbound GitHub, GitLab, and generic signed webhooks, the GitHub App, and social API OAuth. Missing: outbound webhooks.
 **Date:** 2026-08-13
 **Depends on:** RFC 001, RFC 002, RFC 003, and RFC 004
 **Owners:** Product, Engineering, and Security
@@ -17,7 +17,7 @@ Customers can:
 2. Send changelog entries or release events to Screenshot Studio through a
    signed inbound webhook.
 3. Connect an existing scheduling provider such as Buffer, Post Bridge, or
-   Postiz, select its existing social accounts, and schedule approved content
+   the social API, select its existing social accounts, and schedule approved content
    from Screenshot Studio to that provider.
 4. Subscribe their own systems to signed outbound webhooks for release,
    approval, scheduling, and delivery events.
@@ -46,7 +46,7 @@ GitHub release or signed changelog event
   -> Screenshot Studio release draft + Markdown source
   -> real product capture and channel variants
   -> approval
-  -> Buffer / Post Bridge / Postiz / future provider
+  -> Buffer / Post Bridge / social API / future provider
   -> remote scheduling and status reconciliation
   -> Screenshot Studio history + customer outbound webhook
 ```
@@ -71,9 +71,9 @@ GitHub release or signed changelog event
 - Store customer subscriber lists, social-network passwords, API keys, OAuth
   tokens, or repository secrets in application rows.
 - Automatically publish an unreviewed GitHub release body or AI-generated copy.
-- Replace Buffer, Post Bridge, Postiz, or a provider's content calendar.
+- Replace Buffer, Post Bridge, the social API, or a provider's content calendar.
 - Build a two-way content editor that silently overwrites provider-side edits.
-- Use arbitrary customer-supplied URLs as webhook, Postiz, or media endpoints.
+- Use arbitrary customer-supplied URLs as webhook, social API, or media endpoints.
 
 ## Product model
 
@@ -111,7 +111,7 @@ SOURCE_RECEIVED -> DRAFT -> REVIEW_REQUIRED -> APPROVED
 ## Connection experience
 
 1. An organization owner or admin chooses **Connect scheduler**.
-2. They select Buffer, Post Bridge, Postiz, or a later verified connector.
+2. They select Buffer, Post Bridge, the social API, or a later verified connector.
 3. The connector performs the provider's supported authorization flow: OAuth
    where available, or a server-side validated API key when that is the
    provider's model. The browser never receives the stored credential.
@@ -132,7 +132,7 @@ Queued jobs re-check connection state before media upload or provider call.
 | --- | --- | --- |
 | Buffer | GraphQL API can list connected channels and create, queue, schedule, retrieve, and delete posts. Posts expose states such as draft, scheduled, sent, and error. | Connect workspace, choose channel, create a provider draft or exact scheduled post, reconcile status. |
 | Post Bridge | Bearer API key; media requires an upload step, then a post can target several social accounts with `scheduled_at`. The current API has a 10 request/second key limit and no batch create endpoint. | Connect key, select social accounts, upload media, schedule one approved post, throttle and reconcile. |
-| Postiz | Public API supports API-key and OAuth access, cloud and customer self-hosted base URLs, and scheduled posts across its connected integrations. | OAuth where available, cloud first, selected integrations, schedule or draft, reconcile. |
+| Social API | Public API supports API-key and OAuth access, cloud and customer self-hosted base URLs, and scheduled posts across its connected integrations. | OAuth where available, cloud first, selected integrations, schedule or draft, reconcile. |
 | GitHub | GitHub release webhooks include a release event and delivery ID. Signed deliveries can use `X-Hub-Signature-256`. | GitHub App installation, `release.published` ingestion, release body as Markdown draft. |
 | Generic webhook | Customer sends a signed versioned release event. | One HTTPS endpoint per source, HMAC validation, draft release creation. |
 
@@ -290,7 +290,7 @@ Add these organization-scoped records before implementation:
 | `RepositoryConnection` | `provider`, `repositoryExternalId`, `installationReference`, `status` | GitHub App installation reference, never an installation token. |
 | `ReleaseSource` | `type`, `repositoryConnectionId` nullable, `secretReference`, `status` | A GitHub source or generic signed endpoint. |
 | `InboundEvent` | `releaseSourceId`, `externalEventId`, `eventType`, `payloadHash`, `receivedAt`, `processedAt` | Unique `(releaseSourceId, externalEventId)`. Store redacted normalized payload only. |
-| `ProviderConnection` | `provider`, `authType`, `secretReference`, `baseUrl` nullable, `status`, `lastVerifiedAt` | `baseUrl` is allowed only for validated public Postiz endpoints. |
+| `ProviderConnection` | `provider`, `authType`, `secretReference`, `baseUrl` nullable, `status`, `lastVerifiedAt` | `baseUrl` is allowed only for validated public social endpoints. |
 | `ProviderDestination` | `providerConnectionId`, `externalId`, `workspaceExternalId`, `service`, `displayName`, `capabilities`, `status` | Selected remote social account or channel. |
 | `Distribution` | `releaseId`, `variantId`, `providerDestinationId`, `contentRevision`, `desiredAt`, `mode`, `status`, `idempotencyKey`, `remotePostId` | One channel-specific handoff. |
 | `DistributionAttempt` | `distributionId`, `attemptNumber`, `outcome`, `remotePostId`, `failureCode`, `startedAt`, `completedAt` | Immutable provider handoff history. |
@@ -346,7 +346,7 @@ Connector throttles start below known limits:
 | --- | --- | --- |
 | Buffer | 2 requests/second per connection | Conservative until production limits are verified. |
 | Post Bridge | 8 requests/second per key | Below the documented 10 requests/second limit; upload and post calls share it. |
-| Postiz | 1 create request per 45 seconds per connection; batch where supported | Below the documented cloud create-post budget. |
+| Social API | 1 create request per 45 seconds per connection; batch where supported | Below the documented cloud create-post budget. |
 | Outbound webhook | 1 active delivery per subscription | Preserves endpoint order and limits self-inflicted load. |
 
 Run provider status reconciliation on a separate queue so it cannot delay new
@@ -366,7 +366,7 @@ enabled analytics.
   redacted immediately after validation.
 - Provider and repository callbacks verify signature before parsing body.
   External webhooks use HMAC-SHA-256 with timestamp replay protection.
-- A customer-hosted Postiz base URL must pass the same outbound SSRF policy as
+- A customer-hosted social base URL must pass the same outbound SSRF policy as
   a webhook endpoint. Private network access requires a separate enterprise
   networking decision.
 - Provider errors are redacted for customers. Operational logs contain IDs and
@@ -385,7 +385,7 @@ enabled analytics.
 3. Ship GitHub App release ingestion for `release.published` only. Validate
    that a replayed delivery creates one draft.
 4. Ship one scheduler connector end to end. Start with Buffer for the common
-   scheduler experience, then Post Bridge and Postiz as separate releases.
+   scheduler experience, then Post Bridge and the social API as separate releases.
 5. Add provider capability previews, remote status reconciliation, cancellation,
    and external-edit detection before enabling automatic handoff.
 6. Add direct social-network connectors only where a customer need cannot be
@@ -420,6 +420,5 @@ guarantee. Recheck before each connector release:
 
 - [Buffer API: posts and scheduling](https://developers.buffer.com/guides/posts-and-scheduling.html)
 - [Post Bridge API reference](https://api.post-bridge.com/reference)
-- [Postiz Public API](https://docs.postiz.com/public-api/introduction)
 - [GitHub webhook event payloads](https://docs.github.com/en/webhooks/webhook-events-and-payloads)
 - [GitHub webhook signature validation](https://docs.github.com/en/webhooks/using-webhooks/securing-your-webhooks)

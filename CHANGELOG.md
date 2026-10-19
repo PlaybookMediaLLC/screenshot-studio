@@ -277,7 +277,7 @@
 
 ### Bug Fixes
 
-* **deploy:** run postiz-migrate as the migration owner ([#95](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/95)) ([3683df1](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/3683df1d8ea621bfd239e4c945b068c21ad0f8a3))
+* **deploy:** run social-migrate as the migration owner ([#95](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/95)) ([3683df1](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/3683df1d8ea621bfd239e4c945b068c21ad0f8a3))
 
 ## [1.17.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.16.4...v1.17.0) (2026-10-15)
 
@@ -381,7 +381,7 @@
 
 ### Bug Fixes
 
-* sign private Postiz media when scheduled posts publish ([#63](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/63)) ([4fa4983](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/4fa49834215d15f59dc45950b669f8b2ade72d63))
+* sign private social media when scheduled posts publish ([#63](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/63)) ([4fa4983](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/4fa49834215d15f59dc45950b669f8b2ade72d63))
 
 ## [1.11.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.10.1...v1.11.0) (2026-10-12)
 
@@ -395,7 +395,7 @@
 
 ### Bug Fixes
 
-* set internal URL for Postiz Go services ([#59](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/59)) ([7d0e9f3](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/7d0e9f301e52013a514e482c9c7b7d159f6ddc84))
+* set internal URL for the social Go services ([#59](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/59)) ([7d0e9f3](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/7d0e9f301e52013a514e482c9c7b7d159f6ddc84))
 
 ## [1.10.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v1.9.0...v1.10.0) (2026-10-12)
 

@@ -41,7 +41,7 @@ destination, and schedules through the web. It verifies:
 5. HTTP 429 and 500 responses retry into one remote post each.
 6. An expired provider credential fails without publishing.
 
-`test/e2e/postiz-scheduling.spec.ts` checks the web callback and scheduling facade
+`test/e2e/social-scheduling.spec.ts` checks the web callback and scheduling facade
 with a mock social API, including cross-workspace isolation, X, LinkedIn, and
 both Instagram login variants. Go tests cover ambiguous delivery, retry and
 workflow behavior. A gate result belongs to its exact commit and SDK version;

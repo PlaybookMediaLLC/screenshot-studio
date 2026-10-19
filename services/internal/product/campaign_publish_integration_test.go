@@ -87,7 +87,7 @@ func TestCampaignPublishing(t *testing.T) {
 	exec(`INSERT INTO campaign_post (id,"organizationId","campaignId",channel,copy,status,"updatedAt") VALUES ($1,$4,$5,'linkedin','Ship faster','READY_FOR_REVIEW',now()),($2,$4,$5,'x','Ship faster','READY_FOR_REVIEW',now()),($3,$4,$5,'linkedin','Shipped','PUBLISHED',now())`,
 		linkedin, x, published, org, campaignA)
 	connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: org, UserID: owner.UserID, RequestID: owner.RequestID, Type: "USER"},
-		publishing.CreateConnectionInput{ExternalAccountID: "li-" + id, Platform: "linkedin", ProviderSettings: map[string]any{}, SecretReference: "POSTIZ_API_KEY"})
+		publishing.CreateConnectionInput{ExternalAccountID: "li-" + id, Platform: "linkedin", ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
 	if err != nil {
 		t.Fatal(err)
 	}

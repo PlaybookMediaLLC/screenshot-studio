@@ -159,7 +159,7 @@ type Added struct {
 	Added bool `json:"added"`
 }
 
-// AddTeamMemberByEmail adds an existing Postiz user to org. org must carry
+// AddTeamMemberByEmail adds an existing social user to org. org must carry
 // Edges.Subscription when it has one (as the auth middleware loads it).
 func (s *Service) AddTeamMemberByEmail(ctx context.Context, org *ent.Organization, body *settings.AdminAddTeamMemberDto) (*Added, error) {
 	tier := "FREE"
@@ -182,7 +182,7 @@ func (s *Service) AddTeamMemberByEmail(ctx context.Context, org *ent.Organizatio
 		return nil, err
 	}
 	if len(users) == 0 {
-		return nil, httpx.HTTPException("No Postiz account found for this email", 400)
+		return nil, httpx.HTTPException("No Shots account found for this email", 400)
 	}
 	if len(users) > 1 {
 		return nil, httpx.HTTPException("Multiple accounts exist for this email (different login providers)", 400)

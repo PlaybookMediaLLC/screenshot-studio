@@ -190,7 +190,7 @@ func (s *PermissionsService) Check(ctx context.Context, orgID string, createdAt 
 				return nil, err
 			}
 			if total < options.Webhooks {
-				// Postiz grants create only, whatever action was asked.
+				// The original app grants create only, whatever action was asked.
 				ability[AbilityPolicy{ActionCreate, section}] = true
 				continue
 			}

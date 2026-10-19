@@ -1,4 +1,4 @@
-// Package copilot ports the CopilotKit runtime Postiz mounts with
+// Package copilot ports the CopilotKit runtime the original app mounts with
 // copilotRuntimeNodeHttpEndpoint (@copilotkit/runtime 1.72.0) on
 // POST /copilot/chat and POST /copilot/agent.
 //
@@ -145,12 +145,12 @@ var builtInCapabilities = json.RawMessage(`{"tools":{"supported":true,"clientPro
 
 // Runtime serves the two CopilotKit endpoints of CopilotController.
 type Runtime struct {
-	postiz AgentRunner
+	agent AgentRunner
 }
 
-// New returns the runtime; postiz runs the Mastra "postiz" agent behind /copilot/agent.
-func New(postiz AgentRunner) *Runtime {
-	return &Runtime{postiz: postiz}
+// New returns the runtime; agent runs the Mastra "social" agent behind /copilot/agent.
+func New(agent AgentRunner) *Runtime {
+	return &Runtime{agent: agent}
 }
 
 // Chat is POST /copilot/chat (register with httpx.Raw()): a CopilotRuntime
@@ -164,12 +164,12 @@ func (rt *Runtime) Chat(c *httpx.Ctx) (any, error) {
 
 // Agent is POST /copilot/agent (register with httpx.Raw() behind
 // CheckPolicies([Create, AI])): MastraAgent.getLocalAgents exposes the Mastra
-// "postiz" agent for the caller's organization.
+// "social" agent for the caller's organization.
 func (rt *Runtime) Agent(c *httpx.Ctx) (any, error) {
 	return serve(c, map[string]agentEntry{
 		// className is constructor.name of MastraAgent in the @ag-ui/mastra 1.1.4
-		// CJS bundle Postiz loads, where the class is minified to "e".
-		"postiz": {runner: orgRunner{rt.postiz, c.Org}, info: agentInfo{Name: "postiz", ClassName: "e"}},
+		// CJS bundle the original app loads, where the class is minified to "e".
+		"social": {runner: orgRunner{rt.agent, c.Org}, info: agentInfo{Name: "social", ClassName: "e"}},
 	})
 }
 
@@ -281,7 +281,7 @@ func serve(c *httpx.Ctx, agents map[string]agentEntry) (any, error) {
 		}
 	default:
 		// inspector/learning, transcribe and resource/request need CopilotKit
-		// Intelligence or a transcription service, neither of which Postiz configures.
+		// Intelligence or a transcription service, neither of which the original app configures.
 		writeJSON(w, http.StatusNotFound, errorBody{Error: "Not found"})
 	}
 	return nil, nil

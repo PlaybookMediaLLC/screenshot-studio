@@ -1,5 +1,5 @@
-import { isSocialOAuthProvider } from '@/lib/tenant/postiz-oauth-callback'
-import { socialOAuthErrorResponse, startSocialOAuth } from '@/lib/tenant/postiz-oauth-start'
+import { isSocialOAuthProvider } from '@/lib/tenant/social-oauth-callback'
+import { socialOAuthErrorResponse, startSocialOAuth } from '@/lib/tenant/social-oauth-start'
 
 type Context = { params: Promise<{ provider: string }> }
 

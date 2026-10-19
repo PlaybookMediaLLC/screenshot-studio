@@ -1,4 +1,4 @@
-// Package track is Postiz's TrackService: server-side Facebook Conversions
+// Package track is the original app's TrackService: server-side Facebook Conversions
 // API events (what facebook-nodejs-business-sdk's EventRequest sends).
 package track
 

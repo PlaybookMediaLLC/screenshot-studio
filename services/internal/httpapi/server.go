@@ -19,9 +19,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
@@ -29,7 +29,7 @@ type Store interface {
 	Ping(context.Context) error
 	AuthorizePublishing(context.Context, string, string, string) error
 	AuthorizeAPIKeyScope(context.Context, string, string, string) error
-	Binding(context.Context, string) (*ent.PostizTenantBinding, error)
+	Binding(context.Context, string) (*ent.SocialTenantBinding, error)
 	StartOAuth(context.Context, publishing.Actor, string, string, string, string) error
 	OAuthStart(context.Context, publishing.Actor, string, string, string, *string) (*ent.SocialOAuthStart, error)
 	RememberInstagramIntegration(context.Context, publishing.Actor, string, string, string) error
@@ -43,8 +43,8 @@ type Store interface {
 }
 
 type DestinationVerifier interface {
-	VerifyDestination(context.Context, postiz.VerifyDestinationInput) error
-	BeginOAuth(context.Context, postiz.BeginOAuthInput) (string, error)
+	VerifyDestination(context.Context, socialapi.VerifyDestinationInput) error
+	BeginOAuth(context.Context, socialapi.BeginOAuthInput) (string, error)
 }
 
 type WorkflowScheduler interface {
@@ -428,7 +428,7 @@ func (s *Server) createConnection(w http.ResponseWriter, r *http.Request) {
 		input.Platform = "x"
 	}
 	if input.SecretReference == "" {
-		input.SecretReference = "POSTIZ_API_KEY"
+		input.SecretReference = "SOCIAL_API_KEY"
 	}
 	if input.ProviderSettings == nil {
 		input.ProviderSettings = map[string]any{}
@@ -436,35 +436,35 @@ func (s *Server) createConnection(w http.ResponseWriter, r *http.Request) {
 	if input.ExternalAccountID == "" || len([]rune(input.ExternalAccountID)) > 160 ||
 		len(input.Platform) > 64 || !platformPattern.MatchString(input.Platform) ||
 		!publishing.IsSecretReference(input.SecretReference) {
-		writeError(w, http.StatusBadRequest, "externalAccountId and a valid Postiz secretReference are required")
+		writeError(w, http.StatusBadRequest, "externalAccountId and a valid social secretReference are required")
 		return
 	}
 	binding, err := s.store.Binding(r.Context(), actor.Organization)
 	if err != nil {
 		if errors.Is(err, publishing.ErrNotFound) {
-			writeError(w, http.StatusConflict, "Postiz is not configured for this workspace")
+			writeError(w, http.StatusConflict, "Social publishing is not configured for this workspace")
 		} else {
 			writeStoreError(w, err)
 		}
 		return
 	}
 	if binding.SecretReference != input.SecretReference {
-		writeError(w, http.StatusConflict, "Postiz is not configured for this workspace")
+		writeError(w, http.StatusConflict, "Social publishing is not configured for this workspace")
 		return
 	}
 	if s.verifier == nil {
 		writeError(w, http.StatusServiceUnavailable, "destination verification is unavailable")
 		return
 	}
-	if err := s.verifier.VerifyDestination(r.Context(), postiz.VerifyDestinationInput{
+	if err := s.verifier.VerifyDestination(r.Context(), socialapi.VerifyDestinationInput{
 		DestinationID: input.ExternalAccountID, ExpectedGoOrganizationID: binding.GoOrganizationID,
 		Platform: input.Platform, SecretReference: input.SecretReference,
 	}); err != nil {
-		providerErr := &postiz.Error{}
+		providerErr := &socialapi.Error{}
 		if errors.As(err, &providerErr) && providerErr.Status == http.StatusNotFound {
-			writeError(w, http.StatusNotFound, "Postiz destination was not found")
+			writeError(w, http.StatusNotFound, "Social destination was not found")
 		} else {
-			writeError(w, http.StatusConflict, "Postiz destination could not be verified")
+			writeError(w, http.StatusConflict, "Social destination could not be verified")
 		}
 		return
 	}
@@ -502,14 +502,14 @@ func (s *Server) listConnections(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"items": items})
 }
 
-// destinationProfiles reads accounts' names, handles and avatars (Postiz).
+// destinationProfiles reads accounts' names, handles and avatars (social API).
 type destinationProfiles interface {
-	Profiles(ctx context.Context, secretReference string) (map[string]postiz.DestinationProfile, error)
+	Profiles(ctx context.Context, secretReference string) (map[string]socialapi.DestinationProfile, error)
 }
 
-// fillProfiles names connections that have no name yet, from one Postiz
+// fillProfiles names connections that have no name yet, from one social API
 // call; connections made before names were stored get them on first list.
-// Best effort: without Postiz the connections are returned as they are.
+// Best effort: without the social API the connections are returned as they are.
 func (s *Server) fillProfiles(ctx context.Context, organizationID string, connections []*ent.ChannelConnection) []*ent.ChannelConnection {
 	profiler, ok := s.verifier.(destinationProfiles)
 	missing := false

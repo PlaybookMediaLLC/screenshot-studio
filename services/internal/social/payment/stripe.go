@@ -97,11 +97,11 @@ func deref(s *string) string {
 	return *s
 }
 
-func emailOrPostiz(email string) string {
+func emailOrPlaceholder(email string) string {
 	if strings.Contains(email, "@") {
 		return email
 	}
-	return email + "@postiz.com"
+	return email + "@shots.playbookmedia.io"
 }
 
 func isActiveOrTrialing(s *stripe.Subscription) bool {
@@ -458,7 +458,7 @@ func (s *StripeService) SyncCustomerEmailsAfterSwitch(ctx context.Context, accou
 	}
 	for _, customerID := range customers {
 		_, _ = s.sc.V1Customers.Update(ctx, customerID, &stripe.CustomerUpdateParams{
-			Email: stripe.String(emailOrPostiz(emailByCustomer[customerID])),
+			Email: stripe.String(emailOrPlaceholder(emailByCustomer[customerID])),
 		})
 	}
 	return nil
@@ -480,7 +480,7 @@ func (s *StripeService) CreateOrGetCustomer(ctx context.Context, organization *e
 		return "", errors.New("organization has no users")
 	}
 	customer, err := s.sc.V1Customers.Create(ctx, &stripe.CustomerCreateParams{
-		Email: stripe.String(emailOrPostiz(users.Edges.Users[0].Edges.User.Email)),
+		Email: stripe.String(emailOrPlaceholder(users.Edges.Users[0].Edges.User.Email)),
 		Name:  stripe.String(organization.Name),
 	})
 	if err != nil {
@@ -942,7 +942,7 @@ func (s *StripeService) createEmbeddedCheckout(ctx context.Context, ud, uniqueID
 		return nil, errors.New("user not found")
 	}
 
-	update := &stripe.CustomerUpdateParams{Email: stripe.String(emailOrPostiz(user.Email))}
+	update := &stripe.CustomerUpdateParams{Email: stripe.String(emailOrPlaceholder(user.Email))}
 	if deref(body.Dub) != "" {
 		update.Metadata = map[string]string{"dubCustomerExternalId": userID, "dubClickId": *body.Dub}
 	}

@@ -1,6 +1,6 @@
-// Package database opens the Postiz database. Each domain (posts,
+// Package database opens the social database. Each domain (posts,
 // integration, organizations, ...) lives in a subpackage holding its
-// repository and service, the Go form of Postiz's DatabaseModule.
+// repository and service, the Go form of the original app's DatabaseModule.
 package database
 
 import (
@@ -51,7 +51,7 @@ func (d *Database) Close() error {
 	return d.Client.Close()
 }
 
-// Postiz's columns are Prisma `timestamp(3)` (no time zone) holding UTC wall
+// the original app's columns are Prisma `timestamp(3)` (no time zone) holding UTC wall
 // time. pgx writes a time.Time's wall clock in its own location, so a process
 // whose local zone is not UTC would store shifted values. Converting every
 // written timestamp to UTC keeps the stored values correct whatever the

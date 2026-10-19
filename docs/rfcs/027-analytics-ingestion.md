@@ -9,7 +9,7 @@
 
 ## Decision
 
-Ingest post performance through Postiz and normalize it across platforms. Do
+Ingest post performance through the social API and normalize it across platforms. Do
 not integrate each social network's analytics API directly.
 
 Metrics are stored as time-series snapshots, not as mutable current values. A
@@ -98,7 +98,7 @@ alongside the keys.
 
 ## Provider metric mapping
 
-A scheduled Trigger.dev task polls Postiz for publication metrics and upserts
+A scheduled Trigger.dev task polls the social API for publication metrics and upserts
 snapshots. Platforms report different things under similar names.
 
 | Canonical     | X                | LinkedIn            | Instagram         |

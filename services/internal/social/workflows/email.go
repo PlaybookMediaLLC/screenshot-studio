@@ -65,7 +65,7 @@ func DigestEmailWorkflow(ctx workflow.Context, in DigestEmailInput) error {
 			continue
 		}
 
-		var subject any = "[Postiz] Your latest notifications"
+		var subject any = "[Shots] Your latest notifications"
 		if len(toSend) == 1 {
 			subject = toSend[0].Title
 		}

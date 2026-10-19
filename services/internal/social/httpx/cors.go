@@ -7,7 +7,7 @@ import (
 )
 
 // CORS returns the backend's CORS options: an origin allow-list,
-// credentials unless NOT_SECURED, and the Postiz auth headers.
+// credentials unless NOT_SECURED, and the social auth headers.
 type CORS struct {
 	Origins        []string
 	Credentials    bool

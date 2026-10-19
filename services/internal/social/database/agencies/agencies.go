@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"os"
 	"strings"
 
 	dto "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/dtos/agencies"
@@ -313,7 +314,7 @@ func (s *Service) ApproveOrDecline(ctx context.Context, email, action, id string
 	fill := strings.NewReplacer("{{agency?.name}}", jsString(name), "{{agency?.slug}}", jsString(slug))
 
 	if action == "approve" {
-		return s.notifications.SendEmail(ctx, to, "Your Agency has been approved and added to Postiz 🚀", fill.Replace(approvedEmail), "")
+		return s.notifications.SendEmail(ctx, to, "Your Agency has been approved and added to Shots 🚀", fill.Replace(approvedEmail), "")
 	}
 	return s.notifications.SendEmail(ctx, to, "Your Agency has been declined 😔", fill.Replace(declinedEmail), "")
 }
@@ -342,8 +343,11 @@ func (s *Service) CreateAgency(ctx context.Context, user *ent.User, body dto.Cre
 		"{{body.niches.join(',')}}", strings.Join(body.Niches, ","),
 		"{{agency.id}}", agency.ID,
 	).Replace(newAgencyEmail)
-	if err := s.notifications.SendEmail(ctx, "nevo@postiz.com", "New agency created", html, ""); err != nil {
-		return IDResponse{}, err
+	// AGENCY_REVIEW_EMAIL reviews new agencies; without it no review email is sent.
+	if reviewer := os.Getenv("AGENCY_REVIEW_EMAIL"); reviewer != "" {
+		if err := s.notifications.SendEmail(ctx, reviewer, "New agency created", html, ""); err != nil {
+			return IDResponse{}, err
+		}
 	}
 	return agency, nil
 }

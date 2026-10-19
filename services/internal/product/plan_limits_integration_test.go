@@ -77,7 +77,7 @@ func TestPlanLimitsCapSeatsAndChannels(t *testing.T) {
 			t.Fatalf("channel %d: %v", i, err)
 		}
 		if err := db.Client.ChannelConnection.Create().SetID(cuid.New()).SetOrganizationID(orgID).
-			SetExternalAccountID(fmt.Sprintf("integration-%d", i)).SetSecretReference("POSTIZ_API_KEY").
+			SetExternalAccountID(fmt.Sprintf("integration-%d", i)).SetSecretReference("SOCIAL_API_KEY").
 			SetCreatedByUserID(userID).Exec(ctx); err != nil {
 			t.Fatal(err)
 		}

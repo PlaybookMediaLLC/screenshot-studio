@@ -97,7 +97,7 @@ func Initialize(appName string) bool {
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
 		scope.SetTag("service", appName)
 		scope.SetTag("component", "nestjs")
-		scope.SetContext("app", sentry.Context{"name": "Postiz " + capitalize(appName)})
+		scope.SetContext("app", sentry.Context{"name": "Social " + capitalize(appName)})
 	})
 	return true
 }

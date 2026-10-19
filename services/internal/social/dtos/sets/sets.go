@@ -1,4 +1,4 @@
-// Package sets holds Postiz's dtos/sets.
+// Package sets holds the original app's dtos/sets.
 package sets
 
 type SetsDto struct {

@@ -441,7 +441,7 @@ func TestUnauthenticatedAndInvalidKeysAreRefused(t *testing.T) {
 		"no credential":           nil,
 		"unknown key":             {"Authorization", "Bearer ss_unknown_" + f.id},
 		"disabled key":            {"Authorization", "Bearer " + f.keys["a-off"]},
-		"a Postiz OAuth token":    {"Authorization", "Bearer pos_" + f.id},
+		"a social OAuth token":    {"Authorization", "Bearer pos_" + f.id},
 		"a key hash, not the key": {"Authorization", "Bearer " + hashKey(f.keys["a"])},
 		"a key in X-API-Key, bad": {"X-API-Key", "ss_bad"},
 	} {
@@ -555,7 +555,7 @@ func (f *fixture) approvedPost() (campaignID, approved, pending, variantID, conn
 		f.t.Fatal(err)
 	}
 	connection, err := publishing.NewRepository(f.db.Client).CreateConnection(f.ctx, publishing.Actor{Organization: org, UserID: userID, Type: "USER"},
-		publishing.CreateConnectionInput{ExternalAccountID: "li-" + f.id, Platform: "linkedin", ProviderSettings: map[string]any{}, SecretReference: "POSTIZ_API_KEY"})
+		publishing.CreateConnectionInput{ExternalAccountID: "li-" + f.id, Platform: "linkedin", ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
 	if err != nil {
 		f.t.Fatal(err)
 	}

@@ -634,8 +634,8 @@ Decided 2026-10-18:
    already runs both. The end-to-end test uses the Compose stack. Is that
    acceptable?
 4. **MCP tools.** The product backend has no MCP server; the only Go MCP
-   server is the Postiz port's. Should the onboarding operations wait for a
-   product MCP server rather than be added to Postiz's?
+   server is the social port's. Should the onboarding operations wait for a
+   product MCP server rather than be added to the social API's?
 5. **Funnel events.** The web already sends onboarding funnel events to
    PostHog. Should the backend emit the server-side half (run completed,
    partial) to the same place?

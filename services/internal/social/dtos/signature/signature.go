@@ -1,4 +1,4 @@
-// Package signature holds Postiz's dtos/signature.
+// Package signature holds the original app's dtos/signature.
 package signature
 
 type SignatureDto struct {

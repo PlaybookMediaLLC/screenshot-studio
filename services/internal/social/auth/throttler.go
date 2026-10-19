@@ -26,7 +26,7 @@ func isPublicComment(method, url string) bool {
 }
 
 // apiLimit is the ThrottlerModule limit: API_LIMIT or 90. A non-numeric
-// API_LIMIT is NaN in Postiz, which never blocks.
+// API_LIMIT is NaN in the original app, which never blocks.
 func apiLimit() int64 {
 	raw := os.Getenv("API_LIMIT")
 	if raw == "" {

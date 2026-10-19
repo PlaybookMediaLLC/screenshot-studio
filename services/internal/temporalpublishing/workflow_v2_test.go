@@ -24,7 +24,7 @@ func TestPostWorkflowV2ConfirmsAcceptedPostWithoutRepeatingMutation(t *testing.T
 	}, activity.RegisterOptions{Name: BeginActivityName})
 	env.RegisterActivityWithOptions(func(context.Context, SubmitInput) (PublishResult, error) {
 		submitCalls++
-		return PublishResult{Outcome: OutcomePending, ProviderID: "postiz-post-1"}, nil
+		return PublishResult{Outcome: OutcomePending, ProviderID: "social-post-1"}, nil
 	}, activity.RegisterOptions{Name: SubmitActivityName})
 	env.RegisterActivityWithOptions(func(context.Context, CheckInput) (PublishResult, error) {
 		checkCalls++

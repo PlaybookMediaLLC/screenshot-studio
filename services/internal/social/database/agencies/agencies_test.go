@@ -22,6 +22,7 @@ func (f *fakeNotifications) SendEmail(_ context.Context, to, subject, html, _ st
 func TestAgencyNiches(t *testing.T) {
 	client := dbtest.Open(t)
 	ctx := context.Background()
+	t.Setenv("AGENCY_REVIEW_EMAIL", "review@sample.com")
 	notifications := &fakeNotifications{}
 	s := NewService(NewRepository(client), notifications)
 	org := client.Organization.Create().SetName("Acme").SaveX(ctx)
@@ -36,7 +37,7 @@ func TestAgencyNiches(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(notifications.emails) != 1 || notifications.emails[0].to != "nevo@postiz.com" ||
+	if len(notifications.emails) != 1 || notifications.emails[0].to != "review@sample.com" ||
 		!strings.Contains(notifications.emails[0].html, "/agencies/action/approve/"+created.ID) ||
 		!strings.Contains(notifications.emails[0].html, ">Tech,Art</p>") ||
 		!strings.Contains(notifications.emails[0].html, `<a href="undefined"`) {

@@ -23,12 +23,12 @@ func TestCustomInstance(t *testing.T) {
 		_ = r.ParseMultipartForm(1 << 20)
 		switch r.URL.Path {
 		case "/api/v1/apps":
-			if r.FormValue("client_name") != "Postiz" || r.FormValue("redirect_uris") != "https://app.example.com/integrations/social/mastodon" ||
+			if r.FormValue("client_name") != "Shots" || r.FormValue("redirect_uris") != "https://app.example.com/integrations/social/mastodon" ||
 				r.FormValue("scopes") != "write:statuses profile write:media" || r.FormValue("website") != "https://app.example.com" {
 				w.WriteHeader(400)
 				return
 			}
-			_, _ = w.Write([]byte(`{"client_id":"cid","client_secret":"secret","name":"Postiz"}`))
+			_, _ = w.Write([]byte(`{"client_id":"cid","client_secret":"secret","name":"Shots"}`))
 		case "/oauth/token":
 			_, _ = w.Write([]byte(`{"access_token":"tok"}`))
 		case "/api/v1/accounts/verify_credentials":

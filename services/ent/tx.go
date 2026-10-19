@@ -104,8 +104,6 @@ type Tx struct {
 	OutboxEvent *OutboxEventClient
 	// PageKnowledge is the client for interacting with the PageKnowledge builders.
 	PageKnowledge *PageKnowledgeClient
-	// PostizTenantBinding is the client for interacting with the PostizTenantBinding builders.
-	PostizTenantBinding *PostizTenantBindingClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
 	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
@@ -132,6 +130,8 @@ type Tx struct {
 	ShareLink *ShareLinkClient
 	// SocialOAuthStart is the client for interacting with the SocialOAuthStart builders.
 	SocialOAuthStart *SocialOAuthStartClient
+	// SocialTenantBinding is the client for interacting with the SocialTenantBinding builders.
+	SocialTenantBinding *SocialTenantBindingClient
 	// SourceApp is the client for interacting with the SourceApp builders.
 	SourceApp *SourceAppClient
 	// SourceChange is the client for interacting with the SourceChange builders.
@@ -335,7 +335,6 @@ func (tx *Tx) init() {
 	tx.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.PageKnowledge = NewPageKnowledgeClient(tx.config)
-	tx.PostizTenantBinding = NewPostizTenantBindingClient(tx.config)
 	tx.ProductProfile = NewProductProfileClient(tx.config)
 	tx.ProductSurface = NewProductSurfaceClient(tx.config)
 	tx.Project = NewProjectClient(tx.config)
@@ -349,6 +348,7 @@ func (tx *Tx) init() {
 	tx.Session = NewSessionClient(tx.config)
 	tx.ShareLink = NewShareLinkClient(tx.config)
 	tx.SocialOAuthStart = NewSocialOAuthStartClient(tx.config)
+	tx.SocialTenantBinding = NewSocialTenantBindingClient(tx.config)
 	tx.SourceApp = NewSourceAppClient(tx.config)
 	tx.SourceChange = NewSourceChangeClient(tx.config)
 	tx.StorePublishingCredential = NewStorePublishingCredentialClient(tx.config)

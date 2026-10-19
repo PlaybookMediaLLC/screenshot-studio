@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// The Postiz agent's working memory: schema AgentState
+// The social agent's working memory: schema AgentState
 // (object({ proverbs: array(string()).default([]) })), resource scoped.
 
 const workingMemorySchema = `{"type":"object","properties":{"proverbs":{"type":"array","items":{"type":"string"},"default":[]}},"additionalProperties":false}`

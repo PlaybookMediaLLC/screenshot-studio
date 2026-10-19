@@ -66,7 +66,7 @@ func TestContentDraftScheduling(t *testing.T) {
 	connect := func(platform string) string {
 		t.Helper()
 		connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: org, UserID: owner.UserID, RequestID: owner.RequestID, Type: "USER"},
-			publishing.CreateConnectionInput{ExternalAccountID: platform + "-" + id, Platform: platform, ProviderSettings: map[string]any{}, SecretReference: "POSTIZ_API_KEY"})
+			publishing.CreateConnectionInput{ExternalAccountID: platform + "-" + id, Platform: platform, ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -58,7 +58,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
@@ -74,6 +73,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storepublishingcredential"
@@ -149,7 +149,6 @@ const (
 	TypeOrganizationEnterpriseSettings = "OrganizationEnterpriseSettings"
 	TypeOutboxEvent                    = "OutboxEvent"
 	TypePageKnowledge                  = "PageKnowledge"
-	TypePostizTenantBinding            = "PostizTenantBinding"
 	TypeProductProfile                 = "ProductProfile"
 	TypeProductSurface                 = "ProductSurface"
 	TypeProject                        = "Project"
@@ -163,6 +162,7 @@ const (
 	TypeSession                        = "Session"
 	TypeShareLink                      = "ShareLink"
 	TypeSocialOAuthStart               = "SocialOAuthStart"
+	TypeSocialTenantBinding            = "SocialTenantBinding"
 	TypeSourceApp                      = "SourceApp"
 	TypeSourceChange                   = "SourceChange"
 	TypeStorePublishingCredential      = "StorePublishingCredential"
@@ -43515,446 +43515,6 @@ func (m *PageKnowledgeMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PageKnowledge edge %s", name)
 }
 
-// PostizTenantBindingMutation represents an operation that mutates the PostizTenantBinding nodes in the graph.
-type PostizTenantBindingMutation struct {
-	config
-	op                 Op
-	typ                string
-	id                 *string
-	go_organization_id *string
-	secret_reference   *string
-	created_at         *time.Time
-	clearedFields      map[string]struct{}
-	done               bool
-	oldValue           func(context.Context) (*PostizTenantBinding, error)
-	predicates         []predicate.PostizTenantBinding
-}
-
-var _ ent.Mutation = (*PostizTenantBindingMutation)(nil)
-
-// postiztenantbindingOption allows management of the mutation configuration using functional options.
-type postiztenantbindingOption func(*PostizTenantBindingMutation)
-
-// newPostizTenantBindingMutation creates new mutation for the PostizTenantBinding entity.
-func newPostizTenantBindingMutation(c config, op Op, opts ...postiztenantbindingOption) *PostizTenantBindingMutation {
-	m := &PostizTenantBindingMutation{
-		config:        c,
-		op:            op,
-		typ:           TypePostizTenantBinding,
-		clearedFields: make(map[string]struct{}),
-	}
-	for _, opt := range opts {
-		opt(m)
-	}
-	return m
-}
-
-// withPostizTenantBindingID sets the ID field of the mutation.
-func withPostizTenantBindingID(id string) postiztenantbindingOption {
-	return func(m *PostizTenantBindingMutation) {
-		var (
-			err   error
-			once  sync.Once
-			value *PostizTenantBinding
-		)
-		m.oldValue = func(ctx context.Context) (*PostizTenantBinding, error) {
-			once.Do(func() {
-				if m.done {
-					err = errors.New("querying old values post mutation is not allowed")
-				} else {
-					value, err = m.Client().PostizTenantBinding.Get(ctx, id)
-				}
-			})
-			return value, err
-		}
-		m.id = &id
-	}
-}
-
-// withPostizTenantBinding sets the old PostizTenantBinding of the mutation.
-func withPostizTenantBinding(node *PostizTenantBinding) postiztenantbindingOption {
-	return func(m *PostizTenantBindingMutation) {
-		m.oldValue = func(context.Context) (*PostizTenantBinding, error) {
-			return node, nil
-		}
-		m.id = &node.ID
-	}
-}
-
-// Client returns a new `ent.Client` from the mutation. If the mutation was
-// executed in a transaction (ent.Tx), a transactional client is returned.
-func (m PostizTenantBindingMutation) Client() *Client {
-	client := &Client{config: m.config}
-	client.init()
-	return client
-}
-
-// Tx returns an `ent.Tx` for mutations that were executed in transactions;
-// it returns an error otherwise.
-func (m PostizTenantBindingMutation) Tx() (*Tx, error) {
-	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, errors.New("ent: mutation is not running in a transaction")
-	}
-	tx := &Tx{config: m.config}
-	tx.init()
-	return tx, nil
-}
-
-// SetID sets the value of the id field. Note that this
-// operation is only accepted on creation of PostizTenantBinding entities.
-func (m *PostizTenantBindingMutation) SetID(id string) {
-	m.id = &id
-}
-
-// ID returns the ID value in the mutation. Note that the ID is only available
-// if it was provided to the builder or after it was returned from the database.
-func (m *PostizTenantBindingMutation) ID() (id string, exists bool) {
-	if m.id == nil {
-		return
-	}
-	return *m.id, true
-}
-
-// IDs queries the database and returns the entity ids that match the mutation's predicate.
-// That means, if the mutation is applied within a transaction with an isolation level such
-// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
-// or updated by the mutation.
-func (m *PostizTenantBindingMutation) IDs(ctx context.Context) ([]string, error) {
-	switch {
-	case m.op.Is(OpUpdateOne | OpDeleteOne):
-		id, exists := m.ID()
-		if exists {
-			return []string{id}, nil
-		}
-		fallthrough
-	case m.op.Is(OpUpdate | OpDelete):
-		return m.Client().PostizTenantBinding.Query().Where(m.predicates...).IDs(ctx)
-	default:
-		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
-	}
-}
-
-// SetGoOrganizationID sets the "go_organization_id" field.
-func (m *PostizTenantBindingMutation) SetGoOrganizationID(s string) {
-	m.go_organization_id = &s
-}
-
-// GoOrganizationID returns the value of the "go_organization_id" field in the mutation.
-func (m *PostizTenantBindingMutation) GoOrganizationID() (r string, exists bool) {
-	v := m.go_organization_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldGoOrganizationID returns the old "go_organization_id" field's value of the PostizTenantBinding entity.
-// If the PostizTenantBinding object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PostizTenantBindingMutation) OldGoOrganizationID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldGoOrganizationID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldGoOrganizationID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldGoOrganizationID: %w", err)
-	}
-	return oldValue.GoOrganizationID, nil
-}
-
-// ResetGoOrganizationID resets all changes to the "go_organization_id" field.
-func (m *PostizTenantBindingMutation) ResetGoOrganizationID() {
-	m.go_organization_id = nil
-}
-
-// SetSecretReference sets the "secret_reference" field.
-func (m *PostizTenantBindingMutation) SetSecretReference(s string) {
-	m.secret_reference = &s
-}
-
-// SecretReference returns the value of the "secret_reference" field in the mutation.
-func (m *PostizTenantBindingMutation) SecretReference() (r string, exists bool) {
-	v := m.secret_reference
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSecretReference returns the old "secret_reference" field's value of the PostizTenantBinding entity.
-// If the PostizTenantBinding object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PostizTenantBindingMutation) OldSecretReference(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSecretReference is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSecretReference requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSecretReference: %w", err)
-	}
-	return oldValue.SecretReference, nil
-}
-
-// ResetSecretReference resets all changes to the "secret_reference" field.
-func (m *PostizTenantBindingMutation) ResetSecretReference() {
-	m.secret_reference = nil
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (m *PostizTenantBindingMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *PostizTenantBindingMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the PostizTenantBinding entity.
-// If the PostizTenantBinding object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *PostizTenantBindingMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *PostizTenantBindingMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// Where appends a list predicates to the PostizTenantBindingMutation builder.
-func (m *PostizTenantBindingMutation) Where(ps ...predicate.PostizTenantBinding) {
-	m.predicates = append(m.predicates, ps...)
-}
-
-// WhereP appends storage-level predicates to the PostizTenantBindingMutation builder. Using this method,
-// users can use type-assertion to append predicates that do not depend on any generated package.
-func (m *PostizTenantBindingMutation) WhereP(ps ...func(*sql.Selector)) {
-	p := make([]predicate.PostizTenantBinding, len(ps))
-	for i := range ps {
-		p[i] = ps[i]
-	}
-	m.Where(p...)
-}
-
-// Op returns the operation name.
-func (m *PostizTenantBindingMutation) Op() Op {
-	return m.op
-}
-
-// SetOp allows setting the mutation operation.
-func (m *PostizTenantBindingMutation) SetOp(op Op) {
-	m.op = op
-}
-
-// Type returns the node type of this mutation (PostizTenantBinding).
-func (m *PostizTenantBindingMutation) Type() string {
-	return m.typ
-}
-
-// Fields returns all fields that were changed during this mutation. Note that in
-// order to get all numeric fields that were incremented/decremented, call
-// AddedFields().
-func (m *PostizTenantBindingMutation) Fields() []string {
-	fields := make([]string, 0, 3)
-	if m.go_organization_id != nil {
-		fields = append(fields, postiztenantbinding.FieldGoOrganizationID)
-	}
-	if m.secret_reference != nil {
-		fields = append(fields, postiztenantbinding.FieldSecretReference)
-	}
-	if m.created_at != nil {
-		fields = append(fields, postiztenantbinding.FieldCreatedAt)
-	}
-	return fields
-}
-
-// Field returns the value of a field with the given name. The second boolean
-// return value indicates that this field was not set, or was not defined in the
-// schema.
-func (m *PostizTenantBindingMutation) Field(name string) (ent.Value, bool) {
-	switch name {
-	case postiztenantbinding.FieldGoOrganizationID:
-		return m.GoOrganizationID()
-	case postiztenantbinding.FieldSecretReference:
-		return m.SecretReference()
-	case postiztenantbinding.FieldCreatedAt:
-		return m.CreatedAt()
-	}
-	return nil, false
-}
-
-// OldField returns the old value of the field from the database. An error is
-// returned if the mutation operation is not UpdateOne, or the query to the
-// database failed.
-func (m *PostizTenantBindingMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
-	switch name {
-	case postiztenantbinding.FieldGoOrganizationID:
-		return m.OldGoOrganizationID(ctx)
-	case postiztenantbinding.FieldSecretReference:
-		return m.OldSecretReference(ctx)
-	case postiztenantbinding.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	}
-	return nil, fmt.Errorf("unknown PostizTenantBinding field %s", name)
-}
-
-// SetField sets the value of a field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *PostizTenantBindingMutation) SetField(name string, value ent.Value) error {
-	switch name {
-	case postiztenantbinding.FieldGoOrganizationID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetGoOrganizationID(v)
-		return nil
-	case postiztenantbinding.FieldSecretReference:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSecretReference(v)
-		return nil
-	case postiztenantbinding.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
-		return nil
-	}
-	return fmt.Errorf("unknown PostizTenantBinding field %s", name)
-}
-
-// AddedFields returns all numeric fields that were incremented/decremented during
-// this mutation.
-func (m *PostizTenantBindingMutation) AddedFields() []string {
-	return nil
-}
-
-// AddedField returns the numeric value that was incremented/decremented on a field
-// with the given name. The second boolean return value indicates that this field
-// was not set, or was not defined in the schema.
-func (m *PostizTenantBindingMutation) AddedField(name string) (ent.Value, bool) {
-	return nil, false
-}
-
-// AddField adds the value to the field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *PostizTenantBindingMutation) AddField(name string, value ent.Value) error {
-	switch name {
-	}
-	return fmt.Errorf("unknown PostizTenantBinding numeric field %s", name)
-}
-
-// ClearedFields returns all nullable fields that were cleared during this
-// mutation.
-func (m *PostizTenantBindingMutation) ClearedFields() []string {
-	return nil
-}
-
-// FieldCleared returns a boolean indicating if a field with the given name was
-// cleared in this mutation.
-func (m *PostizTenantBindingMutation) FieldCleared(name string) bool {
-	_, ok := m.clearedFields[name]
-	return ok
-}
-
-// ClearField clears the value of the field with the given name. It returns an
-// error if the field is not defined in the schema.
-func (m *PostizTenantBindingMutation) ClearField(name string) error {
-	return fmt.Errorf("unknown PostizTenantBinding nullable field %s", name)
-}
-
-// ResetField resets all changes in the mutation for the field with the given name.
-// It returns an error if the field is not defined in the schema.
-func (m *PostizTenantBindingMutation) ResetField(name string) error {
-	switch name {
-	case postiztenantbinding.FieldGoOrganizationID:
-		m.ResetGoOrganizationID()
-		return nil
-	case postiztenantbinding.FieldSecretReference:
-		m.ResetSecretReference()
-		return nil
-	case postiztenantbinding.FieldCreatedAt:
-		m.ResetCreatedAt()
-		return nil
-	}
-	return fmt.Errorf("unknown PostizTenantBinding field %s", name)
-}
-
-// AddedEdges returns all edge names that were set/added in this mutation.
-func (m *PostizTenantBindingMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
-	return edges
-}
-
-// AddedIDs returns all IDs (to other nodes) that were added for the given edge
-// name in this mutation.
-func (m *PostizTenantBindingMutation) AddedIDs(name string) []ent.Value {
-	return nil
-}
-
-// RemovedEdges returns all edge names that were removed in this mutation.
-func (m *PostizTenantBindingMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
-	return edges
-}
-
-// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
-// the given name in this mutation.
-func (m *PostizTenantBindingMutation) RemovedIDs(name string) []ent.Value {
-	return nil
-}
-
-// ClearedEdges returns all edge names that were cleared in this mutation.
-func (m *PostizTenantBindingMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
-	return edges
-}
-
-// EdgeCleared returns a boolean which indicates if the edge with the given name
-// was cleared in this mutation.
-func (m *PostizTenantBindingMutation) EdgeCleared(name string) bool {
-	return false
-}
-
-// ClearEdge clears the value of the edge with the given name. It returns an error
-// if that edge is not defined in the schema.
-func (m *PostizTenantBindingMutation) ClearEdge(name string) error {
-	return fmt.Errorf("unknown PostizTenantBinding unique edge %s", name)
-}
-
-// ResetEdge resets all changes to the edge with the given name in this mutation.
-// It returns an error if the edge is not defined in the schema.
-func (m *PostizTenantBindingMutation) ResetEdge(name string) error {
-	return fmt.Errorf("unknown PostizTenantBinding edge %s", name)
-}
-
 // ProductProfileMutation represents an operation that mutates the ProductProfile nodes in the graph.
 type ProductProfileMutation struct {
 	config
@@ -56739,6 +56299,446 @@ func (m *SocialOAuthStartMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *SocialOAuthStartMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown SocialOAuthStart edge %s", name)
+}
+
+// SocialTenantBindingMutation represents an operation that mutates the SocialTenantBinding nodes in the graph.
+type SocialTenantBindingMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *string
+	go_organization_id *string
+	secret_reference   *string
+	created_at         *time.Time
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*SocialTenantBinding, error)
+	predicates         []predicate.SocialTenantBinding
+}
+
+var _ ent.Mutation = (*SocialTenantBindingMutation)(nil)
+
+// socialtenantbindingOption allows management of the mutation configuration using functional options.
+type socialtenantbindingOption func(*SocialTenantBindingMutation)
+
+// newSocialTenantBindingMutation creates new mutation for the SocialTenantBinding entity.
+func newSocialTenantBindingMutation(c config, op Op, opts ...socialtenantbindingOption) *SocialTenantBindingMutation {
+	m := &SocialTenantBindingMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSocialTenantBinding,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSocialTenantBindingID sets the ID field of the mutation.
+func withSocialTenantBindingID(id string) socialtenantbindingOption {
+	return func(m *SocialTenantBindingMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SocialTenantBinding
+		)
+		m.oldValue = func(ctx context.Context) (*SocialTenantBinding, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SocialTenantBinding.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSocialTenantBinding sets the old SocialTenantBinding of the mutation.
+func withSocialTenantBinding(node *SocialTenantBinding) socialtenantbindingOption {
+	return func(m *SocialTenantBindingMutation) {
+		m.oldValue = func(context.Context) (*SocialTenantBinding, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SocialTenantBindingMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SocialTenantBindingMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of SocialTenantBinding entities.
+func (m *SocialTenantBindingMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SocialTenantBindingMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SocialTenantBindingMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().SocialTenantBinding.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetGoOrganizationID sets the "go_organization_id" field.
+func (m *SocialTenantBindingMutation) SetGoOrganizationID(s string) {
+	m.go_organization_id = &s
+}
+
+// GoOrganizationID returns the value of the "go_organization_id" field in the mutation.
+func (m *SocialTenantBindingMutation) GoOrganizationID() (r string, exists bool) {
+	v := m.go_organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGoOrganizationID returns the old "go_organization_id" field's value of the SocialTenantBinding entity.
+// If the SocialTenantBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialTenantBindingMutation) OldGoOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGoOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGoOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGoOrganizationID: %w", err)
+	}
+	return oldValue.GoOrganizationID, nil
+}
+
+// ResetGoOrganizationID resets all changes to the "go_organization_id" field.
+func (m *SocialTenantBindingMutation) ResetGoOrganizationID() {
+	m.go_organization_id = nil
+}
+
+// SetSecretReference sets the "secret_reference" field.
+func (m *SocialTenantBindingMutation) SetSecretReference(s string) {
+	m.secret_reference = &s
+}
+
+// SecretReference returns the value of the "secret_reference" field in the mutation.
+func (m *SocialTenantBindingMutation) SecretReference() (r string, exists bool) {
+	v := m.secret_reference
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSecretReference returns the old "secret_reference" field's value of the SocialTenantBinding entity.
+// If the SocialTenantBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialTenantBindingMutation) OldSecretReference(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSecretReference is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSecretReference requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSecretReference: %w", err)
+	}
+	return oldValue.SecretReference, nil
+}
+
+// ResetSecretReference resets all changes to the "secret_reference" field.
+func (m *SocialTenantBindingMutation) ResetSecretReference() {
+	m.secret_reference = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *SocialTenantBindingMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *SocialTenantBindingMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the SocialTenantBinding entity.
+// If the SocialTenantBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialTenantBindingMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *SocialTenantBindingMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the SocialTenantBindingMutation builder.
+func (m *SocialTenantBindingMutation) Where(ps ...predicate.SocialTenantBinding) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SocialTenantBindingMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SocialTenantBindingMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.SocialTenantBinding, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SocialTenantBindingMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SocialTenantBindingMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (SocialTenantBinding).
+func (m *SocialTenantBindingMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SocialTenantBindingMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.go_organization_id != nil {
+		fields = append(fields, socialtenantbinding.FieldGoOrganizationID)
+	}
+	if m.secret_reference != nil {
+		fields = append(fields, socialtenantbinding.FieldSecretReference)
+	}
+	if m.created_at != nil {
+		fields = append(fields, socialtenantbinding.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SocialTenantBindingMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case socialtenantbinding.FieldGoOrganizationID:
+		return m.GoOrganizationID()
+	case socialtenantbinding.FieldSecretReference:
+		return m.SecretReference()
+	case socialtenantbinding.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SocialTenantBindingMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case socialtenantbinding.FieldGoOrganizationID:
+		return m.OldGoOrganizationID(ctx)
+	case socialtenantbinding.FieldSecretReference:
+		return m.OldSecretReference(ctx)
+	case socialtenantbinding.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown SocialTenantBinding field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SocialTenantBindingMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case socialtenantbinding.FieldGoOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGoOrganizationID(v)
+		return nil
+	case socialtenantbinding.FieldSecretReference:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSecretReference(v)
+		return nil
+	case socialtenantbinding.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SocialTenantBinding field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SocialTenantBindingMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SocialTenantBindingMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SocialTenantBindingMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown SocialTenantBinding numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SocialTenantBindingMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SocialTenantBindingMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SocialTenantBindingMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown SocialTenantBinding nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SocialTenantBindingMutation) ResetField(name string) error {
+	switch name {
+	case socialtenantbinding.FieldGoOrganizationID:
+		m.ResetGoOrganizationID()
+		return nil
+	case socialtenantbinding.FieldSecretReference:
+		m.ResetSecretReference()
+		return nil
+	case socialtenantbinding.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown SocialTenantBinding field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SocialTenantBindingMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SocialTenantBindingMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SocialTenantBindingMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SocialTenantBindingMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SocialTenantBindingMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SocialTenantBindingMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SocialTenantBindingMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown SocialTenantBinding unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SocialTenantBindingMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown SocialTenantBinding edge %s", name)
 }
 
 // SourceAppMutation represents an operation that mutates the SourceApp nodes in the graph.

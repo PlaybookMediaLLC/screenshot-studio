@@ -9,11 +9,11 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 )
 
-// PostizTenantBinding is the model entity for the PostizTenantBinding schema.
-type PostizTenantBinding struct {
+// SocialTenantBinding is the model entity for the SocialTenantBinding schema.
+type SocialTenantBinding struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
@@ -27,13 +27,13 @@ type PostizTenantBinding struct {
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*PostizTenantBinding) scanValues(columns []string) ([]any, error) {
+func (*SocialTenantBinding) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case postiztenantbinding.FieldID, postiztenantbinding.FieldGoOrganizationID, postiztenantbinding.FieldSecretReference:
+		case socialtenantbinding.FieldID, socialtenantbinding.FieldGoOrganizationID, socialtenantbinding.FieldSecretReference:
 			values[i] = new(sql.NullString)
-		case postiztenantbinding.FieldCreatedAt:
+		case socialtenantbinding.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -43,32 +43,32 @@ func (*PostizTenantBinding) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the PostizTenantBinding fields.
-func (_m *PostizTenantBinding) assignValues(columns []string, values []any) error {
+// to the SocialTenantBinding fields.
+func (_m *SocialTenantBinding) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case postiztenantbinding.FieldID:
+		case socialtenantbinding.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
 			}
-		case postiztenantbinding.FieldGoOrganizationID:
+		case socialtenantbinding.FieldGoOrganizationID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field go_organization_id", values[i])
 			} else if value.Valid {
 				_m.GoOrganizationID = value.String
 			}
-		case postiztenantbinding.FieldSecretReference:
+		case socialtenantbinding.FieldSecretReference:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field secret_reference", values[i])
 			} else if value.Valid {
 				_m.SecretReference = value.String
 			}
-		case postiztenantbinding.FieldCreatedAt:
+		case socialtenantbinding.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
@@ -81,34 +81,34 @@ func (_m *PostizTenantBinding) assignValues(columns []string, values []any) erro
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the PostizTenantBinding.
+// Value returns the ent.Value that was dynamically selected and assigned to the SocialTenantBinding.
 // This includes values selected through modifiers, order, etc.
-func (_m *PostizTenantBinding) Value(name string) (ent.Value, error) {
+func (_m *SocialTenantBinding) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// Update returns a builder for updating this PostizTenantBinding.
-// Note that you need to call PostizTenantBinding.Unwrap() before calling this method if this PostizTenantBinding
+// Update returns a builder for updating this SocialTenantBinding.
+// Note that you need to call SocialTenantBinding.Unwrap() before calling this method if this SocialTenantBinding
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *PostizTenantBinding) Update() *PostizTenantBindingUpdateOne {
-	return NewPostizTenantBindingClient(_m.config).UpdateOne(_m)
+func (_m *SocialTenantBinding) Update() *SocialTenantBindingUpdateOne {
+	return NewSocialTenantBindingClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the PostizTenantBinding entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the SocialTenantBinding entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *PostizTenantBinding) Unwrap() *PostizTenantBinding {
+func (_m *SocialTenantBinding) Unwrap() *SocialTenantBinding {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("ent: PostizTenantBinding is not a transactional entity")
+		panic("ent: SocialTenantBinding is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *PostizTenantBinding) String() string {
+func (_m *SocialTenantBinding) String() string {
 	var builder strings.Builder
-	builder.WriteString("PostizTenantBinding(")
+	builder.WriteString("SocialTenantBinding(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("go_organization_id=")
 	builder.WriteString(_m.GoOrganizationID)
@@ -122,5 +122,5 @@ func (_m *PostizTenantBinding) String() string {
 	return builder.String()
 }
 
-// PostizTenantBindings is a parsable slice of PostizTenantBinding.
-type PostizTenantBindings []*PostizTenantBinding
+// SocialTenantBindings is a parsable slice of SocialTenantBinding.
+type SocialTenantBindings []*SocialTenantBinding

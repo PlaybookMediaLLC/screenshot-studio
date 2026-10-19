@@ -36,7 +36,7 @@ work remain separate managed task execution.
 
 Use the same names in local, preview, and production: `DATABASE_URL`, Better
 Auth base URL and secret, private R2 bucket settings, Trigger environment key,
-and provider credentials. Keep Postiz as an optional local integration fixture;
+and provider credentials. Keep the social API as an optional local integration fixture;
 it is not the application database or tenant authority.
 
 ## Verification

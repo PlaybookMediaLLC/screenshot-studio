@@ -1,4 +1,4 @@
-// Package announcements holds Postiz's dtos/announcements.
+// Package announcements holds the original app's dtos/announcements.
 package announcements
 
 type AnnouncementDto struct {

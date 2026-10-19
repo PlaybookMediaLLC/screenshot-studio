@@ -17,7 +17,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/httpx"
 )
 
-// Postiz stores UTC in "timestamp without time zone" columns and pgx writes
+// The original app stores UTC in "timestamp without time zone" columns and pgx writes
 // the wall clock, so the process must run in UTC (as it does in production).
 func TestMain(m *testing.M) {
 	time.Local = time.UTC

@@ -33,7 +33,7 @@ type serviceFixture struct {
 
 func newServiceFixture(t *testing.T) serviceFixture {
 	t.Setenv("JWT_SECRET", "secret")
-	t.Setenv("FRONTEND_URL", "https://app.postiz.com")
+	t.Setenv("FRONTEND_URL", "https://app.sample.com")
 	f := serviceFixture{users: newFakeUsers(), orgs: newFakeOrgs(), email: &fakeEmail{}, newsletter: &fakeNewsletter{}}
 	manager := NewAuthProviderManager(redis.NewMemory())
 	manager.providers["GITHUB"] = fakeProvider{user: &ProviderUser{ID: "gh1", Email: "gh@x.com"}, token: "tok"}
@@ -68,7 +68,7 @@ func TestRegisterLocal(t *testing.T) {
 	if _, has := c["password"]; has || c["id"] != "new-user" {
 		t.Fatalf("claims %v: a non-empty password must not be signed", c)
 	}
-	if len(f.email.sent) != 1 || !strings.Contains(f.email.sent[0], "new@x.com|Activate your account|Click <a href=\"https://app.postiz.com/auth/activate/"+res.JWT+"\">here</a>") {
+	if len(f.email.sent) != 1 || !strings.Contains(f.email.sent[0], "new@x.com|Activate your account|Click <a href=\"https://app.sample.com/auth/activate/"+res.JWT+"\">here</a>") {
 		t.Fatalf("email %v", f.email.sent)
 	}
 
@@ -132,7 +132,7 @@ func TestProviderLoginAndRegister(t *testing.T) {
 	if len(f.newsletter.registered) != 1 {
 		t.Fatal("newsletter not registered")
 	}
-	// No password key at all (Postiz signed provider users with password: "").
+	// No password key at all (the original app signed provider users with password: "").
 	if c := claims(t, res.JWT); c["id"] == nil {
 		t.Fatalf("claims %v", c)
 	} else if _, has := c["password"]; has {

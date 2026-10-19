@@ -159,7 +159,7 @@ func TestCreatePostValidation(t *testing.T) {
 		t.Fatalf("got %d %s", status, body)
 	}
 
-	t.Setenv("RESTRICT_UPLOAD_DOMAINS", "uploads.postiz.com")
+	t.Setenv("RESTRICT_UPLOAD_DOMAINS", "uploads.sample.com")
 	withImage := strings.Replace(createBody, `"image":[]`, `"image":[{"id":"m","path":"https://evil.com/a.png"}]`, 1)
 	status, body = do(t, r, http.MethodPost, "/public/v1/posts", "key", withImage)
 	if status != http.StatusBadRequest || !strings.Contains(body, `"msg":"All media must be uploaded`) {

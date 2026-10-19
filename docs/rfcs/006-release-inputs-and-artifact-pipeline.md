@@ -379,7 +379,7 @@ Service targets:
    artifact generator. Keep all outputs review-only.
 6. Add remaining artifact packs: X, LinkedIn, Instagram, changelog, in-app,
    and email, based on real provider destination capabilities.
-7. Enable scheduling only through approved Buffer, Post Bridge, Postiz, or
+7. Enable scheduling only through approved Buffer, Post Bridge, the social API, or
    later provider connectors from RFC 005.
 8. Add video generation only after image pipeline cost, latency, safety, and
    approval quality meet the service targets.

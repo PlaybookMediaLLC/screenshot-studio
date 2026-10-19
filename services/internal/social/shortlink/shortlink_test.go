@@ -134,7 +134,7 @@ func TestKuttProvider(t *testing.T) {
 }
 
 // Short.io: every page is read (nextPageToken) and each link gets its own
-// statistics request. Postiz returned {} rows and looped on 100+ links.
+// statistics request. the original app returned {} rows and looped on 100+ links.
 func TestShortIoAllLinksStatistics(t *testing.T) {
 	var mu sync.Mutex
 	pages := []string{}

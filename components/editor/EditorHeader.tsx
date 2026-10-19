@@ -219,6 +219,7 @@ export function EditorHeader() {
                 ? 'bg-foreground/[0.08] text-foreground'
                 : 'text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground'
             )}
+            id="editor-templates-trigger"
             onClick={() => setShowTemplates(!showTemplates)}
             type="button"
           >

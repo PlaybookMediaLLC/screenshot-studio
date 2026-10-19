@@ -18,6 +18,7 @@ test/image-tools.test.ts
 test/indexnow.test.ts
 test/overlay-selection.test.ts
 test/overlay-style.test.ts
+test/r2-assets.test.ts
 test/screenshot-blank.test.ts
 test/store-screenshots.test.ts
 test/ui-semantics.test.ts

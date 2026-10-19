@@ -123,7 +123,7 @@ export function EditorCanvas() {
 
   return (
     <>
-      <div className="flex flex-col h-full w-full relative">
+      <div className="flex min-h-0 flex-col h-full w-full relative">
         <ExportSlideshowDialog
           open={exportOpen}
           onOpenChange={setExportOpen}
@@ -132,7 +132,7 @@ export function EditorCanvas() {
         <div
           data-canvas-viewport
           className={cn(
-            "relative flex-1 overflow-hidden p-3 sm:p-4 md:p-6",
+            "relative min-h-0 flex-1 overflow-hidden p-4 lg:p-6",
             isMobile
               ? "flex items-center justify-center"
               : "flex flex-col items-center justify-center",
@@ -140,12 +140,16 @@ export function EditorCanvas() {
           style={isMobile ? undefined : { rowGap: STORE_SHORTCUT_GAP }}
         >
           {!isMobile && imageName !== TEMPLATE_DEMO_IMAGE_NAME ? (
-            <div className="shrink-0 max-lg:hidden">
+            <div data-stage-shortcut className="shrink-0 max-lg:hidden">
               <StoreScreenshotsShortcut />
             </div>
           ) : null}
 
-          <CanvasStageShell
+          {isMobile && !hasRenderableContent ? (
+            <div className="h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl border border-foreground/10">
+              <CleanUploadState />
+            </div>
+          ) : <CanvasStageShell
             id="image-render-card"
             breathe={!stageReady}
             showBackground={!stageReady}
@@ -169,10 +173,10 @@ export function EditorCanvas() {
                 {showLoading ? <CanvasStageLoadingOverlay /> : null}
               </>
             )}
-          </CanvasStageShell>
+          </CanvasStageShell>}
         </div>
 
-        {slides.length > 1 && !showTimeline && (
+        {slides.length > 1 && (!showTimeline || isMobile) && (
           <div className="shrink-0 overflow-x-auto border-t border-foreground/10 bg-background p-2">
             <div className="flex gap-2">
               {slides.map((slide) => (
@@ -187,6 +191,8 @@ export function EditorCanvas() {
                 >
                   <button
                     type="button"
+                    aria-label={`Select slide ${slides.indexOf(slide) + 1}`}
+                    aria-pressed={slide.id === activeSlideId}
                     onClick={() => setActiveSlide(slide.id)}
                     className="h-full w-full cursor-pointer"
                   >
@@ -204,7 +210,7 @@ export function EditorCanvas() {
                       e.stopPropagation();
                       removeSlide(slide.id);
                     }}
-                    className="absolute top-1 right-1 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded-md border border-foreground/10 bg-card/90 text-muted-foreground transition-colors hover:bg-destructive hover:text-foreground hover:border-destructive"
+                    className="absolute top-1 right-1 z-10 flex size-11 lg:size-5 cursor-pointer items-center justify-center rounded-md border border-foreground/10 bg-card/90 text-muted-foreground transition-colors hover:bg-destructive hover:text-foreground hover:border-destructive"
                     title="Delete slide"
                   >
                     <Cancel01Icon size={10} />

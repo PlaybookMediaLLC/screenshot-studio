@@ -8,6 +8,7 @@
 export * from "./types";
 export * from "./format";
 export * from "./geometry";
+export * from "./freehand";
 export * from "./filename";
 export * from "./plan";
 

@@ -1,0 +1,42 @@
+id,area,status,scenario,result_or_acceptance_criterion,limits_or_notes
+UI-01,shared,observed,Open all four creation routes,Four mode-specific forms expose common scheduling controls,No persistence actions
+UI-02,shared,observed,Choose X account A then X account B,B selected; A deselected,One-account-per-platform selection verified on X
+UI-03,shared,observed,Select X and LinkedIn,Both stay selected; both configuration panels available,Mixed-platform selection
+UI-04,shared,observed,Search eigenn while other account selected,Only matching accounts shown; prior selection retained,Search separate from targeting
+UI-05,text,observed,Select standard X only,Counter changes from 2200 to 280,No premium X boundary checked
+UI-06,text,observed,Select X plus LinkedIn and enter 281 ASCII characters,Main 281/3000; warning; inherited X preview 280/280,Submission serialization unverified
+UI-07,text,observed,Activate platform caption Edit,Caption copied into editable override; Clear action shown,Reset persistence not tested
+UI-08,text,observed,Select X with empty main caption,Post now becomes enabled,Validation risk; no submit
+UI-09,schedule,observed,Enable scheduling without selecting date,Schedule disabled; time default 12:00 PM,"Quick times 11AM, 3PM, 7PM"
+UI-10,schedule,observed,Choose tomorrow,Schedule enabled; local-time explanation appears,No actual scheduling
+UI-11,schedule,observed,Choose queue in workspace without configured schedule,Empty-state message; action still enabled,No queue reservation attempted
+UI-12,image,observed,Inspect file input,multiple true; JPEG PNG HEIC HEIF AVIF WebP hints,No accepted-format enforcement test
+UI-13,video,observed,Inspect file input,multiple false; MP4 QuickTime hints,No upload
+UI-14,story,observed,Inspect file input and fields,One image/video; no caption or platform tool panel,Meta destinations only
+UI-15,story,observed,Open upload help,Generic 35-image text conflicts with one-file form rule,Visual modal checked
+UI-16,story,observed,Open Import,Video imports only shown,Image import unavailable in inspected menu
+UI-17,image,observed,Open Import,Google Drive images up to 20; Senja disabled,No OAuth or imports
+UI-18,video,observed,Open Instagram Config and enable Trial Reel,"Cover upload, grid toggle, trial prerequisites and graduation options",Unsaved temporary state
+UI-19,video,observed,Enter caption with YouTube Title panel open,Generated title follows caption,100-character fallback described; long-boundary not tested
+UI-20,shared,observed,Open Instagram first comment options,Capability-specific refresh warning,No permissions changed
+UP-01,image,not_run,Upload JPEG PNG HEIC HEIF AVIF WebP fixtures,"Document decoding, conversion, MIME and size rules",Use explicitly authorized disposable fixtures
+UP-02,image,not_run,Upload 1 10 11 35 36 images,Verify limits warnings and per-platform output count,Preserve source ordering
+UP-03,image,not_run,Reorder crop replace and remove media,Preview and serialized order/edits agree,Verify persistence after save/reload
+UP-04,video,not_run,Upload at 2.99 3 299.99 300 300.01 seconds,Measure exact boundary behavior for picker and import,Include supported and unsupported aspect ratios
+UP-05,shared,not_run,Interrupt upload and retry,Recover without duplicate media or corrupt state,Verify pending uploads block publication
+UP-06,story,not_run,Supply two files or mixed image/video via drop/paste,Reject extra files consistently,Test beyond native picker multiple attribute
+UP-07,video,not_run,Upload custom IG cover and YouTube thumbnail,Correct output in supported placements; Shorts handled clearly,Test missing thumbnail permissions
+DA-01,draft,not_run,Save empty and partial drafts then reload,Document schema and UI completeness rules,Top-level draft must not publish
+DA-02,caption,not_run,Change main after custom override; clear override,Inheritance resumes only after reset,Test empty custom text vs inherited state
+DA-03,caption,not_run,Validate emoji combining marks URLs and bare domains,Counters and output match each provider policy,Preview X link stripping and first reply
+SC-01,schedule,not_run,Schedule across DST and timezone changes,Correct UTC instant retained and displayed,Also test past time on current day
+SC-02,schedule,not_run,Edit scheduled caption through PATCH,Existing scheduled_at retained; no immediate processing,Critical documented API hazard
+SC-03,queue,not_run,Submit two posts concurrently into queue,Unique atomically allocated slots,No-config and exhausted-window errors
+PB-01,publish,not_run,Submit twice or retry after timeout,At-most-one intended provider publication per destination,Idempotency contract currently unknown
+PB-02,publish,not_run,One destination fails while another succeeds,Per-destination results remain distinct,Retry failed destination only
+PB-03,publish,not_run,First comment or thumbnail fails,Main success preserved; ancillary failure reported,Documented partial-success semantics
+PB-04,story,not_run,Publish image/video stories to authorized test accounts,Correct placement no caption no cover; provider results verified,Test provider duration and ratio requirements
+PB-05,tiktok,not_run,Compare Post Bridge draft and native TikTok draft,Distinct lifecycle and user handoff,No TikTok account present during inspection
+PB-06,media,not_run,Duplicate a post after original media cleanup,Media references remain usable; schedule cleared,Duplicate explanation only observed as DOM component text
+UX-01,shared,not_run,Remember selections then navigate reload and switch workspace,Document storage scope and prevent cross-workspace leakage,Remember was left off
+UX-02,shared,not_run,Keyboard and narrow-screen interaction,Account selection state and controls are accessible,DOM lacked aria-pressed on inspected account buttons

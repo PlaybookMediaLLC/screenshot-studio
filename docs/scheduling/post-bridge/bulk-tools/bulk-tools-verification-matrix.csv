@@ -1,0 +1,58 @@
+id,workflow,case,status,evidence_or_result,remaining_work
+BULK-001,Catalog,Three separate workflows,observed,Video upload and image upload and video creation each have separate routes,None
+BULK-002,Video upload,Advertised media limits,observed,100 files with MP4 or MOV and 500MB for loaded Pro plan and 3 to 300 seconds,Test actual boundary rejection
+BULK-003,Video upload,Entitlement loading,observed,Initial 250MB fallback became 500MB after account load,Test other subscription plans
+BULK-004,Video upload,File picker attributes,observed,Multiple input accepts MP4 and QuickTime extensions and MIME types,Test codecs and metadata parsing
+BULK-005,Video upload,Empty readiness,executed,Caption and schedule actions plus submit and draft actions disabled without videos,Inspect populated rows
+BULK-006,Video upload,Destination selection,executed,Selecting a YouTube account added no extra controls in empty-media state,Inspect destination fields after upload
+BULK-007,Video upload,CSV sample format,observed,Supplied data URL saved as two-column CSV,None for example syntax
+BULK-008,Video upload,Draft action,observed,Save All as Drafts exposed,Actual draft persistence not tested
+BULK-009,Image upload,Directory acquisition,observed,Directory input uses webkitdirectory and multiple,Test nested folder grouping
+BULK-010,Image upload,Grouping modes,observed,Folder grouping plus one-post-per-image checkbox,Test actual group formation and ordering
+BULK-011,Image upload,Manual row creation,executed,Empty Post and Add Another Post created four temporary rows,None
+BULK-012,Image upload,Default row schedule,executed,New rows initially advanced one day with unchanged time,Test addition after custom schedule settings
+BULK-013,Image upload,Row field contract,observed,Images and caption and date and time with collapse and delete icons,Test removal and reorder
+BULK-014,Image upload,Advertised image limits,observed,90 posts and 35 images per row with JPEG or PNG and 8MB guidance,Test actual caps and platform-specific limits
+BULK-015,Image upload,Account validation,executed,Selecting an account changed disabled-action explanation to missing images,None for tested empty rows
+BULK-016,Image upload,Caption limit,observed,Per-row maxlength is 2200,Test Unicode length semantics
+BULK-017,Image upload,Draft action parity,observed,Schedule All present and Save All as Drafts not visible in inspected state,Check after media ingestion
+BULK-018,Captions,Spintax variation count,executed,Three alternatives times two alternatives displayed six variations,Test nested and escaped syntax
+BULK-019,Captions,Spintax expansion,executed,Four rows received expanded strings with two unique results,Random distribution not established
+BULK-020,Captions,Duplicates,executed,Identical captions occurred across rows,Do not assume uniqueness
+BULK-021,Captions,Bulk source maxlength,observed,Both upload pages had maxlength 8800 with displayed 2200 output budget,Test longest expanded branch enforcement
+BULK-022,Captions,Literal overlength apply,executed,2201 character caption rejected on Apply with old row captions preserved,Test CSV and expansion overflow
+BULK-023,Captions,CSV mapping guidance,observed,Two-column name match or one-column row order with optional header,CSV parser and matching not executed
+BULK-024,Schedule,Frequency range,observed,One through 24 items per day,None for control range
+BULK-025,Schedule,Interval options,executed,At three per day options included eight hours but at four per day maximum was six hours,Test all frequency transitions
+BULK-026,Schedule,Three daily posts with six-hour spacing,executed,08:00 then 14:00 then 20:00 and next-day 08:00,None for tested case
+BULK-027,Schedule,Randomization,executed,Observed offsets of 20 and 0 and 15 and 0 minutes,Test boundaries and deterministic retries
+BULK-028,Schedule,Date horizon,observed,Date attributes span 2026-10-13 through 2027-02-10,Server validation and time zone unknown
+BULK-029,Schedule,Native date editing,executed,Keyboard editing committed November 13 and applied to rows,Programmatic fill discrepancy was automation-specific
+BULK-030,Schedule,Midnight rollover,executed,Four per day at six-hour spacing from 08:00 put row four next day at 02:00,Test time zones and DST
+BULK-031,Schedule,Summary calendar-day wording,observed,Approximately one day summary covered two calendar dates,Consider actual first and last timestamps
+BULK-032,Creation,Wizard stages,observed,Product Info then Customize Videos then Bulk Generate,None
+BULK-033,Creation,Quick-start preset,executed,Productivity populated four captions and twelve content items,Other presets not examined in depth
+BULK-034,Creation,None reset,executed,None restored blank lists and zero counters,None
+BULK-035,Creation,Caption and item validation,executed,Empty captions rejected and fewer than four items rejected,Test whitespace and duplicates
+BULK-036,Creation,Video count,executed,Slider min one max 30 default five and count changed to two then one,None for control behavior
+BULK-037,Creation,Caption input length,observed,Initial caption maxlength 60 and item inputs no maxlength,Test editor-stage caption constraints
+BULK-038,Creation,Two-concept assembly,executed,Each concept received four supplied topics in differing order and a selected music track,Random algorithm and uniqueness unverified
+BULK-039,Creation,Missing-image readiness,executed,Eight missing images kept Proceed disabled for two concepts,None for tested case
+BULK-040,Creation,Master caption propagation,executed,Master caption replaced fourth topic in both grids,Master image and rendered CTA behavior untested
+BULK-041,Creation,Bulk upload dialog,observed,Recommended eight images for two concepts and Use N Images action,Distribution not tested
+BULK-042,Creation,AI image generation,executed,Generate All four produced four loaded image previews,Provider and private endpoint unobserved
+BULK-043,Creation,Image output metadata,observed,Four WebP data URL images each 1152x896,None for tested assets
+BULK-044,Creation,AI image quota,observed,UI advertises maximum 50 photo generations per hour,Enforcement and quota scope untested
+BULK-045,Creation,Music library,observed,Eight built-in entries and Selected plus Cancel controls,Audio changes and mixing not audited
+BULK-046,Creation,New-tab persistence,executed,Fresh route opened blank first-stage form,Same-tab reload and durable project recovery untested
+BULK-047,Creation,Render active state,executed,Back disabled while generating and tab-close warning displayed,Interruption not exercised
+BULK-048,Creation,Representative render,executed,One grid video completed with All videos generated message,Multi-output concurrency and partial failures untested
+BULK-049,Creation,Download All for one output,executed,Downloaded video-1.mp4 directly and saved copy as bulk-grid-test.mp4,Multi-output packaging untested
+BULK-050,Creation,Output media integrity,measured,403430 bytes and six seconds with 1080x1920 H264 at 30fps and 180 fully decoded frames,AAC content not audited
+BULK-051,Creation,Rendered layout,measured,Headline and four labeled images in source topic order on light panel with black bands,Motion and crop boundary tests remain
+BULK-052,Creation,Completion handoff,observed,Download controls exposed with no direct Schedule action on completed screen,Manual reupload and scheduling not tested
+BULK-053,API,Public bulk endpoint coverage,observed,Same-session public OpenAPI snapshot has no dedicated bulk or render routes,Private UI transport unknown
+BULK-054,Ingestion,Actual video and image file upload,not_run,No local files uploaded,Test format and count and byte limits
+BULK-055,Ingestion,CSV application,not_run,Only guidance and supplied sample inspected,Test BOM and quotes and unmatched and duplicate names
+BULK-056,Publishing,Batch submission and persistence,not_run,No drafts or scheduled or published posts created,Separate authorized submission tests required
+BULK-057,Recovery,Retry and partial success,not_run,One successful render only,Test idempotency and per-row failures

@@ -1,0 +1,10 @@
+/* Reconstructed from live computed styles; not original component source. */
+.tf-ui { font-family: Inter, -apple-system, system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 14.5px; color: #000; }
+.tf-card { background:#fff; border:1px solid #e6e8ea; border-bottom-color:#c7cdd1; border-radius:12px; padding:12px; box-shadow:0 1px 3px -1px #0000000a,0 1px 4px -1px #0000000a; }
+.tf-card h3 { font-size:18px; font-weight:600; line-height:26.1px; }
+.tf-primary { background:rgb(25,154,245); color:white; font:600 14px/18.2px Inter,system-ui,sans-serif; min-height:32px; padding:0 12px; border:0; border-radius:12px; }
+.tf-primary:disabled { opacity:.5; }
+.tf-input { box-sizing:border-box; background:white; color:black; font:400 14px/20px Inter,system-ui,sans-serif; height:32px; padding:8px 12px; border:1px solid #eef0f1; border-radius:9.6px; }
+.tf-input:focus { outline:0; box-shadow:0 0 0 1px white,0 0 0 4px rgb(25 154 245 / 20%); }
+.tf-modal { box-sizing:border-box; width:440px; max-width:100%; background:white; color:black; border-radius:16px; padding:20px; box-shadow:0 6px 16px -2px #00000014,0 16px 80px -8px #0000001a; }
+.tf-modal h2 { font-size:18px; font-weight:600; line-height:23.4px; }

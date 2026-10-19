@@ -1,0 +1,50 @@
+id,area,case,status,evidence_or_result,remaining_work
+ST-001,Navigation,Studio and Content Studio identity,observed,Sidebar Studio opens Content Studio on the same route,None
+ST-002,Catalog,Available workflows,observed,Grid 2x2 and Single Fade-in and AI UGC exposed,None
+ST-003,Navigation,Template editor routing,executed,Editor changes stayed at the Content Studio URL,Reload and deep-link restoration untested
+ST-004,Grid,Bulk and per-slot upload controls,observed,One multiple image input plus four single-file image inputs,Actual upload assignment and validation untested
+ST-005,Grid,Missing images readiness,executed,Generate remained disabled after headline and music entry,Minimum populated slot count untested
+ST-006,Grid,Portrait Image Mode,executed,Checkbox could be enabled,Actual crop and exported layout untested
+ST-007,Grid,Static preview integrity,measured,1080x1920 H264 MP4 with AAC and 180 decoded frames over 6 seconds,New Grid export untested
+ST-008,Single,Shared image-editor state,executed,Headline and music carried from Grid to Single without saving,Persistence after reload untested
+ST-009,Single,Image-only toggle,executed,Headline disabled with value retained and restored when unchecked,Caption-free export untested
+ST-010,Single,Missing image readiness,executed,Generate remained disabled with no image,Successful render untested
+ST-011,Single,Static preview integrity,measured,1080x1920 H264 MP4 with AAC and 180 decoded frames over 6 seconds,New Single export untested
+ST-012,Single,Fade transition,measured,Exact-time frames showed a dark initial frame and later visible composition,Exact duration and easing unverified
+ST-013,Examples,Embedded Single social example,observed,Instagram embed reported broken link or removed post,Vendor should replace or provide fallback
+ST-014,Audio,Built-in library selection,executed,Eight entries exposed and first entry loaded with success toast,Other seven tracks untested
+ST-015,Audio,Track duration and excerpt range,measured,Source 30.14525 seconds and slider max 24.14525 with 0.1 second steps,Short source behavior untested
+ST-016,Audio,Trim Cancel rollback,defect_reproduced,24.1 second offset persisted after Cancel and reopening,Separate draft from committed offset
+ST-017,Audio,Trim Save Selection,executed,Reset to zero and Save Selection produced success feedback,Rendered audio excerpt untested
+ST-018,Audio,Trim help consistency,observed,First-six-seconds wording remained after selecting a later interval,Use selected interval in help text
+ST-019,UGC,Template list,observed,25 selectable styles labeled UGC Style 1 through UGC Style 25,Other styles media properties untested
+ST-020,UGC,No selected template,executed,Render action disabled with Select a Template First label,None
+ST-021,UGC,Selected template with empty text,executed,Generate Video remained disabled,Whitespace-only validation untested
+ST-022,UGC,Text and template with no music or CTA,executed,Generate enabled and render succeeded,None for tested Style 1 path
+ST-023,UGC,Independent editor state,executed,UGC began with empty text and no music after image editors,Return navigation and reload retention untested
+ST-024,UGC,Overlay position controls,executed,Top Middle and Bottom positions changed preview classes,Export parity across all positions untested
+ST-025,UGC,Template source metadata,observed,Style 1 used signed object-storage video at 720x1280 and 5.1 seconds,URL expiry and refresh behavior untested
+ST-026,UGC,CTA acquisition control,observed,Single video input with guidance for a 3 to 15 second clip,Upload validation and append behavior untested
+ST-027,Caption assistant,Empty description readiness,executed,Generate disabled until description entered,None
+ST-028,Caption assistant,Generate candidates,executed,One neutral description returned five selectable captions,Failures and retries and empty responses untested
+ST-029,Caption assistant,Choose candidate,executed,Selection closed dialog and replaced main overlay text and preview,None
+ST-030,Render,Progress and result,executed,Generating state observed at 20 percent then complete at 100 percent,Exact latency and cancellation untested
+ST-031,Render,Output integrity,measured,UGC output decoded all 153 frames at 720x1280 and 30 fps over 5.1 seconds,None for tested output
+ST-032,Render,Audio omission,measured,Output without selected music or CTA had no audio track,Music and CTA mixing untested
+ST-033,Render,Overlay output,measured,Bottom white outlined text visible and two-line input wrapped to three output lines,Long text and non-Latin script overflow untested
+ST-034,Download,MP4 acquisition,executed,Normal Download succeeded and file was independently verified at 4263280 bytes,None
+ST-035,Handoff,Schedule post from result,defect_reproduced,Storage setItem for studioGeneratedVideo raised QuotaExceededError and composer did not open,Transfer durable media ID or Blob-capable storage reference
+ST-036,Handoff,Output retained after failure,executed,Studio result remained open and downloadable,None
+ST-037,Result,Close warning,observed,Warning component states generated video will be lost on closure,Accepting warning and persistence untested
+ST-038,Layout,Result modal placement,observed,Sidebar partly occluded result modal in current viewport,Responsive widths and overlay stacking need testing
+ST-039,Accessibility,Catalog icon labels,observed,Inspected accessibility tree lacked useful names for icon-only actions,Keyboard and screen-reader testing needed
+ST-040,API,Public Studio API coverage,observed,Current public OpenAPI snapshot had no Studio or render or caption endpoint,Private transport and server implementation unknown
+ST-041,Grid,Actual fixture rendering,not_run,Only supplied sample inspected,Test real images and order and crops and portrait mode
+ST-042,Single,Actual fixture rendering,not_run,Only supplied sample inspected,Test image replacement and image-only output
+ST-043,Audio,Uploaded audio validation,not_run,No personal or synthetic audio uploaded,Test formats and size and short files and trim boundaries
+ST-044,UGC,CTA render boundaries,not_run,No CTA uploaded,Test 3 and 15 second clips plus invalid lengths and mixed resolutions
+ST-045,Caption assistant,Failure and cancellation,not_run,Only successful request and selection tested,Test retry and late response after close and failed requests
+ST-046,Persistence,Reload and workspace changes,not_run,Only in-page navigation inspected,Test recovery and workspace ownership and stale state
+ST-047,Render,Failure recovery and repeat clicks,not_run,Only one successful render executed,Test expired assets and interrupted renders and duplicate requests
+ST-048,Handoff,Size boundary and composer persistence,not_run,One 4263280 byte output failed handoff,Test small and large outputs then verify composer asset and draft
+ST-049,Publishing,Schedule or publish submission,not_run,No post was saved or scheduled or published,Requires a separate authorized publishing test

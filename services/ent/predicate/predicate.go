@@ -144,6 +144,12 @@ type OutboxEvent func(*sql.Selector)
 // PageKnowledge is the predicate function for pageknowledge builders.
 type PageKnowledge func(*sql.Selector)
 
+// PlatformCreativeSet is the predicate function for platformcreativeset builders.
+type PlatformCreativeSet func(*sql.Selector)
+
+// PlatformCreativeSetVersion is the predicate function for platformcreativesetversion builders.
+type PlatformCreativeSetVersion func(*sql.Selector)
+
 // ProductProfile is the predicate function for productprofile builders.
 type ProductProfile func(*sql.Selector)
 

@@ -41,7 +41,7 @@ export type ResolveDesignSource = (ref: string) => string
 export type CanvasSize = { canvasH: number; canvasW: number }
 
 /** How a write shows up in undo history. */
-export type DesignHistoryMode = 'clear' | 'step'
+export type DesignHistoryMode = 'clear' | 'step' | 'external'
 
 const TEMPLATE_SHADOW_PREFIX = 'template-shadow-'
 
@@ -59,6 +59,11 @@ function newId(prefix: string, index: number): string {
 
 function inHistory(mode: DesignHistoryMode, write: () => void) {
   const history = useImageStore.temporal.getState()
+  if (mode === 'external') {
+    history.pause()
+    write()
+    return
+  }
   if (mode === 'clear') {
     history.pause()
     try {

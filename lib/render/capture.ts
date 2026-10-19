@@ -15,6 +15,8 @@ export const STAGE_ELEMENT_ID = 'image-render-card'
 /** What to produce from the stage. Sizes are output pixels. */
 export type StageOutput = {
   format: StageFormat
+  /** Refuse missing images, failed fonts and clipped text rather than delivering a fallback. */
+  strict?: boolean
   /** Encode through the image API for smaller files (falls back to the browser). */
   compress?: boolean
   quality?: QualityPreset

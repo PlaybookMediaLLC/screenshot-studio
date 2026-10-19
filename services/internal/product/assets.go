@@ -119,6 +119,21 @@ func (c *Configuration) DeleteAsset(ctx context.Context, actor Actor, assetID st
 	if current.Status != asset.StatusUPLOADED {
 		return AssetNotReady, nil
 	}
+	// Serialize against Story Set writes before testing their references.
+	locked, err := tx.Asset.Update().Where(asset.ID(current.ID), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED)).SetStatus(asset.StatusUPLOADED).Save(ctx)
+	if err != nil {
+		return "", err
+	}
+	if locked != 1 {
+		return AssetNotReady, nil
+	}
+	inSet, err := creativeSetUsesAsset(ctx, tx, actor.OrganizationID, current.ID)
+	if err != nil {
+		return "", err
+	}
+	if inSet {
+		return AssetInUse, nil
+	}
 	variantCount, err := tx.CreativeVariant.Query().Where(
 		creativevariant.OrganizationID(actor.OrganizationID), creativevariant.SourceAssetID(current.ID),
 	).Count(ctx)

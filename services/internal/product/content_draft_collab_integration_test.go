@@ -8,9 +8,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/collab"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/google/uuid"
 	"github.com/lucsky/cuid"
 )
 
@@ -110,11 +112,52 @@ func TestContentDraftCollaboration(t *testing.T) {
 		}
 	})
 
+	t.Run("Story Set credentials are scoped and presence-only", func(t *testing.T) {
+		t.Setenv("PLATFORM_CREATIVE_SETS", "enabled")
+		assetID := uuid.NewString()
+		if err := db.Client.Asset.Create().SetID(assetID).SetOrganizationID(org).SetObjectKey("org/" + org + "/input/" + assetID + "/1/screen.png").SetMediaType("image/png").SetBytes(100).SetStatus(asset.StatusUPLOADED).Exec(ctx); err != nil {
+			t.Fatal(err)
+		}
+		set, err := repo.CreateCreativeSet(ctx, owner, cuid.New(), "Shared story", creativeSetFixture(assetID))
+		if err != nil {
+			t.Fatal(err)
+		}
+		token, err := repo.IssueCreativeSetCollabToken(ctx, owner, set.ID)
+		if err != nil || token.DocumentName != "creative-set:"+set.ID {
+			t.Fatalf("set token=%+v err=%v", token, err)
+		}
+		grant, err := repo.AuthorizeCollab(ctx, token.Token, token.DocumentName)
+		if err != nil || grant.Kind != "creative-set" || grant.Access != collab.AccessWrite {
+			t.Fatalf("set grant=%+v err=%v", grant, err)
+		}
+		if _, err := repo.IssueCreativeSetCollabToken(ctx, foreign, set.ID); !errors.Is(err, publishing.ErrNotFound) {
+			t.Fatalf("foreign set: %v", err)
+		}
+		if _, err := repo.AuthorizeCollab(ctx, token.Token, "content-draft:"+set.ID); !errors.Is(err, publishing.ErrForbidden) {
+			t.Fatalf("kind confusion: %v", err)
+		}
+		if _, err := repo.LoadCollabState(ctx, token.Token, set.ID); !errors.Is(err, publishing.ErrForbidden) {
+			t.Fatalf("set Yjs load: %v", err)
+		}
+		if err := repo.StoreCollabState(ctx, token.Token, set.ID, []byte{1}); !errors.Is(err, publishing.ErrForbidden) {
+			t.Fatalf("set Yjs store: %v", err)
+		}
+		exec(`UPDATE member SET role='viewer' WHERE id=$1`, "member_"+org)
+		grant, err = repo.AuthorizeCollab(ctx, token.Token, token.DocumentName)
+		if err != nil || grant.Access != collab.AccessRead {
+			t.Fatalf("demoted set grant=%+v err=%v", grant, err)
+		}
+		exec(`UPDATE member SET role='owner' WHERE id=$1`, "member_"+org)
+	})
+
 	t.Run("a member demoted to viewer joins read-only and cannot store", func(t *testing.T) {
 		exec(`UPDATE member SET role='viewer' WHERE id=$1`, "member_"+org)
 		t.Cleanup(func() { exec(`UPDATE member SET role='owner' WHERE id=$1`, "member_"+org) })
 		if grant, err := repo.AuthorizeCollab(ctx, issued.Token, issued.DocumentName); err != nil || grant.Access != collab.AccessRead {
 			t.Fatalf("demoted grant=%+v err=%v", grant, err)
+		}
+		if err := repo.StoreCollabState(ctx, issued.Token, draft.ID, []byte{7}); !errors.Is(err, publishing.ErrForbidden) {
+			t.Fatalf("old writer token after demotion: %v", err)
 		}
 		readOnly, err := repo.IssueContentDraftCollabToken(ctx, owner, draft.ID)
 		if err != nil || readOnly.Access != collab.AccessRead {
@@ -127,6 +170,12 @@ func TestContentDraftCollaboration(t *testing.T) {
 
 	t.Run("a member who left is refused", func(t *testing.T) {
 		exec(`DELETE FROM member WHERE id=$1`, "member_"+org)
+		if _, err := repo.LoadCollabState(ctx, issued.Token, draft.ID); !errors.Is(err, publishing.ErrForbidden) {
+			t.Fatalf("removed member load: %v", err)
+		}
+		if err := repo.StoreCollabState(ctx, issued.Token, draft.ID, []byte{1}); !errors.Is(err, publishing.ErrForbidden) {
+			t.Fatalf("removed member store: %v", err)
+		}
 		if _, err := repo.AuthorizeCollab(ctx, issued.Token, issued.DocumentName); !errors.Is(err, publishing.ErrForbidden) {
 			t.Fatalf("former member err=%v", err)
 		}

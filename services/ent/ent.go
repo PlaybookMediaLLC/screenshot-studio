@@ -58,6 +58,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -198,6 +200,8 @@ func checkColumn(t, c string) error {
 			organizationenterprisesettings.Table: organizationenterprisesettings.ValidColumn,
 			outboxevent.Table:                    outboxevent.ValidColumn,
 			pageknowledge.Table:                  pageknowledge.ValidColumn,
+			platformcreativeset.Table:            platformcreativeset.ValidColumn,
+			platformcreativesetversion.Table:     platformcreativesetversion.ValidColumn,
 			productprofile.Table:                 productprofile.ValidColumn,
 			productsurface.Table:                 productsurface.ValidColumn,
 			project.Table:                        project.ValidColumn,

@@ -104,6 +104,10 @@ type Tx struct {
 	OutboxEvent *OutboxEventClient
 	// PageKnowledge is the client for interacting with the PageKnowledge builders.
 	PageKnowledge *PageKnowledgeClient
+	// PlatformCreativeSet is the client for interacting with the PlatformCreativeSet builders.
+	PlatformCreativeSet *PlatformCreativeSetClient
+	// PlatformCreativeSetVersion is the client for interacting with the PlatformCreativeSetVersion builders.
+	PlatformCreativeSetVersion *PlatformCreativeSetVersionClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
 	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
@@ -347,6 +351,8 @@ func (tx *Tx) init() {
 	tx.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.PageKnowledge = NewPageKnowledgeClient(tx.config)
+	tx.PlatformCreativeSet = NewPlatformCreativeSetClient(tx.config)
+	tx.PlatformCreativeSetVersion = NewPlatformCreativeSetVersionClient(tx.config)
 	tx.ProductProfile = NewProductProfileClient(tx.config)
 	tx.ProductSurface = NewProductSurfaceClient(tx.config)
 	tx.Project = NewProjectClient(tx.config)

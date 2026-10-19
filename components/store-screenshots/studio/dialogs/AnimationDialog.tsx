@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ANIMATION_PRESETS, frameAt, slideDurations, totalDuration, type AnimationFormat } from '@/lib/store-screenshots/animation/timeline'
-import { deviceMotionSchema, textRevealSchema, transitionSchema } from '@/lib/store-screenshots/document/schema'
+import { deviceMotionSchema, textRevealSchema, transitionSchema, type StoreDocument } from '@/lib/store-screenshots/document/schema'
 import { slugify } from '@/lib/store-screenshots/export/plan'
 import { localeName } from '@/lib/store-screenshots/locales'
 import { terminateFFmpeg } from '@/lib/export/ffmpeg-encoder'
@@ -41,7 +41,11 @@ const MOTION_LABELS = { none: 'None', float: 'Gentle float', rise: 'Rise in' } a
  * Animated preview and GIF/MP4 export. Timing lives in the project, so the
  * preview, every export, and a reopened project use the same settings.
  */
-export function AnimationDialog({ open, onOpenChange }: DialogProps): React.JSX.Element {
+export function AnimationDialog({ open, onOpenChange, strict = false, beforeExport, onExport }: DialogProps & {
+  strict?: boolean
+  beforeExport?: (document: StoreDocument) => Promise<void>
+  onExport?: (result: { blob: Blob; fileName: string; document: StoreDocument; width: number; height: number; locale: string; presetId: string; format: AnimationFormat }, signal: AbortSignal) => Promise<void>
+}): React.JSX.Element {
   const api = useEditorApi()
   const document = useEditor((state) => state.document)
   const editingLocale = useEditor((state) => state.locale)
@@ -111,8 +115,10 @@ export function AnimationDialog({ open, onOpenChange }: DialogProps): React.JSX.
     try {
       setJob({ phase: 'Rendering slides', fraction: 0 })
       await whenAssetsReady(Object.keys(document.assets))
+      await beforeExport?.(document)
       const layers = await prepareSlideLayers(document, document.slides.map((_slide, index) => index), preset, locale, { measurer, resolveAsset }, {
         signal: controller.signal,
+        strict,
         onProgress: (done, count) => setJob({ phase: 'Rendering slides', fraction: (done / count) * 0.3 }),
       })
       setJob({ phase: format === 'gif' ? 'Encoding GIF' : 'Encoding MP4', fraction: 0.3 })
@@ -120,7 +126,10 @@ export function AnimationDialog({ open, onOpenChange }: DialogProps): React.JSX.
         signal: controller.signal,
         onProgress: (fraction) => setJob({ phase: format === 'gif' ? 'Encoding GIF' : 'Encoding MP4', fraction: 0.3 + fraction * 0.7 }),
       })
-      downloadBlob(blob, `${slugify(document.name)}-${preset.id}-${locale}.${format === 'gif' ? 'gif' : 'mp4'}`)
+      const fileName = `${slugify(document.name)}-${preset.id}-${locale}.${format === 'gif' ? 'gif' : 'mp4'}`
+      controller.signal.throwIfAborted()
+      if (onExport) await onExport({ blob, fileName, document, width: preset.width, height: preset.height, locale, presetId: preset.id, format }, controller.signal)
+      else downloadBlob(blob, fileName)
       toast.success(`${format.toUpperCase()} exported`, { description: `${total.toFixed(1)} s · ${preset.width} × ${preset.height} · ${(blob.size / 1024 / 1024).toFixed(1)} MB` })
     } catch (cause) {
       if (controller.signal.aborted) toast('Animation export cancelled')

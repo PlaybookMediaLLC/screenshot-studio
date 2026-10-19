@@ -32,6 +32,10 @@ const SUPPORTED_CONTENT_TYPES = new Set([
   'audio/ogg',
   'audio/wav',
   'audio/webm',
+  'font/woff',
+  'font/woff2',
+  'font/ttf',
+  'font/otf',
 ])
 
 /** Mirrors the server-side ceiling so oversized files fail before upload. */

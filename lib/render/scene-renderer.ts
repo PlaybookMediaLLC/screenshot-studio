@@ -27,6 +27,7 @@ let frame: HTMLIFrameElement | null = null
 let ready: Promise<void> | null = null
 let markReady: (() => void) | null = null
 let listening = false
+let renderQueue: Promise<void> = Promise.resolve()
 const pending = new Map<string, Pending>()
 
 function onFrameMessage(event: MessageEvent<RenderResponse>) {
@@ -67,8 +68,12 @@ function createFrame(): Promise<void> {
     width: `${FRAME_SIZE.width}px`,
   })
   frame = element
-  return new Promise<void>((resolve) => {
-    markReady = resolve
+  return new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      resetFrame('The render frame did not start.')
+      reject(new Error('The render frame did not start.'))
+    }, RENDER_TIMEOUT_MS)
+    markReady = () => { clearTimeout(timeout); resolve() }
     document.body.appendChild(element)
   })
 }
@@ -96,7 +101,7 @@ export type RenderDocumentOptions = {
 }
 
 /** Render a document (lossless, local sources allowed) to an image. */
-export async function renderDocument(
+async function renderOne(
   document: DesignDocument,
   output: StageOutput,
   { signal, time }: RenderDocumentOptions = {}
@@ -108,19 +113,28 @@ export async function renderDocument(
   const id = crypto.randomUUID()
   return new Promise<StageCapture>((resolve, reject) => {
     const timer = setTimeout(() => resetFrame('The render took too long.'), RENDER_TIMEOUT_MS)
-    pending.set(id, { reject, resolve, timer })
-    signal?.addEventListener(
-      'abort',
-      () => {
-        const job = pending.get(id)
-        if (!job) return
-        pending.delete(id)
-        clearTimeout(job.timer)
-        send({ type: 'cancel', id })
-        reject(signal.reason instanceof Error ? signal.reason : new DOMException('Aborted', 'AbortError'))
-      },
-      { once: true }
-    )
+    const abort = () => resetFrame('The render was cancelled.')
+    const cleanup = () => signal?.removeEventListener('abort', abort)
+    pending.set(id, {
+      timer,
+      reject: (error) => { cleanup(); reject(error) },
+      resolve: (capture) => { cleanup(); resolve(capture) },
+    })
+    signal?.addEventListener('abort', abort, { once: true })
     send({ type: 'render', document, id, output, time })
+  })
+}
+
+/** Queue before starting the timeout, so slow thumbnails cannot expire later exports. */
+export function renderDocument(document: DesignDocument, output: StageOutput, options: RenderDocumentOptions = {}): Promise<StageCapture> {
+  const result = renderQueue.then(() => renderOne(document, output, options))
+  renderQueue = result.then(() => undefined, () => undefined)
+  const { signal } = options
+  if (!signal) return result
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(signal.reason instanceof Error ? signal.reason : new DOMException('Aborted', 'AbortError'))
+    if (signal.aborted) abort()
+    else signal.addEventListener('abort', abort, { once: true })
+    result.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort))
   })
 }

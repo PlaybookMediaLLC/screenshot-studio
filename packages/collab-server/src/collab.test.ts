@@ -47,13 +47,14 @@ function fakeBackend() {
 
 function connect(port: number, token: string, document = DOCUMENT) {
   const doc = new Y.Doc();
-  const events = { failed: "", synced: false };
+  const events = { failed: "", synced: false, closed: false };
   const provider = new HocuspocusProvider({
     document: doc,
     name: document,
     onAuthenticationFailed: ({ reason }) => {
       events.failed = reason || "refused";
     },
+    onClose: () => { events.closed = true; },
     onSynced: () => {
       events.synced = true;
     },
@@ -185,3 +186,37 @@ test(
     }
   }
 );
+
+test("Story Sets share presence only and reauthorize membership on messages", async () => {
+  const name = 'creative-set:cstory00000001';
+  const admitted = new Set(['alice', 'bob']);
+  const backend: CollabBackend = {
+    authorize: async (token, documentName) => {
+      if (!admitted.has(token) || documentName !== name) throw new CollabBackendError('Member removed', 403);
+      return { kind: 'creative-set', access: 'write', draftId: 'cstory00000001', organizationId: 'org', user: { id: token, name: token } };
+    },
+    load: async () => { assert.fail('Story content must not load through Yjs'); },
+    store: async () => { assert.fail('Story content must not save through Yjs'); },
+  };
+  const server = new Server({ port: 0, quiet: true, debounce: 50, ...collabHooks(backend, () => {}) });
+  await server.listen();
+  const alice = connect(server.address.port, 'alice', name);
+  const bob = connect(server.address.port, 'bob', name);
+  const stranger = connect(server.address.port, 'alice', 'creative-set:another000001');
+  try {
+    await until(() => alice.events.synced && bob.events.synced, 'set presence sync');
+    alice.provider.setAwarenessField('user', { name: 'Alice' });
+    await until(() => [...bob.provider.awareness!.getStates().values()].some((state) => state.user?.name === 'Alice'), 'peer presence');
+    alice.doc.getText('content').insert(0, 'must not propagate');
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.equal(bob.doc.getText('content').toString(), '');
+    await until(() => stranger.events.failed !== '', 'wrong set refused');
+    admitted.delete('alice');
+    alice.provider.setAwarenessField('user', { name: 'Removed' });
+    await until(() => alice.events.closed, 'removed member disconnected');
+    assert.ok(![...bob.provider.awareness!.getStates().values()].some((state) => state.user?.name === 'Removed'));
+  } finally {
+    for (const client of [alice, bob, stranger]) { client.provider.destroy(); client.doc.destroy(); }
+    await server.destroy();
+  }
+});

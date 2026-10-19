@@ -47,12 +47,15 @@ function useAssetUrls(assets: Record<string, StoreAsset>, loadAsset: (id: string
       const generation = generationRef.current
       const promise = loadAsset(id)
         .then((blob) => {
-          if (!blob || generation !== generationRef.current) return
+          if (generation !== generationRef.current) return
+          if (!blob) { pendingRef.current.delete(id); return }
           const url = URL.createObjectURL(blob)
           urlsRef.current = new Map(urlsRef.current).set(id, url)
           setUrls(urlsRef.current)
         })
-        .catch(() => undefined)
+        .catch(() => {
+          if (generation === generationRef.current) pendingRef.current.delete(id)
+        })
       pendingRef.current.set(id, promise)
       return promise
     },
@@ -78,7 +81,9 @@ function useAssetUrls(assets: Record<string, StoreAsset>, loadAsset: (id: string
   )
 
   const resolveAsset = React.useCallback<AssetResolver>(
-    (id) => assets[id]?.src ?? urls.get(id) ?? null,
+    (id) => assets[id]?.src ?? urlsRef.current.get(id) ?? null,
+    // Re-render consumers when bytes arrive; preflight also needs the latest ref before that render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [assets, urls]
   )
 

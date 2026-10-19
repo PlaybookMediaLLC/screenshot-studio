@@ -561,6 +561,30 @@ func (f PageKnowledgeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PageKnowledgeMutation", m)
 }
 
+// The PlatformCreativeSetFunc type is an adapter to allow the use of ordinary
+// function as PlatformCreativeSet mutator.
+type PlatformCreativeSetFunc func(context.Context, *ent.PlatformCreativeSetMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformCreativeSetFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformCreativeSetMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformCreativeSetMutation", m)
+}
+
+// The PlatformCreativeSetVersionFunc type is an adapter to allow the use of ordinary
+// function as PlatformCreativeSetVersion mutator.
+type PlatformCreativeSetVersionFunc func(context.Context, *ent.PlatformCreativeSetVersionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformCreativeSetVersionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformCreativeSetVersionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformCreativeSetVersionMutation", m)
+}
+
 // The ProductProfileFunc type is an adapter to allow the use of ordinary
 // function as ProductProfile mutator.
 type ProductProfileFunc func(context.Context, *ent.ProductProfileMutation) (ent.Value, error)

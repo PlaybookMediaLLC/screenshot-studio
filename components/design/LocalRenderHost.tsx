@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { captureStage } from '@/lib/render/capture'
 import type { RenderRequest, RenderResponse } from '@/lib/render/protocol'
 import { StageRenderer } from './StageRenderer'
+import { assertStageReady } from '@/lib/render/stage-checks'
 
 type RenderJob = Extract<RenderRequest, { type: 'render' }>
 
@@ -49,6 +50,7 @@ export function LocalRenderHost() {
   const handleReady = useCallback(async () => {
     if (!job) return
     try {
+      if (job.output.strict) await assertStageReady()
       const capture = await captureStage(job.output)
       post({ type: 'result', id: job.id, ...capture })
     } catch (error) {
@@ -59,7 +61,7 @@ export function LocalRenderHost() {
   }, [job, pump])
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-transparent p-6">
+    <main data-canvas-viewport className="ph-no-capture mx-auto flex h-[1048px] max-h-screen max-w-[1072px] items-center justify-center overflow-hidden bg-transparent p-6">
       {job ? (
         <StageRenderer key={job.id} document={job.document} onReady={handleReady} time={job.time} />
       ) : null}

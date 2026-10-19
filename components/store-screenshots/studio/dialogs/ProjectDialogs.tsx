@@ -46,7 +46,8 @@ export function ProjectsDialog({
   currentProjectId,
   onOpenProject,
   onNewProject,
-}: DialogProps & { currentProjectId: string | null; onOpenProject: (id: string) => void; onNewProject: (kind: NewProjectKind) => void }): React.JSX.Element {
+  onDeleteCurrent,
+}: DialogProps & { currentProjectId: string | null; onOpenProject: (id: string) => void; onNewProject: (kind: NewProjectKind) => void; onDeleteCurrent: () => Promise<void> }): React.JSX.Element {
   const [projects, setProjects] = React.useState<ProjectSummary[] | null>(null)
   const [query, setQuery] = React.useState('')
   const [confirmDelete, setConfirmDelete] = React.useState<ProjectSummary | null>(null)
@@ -159,9 +160,12 @@ export function ProjectsDialog({
                 const target = confirmDelete
                 setConfirmDelete(null)
                 if (!target) return
+                if (target.id === currentProjectId) {
+                  await onDeleteCurrent()
+                  return
+                }
                 await deleteProject(target.id)
                 toast.success(`Deleted “${target.name}”`)
-                if (target.id === currentProjectId) onNewProject('starter')
                 refresh()
               }}
             >

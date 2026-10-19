@@ -15,6 +15,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { MobileBanner } from '@/components/editor/MobileBanner'
 import { countIssues, runChecks, type ExportSelection } from '@/lib/store-screenshots/compliance'
@@ -24,7 +26,7 @@ import type { StoreDocument } from '@/lib/store-screenshots/document/schema'
 import { evaluateSlide } from '@/lib/store-screenshots/engine/scene'
 import { importLegacyProject } from '@/lib/store-screenshots/persistence/legacy'
 import { ingestImageFile } from '@/lib/store-screenshots/persistence/ingest'
-import { deleteProject, getMeta, listProjects, loadProject, saveProject, type ProjectSummary } from '@/lib/store-screenshots/persistence/projects'
+import { getMeta, listProjects, loadProject, saveProject, type ProjectSummary } from '@/lib/store-screenshots/persistence/projects'
 import { DEFAULT_TARGET_ID, getStoreTargetOrDefault, targetPixelSize } from '@/lib/store-screenshots/targets'
 import { RenderProvider, useRenderServices } from '../render/RenderProvider'
 import { StoreWorkspaceLoading } from '../StoreWorkspaceLoading'
@@ -119,6 +121,9 @@ function EditorLayout({
   const deviceTargetRef = React.useRef<{ slideId: string; layerId: string } | null>(null)
   const issueCount = useHeaderIssues(store)
   const documentId = useStore(store, (state) => state.document.id)
+  const isMobile = useIsMobile()
+  const [mobilePanel, setMobilePanel] = React.useState<'tools' | 'inspector'>('tools')
+  const [mobilePanelOpen, setMobilePanelOpen] = React.useState(false)
 
   const ingestOne = React.useCallback(async (file: File) => {
     try {
@@ -166,7 +171,11 @@ function EditorLayout({
     [ingestOne, store]
   )
 
-  useEditorShortcuts(store, actions, () => void autosave.saveNow().then(() => toast.success('Saved')))
+  useEditorShortcuts(store, actions, () => void autosave.saveNow().then((saved) => { if (saved) toast.success('Saved') }))
+
+  const deleteCurrent = async () => {
+    if (await autosave.deleteCurrent()) onProjectDeleted()
+  }
 
   const close = (open: boolean) => {
     if (!open) {
@@ -178,7 +187,7 @@ function EditorLayout({
   return (
     <StudioActionsProvider value={actions}>
       <ActiveSceneProvider>
-        <div className="flex h-dvh flex-col overflow-hidden bg-background">
+        <div className="flex h-[var(--editor-height,100dvh)] flex-col overflow-hidden bg-background">
           <MobileBanner />
           <StudioHeader
             issueCount={issueCount}
@@ -187,15 +196,31 @@ function EditorLayout({
             onSaveVersion={() => setDialog('versions')}
             onStartOver={() => setConfirmDelete(true)}
           />
+          {isMobile ? (
+            <div className="flex shrink-0 gap-2 border-b border-foreground/10 px-3 py-1.5">
+              <Button size="sm" variant="outline" onClick={() => { setMobilePanel('tools'); setMobilePanelOpen(true) }}>Tools</Button>
+              <Button size="sm" variant="outline" onClick={() => { setMobilePanel('inspector'); setMobilePanelOpen(true) }}>Inspector</Button>
+            </div>
+          ) : null}
           <div className="flex min-h-0 flex-1">
-            <Sidebar />
+            {!isMobile ? <Sidebar /> : null}
             <main className="flex min-w-0 flex-1 flex-col" aria-label="Slide editor">
               <EditorCanvas onFiles={actions.importFiles} />
               <Filmstrip />
             </main>
-            <Inspector />
+            {!isMobile ? <Inspector /> : null}
           </div>
         </div>
+        {isMobile ? (
+          <Sheet open={mobilePanelOpen} onOpenChange={setMobilePanelOpen}>
+            <SheetContent side={mobilePanel === 'inspector' ? 'right' : 'left'} className="w-[min(100%,360px)] gap-0 p-0">
+              <SheetTitle className="px-4 py-4 text-sm">{mobilePanel === 'inspector' ? 'Inspector' : 'Tools'}</SheetTitle>
+              <div className="min-h-0 flex-1 [&>aside]:w-full">
+                {mobilePanel === 'inspector' ? <Inspector /> : <Sidebar />}
+              </div>
+            </SheetContent>
+          </Sheet>
+        ) : null}
         <Input
           ref={screenshotInputRef}
           type="file"
@@ -266,13 +291,20 @@ function EditorLayout({
           onOpenChange={close}
           currentProjectId={documentId}
           onOpenProject={(id) => {
-            setDialog(null)
-            void autosave.saveNow().then(() => onOpenProject(id))
+            void autosave.saveNow().then((saved) => {
+              if (!saved) return
+              setDialog(null)
+              onOpenProject(id)
+            })
           }}
           onNewProject={(kind) => {
-            setDialog(null)
-            void autosave.saveNow().then(() => onNewProject(kind))
+            void autosave.saveNow().then((saved) => {
+              if (!saved) return
+              setDialog(null)
+              onNewProject(kind)
+            })
           }}
+          onDeleteCurrent={deleteCurrent}
         />
         {dialog === 'versions' ? (
           <VersionsDialog
@@ -286,11 +318,15 @@ function EditorLayout({
           dialog={dialog}
           onOpenChange={close}
           onCreateProject={(document) => {
-            setDialog(null)
             void autosave
               .saveNow()
-              .then(() => saveProject(document, 0, null))
-              .then((saved) => onOpenProject(saved.id))
+              .then(async (saved) => {
+                if (!saved) return
+                const created = await saveProject(document, 0, null)
+                setDialog(null)
+                onOpenProject(created.id)
+              })
+              .catch(() => toast.error('Could not create the project. Your current project is still open.'))
           }}
         />
         {confirmDelete ? (
@@ -298,8 +334,7 @@ function EditorLayout({
             onCancel={() => setConfirmDelete(false)}
             onConfirm={async () => {
               setConfirmDelete(false)
-              await deleteProject(store.getState().document.id)
-              onProjectDeleted()
+              await deleteCurrent()
             }}
           />
         ) : null}
@@ -350,16 +385,16 @@ function StartScreen({ projects, onStart, onOpen, onImport }: { projects: Projec
   const inputRef = React.useRef<HTMLInputElement>(null)
   return (
     <RenderProvider document={starter}>
-      <div className="flex min-h-dvh flex-col bg-background">
+      <div className="flex min-h-[var(--editor-height,100dvh)] flex-col bg-background">
         <MobileBanner />
         <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
           <h1 className="text-2xl font-semibold tracking-tight">App Store and Google Play screenshots</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Design one set and export every store size, language, and format. Start from the sample set, a blank slide, or your own screenshots.
           </p>
-          <div className="mt-6 grid grid-cols-4 gap-3 sm:grid-cols-8" aria-label="Sample set preview">
+          <div className="mt-6 flex gap-3 overflow-x-auto pb-2" aria-label="Sample set preview">
             {starter.slides.map((slide, index) => (
-              <SlideThumbnail key={slide.id} document={starter} index={index} size={size} targetId={DEFAULT_TARGET_ID} locale="en-US" width={110} className="overflow-hidden rounded-md shadow-md ring-1 ring-foreground/10" />
+              <SlideThumbnail key={slide.id} document={starter} index={index} size={size} targetId={DEFAULT_TARGET_ID} locale="en-US" width={110} className="shrink-0 overflow-hidden rounded-md shadow-md ring-1 ring-foreground/10" />
             ))}
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
@@ -407,7 +442,7 @@ function StartScreen({ projects, onStart, onOpen, onImport }: { projects: Projec
 }
 
 /** The studio entry point. */
-export function StoreStudio({ initialHasSavedProject = false }: { initialHasSavedProject?: boolean }): React.JSX.Element {
+export function StoreStudio({ initialHasSavedProject = false, projectParam = 'project' }: { initialHasSavedProject?: boolean; projectParam?: 'project' | 'storeProject' }): React.JSX.Element {
   const [opened, setOpened] = React.useState<Opened | null>(null)
   const [projects, setProjects] = React.useState<ProjectSummary[] | null>(null)
   const [pendingImport, setPendingImport] = React.useState<File[]>([])
@@ -418,22 +453,26 @@ export function StoreStudio({ initialHasSavedProject = false }: { initialHasSave
       if (!loaded) throw new Error('That project no longer exists.')
       setOpened({ document: loaded.document, revision: loaded.document.revision })
       const url = new URL(window.location.href)
-      url.searchParams.set('project', id)
+      url.searchParams.set(projectParam, id)
       window.history.replaceState(null, '', url)
     } catch (cause) {
       toast.error('Could not open the project', { description: cause instanceof Error ? cause.message : undefined })
       setProjects(await listProjects().catch(() => []))
     }
-  }, [])
+  }, [projectParam])
 
   const create = React.useCallback(async (kind: NewProjectKind) => {
-    const document = kind === 'starter' ? createStarterDocument() : createScratchDocument()
-    const saved = await saveProject(document, 0, null)
-    setOpened({ document: saved, revision: saved.revision })
-    const url = new URL(window.location.href)
-    url.searchParams.set('project', saved.id)
-    window.history.replaceState(null, '', url)
-  }, [])
+    try {
+      const document = kind === 'starter' ? createStarterDocument() : createScratchDocument()
+      const saved = await saveProject(document, 0, null)
+      setOpened({ document: saved, revision: saved.revision })
+      const url = new URL(window.location.href)
+      url.searchParams.set(projectParam, saved.id)
+      window.history.replaceState(null, '', url)
+    } catch {
+      toast.error('Could not create the project', { description: 'Free some browser storage and try again.' })
+    }
+  }, [projectParam])
 
   React.useEffect(() => {
     let active = true
@@ -441,7 +480,7 @@ export function StoreStudio({ initialHasSavedProject = false }: { initialHasSave
       try {
         const imported = await importLegacyProject()
         if (imported) toast.success('Your screenshot set was upgraded', { description: 'It now lives in your project library with version history.' })
-        const requested = new URL(window.location.href).searchParams.get('project')
+        const requested = new URL(window.location.href).searchParams.get(projectParam)
         const last = requested ?? (await getMeta<string>('lastProjectId'))
         const list = await listProjects()
         if (!active) return
@@ -456,7 +495,7 @@ export function StoreStudio({ initialHasSavedProject = false }: { initialHasSave
     return () => {
       active = false
     }
-  }, [open])
+  }, [open, projectParam])
 
   if (opened) {
     return (
@@ -464,13 +503,14 @@ export function StoreStudio({ initialHasSavedProject = false }: { initialHasSave
         key={opened.document.id}
         opened={opened}
         initialImport={pendingImport}
-        onOpenProject={(id) => void open(id)}
-        onNewProject={(kind) => void create(kind)}
+        onOpenProject={(id) => { setPendingImport([]); void open(id) }}
+        onNewProject={(kind) => { setPendingImport([]); void create(kind) }}
         onProjectDeleted={async () => {
+          setPendingImport([])
           setOpened(null)
           setProjects(await listProjects().catch(() => []))
           const url = new URL(window.location.href)
-          url.searchParams.delete('project')
+          url.searchParams.delete(projectParam)
           window.history.replaceState(null, '', url)
         }}
       />
@@ -480,8 +520,8 @@ export function StoreStudio({ initialHasSavedProject = false }: { initialHasSave
   return (
     <StartScreen
       projects={projects}
-      onStart={(kind) => void create(kind)}
-      onOpen={(id) => void open(id)}
+      onStart={(kind) => { setPendingImport([]); void create(kind) }}
+      onOpen={(id) => { setPendingImport([]); void open(id) }}
       onImport={(files) => {
         setPendingImport(files)
         void create('scratch')

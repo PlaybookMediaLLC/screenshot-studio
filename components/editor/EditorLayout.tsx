@@ -145,7 +145,7 @@ function EditorMain() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden overscroll-contain">
+    <div className="h-[var(--editor-height,100dvh)] flex flex-col bg-background overflow-hidden overscroll-contain">
       <EditorPlatformLayer />
 
       <MobileBanner />

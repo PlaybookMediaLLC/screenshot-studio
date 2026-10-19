@@ -1,0 +1,69 @@
+{
+  "method": "AVFoundation metadata and full video-frame decoding",
+  "note": "Audio track presence/codec inspected; audio content not audited.",
+  "assets": [
+    {
+      "duration_seconds": 6,
+      "file": "2x2-grid-example.mp4",
+      "tracks": [
+        {
+          "codecs": [
+            "avc1"
+          ],
+          "decode_complete": true,
+          "decoded_video_frames": 180,
+          "height": 1920,
+          "media_type": "vide",
+          "nominal_fps": 30,
+          "width": 1080
+        },
+        {
+          "codecs": [
+            "aac "
+          ],
+          "media_type": "soun"
+        }
+      ]
+    },
+    {
+      "duration_seconds": 6,
+      "file": "single-image-example.mp4",
+      "tracks": [
+        {
+          "codecs": [
+            "avc1"
+          ],
+          "decode_complete": true,
+          "decoded_video_frames": 180,
+          "height": 1920,
+          "media_type": "vide",
+          "nominal_fps": 30.000001907348633,
+          "width": 1080
+        },
+        {
+          "codecs": [
+            "aac "
+          ],
+          "media_type": "soun"
+        }
+      ]
+    },
+    {
+      "duration_seconds": 5.1,
+      "file": "studio-ugc-test.mp4",
+      "tracks": [
+        {
+          "codecs": [
+            "avc1"
+          ],
+          "decode_complete": true,
+          "decoded_video_frames": 153,
+          "height": 1280,
+          "media_type": "vide",
+          "nominal_fps": 30,
+          "width": 720
+        }
+      ]
+    }
+  ]
+}

@@ -54,7 +54,7 @@ function LayerRow({
         <div
           role="option"
           aria-selected={selected}
-          tabIndex={selected ? 0 : -1}
+          tabIndex={selected || (!selection?.layerIds.length && index === 0) ? 0 : -1}
           data-layer-row={layer.id}
           className={cn(
             'group flex h-8 items-center gap-1.5 rounded-md px-1.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-foreground/30',
@@ -77,6 +77,9 @@ function LayerRow({
                 next.focus()
                 api.getState().selectLayers(owner, [next.dataset.layerRow!], event.shiftKey ? 'add' : 'replace', { deep: true })
               }
+            } else if (event.key === ' ') {
+              event.preventDefault()
+              api.getState().selectLayers(owner, [layer.id], event.shiftKey ? 'toggle' : 'replace', { deep: true })
             } else if (event.key === 'Enter' || event.key === 'F2') {
               event.preventDefault()
               setRenaming(true)

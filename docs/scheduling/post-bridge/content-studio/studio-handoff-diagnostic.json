@@ -1,0 +1,11 @@
+{
+  "observedAction": "Schedule post on completed UGC render",
+  "observedUiError": "Error preparing video for upload",
+  "observedResult": "Remained on Content Studio result modal",
+  "logs": [
+    {
+      "level": "error",
+      "message": "Error preparing video: QuotaExceededError: Failed to execute 'setItem' on 'Storage': Setting the value of 'studioGeneratedVideo' exceeded the quota.\n    at onClick (https://www.post-bridge.com/_next/static/chunks/6824-ffb16198e559baae.js?[query omitted]"
+    }
+  ]
+}

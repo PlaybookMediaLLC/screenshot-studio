@@ -1,0 +1,377 @@
+{
+  "inspection_date": "2026-10-13",
+  "kind": "Black-box functional contract and public API correlation; not recovered source",
+  "evidence_classes": {
+    "observed": "Live rendered UI or DOM",
+    "executed": "Interaction with verified resulting state",
+    "documented": "Official public API, not executed",
+    "proposed": "Reconstruction design",
+    "untested": "Not established"
+  },
+  "routes": {
+    "main": {
+      "calendar": "/dashboard/posts/calendar",
+      "all": "/dashboard/posts",
+      "scheduled": "/dashboard/posts/scheduled",
+      "posted": "/dashboard/posts/posted",
+      "drafts": "/dashboard/posts/draft",
+      "connections": "/dashboard/connections",
+      "create": "/dashboard/create"
+    },
+    "team": {
+      "calendar": "/team/{workspaceId}/calendar",
+      "all": "/team/{workspaceId}/posts",
+      "scheduled": "/team/{workspaceId}/scheduled",
+      "posted": "/team/{workspaceId}/posts/posted",
+      "drafts": "/team/{workspaceId}/posts/draft",
+      "connections": "/team/{workspaceId}/connections",
+      "create": "/team/{workspaceId}/create",
+      "detail": "/team/{workspaceId}/create/{postId}"
+    },
+    "calendar_view_query": [
+      "month",
+      "week"
+    ],
+    "date_prefill_example": "/dashboard/create/text?date=2026-10-15"
+  },
+  "datasets": {
+    "main": {
+      "all": "empty",
+      "scheduled": "empty",
+      "posted": "empty",
+      "drafts": "empty",
+      "connections": 5
+    },
+    "inspected_team": {
+      "loaded_all_cards": 26,
+      "loaded_posted_cards": 26,
+      "dates": [
+        "2025-10-22",
+        "2025-10-30"
+      ],
+      "date_range_inclusive": true,
+      "observed_post_type": "text",
+      "observed_platform": "twitter",
+      "scheduled": "empty",
+      "drafts": "empty",
+      "connections": 20
+    },
+    "limit": "Counts describe inspected loaded UI; not product limits or exhaustive server totals."
+  },
+  "lists": {
+    "filters": {
+      "sort": [
+        "Newest First",
+        "Oldest First"
+      ],
+      "date": [
+        "All Time",
+        "Today",
+        "This Week",
+        "This Month",
+        "Custom Range"
+      ],
+      "trial": [
+        "All Posts",
+        "Trial Reels",
+        "Non-Trial"
+      ],
+      "account_search": true,
+      "platform_control": true
+    },
+    "custom_range": {
+      "native_date_inputs": 2,
+      "apply_button_observed": false,
+      "boundaries_tested": false
+    },
+    "executed": {
+      "oldest_first_changed_first_day_to": "2025-10-22",
+      "today_filtered_historical_cards_to": 0,
+      "sort_or_date_changes_added_query_parameters": false
+    },
+    "card_fields": [
+      "date",
+      "time",
+      "post_type",
+      "caption_preview",
+      "account_identity",
+      "status"
+    ],
+    "pagination_ui": "No controls observed; implementation unknown",
+    "date_source_field": null,
+    "account_filter_options_source": "Unknown; one X account offered despite 20 connections"
+  },
+  "calendar": {
+    "week_start": "Sunday",
+    "views": [
+      "month",
+      "week"
+    ],
+    "past_month_included_posted_items": true,
+    "visible_period_in_url": false,
+    "view_retention_observed": true,
+    "view_storage_implementation": null,
+    "show_all_retention_observed": true,
+    "expansion": {
+      "collapsed_visible_links": 18,
+      "after_one_day_expansion": 19,
+      "global_expansion_visible_links": 26,
+      "collapsed_day_limit_observed": 2,
+      "active_global_label": "Showing all"
+    },
+    "day_actions": {
+      "past_current_month": [
+        "add_note"
+      ],
+      "today_future_current_month": [
+        "add_note",
+        "create_post"
+      ],
+      "overflow_actions_observed": false
+    },
+    "create_choices": [
+      "text",
+      "image",
+      "video",
+      "story",
+      "pick_from_drafts"
+    ],
+    "date_prefill": {
+      "tested_mode": "text",
+      "date": "2026-10-15",
+      "schedule_checked": true,
+      "time": "12:00 PM",
+      "guidance": "local time",
+      "persisted_post": false
+    },
+    "notes": {
+      "label": "Calendar Event",
+      "fields": [
+        "date_context",
+        "title",
+        "color"
+      ],
+      "colors": [
+        "Blue",
+        "Green",
+        "Red",
+        "Yellow",
+        "Purple",
+        "Orange"
+      ],
+      "empty_title_disables_submit": true,
+      "nonempty_title_enables_submit": true,
+      "cancel_executed": true,
+      "save_executed": false
+    },
+    "platform_options": [
+      "all",
+      "twitter",
+      "instagram",
+      "linkedin",
+      "facebook",
+      "tiktok",
+      "youtube",
+      "bluesky",
+      "threads",
+      "pinterest",
+      "google_business"
+    ],
+    "timezones": [
+      {
+        "label": "My time",
+        "zone": "America/New_York"
+      },
+      {
+        "label": "US Pacific",
+        "zone": "America/Los_Angeles"
+      },
+      {
+        "label": "UK",
+        "zone": "Europe/London"
+      },
+      {
+        "label": "Central Europe",
+        "zone": "Europe/Paris"
+      },
+      {
+        "label": "India",
+        "zone": "Asia/Kolkata"
+      },
+      {
+        "label": "Singapore",
+        "zone": "Asia/Singapore"
+      },
+      {
+        "label": "Japan",
+        "zone": "Asia/Tokyo"
+      },
+      {
+        "label": "Sydney",
+        "zone": "Australia/Sydney"
+      },
+      {
+        "label": "Dubai",
+        "zone": "Asia/Dubai"
+      },
+      {
+        "label": "Moscow",
+        "zone": "Europe/Moscow"
+      },
+      {
+        "label": "São Paulo",
+        "zone": "America/Sao_Paulo"
+      }
+    ],
+    "timezone_conversion_test": "Blocked by menu/grid stacking; label and times remained unchanged",
+    "drag_rescheduling": "untested"
+  },
+  "connections": {
+    "providers": [
+      "twitter",
+      "instagram",
+      "linkedin",
+      "facebook",
+      "tiktok",
+      "youtube",
+      "bluesky",
+      "threads",
+      "pinterest",
+      "google_business"
+    ],
+    "main_distribution": {
+      "facebook": 1,
+      "linkedin": 2,
+      "tiktok": 1,
+      "twitter": 1
+    },
+    "team_distribution": {
+      "facebook": 5,
+      "instagram": 5,
+      "linkedin": 1,
+      "twitter": 4,
+      "youtube": 5
+    },
+    "main_allowance_banner": {
+      "connected": 27,
+      "included": 99,
+      "aggregation_scope": "unverified"
+    },
+    "team_allowance_banner_visible": false,
+    "main_client_invitation_visible": true,
+    "team_client_invitation_visible": false,
+    "show_ids_control_observed": true,
+    "show_ids_toggled": false,
+    "refresh_control_observed": true,
+    "refresh_executed": false,
+    "groups": {
+      "empty_main_menu": [
+        "All accounts",
+        "Create New Group"
+      ],
+      "fields": [
+        "name",
+        "account_checkboxes_by_platform"
+      ],
+      "exclusive_membership_explained_by_ui": true,
+      "create_enabled_when_empty": true,
+      "save_executed": false,
+      "cancel_executed": true
+    },
+    "invitation": {
+      "chooser_opened": true,
+      "platforms": [
+        "twitter",
+        "instagram",
+        "linkedin",
+        "facebook",
+        "tiktok",
+        "youtube",
+        "bluesky",
+        "threads",
+        "pinterest"
+      ],
+      "link_generated": false,
+      "sent": false
+    }
+  },
+  "public_api": {
+    "source": "https://api.post-bridge.com/reference",
+    "snapshot": "post-management-public.openapi.json",
+    "status_enum": [
+      "posted",
+      "scheduled",
+      "processing",
+      "failed"
+    ],
+    "draft_field": "is_draft",
+    "post_id_type": "string",
+    "social_account_id_type": "number",
+    "list_defaults": {
+      "offset": 0,
+      "limit": 10
+    },
+    "post_list_documented_filters": [
+      "platform[]",
+      "status[]"
+    ],
+    "critical_rules": [
+      "Updating scheduled posts must resend scheduled_at; omission can process immediately.",
+      "Draft state is a boolean, not a status enum member.",
+      "Delete post is limited to draft/scheduled states.",
+      "Disconnect removes scheduled destinations and preserves published results.",
+      "Reconnect after disconnect creates a new social account ID."
+    ],
+    "private_ui_endpoint_equivalence_proven": false,
+    "account_api_calls_executed": false
+  },
+  "defects": [
+    {
+      "id": "PM-B01",
+      "classification": "executed",
+      "summary": "Team posted-result Create a new post link opens Main",
+      "observed_href": "/dashboard/create",
+      "result_workspace": "Main",
+      "priority_proposed": "P2",
+      "evidence": "posted-new-post-workspace-reset.jpg"
+    },
+    {
+      "id": "PM-B02",
+      "classification": "executed",
+      "summary": "Calendar cells overlap timezone dropdown and intercept UK click",
+      "label_after_click": "My time",
+      "times_after_click": "unchanged",
+      "hit_test_top_elements": [
+        "calendar No posts div",
+        "calendar content div",
+        "calendar cell div"
+      ],
+      "hit_test_underlying_element": "Europe/London span and containing anchor",
+      "cell_class_included": "z-50",
+      "exact_stacking_context_cause": "not recovered",
+      "viewport": {
+        "width": 1728,
+        "height": 1028
+      },
+      "priority_proposed": "P2",
+      "evidence": "calendar-timezone-menu-stacking.jpg"
+    }
+  ],
+  "not_executed": [
+    "Save post/draft/schedule",
+    "Calendar event persistence",
+    "Group persistence",
+    "Connect/refresh/disconnect account",
+    "Generate/send invitation",
+    "Provider publication",
+    "Draft/scheduled populated detail",
+    "Failed/processing/mixed outcomes",
+    "Custom date range boundaries",
+    "Timezone conversion and DST"
+  ],
+  "related_reports": [
+    "post-bridge-new-post-technical-analysis.md",
+    "post-bridge-content-studio-technical-analysis.md",
+    "post-bridge-bulk-tools-technical-analysis.md"
+  ]
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_IMAGE_PLACEMENT,
   useImageStore,
@@ -27,6 +27,8 @@ import type { PersistedImageState } from "@/lib/draft-storage";
 import { trackDraftRestore } from "@/lib/projects/draft-ready";
 
 const AUTOSAVE_DELAY = 1000;
+// A returning editor waits for the save started by the previous mount.
+let pendingDraftSave: Promise<void> = Promise.resolve();
 
 /**
  * Live session state. It is written to the draft so the persisted shape stays
@@ -85,18 +87,6 @@ function toPersistedImageState(state: ImageState): OmitFunctions<ImageState> {
   };
 }
 
-/**
- * Long strings in the fingerprint are base64 image payloads; comparing them in
- * full would stringify tens of MB on every keystroke. Length plus a prefix is
- * enough to notice the image being swapped.
- */
-function fingerprintReplacer(_key: string, value: unknown) {
-  if (typeof value === "string" && value.length > 256) {
-    return `${value.length}:${value.slice(0, 64)}`;
-  }
-  return value;
-}
-
 /** A saved timeline without the playback position older drafts stored in it. */
 function withoutPlayback(timeline: ImageState["timeline"] & { playhead?: unknown; isPlaying?: unknown }) {
   const { playhead: _playhead, isPlaying: _isPlaying, ...rest } = timeline;
@@ -117,6 +107,7 @@ export function useAutosaveDraft() {
   const imageStore = useImageStore();
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
   const hasLoadedRef = useRef(false);
+  const restoreRef = useRef<Promise<void> | null>(null);
   const lastSnapshotRef = useRef<string>('');
   // Warn about a full quota once per session, not once per autosave tick.
   const hasWarnedQuotaRef = useRef(false);
@@ -129,6 +120,7 @@ export function useAutosaveDraft() {
       if (hasLoadedRef.current) return;
 
       try {
+        await pendingDraftSave;
         // Migrate from localStorage to IndexedDB (one-time)
         await migrateFromLocalStorage();
 
@@ -140,6 +132,7 @@ export function useAutosaveDraft() {
 
         const draft = await getDraft();
         if (!draft) {
+          lastSnapshotRef.current = JSON.stringify(toPersistedImageState(useImageStore.getState()));
           hasLoadedRef.current = true;
           return;
         }
@@ -215,6 +208,7 @@ export function useAutosaveDraft() {
         useImageStore.temporal.getState().clear();
 
         setLastSaved(new Date(draft.timestamp));
+        lastSnapshotRef.current = JSON.stringify(toPersistedImageState(useImageStore.getState()));
         hasLoadedRef.current = true;
       } catch (error) {
         console.error("Failed to load draft:", error);
@@ -222,189 +216,189 @@ export function useAutosaveDraft() {
       }
     };
 
-    trackDraftRestore(loadDraft());
-  }, [imageStore]);
+    restoreRef.current ??= loadDraft();
+    trackDraftRestore(restoreRef.current);
+  }, []);
 
-  // Auto-save on state changes
-  useEffect(() => {
-    if (!hasLoadedRef.current) {
-      return;
-    }
+  const saveNow = useCallback(() => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = null;
+    if (!hasLoadedRef.current) return pendingDraftSave;
+    // Capture before navigation can replace the live project; serialize writes.
+    const persistedImage = toPersistedImageState(useImageStore.getState());
+    const save = async () => {
+      try {
+        // The dirty check covers everything that actually gets persisted, so
+        // editing any feature — including ones added later — marks the draft
+        // dirty. Previously it tracked a hand-picked subset, so changes to
+        // untracked state were skipped as "nothing changed".
+        const snapshot = JSON.stringify(persistedImage);
 
-    const debouncedSave = async () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
+        if (snapshot === lastSnapshotRef.current) {
+          return; // Nothing changed — skip save
+        }
 
-      saveTimeoutRef.current = setTimeout(async () => {
-        try {
-          const persistedImage = toPersistedImageState(useImageStore.getState());
+        setIsSaving(true);
 
-          // The dirty check covers everything that actually gets persisted, so
-          // editing any feature — including ones added later — marks the draft
-          // dirty. Previously it tracked a hand-picked subset, so changes to
-          // untracked state were skipped as "nothing changed".
-          const snapshot = JSON.stringify(persistedImage, fingerprintReplacer);
+        // Inline every blob-backed source as a data URL — blob: references are
+        // dead on the next page load.
+        const rawUploadedImageUrl = persistedImage.uploadedImageUrl;
+        const processedUploadedImageUrl = rawUploadedImageUrl
+          ? await toPersistableSrc(rawUploadedImageUrl)
+          : null;
 
-          if (snapshot === lastSnapshotRef.current) {
-            return; // Nothing changed — skip save
-          }
+        const processedBackgroundConfig = { ...persistedImage.backgroundConfig };
+        if (
+          processedBackgroundConfig.type === "image" &&
+          typeof processedBackgroundConfig.value === "string"
+        ) {
+          processedBackgroundConfig.value = await toPersistableSrc(
+            processedBackgroundConfig.value
+          );
+        }
 
-          setIsSaving(true);
+        const processedImageOverlays = await Promise.all(
+          persistedImage.imageOverlays.map(async (overlay) =>
+            overlay.isCustom
+              ? { ...overlay, src: await toPersistableSrc(overlay.src) }
+              : overlay
+          )
+        );
 
-          // Inline every blob-backed source as a data URL — blob: references are
-          // dead on the next page load.
-          const rawUploadedImageUrl = persistedImage.uploadedImageUrl;
-          const processedUploadedImageUrl = rawUploadedImageUrl
-            ? await toPersistableSrc(rawUploadedImageUrl)
-            : null;
+        // Slides hold blob URLs created from the uploaded File objects. Without
+        // this they restore as dead references and the deck renders empty —
+        // which also silently removes batch export, since it needs 2+ slides.
+        const processedSlides = await Promise.all(
+          persistedImage.slides.map(async (slide) => ({
+            ...slide,
+            src: await toPersistableSrc(slide.src),
+          }))
+        );
 
-          const processedBackgroundConfig = { ...persistedImage.backgroundConfig };
-          if (
-            processedBackgroundConfig.type === "image" &&
-            typeof processedBackgroundConfig.value === "string"
-          ) {
-            processedBackgroundConfig.value = await toPersistableSrc(
-              processedBackgroundConfig.value
+        const deviceScreenAssets: Record<string, string> = {};
+        const deviceScreenAssetIds = new Map<string, string>();
+        const processMockups = async (mockups: typeof persistedImage.mockups) => (
+          Promise.all(mockups.map(async (mockup) => {
+            const screen = compactDeviceScreenForDraft(
+              mockup.screen,
+              rawUploadedImageUrl ?? null,
             );
-          }
-
-          const processedImageOverlays = await Promise.all(
-            persistedImage.imageOverlays.map(async (overlay) =>
-              overlay.isCustom
-                ? { ...overlay, src: await toPersistableSrc(overlay.src) }
-                : overlay
-            )
-          );
-
-          // Slides hold blob URLs created from the uploaded File objects. Without
-          // this they restore as dead references and the deck renders empty —
-          // which also silently removes batch export, since it needs 2+ slides.
-          const processedSlides = await Promise.all(
-            persistedImage.slides.map(async (slide) => ({
-              ...slide,
-              src: await toPersistableSrc(slide.src),
-            }))
-          );
-
-          const deviceScreenAssets: Record<string, string> = {};
-          const deviceScreenAssetIds = new Map<string, string>();
-          const processMockups = async (mockups: typeof persistedImage.mockups) => (
-            Promise.all(mockups.map(async (mockup) => {
-              const screen = compactDeviceScreenForDraft(
-                mockup.screen,
-                rawUploadedImageUrl ?? null,
-              );
-              const src = screen.src ? await toPersistableSrc(screen.src) : null;
-              if (screen.isCustom && src) {
-                let assetId = deviceScreenAssetIds.get(src);
-                if (!assetId) {
-                  assetId = `screen-${deviceScreenAssetIds.size + 1}`;
-                  deviceScreenAssetIds.set(src, assetId);
-                  deviceScreenAssets[assetId] = src;
-                }
-                return {
-                  ...mockup,
-                  screen: {
-                    ...screen,
-                    src: null,
-                    sourceRef: `device-screen:${assetId}` as const,
-                  },
-                };
+            const src = screen.src ? await toPersistableSrc(screen.src) : null;
+            if (screen.isCustom && src) {
+              let assetId = deviceScreenAssetIds.get(src);
+              if (!assetId) {
+                assetId = `screen-${deviceScreenAssetIds.size + 1}`;
+                deviceScreenAssetIds.set(src, assetId);
+                deviceScreenAssets[assetId] = src;
               }
               return {
                 ...mockup,
                 screen: {
                   ...screen,
-                  src,
+                  src: null,
+                  sourceRef: `device-screen:${assetId}` as const,
                 },
               };
-            }))
-          );
-          // Timeline audio is blob-backed like images; inline it so it survives a reload.
-          const processedMotion = {
-            ...persistedImage.motion,
-            audio: await Promise.all(
-              persistedImage.motion.audio.map(async (clip) => ({
-                ...clip,
-                src: await toPersistableSrc(clip.src),
-              }))
-            ),
-          };
-
-          const processedMockups = await processMockups(persistedImage.mockups);
-          const processedDeviceLayoutSnapshot = persistedImage.deviceLayoutSnapshot
-            ? await processMockups(persistedImage.deviceLayoutSnapshot)
-            : persistedImage.deviceLayoutSnapshot;
-
-          // Spread the derived state, then override only the fields whose blob
-          // sources had to be inlined above.
-          const imageState: PersistedImageState = {
-            ...persistedImage,
-            uploadedImageUrl: processedUploadedImageUrl,
-            backgroundConfig: processedBackgroundConfig,
-            imageOverlays: processedImageOverlays,
-            slides: processedSlides,
-            motion: processedMotion,
-            mockups: processedMockups,
-            deviceLayoutSnapshot: processedDeviceLayoutSnapshot,
-            deviceScreenAssets,
-          };
-
-          const result = await saveDraft(imageState);
-
-          if (!result.ok) {
-            // Leave lastSnapshotRef untouched so the next change retries this
-            // save instead of treating the failed write as already persisted.
-            console.warn("[draft] autosave failed:", result.reason, result.error);
-            if (result.reason === "quota" && !hasWarnedQuotaRef.current) {
-              hasWarnedQuotaRef.current = true;
-              toast.error("Couldn't save your draft", {
-                description:
-                  "Browser storage is full. Export your work — recent changes may not survive a reload.",
-                duration: 10000,
-              });
             }
-            return;
+            return {
+              ...mockup,
+              screen: {
+                ...screen,
+                src,
+              },
+            };
+          }))
+        );
+        // Timeline audio is blob-backed like images; inline it so it survives a reload.
+        const processedMotion = {
+          ...persistedImage.motion,
+          audio: await Promise.all(
+            persistedImage.motion.audio.map(async (clip) => ({
+              ...clip,
+              src: await toPersistableSrc(clip.src),
+            }))
+          ),
+        };
+
+        const processedMockups = await processMockups(persistedImage.mockups);
+        const processedDeviceLayoutSnapshot = persistedImage.deviceLayoutSnapshot
+          ? await processMockups(persistedImage.deviceLayoutSnapshot)
+          : persistedImage.deviceLayoutSnapshot;
+
+        // Spread the derived state, then override only the fields whose blob
+        // sources had to be inlined above.
+        const imageState: PersistedImageState = {
+          ...persistedImage,
+          uploadedImageUrl: processedUploadedImageUrl,
+          backgroundConfig: processedBackgroundConfig,
+          imageOverlays: processedImageOverlays,
+          slides: processedSlides,
+          motion: processedMotion,
+          mockups: processedMockups,
+          deviceLayoutSnapshot: processedDeviceLayoutSnapshot,
+          deviceScreenAssets,
+        };
+
+        const result = await saveDraft(imageState);
+
+        if (!result.ok) {
+          // Leave lastSnapshotRef untouched so the next change retries this
+          // save instead of treating the failed write as already persisted.
+          console.warn("[draft] autosave failed:", result.reason, result.error);
+          if (result.reason === "quota" && !hasWarnedQuotaRef.current) {
+            hasWarnedQuotaRef.current = true;
+            toast.error("Couldn't save your draft", {
+              description:
+                "Browser storage is full. Export your work — recent changes may not survive a reload.",
+              duration: 10000,
+            });
           }
-
-          lastSnapshotRef.current = snapshot;
-          setLastSaved(new Date());
-        } catch (error) {
-          console.warn("[draft] autosave threw:", error);
-        } finally {
-          setIsSaving(false);
+          return;
         }
-      }, AUTOSAVE_DELAY);
-    };
 
-    debouncedSave();
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
+        lastSnapshotRef.current = snapshot;
+        setLastSaved(new Date());
+      } catch (error) {
+        console.warn("[draft] autosave threw:", error);
+      } finally {
+        setIsSaving(false);
       }
     };
-  // The store is consumed without a selector, so its identity changes on
-  // any state update — that is enough to re-run this effect for every field.
-  // The previous hand-listed dependency array had the same drift problem as the
-  // hand-listed snapshot: new state was simply not watched.
-  }, [imageStore]);
+    pendingDraftSave = pendingDraftSave.then(save, save);
+    return pendingDraftSave;
+  }, []);
 
-  // Warn before closing if saving
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isSaving) {
-        e.preventDefault();
-        e.returnValue =
-          "You have unsaved changes. Are you sure you want to leave?";
-        return e.returnValue;
-      }
+    if (!hasLoadedRef.current) return;
+    saveTimeoutRef.current = setTimeout(() => void saveNow(), AUTOSAVE_DELAY);
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
+  }, [imageStore, saveNow]);
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isSaving]);
+  useEffect(() => {
+    const flush = () => void saveNow();
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasLoadedRef.current) return;
+      const snapshot = JSON.stringify(toPersistedImageState(useImageStore.getState()));
+      if (snapshot === lastSnapshotRef.current) return;
+      flush();
+      event.preventDefault();
+      event.returnValue = "You have unsaved changes.";
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", flush);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      flush();
+    };
+  }, [saveNow]);
 
   const clearDraft = async () => {
     try {

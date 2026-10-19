@@ -1,0 +1,27 @@
+{
+  "inspection_date": "2026-10-13",
+  "method": "AVFoundation metadata inspection and full video-frame decode",
+  "audio_scope": "Track presence and codec only; audio content not audited",
+  "duration_seconds": 6,
+  "file": "bulk-grid-test.mp4",
+  "tracks": [
+    {
+      "codecs": [
+        "avc1"
+      ],
+      "decode_complete": true,
+      "decoded_video_frames": 180,
+      "height": 1920,
+      "media_type": "vide",
+      "nominal_fps": 30,
+      "width": 1080
+    },
+    {
+      "codecs": [
+        "aac "
+      ],
+      "media_type": "soun"
+    }
+  ],
+  "bytes": 403430
+}

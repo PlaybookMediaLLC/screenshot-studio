@@ -426,7 +426,10 @@ test('Editor and Settings expand inline in the rail and mobile navigation', asyn
   await expect(settings).toHaveAttribute('aria-expanded', 'false')
   await settings.press('Space')
   await expect(settings).toHaveAttribute('aria-expanded', 'true')
-  await expect(settingsLinks.getByRole('link')).toHaveCount(16)
+  await expect(settingsLinks.getByRole('link')).toHaveCount(17)
+  await expect(
+    settingsLinks.getByRole('link', { name: 'Notifications', exact: true })
+  ).toHaveAttribute('href', '/workspace/notifications')
   await settingsLinks
     .getByRole('link', { name: 'Developer API', exact: true })
     .scrollIntoViewIfNeeded()
@@ -456,6 +459,10 @@ test('Editor and Settings expand inline in the rail and mobile navigation', asyn
     drawer.getByRole('navigation', { name: 'Workspace settings', exact: true })
   ).toBeHidden()
   await mobileSettings.press('Space')
+  await expect(drawer.getByRole('link', { name: 'Notifications', exact: true })).toHaveAttribute(
+    'href',
+    '/workspace/notifications'
+  )
   await expect(drawer.getByRole('link', { name: 'General', exact: true })).toHaveAttribute(
     'aria-current',
     'page'

@@ -33,3 +33,35 @@ func TestNotificationsRunByDefault(t *testing.T) {
 		})
 	}
 }
+
+type reviewEvents struct{ calls int }
+
+func (e *reviewEvents) HandleOutboxEvent(context.Context, string, string, string, string) (bool, error) {
+	e.calls++
+	return true, nil
+}
+
+func TestOutboxPreservesLegacyReviewIntentsUntilCutover(t *testing.T) {
+	s, _ := setup(t)
+	handler := &reviewEvents{}
+	s.Events = handler
+	event(t, s, "legacy-submitted", "a", "campaign", "campaign_posts.submitted")
+	event(t, s, "legacy-decided", "a", "campaign", "campaign_posts.decided")
+	event(t, s, "current", "a", "campaign", "campaign_posts.submitted")
+	exec(t, s.DB, `UPDATE outbox_event SET attempts=3 WHERE id='legacy-decided'`)
+	exec(t, s.DB, `UPDATE outbox_event SET notification_version=1 WHERE id='current'`)
+	for range 10 {
+		run(t, s, "tenant-outbox")
+	}
+	if handler.calls != 1 {
+		t.Fatalf("unconverted reviews reached the retired sender: %d", handler.calls)
+	}
+	expect(t, s.DB, 2, `SELECT count(*) FROM outbox_event WHERE notification_version=0 AND "deliveredAt" IS NULL AND "deadLetteredAt" IS NULL AND "processingAt" IS NULL`)
+	expect(t, s.DB, 0, `SELECT attempts FROM outbox_event WHERE id='legacy-submitted'`)
+	expect(t, s.DB, 3, `SELECT attempts FROM outbox_event WHERE id='legacy-decided'`)
+	// ImportLegacy advances this version atomically with its recipient migration.
+	exec(t, s.DB, `UPDATE outbox_event SET notification_version=1 WHERE notification_version=0`)
+	if n := run(t, s, "tenant-outbox"); n != 2 {
+		t.Fatalf("converted reviews did not resume: %d", n)
+	}
+}

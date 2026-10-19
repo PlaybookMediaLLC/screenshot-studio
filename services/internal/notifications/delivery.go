@@ -406,6 +406,11 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 			return skip("DESTINATION_CHANGED")
 		}
 		if _, err = s.ValidateChannel(ctx, d.OrganizationID, d.connectionID, d.Destination); err != nil {
+			var provider *slackError
+			if errors.As(err, &provider) && (provider.RetryAfter > 0 || slices.Contains([]string{"transport_uncertain", "server_uncertain", "malformed_response", "unexpected_status", "internal_error", "fatal_error"}, provider.Code)) {
+				// Channel validation is read-only; no notification has been sent.
+				return env, Outcome{Status: "PENDING", Code: provider.Code, RetryAfter: provider.RetryAfter}, nil
+			}
 			return env, Outcome{Status: "BLOCKED", Code: "SLACK_DESTINATION_UNAVAILABLE"}, nil
 		}
 	} else {

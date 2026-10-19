@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.21.1...v2.22.0) (2026-10-19)
+
+
+### Features
+
+* add release workflows and standardize UI controls [skip ci] ([a69939a](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/a69939a5351a1198d40beb8262af17ab122d6598))
+
 ## [2.21.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.21.0...v2.21.1) (2026-10-19)
 
 

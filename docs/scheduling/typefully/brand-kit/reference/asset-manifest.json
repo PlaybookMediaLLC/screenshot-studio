@@ -1,0 +1,147 @@
+{
+  "captured": "2026-10-13",
+  "app_page": "https://typefully.com/grow",
+  "official_press_kit": "https://typefully.notion.site/Brand-Assets-68774421815c49368c0967578f1616ae",
+  "brand_archive_url": "https://www.dropbox.com/scl/fi/1m3vvu1m3xxgf3j2y8uj8/Brand-Assets.zip?rlkey=u96vu4s2o53bpf4jzt6fprsr3&dl=1",
+  "app_assets": [
+    {
+      "file": "css/original/0rep90fzpp7c7.css",
+      "url": "https://typefully.com/_next/static/chunks/0rep90fzpp7c7.css?dpl=dpl_A7y7EdnManezWka2bwxyjXiWSgmx",
+      "bytes": 609842,
+      "sha256": "85b7c6edfa4534c07e7278fd34748eafbd7086d2f03243d95555eeb6eb61b01b"
+    },
+    {
+      "file": "css/original/0wmmu7angf7ze.css",
+      "url": "https://typefully.com/_next/static/chunks/0wmmu7angf7ze.css?dpl=dpl_A7y7EdnManezWka2bwxyjXiWSgmx",
+      "bytes": 2873,
+      "sha256": "ff50ff9f0d6dcd025e18e0ba7718c976491583d623c83229aff4e0c3ad7317c8"
+    },
+    {
+      "file": "css/original/0gvt3wbwj3n7r.css",
+      "url": "https://typefully.com/_next/static/chunks/0gvt3wbwj3n7r.css?dpl=dpl_A7y7EdnManezWka2bwxyjXiWSgmx",
+      "bytes": 861,
+      "sha256": "b18ed1ceaba2c14f63c2ad49a5d8bf7c432ee3e448458ef09affaaf1ba6c46e5"
+    },
+    {
+      "file": "css/original/0y3tqveq-~34r.css",
+      "url": "https://typefully.com/_next/static/chunks/0y3tqveq-~34r.css?dpl=dpl_A7y7EdnManezWka2bwxyjXiWSgmx",
+      "bytes": 4826,
+      "sha256": "7189a6248cacfc46cd42a94bb646adede7193f8343dbd549ccf3f1c6497f672c"
+    },
+    {
+      "file": "css/original/google-fonts.css",
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@100..900&display=swap",
+      "bytes": 15683,
+      "sha256": "1ea89c97761ef886fec22e91ac4433f32e2f0ac88d296964c6662325f5298e26"
+    },
+    {
+      "file": "css/original/0ebmb_nj7e1jp.css",
+      "url": "https://typefully.com/_next/static/chunks/0ebmb_nj7e1jp.css?dpl=dpl_A7y7EdnManezWka2bwxyjXiWSgmx",
+      "bytes": 12594,
+      "sha256": "88a697f23be2dc7360c4bc0e3a3e29a54df852490acfe321d3c231198343fd8d"
+    },
+    {
+      "file": "fonts/GT-America-Standard-Medium.woff2",
+      "url": "https://typefully.com/fonts/GT-America-Standard-Medium.woff2",
+      "bytes": 62500,
+      "sha256": "a856e99d4866e903a8c7c16c2eafd406552c063cc4a0a58a4d6ec22d176e6d82"
+    }
+  ],
+  "brand_assets": [
+    {
+      "file": "logos/Glyph.png",
+      "bytes": 29706,
+      "width": 1024,
+      "height": 1297,
+      "sha256": "0f9d33199a7696bdab397fa166ffe6657223342845573b6a82766708b8ab47e3"
+    },
+    {
+      "file": "logos/Glyph.svg",
+      "bytes": 1282,
+      "svg_attributes": {
+        "width": "60",
+        "height": "76",
+        "viewBox": "0 0 60 76",
+        "fill": "none"
+      },
+      "sha256": "01132e2d1e3a3222a2ebaf1d5ab0b0c91b62ef8906601895803bb1197c6e92c0"
+    },
+    {
+      "file": "logos/Logo - Flat.png",
+      "bytes": 17541,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "2e59175f0b5fc13b88e903a89cea8d5b78e667dd3dcd7563c02d8f5fb2e7998e"
+    },
+    {
+      "file": "logos/Logo - For Rounded Frame.png",
+      "bytes": 180098,
+      "width": 512,
+      "height": 512,
+      "sha256": "52e3af9864d1ecefc0e4541eb60c9dfd0f7ce62cbcfed8897a8d909efef7f80a"
+    },
+    {
+      "file": "logos/Logo - Gradient.png",
+      "bytes": 564424,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "89c74064c3c7b614762916b6f1c53c0b7379a6ee36b966501141937bbbe7bd5e"
+    },
+    {
+      "file": "logos/Logo - Transparent White.png",
+      "bytes": 14663,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "569f759727b55f6aace1c1f742d40ff0eb7d40f68a8499eea2e50a9bb5f4f0c4"
+    },
+    {
+      "file": "logos/Logo - Transparent.png",
+      "bytes": 17383,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "f7c74682ba48225fa0d130282126de0f22ee6461265c519bbb952e399e7fb1a6"
+    },
+    {
+      "file": "logos/Logotype 2048.png",
+      "bytes": 31744,
+      "width": 2048,
+      "height": 472,
+      "sha256": "0a70dc2a09f0f9d95a7e2e0aec5220f175629f5e4b3f80b4a9aa3bbafb25b0d4"
+    },
+    {
+      "file": "logos/Polished.png",
+      "bytes": 885823,
+      "width": 1024,
+      "height": 1024,
+      "sha256": "2f03ea08bede1adad3d9a972199f80feca1b1a56f253b107b490a8005ac66c42"
+    },
+    {
+      "file": "logos/Poster - Icon.png",
+      "bytes": 231752,
+      "width": 2048,
+      "height": 1085,
+      "sha256": "4eb049c920b8b50a7be34e1560d294fd2c263b7f0e5f703ea79328a441b9d5a5"
+    },
+    {
+      "file": "logos/Poster - Logo.png",
+      "bytes": 118007,
+      "width": 2048,
+      "height": 1024,
+      "sha256": "db8122b3e78238888a9157b65114ac3e8d08d582a4e3f86bbefbd54eb917cabc"
+    },
+    {
+      "file": "logos/Poster - Logotype.png",
+      "bytes": 23505,
+      "width": 2048,
+      "height": 1085,
+      "sha256": "6a12c276ca0f7402c1372378b4767e4767823aa6ad0edac7703da8374762bd26"
+    },
+    {
+      "file": "logos/card.png",
+      "bytes": 167045,
+      "width": 1200,
+      "height": 600,
+      "sha256": "7ad66fc185fea75cc1f98f55392df5fc95a77f1b4ec94cfee4b69b31c88f8510"
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "inspection_date": "2026-10-13",
+  "scope": "Authenticated Post Bridge UI, Pro plan; no post submissions",
+  "contract_type": "Observed UI contract, not captured private API payloads",
+  "routes": {
+    "catalog": "/team/{workspace_id}/bulk-tools",
+    "video_upload": "/team/{workspace_id}/create/bulk/video-upload",
+    "image_upload": "/team/{workspace_id}/create/bulk/image-upload",
+    "video_creation": "/team/{workspace_id}/create/bulk/video-creation"
+  },
+  "video_upload": {
+    "label": "Bulk Video Scheduling Beta",
+    "max_files_advertised": 100,
+    "max_file_megabytes_advertised_for_inspected_plan": 500,
+    "formats_advertised": ["mp4", "mov"],
+    "file_input_accept": "video/mp4,.mp4,video/quicktime,.mov",
+    "multiple": true,
+    "min_duration_seconds_advertised": 3,
+    "max_duration_seconds_advertised": 300,
+    "max_resolution_advertised": [3840, 2160],
+    "submission_actions": ["Schedule All", "Save All as Drafts"],
+    "actual_file_ingestion_tested": false,
+    "submissions_tested": false
+  },
+  "image_upload": {
+    "label": "Bulk Image Scheduling Beta",
+    "max_posts_advertised": 90,
+    "max_images_per_post_displayed": 35,
+    "max_image_megabytes_advertised": 8,
+    "formats_advertised": ["jpeg", "png"],
+    "grouping_modes": ["one_post_per_folder", "one_post_per_image", "manual_empty_post"],
+    "directory_input": {"webkitdirectory": true, "multiple": true},
+    "manual_row_fields": ["images", "caption", "date", "time"],
+    "caption_maxlength": 2200,
+    "submission_actions_observed": ["Schedule All"],
+    "actual_file_ingestion_tested": false,
+    "submissions_tested": false
+  },
+  "captions": {
+    "bulk_source_maxlength": 8800,
+    "expanded_limit_displayed": 2200,
+    "spintax_example": "{Alpha|Beta|Gamma} technical test {one|two}",
+    "displayed_variation_count_for_example": 6,
+    "duplicates_observed_in_four_row_application": true,
+    "over_limit_apply_rejected_at_length": 2201,
+    "csv_two_columns": ["filename", "caption"],
+    "csv_header_optional_advertised": true,
+    "csv_single_column_advertised": "assign in row order",
+    "video_csv_match_advertised": "video filename",
+    "image_csv_match_advertised": "folder name or image filename",
+    "csv_import_tested": false
+  },
+  "schedule": {
+    "per_day_min": 1,
+    "per_day_max": 24,
+    "interval_hours_options_observed_at_3_per_day": [1, 2, 3, 4, 6, 8],
+    "interval_hours_options_observed_at_4_per_day": [1, 2, 3, 4, 6],
+    "date_min_on_inspection": "2026-10-13",
+    "date_max_on_inspection": "2027-02-10",
+    "random_offset_minutes_advertised": {"min": 0, "max": 55, "step": 5},
+    "schedule_applied_in_editor_only": true,
+    "three_per_day_six_hour_observation": [
+      "2026-10-13T08:00", "2026-10-13T14:00", "2026-10-13T20:00", "2026-10-14T08:00"
+    ],
+    "same_settings_randomized_observation": [
+      "2026-10-13T08:20", "2026-10-13T14:00", "2026-10-13T20:15", "2026-10-14T08:00"
+    ],
+    "four_per_day_six_hour_observation": [
+      "2026-11-13T08:00", "2026-11-13T14:00", "2026-11-13T20:00", "2026-11-14T02:00"
+    ],
+    "timezone_and_utc_conversion": "not established"
+  },
+  "video_creation": {
+    "steps": ["Product Info", "Customize Videos", "Bulk Generate"],
+    "quick_start_presets": ["None", "Food", "Fitness", "Productivity", "Beauty", "Tech", "Travel", "Finance", "Study"],
+    "caption_input_maxlength": 60,
+    "content_item_input_maxlength": null,
+    "minimum_nonempty_captions_tested": 1,
+    "minimum_content_items_tested": 4,
+    "video_count": {"min": 1, "max": 30, "default": 5},
+    "slots_per_video": 4,
+    "music_library_entries_observed": 8,
+    "master_slot_index_zero_based_tested": 3,
+    "master_caption_maxlength": 100,
+    "ai_photo_generations_per_hour_advertised": 50,
+    "successful_generated_images_tested": 4,
+    "generated_image_format_observed": "image/webp data URL",
+    "generated_image_dimensions_observed": [1152, 896],
+    "new_tab_restores_concepts": false,
+    "render_warning": "Leaving or closing the page stops generation and loses progress",
+    "private_endpoints_and_model_provider": "not observed",
+    "render_test": {
+      "videos_rendered": 1,
+      "state": "completed",
+      "download_all_result": "video-1.mp4",
+      "saved_artifact": "bulk-grid-test.mp4",
+      "bytes": 403430,
+      "duration_seconds": 6,
+      "dimensions": [1080, 1920],
+      "fps": 30,
+      "decoded_frames": 180,
+      "decode_complete": true,
+      "video_codec": "avc1",
+      "audio_codec": "aac",
+      "direct_schedule_action_on_completion_screen": false,
+      "multi_video_render_tested": false
+    }
+  }
+}

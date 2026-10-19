@@ -1,4 +1,6 @@
-import Link from "next/link";
+'use client';
+
+import { EditorSectionLink } from "@/components/platform-shell/EditorNavigation";
 import { ArrowRight01Icon, SmartPhone01Icon } from "hugeicons-react";
 import { STORE_SHORTCUT_HEIGHT } from "@/lib/store-screenshots/config";
 import { cn } from "@/lib/utils";
@@ -13,8 +15,8 @@ export function StoreScreenshotsShortcut({
   compact = false,
 }: StoreScreenshotsShortcutProps): React.JSX.Element {
   return (
-    <Link
-      href="/store-screenshots"
+    <EditorSectionLink
+      section="app-store"
       style={{ height: STORE_SHORTCUT_HEIGHT }}
       className={cn(
         "group inline-flex items-center gap-1.5 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2.5 text-[11px] font-medium text-muted-foreground shadow-sm transition-[color,background-color,border-color,transform] hover:border-foreground/20 hover:bg-foreground/[0.065] hover:text-foreground active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/25",
@@ -32,14 +34,14 @@ export function StoreScreenshotsShortcut({
         size={12}
         className="shrink-0 transition-transform group-hover:translate-x-0.5"
       />
-    </Link>
+    </EditorSectionLink>
   );
 }
 
 export function StoreScreenshotsFeatureCard(): React.JSX.Element {
   return (
-    <Link
-      href="/store-screenshots"
+    <EditorSectionLink
+      section="app-store"
       className="group mb-3 block overflow-hidden rounded-md border border-foreground/15 bg-foreground/[0.045] p-3 transition-[border-color,background-color] hover:border-foreground/25 hover:bg-foreground/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/25"
     >
       <div className="flex items-start gap-3">
@@ -55,6 +57,6 @@ export function StoreScreenshotsFeatureCard(): React.JSX.Element {
           </span>
         </span>
       </div>
-    </Link>
+    </EditorSectionLink>
   );
 }

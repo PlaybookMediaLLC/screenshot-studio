@@ -64,7 +64,7 @@ export function StudioHeader({
   const [renaming, setRenaming] = React.useState(false)
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-foreground/10 bg-background px-3">
+    <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b border-foreground/10 bg-background px-3 py-2 lg:h-14 lg:flex-nowrap lg:py-0">
       <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="Shots home">
         <Image src="/logo-mark.png" alt="" width={28} height={28} className="size-7" priority />
       </Link>
@@ -95,7 +95,7 @@ export function StudioHeader({
           role="status"
           aria-live="polite"
           className={cn(
-            'hidden shrink-0 rounded px-1.5 py-0.5 text-[10px] sm:inline',
+            'shrink-0 rounded px-1.5 py-0.5 text-[10px]',
             saveStatus === 'error' || saveStatus === 'conflict' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300' : 'text-muted-foreground'
           )}
         >
@@ -113,7 +113,7 @@ export function StudioHeader({
         ) : null}
       </div>
 
-      <div className="mx-auto flex items-center gap-1">
+      <div className="mx-auto flex max-w-full flex-wrap items-center gap-1">
         <IconButton label="Undo" shortcut="⌘Z" disabled={!canUndo} onClick={() => api.getState().undo()}>
           <UndoIcon size={15} />
         </IconButton>

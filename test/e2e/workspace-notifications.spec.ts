@@ -8,6 +8,10 @@ import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
 import { notificationPageSchema, notificationSettingsSchema } from '../../lib/notifications/schema'
 
 configureE2EFlow()
+test.skip(
+  !process.env.NOTIFICATIONS_E2E_PROVIDER_URL,
+  'Start the isolated notification provider fixture and e2e Go binaries.'
+)
 // Headless Chromium keeps every tab focused, which cannot verify acknowledgment on real focus.
 test.use({ headless: false })
 
@@ -17,10 +21,6 @@ test('workspace activity goes through controlled providers and deletes only seen
   page,
 }) => {
   test.setTimeout(300_000)
-  test.skip(
-    !process.env.NOTIFICATIONS_E2E_PROVIDER_URL,
-    'Start the isolated notification provider fixture and e2e Go binaries.'
-  )
   const database = createE2EDatabase()
   const otherContext = await browser.newContext()
   const otherPage = await otherContext.newPage()

@@ -71,12 +71,12 @@ func TestContentDrafts(t *testing.T) {
 
 	t.Run("a stale write is refused with the current version", func(t *testing.T) {
 		title := "Second"
-		threads := map[string]any{"threads": []any{map[string]any{"id": "t1", "comments": []any{}}}}
+		threads := map[string]any{"threads": []any{}}
 		saved, err := repo.UpdateContentDraft(ctx, actor, created.ID, ContentDraftUpdate{BaseVersion: 1, Discussions: &threads, Title: &title})
-		if err != nil || saved.Version != 2 || saved.Title != "Second" || saved.PlainText != "Hello" || len(saved.Discussions) != 1 {
+		if err != nil || saved.Version != 2 || saved.Title != "Second" || saved.PlainText != "Hello" || len(saved.Discussions) != 2 {
 			t.Fatalf("saved=%+v err=%v", saved, err)
 		}
-		if reread, err := repo.GetContentDraft(ctx, actor, created.ID); err != nil || len(reread.Discussions["threads"].([]any)) != 1 {
+		if reread, err := repo.GetContentDraft(ctx, actor, created.ID); err != nil || len(reread.Discussions["threads"].([]any)) != 0 {
 			t.Fatalf("reread=%+v err=%v", reread, err)
 		}
 		huge := map[string]any{"threads": strings.Repeat("x", contentDraftThreadsLimit)}

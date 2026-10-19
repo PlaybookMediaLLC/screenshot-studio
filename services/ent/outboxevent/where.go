@@ -99,6 +99,16 @@ func ProcessingAt(v time.Time) predicate.OutboxEvent {
 	return predicate.OutboxEvent(sql.FieldEQ(FieldProcessingAt, v))
 }
 
+// NotificationVersion applies equality check predicate on the "notification_version" field. It's identical to NotificationVersionEQ.
+func NotificationVersion(v int) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldEQ(FieldNotificationVersion, v))
+}
+
+// NotificationFanned applies equality check predicate on the "notification_fanned" field. It's identical to NotificationFannedEQ.
+func NotificationFanned(v bool) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldEQ(FieldNotificationFanned, v))
+}
+
 // Attempts applies equality check predicate on the "attempts" field. It's identical to AttemptsEQ.
 func Attempts(v int) predicate.OutboxEvent {
 	return predicate.OutboxEvent(sql.FieldEQ(FieldAttempts, v))
@@ -542,6 +552,56 @@ func ProcessingAtIsNil() predicate.OutboxEvent {
 // ProcessingAtNotNil applies the NotNil predicate on the "processing_at" field.
 func ProcessingAtNotNil() predicate.OutboxEvent {
 	return predicate.OutboxEvent(sql.FieldNotNull(FieldProcessingAt))
+}
+
+// NotificationVersionEQ applies the EQ predicate on the "notification_version" field.
+func NotificationVersionEQ(v int) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldEQ(FieldNotificationVersion, v))
+}
+
+// NotificationVersionNEQ applies the NEQ predicate on the "notification_version" field.
+func NotificationVersionNEQ(v int) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldNEQ(FieldNotificationVersion, v))
+}
+
+// NotificationVersionIn applies the In predicate on the "notification_version" field.
+func NotificationVersionIn(vs ...int) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldIn(FieldNotificationVersion, vs...))
+}
+
+// NotificationVersionNotIn applies the NotIn predicate on the "notification_version" field.
+func NotificationVersionNotIn(vs ...int) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldNotIn(FieldNotificationVersion, vs...))
+}
+
+// NotificationVersionGT applies the GT predicate on the "notification_version" field.
+func NotificationVersionGT(v int) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldGT(FieldNotificationVersion, v))
+}
+
+// NotificationVersionGTE applies the GTE predicate on the "notification_version" field.
+func NotificationVersionGTE(v int) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldGTE(FieldNotificationVersion, v))
+}
+
+// NotificationVersionLT applies the LT predicate on the "notification_version" field.
+func NotificationVersionLT(v int) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldLT(FieldNotificationVersion, v))
+}
+
+// NotificationVersionLTE applies the LTE predicate on the "notification_version" field.
+func NotificationVersionLTE(v int) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldLTE(FieldNotificationVersion, v))
+}
+
+// NotificationFannedEQ applies the EQ predicate on the "notification_fanned" field.
+func NotificationFannedEQ(v bool) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldEQ(FieldNotificationFanned, v))
+}
+
+// NotificationFannedNEQ applies the NEQ predicate on the "notification_fanned" field.
+func NotificationFannedNEQ(v bool) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldNEQ(FieldNotificationFanned, v))
 }
 
 // AttemptsEQ applies the EQ predicate on the "attempts" field.

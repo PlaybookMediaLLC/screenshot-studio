@@ -84,6 +84,34 @@ func (_c *OutboxEventCreate) SetNillableProcessingAt(v *time.Time) *OutboxEventC
 	return _c
 }
 
+// SetNotificationVersion sets the "notification_version" field.
+func (_c *OutboxEventCreate) SetNotificationVersion(v int) *OutboxEventCreate {
+	_c.mutation.SetNotificationVersion(v)
+	return _c
+}
+
+// SetNillableNotificationVersion sets the "notification_version" field if the given value is not nil.
+func (_c *OutboxEventCreate) SetNillableNotificationVersion(v *int) *OutboxEventCreate {
+	if v != nil {
+		_c.SetNotificationVersion(*v)
+	}
+	return _c
+}
+
+// SetNotificationFanned sets the "notification_fanned" field.
+func (_c *OutboxEventCreate) SetNotificationFanned(v bool) *OutboxEventCreate {
+	_c.mutation.SetNotificationFanned(v)
+	return _c
+}
+
+// SetNillableNotificationFanned sets the "notification_fanned" field if the given value is not nil.
+func (_c *OutboxEventCreate) SetNillableNotificationFanned(v *bool) *OutboxEventCreate {
+	if v != nil {
+		_c.SetNotificationFanned(*v)
+	}
+	return _c
+}
+
 // SetAttempts sets the "attempts" field.
 func (_c *OutboxEventCreate) SetAttempts(v int) *OutboxEventCreate {
 	_c.mutation.SetAttempts(v)
@@ -181,6 +209,14 @@ func (_c *OutboxEventCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *OutboxEventCreate) defaults() {
+	if _, ok := _c.mutation.NotificationVersion(); !ok {
+		v := outboxevent.DefaultNotificationVersion
+		_c.mutation.SetNotificationVersion(v)
+	}
+	if _, ok := _c.mutation.NotificationFanned(); !ok {
+		v := outboxevent.DefaultNotificationFanned
+		_c.mutation.SetNotificationFanned(v)
+	}
 	if _, ok := _c.mutation.Attempts(); !ok {
 		v := outboxevent.DefaultAttempts
 		_c.mutation.SetAttempts(v)
@@ -210,6 +246,12 @@ func (_c *OutboxEventCreate) check() error {
 	}
 	if _, ok := _c.mutation.IdempotencyKey(); !ok {
 		return &ValidationError{Name: "idempotency_key", err: errors.New(`ent: missing required field "OutboxEvent.idempotency_key"`)}
+	}
+	if _, ok := _c.mutation.NotificationVersion(); !ok {
+		return &ValidationError{Name: "notification_version", err: errors.New(`ent: missing required field "OutboxEvent.notification_version"`)}
+	}
+	if _, ok := _c.mutation.NotificationFanned(); !ok {
+		return &ValidationError{Name: "notification_fanned", err: errors.New(`ent: missing required field "OutboxEvent.notification_fanned"`)}
 	}
 	if _, ok := _c.mutation.Attempts(); !ok {
 		return &ValidationError{Name: "attempts", err: errors.New(`ent: missing required field "OutboxEvent.attempts"`)}
@@ -283,6 +325,14 @@ func (_c *OutboxEventCreate) createSpec() (*OutboxEvent, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.ProcessingAt(); ok {
 		_spec.SetField(outboxevent.FieldProcessingAt, field.TypeTime, value)
 		_node.ProcessingAt = &value
+	}
+	if value, ok := _c.mutation.NotificationVersion(); ok {
+		_spec.SetField(outboxevent.FieldNotificationVersion, field.TypeInt, value)
+		_node.NotificationVersion = value
+	}
+	if value, ok := _c.mutation.NotificationFanned(); ok {
+		_spec.SetField(outboxevent.FieldNotificationFanned, field.TypeBool, value)
+		_node.NotificationFanned = value
 	}
 	if value, ok := _c.mutation.Attempts(); ok {
 		_spec.SetField(outboxevent.FieldAttempts, field.TypeInt, value)

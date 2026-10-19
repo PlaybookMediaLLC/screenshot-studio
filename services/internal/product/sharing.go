@@ -14,6 +14,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
 )
@@ -506,6 +507,9 @@ func (c *Configuration) SaveIntegration(ctx context.Context, actor Actor, input 
 	}
 	input.DisplayName = strings.TrimSpace(input.DisplayName)
 	provider := integrationconnection.Provider(input.Provider)
+	if provider == integrationconnection.ProviderSLACK {
+		return nil, fmt.Errorf("%w: connect Slack through backend OAuth", ErrInvalidInput)
+	}
 	if integrationconnection.ProviderValidator(provider) != nil || input.ExternalID == "" || len(input.ExternalID) > 200 ||
 		input.DisplayName == "" || utf8.RuneCountInString(input.DisplayName) > 200 ||
 		!validCredentials(input.EncryptedCredentials) || len(input.Scopes) > 50 {
@@ -547,7 +551,7 @@ func (c *Configuration) SaveIntegration(ctx context.Context, actor Actor, input 
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.integration_connected", "integration_connection", row.ID,
+	if err := recordProductActivity(ctx, tx, actor, "integration.connected", "product.integration_connected", "integration_connection", row.ID,
 		map[string]any{"provider": input.Provider}); err != nil {
 		return nil, err
 	}
@@ -593,6 +597,9 @@ func (c *Configuration) IntegrationCredentials(ctx context.Context, actor Actor,
 	if err != nil {
 		return nil, err
 	}
+	if row.Provider == integrationconnection.ProviderSLACK {
+		return nil, publishing.ErrForbidden
+	}
 	return &IntegrationWithCredentials{IntegrationRecord: integrationRecord(row), EncryptedCredentials: row.EncryptedCredentials}, nil
 }
 
@@ -608,6 +615,9 @@ func (c *Configuration) UpdateIntegrationCredentials(ctx context.Context, actor 
 	if err != nil {
 		return err
 	}
+	if row.Provider == integrationconnection.ProviderSLACK {
+		return publishing.ErrForbidden
+	}
 	update := row.Update().SetEncryptedCredentials(input.EncryptedCredentials)
 	if input.TokenExpiresAt != nil {
 		update.SetTokenExpiresAt(*input.TokenExpiresAt)
@@ -622,6 +632,16 @@ func (c *Configuration) DeleteIntegration(ctx context.Context, actor Actor, id s
 	if err := c.Authorize(ctx, actor); err != nil {
 		return err
 	}
+	row, err := c.integration(ctx, actor, id)
+	if err != nil {
+		return err
+	}
+	if row.Provider == integrationconnection.ProviderSLACK {
+		if c.notifications == nil {
+			return notifications.ErrUnavailable
+		}
+		return c.notifications.Disconnect(ctx, notifications.Principal{OrganizationID: actor.OrganizationID, UserID: actor.UserID, SessionID: actor.SessionID, Kind: actor.Kind}, id)
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return err
@@ -635,7 +655,7 @@ func (c *Configuration) DeleteIntegration(ctx context.Context, actor Actor, id s
 	if deleted == 0 {
 		return publishing.ErrNotFound
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.integration_disconnected", "integration_connection", id); err != nil {
+	if err := recordProductActivity(ctx, tx, actor, "integration.disconnected", "product.integration_disconnected", "integration_connection", id); err != nil {
 		return err
 	}
 	return tx.Commit()

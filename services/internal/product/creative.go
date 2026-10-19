@@ -218,7 +218,7 @@ func (c *Configuration) CreateCreativeVariant(ctx context.Context, actor Actor, 
 		SetVariantID(row.ID).SetStatus(approval.StatusPENDING).Save(ctx); err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_variant_created", "creative_variant", row.ID); err != nil {
+	if err := recordProductActivity(ctx, tx, actor, "variant.ready", "product.creative_variant_created", "creative_variant", row.ID); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -264,6 +264,9 @@ type variantDecision struct {
 // audit event inside the caller's transaction. The caller has authorized the
 // actor and validated the input.
 func decideVariantTx(ctx context.Context, tx *ent.Tx, actor Actor, id string, input CreativeApprovalInput) (*variantDecision, error) {
+	if _, err := tx.PlatformExec(ctx, `SELECT id FROM creative_variant WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, id, actor.OrganizationID); err != nil {
+		return nil, err
+	}
 	variant, err := tx.CreativeVariant.Query().Where(creativevariant.ID(id),
 		creativevariant.OrganizationID(actor.OrganizationID), creativevariant.StatusNEQ(creativevariant.StatusARCHIVED)).Only(ctx)
 	if ent.IsNotFound(err) {
@@ -306,8 +309,15 @@ func decideVariantTx(ctx context.Context, tx *ent.Tx, actor Actor, id string, in
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_variant_approved", "creative_variant", id,
-		map[string]any{"status": input.Status}); err != nil {
+	record := func() error {
+		return appendConfigurationAudit(ctx, tx, actor, "product.creative_variant_approved", "creative_variant", id, map[string]any{"status": input.Status})
+	}
+	if decision == nil || string(decision.Status) != input.Status {
+		record = func() error {
+			return recordProductActivity(ctx, tx, actor, "variant.decided", "product.creative_variant_approved", "creative_variant", id, map[string]any{"status": input.Status})
+		}
+	}
+	if err := record(); err != nil {
 		return nil, err
 	}
 	return &variantDecision{approval: approved, variant: updated}, nil

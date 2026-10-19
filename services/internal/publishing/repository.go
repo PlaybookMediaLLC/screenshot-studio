@@ -2,6 +2,7 @@ package publishing
 
 import (
 	"context"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"regexp"
 	"strconv"
 	"time"
@@ -59,6 +60,9 @@ func (r *Repository) CreateConnection(ctx context.Context, actor Actor, input Cr
 		if ent.IsConstraintError(err) {
 			return nil, ErrConflict
 		}
+		return nil, err
+	}
+	if err := activity.Emit(ctx, tx, actor.Organization, "integration.connected", "channel_connection", connection.ID, actor.UserID, "connected:"+connection.ID, map[string]any{"ownerUserId": actor.UserID}); err != nil {
 		return nil, err
 	}
 	if err := appendAudit(ctx, tx, auditInput{
@@ -172,7 +176,7 @@ func (r *Repository) CreateScheduledPost(ctx context.Context, actor Actor, input
 		}
 		return CreateScheduledPostResult{}, err
 	}
-	if err := appendAudit(ctx, tx, auditInput{
+	if err := recordPostActivity(ctx, tx, "post.scheduled", auditInput{
 		Action: "post.scheduled", Actor: actor, EntityID: post.ID, EntityType: "scheduled_post",
 		Organization: actor.Organization, Outcome: auditlog.OutcomeSUCCEEDED,
 	}); err != nil {
@@ -279,7 +283,7 @@ func (r *Repository) CancelScheduledPost(ctx context.Context, actor Actor, id st
 		if err != nil {
 			return nil, err
 		}
-		if err := appendAudit(ctx, tx, auditInput{
+		if err := recordPostActivity(ctx, tx, "post.cancelled", auditInput{
 			Action: "post.cancelled", Actor: actor, EntityID: post.ID, EntityType: "scheduled_post",
 			Organization: actor.Organization, Outcome: auditlog.OutcomeSUCCEEDED,
 		}); err != nil {
@@ -525,7 +529,7 @@ func (r *Repository) FailUnknown(ctx context.Context, postID, runID string, atte
 		}
 		return err
 	}
-	if err := appendAudit(ctx, tx, auditInput{
+	if err := recordPostActivity(ctx, tx, "post.publish_recovery_required", auditInput{
 		Action: "post.publish_recovery_required", Actor: serviceActor(post), EntityID: post.ID,
 		EntityType: "scheduled_post", Organization: post.OrganizationID, Outcome: auditlog.OutcomeFAILED,
 		Metadata: map[string]any{"failureCode": "UNKNOWN_DELIVERY"},
@@ -574,7 +578,7 @@ func (r *Repository) Complete(ctx context.Context, post *ent.ScheduledPost, atte
 		SetCompletedAt(time.Now()).SetOutcome(publicationattempt.OutcomeSUCCEEDED).SetProviderPostID(providerPostID).Save(ctx); err != nil {
 		return err
 	}
-	if err := appendAudit(ctx, tx, auditInput{
+	if err := recordPostActivity(ctx, tx, "post.published", auditInput{
 		Action: "post.published", Actor: serviceActor(post), EntityID: post.ID,
 		EntityType: "scheduled_post", Organization: post.OrganizationID, Outcome: auditlog.OutcomeSUCCEEDED,
 		Metadata: map[string]any{"providerPostId": providerPostID},
@@ -634,7 +638,7 @@ func (r *Repository) Fail(ctx context.Context, post *ent.ScheduledPost, attempt 
 		SetCompletedAt(time.Now()).SetOutcome(publicationattempt.OutcomeFAILED).SetFailureCode(failureCode).Save(ctx); err != nil {
 		return err
 	}
-	if err := appendAudit(ctx, tx, auditInput{
+	if err := recordPostActivity(ctx, tx, "post.publish_failed", auditInput{
 		Action: "post.publish_failed", Actor: serviceActor(post), EntityID: post.ID,
 		EntityType: "scheduled_post", Organization: post.OrganizationID, Outcome: auditlog.OutcomeFAILED,
 		Metadata: map[string]any{"failureCode": failureCode, "retry": retry},
@@ -661,7 +665,7 @@ func (r *Repository) CancelIneligible(ctx context.Context, post *ent.ScheduledPo
 		}
 		return err
 	}
-	if err := appendAudit(ctx, tx, auditInput{
+	if err := recordPostActivity(ctx, tx, "post.cancelled", auditInput{
 		Action: "post.cancelled", Actor: serviceActor(post), EntityID: post.ID,
 		EntityType: "scheduled_post", Organization: post.OrganizationID, Outcome: auditlog.OutcomeSUCCEEDED,
 		Metadata: map[string]any{"reason": reason},

@@ -29,6 +29,26 @@ func (_u *SourceAppUpdate) Where(ps ...predicate.SourceApp) *SourceAppUpdate {
 	return _u
 }
 
+// SetPlatformOwnerUserID sets the "platform_owner_user_id" field.
+func (_u *SourceAppUpdate) SetPlatformOwnerUserID(v string) *SourceAppUpdate {
+	_u.mutation.SetPlatformOwnerUserID(v)
+	return _u
+}
+
+// SetNillablePlatformOwnerUserID sets the "platform_owner_user_id" field if the given value is not nil.
+func (_u *SourceAppUpdate) SetNillablePlatformOwnerUserID(v *string) *SourceAppUpdate {
+	if v != nil {
+		_u.SetPlatformOwnerUserID(*v)
+	}
+	return _u
+}
+
+// ClearPlatformOwnerUserID clears the value of the "platform_owner_user_id" field.
+func (_u *SourceAppUpdate) ClearPlatformOwnerUserID() *SourceAppUpdate {
+	_u.mutation.ClearPlatformOwnerUserID()
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *SourceAppUpdate) SetName(v string) *SourceAppUpdate {
 	_u.mutation.SetName(v)
@@ -272,6 +292,12 @@ func (_u *SourceAppUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.PlatformOwnerUserID(); ok {
+		_spec.SetField(sourceapp.FieldPlatformOwnerUserID, field.TypeString, value)
+	}
+	if _u.mutation.PlatformOwnerUserIDCleared() {
+		_spec.ClearField(sourceapp.FieldPlatformOwnerUserID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(sourceapp.FieldName, field.TypeString, value)
 	}
@@ -348,6 +374,26 @@ type SourceAppUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *SourceAppMutation
+}
+
+// SetPlatformOwnerUserID sets the "platform_owner_user_id" field.
+func (_u *SourceAppUpdateOne) SetPlatformOwnerUserID(v string) *SourceAppUpdateOne {
+	_u.mutation.SetPlatformOwnerUserID(v)
+	return _u
+}
+
+// SetNillablePlatformOwnerUserID sets the "platform_owner_user_id" field if the given value is not nil.
+func (_u *SourceAppUpdateOne) SetNillablePlatformOwnerUserID(v *string) *SourceAppUpdateOne {
+	if v != nil {
+		_u.SetPlatformOwnerUserID(*v)
+	}
+	return _u
+}
+
+// ClearPlatformOwnerUserID clears the value of the "platform_owner_user_id" field.
+func (_u *SourceAppUpdateOne) ClearPlatformOwnerUserID() *SourceAppUpdateOne {
+	_u.mutation.ClearPlatformOwnerUserID()
+	return _u
 }
 
 // SetName sets the "name" field.
@@ -622,6 +668,12 @@ func (_u *SourceAppUpdateOne) sqlSave(ctx context.Context) (_node *SourceApp, er
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.PlatformOwnerUserID(); ok {
+		_spec.SetField(sourceapp.FieldPlatformOwnerUserID, field.TypeString, value)
+	}
+	if _u.mutation.PlatformOwnerUserIDCleared() {
+		_spec.ClearField(sourceapp.FieldPlatformOwnerUserID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(sourceapp.FieldName, field.TypeString, value)

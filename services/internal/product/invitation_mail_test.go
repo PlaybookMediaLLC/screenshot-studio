@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,13 +43,13 @@ func TestInvitationMailerDeliversAcceptLinkThroughWebhook(t *testing.T) {
 	}
 }
 
-func TestReviewMailerIsANoOpUntilConfiguredThenUsesTheWebhook(t *testing.T) {
+func TestReviewMailerReportsUnavailableUntilConfiguredThenUsesTheWebhook(t *testing.T) {
 	t.Setenv("RESEND_API_KEY", "")
 	t.Setenv("AUTH_EMAIL_WEBHOOK_URL", "")
 	message := ReviewNotification{ActorName: "Ada", CampaignName: "Launch", CampaignURL: "https://shots.example.test/campaigns/c1/copy",
 		Decision: "request_changes", Email: "author@example.test", Note: "<b>Shorter</b>", PostCount: 2}
-	if err := (EnvReviewMailer{}).SendReviewNotification(context.Background(), message); err != nil {
-		t.Fatalf("unconfigured mailer failed: %v", err)
+	if err := (EnvReviewMailer{}).SendReviewNotification(context.Background(), message); !errors.Is(err, errEmailNotConfigured) {
+		t.Fatalf("unconfigured mailer outcome: %v", err)
 	}
 	var delivered struct{ To, Subject, Text, HTML string }
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

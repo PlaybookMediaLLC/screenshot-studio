@@ -2,18 +2,8 @@ import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import test from 'node:test'
 import { openCredentials, sealCredentials } from '@/lib/integrations/crypto'
-import {
-  deliverToFigma,
-  deliverToNotion,
-  deliverToSlack,
-  listSlackChannels,
-} from '@/lib/integrations/deliver'
-import {
-  authorizeUrl,
-  exchangeCode,
-  ProviderError,
-  refreshGrant,
-} from '@/lib/integrations/providers'
+import { deliverToFigma, deliverToNotion } from '@/lib/integrations/deliver'
+import { authorizeUrl, refreshGrant } from '@/lib/integrations/providers'
 import { parseFigmaUrl, providerOfSlug } from '@/lib/integrations/schema'
 
 process.env.INTEGRATION_ENCRYPTION_KEY = randomBytes(32).toString('base64')
@@ -67,17 +57,7 @@ test('credentials seal and open, and tampering is caught', () => {
 
 test('consent URLs carry the client, scopes, redirect, and state', () => {
   const client = { id: 'client-1', secret: 'secret' }
-  const slack = new URL(
-    authorizeUrl(
-      'SLACK',
-      client,
-      'https://shots.example/api/integrations/slack/callback',
-      'state-1'
-    )
-  )
-  assert.equal(slack.origin + slack.pathname, 'https://slack.com/oauth/v2/authorize')
-  assert.equal(slack.searchParams.get('state'), 'state-1')
-  assert.match(slack.searchParams.get('scope') ?? '', /files:write/)
+  assert.throws(() => authorizeUrl('SLACK', client, 'https://x/cb', 's'), /backend/)
   const figma = new URL(authorizeUrl('FIGMA', client, 'https://x/cb', 's'))
   assert.equal(figma.searchParams.get('scope'), 'current_user:read file_comments:write')
   assert.equal(
@@ -85,36 +65,6 @@ test('consent URLs carry the client, scopes, redirect, and state', () => {
     'user'
   )
   assert.equal(providerOfSlug('notion'), 'NOTION')
-})
-
-test('a Slack code becomes a grant for the team; a refusal says why', async () => {
-  const { calls, fetcher } = scripted([
-    json({
-      access_token: 'xoxb-1',
-      expires_in: 43200,
-      ok: true,
-      refresh_token: 'xoxe-1',
-      scope: 'chat:write,files:write',
-      team: { id: 'T1', name: 'Acme' },
-    }),
-    json({ error: 'invalid_code', ok: false }),
-  ])
-  const grant = await exchangeCode(
-    'SLACK',
-    { id: 'c', secret: 's' },
-    'code-1',
-    'https://x/cb',
-    fetcher
-  )
-  assert.equal(grant.externalId, 'T1')
-  assert.equal(grant.displayName, 'Acme')
-  assert.deepEqual(grant.scopes, ['chat:write', 'files:write'])
-  assert.ok(grant.expiresAt && new Date(grant.expiresAt) > new Date())
-  assert.equal(new URLSearchParams(String(calls[0]!.body)).get('code'), 'code-1')
-  await assert.rejects(
-    exchangeCode('SLACK', { id: 'c', secret: 's' }, 'bad', 'https://x/cb', fetcher),
-    /invalid_code/
-  )
 })
 
 test('Figma refreshes keep the refresh token when none is returned', async () => {
@@ -133,50 +83,6 @@ test('Figma refreshes keep the refresh token when none is returned', async () =>
   assert.equal(refreshed?.credentials.accessToken, 'figd-2')
   assert.equal(refreshed?.credentials.refreshToken, 'r-1')
   assert.match(calls[0]!.headers.authorization ?? '', /^Basic /)
-})
-
-test('Slack delivery joins, uploads, and completes into the channel', async () => {
-  const { calls, fetcher } = scripted([
-    json({ ok: true }),
-    json({ file_id: 'F1', ok: true, upload_url: 'https://files.slack.com/upload/v1/abc' }),
-    () => new Response('OK'),
-    json({ files: [{ id: 'F1' }], ok: true }),
-  ])
-  await deliverToSlack('xoxb-1', delivery, { channelId: 'C123', message: 'New launch' }, fetcher)
-  assert.deepEqual(
-    calls.map((call) => call.url.split('?')[0]),
-    [
-      'https://slack.com/api/conversations.join',
-      'https://slack.com/api/files.getUploadURLExternal',
-      'https://files.slack.com/upload/v1/abc',
-      'https://slack.com/api/files.completeUploadExternal',
-    ]
-  )
-  assert.equal(new URL(calls[1]!.url).searchParams.get('length'), '4')
-  const complete = JSON.parse(String(calls[3]!.body)) as {
-    channel_id: string
-    initial_comment: string
-  }
-  assert.equal(complete.channel_id, 'C123')
-  assert.equal(complete.initial_comment, `New launch\n\n${delivery.shareUrl}`)
-})
-
-test('Slack errors become actionable messages', async () => {
-  const { fetcher } = scripted([
-    json({ file_id: 'F1', ok: true, upload_url: 'https://files.slack.com/u' }),
-    () => new Response('OK'),
-    json({ error: 'not_in_channel', ok: false }),
-  ])
-  await assert.rejects(
-    deliverToSlack('xoxb-1', delivery, { channelId: 'G123' }, fetcher),
-    (error: unknown) =>
-      error instanceof ProviderError && /invite/i.test(error.message) && !error.reconnect
-  )
-  const revoked = scripted([json({ error: 'token_revoked', ok: false })])
-  await assert.rejects(
-    listSlackChannels('xoxb-1', revoked.fetcher),
-    (error: unknown) => error instanceof ProviderError && error.reconnect
-  )
 })
 
 test('Notion delivery uploads the file and appends it with a bookmark', async () => {

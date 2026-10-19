@@ -20,6 +20,7 @@ jobs:
       MAINTENANCE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/maintenance_test?sslmode=disable
       SOCIAL_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/social_test?sslmode=disable
       PUBLISHING_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/shared_cutover_test?sslmode=disable
+      NOTIFICATIONS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/notifications_test?sslmode=disable
     services:
       postgres:
         image: postgres:16-bookworm
@@ -60,6 +61,10 @@ jobs:
           DATABASE_URL="$PUBLISHING_TEST_DATABASE_URL" go run ./cmd/platform-migrate
           go test ./internal/publishing -run TestOAuthGrantAndConnectionUseEntInOnePublicSchema -count=1
           go test ./internal/social/tenantpublishing -run TestDirectPublisherUsesSharedPublicSchemaWithoutLegacyPost -count=1
+      - name: Create and migrate isolated notification test database
+        run: |
+          psql postgresql://postgres:postgres@127.0.0.1:5432/publishing_acceptance -c 'CREATE DATABASE notifications_test'
+          DATABASE_URL="$NOTIFICATIONS_TEST_DATABASE_URL" go run ./cmd/platform-migrate
       - name: Verify Go formatting
         run: test -z "$(gofmt -l .)"
       - run: go test ./...
@@ -67,7 +72,7 @@ jobs:
         run: |
           DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
           DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
-      - run: go test -race ./internal/httpapi ./internal/socialapi ./internal/publishing ./internal/temporalpublishing ./internal/maintenance ./internal/temporalmaintenance ./internal/onboarding ./internal/temporalonboarding ./internal/enrichment ./internal/social/tenantpublishing
+      - run: go test -race ./internal/notifications ./internal/authstore ./internal/httpapi ./internal/socialapi ./internal/publishing ./internal/temporalpublishing ./internal/maintenance ./internal/temporalmaintenance ./internal/onboarding ./internal/temporalonboarding ./internal/enrichment ./internal/social/tenantpublishing
       - run: go test -race ./internal/social/auth ./internal/social/database/users ./internal/social/activities ./internal/social/worker ./internal/social/workflows ./internal/social/chat/mcp ./internal/shotsapi
       - run: go vet ./...
       - name: Build the backend image

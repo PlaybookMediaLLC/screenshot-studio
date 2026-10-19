@@ -1,6 +1,8 @@
 import 'server-only'
 
 import { createAdapterFactory, type CustomAdapter } from 'better-auth/adapters'
+import { getSession } from 'better-auth/api'
+import { getCurrentAuthContext } from '@better-auth/core/context'
 import type { AuthStoreRequest, AuthStoreWhere } from 'screenshot-studio-backend-sdk'
 import { serviceBackend } from '@/lib/backend/sdk'
 
@@ -35,7 +37,21 @@ function plain(data: Record<string, unknown> | undefined) {
   )
 }
 
-function store(request: AuthStoreRequest) {
+async function store(request: AuthStoreRequest) {
+  if (request.model === 'member' && !['findOne', 'findMany', 'count'].includes(request.op)) {
+    const context = await getCurrentAuthContext().catch(() => null)
+    const session =
+      context?.context.session ??
+      (context?.headers
+        ? await getSession()({
+            context: context.context,
+            headers: context.headers,
+            query: { disableCookieCache: true, disableRefresh: true },
+          })
+        : null)
+    const actorSessionId = session?.session.id
+    if (actorSessionId) request = { ...request, actorSessionId }
+  }
   return serviceBackend().authStore(request)
 }
 

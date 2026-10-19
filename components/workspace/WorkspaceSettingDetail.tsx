@@ -9,6 +9,7 @@ import { WorkspaceDeveloperSettings } from './WorkspaceDeveloperSettings'
 import { WorkspaceGeneralSettings } from './WorkspaceGeneralSettings'
 import { WorkspaceIdentitySettings } from './WorkspaceIdentitySettings'
 import { WorkspaceIntegrations } from './WorkspaceIntegrations'
+import { WorkspaceNotifications } from './WorkspaceNotifications'
 import { WorkspaceMembersSettings } from './WorkspaceMembersSettings'
 import { WorkspaceIdealCustomerProfile } from './WorkspaceIdealCustomerProfile'
 import { WorkspaceProductProfile } from './WorkspaceProductProfile'
@@ -41,7 +42,9 @@ function getDetailContent({
 }: WorkspaceSettingContentProps): Record<SettingId, ReactNode> {
   const canManage = hasPermission(role, 'workspace:update')
   return {
-    agents: <WorkspaceAgentSettings canManage={hasPermission(role, 'brand:manage')} mcpUrl={mcpUrl} />,
+    agents: (
+      <WorkspaceAgentSettings canManage={hasPermission(role, 'brand:manage')} mcpUrl={mcpUrl} />
+    ),
     api: <WorkspaceDeveloperSettings canManage={canManage} />,
     audit: (
       <WorkspaceAuditSettings
@@ -61,6 +64,7 @@ function getDetailContent({
       />
     ),
     integrations: <WorkspaceIntegrations canManage={canManage} />,
+    notifications: <WorkspaceNotifications />,
     members: (
       <WorkspaceMembersSettings
         canInvite={hasPermission(role, 'member:invite')}

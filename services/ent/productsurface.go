@@ -20,6 +20,8 @@ type ProductSurface struct {
 	ID string `json:"id,omitempty"`
 	// OrganizationID holds the value of the "organization_id" field.
 	OrganizationID string `json:"organization_id,omitempty"`
+	// PlatformOwnerUserID holds the value of the "platform_owner_user_id" field.
+	PlatformOwnerUserID *string `json:"platform_owner_user_id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Slug holds the value of the "slug" field.
@@ -52,7 +54,7 @@ func (*ProductSurface) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case productsurface.FieldFeatureTags, productsurface.FieldScreenshotAssetIds:
 			values[i] = new([]byte)
-		case productsurface.FieldID, productsurface.FieldOrganizationID, productsurface.FieldName, productsurface.FieldSlug, productsurface.FieldURL, productsurface.FieldEnvironment, productsurface.FieldDescription, productsurface.FieldLastCaptureFailureCode:
+		case productsurface.FieldID, productsurface.FieldOrganizationID, productsurface.FieldPlatformOwnerUserID, productsurface.FieldName, productsurface.FieldSlug, productsurface.FieldURL, productsurface.FieldEnvironment, productsurface.FieldDescription, productsurface.FieldLastCaptureFailureCode:
 			values[i] = new(sql.NullString)
 		case productsurface.FieldLastCapturedAt, productsurface.FieldCreatedAt, productsurface.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -82,6 +84,13 @@ func (_m *ProductSurface) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field organization_id", values[i])
 			} else if value.Valid {
 				_m.OrganizationID = value.String
+			}
+		case productsurface.FieldPlatformOwnerUserID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field platform_owner_user_id", values[i])
+			} else if value.Valid {
+				_m.PlatformOwnerUserID = new(string)
+				*_m.PlatformOwnerUserID = value.String
 			}
 		case productsurface.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -194,6 +203,11 @@ func (_m *ProductSurface) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("organization_id=")
 	builder.WriteString(_m.OrganizationID)
+	builder.WriteString(", ")
+	if v := _m.PlatformOwnerUserID; v != nil {
+		builder.WriteString("platform_owner_user_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)

@@ -29,6 +29,26 @@ func (_u *ProductSurfaceUpdate) Where(ps ...predicate.ProductSurface) *ProductSu
 	return _u
 }
 
+// SetPlatformOwnerUserID sets the "platform_owner_user_id" field.
+func (_u *ProductSurfaceUpdate) SetPlatformOwnerUserID(v string) *ProductSurfaceUpdate {
+	_u.mutation.SetPlatformOwnerUserID(v)
+	return _u
+}
+
+// SetNillablePlatformOwnerUserID sets the "platform_owner_user_id" field if the given value is not nil.
+func (_u *ProductSurfaceUpdate) SetNillablePlatformOwnerUserID(v *string) *ProductSurfaceUpdate {
+	if v != nil {
+		_u.SetPlatformOwnerUserID(*v)
+	}
+	return _u
+}
+
+// ClearPlatformOwnerUserID clears the value of the "platform_owner_user_id" field.
+func (_u *ProductSurfaceUpdate) ClearPlatformOwnerUserID() *ProductSurfaceUpdate {
+	_u.mutation.ClearPlatformOwnerUserID()
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *ProductSurfaceUpdate) SetName(v string) *ProductSurfaceUpdate {
 	_u.mutation.SetName(v)
@@ -211,6 +231,12 @@ func (_u *ProductSurfaceUpdate) sqlSave(ctx context.Context) (_node int, err err
 			}
 		}
 	}
+	if value, ok := _u.mutation.PlatformOwnerUserID(); ok {
+		_spec.SetField(productsurface.FieldPlatformOwnerUserID, field.TypeString, value)
+	}
+	if _u.mutation.PlatformOwnerUserIDCleared() {
+		_spec.ClearField(productsurface.FieldPlatformOwnerUserID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(productsurface.FieldName, field.TypeString, value)
 	}
@@ -275,6 +301,26 @@ type ProductSurfaceUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ProductSurfaceMutation
+}
+
+// SetPlatformOwnerUserID sets the "platform_owner_user_id" field.
+func (_u *ProductSurfaceUpdateOne) SetPlatformOwnerUserID(v string) *ProductSurfaceUpdateOne {
+	_u.mutation.SetPlatformOwnerUserID(v)
+	return _u
+}
+
+// SetNillablePlatformOwnerUserID sets the "platform_owner_user_id" field if the given value is not nil.
+func (_u *ProductSurfaceUpdateOne) SetNillablePlatformOwnerUserID(v *string) *ProductSurfaceUpdateOne {
+	if v != nil {
+		_u.SetPlatformOwnerUserID(*v)
+	}
+	return _u
+}
+
+// ClearPlatformOwnerUserID clears the value of the "platform_owner_user_id" field.
+func (_u *ProductSurfaceUpdateOne) ClearPlatformOwnerUserID() *ProductSurfaceUpdateOne {
+	_u.mutation.ClearPlatformOwnerUserID()
+	return _u
 }
 
 // SetName sets the "name" field.
@@ -488,6 +534,12 @@ func (_u *ProductSurfaceUpdateOne) sqlSave(ctx context.Context) (_node *ProductS
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.PlatformOwnerUserID(); ok {
+		_spec.SetField(productsurface.FieldPlatformOwnerUserID, field.TypeString, value)
+	}
+	if _u.mutation.PlatformOwnerUserIDCleared() {
+		_spec.ClearField(productsurface.FieldPlatformOwnerUserID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(productsurface.FieldName, field.TypeString, value)

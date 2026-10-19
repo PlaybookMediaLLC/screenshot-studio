@@ -69,7 +69,7 @@ func (s *Store) purgeWorkspace(ctx context.Context, id, org string) error {
 		// children before parents; tenant predicates apply even to cascading tables.
 		// These tables were added by a newer web release. Delete them when
 		// present while retaining compatibility during a rolling web upgrade.
-		for _, table := range []string{"social_oauth_start", "social_tenant_binding", "github_install_start", "workspace_github_installation", "source_change", "deployment_event", "surface_capture", "product_profile", "conversation_message", "conversation", "launch_run_step", "page_knowledge", "enrichment_record", "ideal_customer_profile", "onboarding_run"} {
+		for _, table := range []string{"platform_notification_inbox", "platform_notification_preference", "platform_notification_seen_action", "platform_notification_delivery", "platform_notification_policy", "platform_slack_connection", "social_oauth_start", "social_tenant_binding", "github_install_start", "workspace_github_installation", "source_change", "deployment_event", "surface_capture", "product_profile", "conversation_message", "conversation", "launch_run_step", "page_knowledge", "enrichment_record", "ideal_customer_profile", "onboarding_run"} {
 			var exists bool
 			if err := tx.QueryRowContext(ctx, `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 				return err
@@ -79,6 +79,9 @@ func (s *Store) purgeWorkspace(ctx context.Context, id, org string) error {
 					return err
 				}
 			}
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM platform_slack_installation i WHERE NOT EXISTS(SELECT 1 FROM platform_slack_connection c WHERE c.installation_id=i.id)`); err != nil {
+			return err
 		}
 		tables := []string{"store_review_comment", "store_review", "store_publishing_credential", "audit_drain", "audit_retention_policy", "communication_recipient", "communication_attempt", "customer_communication", "launch_run", "campaign_revision", "campaign_plan", "release_spec", "campaign_post", "content_angle", "campaign_asset", "campaign", "publication_attempt", "scheduled_post", "channel_connection", "approval", "creative_variant", "design", "release_document", "capture_job", "capture", "asset", "creative_template", "capture_recipe", "source_app", "brand_kit", "brand_profile", "product_surface", "release", "audience_subscriber", "support_access_grant", "outbox_event", "organization_enterprise_settings", "workspace_settings", "invitation", "member"}
 		for _, table := range tables {

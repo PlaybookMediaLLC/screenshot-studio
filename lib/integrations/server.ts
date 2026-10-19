@@ -6,7 +6,7 @@ import { shareUrl } from '@/lib/sharing/schema'
 import { getShareLink } from '@/lib/sharing/server'
 import type { TenantContext } from '@/lib/auth/access'
 import { canSealCredentials, openCredentials, sealCredentials } from './crypto'
-import { deliverToFigma, deliverToNotion, deliverToSlack, type DeliveryResult } from './deliver'
+import { deliverToFigma, deliverToNotion, type DeliveryResult } from './deliver'
 import {
   type Grant,
   ProviderError,
@@ -29,13 +29,18 @@ type BackendContext = Parameters<typeof backendSDK>[0]
 const REFRESH_MARGIN_MS = 2 * 60_000
 
 /** Whether each provider can be connected here, and what is missing when not. */
-export function providerSetup(): Record<
-  IntegrationProvider,
-  { missing: string[]; ready: boolean }
-> {
+export async function providerSetup(
+  context: BackendContext
+): Promise<Record<IntegrationProvider, { missing: string[]; ready: boolean }>> {
+  const slack = await backendSDK(context).slackSetup()
   const sealing = canSealCredentials()
   return Object.fromEntries(
     integrationProviderSchema.options.map((provider) => {
+      if (provider === 'SLACK')
+        return [
+          provider,
+          { ready: slack.ready, missing: slack.ready ? [] : ['backend Slack configuration'] },
+        ]
       const missing = [
         ...(providerClient(provider) ? [] : providerEnvironment(provider)),
         ...(sealing ? [] : ['INTEGRATION_ENCRYPTION_KEY']),
@@ -114,12 +119,18 @@ export async function deliverShareLink(
   context: TenantContext,
   input: { integrationId: string; shareLinkId: string; target: DeliveryTarget }
 ): Promise<DeliveryResult> {
+  if (input.target.kind === 'slack')
+    return backendSDK(context).deliverSlackDesign(input.integrationId, {
+      shareLinkId: input.shareLinkId,
+      channelId: input.target.channelId,
+      message: input.target.message,
+    })
   const link = await getShareLink(context, input.shareLinkId)
   if (!link || link.revokedAt || (link.expiresAt && link.expiresAt <= new Date())) {
     throw new ProviderError('That share link is no longer live. Publish again.')
   }
   const { integration, token } = await accessToken(context, input.integrationId)
-  const expected = { figma: 'FIGMA', notion: 'NOTION', slack: 'SLACK' }[input.target.kind]
+  const expected = { figma: 'FIGMA', notion: 'NOTION' }[input.target.kind]
   if (integration.provider !== expected)
     throw new ProviderError('That connection is for another app.')
   const bytes = await backendSDK(context).readAsset(link.assetId)
@@ -138,7 +149,6 @@ export async function deliverShareLink(
     title: link.title,
   }
   const { target } = input
-  if (target.kind === 'slack') return deliverToSlack(token, delivery, target)
   if (target.kind === 'notion') return deliverToNotion(token, delivery, target)
   return deliverToFigma(token, delivery, target)
 }

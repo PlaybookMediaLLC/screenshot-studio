@@ -16,6 +16,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { type ComponentType, useState } from 'react'
+import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import {
   DropdownMenu,
@@ -214,6 +215,7 @@ function Navigation({
 }) {
   return (
     <nav aria-label="Workspace" className={cn('grid', collapsed ? 'gap-3' : 'gap-6')}>
+      <NotificationCenter collapsed={collapsed} />
       {NAV_GROUPS.map((group, index) => (
         <div className="grid gap-0.5" key={index}>
           {group.label && !collapsed ? (
@@ -375,6 +377,9 @@ export function PlatformSidebar({
             </SheetContent>
           </Sheet>
           <Brand collapsed={false} />
+          <div className="ml-auto">
+            <NotificationCenter />
+          </div>
         </header>
       ) : null}
     </>

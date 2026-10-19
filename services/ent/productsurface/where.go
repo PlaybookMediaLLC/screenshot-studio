@@ -69,6 +69,11 @@ func OrganizationID(v string) predicate.ProductSurface {
 	return predicate.ProductSurface(sql.FieldEQ(FieldOrganizationID, v))
 }
 
+// PlatformOwnerUserID applies equality check predicate on the "platform_owner_user_id" field. It's identical to PlatformOwnerUserIDEQ.
+func PlatformOwnerUserID(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldEQ(FieldPlatformOwnerUserID, v))
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.ProductSurface {
 	return predicate.ProductSurface(sql.FieldEQ(FieldName, v))
@@ -177,6 +182,81 @@ func OrganizationIDEqualFold(v string) predicate.ProductSurface {
 // OrganizationIDContainsFold applies the ContainsFold predicate on the "organization_id" field.
 func OrganizationIDContainsFold(v string) predicate.ProductSurface {
 	return predicate.ProductSurface(sql.FieldContainsFold(FieldOrganizationID, v))
+}
+
+// PlatformOwnerUserIDEQ applies the EQ predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDEQ(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldEQ(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDNEQ applies the NEQ predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDNEQ(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldNEQ(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDIn applies the In predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDIn(vs ...string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldIn(FieldPlatformOwnerUserID, vs...))
+}
+
+// PlatformOwnerUserIDNotIn applies the NotIn predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDNotIn(vs ...string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldNotIn(FieldPlatformOwnerUserID, vs...))
+}
+
+// PlatformOwnerUserIDGT applies the GT predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDGT(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldGT(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDGTE applies the GTE predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDGTE(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldGTE(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDLT applies the LT predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDLT(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldLT(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDLTE applies the LTE predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDLTE(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldLTE(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDContains applies the Contains predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDContains(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldContains(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDHasPrefix applies the HasPrefix predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDHasPrefix(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldHasPrefix(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDHasSuffix applies the HasSuffix predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDHasSuffix(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldHasSuffix(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDIsNil applies the IsNil predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDIsNil() predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldIsNull(FieldPlatformOwnerUserID))
+}
+
+// PlatformOwnerUserIDNotNil applies the NotNil predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDNotNil() predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldNotNull(FieldPlatformOwnerUserID))
+}
+
+// PlatformOwnerUserIDEqualFold applies the EqualFold predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDEqualFold(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldEqualFold(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDContainsFold applies the ContainsFold predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDContainsFold(v string) predicate.ProductSurface {
+	return predicate.ProductSurface(sql.FieldContainsFold(FieldPlatformOwnerUserID, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.

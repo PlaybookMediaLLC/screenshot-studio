@@ -69,6 +69,11 @@ func OrganizationID(v string) predicate.SourceApp {
 	return predicate.SourceApp(sql.FieldEQ(FieldOrganizationID, v))
 }
 
+// PlatformOwnerUserID applies equality check predicate on the "platform_owner_user_id" field. It's identical to PlatformOwnerUserIDEQ.
+func PlatformOwnerUserID(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldPlatformOwnerUserID, v))
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.SourceApp {
 	return predicate.SourceApp(sql.FieldEQ(FieldName, v))
@@ -182,6 +187,81 @@ func OrganizationIDEqualFold(v string) predicate.SourceApp {
 // OrganizationIDContainsFold applies the ContainsFold predicate on the "organization_id" field.
 func OrganizationIDContainsFold(v string) predicate.SourceApp {
 	return predicate.SourceApp(sql.FieldContainsFold(FieldOrganizationID, v))
+}
+
+// PlatformOwnerUserIDEQ applies the EQ predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDEQ(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEQ(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDNEQ applies the NEQ predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDNEQ(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNEQ(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDIn applies the In predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDIn(vs ...string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldIn(FieldPlatformOwnerUserID, vs...))
+}
+
+// PlatformOwnerUserIDNotIn applies the NotIn predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDNotIn(vs ...string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNotIn(FieldPlatformOwnerUserID, vs...))
+}
+
+// PlatformOwnerUserIDGT applies the GT predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDGT(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldGT(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDGTE applies the GTE predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDGTE(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldGTE(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDLT applies the LT predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDLT(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldLT(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDLTE applies the LTE predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDLTE(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldLTE(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDContains applies the Contains predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDContains(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldContains(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDHasPrefix applies the HasPrefix predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDHasPrefix(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldHasPrefix(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDHasSuffix applies the HasSuffix predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDHasSuffix(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldHasSuffix(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDIsNil applies the IsNil predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDIsNil() predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldIsNull(FieldPlatformOwnerUserID))
+}
+
+// PlatformOwnerUserIDNotNil applies the NotNil predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDNotNil() predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldNotNull(FieldPlatformOwnerUserID))
+}
+
+// PlatformOwnerUserIDEqualFold applies the EqualFold predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDEqualFold(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldEqualFold(FieldPlatformOwnerUserID, v))
+}
+
+// PlatformOwnerUserIDContainsFold applies the ContainsFold predicate on the "platform_owner_user_id" field.
+func PlatformOwnerUserIDContainsFold(v string) predicate.SourceApp {
+	return predicate.SourceApp(sql.FieldContainsFold(FieldPlatformOwnerUserID, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.

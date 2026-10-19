@@ -218,7 +218,7 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	if count == 1 {
 		if _, err := tx.OutboxEvent.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 			SetType("asset.uploaded").SetAggregateType("asset").SetAggregateID(row.ID).
-			SetPayload(map[string]any{"assetId": row.ID}).SetIdempotencyKey("asset.uploaded:" + row.ID).Save(ctx); err != nil {
+			SetPayload(map[string]any{"assetId": row.ID, "actorUserId": actor.UserID, "ownerUserId": actor.UserID}).SetIdempotencyKey("asset.uploaded:" + row.ID).Save(ctx); err != nil {
 			return nil, err
 		}
 		if err := appendConfigurationAudit(ctx, tx, actor, "product.asset_uploaded", "asset", row.ID); err != nil {
@@ -363,7 +363,7 @@ func (c *Configuration) StoreGeneratedAsset(ctx context.Context, actor Actor, in
 	}
 	if _, err := tx.OutboxEvent.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 		SetType("asset.uploaded").SetAggregateType("asset").SetAggregateID(row.ID).
-		SetPayload(map[string]any{"assetId": row.ID}).SetIdempotencyKey("asset.uploaded:" + row.ID).Save(ctx); err != nil {
+		SetPayload(map[string]any{"activityKind": "asset.generated", "assetId": row.ID, "ownerUserId": actor.UserID, "background": true}).SetIdempotencyKey("asset.uploaded:" + row.ID).Save(ctx); err != nil {
 		return nil, err
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.asset_generated", "asset", row.ID,

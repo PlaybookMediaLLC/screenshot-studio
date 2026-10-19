@@ -34,6 +34,10 @@ type OutboxEvent struct {
 	DeliveredAt *time.Time `json:"delivered_at,omitempty"`
 	// ProcessingAt holds the value of the "processing_at" field.
 	ProcessingAt *time.Time `json:"processing_at,omitempty"`
+	// NotificationVersion holds the value of the "notification_version" field.
+	NotificationVersion int `json:"notification_version,omitempty"`
+	// NotificationFanned holds the value of the "notification_fanned" field.
+	NotificationFanned bool `json:"notification_fanned,omitempty"`
 	// Attempts holds the value of the "attempts" field.
 	Attempts int `json:"attempts,omitempty"`
 	// LastError holds the value of the "last_error" field.
@@ -52,7 +56,9 @@ func (*OutboxEvent) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case outboxevent.FieldPayload:
 			values[i] = new([]byte)
-		case outboxevent.FieldAttempts:
+		case outboxevent.FieldNotificationFanned:
+			values[i] = new(sql.NullBool)
+		case outboxevent.FieldNotificationVersion, outboxevent.FieldAttempts:
 			values[i] = new(sql.NullInt64)
 		case outboxevent.FieldID, outboxevent.FieldOrganizationID, outboxevent.FieldType, outboxevent.FieldAggregateType, outboxevent.FieldAggregateID, outboxevent.FieldIdempotencyKey, outboxevent.FieldLastError:
 			values[i] = new(sql.NullString)
@@ -130,6 +136,18 @@ func (_m *OutboxEvent) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.ProcessingAt = new(time.Time)
 				*_m.ProcessingAt = value.Time
+			}
+		case outboxevent.FieldNotificationVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field notification_version", values[i])
+			} else if value.Valid {
+				_m.NotificationVersion = int(value.Int64)
+			}
+		case outboxevent.FieldNotificationFanned:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field notification_fanned", values[i])
+			} else if value.Valid {
+				_m.NotificationFanned = value.Bool
 			}
 		case outboxevent.FieldAttempts:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -220,6 +238,12 @@ func (_m *OutboxEvent) String() string {
 		builder.WriteString("processing_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("notification_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.NotificationVersion))
+	builder.WriteString(", ")
+	builder.WriteString("notification_fanned=")
+	builder.WriteString(fmt.Sprintf("%v", _m.NotificationFanned))
 	builder.WriteString(", ")
 	builder.WriteString("attempts=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Attempts))

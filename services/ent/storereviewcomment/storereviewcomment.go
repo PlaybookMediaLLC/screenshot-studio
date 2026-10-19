@@ -25,6 +25,8 @@ const (
 	FieldY = "y"
 	// FieldAuthorName holds the string denoting the author_name field in the database.
 	FieldAuthorName = "authorName"
+	// FieldPlatformAuthorUserID holds the string denoting the platform_author_user_id field in the database.
+	FieldPlatformAuthorUserID = "platformAuthorUserId"
 	// FieldBody holds the string denoting the body field in the database.
 	FieldBody = "body"
 	// FieldFromLink holds the string denoting the from_link field in the database.
@@ -48,6 +50,7 @@ var Columns = []string{
 	FieldX,
 	FieldY,
 	FieldAuthorName,
+	FieldPlatformAuthorUserID,
 	FieldBody,
 	FieldFromLink,
 	FieldResolvedAt,
@@ -106,6 +109,11 @@ func ByY(opts ...sql.OrderTermOption) OrderOption {
 // ByAuthorName orders the results by the author_name field.
 func ByAuthorName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAuthorName, opts...).ToFunc()
+}
+
+// ByPlatformAuthorUserID orders the results by the platform_author_user_id field.
+func ByPlatformAuthorUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlatformAuthorUserID, opts...).ToFunc()
 }
 
 // ByBody orders the results by the body field.

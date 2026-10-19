@@ -6,6 +6,7 @@ package app
 import (
 	"context"
 	"fmt"
+	platformnotifications "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
 	"log/slog"
 	"os"
 
@@ -155,7 +156,7 @@ func New(ctx context.Context) (*App, error) {
 
 func (a *App) wire() {
 	db := a.DB.Client
-	a.Manager = social.NewManager()
+	a.Manager = social.NewManager(platformnotifications.New(a.DB.SQL, nil))
 
 	a.Email = email.NewService(a.Temporal)
 	a.ShortLink = shortlink.NewService()

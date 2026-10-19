@@ -52,6 +52,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationinbox"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpolicy"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpreference"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationseenaction"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -724,12 +731,20 @@ func init() {
 	organizationenterprisesettings.UpdateDefaultUpdatedAt = organizationenterprisesettingsDescUpdatedAt.UpdateDefault.(func() time.Time)
 	outboxeventFields := schema.OutboxEvent{}.Fields()
 	_ = outboxeventFields
+	// outboxeventDescNotificationVersion is the schema descriptor for notification_version field.
+	outboxeventDescNotificationVersion := outboxeventFields[9].Descriptor()
+	// outboxevent.DefaultNotificationVersion holds the default value on creation for the notification_version field.
+	outboxevent.DefaultNotificationVersion = outboxeventDescNotificationVersion.Default.(int)
+	// outboxeventDescNotificationFanned is the schema descriptor for notification_fanned field.
+	outboxeventDescNotificationFanned := outboxeventFields[10].Descriptor()
+	// outboxevent.DefaultNotificationFanned holds the default value on creation for the notification_fanned field.
+	outboxevent.DefaultNotificationFanned = outboxeventDescNotificationFanned.Default.(bool)
 	// outboxeventDescAttempts is the schema descriptor for attempts field.
-	outboxeventDescAttempts := outboxeventFields[9].Descriptor()
+	outboxeventDescAttempts := outboxeventFields[11].Descriptor()
 	// outboxevent.DefaultAttempts holds the default value on creation for the attempts field.
 	outboxevent.DefaultAttempts = outboxeventDescAttempts.Default.(int)
 	// outboxeventDescCreatedAt is the schema descriptor for created_at field.
-	outboxeventDescCreatedAt := outboxeventFields[12].Descriptor()
+	outboxeventDescCreatedAt := outboxeventFields[14].Descriptor()
 	// outboxevent.DefaultCreatedAt holds the default value on creation for the created_at field.
 	outboxevent.DefaultCreatedAt = outboxeventDescCreatedAt.Default.(func() time.Time)
 	pageknowledgeFields := schema.PageKnowledge{}.Fields()
@@ -756,6 +771,152 @@ func init() {
 	pageknowledge.DefaultUpdatedAt = pageknowledgeDescUpdatedAt.Default.(func() time.Time)
 	// pageknowledge.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	pageknowledge.UpdateDefaultUpdatedAt = pageknowledgeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	platformnotificationdeliveryFields := schema.PlatformNotificationDelivery{}.Fields()
+	_ = platformnotificationdeliveryFields
+	// platformnotificationdeliveryDescStatus is the schema descriptor for status field.
+	platformnotificationdeliveryDescStatus := platformnotificationdeliveryFields[6].Descriptor()
+	// platformnotificationdelivery.DefaultStatus holds the default value on creation for the status field.
+	platformnotificationdelivery.DefaultStatus = platformnotificationdeliveryDescStatus.Default.(string)
+	// platformnotificationdeliveryDescPolicyGeneration is the schema descriptor for policy_generation field.
+	platformnotificationdeliveryDescPolicyGeneration := platformnotificationdeliveryFields[7].Descriptor()
+	// platformnotificationdelivery.DefaultPolicyGeneration holds the default value on creation for the policy_generation field.
+	platformnotificationdelivery.DefaultPolicyGeneration = platformnotificationdeliveryDescPolicyGeneration.Default.(int)
+	// platformnotificationdeliveryDescPreferenceGeneration is the schema descriptor for preference_generation field.
+	platformnotificationdeliveryDescPreferenceGeneration := platformnotificationdeliveryFields[8].Descriptor()
+	// platformnotificationdelivery.DefaultPreferenceGeneration holds the default value on creation for the preference_generation field.
+	platformnotificationdelivery.DefaultPreferenceGeneration = platformnotificationdeliveryDescPreferenceGeneration.Default.(int)
+	// platformnotificationdeliveryDescConnectionID is the schema descriptor for connection_id field.
+	platformnotificationdeliveryDescConnectionID := platformnotificationdeliveryFields[9].Descriptor()
+	// platformnotificationdelivery.DefaultConnectionID holds the default value on creation for the connection_id field.
+	platformnotificationdelivery.DefaultConnectionID = platformnotificationdeliveryDescConnectionID.Default.(string)
+	// platformnotificationdeliveryDescClaimToken is the schema descriptor for claim_token field.
+	platformnotificationdeliveryDescClaimToken := platformnotificationdeliveryFields[10].Descriptor()
+	// platformnotificationdelivery.DefaultClaimToken holds the default value on creation for the claim_token field.
+	platformnotificationdelivery.DefaultClaimToken = platformnotificationdeliveryDescClaimToken.Default.(string)
+	// platformnotificationdeliveryDescAttempts is the schema descriptor for attempts field.
+	platformnotificationdeliveryDescAttempts := platformnotificationdeliveryFields[13].Descriptor()
+	// platformnotificationdelivery.DefaultAttempts holds the default value on creation for the attempts field.
+	platformnotificationdelivery.DefaultAttempts = platformnotificationdeliveryDescAttempts.Default.(int)
+	// platformnotificationdeliveryDescNextAttemptAt is the schema descriptor for next_attempt_at field.
+	platformnotificationdeliveryDescNextAttemptAt := platformnotificationdeliveryFields[14].Descriptor()
+	// platformnotificationdelivery.DefaultNextAttemptAt holds the default value on creation for the next_attempt_at field.
+	platformnotificationdelivery.DefaultNextAttemptAt = platformnotificationdeliveryDescNextAttemptAt.Default.(func() time.Time)
+	// platformnotificationdeliveryDescFailureCode is the schema descriptor for failure_code field.
+	platformnotificationdeliveryDescFailureCode := platformnotificationdeliveryFields[15].Descriptor()
+	// platformnotificationdelivery.DefaultFailureCode holds the default value on creation for the failure_code field.
+	platformnotificationdelivery.DefaultFailureCode = platformnotificationdeliveryDescFailureCode.Default.(string)
+	// platformnotificationdeliveryDescProviderReceipt is the schema descriptor for provider_receipt field.
+	platformnotificationdeliveryDescProviderReceipt := platformnotificationdeliveryFields[16].Descriptor()
+	// platformnotificationdelivery.DefaultProviderReceipt holds the default value on creation for the provider_receipt field.
+	platformnotificationdelivery.DefaultProviderReceipt = platformnotificationdeliveryDescProviderReceipt.Default.(string)
+	// platformnotificationdeliveryDescEncryptedPayload is the schema descriptor for encrypted_payload field.
+	platformnotificationdeliveryDescEncryptedPayload := platformnotificationdeliveryFields[17].Descriptor()
+	// platformnotificationdelivery.DefaultEncryptedPayload holds the default value on creation for the encrypted_payload field.
+	platformnotificationdelivery.DefaultEncryptedPayload = platformnotificationdeliveryDescEncryptedPayload.Default.(string)
+	// platformnotificationdeliveryDescCreatedAt is the schema descriptor for created_at field.
+	platformnotificationdeliveryDescCreatedAt := platformnotificationdeliveryFields[18].Descriptor()
+	// platformnotificationdelivery.DefaultCreatedAt holds the default value on creation for the created_at field.
+	platformnotificationdelivery.DefaultCreatedAt = platformnotificationdeliveryDescCreatedAt.Default.(func() time.Time)
+	// platformnotificationdeliveryDescUpdatedAt is the schema descriptor for updated_at field.
+	platformnotificationdeliveryDescUpdatedAt := platformnotificationdeliveryFields[19].Descriptor()
+	// platformnotificationdelivery.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	platformnotificationdelivery.DefaultUpdatedAt = platformnotificationdeliveryDescUpdatedAt.Default.(func() time.Time)
+	platformnotificationinboxFields := schema.PlatformNotificationInbox{}.Fields()
+	_ = platformnotificationinboxFields
+	// platformnotificationinboxDescCreatedAt is the schema descriptor for created_at field.
+	platformnotificationinboxDescCreatedAt := platformnotificationinboxFields[9].Descriptor()
+	// platformnotificationinbox.DefaultCreatedAt holds the default value on creation for the created_at field.
+	platformnotificationinbox.DefaultCreatedAt = platformnotificationinboxDescCreatedAt.Default.(func() time.Time)
+	platformnotificationpolicyFields := schema.PlatformNotificationPolicy{}.Fields()
+	_ = platformnotificationpolicyFields
+	// platformnotificationpolicyDescEvents is the schema descriptor for events field.
+	platformnotificationpolicyDescEvents := platformnotificationpolicyFields[1].Descriptor()
+	// platformnotificationpolicy.DefaultEvents holds the default value on creation for the events field.
+	platformnotificationpolicy.DefaultEvents = platformnotificationpolicyDescEvents.Default.(map[string]interface{})
+	// platformnotificationpolicyDescAvailability is the schema descriptor for availability field.
+	platformnotificationpolicyDescAvailability := platformnotificationpolicyFields[2].Descriptor()
+	// platformnotificationpolicy.DefaultAvailability holds the default value on creation for the availability field.
+	platformnotificationpolicy.DefaultAvailability = platformnotificationpolicyDescAvailability.Default.(map[string]bool)
+	// platformnotificationpolicyDescGeneration is the schema descriptor for generation field.
+	platformnotificationpolicyDescGeneration := platformnotificationpolicyFields[3].Descriptor()
+	// platformnotificationpolicy.DefaultGeneration holds the default value on creation for the generation field.
+	platformnotificationpolicy.DefaultGeneration = platformnotificationpolicyDescGeneration.Default.(int)
+	// platformnotificationpolicyDescSlackConnectionID is the schema descriptor for slack_connection_id field.
+	platformnotificationpolicyDescSlackConnectionID := platformnotificationpolicyFields[4].Descriptor()
+	// platformnotificationpolicy.DefaultSlackConnectionID holds the default value on creation for the slack_connection_id field.
+	platformnotificationpolicy.DefaultSlackConnectionID = platformnotificationpolicyDescSlackConnectionID.Default.(string)
+	// platformnotificationpolicyDescSlackChannelID is the schema descriptor for slack_channel_id field.
+	platformnotificationpolicyDescSlackChannelID := platformnotificationpolicyFields[5].Descriptor()
+	// platformnotificationpolicy.DefaultSlackChannelID holds the default value on creation for the slack_channel_id field.
+	platformnotificationpolicy.DefaultSlackChannelID = platformnotificationpolicyDescSlackChannelID.Default.(string)
+	// platformnotificationpolicyDescSlackChannelName is the schema descriptor for slack_channel_name field.
+	platformnotificationpolicyDescSlackChannelName := platformnotificationpolicyFields[6].Descriptor()
+	// platformnotificationpolicy.DefaultSlackChannelName holds the default value on creation for the slack_channel_name field.
+	platformnotificationpolicy.DefaultSlackChannelName = platformnotificationpolicyDescSlackChannelName.Default.(string)
+	// platformnotificationpolicyDescEnabledAt is the schema descriptor for enabled_at field.
+	platformnotificationpolicyDescEnabledAt := platformnotificationpolicyFields[7].Descriptor()
+	// platformnotificationpolicy.DefaultEnabledAt holds the default value on creation for the enabled_at field.
+	platformnotificationpolicy.DefaultEnabledAt = platformnotificationpolicyDescEnabledAt.Default.(func() time.Time)
+	// platformnotificationpolicyDescUpdatedAt is the schema descriptor for updated_at field.
+	platformnotificationpolicyDescUpdatedAt := platformnotificationpolicyFields[8].Descriptor()
+	// platformnotificationpolicy.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	platformnotificationpolicy.DefaultUpdatedAt = platformnotificationpolicyDescUpdatedAt.Default.(func() time.Time)
+	platformnotificationpreferenceFields := schema.PlatformNotificationPreference{}.Fields()
+	_ = platformnotificationpreferenceFields
+	// platformnotificationpreferenceDescEvents is the schema descriptor for events field.
+	platformnotificationpreferenceDescEvents := platformnotificationpreferenceFields[3].Descriptor()
+	// platformnotificationpreference.DefaultEvents holds the default value on creation for the events field.
+	platformnotificationpreference.DefaultEvents = platformnotificationpreferenceDescEvents.Default.(map[string]interface{})
+	// platformnotificationpreferenceDescGeneration is the schema descriptor for generation field.
+	platformnotificationpreferenceDescGeneration := platformnotificationpreferenceFields[4].Descriptor()
+	// platformnotificationpreference.DefaultGeneration holds the default value on creation for the generation field.
+	platformnotificationpreference.DefaultGeneration = platformnotificationpreferenceDescGeneration.Default.(int)
+	// platformnotificationpreferenceDescUpdatedAt is the schema descriptor for updated_at field.
+	platformnotificationpreferenceDescUpdatedAt := platformnotificationpreferenceFields[5].Descriptor()
+	// platformnotificationpreference.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	platformnotificationpreference.DefaultUpdatedAt = platformnotificationpreferenceDescUpdatedAt.Default.(func() time.Time)
+	platformnotificationseenactionFields := schema.PlatformNotificationSeenAction{}.Fields()
+	_ = platformnotificationseenactionFields
+	// platformnotificationseenactionDescDeletedCount is the schema descriptor for deleted_count field.
+	platformnotificationseenactionDescDeletedCount := platformnotificationseenactionFields[4].Descriptor()
+	// platformnotificationseenaction.DefaultDeletedCount holds the default value on creation for the deleted_count field.
+	platformnotificationseenaction.DefaultDeletedCount = platformnotificationseenactionDescDeletedCount.Default.(int)
+	// platformnotificationseenactionDescCreatedAt is the schema descriptor for created_at field.
+	platformnotificationseenactionDescCreatedAt := platformnotificationseenactionFields[5].Descriptor()
+	// platformnotificationseenaction.DefaultCreatedAt holds the default value on creation for the created_at field.
+	platformnotificationseenaction.DefaultCreatedAt = platformnotificationseenactionDescCreatedAt.Default.(func() time.Time)
+	platformslackconnectionFields := schema.PlatformSlackConnection{}.Fields()
+	_ = platformslackconnectionFields
+	// platformslackconnectionDescLegacySocialID is the schema descriptor for legacy_social_id field.
+	platformslackconnectionDescLegacySocialID := platformslackconnectionFields[3].Descriptor()
+	// platformslackconnection.DefaultLegacySocialID holds the default value on creation for the legacy_social_id field.
+	platformslackconnection.DefaultLegacySocialID = platformslackconnectionDescLegacySocialID.Default.(string)
+	// platformslackconnectionDescCreatedAt is the schema descriptor for created_at field.
+	platformslackconnectionDescCreatedAt := platformslackconnectionFields[4].Descriptor()
+	// platformslackconnection.DefaultCreatedAt holds the default value on creation for the created_at field.
+	platformslackconnection.DefaultCreatedAt = platformslackconnectionDescCreatedAt.Default.(func() time.Time)
+	platformslackinstallationFields := schema.PlatformSlackInstallation{}.Fields()
+	_ = platformslackinstallationFields
+	// platformslackinstallationDescEnterpriseID is the schema descriptor for enterprise_id field.
+	platformslackinstallationDescEnterpriseID := platformslackinstallationFields[3].Descriptor()
+	// platformslackinstallation.DefaultEnterpriseID holds the default value on creation for the enterprise_id field.
+	platformslackinstallation.DefaultEnterpriseID = platformslackinstallationDescEnterpriseID.Default.(string)
+	// platformslackinstallationDescHealth is the schema descriptor for health field.
+	platformslackinstallationDescHealth := platformslackinstallationFields[8].Descriptor()
+	// platformslackinstallation.DefaultHealth holds the default value on creation for the health field.
+	platformslackinstallation.DefaultHealth = platformslackinstallationDescHealth.Default.(string)
+	// platformslackinstallationDescRefreshClaim is the schema descriptor for refresh_claim field.
+	platformslackinstallationDescRefreshClaim := platformslackinstallationFields[9].Descriptor()
+	// platformslackinstallation.DefaultRefreshClaim holds the default value on creation for the refresh_claim field.
+	platformslackinstallation.DefaultRefreshClaim = platformslackinstallationDescRefreshClaim.Default.(string)
+	// platformslackinstallationDescCreatedAt is the schema descriptor for created_at field.
+	platformslackinstallationDescCreatedAt := platformslackinstallationFields[12].Descriptor()
+	// platformslackinstallation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	platformslackinstallation.DefaultCreatedAt = platformslackinstallationDescCreatedAt.Default.(func() time.Time)
+	// platformslackinstallationDescUpdatedAt is the schema descriptor for updated_at field.
+	platformslackinstallationDescUpdatedAt := platformslackinstallationFields[13].Descriptor()
+	// platformslackinstallation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	platformslackinstallation.DefaultUpdatedAt = platformslackinstallationDescUpdatedAt.Default.(func() time.Time)
 	productprofileFields := schema.ProductProfile{}.Fields()
 	_ = productprofileFields
 	// productprofileDescSummary is the schema descriptor for summary field.
@@ -803,15 +964,15 @@ func init() {
 	productsurfaceFields := schema.ProductSurface{}.Fields()
 	_ = productsurfaceFields
 	// productsurfaceDescEnvironment is the schema descriptor for environment field.
-	productsurfaceDescEnvironment := productsurfaceFields[5].Descriptor()
+	productsurfaceDescEnvironment := productsurfaceFields[6].Descriptor()
 	// productsurface.DefaultEnvironment holds the default value on creation for the environment field.
 	productsurface.DefaultEnvironment = productsurfaceDescEnvironment.Default.(string)
 	// productsurfaceDescCreatedAt is the schema descriptor for created_at field.
-	productsurfaceDescCreatedAt := productsurfaceFields[11].Descriptor()
+	productsurfaceDescCreatedAt := productsurfaceFields[12].Descriptor()
 	// productsurface.DefaultCreatedAt holds the default value on creation for the created_at field.
 	productsurface.DefaultCreatedAt = productsurfaceDescCreatedAt.Default.(func() time.Time)
 	// productsurfaceDescUpdatedAt is the schema descriptor for updated_at field.
-	productsurfaceDescUpdatedAt := productsurfaceFields[12].Descriptor()
+	productsurfaceDescUpdatedAt := productsurfaceFields[13].Descriptor()
 	// productsurface.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	productsurface.DefaultUpdatedAt = productsurfaceDescUpdatedAt.Default.(func() time.Time)
 	// productsurface.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -961,27 +1122,27 @@ func init() {
 	sourceappFields := schema.SourceApp{}.Fields()
 	_ = sourceappFields
 	// sourceappDescProvider is the schema descriptor for provider field.
-	sourceappDescProvider := sourceappFields[3].Descriptor()
+	sourceappDescProvider := sourceappFields[4].Descriptor()
 	// sourceapp.DefaultProvider holds the default value on creation for the provider field.
 	sourceapp.DefaultProvider = sourceappDescProvider.Default.(string)
 	// sourceappDescIgnoreBotPullRequests is the schema descriptor for ignore_bot_pull_requests field.
-	sourceappDescIgnoreBotPullRequests := sourceappFields[8].Descriptor()
+	sourceappDescIgnoreBotPullRequests := sourceappFields[9].Descriptor()
 	// sourceapp.DefaultIgnoreBotPullRequests holds the default value on creation for the ignore_bot_pull_requests field.
 	sourceapp.DefaultIgnoreBotPullRequests = sourceappDescIgnoreBotPullRequests.Default.(bool)
 	// sourceappDescIgnoredPullRequestAuthors is the schema descriptor for ignored_pull_request_authors field.
-	sourceappDescIgnoredPullRequestAuthors := sourceappFields[9].Descriptor()
+	sourceappDescIgnoredPullRequestAuthors := sourceappFields[10].Descriptor()
 	// sourceapp.DefaultIgnoredPullRequestAuthors holds the default value on creation for the ignored_pull_request_authors field.
 	sourceapp.DefaultIgnoredPullRequestAuthors = sourceappDescIgnoredPullRequestAuthors.Default.([]string)
 	// sourceappDescSkipPrereleases is the schema descriptor for skip_prereleases field.
-	sourceappDescSkipPrereleases := sourceappFields[10].Descriptor()
+	sourceappDescSkipPrereleases := sourceappFields[11].Descriptor()
 	// sourceapp.DefaultSkipPrereleases holds the default value on creation for the skip_prereleases field.
 	sourceapp.DefaultSkipPrereleases = sourceappDescSkipPrereleases.Default.(bool)
 	// sourceappDescCreatedAt is the schema descriptor for created_at field.
-	sourceappDescCreatedAt := sourceappFields[13].Descriptor()
+	sourceappDescCreatedAt := sourceappFields[14].Descriptor()
 	// sourceapp.DefaultCreatedAt holds the default value on creation for the created_at field.
 	sourceapp.DefaultCreatedAt = sourceappDescCreatedAt.Default.(func() time.Time)
 	// sourceappDescUpdatedAt is the schema descriptor for updated_at field.
-	sourceappDescUpdatedAt := sourceappFields[14].Descriptor()
+	sourceappDescUpdatedAt := sourceappFields[15].Descriptor()
 	// sourceapp.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	sourceapp.DefaultUpdatedAt = sourceappDescUpdatedAt.Default.(func() time.Time)
 	// sourceapp.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -1041,7 +1202,7 @@ func init() {
 	storereviewcommentFields := schema.StoreReviewComment{}.Fields()
 	_ = storereviewcommentFields
 	// storereviewcommentDescCreatedAt is the schema descriptor for created_at field.
-	storereviewcommentDescCreatedAt := storereviewcommentFields[11].Descriptor()
+	storereviewcommentDescCreatedAt := storereviewcommentFields[12].Descriptor()
 	// storereviewcomment.DefaultCreatedAt holds the default value on creation for the created_at field.
 	storereviewcomment.DefaultCreatedAt = storereviewcommentDescCreatedAt.Default.(func() time.Time)
 	supportaccessgrantFields := schema.SupportAccessGrant{}.Fields()

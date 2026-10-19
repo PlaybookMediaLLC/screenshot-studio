@@ -315,7 +315,11 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 	if err != nil {
 		return nil, err
 	}
-	row, err := tx.ContentDraft.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetTitle(title).
+	draftID := cuid.New()
+	if err = recordDiscussionActivity(ctx, tx, actor, &ent.ContentDraft{ID: draftID, Discussions: map[string]any{}}, discussions); err != nil {
+		return nil, err
+	}
+	row, err := tx.ContentDraft.Create().SetID(draftID).SetOrganizationID(actor.OrganizationID).SetTitle(title).
 		SetBody(body).SetPlainText(text).SetAssetIds(assets).SetChannelConnectionIds(channels).SetDiscussions(discussions).SetChannelText(channelText).
 		SetNillableCreatedByUserID(projectActor(actor)).SetNillableUpdatedByUserID(projectActor(actor)).Save(ctx)
 	if err != nil {
@@ -492,6 +496,21 @@ func (c *Configuration) UpdateContentDraft(ctx context.Context, actor Actor, id 
 		return nil, err
 	}
 	defer tx.Rollback()
+	if input.Discussions != nil {
+		if _, err = tx.PlatformExec(ctx, `SELECT id FROM content_draft WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, id, actor.OrganizationID); err != nil {
+			return nil, err
+		}
+		previous, err := tx.ContentDraft.Query().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID)).Only(ctx)
+		if ent.IsNotFound(err) {
+			return nil, publishing.ErrNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+		if err = recordDiscussionActivity(ctx, tx, actor, previous, *input.Discussions); err != nil {
+			return nil, err
+		}
+	}
 	// The version check and the write are one statement, so two writers based
 	// on the same version can never both succeed.
 	update := tx.ContentDraft.Update().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID),

@@ -7,6 +7,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditdrain"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"github.com/lucsky/cuid"
 )
 
@@ -93,5 +94,23 @@ func AppendAudit(ctx context.Context, tx *ent.Tx, input AuditInput) error {
 type auditInput = AuditInput
 
 func appendAudit(ctx context.Context, tx *ent.Tx, input auditInput) error {
+	return AppendAudit(ctx, tx, input)
+}
+
+// recordPostActivity is used by scheduling and publishing terminal transitions.
+func recordPostActivity(ctx context.Context, tx *ent.Tx, event string, input auditInput) error {
+	payload := map[string]any{}
+	for k, v := range input.Metadata {
+		payload[k] = v
+	}
+	actor := ""
+	if input.Actor.Type == "USER" {
+		actor = input.Actor.UserID
+	} else {
+		payload["background"] = true
+	}
+	if err := activity.Emit(ctx, tx, input.Organization, event, input.EntityType, input.EntityID, actor, "", payload); err != nil {
+		return err
+	}
 	return AppendAudit(ctx, tx, input)
 }

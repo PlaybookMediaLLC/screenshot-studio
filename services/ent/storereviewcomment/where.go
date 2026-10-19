@@ -94,6 +94,11 @@ func AuthorName(v string) predicate.StoreReviewComment {
 	return predicate.StoreReviewComment(sql.FieldEQ(FieldAuthorName, v))
 }
 
+// PlatformAuthorUserID applies equality check predicate on the "platform_author_user_id" field. It's identical to PlatformAuthorUserIDEQ.
+func PlatformAuthorUserID(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldEQ(FieldPlatformAuthorUserID, v))
+}
+
 // Body applies equality check predicate on the "body" field. It's identical to BodyEQ.
 func Body(v string) predicate.StoreReviewComment {
 	return predicate.StoreReviewComment(sql.FieldEQ(FieldBody, v))
@@ -477,6 +482,81 @@ func AuthorNameEqualFold(v string) predicate.StoreReviewComment {
 // AuthorNameContainsFold applies the ContainsFold predicate on the "author_name" field.
 func AuthorNameContainsFold(v string) predicate.StoreReviewComment {
 	return predicate.StoreReviewComment(sql.FieldContainsFold(FieldAuthorName, v))
+}
+
+// PlatformAuthorUserIDEQ applies the EQ predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDEQ(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldEQ(FieldPlatformAuthorUserID, v))
+}
+
+// PlatformAuthorUserIDNEQ applies the NEQ predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDNEQ(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldNEQ(FieldPlatformAuthorUserID, v))
+}
+
+// PlatformAuthorUserIDIn applies the In predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDIn(vs ...string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldIn(FieldPlatformAuthorUserID, vs...))
+}
+
+// PlatformAuthorUserIDNotIn applies the NotIn predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDNotIn(vs ...string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldNotIn(FieldPlatformAuthorUserID, vs...))
+}
+
+// PlatformAuthorUserIDGT applies the GT predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDGT(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldGT(FieldPlatformAuthorUserID, v))
+}
+
+// PlatformAuthorUserIDGTE applies the GTE predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDGTE(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldGTE(FieldPlatformAuthorUserID, v))
+}
+
+// PlatformAuthorUserIDLT applies the LT predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDLT(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldLT(FieldPlatformAuthorUserID, v))
+}
+
+// PlatformAuthorUserIDLTE applies the LTE predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDLTE(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldLTE(FieldPlatformAuthorUserID, v))
+}
+
+// PlatformAuthorUserIDContains applies the Contains predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDContains(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldContains(FieldPlatformAuthorUserID, v))
+}
+
+// PlatformAuthorUserIDHasPrefix applies the HasPrefix predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDHasPrefix(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldHasPrefix(FieldPlatformAuthorUserID, v))
+}
+
+// PlatformAuthorUserIDHasSuffix applies the HasSuffix predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDHasSuffix(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldHasSuffix(FieldPlatformAuthorUserID, v))
+}
+
+// PlatformAuthorUserIDIsNil applies the IsNil predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDIsNil() predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldIsNull(FieldPlatformAuthorUserID))
+}
+
+// PlatformAuthorUserIDNotNil applies the NotNil predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDNotNil() predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldNotNull(FieldPlatformAuthorUserID))
+}
+
+// PlatformAuthorUserIDEqualFold applies the EqualFold predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDEqualFold(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldEqualFold(FieldPlatformAuthorUserID, v))
+}
+
+// PlatformAuthorUserIDContainsFold applies the ContainsFold predicate on the "platform_author_user_id" field.
+func PlatformAuthorUserIDContainsFold(v string) predicate.StoreReviewComment {
+	return predicate.StoreReviewComment(sql.FieldContainsFold(FieldPlatformAuthorUserID, v))
 }
 
 // BodyEQ applies the EQ predicate on the "body" field.

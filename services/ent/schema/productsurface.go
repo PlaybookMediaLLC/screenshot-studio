@@ -19,6 +19,7 @@ func (ProductSurface) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("id").StorageKey("id").Immutable(),
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
+		field.String("platform_owner_user_id").StorageKey("platformOwnerUserId").Optional().Nillable(),
 		field.String("name").StorageKey("name"),
 		// Stable and URL-safe, unique per workspace; set from the name at creation.
 		field.String("slug").StorageKey("slug").Immutable(),

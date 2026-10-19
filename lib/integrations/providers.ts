@@ -65,34 +65,6 @@ async function json(response: Response, provider: string): Promise<unknown> {
 const basic = (client: Client) =>
   `Basic ${Buffer.from(`${client.id}:${client.secret}`).toString('base64')}`
 
-const slackToken = z.union([
-  z.object({
-    access_token: z.string(),
-    expires_in: z.number().optional(),
-    ok: z.literal(true),
-    refresh_token: z.string().optional(),
-    scope: z.string().default(''),
-    team: z.object({ id: z.string(), name: z.string() }),
-  }),
-  z.object({ error: z.string(), ok: z.literal(false) }),
-])
-
-function slackGrant(body: unknown): Grant {
-  const token = slackToken.parse(body)
-  if (!token.ok)
-    throw new ProviderError(
-      `Slack refused the connection (${token.error}).`,
-      token.error === 'invalid_refresh_token'
-    )
-  return {
-    credentials: { accessToken: token.access_token, refreshToken: token.refresh_token },
-    displayName: token.team.name,
-    expiresAt: expiry(token.expires_in),
-    externalId: token.team.id,
-    scopes: token.scope.split(',').filter(Boolean),
-  }
-}
-
 const notionToken = z.object({
   access_token: z.string(),
   expires_in: z.number().optional(),
@@ -119,50 +91,7 @@ const figmaToken = z.object({
 })
 const figmaMe = z.object({ email: z.string().optional(), handle: z.string(), id: z.string() })
 
-const PROVIDERS: Record<IntegrationProvider, ProviderDefinition> = {
-  SLACK: {
-    authorizeUrl: (clientId, redirectUri, state) =>
-      `https://slack.com/oauth/v2/authorize?${new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        scope: PROVIDERS.SLACK.scopes.join(','),
-        state,
-      })}`,
-    exchange: async (client, code, redirectUri, fetcher) =>
-      slackGrant(
-        await json(
-          await fetcher('https://slack.com/api/oauth.v2.access', {
-            body: new URLSearchParams({
-              client_id: client.id,
-              client_secret: client.secret,
-              code,
-              redirect_uri: redirectUri,
-            }),
-            method: 'POST',
-          }),
-          'Slack'
-        )
-      ),
-    refresh: async (client, grant, fetcher) => {
-      if (!grant.credentials.refreshToken)
-        throw new ProviderError('Slack access expired. Connect Slack again.', true)
-      return slackGrant(
-        await json(
-          await fetcher('https://slack.com/api/oauth.v2.access', {
-            body: new URLSearchParams({
-              client_id: client.id,
-              client_secret: client.secret,
-              grant_type: 'refresh_token',
-              refresh_token: grant.credentials.refreshToken,
-            }),
-            method: 'POST',
-          }),
-          'Slack'
-        )
-      )
-    },
-    scopes: ['chat:write', 'files:write', 'channels:read', 'channels:join', 'groups:read'],
-  },
+const PROVIDERS: Record<Exclude<IntegrationProvider, 'SLACK'>, ProviderDefinition> = {
   NOTION: {
     authorizeUrl: (clientId, redirectUri, state) =>
       `https://api.notion.com/v1/oauth/authorize?${new URLSearchParams({
@@ -274,6 +203,7 @@ const PROVIDERS: Record<IntegrationProvider, ProviderDefinition> = {
 
 /** The provider's client credentials from the environment, or null when it is not set up. */
 export function providerClient(provider: IntegrationProvider): Client | null {
+  if (provider === 'SLACK') return null
   const id = process.env[`${provider}_CLIENT_ID`]
   const secret = process.env[`${provider}_CLIENT_SECRET`]
   return id && secret ? { id, secret } : null
@@ -281,6 +211,7 @@ export function providerClient(provider: IntegrationProvider): Client | null {
 
 /** The environment variables a provider needs. */
 export function providerEnvironment(provider: IntegrationProvider): string[] {
+  if (provider === 'SLACK') return ['backend Slack configuration']
   return [`${provider}_CLIENT_ID`, `${provider}_CLIENT_SECRET`]
 }
 
@@ -291,6 +222,7 @@ export function authorizeUrl(
   redirectUri: string,
   state: string
 ): string {
+  if (provider === 'SLACK') throw new ProviderError('Slack is managed by the backend.')
   return PROVIDERS[provider].authorizeUrl(client.id, redirectUri, state)
 }
 
@@ -302,6 +234,7 @@ export function exchangeCode(
   redirectUri: string,
   fetcher: Fetch = fetch
 ): Promise<Grant> {
+  if (provider === 'SLACK') throw new ProviderError('Slack is managed by the backend.')
   return PROVIDERS[provider].exchange(client, code, redirectUri, fetcher)
 }
 
@@ -312,5 +245,6 @@ export function refreshGrant(
   grant: Pick<Grant, 'credentials' | 'displayName' | 'externalId' | 'scopes'>,
   fetcher: Fetch = fetch
 ): Promise<Grant> | null {
+  if (provider === 'SLACK') throw new ProviderError('Slack is managed by the backend.')
   return PROVIDERS[provider].refresh?.(client, grant, fetcher) ?? null
 }

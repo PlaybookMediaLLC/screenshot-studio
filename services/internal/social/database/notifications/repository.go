@@ -34,12 +34,12 @@ type MainPageCount struct {
 }
 
 func (r *Repository) GetMainPageCount(ctx context.Context, organizationID, userID string) (*MainPageCount, error) {
-	lastRead, err := r.GetLastReadNotification(ctx, userID)
+	_, err := r.GetLastReadNotification(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 	total, err := r.client.Notifications.Query().
-		Where(notifications.OrganizationID(organizationID), notifications.CreatedAtGT(lastRead)).Count(ctx)
+		Where(notifications.OrganizationID(organizationID), notifications.DeletedAtIsNil()).Count(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -113,18 +113,14 @@ type RecentNotifications struct {
 	Notifications         []RecentNotification `json:"notifications"`
 }
 
-// GetNotifications returns the 10 newest notifications with the previous
-// lastReadNotifications, and marks everything read.
+// GetNotifications is read-only. The global timestamp cannot establish per-workspace read status.
 func (r *Repository) GetNotifications(ctx context.Context, organizationID, userID string) (*RecentNotifications, error) {
 	lastRead, err := r.GetLastReadNotification(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	if err := r.client.User.UpdateOneID(userID).SetLastReadNotifications(time.Now()).Exec(ctx); err != nil {
-		return nil, err
-	}
 	rows, err := r.client.Notifications.Query().
-		Where(notifications.OrganizationID(organizationID)).
+		Where(notifications.OrganizationID(organizationID), notifications.DeletedAtIsNil()).
 		Order(ent.Desc(notifications.FieldCreatedAt)).
 		Limit(10).
 		All(ctx)

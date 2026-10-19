@@ -103,6 +103,10 @@ func (c *Configuration) UpdateMemberRole(ctx context.Context, actor Actor, membe
 		return nil, err
 	}
 	defer tx.Rollback()
+	if _, err = tx.PlatformExec(ctx, `SELECT set_config('platform.membership_explicit','true',true)`); err != nil {
+		return nil, err
+	}
+
 	current, err := tx.Member.Query().Where(member.ID(memberID), member.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return nil, notFound("Member not found.")
@@ -129,9 +133,11 @@ func (c *Configuration) UpdateMemberRole(ctx context.Context, actor Actor, membe
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.member_role_changed", "member", memberID,
-		map[string]any{"role": role}); err != nil {
-		return nil, err
+	if current.Role != role {
+		if err := recordProductActivity(ctx, tx, actor, "member.role_changed", "product.member_role_changed", "member", memberID,
+			map[string]any{"role": role, "affectedUserId": current.UserID}); err != nil {
+			return nil, err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
@@ -148,6 +154,10 @@ func (c *Configuration) RemoveMember(ctx context.Context, actor Actor, memberID 
 		return err
 	}
 	defer tx.Rollback()
+	if _, err = tx.PlatformExec(ctx, `SELECT set_config('platform.membership_explicit','true',true)`); err != nil {
+		return err
+	}
+
 	current, err := tx.Member.Query().Where(member.ID(memberID), member.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return notFound("Member not found.")
@@ -172,7 +182,7 @@ func (c *Configuration) RemoveMember(ctx context.Context, actor Actor, memberID 
 	if _, err := tx.Session.Delete().Where(session.ActiveOrganizationID(actor.OrganizationID), session.UserID(current.UserID)).Exec(ctx); err != nil {
 		return err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.member_removed", "member", memberID); err != nil {
+	if err := recordProductActivity(ctx, tx, actor, "member.removed", "product.member_removed", "member", memberID); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -184,6 +194,10 @@ func (c *Configuration) LeaveWorkspace(ctx context.Context, actor Actor) error {
 		return err
 	}
 	defer tx.Rollback()
+	if _, err = tx.PlatformExec(ctx, `SELECT set_config('platform.membership_explicit','true',true)`); err != nil {
+		return err
+	}
+
 	current, err := tx.Member.Query().Where(member.OrganizationID(actor.OrganizationID), member.UserID(actor.UserID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return forbidden("Workspace membership not found.")
@@ -204,7 +218,7 @@ func (c *Configuration) LeaveWorkspace(ctx context.Context, actor Actor) error {
 	if _, err := tx.Session.Delete().Where(session.ActiveOrganizationID(actor.OrganizationID), session.UserID(actor.UserID)).Exec(ctx); err != nil {
 		return err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.member_left", "member", current.ID); err != nil {
+	if err := recordProductActivity(ctx, tx, actor, "member.left", "product.member_left", "member", current.ID); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -216,6 +230,10 @@ func (c *Configuration) TransferOwnership(ctx context.Context, actor Actor, memb
 		return err
 	}
 	defer tx.Rollback()
+	if _, err = tx.PlatformExec(ctx, `SELECT set_config('platform.membership_explicit','true',true)`); err != nil {
+		return err
+	}
+
 	requester, err := tx.Member.Query().Where(member.OrganizationID(actor.OrganizationID), member.UserID(actor.UserID)).Only(ctx)
 	if ent.IsNotFound(err) || (err == nil && requester.Role != "owner") {
 		return forbidden("Only the workspace owner can transfer ownership.")
@@ -251,7 +269,7 @@ func (c *Configuration) TransferOwnership(ctx context.Context, actor Actor, memb
 	if count != 1 {
 		return conflict("Member role changed. Please retry.")
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.workspace_ownership_transferred", "member", memberID); err != nil {
+	if err := recordProductActivity(ctx, tx, actor, "workspace.ownership_transferred", "product.workspace_ownership_transferred", "member", memberID, map[string]any{"affectedUserId": recipient.UserID}); err != nil {
 		return err
 	}
 	return tx.Commit()

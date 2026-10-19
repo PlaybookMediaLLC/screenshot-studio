@@ -96,6 +96,26 @@ func (_u *StoreReviewCommentUpdate) SetNillableAuthorName(v *string) *StoreRevie
 	return _u
 }
 
+// SetPlatformAuthorUserID sets the "platform_author_user_id" field.
+func (_u *StoreReviewCommentUpdate) SetPlatformAuthorUserID(v string) *StoreReviewCommentUpdate {
+	_u.mutation.SetPlatformAuthorUserID(v)
+	return _u
+}
+
+// SetNillablePlatformAuthorUserID sets the "platform_author_user_id" field if the given value is not nil.
+func (_u *StoreReviewCommentUpdate) SetNillablePlatformAuthorUserID(v *string) *StoreReviewCommentUpdate {
+	if v != nil {
+		_u.SetPlatformAuthorUserID(*v)
+	}
+	return _u
+}
+
+// ClearPlatformAuthorUserID clears the value of the "platform_author_user_id" field.
+func (_u *StoreReviewCommentUpdate) ClearPlatformAuthorUserID() *StoreReviewCommentUpdate {
+	_u.mutation.ClearPlatformAuthorUserID()
+	return _u
+}
+
 // SetBody sets the "body" field.
 func (_u *StoreReviewCommentUpdate) SetBody(v string) *StoreReviewCommentUpdate {
 	_u.mutation.SetBody(v)
@@ -226,6 +246,12 @@ func (_u *StoreReviewCommentUpdate) sqlSave(ctx context.Context) (_node int, err
 	if value, ok := _u.mutation.AuthorName(); ok {
 		_spec.SetField(storereviewcomment.FieldAuthorName, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.PlatformAuthorUserID(); ok {
+		_spec.SetField(storereviewcomment.FieldPlatformAuthorUserID, field.TypeString, value)
+	}
+	if _u.mutation.PlatformAuthorUserIDCleared() {
+		_spec.ClearField(storereviewcomment.FieldPlatformAuthorUserID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Body(); ok {
 		_spec.SetField(storereviewcomment.FieldBody, field.TypeString, value)
 	}
@@ -329,6 +355,26 @@ func (_u *StoreReviewCommentUpdateOne) SetNillableAuthorName(v *string) *StoreRe
 	if v != nil {
 		_u.SetAuthorName(*v)
 	}
+	return _u
+}
+
+// SetPlatformAuthorUserID sets the "platform_author_user_id" field.
+func (_u *StoreReviewCommentUpdateOne) SetPlatformAuthorUserID(v string) *StoreReviewCommentUpdateOne {
+	_u.mutation.SetPlatformAuthorUserID(v)
+	return _u
+}
+
+// SetNillablePlatformAuthorUserID sets the "platform_author_user_id" field if the given value is not nil.
+func (_u *StoreReviewCommentUpdateOne) SetNillablePlatformAuthorUserID(v *string) *StoreReviewCommentUpdateOne {
+	if v != nil {
+		_u.SetPlatformAuthorUserID(*v)
+	}
+	return _u
+}
+
+// ClearPlatformAuthorUserID clears the value of the "platform_author_user_id" field.
+func (_u *StoreReviewCommentUpdateOne) ClearPlatformAuthorUserID() *StoreReviewCommentUpdateOne {
+	_u.mutation.ClearPlatformAuthorUserID()
 	return _u
 }
 
@@ -491,6 +537,12 @@ func (_u *StoreReviewCommentUpdateOne) sqlSave(ctx context.Context) (_node *Stor
 	}
 	if value, ok := _u.mutation.AuthorName(); ok {
 		_spec.SetField(storereviewcomment.FieldAuthorName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.PlatformAuthorUserID(); ok {
+		_spec.SetField(storereviewcomment.FieldPlatformAuthorUserID, field.TypeString, value)
+	}
+	if _u.mutation.PlatformAuthorUserIDCleared() {
+		_spec.ClearField(storereviewcomment.FieldPlatformAuthorUserID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Body(); ok {
 		_spec.SetField(storereviewcomment.FieldBody, field.TypeString, value)

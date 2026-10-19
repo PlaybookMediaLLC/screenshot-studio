@@ -26,6 +26,20 @@ func (_c *SourceAppCreate) SetOrganizationID(v string) *SourceAppCreate {
 	return _c
 }
 
+// SetPlatformOwnerUserID sets the "platform_owner_user_id" field.
+func (_c *SourceAppCreate) SetPlatformOwnerUserID(v string) *SourceAppCreate {
+	_c.mutation.SetPlatformOwnerUserID(v)
+	return _c
+}
+
+// SetNillablePlatformOwnerUserID sets the "platform_owner_user_id" field if the given value is not nil.
+func (_c *SourceAppCreate) SetNillablePlatformOwnerUserID(v *string) *SourceAppCreate {
+	if v != nil {
+		_c.SetPlatformOwnerUserID(*v)
+	}
+	return _c
+}
+
 // SetName sets the "name" field.
 func (_c *SourceAppCreate) SetName(v string) *SourceAppCreate {
 	_c.mutation.SetName(v)
@@ -330,6 +344,10 @@ func (_c *SourceAppCreate) createSpec() (*SourceApp, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.OrganizationID(); ok {
 		_spec.SetField(sourceapp.FieldOrganizationID, field.TypeString, value)
 		_node.OrganizationID = value
+	}
+	if value, ok := _c.mutation.PlatformOwnerUserID(); ok {
+		_spec.SetField(sourceapp.FieldPlatformOwnerUserID, field.TypeString, value)
+		_node.PlatformOwnerUserID = &value
 	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(sourceapp.FieldName, field.TypeString, value)

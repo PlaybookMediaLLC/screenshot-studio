@@ -1,9 +1,10 @@
 import 'server-only'
 
 import { TRPCError } from '@trpc/server'
+import { backendSDK } from '@/lib/backend/sdk'
 import { z } from 'zod'
 import type { TenantAccessRequirement } from '@/lib/api/access-requirements'
-import { searchNotionPages, listSlackChannels } from '@/lib/integrations/deliver'
+import { searchNotionPages } from '@/lib/integrations/deliver'
 import { ProviderError } from '@/lib/integrations/providers'
 import { deliverySchema } from '@/lib/integrations/schema'
 import {
@@ -39,7 +40,7 @@ async function provider<T>(work: () => Promise<T>): Promise<T> {
 export const integrationRouter = router({
   list: tenantProcedure(READ).query(async ({ ctx }) => ({
     integrations: await listIntegrations(ctx.tenant),
-    setup: providerSetup(),
+    setup: await providerSetup(ctx.tenant),
   })),
   disconnect: organizationProcedure('workspace:update')
     .input(z.object({ id: z.string().cuid() }))
@@ -51,8 +52,7 @@ export const integrationRouter = router({
     .input(z.object({ integrationId: z.string().cuid() }))
     .query(({ ctx, input }) =>
       provider(async () => {
-        const { token } = await accessToken(ctx.tenant, input.integrationId)
-        return { channels: await listSlackChannels(token) }
+        return backendSDK(ctx.tenant).slackDesignChannels(input.integrationId)
       })
     ),
   notionPages: tenantProcedure(USE)

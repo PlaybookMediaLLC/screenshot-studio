@@ -1,3 +1,4 @@
+import { backendSDK } from '@/lib/backend/sdk'
 import { integrationCallbackContract } from '@/lib/api/contracts/integrations'
 import { route } from '@/lib/api/route'
 import { organizationAccess } from '@/lib/api/route-auth'
@@ -8,7 +9,10 @@ import { saveGrant } from '@/lib/integrations/server'
 import { appOrigin } from '@/lib/sharing/page'
 
 function back(slug: ProviderSlug, outcome: { connected: string } | { error: string }): Response {
-  const url = new URL('/workspace/integrations', appOrigin())
+  const url = new URL(
+    slug === 'slack' ? '/workspace/notifications' : '/workspace/integrations',
+    appOrigin()
+  )
   if ('connected' in outcome) url.searchParams.set('connected', outcome.connected)
   else url.searchParams.set('error', outcome.error)
   return new Response(null, {
@@ -27,6 +31,24 @@ export const GET = route(integrationCallbackContract, {
   handler: async ({ access, params, query, request }) => {
     const provider = providerOfSlug(params.provider)
     const name = PROVIDER_NAMES[provider]
+    if (provider === 'SLACK') {
+      if (query.error || !query.code || !query.state)
+        return back(params.provider, {
+          error: 'Slack connection was cancelled or expired. Try again.',
+        })
+      try {
+        const connection = await backendSDK(access).completeNotificationSlack({
+          code: query.code,
+          state: query.state,
+        })
+        return back(params.provider, { connected: connection.teamName })
+      } catch {
+        return back(params.provider, {
+          error:
+            'Slack did not connect. The session, workspace, or permission may have changed. Try connecting again.',
+        })
+      }
+    }
     if (query.error)
       return back(params.provider, { error: `${name} connection was cancelled (${query.error}).` })
     if (

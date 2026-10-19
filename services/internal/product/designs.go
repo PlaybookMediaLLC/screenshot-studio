@@ -487,7 +487,7 @@ func (c *Configuration) ApproveCampaignDesign(ctx context.Context, actor Actor, 
 			SetVariantID(variant.ID).SetStatus(approval.StatusPENDING).Save(ctx); err != nil {
 			return nil, err
 		}
-		if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_variant_created", "creative_variant", variant.ID,
+		if err := recordProductActivity(ctx, tx, actor, "variant.ready", "product.creative_variant_created", "creative_variant", variant.ID,
 			map[string]any{"designId": row.ID}); err != nil {
 			return nil, err
 		}

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 func (s *Store) Outbox(ctx context.Context) (int, error) {
@@ -32,6 +33,8 @@ func (s *Store) Outbox(ctx context.Context) (int, error) {
 		switch {
 		case attempts > 8:
 			failure = fmt.Errorf("outbox retry budget exhausted after worker interruption")
+		case strings.HasPrefix(kind, "activity."):
+		// Notification delivery has independent processing state.
 		case aggregate == "asset" && kind == "asset.deleted":
 			var key string
 			failure = s.DB.QueryRowContext(ctx, `SELECT "objectKey" FROM asset WHERE id=$1 AND "organizationId"=$2 AND status='DELETED'`, resource, org).Scan(&key)
@@ -42,7 +45,7 @@ func (s *Store) Outbox(ctx context.Context) (int, error) {
 			_, failure = s.Events.HandleOutboxEvent(ctx, id, org, kind, resource)
 		default:
 			var eligible bool
-			if aggregate == "asset" && kind == "asset.uploaded" {
+			if aggregate == "asset" && (kind == "asset.uploaded" || kind == "asset.generated") {
 				failure = s.DB.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM asset WHERE id=$1 AND "organizationId"=$2 AND status='UPLOADED')`, resource, org).Scan(&eligible)
 			} else if aggregate == "release" {
 				failure = s.DB.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM release WHERE id=$1 AND "organizationId"=$2 AND status <> 'CANCELLED')`, resource, org).Scan(&eligible)

@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
+	managedslack "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/slack"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -48,8 +50,8 @@ type Publisher struct {
 	now          func() time.Time
 }
 
-func New(bindings BindingLookup, socialClient *socialent.Client, signer MediaSigner) *Publisher {
-	manager := social.NewManager()
+func New(bindings BindingLookup, socialClient *socialent.Client, signer MediaSigner, lifecycle ...managedslack.Lifecycle) *Publisher {
+	manager := social.NewManager(lifecycle...)
 	return &Publisher{
 		bindings: bindings, integrations: EntIntegrationLookup{Client: socialClient},
 		signer: signer, resolve: func(platform string) poster { return manager.GetSocialIntegration(platform) }, now: time.Now,
@@ -63,7 +65,7 @@ func OpenShared(ctx context.Context, databaseURL string, bindings BindingLookup,
 	if err != nil {
 		return nil, nil, err
 	}
-	return New(bindings, db.Client, signer), db.Close, nil
+	return New(bindings, db.Client, signer, notifications.New(db.SQL, nil)), db.Close, nil
 }
 
 type EntIntegrationLookup struct{ Client *socialent.Client }

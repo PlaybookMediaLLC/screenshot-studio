@@ -285,6 +285,7 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 		s.registerContentDrafts(mux)
 		s.registerLibrary(mux)
 		s.registerSharing(mux)
+		s.registerNotifications(mux)
 		s.registerOnboarding(mux)
 	}
 	return requestLogging(mux)

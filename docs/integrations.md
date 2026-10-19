@@ -32,11 +32,14 @@ can edit designs delivers through a connection from the Share dialog.
 | Notion   | Uploads the file with the File Upload API, then appends it, captioned, and a bookmark to the share page to a page shared with the integration.                                                                                                  | Public integration, read and insert content                                  |
 | Figma    | Posts a comment with the share link, pinned to the frame when the link names one. Figma's REST API cannot place images on a canvas, so the Share dialog also has **Copy image for Figma**: the PNG goes on the clipboard and pastes into Figma. | `current_user:read`, `file_comments:write`                                   |
 
-Credentials are sealed with AES-256-GCM by the web facade, the only holder of
-`INTEGRATION_ENCRYPTION_KEY`, before the backend stores them in
-`integration_connection`. Tokens that expire (Slack with token rotation, Figma,
-and Notion when it issues refresh tokens) are refreshed two minutes before they
-expire. A revoked token asks the user to connect again.
+Slack OAuth, encrypted installations, refresh, channel discovery, design uploads,
+and publishing are owned by Go. The existing connection IDs and web routes remain
+compatibility adapters. See [workspace activity operations](workspace-notifications.md)
+for backend configuration, migration, and recovery.
+
+Notion and Figma keep their existing web facade lifecycle and
+`INTEGRATION_ENCRYPTION_KEY`. Their expiring tokens refresh before expiry. A
+revoked token asks the user to connect again.
 
 ### Setup
 
@@ -45,7 +48,6 @@ Set these on the web service:
 ```bash
 # 32 random bytes, base64. Rotating it means reconnecting every account.
 INTEGRATION_ENCRYPTION_KEY=$(openssl rand -base64 32)
-SLACK_CLIENT_ID=...    SLACK_CLIENT_SECRET=...
 NOTION_CLIENT_ID=...   NOTION_CLIENT_SECRET=...
 FIGMA_CLIENT_ID=...    FIGMA_CLIENT_SECRET=...
 ```
@@ -53,9 +55,8 @@ FIGMA_CLIENT_ID=...    FIGMA_CLIENT_SECRET=...
 Register this redirect URL with each provider app:
 `<NEXT_PUBLIC_APP_URL>/api/integrations/<slack|notion|figma>/callback`.
 
-- **Slack**: create an app at api.slack.com/apps. Add the bot scopes above, and
-  add the redirect URL under _OAuth & Permissions_. Distribution must be enabled
-  before other workspaces can install it.
+- **Slack**: configure credentials on the Go API and worker, never the web service.
+  Follow the [Slack setup and distribution guide](workspace-notifications.md#slack).
 - **Notion**: create a _public_ integration at notion.so/profile/integrations with the
   _Insert content_ and _Read content_ capabilities, and set the redirect URI.
 - **Figma**: create an app at figma.com/developers/apps with the scopes above and

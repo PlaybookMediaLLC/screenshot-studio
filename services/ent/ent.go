@@ -58,6 +58,14 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationinbox"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpolicy"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpreference"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationseenaction"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -191,6 +199,14 @@ func checkColumn(t, c string) error {
 			organizationenterprisesettings.Table: organizationenterprisesettings.ValidColumn,
 			outboxevent.Table:                    outboxevent.ValidColumn,
 			pageknowledge.Table:                  pageknowledge.ValidColumn,
+			platformnotificationdelivery.Table:   platformnotificationdelivery.ValidColumn,
+			platformnotificationinbox.Table:      platformnotificationinbox.ValidColumn,
+			platformnotificationpolicy.Table:     platformnotificationpolicy.ValidColumn,
+			platformnotificationpreference.Table: platformnotificationpreference.ValidColumn,
+			platformnotificationseenaction.Table: platformnotificationseenaction.ValidColumn,
+			platformslackconnection.Table:        platformslackconnection.ValidColumn,
+			platformslackinstallation.Table:      platformslackinstallation.ValidColumn,
+			platformslackpacing.Table:            platformslackpacing.ValidColumn,
 			productprofile.Table:                 productprofile.ValidColumn,
 			productsurface.Table:                 productsurface.ValidColumn,
 			project.Table:                        project.ValidColumn,

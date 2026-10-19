@@ -41,6 +41,7 @@ func (f *fakeEmail) SendEmail(_ context.Context, to, subject, html, addTo, _ str
 }
 
 func TestNotifications(t *testing.T) {
+	t.Setenv("PLATFORM_ACTIVITY_LEGACY_PAUSED", "false")
 	client := dbtest.Open(t)
 	ctx := context.Background()
 	email := &fakeEmail{}
@@ -68,7 +69,7 @@ func TestNotifications(t *testing.T) {
 	}
 
 	count, err := service.GetMainPageCount(ctx, org.ID, quiet.ID)
-	if err != nil || count.Total != 13 {
+	if err != nil || count.Total != 12 {
 		t.Fatalf("count %+v %v", count, err)
 	}
 
@@ -92,8 +93,8 @@ func TestNotifications(t *testing.T) {
 	if err != nil || len(recent.Notifications) != 10 || !recent.LastReadNotifications.Equal(before) {
 		t.Fatalf("recent %+v %v", recent, err)
 	}
-	if count, _ := service.GetMainPageCount(ctx, org.ID, quiet.ID); count.Total != 0 {
-		t.Errorf("all read, got %d", count.Total)
+	if count, _ := service.GetMainPageCount(ctx, org.ID, quiet.ID); count.Total != 12 {
+		t.Errorf("retrieval changed unseen count: %d", count.Total)
 	}
 	if _, err := service.GetMainPageCount(ctx, org.ID, "missing"); err == nil {
 		t.Error("unknown user must fail")
@@ -121,6 +122,7 @@ func TestNotifications(t *testing.T) {
 }
 
 func TestDigestSignal(t *testing.T) {
+	t.Setenv("PLATFORM_ACTIVITY_LEGACY_PAUSED", "false")
 	client := dbtest.Open(t)
 	ctx := context.Background()
 	temporal := &fakeTemporal{}
@@ -142,5 +144,32 @@ func TestDigestSignal(t *testing.T) {
 	input, _ := json.Marshal(temporal.input)
 	if string(signal) != `[{"title":"Title","message":"Body","type":"fail"}]` || string(input) != `{"organizationId":"`+org.ID+`"}` {
 		t.Errorf("signal %s input %s", signal, input)
+	}
+}
+
+func TestLegacyActivityEmailPausedByDefault(t *testing.T) {
+	t.Setenv("PLATFORM_ACTIVITY_LEGACY_PAUSED", "")
+	client := dbtest.Open(t)
+	ctx := context.Background()
+	email := &fakeEmail{}
+	temporal := &fakeTemporal{}
+	service := NewService(NewRepository(client), email, organizations.NewRepository(client), temporal)
+	org := client.Organization.Create().SetName("Acme").SaveX(ctx)
+	member := client.User.Create().SetEmail("member@example.invalid").SetProviderName(user.ProviderNameLOCAL).SetTimezone(0).SaveX(ctx)
+	client.UserOrganization.Create().SetOrganization(org).SetUser(member).SetRole(userorganization.RoleUSER).ExecX(ctx)
+
+	for _, digest := range []bool{false, true} {
+		if err := service.InAppNotification(ctx, org.ID, "Title", "Body", true, digest, TypeInfo); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := service.SendEmailsToOrg(ctx, org.ID, "Title", "Body", TypeInfo); err != nil {
+		t.Fatal(err)
+	}
+	if len(email.sent) != 0 || len(temporal.calls) != 0 {
+		t.Fatalf("legacy activity sent: emails=%v workflows=%v", email.sent, temporal.calls)
+	}
+	if count := client.Notifications.Query().CountX(ctx); count != 2 {
+		t.Fatalf("legacy inbox writes lost: count=%d", count)
 	}
 }

@@ -144,6 +144,30 @@ type OutboxEvent func(*sql.Selector)
 // PageKnowledge is the predicate function for pageknowledge builders.
 type PageKnowledge func(*sql.Selector)
 
+// PlatformNotificationDelivery is the predicate function for platformnotificationdelivery builders.
+type PlatformNotificationDelivery func(*sql.Selector)
+
+// PlatformNotificationInbox is the predicate function for platformnotificationinbox builders.
+type PlatformNotificationInbox func(*sql.Selector)
+
+// PlatformNotificationPolicy is the predicate function for platformnotificationpolicy builders.
+type PlatformNotificationPolicy func(*sql.Selector)
+
+// PlatformNotificationPreference is the predicate function for platformnotificationpreference builders.
+type PlatformNotificationPreference func(*sql.Selector)
+
+// PlatformNotificationSeenAction is the predicate function for platformnotificationseenaction builders.
+type PlatformNotificationSeenAction func(*sql.Selector)
+
+// PlatformSlackConnection is the predicate function for platformslackconnection builders.
+type PlatformSlackConnection func(*sql.Selector)
+
+// PlatformSlackInstallation is the predicate function for platformslackinstallation builders.
+type PlatformSlackInstallation func(*sql.Selector)
+
+// PlatformSlackPacing is the predicate function for platformslackpacing builders.
+type PlatformSlackPacing func(*sql.Selector)
+
 // ProductProfile is the predicate function for productprofile builders.
 type ProductProfile func(*sql.Selector)
 

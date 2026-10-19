@@ -9,6 +9,7 @@ export const integrationParamsSchema = z.object({ provider: providerSlugSchema }
 export const connectIntegrationContract = defineContract({
   method: 'GET',
   name: 'integrations.connect',
+  query: z.object({ purpose: z.enum(['design', 'publishing']).default('design') }),
   output: z.undefined(),
   params: integrationParamsSchema,
   path: '/api/integrations/{provider}/connect',

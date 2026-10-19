@@ -61,6 +61,14 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationinbox"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpolicy"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpreference"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationseenaction"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -187,6 +195,22 @@ type Client struct {
 	OutboxEvent *OutboxEventClient
 	// PageKnowledge is the client for interacting with the PageKnowledge builders.
 	PageKnowledge *PageKnowledgeClient
+	// PlatformNotificationDelivery is the client for interacting with the PlatformNotificationDelivery builders.
+	PlatformNotificationDelivery *PlatformNotificationDeliveryClient
+	// PlatformNotificationInbox is the client for interacting with the PlatformNotificationInbox builders.
+	PlatformNotificationInbox *PlatformNotificationInboxClient
+	// PlatformNotificationPolicy is the client for interacting with the PlatformNotificationPolicy builders.
+	PlatformNotificationPolicy *PlatformNotificationPolicyClient
+	// PlatformNotificationPreference is the client for interacting with the PlatformNotificationPreference builders.
+	PlatformNotificationPreference *PlatformNotificationPreferenceClient
+	// PlatformNotificationSeenAction is the client for interacting with the PlatformNotificationSeenAction builders.
+	PlatformNotificationSeenAction *PlatformNotificationSeenActionClient
+	// PlatformSlackConnection is the client for interacting with the PlatformSlackConnection builders.
+	PlatformSlackConnection *PlatformSlackConnectionClient
+	// PlatformSlackInstallation is the client for interacting with the PlatformSlackInstallation builders.
+	PlatformSlackInstallation *PlatformSlackInstallationClient
+	// PlatformSlackPacing is the client for interacting with the PlatformSlackPacing builders.
+	PlatformSlackPacing *PlatformSlackPacingClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
 	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
@@ -298,6 +322,14 @@ func (c *Client) init() {
 	c.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(c.config)
 	c.OutboxEvent = NewOutboxEventClient(c.config)
 	c.PageKnowledge = NewPageKnowledgeClient(c.config)
+	c.PlatformNotificationDelivery = NewPlatformNotificationDeliveryClient(c.config)
+	c.PlatformNotificationInbox = NewPlatformNotificationInboxClient(c.config)
+	c.PlatformNotificationPolicy = NewPlatformNotificationPolicyClient(c.config)
+	c.PlatformNotificationPreference = NewPlatformNotificationPreferenceClient(c.config)
+	c.PlatformNotificationSeenAction = NewPlatformNotificationSeenActionClient(c.config)
+	c.PlatformSlackConnection = NewPlatformSlackConnectionClient(c.config)
+	c.PlatformSlackInstallation = NewPlatformSlackInstallationClient(c.config)
+	c.PlatformSlackPacing = NewPlatformSlackPacingClient(c.config)
 	c.ProductProfile = NewProductProfileClient(c.config)
 	c.ProductSurface = NewProductSurfaceClient(c.config)
 	c.Project = NewProjectClient(c.config)
@@ -463,6 +495,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                    NewOutboxEventClient(cfg),
 		PageKnowledge:                  NewPageKnowledgeClient(cfg),
+		PlatformNotificationDelivery:   NewPlatformNotificationDeliveryClient(cfg),
+		PlatformNotificationInbox:      NewPlatformNotificationInboxClient(cfg),
+		PlatformNotificationPolicy:     NewPlatformNotificationPolicyClient(cfg),
+		PlatformNotificationPreference: NewPlatformNotificationPreferenceClient(cfg),
+		PlatformNotificationSeenAction: NewPlatformNotificationSeenActionClient(cfg),
+		PlatformSlackConnection:        NewPlatformSlackConnectionClient(cfg),
+		PlatformSlackInstallation:      NewPlatformSlackInstallationClient(cfg),
+		PlatformSlackPacing:            NewPlatformSlackPacingClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		Project:                        NewProjectClient(cfg),
@@ -555,6 +595,14 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                    NewOutboxEventClient(cfg),
 		PageKnowledge:                  NewPageKnowledgeClient(cfg),
+		PlatformNotificationDelivery:   NewPlatformNotificationDeliveryClient(cfg),
+		PlatformNotificationInbox:      NewPlatformNotificationInboxClient(cfg),
+		PlatformNotificationPolicy:     NewPlatformNotificationPolicyClient(cfg),
+		PlatformNotificationPreference: NewPlatformNotificationPreferenceClient(cfg),
+		PlatformNotificationSeenAction: NewPlatformNotificationSeenActionClient(cfg),
+		PlatformSlackConnection:        NewPlatformSlackConnectionClient(cfg),
+		PlatformSlackInstallation:      NewPlatformSlackInstallationClient(cfg),
+		PlatformSlackPacing:            NewPlatformSlackPacingClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		Project:                        NewProjectClient(cfg),
@@ -623,10 +671,14 @@ func (c *Client) Use(hooks ...Hook) {
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
 		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PageKnowledge, c.ProductProfile, c.ProductSurface, c.Project,
-		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseDocument,
-		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
-		c.SocialOAuthStart, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
+		c.OutboxEvent, c.PageKnowledge, c.PlatformNotificationDelivery,
+		c.PlatformNotificationInbox, c.PlatformNotificationPolicy,
+		c.PlatformNotificationPreference, c.PlatformNotificationSeenAction,
+		c.PlatformSlackConnection, c.PlatformSlackInstallation, c.PlatformSlackPacing,
+		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
+		c.PublicationAttempt, c.Release, c.ReleaseDocument, c.ReleaseSpec,
+		c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink, c.SocialOAuthStart,
+		c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
 		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.WorkspaceCreditGrant,
 		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceGitHubInstallation,
@@ -652,10 +704,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
 		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PageKnowledge, c.ProductProfile, c.ProductSurface, c.Project,
-		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseDocument,
-		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
-		c.SocialOAuthStart, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
+		c.OutboxEvent, c.PageKnowledge, c.PlatformNotificationDelivery,
+		c.PlatformNotificationInbox, c.PlatformNotificationPolicy,
+		c.PlatformNotificationPreference, c.PlatformNotificationSeenAction,
+		c.PlatformSlackConnection, c.PlatformSlackInstallation, c.PlatformSlackPacing,
+		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
+		c.PublicationAttempt, c.Release, c.ReleaseDocument, c.ReleaseSpec,
+		c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink, c.SocialOAuthStart,
+		c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
 		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.WorkspaceCreditGrant,
 		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceGitHubInstallation,
@@ -760,6 +816,22 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.OutboxEvent.mutate(ctx, m)
 	case *PageKnowledgeMutation:
 		return c.PageKnowledge.mutate(ctx, m)
+	case *PlatformNotificationDeliveryMutation:
+		return c.PlatformNotificationDelivery.mutate(ctx, m)
+	case *PlatformNotificationInboxMutation:
+		return c.PlatformNotificationInbox.mutate(ctx, m)
+	case *PlatformNotificationPolicyMutation:
+		return c.PlatformNotificationPolicy.mutate(ctx, m)
+	case *PlatformNotificationPreferenceMutation:
+		return c.PlatformNotificationPreference.mutate(ctx, m)
+	case *PlatformNotificationSeenActionMutation:
+		return c.PlatformNotificationSeenAction.mutate(ctx, m)
+	case *PlatformSlackConnectionMutation:
+		return c.PlatformSlackConnection.mutate(ctx, m)
+	case *PlatformSlackInstallationMutation:
+		return c.PlatformSlackInstallation.mutate(ctx, m)
+	case *PlatformSlackPacingMutation:
+		return c.PlatformSlackPacing.mutate(ctx, m)
 	case *ProductProfileMutation:
 		return c.ProductProfile.mutate(ctx, m)
 	case *ProductSurfaceMutation:
@@ -7017,6 +7089,1070 @@ func (c *PageKnowledgeClient) mutate(ctx context.Context, m *PageKnowledgeMutati
 	}
 }
 
+// PlatformNotificationDeliveryClient is a client for the PlatformNotificationDelivery schema.
+type PlatformNotificationDeliveryClient struct {
+	config
+}
+
+// NewPlatformNotificationDeliveryClient returns a client for the PlatformNotificationDelivery from the given config.
+func NewPlatformNotificationDeliveryClient(c config) *PlatformNotificationDeliveryClient {
+	return &PlatformNotificationDeliveryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformnotificationdelivery.Hooks(f(g(h())))`.
+func (c *PlatformNotificationDeliveryClient) Use(hooks ...Hook) {
+	c.hooks.PlatformNotificationDelivery = append(c.hooks.PlatformNotificationDelivery, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformnotificationdelivery.Intercept(f(g(h())))`.
+func (c *PlatformNotificationDeliveryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformNotificationDelivery = append(c.inters.PlatformNotificationDelivery, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformNotificationDelivery entity.
+func (c *PlatformNotificationDeliveryClient) Create() *PlatformNotificationDeliveryCreate {
+	mutation := newPlatformNotificationDeliveryMutation(c.config, OpCreate)
+	return &PlatformNotificationDeliveryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformNotificationDelivery entities.
+func (c *PlatformNotificationDeliveryClient) CreateBulk(builders ...*PlatformNotificationDeliveryCreate) *PlatformNotificationDeliveryCreateBulk {
+	return &PlatformNotificationDeliveryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformNotificationDeliveryClient) MapCreateBulk(slice any, setFunc func(*PlatformNotificationDeliveryCreate, int)) *PlatformNotificationDeliveryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformNotificationDeliveryCreateBulk{err: fmt.Errorf("calling to PlatformNotificationDeliveryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformNotificationDeliveryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformNotificationDeliveryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformNotificationDelivery.
+func (c *PlatformNotificationDeliveryClient) Update() *PlatformNotificationDeliveryUpdate {
+	mutation := newPlatformNotificationDeliveryMutation(c.config, OpUpdate)
+	return &PlatformNotificationDeliveryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformNotificationDeliveryClient) UpdateOne(_m *PlatformNotificationDelivery) *PlatformNotificationDeliveryUpdateOne {
+	mutation := newPlatformNotificationDeliveryMutation(c.config, OpUpdateOne, withPlatformNotificationDelivery(_m))
+	return &PlatformNotificationDeliveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformNotificationDeliveryClient) UpdateOneID(id string) *PlatformNotificationDeliveryUpdateOne {
+	mutation := newPlatformNotificationDeliveryMutation(c.config, OpUpdateOne, withPlatformNotificationDeliveryID(id))
+	return &PlatformNotificationDeliveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformNotificationDelivery.
+func (c *PlatformNotificationDeliveryClient) Delete() *PlatformNotificationDeliveryDelete {
+	mutation := newPlatformNotificationDeliveryMutation(c.config, OpDelete)
+	return &PlatformNotificationDeliveryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformNotificationDeliveryClient) DeleteOne(_m *PlatformNotificationDelivery) *PlatformNotificationDeliveryDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformNotificationDeliveryClient) DeleteOneID(id string) *PlatformNotificationDeliveryDeleteOne {
+	builder := c.Delete().Where(platformnotificationdelivery.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformNotificationDeliveryDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformNotificationDelivery.
+func (c *PlatformNotificationDeliveryClient) Query() *PlatformNotificationDeliveryQuery {
+	return &PlatformNotificationDeliveryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformNotificationDelivery},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformNotificationDelivery entity by its id.
+func (c *PlatformNotificationDeliveryClient) Get(ctx context.Context, id string) (*PlatformNotificationDelivery, error) {
+	return c.Query().Where(platformnotificationdelivery.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformNotificationDeliveryClient) GetX(ctx context.Context, id string) *PlatformNotificationDelivery {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformNotificationDeliveryClient) Hooks() []Hook {
+	return c.hooks.PlatformNotificationDelivery
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformNotificationDeliveryClient) Interceptors() []Interceptor {
+	return c.inters.PlatformNotificationDelivery
+}
+
+func (c *PlatformNotificationDeliveryClient) mutate(ctx context.Context, m *PlatformNotificationDeliveryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformNotificationDeliveryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformNotificationDeliveryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformNotificationDeliveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformNotificationDeliveryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformNotificationDelivery mutation op: %q", m.Op())
+	}
+}
+
+// PlatformNotificationInboxClient is a client for the PlatformNotificationInbox schema.
+type PlatformNotificationInboxClient struct {
+	config
+}
+
+// NewPlatformNotificationInboxClient returns a client for the PlatformNotificationInbox from the given config.
+func NewPlatformNotificationInboxClient(c config) *PlatformNotificationInboxClient {
+	return &PlatformNotificationInboxClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformnotificationinbox.Hooks(f(g(h())))`.
+func (c *PlatformNotificationInboxClient) Use(hooks ...Hook) {
+	c.hooks.PlatformNotificationInbox = append(c.hooks.PlatformNotificationInbox, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformnotificationinbox.Intercept(f(g(h())))`.
+func (c *PlatformNotificationInboxClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformNotificationInbox = append(c.inters.PlatformNotificationInbox, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformNotificationInbox entity.
+func (c *PlatformNotificationInboxClient) Create() *PlatformNotificationInboxCreate {
+	mutation := newPlatformNotificationInboxMutation(c.config, OpCreate)
+	return &PlatformNotificationInboxCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformNotificationInbox entities.
+func (c *PlatformNotificationInboxClient) CreateBulk(builders ...*PlatformNotificationInboxCreate) *PlatformNotificationInboxCreateBulk {
+	return &PlatformNotificationInboxCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformNotificationInboxClient) MapCreateBulk(slice any, setFunc func(*PlatformNotificationInboxCreate, int)) *PlatformNotificationInboxCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformNotificationInboxCreateBulk{err: fmt.Errorf("calling to PlatformNotificationInboxClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformNotificationInboxCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformNotificationInboxCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformNotificationInbox.
+func (c *PlatformNotificationInboxClient) Update() *PlatformNotificationInboxUpdate {
+	mutation := newPlatformNotificationInboxMutation(c.config, OpUpdate)
+	return &PlatformNotificationInboxUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformNotificationInboxClient) UpdateOne(_m *PlatformNotificationInbox) *PlatformNotificationInboxUpdateOne {
+	mutation := newPlatformNotificationInboxMutation(c.config, OpUpdateOne, withPlatformNotificationInbox(_m))
+	return &PlatformNotificationInboxUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformNotificationInboxClient) UpdateOneID(id string) *PlatformNotificationInboxUpdateOne {
+	mutation := newPlatformNotificationInboxMutation(c.config, OpUpdateOne, withPlatformNotificationInboxID(id))
+	return &PlatformNotificationInboxUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformNotificationInbox.
+func (c *PlatformNotificationInboxClient) Delete() *PlatformNotificationInboxDelete {
+	mutation := newPlatformNotificationInboxMutation(c.config, OpDelete)
+	return &PlatformNotificationInboxDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformNotificationInboxClient) DeleteOne(_m *PlatformNotificationInbox) *PlatformNotificationInboxDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformNotificationInboxClient) DeleteOneID(id string) *PlatformNotificationInboxDeleteOne {
+	builder := c.Delete().Where(platformnotificationinbox.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformNotificationInboxDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformNotificationInbox.
+func (c *PlatformNotificationInboxClient) Query() *PlatformNotificationInboxQuery {
+	return &PlatformNotificationInboxQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformNotificationInbox},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformNotificationInbox entity by its id.
+func (c *PlatformNotificationInboxClient) Get(ctx context.Context, id string) (*PlatformNotificationInbox, error) {
+	return c.Query().Where(platformnotificationinbox.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformNotificationInboxClient) GetX(ctx context.Context, id string) *PlatformNotificationInbox {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformNotificationInboxClient) Hooks() []Hook {
+	return c.hooks.PlatformNotificationInbox
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformNotificationInboxClient) Interceptors() []Interceptor {
+	return c.inters.PlatformNotificationInbox
+}
+
+func (c *PlatformNotificationInboxClient) mutate(ctx context.Context, m *PlatformNotificationInboxMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformNotificationInboxCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformNotificationInboxUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformNotificationInboxUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformNotificationInboxDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformNotificationInbox mutation op: %q", m.Op())
+	}
+}
+
+// PlatformNotificationPolicyClient is a client for the PlatformNotificationPolicy schema.
+type PlatformNotificationPolicyClient struct {
+	config
+}
+
+// NewPlatformNotificationPolicyClient returns a client for the PlatformNotificationPolicy from the given config.
+func NewPlatformNotificationPolicyClient(c config) *PlatformNotificationPolicyClient {
+	return &PlatformNotificationPolicyClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformnotificationpolicy.Hooks(f(g(h())))`.
+func (c *PlatformNotificationPolicyClient) Use(hooks ...Hook) {
+	c.hooks.PlatformNotificationPolicy = append(c.hooks.PlatformNotificationPolicy, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformnotificationpolicy.Intercept(f(g(h())))`.
+func (c *PlatformNotificationPolicyClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformNotificationPolicy = append(c.inters.PlatformNotificationPolicy, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformNotificationPolicy entity.
+func (c *PlatformNotificationPolicyClient) Create() *PlatformNotificationPolicyCreate {
+	mutation := newPlatformNotificationPolicyMutation(c.config, OpCreate)
+	return &PlatformNotificationPolicyCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformNotificationPolicy entities.
+func (c *PlatformNotificationPolicyClient) CreateBulk(builders ...*PlatformNotificationPolicyCreate) *PlatformNotificationPolicyCreateBulk {
+	return &PlatformNotificationPolicyCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformNotificationPolicyClient) MapCreateBulk(slice any, setFunc func(*PlatformNotificationPolicyCreate, int)) *PlatformNotificationPolicyCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformNotificationPolicyCreateBulk{err: fmt.Errorf("calling to PlatformNotificationPolicyClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformNotificationPolicyCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformNotificationPolicyCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformNotificationPolicy.
+func (c *PlatformNotificationPolicyClient) Update() *PlatformNotificationPolicyUpdate {
+	mutation := newPlatformNotificationPolicyMutation(c.config, OpUpdate)
+	return &PlatformNotificationPolicyUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformNotificationPolicyClient) UpdateOne(_m *PlatformNotificationPolicy) *PlatformNotificationPolicyUpdateOne {
+	mutation := newPlatformNotificationPolicyMutation(c.config, OpUpdateOne, withPlatformNotificationPolicy(_m))
+	return &PlatformNotificationPolicyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformNotificationPolicyClient) UpdateOneID(id string) *PlatformNotificationPolicyUpdateOne {
+	mutation := newPlatformNotificationPolicyMutation(c.config, OpUpdateOne, withPlatformNotificationPolicyID(id))
+	return &PlatformNotificationPolicyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformNotificationPolicy.
+func (c *PlatformNotificationPolicyClient) Delete() *PlatformNotificationPolicyDelete {
+	mutation := newPlatformNotificationPolicyMutation(c.config, OpDelete)
+	return &PlatformNotificationPolicyDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformNotificationPolicyClient) DeleteOne(_m *PlatformNotificationPolicy) *PlatformNotificationPolicyDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformNotificationPolicyClient) DeleteOneID(id string) *PlatformNotificationPolicyDeleteOne {
+	builder := c.Delete().Where(platformnotificationpolicy.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformNotificationPolicyDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformNotificationPolicy.
+func (c *PlatformNotificationPolicyClient) Query() *PlatformNotificationPolicyQuery {
+	return &PlatformNotificationPolicyQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformNotificationPolicy},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformNotificationPolicy entity by its id.
+func (c *PlatformNotificationPolicyClient) Get(ctx context.Context, id string) (*PlatformNotificationPolicy, error) {
+	return c.Query().Where(platformnotificationpolicy.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformNotificationPolicyClient) GetX(ctx context.Context, id string) *PlatformNotificationPolicy {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformNotificationPolicyClient) Hooks() []Hook {
+	return c.hooks.PlatformNotificationPolicy
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformNotificationPolicyClient) Interceptors() []Interceptor {
+	return c.inters.PlatformNotificationPolicy
+}
+
+func (c *PlatformNotificationPolicyClient) mutate(ctx context.Context, m *PlatformNotificationPolicyMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformNotificationPolicyCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformNotificationPolicyUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformNotificationPolicyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformNotificationPolicyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformNotificationPolicy mutation op: %q", m.Op())
+	}
+}
+
+// PlatformNotificationPreferenceClient is a client for the PlatformNotificationPreference schema.
+type PlatformNotificationPreferenceClient struct {
+	config
+}
+
+// NewPlatformNotificationPreferenceClient returns a client for the PlatformNotificationPreference from the given config.
+func NewPlatformNotificationPreferenceClient(c config) *PlatformNotificationPreferenceClient {
+	return &PlatformNotificationPreferenceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformnotificationpreference.Hooks(f(g(h())))`.
+func (c *PlatformNotificationPreferenceClient) Use(hooks ...Hook) {
+	c.hooks.PlatformNotificationPreference = append(c.hooks.PlatformNotificationPreference, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformnotificationpreference.Intercept(f(g(h())))`.
+func (c *PlatformNotificationPreferenceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformNotificationPreference = append(c.inters.PlatformNotificationPreference, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformNotificationPreference entity.
+func (c *PlatformNotificationPreferenceClient) Create() *PlatformNotificationPreferenceCreate {
+	mutation := newPlatformNotificationPreferenceMutation(c.config, OpCreate)
+	return &PlatformNotificationPreferenceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformNotificationPreference entities.
+func (c *PlatformNotificationPreferenceClient) CreateBulk(builders ...*PlatformNotificationPreferenceCreate) *PlatformNotificationPreferenceCreateBulk {
+	return &PlatformNotificationPreferenceCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformNotificationPreferenceClient) MapCreateBulk(slice any, setFunc func(*PlatformNotificationPreferenceCreate, int)) *PlatformNotificationPreferenceCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformNotificationPreferenceCreateBulk{err: fmt.Errorf("calling to PlatformNotificationPreferenceClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformNotificationPreferenceCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformNotificationPreferenceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformNotificationPreference.
+func (c *PlatformNotificationPreferenceClient) Update() *PlatformNotificationPreferenceUpdate {
+	mutation := newPlatformNotificationPreferenceMutation(c.config, OpUpdate)
+	return &PlatformNotificationPreferenceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformNotificationPreferenceClient) UpdateOne(_m *PlatformNotificationPreference) *PlatformNotificationPreferenceUpdateOne {
+	mutation := newPlatformNotificationPreferenceMutation(c.config, OpUpdateOne, withPlatformNotificationPreference(_m))
+	return &PlatformNotificationPreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformNotificationPreferenceClient) UpdateOneID(id string) *PlatformNotificationPreferenceUpdateOne {
+	mutation := newPlatformNotificationPreferenceMutation(c.config, OpUpdateOne, withPlatformNotificationPreferenceID(id))
+	return &PlatformNotificationPreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformNotificationPreference.
+func (c *PlatformNotificationPreferenceClient) Delete() *PlatformNotificationPreferenceDelete {
+	mutation := newPlatformNotificationPreferenceMutation(c.config, OpDelete)
+	return &PlatformNotificationPreferenceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformNotificationPreferenceClient) DeleteOne(_m *PlatformNotificationPreference) *PlatformNotificationPreferenceDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformNotificationPreferenceClient) DeleteOneID(id string) *PlatformNotificationPreferenceDeleteOne {
+	builder := c.Delete().Where(platformnotificationpreference.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformNotificationPreferenceDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformNotificationPreference.
+func (c *PlatformNotificationPreferenceClient) Query() *PlatformNotificationPreferenceQuery {
+	return &PlatformNotificationPreferenceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformNotificationPreference},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformNotificationPreference entity by its id.
+func (c *PlatformNotificationPreferenceClient) Get(ctx context.Context, id string) (*PlatformNotificationPreference, error) {
+	return c.Query().Where(platformnotificationpreference.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformNotificationPreferenceClient) GetX(ctx context.Context, id string) *PlatformNotificationPreference {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformNotificationPreferenceClient) Hooks() []Hook {
+	return c.hooks.PlatformNotificationPreference
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformNotificationPreferenceClient) Interceptors() []Interceptor {
+	return c.inters.PlatformNotificationPreference
+}
+
+func (c *PlatformNotificationPreferenceClient) mutate(ctx context.Context, m *PlatformNotificationPreferenceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformNotificationPreferenceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformNotificationPreferenceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformNotificationPreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformNotificationPreferenceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformNotificationPreference mutation op: %q", m.Op())
+	}
+}
+
+// PlatformNotificationSeenActionClient is a client for the PlatformNotificationSeenAction schema.
+type PlatformNotificationSeenActionClient struct {
+	config
+}
+
+// NewPlatformNotificationSeenActionClient returns a client for the PlatformNotificationSeenAction from the given config.
+func NewPlatformNotificationSeenActionClient(c config) *PlatformNotificationSeenActionClient {
+	return &PlatformNotificationSeenActionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformnotificationseenaction.Hooks(f(g(h())))`.
+func (c *PlatformNotificationSeenActionClient) Use(hooks ...Hook) {
+	c.hooks.PlatformNotificationSeenAction = append(c.hooks.PlatformNotificationSeenAction, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformnotificationseenaction.Intercept(f(g(h())))`.
+func (c *PlatformNotificationSeenActionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformNotificationSeenAction = append(c.inters.PlatformNotificationSeenAction, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformNotificationSeenAction entity.
+func (c *PlatformNotificationSeenActionClient) Create() *PlatformNotificationSeenActionCreate {
+	mutation := newPlatformNotificationSeenActionMutation(c.config, OpCreate)
+	return &PlatformNotificationSeenActionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformNotificationSeenAction entities.
+func (c *PlatformNotificationSeenActionClient) CreateBulk(builders ...*PlatformNotificationSeenActionCreate) *PlatformNotificationSeenActionCreateBulk {
+	return &PlatformNotificationSeenActionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformNotificationSeenActionClient) MapCreateBulk(slice any, setFunc func(*PlatformNotificationSeenActionCreate, int)) *PlatformNotificationSeenActionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformNotificationSeenActionCreateBulk{err: fmt.Errorf("calling to PlatformNotificationSeenActionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformNotificationSeenActionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformNotificationSeenActionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformNotificationSeenAction.
+func (c *PlatformNotificationSeenActionClient) Update() *PlatformNotificationSeenActionUpdate {
+	mutation := newPlatformNotificationSeenActionMutation(c.config, OpUpdate)
+	return &PlatformNotificationSeenActionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformNotificationSeenActionClient) UpdateOne(_m *PlatformNotificationSeenAction) *PlatformNotificationSeenActionUpdateOne {
+	mutation := newPlatformNotificationSeenActionMutation(c.config, OpUpdateOne, withPlatformNotificationSeenAction(_m))
+	return &PlatformNotificationSeenActionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformNotificationSeenActionClient) UpdateOneID(id string) *PlatformNotificationSeenActionUpdateOne {
+	mutation := newPlatformNotificationSeenActionMutation(c.config, OpUpdateOne, withPlatformNotificationSeenActionID(id))
+	return &PlatformNotificationSeenActionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformNotificationSeenAction.
+func (c *PlatformNotificationSeenActionClient) Delete() *PlatformNotificationSeenActionDelete {
+	mutation := newPlatformNotificationSeenActionMutation(c.config, OpDelete)
+	return &PlatformNotificationSeenActionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformNotificationSeenActionClient) DeleteOne(_m *PlatformNotificationSeenAction) *PlatformNotificationSeenActionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformNotificationSeenActionClient) DeleteOneID(id string) *PlatformNotificationSeenActionDeleteOne {
+	builder := c.Delete().Where(platformnotificationseenaction.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformNotificationSeenActionDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformNotificationSeenAction.
+func (c *PlatformNotificationSeenActionClient) Query() *PlatformNotificationSeenActionQuery {
+	return &PlatformNotificationSeenActionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformNotificationSeenAction},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformNotificationSeenAction entity by its id.
+func (c *PlatformNotificationSeenActionClient) Get(ctx context.Context, id string) (*PlatformNotificationSeenAction, error) {
+	return c.Query().Where(platformnotificationseenaction.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformNotificationSeenActionClient) GetX(ctx context.Context, id string) *PlatformNotificationSeenAction {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformNotificationSeenActionClient) Hooks() []Hook {
+	return c.hooks.PlatformNotificationSeenAction
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformNotificationSeenActionClient) Interceptors() []Interceptor {
+	return c.inters.PlatformNotificationSeenAction
+}
+
+func (c *PlatformNotificationSeenActionClient) mutate(ctx context.Context, m *PlatformNotificationSeenActionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformNotificationSeenActionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformNotificationSeenActionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformNotificationSeenActionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformNotificationSeenActionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformNotificationSeenAction mutation op: %q", m.Op())
+	}
+}
+
+// PlatformSlackConnectionClient is a client for the PlatformSlackConnection schema.
+type PlatformSlackConnectionClient struct {
+	config
+}
+
+// NewPlatformSlackConnectionClient returns a client for the PlatformSlackConnection from the given config.
+func NewPlatformSlackConnectionClient(c config) *PlatformSlackConnectionClient {
+	return &PlatformSlackConnectionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformslackconnection.Hooks(f(g(h())))`.
+func (c *PlatformSlackConnectionClient) Use(hooks ...Hook) {
+	c.hooks.PlatformSlackConnection = append(c.hooks.PlatformSlackConnection, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformslackconnection.Intercept(f(g(h())))`.
+func (c *PlatformSlackConnectionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformSlackConnection = append(c.inters.PlatformSlackConnection, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformSlackConnection entity.
+func (c *PlatformSlackConnectionClient) Create() *PlatformSlackConnectionCreate {
+	mutation := newPlatformSlackConnectionMutation(c.config, OpCreate)
+	return &PlatformSlackConnectionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformSlackConnection entities.
+func (c *PlatformSlackConnectionClient) CreateBulk(builders ...*PlatformSlackConnectionCreate) *PlatformSlackConnectionCreateBulk {
+	return &PlatformSlackConnectionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformSlackConnectionClient) MapCreateBulk(slice any, setFunc func(*PlatformSlackConnectionCreate, int)) *PlatformSlackConnectionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformSlackConnectionCreateBulk{err: fmt.Errorf("calling to PlatformSlackConnectionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformSlackConnectionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformSlackConnectionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformSlackConnection.
+func (c *PlatformSlackConnectionClient) Update() *PlatformSlackConnectionUpdate {
+	mutation := newPlatformSlackConnectionMutation(c.config, OpUpdate)
+	return &PlatformSlackConnectionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformSlackConnectionClient) UpdateOne(_m *PlatformSlackConnection) *PlatformSlackConnectionUpdateOne {
+	mutation := newPlatformSlackConnectionMutation(c.config, OpUpdateOne, withPlatformSlackConnection(_m))
+	return &PlatformSlackConnectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformSlackConnectionClient) UpdateOneID(id string) *PlatformSlackConnectionUpdateOne {
+	mutation := newPlatformSlackConnectionMutation(c.config, OpUpdateOne, withPlatformSlackConnectionID(id))
+	return &PlatformSlackConnectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformSlackConnection.
+func (c *PlatformSlackConnectionClient) Delete() *PlatformSlackConnectionDelete {
+	mutation := newPlatformSlackConnectionMutation(c.config, OpDelete)
+	return &PlatformSlackConnectionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformSlackConnectionClient) DeleteOne(_m *PlatformSlackConnection) *PlatformSlackConnectionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformSlackConnectionClient) DeleteOneID(id string) *PlatformSlackConnectionDeleteOne {
+	builder := c.Delete().Where(platformslackconnection.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformSlackConnectionDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformSlackConnection.
+func (c *PlatformSlackConnectionClient) Query() *PlatformSlackConnectionQuery {
+	return &PlatformSlackConnectionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformSlackConnection},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformSlackConnection entity by its id.
+func (c *PlatformSlackConnectionClient) Get(ctx context.Context, id string) (*PlatformSlackConnection, error) {
+	return c.Query().Where(platformslackconnection.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformSlackConnectionClient) GetX(ctx context.Context, id string) *PlatformSlackConnection {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformSlackConnectionClient) Hooks() []Hook {
+	return c.hooks.PlatformSlackConnection
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformSlackConnectionClient) Interceptors() []Interceptor {
+	return c.inters.PlatformSlackConnection
+}
+
+func (c *PlatformSlackConnectionClient) mutate(ctx context.Context, m *PlatformSlackConnectionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformSlackConnectionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformSlackConnectionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformSlackConnectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformSlackConnectionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformSlackConnection mutation op: %q", m.Op())
+	}
+}
+
+// PlatformSlackInstallationClient is a client for the PlatformSlackInstallation schema.
+type PlatformSlackInstallationClient struct {
+	config
+}
+
+// NewPlatformSlackInstallationClient returns a client for the PlatformSlackInstallation from the given config.
+func NewPlatformSlackInstallationClient(c config) *PlatformSlackInstallationClient {
+	return &PlatformSlackInstallationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformslackinstallation.Hooks(f(g(h())))`.
+func (c *PlatformSlackInstallationClient) Use(hooks ...Hook) {
+	c.hooks.PlatformSlackInstallation = append(c.hooks.PlatformSlackInstallation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformslackinstallation.Intercept(f(g(h())))`.
+func (c *PlatformSlackInstallationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformSlackInstallation = append(c.inters.PlatformSlackInstallation, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformSlackInstallation entity.
+func (c *PlatformSlackInstallationClient) Create() *PlatformSlackInstallationCreate {
+	mutation := newPlatformSlackInstallationMutation(c.config, OpCreate)
+	return &PlatformSlackInstallationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformSlackInstallation entities.
+func (c *PlatformSlackInstallationClient) CreateBulk(builders ...*PlatformSlackInstallationCreate) *PlatformSlackInstallationCreateBulk {
+	return &PlatformSlackInstallationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformSlackInstallationClient) MapCreateBulk(slice any, setFunc func(*PlatformSlackInstallationCreate, int)) *PlatformSlackInstallationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformSlackInstallationCreateBulk{err: fmt.Errorf("calling to PlatformSlackInstallationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformSlackInstallationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformSlackInstallationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformSlackInstallation.
+func (c *PlatformSlackInstallationClient) Update() *PlatformSlackInstallationUpdate {
+	mutation := newPlatformSlackInstallationMutation(c.config, OpUpdate)
+	return &PlatformSlackInstallationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformSlackInstallationClient) UpdateOne(_m *PlatformSlackInstallation) *PlatformSlackInstallationUpdateOne {
+	mutation := newPlatformSlackInstallationMutation(c.config, OpUpdateOne, withPlatformSlackInstallation(_m))
+	return &PlatformSlackInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformSlackInstallationClient) UpdateOneID(id string) *PlatformSlackInstallationUpdateOne {
+	mutation := newPlatformSlackInstallationMutation(c.config, OpUpdateOne, withPlatformSlackInstallationID(id))
+	return &PlatformSlackInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformSlackInstallation.
+func (c *PlatformSlackInstallationClient) Delete() *PlatformSlackInstallationDelete {
+	mutation := newPlatformSlackInstallationMutation(c.config, OpDelete)
+	return &PlatformSlackInstallationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformSlackInstallationClient) DeleteOne(_m *PlatformSlackInstallation) *PlatformSlackInstallationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformSlackInstallationClient) DeleteOneID(id string) *PlatformSlackInstallationDeleteOne {
+	builder := c.Delete().Where(platformslackinstallation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformSlackInstallationDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformSlackInstallation.
+func (c *PlatformSlackInstallationClient) Query() *PlatformSlackInstallationQuery {
+	return &PlatformSlackInstallationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformSlackInstallation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformSlackInstallation entity by its id.
+func (c *PlatformSlackInstallationClient) Get(ctx context.Context, id string) (*PlatformSlackInstallation, error) {
+	return c.Query().Where(platformslackinstallation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformSlackInstallationClient) GetX(ctx context.Context, id string) *PlatformSlackInstallation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformSlackInstallationClient) Hooks() []Hook {
+	return c.hooks.PlatformSlackInstallation
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformSlackInstallationClient) Interceptors() []Interceptor {
+	return c.inters.PlatformSlackInstallation
+}
+
+func (c *PlatformSlackInstallationClient) mutate(ctx context.Context, m *PlatformSlackInstallationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformSlackInstallationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformSlackInstallationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformSlackInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformSlackInstallationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformSlackInstallation mutation op: %q", m.Op())
+	}
+}
+
+// PlatformSlackPacingClient is a client for the PlatformSlackPacing schema.
+type PlatformSlackPacingClient struct {
+	config
+}
+
+// NewPlatformSlackPacingClient returns a client for the PlatformSlackPacing from the given config.
+func NewPlatformSlackPacingClient(c config) *PlatformSlackPacingClient {
+	return &PlatformSlackPacingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformslackpacing.Hooks(f(g(h())))`.
+func (c *PlatformSlackPacingClient) Use(hooks ...Hook) {
+	c.hooks.PlatformSlackPacing = append(c.hooks.PlatformSlackPacing, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformslackpacing.Intercept(f(g(h())))`.
+func (c *PlatformSlackPacingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformSlackPacing = append(c.inters.PlatformSlackPacing, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformSlackPacing entity.
+func (c *PlatformSlackPacingClient) Create() *PlatformSlackPacingCreate {
+	mutation := newPlatformSlackPacingMutation(c.config, OpCreate)
+	return &PlatformSlackPacingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformSlackPacing entities.
+func (c *PlatformSlackPacingClient) CreateBulk(builders ...*PlatformSlackPacingCreate) *PlatformSlackPacingCreateBulk {
+	return &PlatformSlackPacingCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformSlackPacingClient) MapCreateBulk(slice any, setFunc func(*PlatformSlackPacingCreate, int)) *PlatformSlackPacingCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformSlackPacingCreateBulk{err: fmt.Errorf("calling to PlatformSlackPacingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformSlackPacingCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformSlackPacingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformSlackPacing.
+func (c *PlatformSlackPacingClient) Update() *PlatformSlackPacingUpdate {
+	mutation := newPlatformSlackPacingMutation(c.config, OpUpdate)
+	return &PlatformSlackPacingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformSlackPacingClient) UpdateOne(_m *PlatformSlackPacing) *PlatformSlackPacingUpdateOne {
+	mutation := newPlatformSlackPacingMutation(c.config, OpUpdateOne, withPlatformSlackPacing(_m))
+	return &PlatformSlackPacingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformSlackPacingClient) UpdateOneID(id string) *PlatformSlackPacingUpdateOne {
+	mutation := newPlatformSlackPacingMutation(c.config, OpUpdateOne, withPlatformSlackPacingID(id))
+	return &PlatformSlackPacingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformSlackPacing.
+func (c *PlatformSlackPacingClient) Delete() *PlatformSlackPacingDelete {
+	mutation := newPlatformSlackPacingMutation(c.config, OpDelete)
+	return &PlatformSlackPacingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformSlackPacingClient) DeleteOne(_m *PlatformSlackPacing) *PlatformSlackPacingDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformSlackPacingClient) DeleteOneID(id string) *PlatformSlackPacingDeleteOne {
+	builder := c.Delete().Where(platformslackpacing.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformSlackPacingDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformSlackPacing.
+func (c *PlatformSlackPacingClient) Query() *PlatformSlackPacingQuery {
+	return &PlatformSlackPacingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformSlackPacing},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformSlackPacing entity by its id.
+func (c *PlatformSlackPacingClient) Get(ctx context.Context, id string) (*PlatformSlackPacing, error) {
+	return c.Query().Where(platformslackpacing.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformSlackPacingClient) GetX(ctx context.Context, id string) *PlatformSlackPacing {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformSlackPacingClient) Hooks() []Hook {
+	return c.hooks.PlatformSlackPacing
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformSlackPacingClient) Interceptors() []Interceptor {
+	return c.inters.PlatformSlackPacing
+}
+
+func (c *PlatformSlackPacingClient) mutate(ctx context.Context, m *PlatformSlackPacingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformSlackPacingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformSlackPacingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformSlackPacingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformSlackPacingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformSlackPacing mutation op: %q", m.Op())
+	}
+}
+
 // ProductProfileClient is a client for the ProductProfile schema.
 type ProductProfileClient struct {
 	config
@@ -10669,10 +11805,14 @@ type (
 		Design, EnrichmentRecord, GitHubInstallStart, GitHubInstallation,
 		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
 		LaunchRunStep, Member, OnboardingRun, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge, ProductProfile,
-		ProductSurface, Project, ProjectVersion, PublicationAttempt, Release,
-		ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
-		ShareLink, SocialOAuthStart, SocialTenantBinding, SourceApp, SourceChange,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
+		PlatformNotificationDelivery, PlatformNotificationInbox,
+		PlatformNotificationPolicy, PlatformNotificationPreference,
+		PlatformNotificationSeenAction, PlatformSlackConnection,
+		PlatformSlackInstallation, PlatformSlackPacing, ProductProfile, ProductSurface,
+		Project, ProjectVersion, PublicationAttempt, Release, ReleaseDocument,
+		ReleaseSpec, ScheduledPost, ScreenshotCache, Session, ShareLink,
+		SocialOAuthStart, SocialTenantBinding, SourceApp, SourceChange,
 		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
 		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
 		WorkspaceEntitlement, WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
@@ -10688,10 +11828,14 @@ type (
 		Design, EnrichmentRecord, GitHubInstallStart, GitHubInstallation,
 		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
 		LaunchRunStep, Member, OnboardingRun, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge, ProductProfile,
-		ProductSurface, Project, ProjectVersion, PublicationAttempt, Release,
-		ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
-		ShareLink, SocialOAuthStart, SocialTenantBinding, SourceApp, SourceChange,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
+		PlatformNotificationDelivery, PlatformNotificationInbox,
+		PlatformNotificationPolicy, PlatformNotificationPreference,
+		PlatformNotificationSeenAction, PlatformSlackConnection,
+		PlatformSlackInstallation, PlatformSlackPacing, ProductProfile, ProductSurface,
+		Project, ProjectVersion, PublicationAttempt, Release, ReleaseDocument,
+		ReleaseSpec, ScheduledPost, ScreenshotCache, Session, ShareLink,
+		SocialOAuthStart, SocialTenantBinding, SourceApp, SourceChange,
 		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
 		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
 		WorkspaceEntitlement, WorkspaceGitHubInstallation,

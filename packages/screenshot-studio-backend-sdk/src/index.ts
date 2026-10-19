@@ -1,3 +1,14 @@
+import type {
+  NotificationSettings,
+  NotificationPolicy,
+  NotificationPreferences,
+  NotificationPage,
+  NotificationSeen,
+  NotificationConnection,
+  NotificationSlackChannels,
+  NotificationDelivery,
+} from './notifications.js'
+export type * from './notifications.js'
 /** Typed client for the Screenshot Studio Go backend. Instantiate on a trusted server. */
 
 /**
@@ -21,6 +32,7 @@ export type AuthStoreWhere = {
 }
 
 export type AuthStoreRequest = {
+  actorSessionId?: string
   data?: Record<string, unknown>
   increment?: Record<string, number>
   limit?: number
@@ -132,12 +144,7 @@ export type ChannelConnection = {
 }
 
 export type OAuthProvider =
-  | 'x'
-  | 'instagram'
-  | 'instagram-standalone'
-  | 'linkedin'
-  | 'threads'
-  | 'mastodon'
+  'x' | 'instagram' | 'instagram-standalone' | 'linkedin' | 'threads' | 'mastodon'
 export type OAuthExchange = {
   id: string
   pages?: { id: string; pageId: string; name?: string | null }[]
@@ -380,7 +387,8 @@ export type UpsertIdealCustomerProfileInput = {
 }
 
 /** An onboarding run's lifecycle state (docs/rfcs/032). */
-export type OnboardingRunStatus = 'queued' | 'running' | 'completed' | 'partial' | 'failed' | 'cancelled'
+export type OnboardingRunStatus =
+  'queued' | 'running' | 'completed' | 'partial' | 'failed' | 'cancelled'
 
 /** One onboarding run: its stage, monotonic progress, and the budgets it used. */
 export type OnboardingRun = {
@@ -1318,11 +1326,7 @@ export type BackendLaunchRun = {
 
 /** Every launch run status. Pipeline runs only reach RUNNING, SUCCEEDED, and FAILED. */
 export type BackendLaunchRunStatus =
-  | 'BUDGET_EXHAUSTED'
-  | 'CANCELLED'
-  | 'FAILED'
-  | 'RUNNING'
-  | 'SUCCEEDED'
+  'BUDGET_EXHAUSTED' | 'CANCELLED' | 'FAILED' | 'RUNNING' | 'SUCCEEDED'
 
 /** An agent or conversation run (RFC 016). It may have no campaign. */
 export type BackendAgentRun = Omit<BackendLaunchRun, 'campaignId' | 'kind' | 'status'> & {
@@ -1590,7 +1594,6 @@ export class BackendSDKError extends Error {
   }
 }
 
-
 /** One rendered slide in a store screenshot review. */
 export type BackendStoreReviewSlide = {
   slideId: string
@@ -1700,12 +1703,16 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Schedules one post from exactly one source: `variantId` or `contentDraftId`. */
-  async createScheduledPost(input: {
-    caption: string
-    channelConnectionId: string
-    idempotencyKey: string
-    scheduledFor: Date
-  } & ({ contentDraftId?: never; variantId: string } | { contentDraftId: string; variantId?: never })) {
+  async createScheduledPost(
+    input: {
+      caption: string
+      channelConnectionId: string
+      idempotencyKey: string
+      scheduledFor: Date
+    } & (
+      { contentDraftId?: never; variantId: string } | { contentDraftId: string; variantId?: never }
+    )
+  ) {
     return this.request<{ created: boolean; scheduledPost: ScheduledPost }>('v1/scheduled-posts', {
       body: input,
       method: 'POST',
@@ -1849,7 +1856,10 @@ export class ScreenshotStudioBackendSDK {
   }
   /** Reads the product's site within ten seconds and starts the background run. */
   async startOnboardingRun(input: { idempotencyKey?: string; sentence?: string; url: string }) {
-    return this.request<OnboardingStartResult>('v1/onboarding-runs', { body: input, method: 'POST' })
+    return this.request<OnboardingStartResult>('v1/onboarding-runs', {
+      body: input,
+      method: 'POST',
+    })
   }
   /** One onboarding run; while it runs, its progress is live. */
   async getOnboardingRun(id: string) {
@@ -1861,16 +1871,22 @@ export class ScreenshotStudioBackendSDK {
   }
   /** Stops a running run; it keeps what it already read. */
   async cancelOnboardingRun(id: string) {
-    return this.request<{ run: OnboardingRun }>(`v1/onboarding-runs/${encodeURIComponent(id)}/cancel`, {
-      method: 'POST',
-    })
+    return this.request<{ run: OnboardingRun }>(
+      `v1/onboarding-runs/${encodeURIComponent(id)}/cancel`,
+      {
+        method: 'POST',
+      }
+    )
   }
   /** Starts a new run for a run's URL; unchanged pages cost nothing. */
   async rerunOnboardingRun(id: string, input: { idempotencyKey?: string } = {}) {
-    return this.request<OnboardingStartResult>(`v1/onboarding-runs/${encodeURIComponent(id)}/rerun`, {
-      body: input,
-      method: 'POST',
-    })
+    return this.request<OnboardingStartResult>(
+      `v1/onboarding-runs/${encodeURIComponent(id)}/rerun`,
+      {
+        body: input,
+        method: 'POST',
+      }
+    )
   }
   /** What enrichment found for a run's site. */
   async listOnboardingEnrichment(id: string) {
@@ -2293,7 +2309,10 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  async reviewContentDraft(id: string, input: { action: 'request' | 'approve' | 'changes'; note?: string }) {
+  async reviewContentDraft(
+    id: string,
+    input: { action: 'request' | 'approve' | 'changes'; note?: string }
+  ) {
     return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}/review`, {
       body: input,
       method: 'POST',
@@ -2460,13 +2479,134 @@ export class ScreenshotStudioBackendSDK {
 
   /** A live link by its token, for the share page; requires the service token alone. */
   async resolveShareLink(token: string) {
-    return this.request<BackendPublicShareLink>(`v1/internal/share-links/${encodeURIComponent(token)}`)
+    return this.request<BackendPublicShareLink>(
+      `v1/internal/share-links/${encodeURIComponent(token)}`
+    )
   }
 
   /** A short-lived signed URL for a live link's media or poster; requires the service token alone. */
   async shareLinkObjectUrl(token: string, variant: 'media' | 'poster') {
     return this.request<{ mediaType: string; url: string }>(
       `v1/internal/share-links/${encodeURIComponent(token)}/object-url?variant=${variant}`
+    )
+  }
+
+  /** Current workspace policy and the authenticated member's preferences. */
+  notificationSettings() {
+    return this.request<NotificationSettings>('v1/workspace/notifications')
+  }
+  /** Owner/admin policy update. */
+  saveNotificationPolicy(body: NotificationPolicy) {
+    return this.request<NotificationSettings>('v1/workspace/notifications/policy', {
+      method: 'PUT',
+      body,
+    })
+  }
+  /** Update only the current member's preferences. */
+  saveNotificationPreferences(body: NotificationPreferences) {
+    return this.request<NotificationSettings>('v1/workspace/notifications/preferences', {
+      method: 'PUT',
+      body,
+    })
+  }
+  /** Read-only inbox page. */
+  notificationInbox(cursor = '') {
+    return this.request<NotificationPage>(
+      `v1/workspace/notifications/inbox?cursor=${encodeURIComponent(cursor)}`
+    )
+  }
+  /** Read-only unseen count. */
+  notificationCount() {
+    return this.request<{ unseenCount: number }>('v1/workspace/notifications/count')
+  }
+  /** Delete displayed rows, or mark a transaction snapshot seen with a stable key. */
+  acknowledgeNotifications(body: { ids?: string[]; all?: boolean; key?: string }) {
+    return this.request<NotificationSeen>('v1/workspace/notifications/seen', {
+      method: 'POST',
+      body,
+    })
+  }
+  /** Reauthorize a link, including after its inbox row was deleted. */
+  resolveNotification(id: string) {
+    return this.request<{ href: string }>(
+      `v1/workspace/notifications/resolve/${encodeURIComponent(id)}`
+    )
+  }
+  /** Begin backend-owned, session-bound Slack OAuth. */
+  connectNotificationSlack(
+    purpose: 'notifications' | 'design' | 'publishing' = 'notifications',
+    connectionId?: string
+  ) {
+    return this.request<{ url: string }>('v1/workspace/notifications/slack/connect', {
+      method: 'POST',
+      body: { purpose, connectionId },
+    })
+  }
+  /** Consume one OAuth state and store verified provider identity in Go. */
+  completeNotificationSlack(body: { state: string; code: string }) {
+    return this.request<NotificationConnection>('v1/workspace/notifications/slack/callback', {
+      method: 'POST',
+      body,
+    })
+  }
+  /** Read one provider cursor page. */
+  notificationSlackChannels(connectionId: string, cursor = '') {
+    return this.request<NotificationSlackChannels>(
+      `v1/workspace/notifications/slack/channels?connectionId=${encodeURIComponent(connectionId)}&cursor=${encodeURIComponent(cursor)}`
+    )
+  }
+  /** Disconnect only this platform workspace. */
+  disconnectNotificationSlack(id: string) {
+    return this.request<{ disconnected: boolean }>(
+      `v1/workspace/notifications/slack/${encodeURIComponent(id)}`,
+      { method: 'DELETE' }
+    )
+  }
+  /** Request an explicitly targeted test with a stable retry key. */
+  testNotification(body: { channel: 'email' | 'slack'; key: string }) {
+    return this.request<{ deliveryId: string }>('v1/workspace/notifications/test', {
+      method: 'POST',
+      body,
+    })
+  }
+  /** Authorized delivery status, without retained notification content. */
+  /** Inspect a personal delivery or an authorized workspace delivery. */
+  notificationDelivery(id: string) {
+    return this.request<NotificationDelivery>(
+      `v1/workspace/notifications/deliveries/${encodeURIComponent(id)}`
+    )
+  }
+  notificationDeliveries() {
+    return this.request<{ deliveries: NotificationDelivery[] }>(
+      'v1/workspace/notifications/deliveries'
+    )
+  }
+  /** Recover one unresolved delivery; successful receipts cannot be replayed. */
+  recoverNotification(id: string, action: 'retry' | 'confirm_delivered' | 'dismiss') {
+    return this.request<{ recovered: boolean }>(
+      `v1/workspace/notifications/deliveries/${encodeURIComponent(id)}/recover`,
+      { method: 'POST', body: { action } }
+    )
+  }
+
+  /** Backend-owned Slack availability. */
+  slackSetup() {
+    return this.request<{ ready: boolean }>('v1/integrations/slack/setup')
+  }
+  /** All channels visible to an authorized design connection. */
+  slackDesignChannels(id: string) {
+    return this.request<{ channels: NotificationSlackChannels['channels'] }>(
+      `v1/integrations/${encodeURIComponent(id)}/slack/channels`
+    )
+  }
+  /** Deliver an authorized live share link without retrieving credentials. */
+  deliverSlackDesign(
+    id: string,
+    body: { shareLinkId: string; channelId: string; message?: string }
+  ) {
+    return this.request<{ label: string; url: string | null }>(
+      `v1/integrations/${encodeURIComponent(id)}/slack/deliver`,
+      { method: 'POST', body }
     )
   }
 
@@ -2495,10 +2635,13 @@ export class ScreenshotStudioBackendSDK {
     id: string,
     input: { encryptedCredentials: string; tokenExpiresAt: string | null }
   ) {
-    return this.request<{ updated: true }>(`v1/integrations/${encodeURIComponent(id)}/credentials`, {
-      body: input,
-      method: 'PUT',
-    })
+    return this.request<{ updated: true }>(
+      `v1/integrations/${encodeURIComponent(id)}/credentials`,
+      {
+        body: input,
+        method: 'PUT',
+      }
+    )
   }
 
   async deleteIntegration(id: string) {
@@ -2520,10 +2663,13 @@ export class ScreenshotStudioBackendSDK {
 
   /** Rename every version of the template `id` belongs to. */
   async renameCreativeTemplate(id: string, name: string) {
-    return this.request<BackendCreativeTemplate>(`v1/creative-templates/${encodeURIComponent(id)}`, {
-      body: { name },
-      method: 'PATCH',
-    })
+    return this.request<BackendCreativeTemplate>(
+      `v1/creative-templates/${encodeURIComponent(id)}`,
+      {
+        body: { name },
+        method: 'PATCH',
+      }
+    )
   }
 
   /** Archive every version of the template `id` belongs to. */
@@ -3057,10 +3203,10 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async appendLaunchRunStep(runId: string, input: BackendLaunchRunStepInput) {
-    return this.request<BackendLaunchRunStep>(
-      `v1/launch/runs/${encodeURIComponent(runId)}/steps`,
-      { body: input, method: 'POST' }
-    )
+    return this.request<BackendLaunchRunStep>(`v1/launch/runs/${encodeURIComponent(runId)}/steps`, {
+      body: input,
+      method: 'POST',
+    })
   }
 
   /** A run's trace in step order, up to 500 steps. */
@@ -3290,7 +3436,13 @@ export class ScreenshotStudioBackendSDK {
 
   async addStoreReviewComment(
     id: string,
-    input: { slideId: string; x: number | null; y: number | null; authorName: string; body: string },
+    input: {
+      slideId: string
+      x: number | null
+      y: number | null
+      authorName: string
+      body: string
+    },
     shareTokenId?: string
   ) {
     return this.request<BackendStoreReviewComment>(

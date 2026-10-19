@@ -51,6 +51,17 @@ class UpdateWebImageTest(unittest.TestCase):
         self.assertEqual(result["domains"], self.base["spec"]["domains"])
         self.assertEqual(self.base["spec"]["services"][0]["image"]["digest"], "sha256:" + "a" * 64)
 
+    def test_removes_backend_slack_credentials_from_web(self):
+        keys = {"SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET", "PLATFORM_SLACK_CALLBACK_URL",
+                "PLATFORM_NOTIFICATION_ENCRYPTION_KEY"}
+        web = self.base["spec"]["services"][0]
+        web["envs"] += [{"key": key, "value": "old", "type": "SECRET"} for key in keys]
+        web["envs"].append({"key": "INTEGRATION_ENCRYPTION_KEY", "value": "legacy", "type": "SECRET"})
+        result = module.update_web_image(self.base, "web-" + "b" * 40)
+        remaining = {item["key"] for item in result["services"][0]["envs"]}
+        self.assertFalse(remaining & keys)
+        self.assertIn("INTEGRATION_ENCRYPTION_KEY", remaining)
+
     def test_adds_stripe_billing_once_infisical_has_it(self):
         tag = "web-" + "b" * 40
         base = {"REDIS_URL": "runtime-redis", "PLATFORM_RENDER_CDP_URL": "wss://render.example/devtools",

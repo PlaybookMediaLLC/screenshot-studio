@@ -29,6 +29,8 @@ type StoreReviewComment struct {
 	Y *float64 `json:"y,omitempty"`
 	// AuthorName holds the value of the "author_name" field.
 	AuthorName string `json:"author_name,omitempty"`
+	// PlatformAuthorUserID holds the value of the "platform_author_user_id" field.
+	PlatformAuthorUserID *string `json:"platform_author_user_id,omitempty"`
 	// Body holds the value of the "body" field.
 	Body string `json:"body,omitempty"`
 	// FromLink holds the value of the "from_link" field.
@@ -51,7 +53,7 @@ func (*StoreReviewComment) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case storereviewcomment.FieldX, storereviewcomment.FieldY:
 			values[i] = new(sql.NullFloat64)
-		case storereviewcomment.FieldID, storereviewcomment.FieldOrganizationID, storereviewcomment.FieldReviewID, storereviewcomment.FieldSlideID, storereviewcomment.FieldAuthorName, storereviewcomment.FieldBody, storereviewcomment.FieldResolvedByUserID:
+		case storereviewcomment.FieldID, storereviewcomment.FieldOrganizationID, storereviewcomment.FieldReviewID, storereviewcomment.FieldSlideID, storereviewcomment.FieldAuthorName, storereviewcomment.FieldPlatformAuthorUserID, storereviewcomment.FieldBody, storereviewcomment.FieldResolvedByUserID:
 			values[i] = new(sql.NullString)
 		case storereviewcomment.FieldResolvedAt, storereviewcomment.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -113,6 +115,13 @@ func (_m *StoreReviewComment) assignValues(columns []string, values []any) error
 				return fmt.Errorf("unexpected type %T for field author_name", values[i])
 			} else if value.Valid {
 				_m.AuthorName = value.String
+			}
+		case storereviewcomment.FieldPlatformAuthorUserID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field platform_author_user_id", values[i])
+			} else if value.Valid {
+				_m.PlatformAuthorUserID = new(string)
+				*_m.PlatformAuthorUserID = value.String
 			}
 		case storereviewcomment.FieldBody:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -203,6 +212,11 @@ func (_m *StoreReviewComment) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("author_name=")
 	builder.WriteString(_m.AuthorName)
+	builder.WriteString(", ")
+	if v := _m.PlatformAuthorUserID; v != nil {
+		builder.WriteString("platform_author_user_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("body=")
 	builder.WriteString(_m.Body)

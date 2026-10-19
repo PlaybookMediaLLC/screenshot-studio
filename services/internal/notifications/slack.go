@@ -468,6 +468,7 @@ func safeSlackCode(code string) string {
 	return "provider_rejected"
 }
 func (s *Service) slackAPI(ctx context.Context, token, method string, payload map[string]any) (map[string]json.RawMessage, error) {
+	readOnly := slices.Contains([]string{"auth.test", "conversations.info", "conversations.list", "chat.getPermalink"}, method)
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -480,30 +481,30 @@ func (s *Service) slackAPI(ctx context.Context, token, method string, payload ma
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	response, err := s.HTTP.Do(req)
 	if err != nil {
-		return nil, &slackError{Code: "transport_uncertain", Uncertain: true}
+		return nil, &slackError{Code: "transport_uncertain", Uncertain: !readOnly}
 	}
 	defer response.Body.Close()
 	if response.StatusCode == 429 {
 		return nil, &slackError{Code: "ratelimited", RetryAfter: retryAfter(response.Header.Get("Retry-After"))}
 	}
 	if response.StatusCode >= 500 {
-		return nil, &slackError{Code: "server_uncertain", Uncertain: true}
+		return nil, &slackError{Code: "server_uncertain", Uncertain: !readOnly}
 	}
 	var result map[string]json.RawMessage
 	if json.NewDecoder(io.LimitReader(response.Body, 2*1024*1024)).Decode(&result) != nil {
-		return nil, &slackError{Code: "malformed_response", Uncertain: true}
+		return nil, &slackError{Code: "malformed_response", Uncertain: !readOnly}
 	}
 	var ok bool
 	if json.Unmarshal(result["ok"], &ok) != nil {
-		return nil, &slackError{Code: "malformed_response", Uncertain: true}
+		return nil, &slackError{Code: "malformed_response", Uncertain: !readOnly}
 	}
 	if !ok {
 		var code string
 		_ = json.Unmarshal(result["error"], &code)
-		return nil, &slackError{Code: safeSlackCode(code), Uncertain: code == "internal_error" || code == "fatal_error"}
+		return nil, &slackError{Code: safeSlackCode(code), Uncertain: !readOnly && (code == "internal_error" || code == "fatal_error")}
 	}
 	if response.StatusCode != 200 {
-		return nil, &slackError{Code: "unexpected_status", Uncertain: true}
+		return nil, &slackError{Code: "unexpected_status", Uncertain: !readOnly}
 	}
 	return result, nil
 }

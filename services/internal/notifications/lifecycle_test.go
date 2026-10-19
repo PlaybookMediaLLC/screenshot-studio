@@ -380,9 +380,24 @@ func TestPublishingConnectionUsesBackendInstallationAndKeepsLegacyID(t *testing.
 	if err != nil || legacyID == "" || token != "backend-owned" {
 		t.Fatalf("publishing adapter %s %s %v", legacyID, token, err)
 	}
+	var validationRecovered atomic.Bool
+	var sends atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer backend-fixture" {
 			t.Error("publishing did not use backend installation")
+		}
+		switch r.URL.Path {
+		case "/api/conversations.info":
+			if !validationRecovered.Load() {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				return
+			}
+			_, _ = io.WriteString(w, `{"ok":true,"channel":{"id":"C123","name":"publishing","is_member":true}}`)
+			return
+		case "/api/chat.postMessage":
+			sends.Add(1)
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
 		}
 		_, _ = io.WriteString(w, `{"ok":true,"channels":[],"response_metadata":{"next_cursor":""}}`)
 	}))
@@ -390,6 +405,16 @@ func TestPublishingConnectionUsesBackendInstallationAndKeepsLegacyID(t *testing.
 	f.s.SlackBase = server.URL
 	if _, err = f.s.SocialSlackCall(ctx, socialOrg, legacyID, "conversations.list", map[string]any{}); err != nil {
 		t.Fatal(err)
+	}
+	_, err = f.s.SocialSlackCall(ctx, socialOrg, legacyID, "chat.postMessage", map[string]any{"channel": "C123", "text": "fixture"})
+	var provider *slackError
+	if !errors.As(err, &provider) || provider.MayHaveBeenAccepted() || sends.Load() != 0 {
+		t.Fatalf("read-only preflight was treated as a publication: sends=%d err=%v", sends.Load(), err)
+	}
+	validationRecovered.Store(true)
+	_, err = f.s.SocialSlackCall(ctx, socialOrg, legacyID, "chat.postMessage", map[string]any{"channel": "C123", "text": "fixture"})
+	if !errors.As(err, &provider) || !provider.MayHaveBeenAccepted() || sends.Load() != 1 {
+		t.Fatalf("uncertain publication became retryable: sends=%d err=%v", sends.Load(), err)
 	}
 	reconnected, err := f.s.saveInstallation(ctx, f.owner, grant, connection.ID, false, true)
 	if err != nil || reconnected.ID != connection.ID {

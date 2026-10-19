@@ -13,7 +13,7 @@ import (
 
 func authFixture(t *testing.T) (*fakeOrgs, *fakeUsers, string) {
 	t.Setenv("JWT_SECRET", "secret")
-	t.Setenv("FRONTEND_URL", "https://app.postiz.com")
+	t.Setenv("FRONTEND_URL", "https://app.sample.com")
 	users := newFakeUsers()
 	users.byID["u1"] = &ent.User{ID: "u1", Email: "a@b.com", Activated: true, Password: strPtr("hash")}
 	orgs := newFakeOrgs()
@@ -41,7 +41,7 @@ func TestAuthMiddlewareMissingAuthClearsCookie(t *testing.T) {
 		t.Fatal("missing logout header")
 	}
 	cookie := rec.Header().Get("Set-Cookie")
-	for _, want := range []string{"auth=;", "Domain=postiz.com", "Max-Age=0", "HttpOnly", "Secure", "SameSite=None"} {
+	for _, want := range []string{"auth=;", "Domain=sample.com", "Max-Age=0", "HttpOnly", "Secure", "SameSite=None"} {
 		if !strings.Contains(cookie, want) {
 			t.Fatalf("cookie %q lacks %q", cookie, want)
 		}
@@ -160,10 +160,10 @@ func TestPublicAuthMiddleware(t *testing.T) {
 		{"bad key", map[string]string{"Authorization": "nope"}, false, 401, `{"msg":"Invalid API key"}`},
 		{"bad oauth", map[string]string{"Authorization": "pos_bad"}, false, 401, `{"msg":"Invalid OAuth token"}`},
 		{"no subscription", map[string]string{"Authorization": "k2"}, true, 401, `{"msg":"No subscription found"}`},
-		{"override forbidden", map[string]string{"Authorization": "k2", "x-postiz-org": "o3"}, false, 403, `{"msg":"Unauthorized"}`},
-		{"override oauth", map[string]string{"Authorization": "pos_ok", "x-postiz-org": "o3"}, false, 403, `{"msg":"Unauthorized"}`},
-		{"override deleted", map[string]string{"Authorization": "k1", "x-postiz-org": "o3"}, true, 404, `{"msg":"Organization not found"}`},
-		{"override missing", map[string]string{"Authorization": "k1", "x-postiz-org": "zz"}, true, 404, `{"msg":"Organization not found"}`},
+		{"override forbidden", map[string]string{"Authorization": "k2", "x-social-org": "o3"}, false, 403, `{"msg":"Unauthorized"}`},
+		{"override oauth", map[string]string{"Authorization": "pos_ok", "x-social-org": "o3"}, false, 403, `{"msg":"Unauthorized"}`},
+		{"override deleted", map[string]string{"Authorization": "k1", "x-social-org": "o3"}, true, 404, `{"msg":"Organization not found"}`},
+		{"override missing", map[string]string{"Authorization": "k1", "x-social-org": "zz"}, true, 404, `{"msg":"Organization not found"}`},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -183,8 +183,8 @@ func TestPublicAuthMiddleware(t *testing.T) {
 
 	_, seen := serve(t, "GET", "/public/v1/posts", func(r *http.Request) {
 		r.Header.Set("Authorization", "k1")
-		r.Header.Set("x-postiz-org", " o3 ")
-		r.Header.Set("x-postiz-include-deleted", "true")
+		r.Header.Set("x-social-org", " o3 ")
+		r.Header.Set("x-social-include-deleted", "true")
 	}, mw)
 	if seen.Org.ID != "o3" || seen.AuthOrgID != "o1" || !seen.IncludeDeleted || seen.IsOAuthApp || seen.Role() != "" || len(seen.Org.Edges.Users) != 1 {
 		t.Fatalf("override: %+v", seen)

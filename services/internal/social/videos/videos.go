@@ -1,4 +1,4 @@
-// Package videos is Postiz's videos/* folder: the VideoManager registry
+// Package videos is the original app's videos/* folder: the VideoManager registry
 // (what the @Video decorator collects) and the image-text-slides and
 // seedance providers.
 package videos

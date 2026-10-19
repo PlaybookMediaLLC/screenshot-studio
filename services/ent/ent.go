@@ -58,7 +58,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -72,6 +71,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storepublishingcredential"
@@ -191,7 +191,6 @@ func checkColumn(t, c string) error {
 			organizationenterprisesettings.Table: organizationenterprisesettings.ValidColumn,
 			outboxevent.Table:                    outboxevent.ValidColumn,
 			pageknowledge.Table:                  pageknowledge.ValidColumn,
-			postiztenantbinding.Table:            postiztenantbinding.ValidColumn,
 			productprofile.Table:                 productprofile.ValidColumn,
 			productsurface.Table:                 productsurface.ValidColumn,
 			project.Table:                        project.ValidColumn,
@@ -205,6 +204,7 @@ func checkColumn(t, c string) error {
 			session.Table:                        session.ValidColumn,
 			sharelink.Table:                      sharelink.ValidColumn,
 			socialoauthstart.Table:               socialoauthstart.ValidColumn,
+			socialtenantbinding.Table:            socialtenantbinding.ValidColumn,
 			sourceapp.Table:                      sourceapp.ValidColumn,
 			sourcechange.Table:                   sourcechange.ValidColumn,
 			storepublishingcredential.Table:      storepublishingcredential.ValidColumn,

@@ -73,7 +73,7 @@ func (s *Service) SendEmail(ctx context.Context, to, subject, html, addTo, reply
 	}, "sendSingleEmailWorkflow", SendEmailInput{To: to, Subject: subject, HTML: html, ReplyTo: replyTo, AddTo: addTo})
 }
 
-// SendEmailSync wraps the html in the Postiz layout and sends it, trying
+// SendEmailSync wraps the html in the email layout and sends it, trying
 // three times; failures are logged, never returned.
 func (s *Service) SendEmailSync(ctx context.Context, to, subject, html, replyTo string) {
 	if !strings.Contains(to, "@") {

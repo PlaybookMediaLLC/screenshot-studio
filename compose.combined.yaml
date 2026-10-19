@@ -18,7 +18,7 @@ services:
       TENANT_AUDIT_RETENTION_DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
       TENANT_TEMPORAL_ADDRESS: temporal:7233
       TENANT_TEMPORAL_NAMESPACE: default
-      TENANT_POSTIZ_API_URL: http://127.0.0.1:3000/public/v1
+      TENANT_SOCIAL_API_URL: http://127.0.0.1:3000/public/v1
       TENANT_PUBLISHING_SERVICE_TOKEN: ${PUBLISHING_SERVICE_TOKEN:-local-publishing-service}
       TENANT_RUN_MAINTENANCE: 'true'
       TENANT_RUN_CRON: 'true'
@@ -32,9 +32,9 @@ services:
     depends_on:
       platform-go-migrate:
         condition: service_completed_successfully
-      postiz-go-redis:
+      social-redis:
         condition: service_healthy
-      postiz-go-temporal:
+      social-temporal:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -55,5 +55,5 @@ services:
   temporal:
     ports: !override []
 
-  postiz-go-temporal:
+  social-temporal:
     ports: !override []

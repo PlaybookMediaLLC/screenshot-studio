@@ -36,8 +36,8 @@ type revenueCatEntry struct {
 // Google Play subscriptions. The webhook and the app only tell us *which*
 // subscriber to re-check; we always load the subscriber from the API instead
 // of trusting the event payload.
-// app_user_id === Postiz organization id (the app calls Purchases.logIn(orgId)).
-// Product ids end with <tier>.<period> or <tier>_<period>, e.g. com.postiz.mob.pro.yearly
+// app_user_id === the social organization id (the app calls Purchases.logIn(orgId)).
+// Product ids end with <tier>.<period> or <tier>_<period>, e.g. com.shots.mob.pro.yearly
 type RevenueCatProvider struct {
 	Unsupported
 	subscriptions SubscriptionService

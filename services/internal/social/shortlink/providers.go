@@ -207,7 +207,7 @@ func (s *ShortIo) ConvertShortLinkToLink(ctx context.Context, shortLink string) 
 // GetAllLinksStatistics lists every link of the domain (id is Short.io's
 // domain_id), 150 per request following nextPageToken, and reads each link's
 // last-30-days clicks. The page argument is unused: Short.io paginates by
-// token. (Postiz returned un-awaited promises, which serialized as {}, and
+// token. (the original app returned un-awaited promises, which serialized as {}, and
 // re-requested the same first page forever once a domain had 100+ links.)
 func (s *ShortIo) GetAllLinksStatistics(ctx context.Context, id string, _ int) ([]Statistic, error) {
 	type link struct {

@@ -1,4 +1,4 @@
-// Package oauth holds Postiz's dtos/oauth.
+// Package oauth holds the original app's dtos/oauth.
 package oauth
 
 type AuthorizeOAuthQueryDto struct {

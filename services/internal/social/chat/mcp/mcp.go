@@ -2,7 +2,7 @@
 // whose tools call the same domain services as the /v1 API, authenticated by
 // workspace API keys. An OAuth access token is such a key, minted when a
 // member approves an agent, so every call resolves to one workspace and key.
-// It started as a port of Postiz's start.mcp.ts and keeps its mounts and
+// It started as a port of the original app's start.mcp.ts and keeps its mounts and
 // RFC 9728 metadata.
 package mcp
 

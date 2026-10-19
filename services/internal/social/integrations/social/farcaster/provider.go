@@ -29,7 +29,7 @@ const identifier = "wrapcast"
 // neynarURL is the SDK's BASE_PATH, overridden by tests.
 var neynarURL = "https://api.neynar.com"
 
-// sdkVersion is the @neynar/nodejs-sdk version Postiz pins (x-sdk-version).
+// sdkVersion is the @neynar/nodejs-sdk version the original app pins (x-sdk-version).
 const sdkVersion = "3.137.0"
 
 type Provider struct {

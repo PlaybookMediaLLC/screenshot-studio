@@ -274,5 +274,5 @@ post is telling the system something long before any post is published.
 ## Out of scope
 
 - Generation logic. RFC 015 adds the first recipe.
-- Publication mechanics. RFC 020 connects Postiz.
+- Publication mechanics. RFC 020 connects the social API.
 - Cross-campaign calendar views. RFC 025 covers the calendar.

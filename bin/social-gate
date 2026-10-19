@@ -38,10 +38,10 @@ cleanup() {
   trap - EXIT
   if [[ "$original_status" -ne 0 ]]; then
     echo 'Social gate service logs (last 100 lines per container):' >&2
-    gate_compose --profile postiz-go logs --no-color --tail=100 2>&1 |
+    gate_compose --profile social logs --no-color --tail=100 2>&1 |
       sed -E 's#(https?://[^[:space:]"]+)\?[^[:space:]"]+#\1?[redacted]#g' >&2 || true
   fi
-  gate_compose --profile postiz-go down --volumes --remove-orphans || original_status=1
+  gate_compose --profile social down --volumes --remove-orphans || original_status=1
   rm -f "$BOOTSTRAP_FILE"
   exit "$original_status"
 }
@@ -50,14 +50,14 @@ trap cleanup EXIT
 # The separate project has its own PostgreSQL, Redis, Temporal, and RustFS
 # volumes. Start the social API first so it can create a real OAuth test
 # destination; then pass that API key only to the isolated app/backend.
-gate_compose --profile postiz-go up --detach --build \
-  postgres redis rustfs rustfs-init temporal postiz-go-redis postiz-go-temporal \
+gate_compose --profile social up --detach --build \
+  postgres redis rustfs rustfs-init temporal social-redis social-temporal \
   platform-go-migrate fake-social screenshot-studio-backend
 wait_http http://127.0.0.1:3110/
-POSTIZ_SOCIAL_GATE_URL=http://127.0.0.1:3110 \
+SOCIAL_GATE_URL=http://127.0.0.1:3110 \
   node test/e2e/fixtures/bootstrap-go.mjs "$BOOTSTRAP_FILE"
-POSTIZ_API_KEY_SOCIAL_GATE="$(node -e 'const f=JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); process.stdout.write(f.apiKey)' "$BOOTSTRAP_FILE")"
-export POSTIZ_API_KEY_SOCIAL_GATE
+SOCIAL_API_KEY_GATE="$(node -e 'const f=JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); process.stdout.write(f.apiKey)' "$BOOTSTRAP_FILE")"
+export SOCIAL_API_KEY_GATE
 gate_compose up --detach --build publishing-backend publishing-orchestrator app
 wait_http http://127.0.0.1:8180/readyz
 wait_http http://127.0.0.1:8181/readyz

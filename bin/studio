@@ -11,8 +11,8 @@ KIND_NAMESPACE="screenshot-studio"
 
 compose() {
   local compose_args=(--env-file "$LOCAL_ENV" --file "$ROOT_DIR/compose.yaml")
-  if [[ "${POSTIZ_GO_ENV_OVERLAY:-}" == "true" && -f "$LOCAL_DIR/postiz-go.env" ]]; then
-    compose_args+=(--env-file "$LOCAL_DIR/postiz-go.env")
+  if [[ "${SOCIAL_ENV_OVERLAY:-}" == "true" && -f "$LOCAL_DIR/social.env" ]]; then
+    compose_args+=(--env-file "$LOCAL_DIR/social.env")
   fi
   if [[ "${E2E_DOCKER_HOST_GATEWAY:-}" == "true" ]]; then
     compose_args+=(--file "$ROOT_DIR/compose.ci.yaml")
@@ -59,10 +59,10 @@ NODE
     ensure_env_value BETTER_AUTH_URL "http://localhost:3000"
     ensure_env_value NEXT_PUBLIC_APP_URL "http://localhost:3000"
     ensure_env_value BETTER_AUTH_TRUSTED_ORIGINS "http://localhost:3000"
-    ensure_env_value POSTIZ_API_URL "http://host.docker.internal:5679/api/public/v1"
-    ensure_env_value POSTIZ_API_KEY "e2e-postiz-token"
-    ensure_env_value POSTIZ_API_KEY_E2E "e2e-postiz-token"
-    ensure_env_value POSTIZ_GO_JWT_SECRET "$(random_hex 32)"
+    ensure_env_value SOCIAL_API_URL "http://host.docker.internal:5679/api/public/v1"
+    ensure_env_value SOCIAL_API_KEY "e2e-social-token"
+    ensure_env_value SOCIAL_API_KEY_E2E "e2e-social-token"
+    ensure_env_value SOCIAL_JWT_SECRET "$(random_hex 32)"
     ensure_env_value PUBLISHING_SERVICE_TOKEN "$(random_hex 32)"
     ensure_env_value COLLAB_TOKEN_SECRET "$(random_hex 32)"
     ensure_env_value COLLAB_SERVICE_TOKEN "$(random_hex 32)"
@@ -110,10 +110,10 @@ STORE_PUBLISHING_ENCRYPTION_KEY=$store_publishing_encryption_key
 DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@postgres:5432/screenshot_studio?schema=public
 AUDIT_RETENTION_DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@postgres:5432/screenshot_studio?schema=public
 HOST_DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@127.0.0.1:54329/screenshot_studio?schema=public
-POSTIZ_API_URL=http://host.docker.internal:5679/api/public/v1
-POSTIZ_API_KEY=e2e-postiz-token
-POSTIZ_API_KEY_E2E=e2e-postiz-token
-POSTIZ_GO_JWT_SECRET=$(random_hex 32)
+SOCIAL_API_URL=http://host.docker.internal:5679/api/public/v1
+SOCIAL_API_KEY=e2e-social-token
+SOCIAL_API_KEY_E2E=e2e-social-token
+SOCIAL_JWT_SECRET=$(random_hex 32)
 PUBLISHING_SERVICE_TOKEN=$(random_hex 32)
 COLLAB_TOKEN_SECRET=$(random_hex 32)
 COLLAB_SERVICE_TOKEN=$(random_hex 32)
@@ -320,7 +320,7 @@ run_e2e() {
     BETTER_AUTH_URL="${app_url%/}" \
       BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" \
       NEXT_PUBLIC_APP_URL="${app_url%/}" \
-      POSTIZ_API_URL="${E2E_POSTIZ_API_URL:-http://host.docker.internal:5679/api/public/v1}" \
+      SOCIAL_API_URL="${E2E_SOCIAL_API_URL:-http://host.docker.internal:5679/api/public/v1}" \
       SCREENSHOT_API_URL="http://screenshot-mock:5678" \
       SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" \
       OPENROUTER_API_KEY="e2e-openrouter" \
@@ -330,7 +330,7 @@ run_e2e() {
       PLATFORM_AI_SCRIPTED=1 compose --profile e2e up --detach --force-recreate screenshot-mock publishing-backend publishing-orchestrator app
     wait_for_screenshot_mock
     # Publishing runs in the backend, so it is the service that must reach the
-    # suite's Postiz mock.
+    # suite's social API mock.
     wait_for_http "http://127.0.0.1:8080/readyz" "Publishing backend"
   fi
   wait_for_http "${app_url%/}/api/health" "Screenshot Studio"
@@ -493,18 +493,18 @@ up() {
   echo "RustFS:  http://localhost:9004/rustfs/console/"
 }
 
-postiz_go_up() {
+social_up() {
   ensure_env
-  POSTIZ_GO_ENV_OVERLAY=true compose --profile postiz-go up --detach --build screenshot-studio-backend
-  wait_for_http http://localhost:3100/ "Postiz Go backend"
-  wait_for_http http://localhost:3102/health/status "Postiz Go worker"
-  echo "Postiz Go API: http://localhost:3100/public/v1"
-  echo "Postiz Go worker: http://localhost:3102/health/status"
+  SOCIAL_ENV_OVERLAY=true compose --profile social up --detach --build screenshot-studio-backend
+  wait_for_http http://localhost:3100/ "social API"
+  wait_for_http http://localhost:3102/health/status "social worker"
+  echo "Social API: http://localhost:3100/public/v1"
+  echo "Social worker: http://localhost:3102/health/status"
 }
 
-postiz_go_down() {
+social_down() {
   ensure_env
-  POSTIZ_GO_ENV_OVERLAY=true compose --profile postiz-go stop screenshot-studio-backend postiz-go-temporal postiz-go-redis
+  SOCIAL_ENV_OVERLAY=true compose --profile social stop screenshot-studio-backend social-temporal social-redis
 }
 
 down() {
@@ -532,11 +532,11 @@ down() {
   fi
 
   if [[ "$mode" == "purge" ]]; then
-    compose --profile e2e --profile renderer --profile postiz-go down --volumes --remove-orphans
+    compose --profile e2e --profile renderer --profile social down --volumes --remove-orphans
     return
   fi
 
-  compose --profile e2e --profile renderer --profile postiz-go down --remove-orphans
+  compose --profile e2e --profile renderer --profile social down --remove-orphans
 }
 
 kind_up() {
@@ -604,8 +604,8 @@ Usage: bin/studio <command>
 Commands:
   env                        Create or refresh the ignored local environment.
   up                         Start the hot-reload Compose stack.
-  postiz-go-up               Start the optional Postiz Go API and workers.
-  postiz-go-down             Stop the optional Postiz Go API and workers.
+  social-up               Start the optional social API and workers.
+  social-down             Stop the optional social API and workers.
   down [--keep-data|--purge] Stop the Compose stack and prompt for data handling.
   reset                      Stop the Compose stack and remove all local data.
   smoke                      Verify Compose service health.
@@ -626,8 +626,8 @@ EOF
 case "${1:-}" in
   env) ensure_env ;;
   up) up ;;
-  postiz-go-up) postiz_go_up ;;
-  postiz-go-down) postiz_go_down ;;
+  social-up) social_up ;;
+  social-down) social_down ;;
   down) shift; down "$@" ;;
   reset) down --purge --yes ;;
   smoke) smoke ;;

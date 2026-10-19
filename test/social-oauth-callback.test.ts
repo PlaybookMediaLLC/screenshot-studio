@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { afterEach, test } from 'node:test'
-import { completeSocialOAuth, selectInstagramAccount } from '../lib/tenant/postiz-oauth-callback'
+import { completeSocialOAuth, selectInstagramAccount } from '../lib/tenant/social-oauth-callback'
 
 afterEach(() => {
   delete process.env.BETTER_AUTH_SECRET

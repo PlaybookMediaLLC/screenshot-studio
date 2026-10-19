@@ -56,7 +56,7 @@ func TestContentDraftPlatform(t *testing.T) {
 	})
 	owner := Actor{OrganizationID: org, UserID: userID, SessionID: "session_" + org, RequestID: "request_" + id}
 	connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: org, UserID: userID, RequestID: owner.RequestID, Type: "USER"},
-		publishing.CreateConnectionInput{ExternalAccountID: "x-" + id, Platform: "x", ProviderSettings: map[string]any{}, SecretReference: "POSTIZ_API_KEY"})
+		publishing.CreateConnectionInput{ExternalAccountID: "x-" + id, Platform: "x", ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
 	if err != nil {
 		t.Fatal(err)
 	}

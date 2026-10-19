@@ -1,4 +1,4 @@
-// Package llm is the OpenAI HTTP client behind the Postiz agent and the
+// Package llm is the OpenAI HTTP client behind the social agent and the
 // post generator: the Go form of what @ai-sdk/openai (Mastra) and
 // @langchain/openai (ChatOpenAI, DallEAPIWrapper) send to OpenAI. Only plain
 // HTTP: chat completions (streamed or not), structured output and images.

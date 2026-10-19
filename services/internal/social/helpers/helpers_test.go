@@ -47,9 +47,9 @@ func TestWeightedLength(t *testing.T) {
 		"hello":                            5,
 		"日本語":                              6,  // CJK weighs 2
 		"😀👍🏽":                              4,  // emoji sequences weigh 2 each
-		"go to https://postiz.com/a/b now": 33, // URLs count as 23
-		"see postiz.com":                   27, // bare domains too
-		"mail a@postiz.com":                17, // not emails
+		"go to https://sample.com/a/b now": 33, // URLs count as 23
+		"see sample.com":                   27, // bare domains too
+		"mail a@sample.com":                17, // not emails
 	}
 	for in, want := range cases {
 		if got := WeightedLength(in); got != want {
@@ -68,11 +68,11 @@ func TestWeightedLength(t *testing.T) {
 }
 
 func TestStripLinks(t *testing.T) {
-	in := "Read https://postiz.com/x and postiz.io/y"
+	in := "Read https://sample.com/x and sample.io/y"
 	if !HasLinks(in) || StripLinks(in) != "Read and" {
 		t.Errorf("got %v %q", HasLinks(in), StripLinks(in))
 	}
-	email := "write to user@postiz.com"
+	email := "write to user@sample.com"
 	if HasLinks(email) || StripLinks(email) != email {
 		t.Errorf("emails must stay: %v %q", HasLinks(email), StripLinks(email))
 	}

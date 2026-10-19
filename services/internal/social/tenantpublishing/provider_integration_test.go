@@ -40,7 +40,7 @@ func TestDirectPublisherUsesSharedPublicSchemaWithoutLegacyPost(t *testing.T) {
 	}{
 		{`INSERT INTO organization (id,name,slug,"createdAt") VALUES ($1,'Product test',$2,now())`, []any{productOrg, id}},
 		{`INSERT INTO "Organization" (id,name,"updatedAt") VALUES ($1,'Social test',now())`, []any{socialOrg}},
-		{`INSERT INTO postiz_tenant_binding ("organizationId","goOrganizationId","secretReference","createdAt") VALUES ($1,$2,'POSTIZ_API_KEY_TEST',now())`, []any{productOrg, socialOrg}},
+		{`INSERT INTO social_tenant_binding ("organizationId","goOrganizationId","secretReference","createdAt") VALUES ($1,$2,'SOCIAL_API_KEY_TEST',now())`, []any{productOrg, socialOrg}},
 		{`INSERT INTO "Integration" (id,"internalId","organizationId",name,"providerIdentifier",type,token) VALUES ($1,'remote-user',$2,'LinkedIn test','linkedin','social','private-token')`, []any{destination, socialOrg}},
 	}
 	for _, fixture := range fixtures {
@@ -50,7 +50,7 @@ func TestDirectPublisherUsesSharedPublicSchemaWithoutLegacyPost(t *testing.T) {
 	}
 	t.Cleanup(func() {
 		_, _ = productDB.SQL.ExecContext(ctx, `DELETE FROM "Integration" WHERE id=$1`, destination)
-		_, _ = productDB.SQL.ExecContext(ctx, `DELETE FROM postiz_tenant_binding WHERE "organizationId"=$1`, productOrg)
+		_, _ = productDB.SQL.ExecContext(ctx, `DELETE FROM social_tenant_binding WHERE "organizationId"=$1`, productOrg)
 		_, _ = productDB.SQL.ExecContext(ctx, `DELETE FROM "Organization" WHERE id=$1`, socialOrg)
 		_, _ = productDB.SQL.ExecContext(ctx, `DELETE FROM organization WHERE id=$1`, productOrg)
 	})
@@ -58,7 +58,7 @@ func TestDirectPublisherUsesSharedPublicSchemaWithoutLegacyPost(t *testing.T) {
 	p.bindings = publishing.NewRepository(productDB.Client)
 	p.integrations = EntIntegrationLookup{Client: socialDB.Client}
 	input.OrganizationID, input.DestinationID = productOrg, destination
-	input.SecretReference = "POSTIZ_API_KEY_TEST"
+	input.SecretReference = "SOCIAL_API_KEY_TEST"
 	input.AssetObjectKey = "org/" + productOrg + "/image.png"
 	remoteID, err := p.Publish(ctx, input)
 	if err != nil || remoteID != "remote-post-1" || signer.calls != 1 || fakeProvider.calls != 1 {

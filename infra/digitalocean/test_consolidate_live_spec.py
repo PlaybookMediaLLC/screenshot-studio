@@ -1,4 +1,4 @@
-"""Checks the one-time production topology patch without provider access."""
+"""Checks the production deploy patch without provider access."""
 
 import importlib.util
 from pathlib import Path
@@ -14,24 +14,32 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         def env(key, value="EV[encrypted]", kind="SECRET"):
             return {"key": key, "value": value, "type": kind, "scope": "RUN_TIME"}
 
-        tenant_keys = "DATABASE_URL TEMPORAL_ADDRESS TEMPORAL_NAMESPACE TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY STORAGE_BUCKET STORAGE_API_URL BETTER_AUTH_SECRET BETTER_AUTH_URL AUTH_EMAIL_FROM RUN_MAINTENANCE RUN_CRON POSTIZ_API_URL".split()
+        tenant_keys = "DATABASE_URL TEMPORAL_ADDRESS TEMPORAL_NAMESPACE TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY STORAGE_BUCKET STORAGE_API_URL BETTER_AUTH_SECRET BETTER_AUTH_URL AUTH_EMAIL_FROM RUN_MAINTENANCE RUN_CRON".split()
+        general = {"RUN_MAINTENANCE", "RUN_CRON", "TEMPORAL_ADDRESS", "TEMPORAL_NAMESPACE", "STORAGE_BUCKET", "STORAGE_API_URL", "BETTER_AUTH_URL", "AUTH_EMAIL_FROM"}
+        backend_envs = [env("DATABASE_URL"), env("TEMPORAL_NAMESPACE", "social-namespace", "GENERAL"),
+                        env("BACKEND_INTERNAL_URL", "http://127.0.0.1:3000", "GENERAL"), env("TENANT_PUBLISHING_SERVICE_TOKEN")]
+        backend_envs += [env("TENANT_" + key, "true" if key in ("RUN_MAINTENANCE", "RUN_CRON") else "EV[encrypted]",
+                             "GENERAL" if key in general else "SECRET") for key in tenant_keys]
+        # The live app still holds the legacy names; each deploy moves them.
+        backend_envs += [env("POSTIZ_PRIVATE_MEDIA", "false", "GENERAL"),
+                         env("TENANT_POSTIZ_API_URL", "http://127.0.0.1:3000/public/v1", "GENERAL"),
+                         env("TEMPORAL_POSTIZ_TASK_QUEUE", "postiz", "GENERAL")]
+        image = dict(cutover.IMAGE, tag="social-backend-" + "0" * 40)
         self.base = {"spec": {
             "name": "production", "domains": [{"domain": "shots.example.com"}],
             "services": [
-                {"name": "web", "image": {"digest": "web-digest"}, "envs": [env("POSTIZ_API_URL", "http://postiz-backend:3000", "GENERAL")]},
+                {"name": "web", "image": {"digest": "web-digest"}, "envs": [env("POSTIZ_API_URL", "http://screenshot-studio-backend:3000/public/v1", "GENERAL")]},
                 {"name": "storage", "image": {"tag": "fixed"}},
                 {"name": "design-renderer", "git": {"branch": "main"}},
-                {"name": "postiz-backend", "git": {"branch": "main"}, "source_dir": "services", "dockerfile_path": "Dockerfile", "envs": [env("DATABASE_URL"), env("TEMPORAL_NAMESPACE", "tenant-namespace", "GENERAL"), env("BACKEND_INTERNAL_URL", "http://postiz-backend:3000", "GENERAL")]},
-                {"name": "postiz-orchestrator", "envs": []},
-                {"name": "publishing-backend", "envs": [env("PUBLISHING_SERVICE_TOKEN")]},
-                {"name": "publishing-orchestrator", "envs": [env(key, "true" if key in ("RUN_MAINTENANCE", "RUN_CRON") else "EV[encrypted]", "GENERAL" if key in ("RUN_MAINTENANCE", "RUN_CRON", "POSTIZ_API_URL", "TEMPORAL_ADDRESS", "TEMPORAL_NAMESPACE", "STORAGE_BUCKET", "STORAGE_API_URL", "BETTER_AUTH_URL", "AUTH_EMAIL_FROM") else "SECRET") for key in tenant_keys]},
+                {"name": "screenshot-studio-backend", "image": image, "envs": backend_envs},
             ],
-            "jobs": [{"name": "web-migrate", "envs": [env("DATABASE_URL", "EV[migration-owner]")]}, {"name": "postiz-migrate", "git": {"branch": "main"}, "source_dir": "services", "dockerfile_path": "Dockerfile", "envs": [env("DATABASE_URL")]}],
-            "ingress": {"rules": [{"component": {"name": "postiz-backend"}}, {"component": {"name": "web"}}]},
+            "jobs": [{"name": "platform-migrate", "image": image, "run_command": "/platform-migrate", "envs": [env("DATABASE_URL", "EV[migration-owner]")]},
+                     {"name": "postiz-migrate", "image": image, "run_command": "/postiz-migrate", "envs": [env("DATABASE_URL")]}],
+            "ingress": {"rules": [{"component": {"name": "screenshot-studio-backend"}}, {"component": {"name": "web"}}]},
         }}
         self.digest = "sha256:" + "a" * 64
 
-    def test_preserves_unrelated_components_and_moves_tenant_secrets(self):
+    def test_preserves_unrelated_components_and_moves_legacy_names(self):
         spec = cutover.consolidate(self.base, self.digest)
         services = {item["name"]: item for item in spec["services"]}
         self.assertEqual(set(services), {"web", "storage", "design-renderer", "screenshot-studio-backend"})
@@ -40,26 +48,41 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertEqual(spec["domains"], self.base["spec"]["domains"])
         backend = services["screenshot-studio-backend"]
         self.assertEqual(backend["image"]["digest"], self.digest)
-        self.assertEqual(backend["health_check"]["port"], 3003)
         self.assertEqual(backend["internal_ports"], [3003, 8082])
         values = {item["key"]: item for item in backend["envs"]}
         self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"]["value"], "EV[encrypted]")
-        self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"]["type"], "SECRET")
-        self.assertEqual(values["TENANT_RUN_MAINTENANCE"]["value"], "true")
-        self.assertEqual(values["RUN_WORKER"]["value"], "true")
         self.assertEqual(values["TENANT_PUBLISHING_SERVICE_TOKEN"]["type"], "SECRET")
         self.assertEqual(values["DATABASE_URL"]["value"], values["TENANT_DATABASE_URL"]["value"])
-        self.assertEqual(spec["jobs"][1]["envs"][0]["value"], values["TENANT_DATABASE_URL"]["value"])
+        self.assertEqual(values["SOCIAL_PRIVATE_MEDIA"]["value"], "false")
+        self.assertEqual(values["TENANT_SOCIAL_API_URL"]["value"], "http://127.0.0.1:3000/public/v1")
+        # A pin to the legacy queue would keep new posts off the social queue.
+        self.assertNotIn("TEMPORAL_SOCIAL_TASK_QUEUE", values)
+        keys = {item["key"] for service in spec["services"] + spec["jobs"] for item in service.get("envs", [])}
+        self.assertFalse({key for key in keys if "POSTIZ" in key})
         web_env = {item["key"]: item for item in services["web"]["envs"]}
         self.assertEqual(web_env["PUBLISHING_API_URL"]["value"], "http://screenshot-studio-backend:8082")
-        self.assertEqual(web_env["PUBLISHING_SERVICE_TOKEN"]["type"], "SECRET")
+        self.assertEqual(web_env["SOCIAL_API_URL"]["value"], "http://screenshot-studio-backend:3000/public/v1")
         self.assertEqual(spec["ingress"]["rules"][0]["component"]["name"], "screenshot-studio-backend")
-        self.assertEqual(spec["jobs"][1]["image"]["digest"], self.digest)
+        social = spec["jobs"][1]
+        self.assertEqual((social["name"], social["run_command"]), ("social-migrate", "/social-migrate"))
+        self.assertEqual(social["image"]["digest"], self.digest)
+        self.assertEqual(social["envs"][0]["value"], values["TENANT_DATABASE_URL"]["value"])
         platform = spec["jobs"][0]
         self.assertEqual((platform["name"], platform["run_command"]), ("platform-migrate", "/platform-migrate"))
         self.assertEqual(platform["image"]["digest"], self.digest)
         self.assertEqual(platform["envs"][0]["value"], "EV[migration-owner]")
-        self.assertEqual(len(self.base["spec"]["services"]), 7)
+        self.assertEqual(len(self.base["spec"]["services"]), 4)
+
+    def test_reads_legacy_infisical_names_until_they_move(self):
+        secrets = {key: "infisical-" + key for key in
+                   "DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+        spec = cutover.consolidate(self.base, self.digest, dict(secrets, POSTIZ_GO_X_API_KEY="legacy-x", SOCIAL_X_API_SECRET="new-x",
+                                                                POSTIZ_GO_X_API_SECRET="stale-x"))
+        backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
+        values = {item["key"]: item["value"] for item in backend["envs"]}
+        self.assertEqual(values["X_API_KEY"], "legacy-x")
+        # Once the social name exists in Infisical, it wins.
+        self.assertEqual(values["X_API_SECRET"], "new-x")
 
     def test_refuses_unexpected_topology(self):
         self.base["spec"]["services"].append({"name": "unexpected"})
@@ -77,7 +100,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         updated = next(item for item in repeated["services"] if item["name"] == "screenshot-studio-backend")
         self.assertEqual(updated["image"]["tag"], second_tag)
         self.assertEqual(repeated["jobs"][1]["image"]["tag"], second_tag)
-        self.assertEqual([job["name"] for job in repeated["jobs"]], ["platform-migrate", "postiz-migrate"])
+        self.assertEqual([job["name"] for job in repeated["jobs"]], ["platform-migrate", "social-migrate"])
         self.assertEqual(repeated["jobs"][0]["image"]["tag"], second_tag)
         self.assertEqual(len(repeated["services"]), 4)
         with self.assertRaisesRegex(ValueError, "commit SHA"):
@@ -85,12 +108,12 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
 
     def test_uses_infisical_for_new_backend_credentials(self):
         secrets = {key: "infisical-" + key for key in
-                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+                   "SOCIAL_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
         secrets.update({cutover.SOCIAL_SECRET_SOURCES.get(key, key): "infisical-" + key
                         for key in cutover.OPTIONAL_SOCIAL_SECRETS})
         secrets.update({key: "other-service-" + key for key in cutover.OPTIONAL_SOCIAL_SECRETS
                         if key in cutover.SOCIAL_SECRET_SOURCES})
-        social = next(service for service in self.base["spec"]["services"] if service["name"] == "postiz-backend")
+        social = next(service for service in self.base["spec"]["services"] if service["name"] == "screenshot-studio-backend")
         social["envs"].append({"key": "FACEBOOK_APP_SECRET", "value": "old-plain-value", "type": "GENERAL", "scope": "RUN_TIME"})
         spec = cutover.consolidate(self.base, self.digest, secrets)
         backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
@@ -98,7 +121,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertEqual(values["DATABASE_URL"], "infisical-DATABASE_URL")
         self.assertEqual(values["TENANT_DATABASE_URL"], "infisical-DATABASE_URL")
         # Migration jobs run as the migration owner, never the runtime role.
-        self.assertEqual(next(item for item in spec["jobs"] if item["name"] == "postiz-migrate")["envs"][0]["value"], "infisical-MIGRATION_DATABASE_URL")
+        self.assertEqual(next(item for item in spec["jobs"] if item["name"] == "social-migrate")["envs"][0]["value"], "infisical-MIGRATION_DATABASE_URL")
         self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"], "infisical-AUDIT_RETENTION_DATABASE_URL")
         for key in cutover.OPTIONAL_SOCIAL_SECRETS:
             entry = next(item for item in backend["envs"] if item["key"] == key)
@@ -111,7 +134,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         for key in cutover.OPTIONAL_SOCIAL_SECRETS:
             self.assertEqual(next(item for item in updated["envs"] if item["key"] == key)["type"], "SECRET")
         withdrawn = dict(secrets)
-        del withdrawn["POSTIZ_GO_FACEBOOK_APP_SECRET"]
+        del withdrawn["SOCIAL_FACEBOOK_APP_SECRET"]
         retired = cutover.consolidate(spec, self.digest, withdrawn)
         retired_backend = next(item for item in retired["services"] if item["name"] == "screenshot-studio-backend")
         self.assertNotIn("FACEBOOK_APP_SECRET", {item["key"] for item in retired_backend["envs"]})
@@ -131,14 +154,14 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
 
     def test_web_reaches_backend_and_go_owns_migrations(self):
         secrets = {key: "infisical-" + key for key in
-                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+                   "SOCIAL_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
         spec = cutover.consolidate(self.base, self.digest, secrets)
         web = next(item for item in spec["services"] if item["name"] == "web")
         envs = {item["key"]: item for item in web["envs"]}
         self.assertEqual(envs["PUBLISHING_API_URL"]["value"], "http://screenshot-studio-backend:8082")
         self.assertEqual(envs["PUBLISHING_SERVICE_TOKEN"]["value"], "infisical-PUBLISHING_SERVICE_TOKEN")
         jobs = {item["name"]: item for item in spec["jobs"]}
-        self.assertEqual(set(jobs), {"platform-migrate", "postiz-migrate"})
+        self.assertEqual(set(jobs), {"platform-migrate", "social-migrate"})
         self.assertEqual(jobs["platform-migrate"]["envs"][0]["value"], "infisical-MIGRATION_DATABASE_URL")
         del secrets["MIGRATION_DATABASE_URL"]
         with self.assertRaisesRegex(ValueError, "MIGRATION_DATABASE_URL"):
@@ -146,7 +169,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
 
     def test_product_api_gets_storage_and_quota_counter(self):
         secrets = {key: "infisical-" + key for key in
-                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+                   "SOCIAL_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
         first = cutover.consolidate(self.base, self.digest, secrets)
         # The live production shape is the already-consolidated four services.
         for spec in (first, cutover.consolidate(first, self.digest, secrets)):
@@ -168,7 +191,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
 
     def test_collab_service_ships_only_with_its_secrets(self):
         secrets = {key: "infisical-" + key for key in
-                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+                   "SOCIAL_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
         collab_tag = "collab-" + "c" * 40
         live = cutover.consolidate(self.base, self.digest, secrets)
         self.assertNotIn("collab", {item["name"] for item in cutover.consolidate(live, self.digest, secrets, None, collab_tag)["services"]})
@@ -206,7 +229,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
 
     def test_onboarding_keys_follow_infisical(self):
         secrets = {key: "infisical-" + key for key in
-                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+                   "SOCIAL_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
         first = cutover.consolidate(self.base, self.digest, secrets)
         backend_envs = lambda spec: {item["key"]: item for item in next(
             item for item in spec["services"] if item["name"] == "screenshot-studio-backend")["envs"]}
@@ -222,7 +245,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
 
     def test_mcp_host_follows_infisical(self):
         secrets = {key: "infisical-" + key for key in
-                   "POSTIZ_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+                   "SOCIAL_TEMPORAL_API_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
         live = cutover.consolidate(self.base, self.digest, secrets)
         self.assertFalse(any(cutover.is_mcp_rule(rule) for rule in live["ingress"]["rules"]))
         enabled = dict(secrets, PLATFORM_MCP_URL="https://mcp.example.com/mcp")
@@ -250,7 +273,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertEqual(removed["domains"], [{"domain": "shots.example.com"}])
         self.assertFalse(any(cutover.is_mcp_rule(rule) for rule in removed["ingress"]["rules"]))
         self.assertNotIn("PLATFORM_MCP_URL", {item["key"] for service in removed["services"] for item in service.get("envs", [])})
-        for url in ("http://mcp.example.com/mcp", "https://shots.example.com/postiz/mcp"):
+        for url in ("http://mcp.example.com/mcp", "https://shots.example.com/social/mcp"):
             with self.assertRaisesRegex(ValueError, "PLATFORM_MCP_URL"):
                 cutover.consolidate(live, self.digest, dict(secrets, PLATFORM_MCP_URL=url))
 

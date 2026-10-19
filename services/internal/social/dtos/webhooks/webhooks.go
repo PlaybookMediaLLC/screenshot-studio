@@ -13,7 +13,7 @@ type WebhooksIntegrationDto struct {
 	ID string `json:"id" validate:"required"`
 }
 
-// Integrations has no @ValidateNested in Postiz, so items are not validated.
+// Integrations has no @ValidateNested in the original app, so items are not validated.
 type WebhooksDto struct {
 	ID           string                   `json:"id,omitempty"`
 	Name         string                   `json:"name" validate:"required"`

@@ -14,7 +14,7 @@ plans campaigns. The platform renders assets, collects approval, and publishes.
 
 Founders ship features. Turning those features into marketing content is slow, manual work.
 The platform already captures products, composes visuals, applies brand kits, renders images
-and video, manages approvals, stores assets, runs durable jobs, and publishes through Postiz.
+and video, manages approvals, stores assets, runs durable jobs, and publishes through the social API.
 
 The missing layer is small:
 
@@ -56,7 +56,7 @@ The target experience:
                                │
              ┌─────────────────┼────────────────┐
              ▼                 ▼                ▼
-      Shots   Temporal          Postiz
+      Shots   Temporal          Social API
       rendering engine    durable work      publishing
 ```
 
@@ -102,7 +102,7 @@ See [docs/editor-platform.md](docs/editor-platform.md).
 - Better Auth with organizations, fixed RBAC, OIDC SSO, SCIM deactivation, and two-factor
 - Audit logs with retention policies and signed SIEM drains
 - Workspace-scoped assets, scoped API keys, and source-app webhooks
-- Brand kits, creative templates, variant approval, and scheduled posts through Postiz
+- Brand kits, creative templates, variant approval, and scheduled posts through the social API
 - Typed tRPC API for browser and API-key callers, with REST intake routes for machines
 - Durable Go backend execution on Temporal with outbox recovery
 - Paid plans only (Pro, Business, Enterprise) through Stripe Checkout and the billing portal, with metered AI credits and extra-launch credit packs; a workspace without a subscription has no access
@@ -144,7 +144,7 @@ Status as of 2026-10-16: done, including the campaign UI for steps 2, 3, and 5 (
    - Workspace settings have a Billing section: plan, status, AI credits, posts, and emails left, the extra launch credit balance, and the billing portal.
    - Credit packs require a subscription. There is no trial.
    - Seat and social channel limits are enforced per plan; a workspace has one product.
-2. **Approve → schedule → publish end to end** ([020](docs/rfcs/020-postiz-publishing.md), [014](docs/rfcs/014-structured-marketing-objects.md))
+2. **Approve → schedule → publish end to end** ([020](docs/rfcs/020-social-publishing.md), [014](docs/rfcs/014-structured-marketing-objects.md))
    - Done: approving a launch visual creates an approved creative variant, and scheduling attaches it to the post.
    - Done: the post channel must match the connected platform.
    - Done: a cancelled or failed post can be rescheduled, but a post whose delivery is uncertain never is.
@@ -221,7 +221,7 @@ schedule.
 
 **Phase 4: measure, then improve**
 
-17. **Analytics ingestion** ([027](docs/rfcs/027-analytics-ingestion.md)): post metrics through the existing Postiz analytics endpoint.
+17. **Analytics ingestion** ([027](docs/rfcs/027-analytics-ingestion.md)): post metrics through the existing social analytics endpoint.
 18. **Feedback-driven generation** ([028](docs/rfcs/028-feedback-driven-generation.md)): report-only first, then bounded adjustments.
 
 **Phase 5: recurring work and autonomy**
@@ -283,7 +283,7 @@ material for marketing the product.
                                                  Approval
                                                     │
                                                     ▼
-                                                  Postiz
+                                                Social API
                                                     │
                                   ┌─────────────────┼──────────────┐
                                   ▼                 ▼              ▼
@@ -349,7 +349,7 @@ handling are documented in
 ## Tech stack
 
 Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Go · Ent · PostgreSQL · Zustand · Radix UI ·
-Motion · FFmpeg WASM · WebCodecs · Temporal · Postiz
+Motion · FFmpeg WASM · WebCodecs · Temporal · Social API
 
 ## Third-party providers
 
@@ -374,7 +374,6 @@ Temporal runs publishing and maintenance in the Go backend. See
 
 | Provider                                                                                                                                  | Role                                                                                                                                 | Environment variables                                                                                                     |
 | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| [Postiz](https://postiz.com) ([docs](https://docs.postiz.com))                                                                            | Social scheduling and publishing                                                                                                     | `POSTIZ_API_URL`                                                                                                          |
 | [Microlink](https://microlink.io) ([docs](https://microlink.io/docs))                                                                     | Screenshot capture API                                                                                                               | `SCREENSHOT_API_URL`                                                                                                      |
 | [OpenRouter](https://openrouter.ai) ([models](https://openrouter.ai/models))                                                              | Model access for the campaign studio, editor copilot, captions, and AI backgrounds                                                   | `OPENROUTER_API_KEY`, optional `PLATFORM_AI_MODEL_*`, `PLATFORM_AI_IMAGE_MODEL`                                           |
 | [Slack](https://api.slack.com/apps), [Notion](https://www.notion.so/profile/integrations), [Figma](https://www.figma.com/developers/apps) | Delivering published designs ([setup](docs/integrations.md))                                                                         | `INTEGRATION_ENCRYPTION_KEY`, `{SLACK,NOTION,FIGMA}_CLIENT_ID`, `{SLACK,NOTION,FIGMA}_CLIENT_SECRET`                      |

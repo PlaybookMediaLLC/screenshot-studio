@@ -32,7 +32,7 @@ const identifier = "tumblr"
 var apiURL = "https://api.tumblr.com/v2"
 
 const (
-	userAgent          = "Postiz/1.0 (+https://postiz.com)"
+	userAgent          = "Shots/1.0 (+https://shots.playbookmedia.io)"
 	textBlockLimit     = 4096
 	defaultVideoWidth  = 540
 	defaultVideoHeight = 405

@@ -7,7 +7,7 @@ import (
 )
 
 // JSTime is the format of JavaScript's Date.prototype.toJSON, which is how
-// Prisma rows reach Postiz clients.
+// Prisma rows reach clients of the original app.
 const JSTime = "2006-01-02T15:04:05.000Z"
 
 type prismaJSON struct {

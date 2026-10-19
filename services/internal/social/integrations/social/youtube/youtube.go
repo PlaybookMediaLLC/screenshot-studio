@@ -162,7 +162,7 @@ func handleErrors(body string, _ int) *integrations.HandledError {
 // Google's body (error_subtype, error_description).
 func (p *Provider) RefreshErrorMessage(err error) string {
 	if err != nil && strings.Contains(err.Error(), "invalid_rapt") {
-		return `because your organization's Google Workspace session policy invalidated its access. Ask your Google Workspace admin to mark Postiz as a trusted app and turn on "Exempt trusted apps" (https://support.google.com/a/answer/9368756) to prevent this from happening again`
+		return `because your organization's Google Workspace session policy invalidated its access. Ask your Google Workspace admin to mark Shots as a trusted app and turn on "Exempt trusted apps" (https://support.google.com/a/answer/9368756) to prevent this from happening again`
 	}
 	return ""
 }

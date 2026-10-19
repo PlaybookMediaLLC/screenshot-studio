@@ -13,7 +13,6 @@ import (
 	"time"
 
 	productent "github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	socialdatabase "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database"
@@ -22,10 +21,11 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
 
 type BindingLookup interface {
-	Binding(context.Context, string) (*productent.PostizTenantBinding, error)
+	Binding(context.Context, string) (*productent.SocialTenantBinding, error)
 }
 
 type IntegrationLookup interface {
@@ -74,7 +74,7 @@ func (r EntIntegrationLookup) FindIntegration(ctx context.Context, orgID, destin
 		integration.ProviderIdentifier(platform), integration.DeletedAtIsNil(),
 	).Only(ctx)
 	if socialent.IsNotFound(err) {
-		return nil, postiz.NewError(http.StatusNotFound, false, "social destination was not found")
+		return nil, socialapi.NewError(http.StatusNotFound, false, "social destination was not found")
 	}
 	return item, err
 }
@@ -83,7 +83,7 @@ func (r EntIntegrationLookup) FindIntegration(ctx context.Context, orgID, destin
 // real provider receipt, so it must complete the canonical attempt directly.
 func (*Publisher) PublishesSynchronously() bool { return true }
 
-func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (string, error) {
+func (p *Publisher) Publish(ctx context.Context, input socialapi.PublishInput) (string, error) {
 	receipt, err := p.PublishThread(ctx, input)
 	return receipt.PostID, err
 }
@@ -93,14 +93,14 @@ func (p *Publisher) Publish(ctx context.Context, input postiz.PublishInput) (str
 func (p *Publisher) account(ctx context.Context, organizationID, destinationID, platform, secretReference string,
 	providerSettings map[string]any) (*socialent.Integration, poster, json.RawMessage, error) {
 	if p.bindings == nil || p.integrations == nil || p.signer == nil || p.resolve == nil {
-		return nil, nil, nil, postiz.NewError(http.StatusServiceUnavailable, false, "direct publisher is not configured")
+		return nil, nil, nil, socialapi.NewError(http.StatusServiceUnavailable, false, "direct publisher is not configured")
 	}
 	binding, err := p.bindings.Binding(ctx, organizationID)
 	if err != nil {
-		return nil, nil, nil, postiz.NewError(http.StatusConflict, false, "workspace has no social connection binding")
+		return nil, nil, nil, socialapi.NewError(http.StatusConflict, false, "workspace has no social connection binding")
 	}
 	if binding.SecretReference != secretReference {
-		return nil, nil, nil, postiz.NewError(http.StatusForbidden, false, "social credential does not belong to workspace")
+		return nil, nil, nil, socialapi.NewError(http.StatusForbidden, false, "social credential does not belong to workspace")
 	}
 	account, err := p.integrations.FindIntegration(ctx, binding.GoOrganizationID, destinationID, platform)
 	if err != nil {
@@ -108,18 +108,18 @@ func (p *Publisher) account(ctx context.Context, organizationID, destinationID, 
 	}
 	if account.Disabled || account.RefreshNeeded || account.Token == "" ||
 		account.TokenExpiration != nil && !account.TokenExpiration.After(p.currentTime()) {
-		return nil, nil, nil, postiz.NewError(http.StatusConflict, false, "social credentials have expired or been disabled")
+		return nil, nil, nil, socialapi.NewError(http.StatusConflict, false, "social credentials have expired or been disabled")
 	}
 	provider := p.resolve(platform)
 	if provider == nil || !directPlatformAllowed(platform) {
-		return nil, nil, nil, postiz.NewError(http.StatusBadRequest, false, "social provider is unsupported")
+		return nil, nil, nil, socialapi.NewError(http.StatusBadRequest, false, "social provider is unsupported")
 	}
 	if providerSettings == nil {
 		providerSettings = map[string]any{}
 	}
 	settings, err := json.Marshal(providerSettings)
 	if err != nil {
-		return nil, nil, nil, postiz.NewError(http.StatusBadRequest, false, "invalid provider settings")
+		return nil, nil, nil, socialapi.NewError(http.StatusBadRequest, false, "invalid provider settings")
 	}
 	return account, provider, settings, nil
 }
@@ -136,28 +136,28 @@ func pollDetails(poll *postoptions.Poll) *integrations.PollDetails {
 // remote account must be checked for before any retry.
 func publicationOutcome(err error) error {
 	if temporalx.FailureType(err) == temporalx.TypeRefreshToken || temporalx.FailureType(err) == temporalx.TypeDisconnect {
-		return postiz.NewError(http.StatusConflict, false, "social credentials must be reconnected")
+		return socialapi.NewError(http.StatusConflict, false, "social credentials must be reconnected")
 	}
 	// The provider may have accepted the post before the call failed. A
 	// reconciliation step must inspect the remote account before retrying.
-	return postiz.NewError(http.StatusBadGateway, true, "social publication outcome is unknown")
+	return socialapi.NewError(http.StatusBadGateway, true, "social publication outcome is unknown")
 }
 
 // PublishThread publishes the post, or answers ReplyTo when it resumes a
 // thread, then its replies; the receipt says how far the thread got.
-func (p *Publisher) PublishThread(ctx context.Context, input postiz.PublishInput) (postiz.Receipt, error) {
+func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishInput) (socialapi.Receipt, error) {
 	if input.OrganizationID == "" || input.DestinationID == "" || input.Platform == "" || input.PostID == "" {
-		return postiz.Receipt{}, postiz.NewError(http.StatusBadRequest, false, "incomplete publication request")
+		return socialapi.Receipt{}, socialapi.NewError(http.StatusBadRequest, false, "incomplete publication request")
 	}
 	account, provider, settings, err := p.account(ctx, input.OrganizationID, input.DestinationID, input.Platform,
 		input.SecretReference, input.ProviderSettings)
 	if err != nil {
-		return postiz.Receipt{}, err
+		return socialapi.Receipt{}, err
 	}
 	// A content draft post without an image publishes as text (RFC 037).
 	media, err := p.signedMedia(ctx, input.OrganizationID, input.Media())
 	if err != nil {
-		return postiz.Receipt{}, err
+		return socialapi.Receipt{}, err
 	}
 	details := []integrations.PostDetails{{
 		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media, Poll: pollDetails(input.Poll),
@@ -166,7 +166,7 @@ func (p *Publisher) PublishThread(ctx context.Context, input postiz.PublishInput
 	if input.ReplyTo != "" {
 		commenter, ok := provider.(integrations.Commenter)
 		if !ok {
-			return postiz.Receipt{}, postiz.NewError(http.StatusBadRequest, false, "this provider cannot continue a thread")
+			return socialapi.Receipt{}, socialapi.NewError(http.StatusBadRequest, false, "this provider cannot continue a thread")
 		}
 		response, err = commenter.Comment(ctx, account.InternalID, input.ReplyTo, "", account.Token, details, account)
 		if err == nil && len(response) == 1 && response[0].PostID != "" && response[0].Status == "" {
@@ -176,14 +176,14 @@ func (p *Publisher) PublishThread(ctx context.Context, input postiz.PublishInput
 		response, err = provider.Post(ctx, account.InternalID, account.Token, details, account)
 	}
 	if err != nil {
-		return postiz.Receipt{}, publicationOutcome(err)
+		return socialapi.Receipt{}, publicationOutcome(err)
 	}
 	if len(response) != 1 || response[0].PostID == "" ||
 		response[0].Status != "posted" && response[0].Status != "success" {
-		return postiz.Receipt{}, postiz.NewError(http.StatusBadGateway, true, "provider returned no confirmed post receipt")
+		return socialapi.Receipt{}, socialapi.NewError(http.StatusBadGateway, true, "provider returned no confirmed post receipt")
 	}
 	progress := p.postReplies(ctx, provider, account, input, settings, response[0].PostID)
-	return postiz.Receipt{PostID: response[0].PostID, Thread: progress}, nil
+	return socialapi.Receipt{PostID: response[0].PostID, Thread: progress}, nil
 }
 
 // metricNames maps provider analytics labels to the draft's metric names.
@@ -232,8 +232,8 @@ type autoActor interface {
 // AutoAct runs a live post's follow-ups that are due: a repost and a plug
 // reply once it has enough likes, and a quote (the text with a link to the
 // post). One the provider cannot do reports done, so it is not tried again.
-func (p *Publisher) AutoAct(ctx context.Context, input postiz.AutoActionInput) (postiz.AutoActionResult, error) {
-	result := postiz.AutoActionResult{Plugged: !input.Plug, Quoted: !input.Quote, Reposted: !input.Repost}
+func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput) (socialapi.AutoActionResult, error) {
+	result := socialapi.AutoActionResult{Plugged: !input.Plug, Quoted: !input.Quote, Reposted: !input.Repost}
 	account, provider, settings, err := p.account(ctx, input.OrganizationID, input.DestinationID, input.Platform,
 		input.SecretReference, nil)
 	if err != nil {
@@ -278,7 +278,7 @@ func (p *Publisher) AutoAct(ctx context.Context, input postiz.AutoActionInput) (
 // again). The progress it returns is kept on the post, and the composer
 // offers to post the rest.
 func (p *Publisher) postReplies(ctx context.Context, provider poster, account *socialent.Integration,
-	input postiz.PublishInput, settings json.RawMessage, postID string) postoptions.ThreadProgress {
+	input socialapi.PublishInput, settings json.RawMessage, postID string) postoptions.ThreadProgress {
 	progress := postoptions.ThreadProgress{Total: len(input.Replies)}
 	if len(input.Replies) == 0 {
 		return progress
@@ -317,7 +317,7 @@ func (p *Publisher) signedMedia(ctx context.Context, organizationID string, asse
 	for _, asset := range assets {
 		path, err := p.signer.SignDelivery(ctx, organizationID, asset.ObjectKey)
 		if err != nil {
-			return nil, postiz.NewError(http.StatusServiceUnavailable, false, "private asset could not be signed")
+			return nil, socialapi.NewError(http.StatusServiceUnavailable, false, "private asset could not be signed")
 		}
 		mediaType := "image"
 		if strings.HasPrefix(asset.MediaType, "video/") {
@@ -328,8 +328,8 @@ func (p *Publisher) signedMedia(ctx context.Context, organizationID string, asse
 	return media, nil
 }
 
-func (p *Publisher) Status(context.Context, postiz.StatusInput) (postiz.StatusResult, error) {
-	return postiz.StatusResult{}, postiz.NewError(http.StatusConflict, false, "direct provider receipts do not require local status polling")
+func (p *Publisher) Status(context.Context, socialapi.StatusInput) (socialapi.StatusResult, error) {
+	return socialapi.StatusResult{}, socialapi.NewError(http.StatusConflict, false, "direct provider receipts do not require local status polling")
 }
 
 func (p *Publisher) currentTime() time.Time {

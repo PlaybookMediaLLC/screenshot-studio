@@ -28,8 +28,8 @@ retired before the final gate.
 | Current owner | Data or operation | Change |
 | --- | --- | --- |
 | Next.js + Prisma | Better Auth, organizations, tenant product tables, audit, scheduling, API routes, AI tool writes | Move server operations into backend APIs and remove the web runtime's DB credentials. |
-| Tenant Go orchestrator | Reads and updates Prisma-owned scheduling tables; calls Go Postiz HTTP API | Make it a backend module using the canonical repository and in-process provider gateway. |
-| Go Postiz port | Separate database with `Organization`, `User`, `Integration`, `Media`, and `Post` tables | Keep provider adapters and needed connection metadata; remove the second customer publication record and map integrations to the canonical organization. |
+| Tenant Go orchestrator | Reads and updates Prisma-owned scheduling tables; calls Go social HTTP API | Make it a backend module using the canonical repository and in-process provider gateway. |
+| Go social port | Separate database with `Organization`, `User`, `Integration`, `Media`, and `Post` tables | Keep provider adapters and needed connection metadata; remove the second customer publication record and map integrations to the canonical organization. |
 | Supabase Storage API | Separate metadata database and object API in front of R2 | Move tenant upload/download authorization and object signing into the backend; keep media bytes in private R2. |
 
 Both existing SQL migration sets can coexist in `public`: the product tables
@@ -82,7 +82,7 @@ Use one ordered backend migration command for all product schemas. The auth
 adapter may query its tables but does not run its own production migration.
 Keep the existing product tables and social adapter tables in `public` while
 removing redundant social identity and post tables. The canonical organization
-ID is shared throughout; remove `PostizTenantBinding` and per-tenant internal Postiz API keys once
+ID is shared throughout; remove `SocialTenantBinding` and per-tenant internal social API keys once
 all callers use backend session/service authorization.
 
 ## One publication state machine
@@ -99,7 +99,7 @@ The backend worker waits until due, reloads the approval, asset revision,
 workspace status, and destination, and calls the provider adapter directly.
 It stores the provider result on the same attempt. No customer publish creates
 a legacy Go `Post` row or calls `/public/v1/posts` internally. Direct provider
-calls need provider-neutral connection/media inputs instead of a Postiz `Post`
+calls need provider-neutral connection/media inputs instead of a social `Post`
 entity, plus adapters for pending media processing and provider-side completion;
 the worker retains a durable Temporal workflow keyed by the canonical post ID.
 Duplicate dispatch must converge on one attempt and one remote post.
@@ -110,7 +110,7 @@ reads to the provider gateway. The backend reads or signs private R2 media
 when the publish activity runs, including
 retries and a post scheduled more than 24 hours ahead. Provider-required
 derived images/videos become versioned asset rows, not a second source asset
-record in a Postiz media database. Remove the tenant-R2-to-Postiz-R2 copy from
+record in a social media database. Remove the tenant-R2-to-social-R2 copy from
 the customer path after adapter parity is proven.
 
 ## Implementation sequence
@@ -146,7 +146,7 @@ the customer path after adapter parity is proven.
   scheduled for deletion.
 - **Dispatch lives in the backend.** The web dispatch routes for scheduled
   posts, the tenant outbox, and audit drains are deleted; the Temporal worker
-  and maintenance jobs own them. The web's legacy Postiz client and scheduling
+  and maintenance jobs own them. The web's legacy social client and scheduling
   path are deleted. The worker calls LinkedIn, X, and Instagram adapters
   directly, signs the original private asset when due, and records the remote
   receipt on the canonical post. The operator tenant binding still maps
@@ -179,7 +179,7 @@ the customer path after adapter parity is proven.
 
 1. **Inventory and freeze the contract.** Enumerate every web Prisma import,
    tRPC/REST route, Better Auth plugin, AI tool write, webhook, maintenance job,
-   storage operation, and external Postiz API caller. Record current state
+   storage operation, and external social API caller. Record current state
    transitions and a read/write owner for every table. Confirm production
    customer, queued-post, and connected-account counts before treating the
    data as disposable. Add contract tests for the existing UI and API behavior.
@@ -207,7 +207,7 @@ the customer path after adapter parity is proven.
    provider adapters in process, persist the remote receipt on the canonical
    attempt, and expose one schedule/status/cancel API. Stop creating legacy Go
    `Post` rows for Screenshot Studio. Retire the binding, internal API key hop,
-   status polling between two databases, and redundant Postiz scheduling API
+   status polling between two databases, and redundant social scheduling API
    only after consumer inventory confirms they are unused.
 6. **Move media access.** Serve signed upload/download and asset completion
    from the backend against private R2. Replace Supabase Storage metadata with
@@ -217,7 +217,7 @@ the customer path after adapter parity is proven.
    backend, point the web app at it, then create the owner/workspace and
    reconnect approved test destinations. Remove `DATABASE_URL`, Prisma client,
    migration jobs, and direct R2 service credentials from the web runtime.
-   Remove `POSTIZ_DATABASE_URL` and `STORAGE_DATABASE_URL` when their old
+   Remove `SOCIAL_DATABASE_URL` and `STORAGE_DATABASE_URL` when their old
    services are retired. Revoke old internal API keys and superseded social
    tokens after the rollback window. Keep old databases read-only until then;
    never run both old and new publishing workers against one account.
@@ -260,6 +260,6 @@ for the same destination. Preserve backups until the owner signs off on the
 canaries and the rollback window closes.
 
 This plan replaces the present assumptions in RFC 002, RFC 003, RFC 020, the
-Postiz Go deployment guide, Compose, DigitalOcean rendering, and CI. Update
+social deployment guide, Compose, DigitalOcean rendering, and CI. Update
 those documents and configurations as the matching phases land, then remove
 the old architecture claims at final cutover.

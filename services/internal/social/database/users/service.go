@@ -79,8 +79,8 @@ func (s *Service) SwitchUser(ctx context.Context, currentUserID, targetUserID, a
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				err := s.notifications.SendEmail(ctx, account.Email, "Your Postiz login was changed",
-					"An administrator changed the login for your Postiz account. "+
+				err := s.notifications.SendEmail(ctx, account.Email, "Your Shots login was changed",
+					"An administrator changed the login for your Shots account. "+
 						"You can now sign in using "+account.Email+". "+
 						"Your subscription and plan were not changed by this switch — "+
 						"if you intended to cancel a subscription, please do that "+

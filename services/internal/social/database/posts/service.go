@@ -177,7 +177,7 @@ func (s *Service) GetMissingContent(ctx context.Context, orgID, postID string, f
 	list, err := finder.Missing(ctx, integration.InternalID, integration.Token)
 	if err != nil {
 		log.Println(err)
-		// Postiz retries on every RefreshToken; one retry keeps Go off an
+		// The original app retries on every RefreshToken; one retry keeps Go off an
 		// unbounded recursion.
 		if isRefreshToken(err) && !forceRefresh {
 			return s.GetMissingContent(ctx, orgID, postID, true)
@@ -667,7 +667,7 @@ var postReference = regexp.MustCompile(`\(post:[a-zA-Z0-9_-]+\)`)
 
 // UpdateTags replaces (post:<id>) references with the referenced post's
 // release URL (the first one when there are several). The posts are copied,
-// not modified. Postiz runs the replacement over the JSON of the posts; the
+// not modified. the original app runs the replacement over the JSON of the posts; the
 // text columns are where the references live.
 func (s *Service) UpdateTags(ctx context.Context, orgID string, posts []*ent.Post) ([]*ent.Post, error) {
 	out := make([]*ent.Post, 0, len(posts))
@@ -883,7 +883,7 @@ func (s *Service) CheckPlugs(ctx context.Context, orgID, providerName, integrati
 }
 
 // DeletePost soft-deletes the group and terminates its running workflows. It
-// answers {error: true}, like Postiz.
+// answers {error: true}, like the original app.
 func (s *Service) DeletePost(ctx context.Context, orgID, group string) (map[string]bool, error) {
 	id, err := s.repo.DeletePost(ctx, orgID, group)
 	if err != nil {
@@ -1317,7 +1317,7 @@ func (s *Service) GeneratePostsDraft(ctx context.Context, orgID string, body *ge
 	}
 
 	findTime := func() (string, error) {
-		// ponytail: Postiz recurses until it finds a future time; a week fully
+		// ponytail: the original app recurses until it finds a future time; a week fully
 		// in the past gives up instead of looping forever.
 		for range 10000 {
 			totalMinutes := rand.IntN(144) * 10

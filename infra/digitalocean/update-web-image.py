@@ -19,7 +19,7 @@ RETIRED_SERVICES = {"design-renderer"}
 RETIRED_WEB_KEYS = {"PLATFORM_RENDER_SERVICE_URL", "PLATFORM_RENDER_SERVICE_SECRET"}
 # Deployed by the backend workflow when its secrets are set (RFC 037).
 OPTIONAL_SERVICES = {"collab"}
-JOBS = {"platform-migrate", "postiz-migrate"}
+JOBS = {"platform-migrate", "social-migrate"}
 # Self-serve billing (docs/rfcs/035). Each key joins the web once it is in Infisical,
 # so a deploy before Stripe is wired keeps checkout on the contact page.
 STRIPE_SECRET_KEYS = ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET")
@@ -29,7 +29,7 @@ STRIPE_PRICE_KEYS = ("STRIPE_PRICE_PRO_MONTHLY", "STRIPE_PRICE_PRO_ANNUAL", "STR
 WEB_DATABASE_KEYS = {"DATABASE_URL", "DIRECT_URL", "MIGRATION_DATABASE_URL", "AUDIT_RETENTION_DATABASE_URL",
                      "STORAGE_SERVICE_KEY", "STORAGE_API_URL", "STORAGE_PROXY_URL", "STORAGE_BUCKET",
                      "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_ACCOUNT_ID", "R2_BUCKET_NAME", "R2_ENDPOINT", "R2_REGION",
-                     "POSTIZ_API_URL", "POSTIZ_API_KEY"}
+                     "SOCIAL_API_URL", "SOCIAL_API_KEY"}
 
 
 def configure_content_drafts(web_envs, secrets, collab_deployed):

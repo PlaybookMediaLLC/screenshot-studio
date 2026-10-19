@@ -577,7 +577,7 @@ var (
 	ChannelConnectionColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
-		{Name: "provider", Type: field.TypeString, Default: "postiz"},
+		{Name: "provider", Type: field.TypeString, Default: "social"},
 		{Name: "externalAccountId", Type: field.TypeString},
 		{Name: "platform", Type: field.TypeString, Default: "x"},
 		{Name: "providerSettings", Type: field.TypeJSON},
@@ -1429,31 +1429,6 @@ var (
 			},
 		},
 	}
-	// PostizTenantBindingColumns holds the columns for the "postiz_tenant_binding" table.
-	PostizTenantBindingColumns = []*schema.Column{
-		{Name: "organizationId", Type: field.TypeString},
-		{Name: "goOrganizationId", Type: field.TypeString},
-		{Name: "secretReference", Type: field.TypeString},
-		{Name: "createdAt", Type: field.TypeTime},
-	}
-	// PostizTenantBindingTable holds the schema information for the "postiz_tenant_binding" table.
-	PostizTenantBindingTable = &schema.Table{
-		Name:       "postiz_tenant_binding",
-		Columns:    PostizTenantBindingColumns,
-		PrimaryKey: []*schema.Column{PostizTenantBindingColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "postiztenantbinding_goOrganizationId",
-				Unique:  true,
-				Columns: []*schema.Column{PostizTenantBindingColumns[1]},
-			},
-			{
-				Name:    "postiztenantbinding_secretReference",
-				Unique:  true,
-				Columns: []*schema.Column{PostizTenantBindingColumns[2]},
-			},
-		},
-	}
 	// ProductProfileColumns holds the columns for the "product_profile" table.
 	ProductProfileColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1893,6 +1868,31 @@ var (
 			},
 		},
 	}
+	// SocialTenantBindingColumns holds the columns for the "social_tenant_binding" table.
+	SocialTenantBindingColumns = []*schema.Column{
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "goOrganizationId", Type: field.TypeString},
+		{Name: "secretReference", Type: field.TypeString},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// SocialTenantBindingTable holds the schema information for the "social_tenant_binding" table.
+	SocialTenantBindingTable = &schema.Table{
+		Name:       "social_tenant_binding",
+		Columns:    SocialTenantBindingColumns,
+		PrimaryKey: []*schema.Column{SocialTenantBindingColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "socialtenantbinding_goOrganizationId",
+				Unique:  true,
+				Columns: []*schema.Column{SocialTenantBindingColumns[1]},
+			},
+			{
+				Name:    "socialtenantbinding_secretReference",
+				Unique:  true,
+				Columns: []*schema.Column{SocialTenantBindingColumns[2]},
+			},
+		},
+	}
 	// SourceAppColumns holds the columns for the "source_app" table.
 	SourceAppColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -2304,7 +2304,6 @@ var (
 		OrganizationEnterpriseSettingsTable,
 		OutboxEventTable,
 		PageKnowledgeTable,
-		PostizTenantBindingTable,
 		ProductProfileTable,
 		ProductSurfaceTable,
 		ProjectTable,
@@ -2318,6 +2317,7 @@ var (
 		SessionTable,
 		ShareLinkTable,
 		SocialOauthStartTable,
+		SocialTenantBindingTable,
 		SourceAppTable,
 		SourceChangeTable,
 		StorePublishingCredentialTable,
@@ -2475,9 +2475,6 @@ func init() {
 	PageKnowledgeTable.Annotation = &entsql.Annotation{
 		Table: "page_knowledge",
 	}
-	PostizTenantBindingTable.Annotation = &entsql.Annotation{
-		Table: "postiz_tenant_binding",
-	}
 	ProductProfileTable.Annotation = &entsql.Annotation{
 		Table: "product_profile",
 	}
@@ -2518,6 +2515,9 @@ func init() {
 	}
 	SocialOauthStartTable.Annotation = &entsql.Annotation{
 		Table: "social_oauth_start",
+	}
+	SocialTenantBindingTable.Annotation = &entsql.Annotation{
+		Table: "social_tenant_binding",
 	}
 	SourceAppTable.Annotation = &entsql.Annotation{
 		Table: "source_app",

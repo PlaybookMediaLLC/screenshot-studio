@@ -127,7 +127,7 @@ func RegisterAuthController(r *httpx.Router, authService *auth.AuthService, emai
 	g.Get("/oauth-mobile-callback", func(c *httpx.Ctx) (any, error) {
 		scheme := os.Getenv("MOBILE_APP_SCHEME")
 		if scheme == "" {
-			scheme = "postiz://auth/callback"
+			scheme = "shots://auth/callback"
 		}
 		var pairs []string
 		if code := c.Query("code"); code != "" {

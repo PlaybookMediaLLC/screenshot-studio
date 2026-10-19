@@ -1,4 +1,4 @@
-// Package shortlink is Postiz's ShortLinkService (short-linking/*): Dub,
+// Package shortlink is the original app's ShortLinkService (short-linking/*): Dub,
 // Short.io, Kutt and LinkDrip, picked by whichever API key is set.
 package shortlink
 

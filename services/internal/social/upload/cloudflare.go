@@ -24,7 +24,7 @@ var r2Endpoint = func(accountID string) string {
 
 // newR2Client builds the S3 client for R2. Checksums are only computed when
 // an operation requires them: R2 rejects the flexible checksum headers the
-// SDK would otherwise add (Postiz strips them with a middleware).
+// SDK would otherwise add (the original app strips them with a middleware).
 func newR2Client(accountID, accessKey, secretKey, region string) *s3.Client {
 	return s3.New(s3.Options{
 		BaseEndpoint:               aws.String(r2Endpoint(accountID)),

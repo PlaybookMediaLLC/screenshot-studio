@@ -12,7 +12,7 @@ type FileType struct {
 	Ext  string
 }
 
-// DetectFileType is fileTypeFromBuffer for the formats Postiz accepts
+// DetectFileType is fileTypeFromBuffer for the formats the original app accepts
 // anywhere (the storage, upload and multipart allow-lists, plus QuickTime).
 // Every other format reports nil, which every caller rejects the same way.
 func DetectFileType(b []byte) *FileType {

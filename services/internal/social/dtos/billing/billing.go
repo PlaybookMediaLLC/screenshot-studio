@@ -1,4 +1,4 @@
-// Package billing holds Postiz's dtos/billing. Validate returns the
+// Package billing holds the original app's dtos/billing. Validate returns the
 // ValidationPipe messages in class-validator order; empty means valid.
 package billing
 

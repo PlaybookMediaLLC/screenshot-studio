@@ -1,6 +1,6 @@
 ---
 name: add-scheduler-provider
-description: Add or change a Screenshot Studio social scheduling provider. Use for Postiz, Buffer, Post Bridge, a direct social network adapter, OAuth connection, destination discovery, media upload, scheduling, webhooks, reconciliation, or provider capability changes.
+description: Add or change a Screenshot Studio social scheduling provider. Use for the social API, Buffer, Post Bridge, a direct social network adapter, OAuth connection, destination discovery, media upload, scheduling, webhooks, reconciliation, or provider capability changes.
 ---
 
 # Add Scheduler Provider

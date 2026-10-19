@@ -1,4 +1,4 @@
-// Command postiz-migrate applies the Postiz schema before the API and workers start.
+// Command social-migrate applies the social schema before the API and workers start.
 package main
 
 import (
@@ -17,14 +17,14 @@ func main() {
 
 	db, err := database.Open(ctx, os.Getenv("DATABASE_URL"))
 	if err != nil {
-		slog.Error("Postiz database unavailable", "error", err)
+		slog.Error("Social database unavailable", "error", err)
 		os.Exit(1)
 	}
 	defer db.Close()
 
 	if err := migrations.Apply(ctx, db.SQL); err != nil {
-		slog.Error("Postiz migration failed", "error", err)
+		slog.Error("Social migration failed", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("Postiz migrations applied")
+	slog.Info("Social migrations applied")
 }

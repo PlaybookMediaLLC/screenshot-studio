@@ -160,7 +160,7 @@ var errorRules = []errorRule{
 	// migrated to another app via MIGRATE_PROVIDERS).
 	{"reached_active_user_cap", "disconnect", "TikTok daily user limit reached, please re-connect your account"},
 	{"unaudited_client_can_only_post_to_private_accounts", "bad-body", "App not approved for public posting, contact support"},
-	{"url_ownership_unverified", "bad-body", "You have to upload the picture/video to Postiz when sending a URL"},
+	{"url_ownership_unverified", "bad-body", "You have to upload the picture/video to Shots when sending a URL"},
 	{"privacy_level_option_mismatch", "bad-body", "Privacy level mismatch, please check privacy settings"},
 	// Content/Format validation errors
 	{"invalid_file_upload", "bad-body", "Invalid file format or specifications not met"},

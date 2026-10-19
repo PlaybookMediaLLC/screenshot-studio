@@ -1,5 +1,5 @@
-// Package redis is Postiz's ioRedis: a real Redis client when REDIS_URL is
-// set, otherwise the in-memory stand-in Postiz uses for local runs and tests.
+// Package redis is the original app's ioRedis: a real Redis client when REDIS_URL is
+// set, otherwise the in-memory stand-in the original app uses for local runs and tests.
 package redis
 
 import (
@@ -13,7 +13,7 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 )
 
-// Store is the subset of Redis Postiz uses.
+// Store is the subset of Redis the original app uses.
 type Store interface {
 	// Get returns "" and false when the key is missing.
 	Get(ctx context.Context, key string) (string, bool, error)
@@ -98,7 +98,7 @@ type entry struct {
 	expires time.Time
 }
 
-// Memory is the in-memory stand-in (Postiz's MockRedis), with expiry.
+// Memory is the in-memory stand-in (the original app's MockRedis), with expiry.
 type Memory struct {
 	mu   sync.Mutex
 	data map[string]*entry

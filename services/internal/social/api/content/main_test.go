@@ -17,7 +17,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	// Postiz runs with TZ=UTC; timestamp(3) columns are written as local time.
+	// The original app runs with TZ=UTC; timestamp(3) columns are written as local time.
 	time.Local = time.UTC
 	os.Exit(m.Run())
 }

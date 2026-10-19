@@ -561,18 +561,6 @@ func (f PageKnowledgeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PageKnowledgeMutation", m)
 }
 
-// The PostizTenantBindingFunc type is an adapter to allow the use of ordinary
-// function as PostizTenantBinding mutator.
-type PostizTenantBindingFunc func(context.Context, *ent.PostizTenantBindingMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f PostizTenantBindingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.PostizTenantBindingMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PostizTenantBindingMutation", m)
-}
-
 // The ProductProfileFunc type is an adapter to allow the use of ordinary
 // function as ProductProfile mutator.
 type ProductProfileFunc func(context.Context, *ent.ProductProfileMutation) (ent.Value, error)
@@ -727,6 +715,18 @@ func (f SocialOAuthStartFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SocialOAuthStartMutation", m)
+}
+
+// The SocialTenantBindingFunc type is an adapter to allow the use of ordinary
+// function as SocialTenantBinding mutator.
+type SocialTenantBindingFunc func(context.Context, *ent.SocialTenantBindingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SocialTenantBindingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SocialTenantBindingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SocialTenantBindingMutation", m)
 }
 
 // The SourceAppFunc type is an adapter to allow the use of ordinary

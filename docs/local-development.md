@@ -161,12 +161,12 @@ to a real social account.
 The backend is a server-to-server API and requires the local
 `PUBLISHING_SERVICE_TOKEN` for tenant operations. Each scheduled post starts one
 Temporal workflow named `post_<post-id>`; the workflow owns the durable timer,
-cancel signal, and rate-limit retry. Configure a Postiz key only when testing an
+cancel signal, and rate-limit retry. Configure a social key only when testing an
 actual publication. Compose exposes Temporal gRPC on port 7233 and
 its local UI on http://localhost:8233.
 
-The Go Postiz replacement is a separate optional profile with its own database,
-Redis, and Temporal server. Run `make postiz-go-up` and see
+The Go social API is a separate optional profile with its own database,
+Redis, and Temporal server. Run `make social-up` and see
 [Screenshot Studio backend and orchestrator](social-backend-deployment.md) for the
 local API key and production configuration.
 

@@ -1,4 +1,4 @@
-// Package settings holds Postiz's dtos/settings. Validate returns the
+// Package settings holds the original app's dtos/settings. Validate returns the
 // ValidationPipe messages in class-validator order; empty means valid.
 package settings
 

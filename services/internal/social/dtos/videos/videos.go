@@ -1,4 +1,4 @@
-// Package videos holds Postiz's dtos/videos.
+// Package videos holds the original app's dtos/videos.
 package videos
 
 import (

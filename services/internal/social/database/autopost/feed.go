@@ -16,7 +16,7 @@ import (
 )
 
 // The RSS/Atom reading rss-parser does for loadXML: parseURL (60s timeout,
-// 5 redirects, its default headers) and the item fields Postiz reads.
+// 5 redirects, its default headers) and the item fields the original app reads.
 
 // node is an element's name and all the text inside it; rss-parser rebuilds
 // nested markup that the caller strips with striptags anyway.

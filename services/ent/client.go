@@ -61,7 +61,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -75,6 +74,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storepublishingcredential"
@@ -187,8 +187,6 @@ type Client struct {
 	OutboxEvent *OutboxEventClient
 	// PageKnowledge is the client for interacting with the PageKnowledge builders.
 	PageKnowledge *PageKnowledgeClient
-	// PostizTenantBinding is the client for interacting with the PostizTenantBinding builders.
-	PostizTenantBinding *PostizTenantBindingClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
 	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
@@ -215,6 +213,8 @@ type Client struct {
 	ShareLink *ShareLinkClient
 	// SocialOAuthStart is the client for interacting with the SocialOAuthStart builders.
 	SocialOAuthStart *SocialOAuthStartClient
+	// SocialTenantBinding is the client for interacting with the SocialTenantBinding builders.
+	SocialTenantBinding *SocialTenantBindingClient
 	// SourceApp is the client for interacting with the SourceApp builders.
 	SourceApp *SourceAppClient
 	// SourceChange is the client for interacting with the SourceChange builders.
@@ -298,7 +298,6 @@ func (c *Client) init() {
 	c.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(c.config)
 	c.OutboxEvent = NewOutboxEventClient(c.config)
 	c.PageKnowledge = NewPageKnowledgeClient(c.config)
-	c.PostizTenantBinding = NewPostizTenantBindingClient(c.config)
 	c.ProductProfile = NewProductProfileClient(c.config)
 	c.ProductSurface = NewProductSurfaceClient(c.config)
 	c.Project = NewProjectClient(c.config)
@@ -312,6 +311,7 @@ func (c *Client) init() {
 	c.Session = NewSessionClient(c.config)
 	c.ShareLink = NewShareLinkClient(c.config)
 	c.SocialOAuthStart = NewSocialOAuthStartClient(c.config)
+	c.SocialTenantBinding = NewSocialTenantBindingClient(c.config)
 	c.SourceApp = NewSourceAppClient(c.config)
 	c.SourceChange = NewSourceChangeClient(c.config)
 	c.StorePublishingCredential = NewStorePublishingCredentialClient(c.config)
@@ -463,7 +463,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                    NewOutboxEventClient(cfg),
 		PageKnowledge:                  NewPageKnowledgeClient(cfg),
-		PostizTenantBinding:            NewPostizTenantBindingClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		Project:                        NewProjectClient(cfg),
@@ -477,6 +476,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Session:                        NewSessionClient(cfg),
 		ShareLink:                      NewShareLinkClient(cfg),
 		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
+		SocialTenantBinding:            NewSocialTenantBindingClient(cfg),
 		SourceApp:                      NewSourceAppClient(cfg),
 		SourceChange:                   NewSourceChangeClient(cfg),
 		StorePublishingCredential:      NewStorePublishingCredentialClient(cfg),
@@ -555,7 +555,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                    NewOutboxEventClient(cfg),
 		PageKnowledge:                  NewPageKnowledgeClient(cfg),
-		PostizTenantBinding:            NewPostizTenantBindingClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		Project:                        NewProjectClient(cfg),
@@ -569,6 +568,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Session:                        NewSessionClient(cfg),
 		ShareLink:                      NewShareLinkClient(cfg),
 		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
+		SocialTenantBinding:            NewSocialTenantBindingClient(cfg),
 		SourceApp:                      NewSourceAppClient(cfg),
 		SourceChange:                   NewSourceChangeClient(cfg),
 		StorePublishingCredential:      NewStorePublishingCredentialClient(cfg),
@@ -623,10 +623,10 @@ func (c *Client) Use(hooks ...Hook) {
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
 		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PageKnowledge, c.PostizTenantBinding, c.ProductProfile,
-		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
-		c.ReleaseDocument, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
-		c.Session, c.ShareLink, c.SocialOAuthStart, c.SourceApp, c.SourceChange,
+		c.OutboxEvent, c.PageKnowledge, c.ProductProfile, c.ProductSurface, c.Project,
+		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseDocument,
+		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
+		c.SocialOAuthStart, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
 		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.WorkspaceCreditGrant,
 		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceGitHubInstallation,
@@ -652,10 +652,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
 		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PageKnowledge, c.PostizTenantBinding, c.ProductProfile,
-		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
-		c.ReleaseDocument, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
-		c.Session, c.ShareLink, c.SocialOAuthStart, c.SourceApp, c.SourceChange,
+		c.OutboxEvent, c.PageKnowledge, c.ProductProfile, c.ProductSurface, c.Project,
+		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseDocument,
+		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
+		c.SocialOAuthStart, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
 		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.WorkspaceCreditGrant,
 		c.WorkspaceDeletion, c.WorkspaceEntitlement, c.WorkspaceGitHubInstallation,
@@ -760,8 +760,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.OutboxEvent.mutate(ctx, m)
 	case *PageKnowledgeMutation:
 		return c.PageKnowledge.mutate(ctx, m)
-	case *PostizTenantBindingMutation:
-		return c.PostizTenantBinding.mutate(ctx, m)
 	case *ProductProfileMutation:
 		return c.ProductProfile.mutate(ctx, m)
 	case *ProductSurfaceMutation:
@@ -788,6 +786,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ShareLink.mutate(ctx, m)
 	case *SocialOAuthStartMutation:
 		return c.SocialOAuthStart.mutate(ctx, m)
+	case *SocialTenantBindingMutation:
+		return c.SocialTenantBinding.mutate(ctx, m)
 	case *SourceAppMutation:
 		return c.SourceApp.mutate(ctx, m)
 	case *SourceChangeMutation:
@@ -7017,139 +7017,6 @@ func (c *PageKnowledgeClient) mutate(ctx context.Context, m *PageKnowledgeMutati
 	}
 }
 
-// PostizTenantBindingClient is a client for the PostizTenantBinding schema.
-type PostizTenantBindingClient struct {
-	config
-}
-
-// NewPostizTenantBindingClient returns a client for the PostizTenantBinding from the given config.
-func NewPostizTenantBindingClient(c config) *PostizTenantBindingClient {
-	return &PostizTenantBindingClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `postiztenantbinding.Hooks(f(g(h())))`.
-func (c *PostizTenantBindingClient) Use(hooks ...Hook) {
-	c.hooks.PostizTenantBinding = append(c.hooks.PostizTenantBinding, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `postiztenantbinding.Intercept(f(g(h())))`.
-func (c *PostizTenantBindingClient) Intercept(interceptors ...Interceptor) {
-	c.inters.PostizTenantBinding = append(c.inters.PostizTenantBinding, interceptors...)
-}
-
-// Create returns a builder for creating a PostizTenantBinding entity.
-func (c *PostizTenantBindingClient) Create() *PostizTenantBindingCreate {
-	mutation := newPostizTenantBindingMutation(c.config, OpCreate)
-	return &PostizTenantBindingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of PostizTenantBinding entities.
-func (c *PostizTenantBindingClient) CreateBulk(builders ...*PostizTenantBindingCreate) *PostizTenantBindingCreateBulk {
-	return &PostizTenantBindingCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *PostizTenantBindingClient) MapCreateBulk(slice any, setFunc func(*PostizTenantBindingCreate, int)) *PostizTenantBindingCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &PostizTenantBindingCreateBulk{err: fmt.Errorf("calling to PostizTenantBindingClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*PostizTenantBindingCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &PostizTenantBindingCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for PostizTenantBinding.
-func (c *PostizTenantBindingClient) Update() *PostizTenantBindingUpdate {
-	mutation := newPostizTenantBindingMutation(c.config, OpUpdate)
-	return &PostizTenantBindingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *PostizTenantBindingClient) UpdateOne(_m *PostizTenantBinding) *PostizTenantBindingUpdateOne {
-	mutation := newPostizTenantBindingMutation(c.config, OpUpdateOne, withPostizTenantBinding(_m))
-	return &PostizTenantBindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *PostizTenantBindingClient) UpdateOneID(id string) *PostizTenantBindingUpdateOne {
-	mutation := newPostizTenantBindingMutation(c.config, OpUpdateOne, withPostizTenantBindingID(id))
-	return &PostizTenantBindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for PostizTenantBinding.
-func (c *PostizTenantBindingClient) Delete() *PostizTenantBindingDelete {
-	mutation := newPostizTenantBindingMutation(c.config, OpDelete)
-	return &PostizTenantBindingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *PostizTenantBindingClient) DeleteOne(_m *PostizTenantBinding) *PostizTenantBindingDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *PostizTenantBindingClient) DeleteOneID(id string) *PostizTenantBindingDeleteOne {
-	builder := c.Delete().Where(postiztenantbinding.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &PostizTenantBindingDeleteOne{builder}
-}
-
-// Query returns a query builder for PostizTenantBinding.
-func (c *PostizTenantBindingClient) Query() *PostizTenantBindingQuery {
-	return &PostizTenantBindingQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypePostizTenantBinding},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a PostizTenantBinding entity by its id.
-func (c *PostizTenantBindingClient) Get(ctx context.Context, id string) (*PostizTenantBinding, error) {
-	return c.Query().Where(postiztenantbinding.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *PostizTenantBindingClient) GetX(ctx context.Context, id string) *PostizTenantBinding {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *PostizTenantBindingClient) Hooks() []Hook {
-	return c.hooks.PostizTenantBinding
-}
-
-// Interceptors returns the client interceptors.
-func (c *PostizTenantBindingClient) Interceptors() []Interceptor {
-	return c.inters.PostizTenantBinding
-}
-
-func (c *PostizTenantBindingClient) mutate(ctx context.Context, m *PostizTenantBindingMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&PostizTenantBindingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&PostizTenantBindingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&PostizTenantBindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&PostizTenantBindingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown PostizTenantBinding mutation op: %q", m.Op())
-	}
-}
-
 // ProductProfileClient is a client for the ProductProfile schema.
 type ProductProfileClient struct {
 	config
@@ -8927,6 +8794,139 @@ func (c *SocialOAuthStartClient) mutate(ctx context.Context, m *SocialOAuthStart
 	}
 }
 
+// SocialTenantBindingClient is a client for the SocialTenantBinding schema.
+type SocialTenantBindingClient struct {
+	config
+}
+
+// NewSocialTenantBindingClient returns a client for the SocialTenantBinding from the given config.
+func NewSocialTenantBindingClient(c config) *SocialTenantBindingClient {
+	return &SocialTenantBindingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `socialtenantbinding.Hooks(f(g(h())))`.
+func (c *SocialTenantBindingClient) Use(hooks ...Hook) {
+	c.hooks.SocialTenantBinding = append(c.hooks.SocialTenantBinding, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `socialtenantbinding.Intercept(f(g(h())))`.
+func (c *SocialTenantBindingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SocialTenantBinding = append(c.inters.SocialTenantBinding, interceptors...)
+}
+
+// Create returns a builder for creating a SocialTenantBinding entity.
+func (c *SocialTenantBindingClient) Create() *SocialTenantBindingCreate {
+	mutation := newSocialTenantBindingMutation(c.config, OpCreate)
+	return &SocialTenantBindingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SocialTenantBinding entities.
+func (c *SocialTenantBindingClient) CreateBulk(builders ...*SocialTenantBindingCreate) *SocialTenantBindingCreateBulk {
+	return &SocialTenantBindingCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SocialTenantBindingClient) MapCreateBulk(slice any, setFunc func(*SocialTenantBindingCreate, int)) *SocialTenantBindingCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SocialTenantBindingCreateBulk{err: fmt.Errorf("calling to SocialTenantBindingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SocialTenantBindingCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SocialTenantBindingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SocialTenantBinding.
+func (c *SocialTenantBindingClient) Update() *SocialTenantBindingUpdate {
+	mutation := newSocialTenantBindingMutation(c.config, OpUpdate)
+	return &SocialTenantBindingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SocialTenantBindingClient) UpdateOne(_m *SocialTenantBinding) *SocialTenantBindingUpdateOne {
+	mutation := newSocialTenantBindingMutation(c.config, OpUpdateOne, withSocialTenantBinding(_m))
+	return &SocialTenantBindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SocialTenantBindingClient) UpdateOneID(id string) *SocialTenantBindingUpdateOne {
+	mutation := newSocialTenantBindingMutation(c.config, OpUpdateOne, withSocialTenantBindingID(id))
+	return &SocialTenantBindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SocialTenantBinding.
+func (c *SocialTenantBindingClient) Delete() *SocialTenantBindingDelete {
+	mutation := newSocialTenantBindingMutation(c.config, OpDelete)
+	return &SocialTenantBindingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SocialTenantBindingClient) DeleteOne(_m *SocialTenantBinding) *SocialTenantBindingDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SocialTenantBindingClient) DeleteOneID(id string) *SocialTenantBindingDeleteOne {
+	builder := c.Delete().Where(socialtenantbinding.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SocialTenantBindingDeleteOne{builder}
+}
+
+// Query returns a query builder for SocialTenantBinding.
+func (c *SocialTenantBindingClient) Query() *SocialTenantBindingQuery {
+	return &SocialTenantBindingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSocialTenantBinding},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SocialTenantBinding entity by its id.
+func (c *SocialTenantBindingClient) Get(ctx context.Context, id string) (*SocialTenantBinding, error) {
+	return c.Query().Where(socialtenantbinding.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SocialTenantBindingClient) GetX(ctx context.Context, id string) *SocialTenantBinding {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *SocialTenantBindingClient) Hooks() []Hook {
+	return c.hooks.SocialTenantBinding
+}
+
+// Interceptors returns the client interceptors.
+func (c *SocialTenantBindingClient) Interceptors() []Interceptor {
+	return c.inters.SocialTenantBinding
+}
+
+func (c *SocialTenantBindingClient) mutate(ctx context.Context, m *SocialTenantBindingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SocialTenantBindingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SocialTenantBindingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SocialTenantBindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SocialTenantBindingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SocialTenantBinding mutation op: %q", m.Op())
+	}
+}
+
 // SourceAppClient is a client for the SourceApp schema.
 type SourceAppClient struct {
 	config
@@ -10669,10 +10669,10 @@ type (
 		Design, EnrichmentRecord, GitHubInstallStart, GitHubInstallation,
 		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
 		LaunchRunStep, Member, OnboardingRun, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
-		PostizTenantBinding, ProductProfile, ProductSurface, Project, ProjectVersion,
-		PublicationAttempt, Release, ReleaseDocument, ReleaseSpec, ScheduledPost,
-		ScreenshotCache, Session, ShareLink, SocialOAuthStart, SourceApp, SourceChange,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge, ProductProfile,
+		ProductSurface, Project, ProjectVersion, PublicationAttempt, Release,
+		ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ShareLink, SocialOAuthStart, SocialTenantBinding, SourceApp, SourceChange,
 		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
 		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
 		WorkspaceEntitlement, WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
@@ -10688,10 +10688,10 @@ type (
 		Design, EnrichmentRecord, GitHubInstallStart, GitHubInstallation,
 		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
 		LaunchRunStep, Member, OnboardingRun, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
-		PostizTenantBinding, ProductProfile, ProductSurface, Project, ProjectVersion,
-		PublicationAttempt, Release, ReleaseDocument, ReleaseSpec, ScheduledPost,
-		ScreenshotCache, Session, ShareLink, SocialOAuthStart, SourceApp, SourceChange,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge, ProductProfile,
+		ProductSurface, Project, ProjectVersion, PublicationAttempt, Release,
+		ReleaseDocument, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ShareLink, SocialOAuthStart, SocialTenantBinding, SourceApp, SourceChange,
 		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
 		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
 		WorkspaceEntitlement, WorkspaceGitHubInstallation,

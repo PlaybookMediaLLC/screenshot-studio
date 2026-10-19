@@ -1,4 +1,4 @@
-// Package users holds Postiz's dtos/users. Validate returns the
+// Package users holds the original app's dtos/users. Validate returns the
 // ValidationPipe messages in class-validator order; empty means valid.
 package users
 

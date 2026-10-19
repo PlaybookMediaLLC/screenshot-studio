@@ -43,7 +43,7 @@ import (
 )
 
 // All returns a new instance of every registered provider. mastodoncustom is
-// ported but, as in Postiz, not registered.
+// ported but, as in the original app, not registered.
 func All() []integrations.Provider {
 	providers := []integrations.Provider{
 		x.New(),

@@ -43,7 +43,7 @@ type OrganizationService interface {
 	GetCount(ctx context.Context) (int, error)
 	// CreateOrgAndUser returns the organization with Edges.Users[0].Edges.User.
 	CreateOrgAndUser(ctx context.Context, body CreateOrgAndUserBody, ip, userAgent string) (*ent.Organization, error)
-	// AddUserToOrg returns nil when Postiz returns false.
+	// AddUserToOrg returns nil when the original app returns false.
 	AddUserToOrg(ctx context.Context, userID, id, orgID string, role userorganization.Role) (*ent.UserOrganization, error)
 	// GetUserOrg returns the membership with Edges.User and Edges.Organization
 	// (its Edges.Users and Edges.Subscription loaded).
@@ -85,7 +85,7 @@ type ClippingService interface {
 	GetWidgetTicket(ctx context.Context, ticket string) (*ClippingTicket, error)
 }
 
-// header-or-cookie lookups keep Postiz's precedence per value.
+// header-or-cookie lookups keep the original app's precedence per value.
 func firstNonEmpty(values ...string) string {
 	for _, v := range values {
 		if v != "" {
@@ -220,7 +220,7 @@ func setSentryUserContext(c *httpx.Ctx, userID, email string, org *ent.Organizat
 
 // publicOrg mirrors `req.org = { ...org, users: [{ users: { role: 'SUPERADMIN' } }] }`:
 // the membership object has no role of its own, so org.users[0].role is
-// empty, exactly as in Postiz.
+// empty, exactly as in the original app.
 func publicOrg(org *ent.Organization) *ent.Organization {
 	cp := *org
 	cp.Edges.Users = []*ent.UserOrganization{{}}
@@ -283,11 +283,11 @@ func publicAuthenticate(c *httpx.Ctx, auth string, orgs OrganizationService, oau
 	}
 
 	c.Org = publicOrg(org)
-	includeDeleted := strings.TrimSpace(c.Header("x-postiz-include-deleted")) == "true"
+	includeDeleted := strings.TrimSpace(c.Header("x-social-include-deleted")) == "true"
 	c.AuthOrgID = org.ID
 	c.IncludeDeleted = includeDeleted
 
-	overrideOrgID := strings.TrimSpace(c.Header("x-postiz-org"))
+	overrideOrgID := strings.TrimSpace(c.Header("x-social-org"))
 	if overrideOrgID == "" {
 		return nil
 	}

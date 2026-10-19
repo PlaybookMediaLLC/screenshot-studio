@@ -1,4 +1,4 @@
-// Package openai is Postiz's openai/* folder: OpenaiService (chat and image
+// Package openai is the original app's openai/* folder: OpenaiService (chat and image
 // generation over the OpenAI REST API), ExtractContentService, FalService
 // and generationError.
 package openai

@@ -144,9 +144,6 @@ type OutboxEvent func(*sql.Selector)
 // PageKnowledge is the predicate function for pageknowledge builders.
 type PageKnowledge func(*sql.Selector)
 
-// PostizTenantBinding is the predicate function for postiztenantbinding builders.
-type PostizTenantBinding func(*sql.Selector)
-
 // ProductProfile is the predicate function for productprofile builders.
 type ProductProfile func(*sql.Selector)
 
@@ -185,6 +182,9 @@ type ShareLink func(*sql.Selector)
 
 // SocialOAuthStart is the predicate function for socialoauthstart builders.
 type SocialOAuthStart func(*sql.Selector)
+
+// SocialTenantBinding is the predicate function for socialtenantbinding builders.
+type SocialTenantBinding func(*sql.Selector)
 
 // SourceApp is the predicate function for sourceapp builders.
 type SourceApp func(*sql.Selector)

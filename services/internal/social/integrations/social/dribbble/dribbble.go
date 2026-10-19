@@ -143,7 +143,7 @@ func (p *Provider) CheckValidity(ctx context.Context, posts [][]integrations.Val
 
 // RefreshToken returns empty details: Dribbble issues only a non-expiring
 // access token (no refresh token, no refresh grant), and authenticate stores
-// expiresIn 999999999. Empty details make Postiz flag the channel as
+// expiresIn 999999999. Empty details make the original app flag the channel as
 // "refresh needed" if the token is ever revoked, like the other providers
 // whose tokens cannot be refreshed. (Upstream called Pinterest's sandbox
 // token endpoint here.)

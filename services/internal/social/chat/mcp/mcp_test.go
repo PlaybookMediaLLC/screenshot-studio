@@ -143,7 +143,7 @@ func TestProtectedResourceMetadataAndChallenges(t *testing.T) {
 			t.Fatalf("%s: %d %q %s", mount, response.StatusCode, response.Header.Get("WWW-Authenticate"), body)
 		}
 	}
-	// A Postiz-style key in the URL path, the SSE transport, and the root
+	// A original-app-style key in the URL path, the SSE transport, and the root
 	// well-known document are not served.
 	for _, path := range []string{"/mcp/some-key", "/sse/some-key", "/message/some-key", "/mcp-oauth",
 		"/.well-known/oauth-protected-resource"} {

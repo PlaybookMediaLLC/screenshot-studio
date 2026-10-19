@@ -33,7 +33,7 @@ type ProviderUser struct {
 }
 
 // Provider is AuthProviderAbstract. postRegistration is a no-op on every
-// Postiz provider, so it is not part of the port.
+// the original app provider, so it is not part of the port.
 type Provider interface {
 	GenerateLink(ctx context.Context, query map[string]string) (string, error)
 	GetToken(ctx context.Context, code, redirectURI string) (string, error)
@@ -651,15 +651,15 @@ type oauthConfig struct{ authURL, clientID, clientSecret, tokenURL, userInfoURL,
 
 func oauthGetConfig() (oauthConfig, error) {
 	cfg := oauthConfig{
-		authURL:      os.Getenv("POSTIZ_OAUTH_AUTH_URL"),
-		clientID:     os.Getenv("POSTIZ_OAUTH_CLIENT_ID"),
-		clientSecret: os.Getenv("POSTIZ_OAUTH_CLIENT_SECRET"),
-		tokenURL:     os.Getenv("POSTIZ_OAUTH_TOKEN_URL"),
-		userInfoURL:  os.Getenv("POSTIZ_OAUTH_USERINFO_URL"),
+		authURL:      os.Getenv("SOCIAL_OAUTH_AUTH_URL"),
+		clientID:     os.Getenv("SOCIAL_OAUTH_CLIENT_ID"),
+		clientSecret: os.Getenv("SOCIAL_OAUTH_CLIENT_SECRET"),
+		tokenURL:     os.Getenv("SOCIAL_OAUTH_TOKEN_URL"),
+		userInfoURL:  os.Getenv("SOCIAL_OAUTH_USERINFO_URL"),
 		frontendURL:  os.Getenv("FRONTEND_URL"),
 	}
 	if cfg.userInfoURL == "" || cfg.tokenURL == "" || cfg.clientID == "" || cfg.clientSecret == "" || cfg.authURL == "" || cfg.frontendURL == "" {
-		return cfg, errors.New("POSTIZ_OAUTH environment variables are not set")
+		return cfg, errors.New("SOCIAL_OAUTH environment variables are not set")
 	}
 	return cfg, nil
 }

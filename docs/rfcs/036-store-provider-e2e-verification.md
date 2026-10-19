@@ -4,7 +4,7 @@
 **Date:** 2026-10-17  
 **Decided:** 2026-10-17 (see Decisions)  
 **Owners:** Engineering  
-**Depends on:** [Store screenshot studio](../store-screenshots.md), RFC 020 ([publishing gate precedent](020-postiz-publishing.md)), `lib/integrations/google-play.ts`, `lib/integrations/app-store-connect.ts`, `lib/integrations/figma.ts`, `lib/ai/models/provider.ts`
+**Depends on:** [Store screenshot studio](../store-screenshots.md), RFC 020 ([publishing gate precedent](020-social-publishing.md)), `lib/integrations/google-play.ts`, `lib/integrations/app-store-connect.ts`, `lib/integrations/figma.ts`, `lib/ai/models/provider.ts`
 
 ## Decision
 

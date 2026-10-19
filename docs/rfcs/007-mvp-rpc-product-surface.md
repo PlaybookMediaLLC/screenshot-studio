@@ -21,7 +21,7 @@ Use:
 - tRPC and Zod for browser and customer machine API calls.
 - A private R2 bucket for tenant source and generated media.
 - Trigger.dev Cloud for processing, rendering, and scheduling work.
-- Postiz as the first scheduler connector and local integration fixture.
+- The social API as the first scheduler connector and local integration fixture.
 
 Buffer, Post Bridge, and a separate API service are later work. Enterprise SSO
 and SCIM are available to entitled organizations. The connector contract in RFC 005 keeps
@@ -41,7 +41,7 @@ manual update, upload, GitHub/GitLab, or API key
   -> tenant release with one versioned brand kit
   -> private R2 input and Trigger.dev draft work
   -> human review and approval
-  -> Postiz schedule and provider receipt
+  -> social schedule and provider receipt
 ```
 
 The first useful artifact pack is deliberately small: release Markdown, an X
@@ -58,7 +58,7 @@ type is complete.
 | Release inputs      | Manual Markdown, media upload, GitHub release webhook, GitLab release/tag webhook, generic signed changelog webhook, and API-key intake | One normalized release format                            |
 | Remote upload       | API key creates an upload intent; browser or customer uploads directly to private R2; worker validates it                               | No large file proxy through Next.js                      |
 | Draft production    | One source release creates the four default artifacts with source and brand lineage                                                     | Human approval remains required                          |
-| Distribution        | Connect one Postiz account, choose one destination and time, hand off an approved artifact, and record its receipt                      | Buffer and Post Bridge adapters come after validated use |
+| Distribution        | Connect one social account, choose one destination and time, hand off an approved artifact, and record its receipt                      | Buffer and Post Bridge adapters come after validated use |
 | Audit and recovery  | Audit tenant actions, preserve source-to-post lineage, use outbox and idempotency for tasks                                             | No analytics optimization loop yet                       |
 
 ## Runtime topology
@@ -72,7 +72,7 @@ type is complete.
                  |          |          |
              PlanetScale    R2    Trigger.dev Cloud
                                        |
-                                  Postiz / social APIs
+                                Social API / network APIs
 ```
 
 All first-party product operations share the same domain services. The
@@ -151,7 +151,7 @@ REVIEW_REQUIRED -> APPROVED -> SCHEDULED -> ACCEPTED_BY_PROVIDER
 
 An edit or regeneration makes a new artifact revision. Approval applies only
 to that revision. Scheduling rechecks approval, destination capability, and
-member access immediately before the Postiz handoff.
+member access immediately before the social handoff.
 
 ## Developer workflow
 
@@ -164,7 +164,7 @@ npm run dev                    # Next.js editor, auth, and tRPC
 npx auth@latest generate       # after Better Auth plugin/schema changes
 npx prisma migrate dev         # development PlanetScale branch
 npx trigger.dev@latest dev     # receive and inspect background work
-docker compose --profile postiz up -d  # optional scheduler integration fixture
+docker compose --profile social up -d  # optional scheduler integration fixture
 ```
 
 The PlanetScale production release uses the reviewed migration file and a
@@ -182,7 +182,7 @@ The repository-local skills make this workflow repeatable:
 | `$add-tenant-schema`           | Add an organization-safe Prisma model, index, lifecycle, or migration                                              |
 | `$add-background-task`         | Add a Trigger.dev task, queue, outbox event, retry policy, or task telemetry                                       |
 | `$add-brand-kit-capability`    | Add versioned brand tokens, logo assets, templates, or artifact validation                                         |
-| `$add-scheduler-provider`      | Add Postiz, Buffer, Post Bridge, or another social provider adapter safely                                         |
+| `$add-scheduler-provider`      | Add the social API, Buffer, Post Bridge, or another social provider adapter safely                                         |
 | `$deploy-platform-change`      | Change Docker, Fly, Helm, PlanetScale, Trigger.dev, GitHub Actions, or cloud secrets safely                        |
 | `$verify-tenant-isolation`     | Test every organization boundary before release or after an access-control change                                  |
 | `$test-release-workflow`       | Test one release from intake to approved provider receipt without a real customer post                             |
@@ -208,7 +208,7 @@ reference for a new project, but should not replace this existing editor.
    intake service as tRPC.
 4. Add one artifact-pack request, the default four artifacts, provenance UI,
    approval, and Trigger.dev outbox dispatch.
-5. Add Postiz connection, destination selection, scheduling, provider receipt,
+5. Add social connection, destination selection, scheduling, provider receipt,
    and reconciliation. Add Buffer and Post Bridge only after this path works.
 
 ## Acceptance criteria

@@ -22,6 +22,16 @@ func Apply(ctx context.Context, db *sql.DB) error {
 	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS `+migrationTable+` (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`); err != nil {
 		return fmt.Errorf("create platform migration table: %w", err)
 	}
+	// cutover: two files lost the legacy prefix; keep their applied state.
+	// Delete once every database has run 20261025090000_social_names.sql.
+	for legacy, name := range map[string]string{
+		"20260815103000_postiz_scheduling.sql":     "20260815103000_social_scheduling.sql",
+		"20261013090000_postiz_tenant_binding.sql": "20261013090000_social_tenant_binding.sql",
+	} {
+		if _, err := db.ExecContext(ctx, `UPDATE `+migrationTable+` SET name=$1 WHERE name=$2`, name, legacy); err != nil {
+			return fmt.Errorf("rename applied migration %s: %w", legacy, err)
+		}
+	}
 	entries, err := files.ReadDir("sql")
 	if err != nil {
 		return err

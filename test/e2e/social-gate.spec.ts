@@ -15,7 +15,7 @@ import {
 } from './framework/publishing'
 import { createE2EDatabase, queryRow, queryRows } from './framework/services'
 
-const secretReference = 'POSTIZ_API_KEY_SOCIAL_GATE'
+const secretReference = 'SOCIAL_API_KEY_GATE'
 const fakeURL = process.env.E2E_SOCIAL_GATE_FAKE_URL ?? 'http://127.0.0.1:5680'
 
 const fakeStateSchema = z.object({
@@ -95,11 +95,11 @@ test('the backend worker publishes once through Go, retries, honors cancellation
       [id]
     )
   try {
-    await database.query('DELETE FROM postiz_tenant_binding WHERE "secretReference" = $1', [
+    await database.query('DELETE FROM social_tenant_binding WHERE "secretReference" = $1', [
       secretReference,
     ])
     await database.query(
-      `INSERT INTO postiz_tenant_binding ("organizationId", "goOrganizationId", "secretReference")
+      `INSERT INTO social_tenant_binding ("organizationId", "goOrganizationId", "secretReference")
        VALUES ($1, $2, $3)`,
       [organizationId, bootstrap.goOrganizationId, secretReference]
     )
@@ -223,7 +223,7 @@ test('the backend worker publishes once through Go, retries, honors cancellation
       (await attemptsOf(expired.scheduledPost.id)).some((item) => item.outcome === 'FAILED')
     ).toBe(true)
   } finally {
-    await database.query('DELETE FROM postiz_tenant_binding WHERE "organizationId" = $1', [
+    await database.query('DELETE FROM social_tenant_binding WHERE "organizationId" = $1', [
       organizationId,
     ])
     await database.end()

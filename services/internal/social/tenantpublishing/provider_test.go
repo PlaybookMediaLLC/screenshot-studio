@@ -9,19 +9,19 @@ import (
 	"time"
 
 	productent "github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
 
 type fakeBindings struct {
-	item *productent.PostizTenantBinding
+	item *productent.SocialTenantBinding
 }
 
-func (f fakeBindings) Binding(context.Context, string) (*productent.PostizTenantBinding, error) {
+func (f fakeBindings) Binding(context.Context, string) (*productent.SocialTenantBinding, error) {
 	return f.item, nil
 }
 
@@ -77,18 +77,18 @@ func (f *fakePoster) Comment(_ context.Context, _, postID, lastCommentID, _ stri
 	return []integrations.PostResponse{{PostID: fmt.Sprintf("reply-%d", len(f.replies))}}, nil
 }
 
-func directFixture() (*Publisher, *fakeSigner, *fakePoster, postiz.PublishInput) {
+func directFixture() (*Publisher, *fakeSigner, *fakePoster, socialapi.PublishInput) {
 	signer, fakeProvider := &fakeSigner{}, &fakePoster{}
 	p := &Publisher{
-		bindings:     fakeBindings{&productent.PostizTenantBinding{GoOrganizationID: "social-org", SecretReference: "POSTIZ_API_KEY"}},
+		bindings:     fakeBindings{&productent.SocialTenantBinding{GoOrganizationID: "social-org", SecretReference: "SOCIAL_API_KEY"}},
 		integrations: fakeIntegrations{&socialent.Integration{ID: "destination", OrganizationID: "social-org", ProviderIdentifier: "linkedin", InternalID: "remote-user", Token: "private-token"}},
 		signer:       signer, resolve: func(string) poster { return fakeProvider },
 		now: func() time.Time { return time.Date(2026, 10, 14, 12, 0, 0, 0, time.UTC) },
 	}
-	return p, signer, fakeProvider, postiz.PublishInput{
+	return p, signer, fakeProvider, socialapi.PublishInput{
 		OrganizationID: "product-org", DestinationID: "destination", Platform: "linkedin",
 		PostID:          "canonical-post-1",
-		SecretReference: "POSTIZ_API_KEY", AssetObjectKey: "org/product-org/image.png", AssetMediaType: "image/png", Caption: "Canary",
+		SecretReference: "SOCIAL_API_KEY", AssetObjectKey: "org/product-org/image.png", AssetMediaType: "image/png", Caption: "Canary",
 	}
 }
 
@@ -145,7 +145,7 @@ func TestDirectPublisherMarksAmbiguousProviderFailureUnknown(t *testing.T) {
 	p, _, poster, input := directFixture()
 	poster.err = context.DeadlineExceeded
 	_, err := p.Publish(context.Background(), input)
-	var providerErr *postiz.Error
+	var providerErr *socialapi.Error
 	if !errors.As(err, &providerErr) || !providerErr.UnknownDelivery || poster.calls != 1 {
 		t.Fatalf("err=%v providerCalls=%d", err, poster.calls)
 	}
@@ -155,7 +155,7 @@ func TestDirectPublisherFailsExpiredCredentialWithoutUnknownDelivery(t *testing.
 	p, _, poster, input := directFixture()
 	poster.err = temporalx.RefreshToken("linkedin", "{}", "{}", "expired")
 	_, err := p.Publish(context.Background(), input)
-	var providerErr *postiz.Error
+	var providerErr *socialapi.Error
 	if !errors.As(err, &providerErr) || providerErr.UnknownDelivery || providerErr.Status != 409 || poster.calls != 1 {
 		t.Fatalf("err=%v providerCalls=%d", err, poster.calls)
 	}

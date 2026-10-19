@@ -14,7 +14,7 @@ import {
   rememberBackendInstagramIntegration,
   verifyBackendSocialOAuth,
 } from './publishing-backend'
-import type { SocialOAuthProvider } from './postiz-oauth-callback'
+import type { SocialOAuthProvider } from './social-oauth-callback'
 
 export class SocialOAuthError extends Error {
   constructor(

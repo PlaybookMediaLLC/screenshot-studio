@@ -197,7 +197,7 @@ func (a builtInAgent) run(ctx context.Context, input RunAgentInput, emit func(an
 
 // executeStateTool runs the server-side AGUISendStateSnapshot/AGUISendStateDelta
 // tools BuiltInAgent always registers.
-// ponytail: state events pass through as the model sent them, without createStateEventNormalizer; Postiz never sends agent state.
+// ponytail: state events pass through as the model sent them, without createStateEventNormalizer; the original app never sends agent state.
 func executeStateTool(tc *toolCallState, emit func(any)) {
 	if tc.name != "AGUISendStateSnapshot" && tc.name != "AGUISendStateDelta" {
 		return

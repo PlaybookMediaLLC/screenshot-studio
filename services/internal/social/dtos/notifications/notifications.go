@@ -1,4 +1,4 @@
-// Package notifications holds Postiz's dtos/notifications.
+// Package notifications holds the original app's dtos/notifications.
 package notifications
 
 // GetNotificationsDto is the get notifications request body, a query DTO: bind it with

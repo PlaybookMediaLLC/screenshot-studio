@@ -5,7 +5,7 @@
 **Decided:** 2026-10-17 (see Decisions)  
 **Supersedes:** [RFC 033](033-workspace-migration.md)  
 **Owners:** Engineering  
-**Depends on:** RFC 020 ([publishing](020-postiz-publishing.md)), RFC 033 ([migration order](033-workspace-migration.md)), RFC 034 ([REST contracts](034-rest-api-scalar-reference.md)), RFC 035 ([plan gates](035-pricing-and-unit-economics.md))
+**Depends on:** RFC 020 ([publishing](020-social-publishing.md)), RFC 033 ([migration order](033-workspace-migration.md)), RFC 034 ([REST contracts](034-rest-api-scalar-reference.md)), RFC 035 ([plan gates](035-pricing-and-unit-economics.md))
 
 ## Decision
 
@@ -269,7 +269,7 @@ X posts a thread as the first post and the rest as replies, each answering
 the one before; every post has X's limit and its own images. LinkedIn and
 Instagram take the thread joined into one post, and the composer says so.
 The scheduled post keeps the replies (`scheduled_post.replies`, each a caption
-and image ids), the publish job carries them, Postiz receives them as its
+and image ids), the publish job carries them, the social API receives them as its
 value list, and the direct publisher posts each with the provider's comment
 call. The first post is live by the time a reply goes out, so a reply that
 fails ends the thread there and is logged rather than retried. Exports write
@@ -304,7 +304,7 @@ Posted, Archived), a calendar, and drafts settings around the composer.
 - **Per-channel text.** A channel can say something different
   (`content_draft.channelText`); the draft's images still go with it.
 - **Accounts.** Connections keep the account's name, @handle and avatar from
-  Postiz, filled in at connect time or on first list.
+  the social API, filled in at connect time or on first list.
 - **Live posts.** A published post keeps its platform id, so the composer
   links to it and reads its engagement on demand through the provider's
   analytics. A thread that stopped partway records how far it got and

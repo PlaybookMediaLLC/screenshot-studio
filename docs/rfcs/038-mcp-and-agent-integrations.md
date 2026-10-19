@@ -31,16 +31,16 @@ server. It does not replace it, and it does not start a second one.
 - **People approve, agents may schedule.** No tool approves anything. A key
   with the opt-in `post:schedule` scope may schedule posts and visuals a person
   already approved, and cancel scheduled posts.
-- **Postiz leftovers go.** The Postiz social tools, the `ask_postiz` agent, the
-  Postiz widgets, keys in URL paths, the SSE transport, and the self-hosted
+- **Leftovers of the original app go.** The original social tools, the `ask_social` agent, the
+  social widgets, keys in URL paths, the SSE transport, and the self-hosted
   relay are removed from the Shots MCP surface.
 
 ## What the server serves today
 
 This inventory was read from the code on 2026-10-17. The package is a close
-port of Postiz's `start.mcp.ts`, Mastra's OAuth middleware, and
-`mcp.relay.service.ts`. It serves the Postiz social-scheduling toolset scoped
-to a Postiz `Organization`. Nothing in it is about Shots.
+port of the original app's `start.mcp.ts`, Mastra's OAuth middleware, and
+`mcp.relay.service.ts`. It serves the original social-scheduling toolset scoped
+to a social `Organization`. Nothing in it is about Shots.
 
 ### Mounting
 
@@ -56,9 +56,9 @@ The process listens on `PORT` (3000). Compose publishes it on
 
 | Path                                               | Transport and auth                                                   | Tools served                |
 | -------------------------------------------------- | -------------------------------------------------------------------- | --------------------------- |
-| `/mcp`, `/mcp/`                                    | Streamable HTTP, `Authorization: Bearer <org API key or pos_ token>` | All tools plus `ask_postiz` |
-| `/mcp/{apiKey}`                                    | Streamable HTTP, key in the URL path                                 | All tools plus `ask_postiz` |
-| `/sse/{apiKey}`, `/message/{apiKey}`               | Legacy HTTP+SSE, key in the URL path                                 | All tools plus `ask_postiz` |
+| `/mcp`, `/mcp/`                                    | Streamable HTTP, `Authorization: Bearer <org API key or pos_ token>` | All tools plus `ask_social` |
+| `/mcp/{apiKey}`                                    | Streamable HTTP, key in the URL path                                 | All tools plus `ask_social` |
+| `/sse/{apiKey}`, `/message/{apiKey}`               | Legacy HTTP+SSE, key in the URL path                                 | All tools plus `ask_social` |
 | `/mcp-oauth-dynamic`                               | Streamable HTTP, OAuth bearer, DCR issuer                            | All tools                   |
 | `/mcp-oauth-claude`                                | Streamable HTTP, OAuth bearer, DCR issuer                            | All but 8 media tools       |
 | `/mcp-oauth-chatgpt`                               | Streamable HTTP, OAuth bearer, static-client issuer                  | All tools                   |
@@ -70,7 +70,7 @@ The process listens on `PORT` (3000). Compose publishes it on
 
 The root `/.well-known/oauth-protected-resource` returns 404 on purpose, so
 `/mcp` is not treated as OAuth-protected. The OAuth authorization server is the
-Postiz controller at `/oauth/*`: dynamic client registration, the authorize
+Social controller at `/oauth/*`: dynamic client registration, the authorize
 request, an authenticated approve, and the token endpoint. Its consent page is
 `FRONTEND_URL/oauth/authorize`, which Shots does not have.
 
@@ -80,7 +80,7 @@ Each request builds a new stateless server (`Stateless: true`,
 ### Tools
 
 The tools are hand-written with a zod-like DSL in `internal/chat/toollist.go`.
-There are 20 of them, plus `ask_postiz`:
+There are 20 of them, plus `ask_social`:
 
 - **Channels:** list integrations and groups, read a provider schema, and
   trigger a provider function. The trigger is destructive.
@@ -92,16 +92,16 @@ There are 20 of them, plus `ask_postiz`:
   read its status.
 - **Clipping:** clip a YouTube video, read its status, and the clipping widget
   ticket.
-- **`ask_postiz`:** an OpenAI chat loop over the same tools.
+- **`ask_social`:** an OpenAI chat loop over the same tools.
 
-Every tool is scoped to the Postiz organization. Scheduling creates Postiz
+Every tool is scoped to the social organization. Scheduling creates social
 posts directly, so it bypasses the Shots approval gate in RFC 019.
 
 ### Authentication
 
 - **API keys** are a plaintext equality match on `Organization.apiKey` in the
-  Postiz schema, not the hashed Shots workspace keys.
-- **OAuth** issues `pos_` tokens that resolve to a Postiz organization and
+  social schema, not the hashed Shots workspace keys.
+- **OAuth** issues `pos_` tokens that resolve to a social organization and
   user. The advertised scopes (mcp:read and mcp:write) are never enforced.
   The resource indicator is never checked, so a token minted for one mount
   works on all four.
@@ -110,11 +110,11 @@ posts directly, so it bypasses the Shots approval gate in RFC 019.
 
 ### Widgets and relay
 
-- **Widgets.** Two MCP Apps widgets (`ui://postiz/upload` and
-  `ui://postiz/clipping`) upload media and show clipping progress against the
-  Postiz media endpoints.
+- **Widgets.** Two MCP Apps widgets (`ui://social/upload` and
+  `ui://social/clipping`) upload media and show clipping progress against the
+  social media endpoints.
 - **Relay.** The relay (`MCP_SELF_HOSTED_RELAY=true`) proxies tool calls from
-  Postiz Cloud to a customer's self-hosted Postiz. It holds that instance's API
+  the original app's cloud to a customer's self-hosted instance. It holds that instance's API
   key, keyed by a `psh_` token.
 
 ### Gaps
@@ -129,15 +129,15 @@ posts directly, so it bypasses the Shots approval gate in RFC 019.
 - SSE sessions live in process memory, so they break across replicas.
 - Only `groupList` is executed in tests. Destructive tools are untested.
 
-## Postiz leftovers and what happens to them
+## Leftovers of the original app and what happens to them
 
 | Item                                                                    | Today                                   | Decision                                                                  |
 | ----------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------- |
-| Server name `Postiz MCP`                                                | `server.go`                             | Renamed `Shots`                                                           |
-| Postiz tools (channels, posts, media, video, clipping)                  | Every mount                             | Removed from MCP. The chat copilot keeps its own copy.                    |
-| `ask_postiz` agent tool                                                 | `/mcp`, `/sse`                          | Removed. An annotation-less catch-all tool cannot be scoped or confirmed. |
-| `ui://postiz/*` widgets and `/media-widget`, `/clipping-widget` tickets | Registered resources                    | Removed from MCP. Uploads use signed upload URLs, as REST does.           |
-| Postiz organization API keys and `pos_` tokens                          | All mounts                              | Refused. Only Shots workspace credentials are accepted.                   |
+| Server name `Social MCP`                                                | `server.go`                             | Renamed `Shots`                                                           |
+| Social tools (channels, posts, media, video, clipping)                  | Every mount                             | Removed from MCP. The chat copilot keeps its own copy.                    |
+| `ask_social` agent tool                                                 | `/mcp`, `/sse`                          | Removed. An annotation-less catch-all tool cannot be scoped or confirmed. |
+| `ui://social/*` widgets and `/media-widget`, `/clipping-widget` tickets | Registered resources                    | Removed from MCP. Uploads use signed upload URLs, as REST does.           |
+| Social organization API keys and `pos_` tokens                          | All mounts                              | Refused. Only Shots workspace credentials are accepted.                   |
 | Keys in URL paths (`/mcp/{key}`, `/sse/{key}`)                          | Served                                  | Removed. Keys in URLs end up in proxy and access logs.                    |
 | HTTP+SSE transport                                                      | `/sse`, `/message`                      | Removed. Every target client speaks Streamable HTTP.                      |
 | Self-hosted relay and `psh_` tokens                                     | Behind `MCP_SELF_HOSTED_RELAY`          | Removed (see Relay below)                                                 |
@@ -335,7 +335,7 @@ and changes what a grant is:
      row holds the workspace, the user, the client, the redirect URI, the PKCE
      challenge, and the scopes.
    - Denying redirects with `error=access_denied`.
-3. **Token.** The client calls the existing `/oauth/token`. The Postiz service
+3. **Token.** The client calls the existing `/oauth/token`. The social service
    authenticates the client as before. A Shots code (`shc_` prefix) then goes
    to the platform exchanger, which:
    - checks PKCE and the redirect URI;
@@ -353,7 +353,7 @@ consent page offers the same optional expiry.
 
 ### What is refused
 
-- Postiz organization keys, `pos_` and `psh_` tokens, and session cookies.
+- Social organization keys, `pos_` and `psh_` tokens, and session cookies.
 - Keys in URL paths or query strings.
 - A missing credential on `/mcp` gets `401` with
   `WWW-Authenticate: Bearer resource_metadata="…/.well-known/oauth-protected-resource/mcp"`,
@@ -449,7 +449,7 @@ connection that mostly fails is one users abandon. Alerts also cover:
 
 ## Relay
 
-The relay goes. It exists so Postiz Cloud can front a self-hosted Postiz. A
+The relay goes. It exists so the original app's cloud can front a self-hosted instance. A
 self-hosted Shots publishes its own `/mcp`, so there is nothing to front. Keeping
 the relay would leave the server holding customer instance keys and running an
 outbound proxy to customer-chosen hosts, with no Shots use case behind it.
@@ -526,7 +526,7 @@ client's snippet, and lists the agents connected through OAuth.
 8. MCP Inspector connects with a key and runs `listReleases`.
 9. The OAuth flow mints a key with exactly the approved scopes, and revoking
    that key ends the connection.
-10. Postiz keys, `pos_` tokens, and keys in URL paths are refused.
+10. Social keys, `pos_` tokens, and keys in URL paths are refused.
 11. A key without `post:schedule` cannot schedule or cancel, through REST or
     MCP. A key with it cannot schedule a post that is not approved.
 
@@ -536,7 +536,7 @@ client's snippet, and lists the agents connected through OAuth.
    resources, record contract requirements in OpenAPI, publish the typed
    client, and add the OpenAPI diff in CI.
 2. **Go MCP.** Add the Shots tools, API-key authentication, the OAuth grant
-   exchange, rate limits, and logging. Remove the Postiz surface. Ship behind
+   exchange, rate limits, and logging. Remove the social surface. Ship behind
    the existing mount.
 3. **Public URL.** Set `PLATFORM_MCP_URL=https://shots-mcp.playbookmedia.io/mcp`
    for the backend and the web.

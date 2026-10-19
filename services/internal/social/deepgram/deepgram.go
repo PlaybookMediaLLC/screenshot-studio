@@ -1,4 +1,4 @@
-// Package deepgram is Postiz's DeepgramService: transcribes a media URL.
+// Package deepgram is the original app's DeepgramService: transcribes a media URL.
 package deepgram
 
 import (

@@ -10,15 +10,15 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
-// PostizTenantBinding is the transitional mapping for existing test OAuth
+// SocialTenantBinding is the transitional mapping for existing test OAuth
 // connections. New backend-owned connections will use the canonical tenant ID.
-type PostizTenantBinding struct{ ent.Schema }
+type SocialTenantBinding struct{ ent.Schema }
 
-func (PostizTenantBinding) Annotations() []schema.Annotation {
-	return []schema.Annotation{entsql.Annotation{Table: "postiz_tenant_binding"}}
+func (SocialTenantBinding) Annotations() []schema.Annotation {
+	return []schema.Annotation{entsql.Annotation{Table: "social_tenant_binding"}}
 }
 
-func (PostizTenantBinding) Fields() []ent.Field {
+func (SocialTenantBinding) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("id").StorageKey("organizationId").Immutable(),
 		field.String("go_organization_id").StorageKey("goOrganizationId").Immutable(),
@@ -27,7 +27,7 @@ func (PostizTenantBinding) Fields() []ent.Field {
 	}
 }
 
-func (PostizTenantBinding) Indexes() []ent.Index {
+func (SocialTenantBinding) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("go_organization_id").Unique(),
 		index.Fields("secret_reference").Unique(),

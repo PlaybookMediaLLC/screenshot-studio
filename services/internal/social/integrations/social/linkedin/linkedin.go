@@ -153,7 +153,7 @@ func Headers(accessToken, contentType string) map[string]string {
 	return h
 }
 
-// FetchJSON is `await (await fetch(url, init)).json()` for the calls Postiz
+// FetchJSON is `await (await fetch(url, init)).json()` for the calls the original app
 // makes with the global fetch: no retries and no status classification.
 func FetchJSON(ctx context.Context, method, url string, headers map[string]string, body []byte, out any) error {
 	var reader io.Reader

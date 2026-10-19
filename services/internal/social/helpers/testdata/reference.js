@@ -1,4 +1,4 @@
-// Regenerates reference.json from the real npm packages Postiz uses.
+// Regenerates reference.json from the real npm packages the original app uses.
 //   mkdir /tmp/hjs && cd /tmp/hjs && npm i parse5@6.0.1 striptags@3.2.0 \
 //     twitter-text@3.1.0 remove-markdown@0.5.5 isomorphic-dompurify@3 tldts@6
 //   NODE_PATH=/tmp/hjs/node_modules node reference.js > reference.json
@@ -128,17 +128,17 @@ for (const [h, allowed] of [
   ['<P>Up</P><br/><img src="a"/>', ['p', 'br']], ["<a title='it\"s'>q</a>", []], ['</ b>x<\tb>y', ['b']], ['<ul><li>1</li></ul><h4>h</h4>', ['ul', 'li']],
 ]) out.stripTags.push({ html: h, allowed, want: striptags(h, allowed) });
 
-const texts = ['', 'hello', '日本語テキスト', '😀', '👨‍👩‍👧‍👦 family', '🇺🇸🇫🇷', '1️⃣ #️⃣', '❤️ ☺ ✔', 'https://postiz.com/very/long/path?x=1', 'visit postiz.com today',
-  'email me@postiz.com', 'a.b', 't.co/abc', 'https://t.co/abcdef?x=1', 'é café', 'see example.co.uk/path and http://localhost:3000', 'x'.repeat(300),
+const texts = ['', 'hello', '日本語テキスト', '😀', '👨‍👩‍👧‍👦 family', '🇺🇸🇫🇷', '1️⃣ #️⃣', '❤️ ☺ ✔', 'https://example.com/very/long/path?x=1', 'visit sample.com today',
+  'email me@sample.com', 'a.b', 't.co/abc', 'https://t.co/abcdef?x=1', 'é café', 'see example.co.uk/path and http://localhost:3000', 'x'.repeat(300),
   'Hello﻿world', '“smart” — dash…', 'www.google.com, foo.bar', 'Ünicode.com and xn--bcher-kva.com', 'a b', 'http://' + 'a'.repeat(70) + '.com', '#hashtag @mention $CASH',
   'mixed 日本 and emoji 🎉 and https://a.io'];
 for (const t of texts) out.weighted.push({ text: t, want: weightedLength(t) });
 for (const [type, end, t] of [['x', 280, 'a'.repeat(300)], ['x', 10, '日本語日本語日本語'], ['x', 280, 'short'], ['linkedin', 3000, 'a'.repeat(4000)],
-  ['x', 25, 'see https://postiz.com/a/b/c and more text here'], ['x', 5, '😀😀😀😀'], ['x', 4, 'ééééé'], ['x', 280, '']])
+  ['x', 25, 'see https://example.com/a/b/c and more text here'], ['x', 5, '😀😀😀😀'], ['x', 4, 'ééééé'], ['x', 280, '']])
   out.slicer.push({ type, end, text: t, want: textSlicer(type, end, t).end });
 for (const [type, t] of [['threads', 'héllo😀'], ['linkedin', 'héllo😀'], ['x', 'héllo😀 https://a.com'], ['bluesky', '日本']]) out.count.push({ type, text: t, want: countLength(type, t) });
 
-for (const t of ['Check https://postiz.com/x now', 'visit postiz.com today', 'mail me at user@postiz.com', 'path a/b.com', 'no links here', '<a href="https://x.com">https://x.com</a> after',
+for (const t of ['Check https://sample.com/x now', 'visit sample.com today', 'mail me at user@sample.com', 'path a/b.com', 'no links here', '<a href="https://x.com">https://x.com</a> after',
   'multiple  spaces https://a.io  here \nnext', 'bit.ly/abc', 'sub.domain.co.uk/path', 'version 1.2.3', 'example.comma', 'see.it', '  EXAMPLE.COM/A  ', 'v1.2 api.dev/x?y=1', 'hello.world', '-x.com _y.com .z.com'])
   out.links.push({ text: t, has: hasLinks(t), strip: stripLinks(t) });
 
@@ -155,7 +155,7 @@ for (const v of ['<p dir="ltr">Hi <span data-mention-id="1" data-mention-label="
   '<math><mi>x</mi></math>z', '<p><textarea>&lt;b&gt;</textarea></p>', '<noscript><p>n</p></noscript>k', '<title>t</title><p>after</p>', '<frameset></frameset>', '<p>x "q"</p>'])
   out.sanitize.push({ value: v, want: sanitizePostContent(v), plain: postContentPlainText(v) });
 
-for (const d of ['https://app.postiz.com', 'http://localhost:4200', 'http://127.0.0.1:3000', 'https://postiz.co.uk', 'https://foo.vercel.app', 'https://a.b.example.com/path', 'postiz.com',
+for (const d of ['https://app.sample.com', 'http://localhost:4200', 'http://127.0.0.1:3000', 'https://example.co.uk', 'https://foo.vercel.app', 'https://a.b.example.com/path', 'sample.com',
   'localhost', 'https://app.localhost:3000', 'https://APP.Example.COM.', 'https://x.github.io']) out.cookie.push({ domain: d, want: getCookieUrlFromDomain(d) });
 
 process.stdout.write(JSON.stringify(out, null, 1) + '\n');

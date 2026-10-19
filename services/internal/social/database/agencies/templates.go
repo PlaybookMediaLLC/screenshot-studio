@@ -9,14 +9,14 @@ const (
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Agency has been approved and added to Postiz 🚀</title>
+    <title>Your Agency has been approved and added to Shots 🚀</title>
 </head>
 
 <body style="font-family: Arial, sans-serif; margin: 0; padding: 0;">
   Hi there, <br /><br />
-  Your agency {{agency?.name}} has been added to Postiz!<br />
-  You can <a href="https://postiz.com/agencies/{{agency?.slug}}">check it here</a><br />
-  It will appear on the main agency of Postiz in the next 24 hours.<br /><br />
+  Your agency {{agency?.name}} has been added to Shots!<br />
+  You can <a href="https://shots.playbookmedia.io/agencies/{{agency?.slug}}">check it here</a><br />
+  It will appear on the agency directory of Shots in the next 24 hours.<br /><br />
 </body>
 </html>`
 
@@ -31,7 +31,7 @@ const (
 
 <body style="font-family: Arial, sans-serif; margin: 0; padding: 0;">
   Hi there, <br /><br />
-  Your agency {{agency?.name}} has been declined to Postiz!<br />
+  Your agency {{agency?.name}} has been declined by Shots!<br />
   If you think we have made a mistake, please reply to this email and let us know
 </body>
 </html>`
@@ -106,8 +106,8 @@ const (
         </tr>
         <tr>
             <td style="padding: 20px; text-align: center; background-color: #000;">
-                <a href="https://postiz.com/agencies/action/approve/{{agency.id}}" style="margin: 0 10px; text-decoration: none; color: #007bff;">To approve click here</a><br /><br /><br />
-                <a href="https://postiz.com/agencies/action/decline/{{agency.id}}" style="margin: 0 10px; text-decoration: none; color: #007bff;">To decline click here</a><br /><br /><br />
+                <a href="https://shots.playbookmedia.io/agencies/action/approve/{{agency.id}}" style="margin: 0 10px; text-decoration: none; color: #007bff;">To approve click here</a><br /><br /><br />
+                <a href="https://shots.playbookmedia.io/agencies/action/decline/{{agency.id}}" style="margin: 0 10px; text-decoration: none; color: #007bff;">To decline click here</a><br /><br /><br />
             </td>
         </tr>
         <tr>

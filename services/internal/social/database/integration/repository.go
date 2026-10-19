@@ -552,7 +552,7 @@ func (r *Repository) UpdateNameAndURL(ctx context.Context, id, name, url string)
 }
 
 // GetIntegrationByID returns nil when the integration does not exist. Like
-// Postiz it does not filter deleted integrations.
+// the original app it does not filter deleted integrations.
 func (r *Repository) GetIntegrationByID(ctx context.Context, org, id string) (*ent.Integration, error) {
 	return notFoundNil(r.client.Integration.Query().
 		Where(integration.OrganizationID(org), integration.ID(id)).First(ctx))
@@ -628,7 +628,7 @@ func (r *Repository) Customers(ctx context.Context, orgID string) ([]*ent.Custom
 	return r.client.Customer.Query().Where(customer.OrgID(orgID), customer.DeletedAtIsNil()).All(ctx)
 }
 
-// GetIntegrationsList has no orderBy in Postiz either: rows come back in the
+// GetIntegrationsList has no orderBy in the original app either: rows come back in the
 // database's order.
 func (r *Repository) GetIntegrationsList(ctx context.Context, org string) ([]*ent.Integration, error) {
 	return r.client.Integration.Query().

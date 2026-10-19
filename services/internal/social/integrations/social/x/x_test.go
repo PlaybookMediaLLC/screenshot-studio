@@ -161,7 +161,7 @@ func pngBytes() []byte {
 }
 
 func TestSignedImageUpload(t *testing.T) {
-	t.Setenv("POSTIZ_PRIVATE_MEDIA", "false")
+	t.Setenv("SOCIAL_PRIVATE_MEDIA", "false")
 	calls, done := fakeX(t, func(r recorded) (int, string) {
 		switch r.path {
 		case "/pic.png":

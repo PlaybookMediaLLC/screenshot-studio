@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
-// ChannelConnection maps the application-owned Postiz destination record.
+// ChannelConnection maps the application-owned social destination record.
 type ChannelConnection struct{ ent.Schema }
 
 func (ChannelConnection) Annotations() []schema.Annotation {
@@ -22,13 +22,13 @@ func (ChannelConnection) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("id").StorageKey("id").Immutable(),
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
-		field.String("provider").StorageKey("provider").Default("postiz").Immutable(),
+		field.String("provider").StorageKey("provider").Default("social").Immutable(),
 		field.String("external_account_id").StorageKey("externalAccountId").NotEmpty().Immutable(),
 		field.String("platform").StorageKey("platform").Default("x"),
 		field.JSON("provider_settings", map[string]any{}).StorageKey("providerSettings").Default(map[string]any{}),
 		field.String("secret_reference").StorageKey("secretReference").NotEmpty(),
 		field.Enum("status").StorageKey("status").Values("ACTIVE", "DISABLED", "REVOKED").Default("ACTIVE"),
-		// The account as its platform shows it, read from Postiz: name, @handle, avatar.
+		// The account as its platform shows it, read from the social API: name, @handle, avatar.
 		field.String("display_name").StorageKey("displayName").Optional().Nillable(),
 		field.String("handle").StorageKey("handle").Optional().Nillable(),
 		field.String("avatar_url").StorageKey("avatarUrl").Optional().Nillable(),

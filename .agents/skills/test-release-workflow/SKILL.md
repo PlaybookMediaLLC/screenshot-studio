@@ -20,7 +20,7 @@ of disconnected endpoints.
    source, asset, brand-kit version, template version, and generation attempt.
 5. Confirm the workflow cannot schedule before a human approval of the exact
    artifact revision.
-6. Schedule it through a sandbox, local Postiz fixture, or provider test mode.
+6. Schedule it through a sandbox, local social API fixture, or provider test mode.
    Verify the recorded provider receipt and a no-duplicate retry.
 
 ## Required negative paths

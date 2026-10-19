@@ -1,16 +1,16 @@
-CREATE TABLE "postiz_tenant_binding" (
+CREATE TABLE "social_tenant_binding" (
   "organizationId" TEXT NOT NULL,
   "goOrganizationId" TEXT NOT NULL,
   "secretReference" TEXT NOT NULL,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  CONSTRAINT "postiz_tenant_binding_pkey" PRIMARY KEY ("organizationId")
+  CONSTRAINT "social_tenant_binding_pkey" PRIMARY KEY ("organizationId")
 );
 
-CREATE UNIQUE INDEX "postiz_tenant_binding_goOrganizationId_key" ON "postiz_tenant_binding"("goOrganizationId");
-CREATE UNIQUE INDEX "postiz_tenant_binding_secretReference_key" ON "postiz_tenant_binding"("secretReference");
+CREATE UNIQUE INDEX "social_tenant_binding_goOrganizationId_key" ON "social_tenant_binding"("goOrganizationId");
+CREATE UNIQUE INDEX "social_tenant_binding_secretReference_key" ON "social_tenant_binding"("secretReference");
 
-ALTER TABLE "postiz_tenant_binding" ADD CONSTRAINT "postiz_tenant_binding_organizationId_fkey"
+ALTER TABLE "social_tenant_binding" ADD CONSTRAINT "social_tenant_binding_organizationId_fkey"
   FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 CREATE TABLE "social_oauth_start" (

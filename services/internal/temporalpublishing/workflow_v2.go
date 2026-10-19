@@ -103,7 +103,7 @@ func PostWorkflowV2(ctx workflow.Context, input WorkflowInput) (WorkflowResult, 
 			return WorkflowResult{Outcome: OutcomePublished, ProviderID: submitted.ProviderID}, nil
 		}
 
-		result, err := awaitPostizConfirmation(ctx, checkCtx, mainCtx, attempt, job, runID, submitted.ProviderID)
+		result, err := awaitSocialConfirmation(ctx, checkCtx, mainCtx, attempt, job, runID, submitted.ProviderID)
 		if err != nil {
 			return WorkflowResult{}, err
 		}
@@ -112,20 +112,20 @@ func PostWorkflowV2(ctx workflow.Context, input WorkflowInput) (WorkflowResult, 
 	return WorkflowResult{FailureCode: "MAX_ATTEMPTS", Outcome: OutcomeFailed}, nil
 }
 
-func awaitPostizConfirmation(
+func awaitSocialConfirmation(
 	ctx workflow.Context,
 	checkCtx workflow.Context,
 	mainCtx workflow.Context,
 	attempt BeginResult,
 	job PreparedPublication,
 	runID string,
-	postizPostID string,
+	socialPostID string,
 ) (WorkflowResult, error) {
 	consecutiveFailures := 0
 	for check := 0; check < maxPendingChecks; check++ {
 		var status PublishResult
 		err := workflow.ExecuteActivity(checkCtx, CheckActivityName, CheckInput{
-			Job: job, ProviderID: postizPostID,
+			Job: job, ProviderID: socialPostID,
 		}).Get(ctx, &status)
 		if err != nil {
 			consecutiveFailures++
@@ -138,7 +138,7 @@ func awaitPostizConfirmation(
 			case OutcomePublished:
 				providerID := status.ProviderID
 				if providerID == "" {
-					providerID = postizPostID
+					providerID = socialPostID
 				}
 				if err := completeAttempt(ctx, mainCtx, attempt, job, runID, providerID); err != nil {
 					return WorkflowResult{}, err

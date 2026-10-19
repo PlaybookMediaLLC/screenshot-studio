@@ -55,7 +55,7 @@ func (r *Repository) CreateMaxUser(ctx context.Context, id, name, saasName, emai
 	if name != "" {
 		displayName = name + "###" + id
 	}
-	userEmail := saasName + "+" + ids.Make(10) + "@postiz.com"
+	userEmail := saasName + "+" + ids.Make(10) + "@shots.playbookmedia.io"
 	if email != "" {
 		userEmail = strings.ReplaceAll(email, "@", "+"+saasName+"@")
 	}

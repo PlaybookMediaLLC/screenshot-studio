@@ -1687,15 +1687,15 @@
    "want": 8
   },
   {
-   "text": "https://postiz.com/very/long/path?x=1",
+   "text": "https://example.com/very/long/path?x=1",
    "want": 23
   },
   {
-   "text": "visit postiz.com today",
+   "text": "visit sample.com today",
    "want": 35
   },
   {
-   "text": "email me@postiz.com",
+   "text": "email me@sample.com",
    "want": 19
   },
   {
@@ -1783,7 +1783,7 @@
   {
    "type": "x",
    "end": 25,
-   "text": "see https://postiz.com/a/b/c and more text here",
+   "text": "see https://example.com/a/b/c and more text here",
    "want": 3
   },
   {
@@ -1829,19 +1829,19 @@
  ],
  "links": [
   {
-   "text": "Check https://postiz.com/x now",
+   "text": "Check https://sample.com/x now",
    "has": true,
    "strip": "Check now"
   },
   {
-   "text": "visit postiz.com today",
+   "text": "visit sample.com today",
    "has": true,
    "strip": "visit today"
   },
   {
-   "text": "mail me at user@postiz.com",
+   "text": "mail me at user@sample.com",
    "has": false,
-   "strip": "mail me at user@postiz.com"
+   "strip": "mail me at user@sample.com"
   },
   {
    "text": "path a/b.com",
@@ -2119,8 +2119,8 @@
  ],
  "cookie": [
   {
-   "domain": "https://app.postiz.com",
-   "want": ".postiz.com"
+   "domain": "https://app.sample.com",
+   "want": ".sample.com"
   },
   {
    "domain": "http://localhost:4200",
@@ -2131,8 +2131,8 @@
    "want": "127.0.0.1"
   },
   {
-   "domain": "https://postiz.co.uk",
-   "want": ".postiz.co.uk"
+   "domain": "https://example.co.uk",
+   "want": ".example.co.uk"
   },
   {
    "domain": "https://foo.vercel.app",
@@ -2143,8 +2143,8 @@
    "want": ".example.com"
   },
   {
-   "domain": "postiz.com",
-   "want": ".postiz.com"
+   "domain": "sample.com",
+   "want": ".sample.com"
   },
   {
    "domain": "localhost",

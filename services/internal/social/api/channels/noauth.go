@@ -308,7 +308,7 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 }
 
 // authenticate resolves the provider's tokens, folding every failure into
-// AuthTokenDetails.Error like the Promise in Postiz does.
+// AuthTokenDetails.Error like the Promise in the original app does.
 func (h *noAuthIntegrationsController) authenticate(ctx context.Context, name string, provider integrations.Provider,
 	body integrationsdto.ConnectIntegrationDto, codeVerifier, details, refresh string) integrations.AuthTokenDetails {
 	var client *integrations.ClientInformation

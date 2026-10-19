@@ -47,7 +47,7 @@ func TestRecoverablePostsAreDueScheduledPostsInsideTheWindow(t *testing.T) {
 	exec(`INSERT INTO creative_variant (id,"organizationId","releaseId","sourceAssetId","brandKitId","brandKitVersion","templateId","templateVersion",revision,"aspectRatio",status,"createdByUserId","createdAt","updatedAt")
 		VALUES ($1,$2,$3,$4,$5,1,$6,1,1,'1:1','APPROVED',$7,now(),now())`, "variant_"+id, org, "release_"+id, "asset_"+id, "brand_"+id, "template_"+id, user)
 	exec(`INSERT INTO channel_connection (id,"organizationId",provider,"externalAccountId","secretReference",status,"createdByUserId","createdAt","updatedAt",platform,"providerSettings")
-		VALUES ($1,$2,'postiz','destination','POSTIZ_API_KEY','ACTIVE',$3,now(),now(),'x','{}'::jsonb)`, "connection_"+id, org, user)
+		VALUES ($1,$2,'social','destination','SOCIAL_API_KEY','ACTIVE',$3,now(),now(),'x','{}'::jsonb)`, "connection_"+id, org, user)
 	now := time.Now().UTC().Truncate(time.Millisecond)
 	post := func(name, status string, scheduledFor time.Time) {
 		exec(`INSERT INTO scheduled_post (id,"organizationId","variantId","channelConnectionId","scheduledFor",status,caption,"idempotencyKey","createdAt","updatedAt")

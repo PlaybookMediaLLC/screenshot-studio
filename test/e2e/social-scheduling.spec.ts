@@ -65,7 +65,7 @@ test('an approved variant schedules once to a verified Go destination and can be
       return { body: { organization: { id: `go-${organizationId}` } } }
     }
     if (request.url === '/api/public/v1/integrations') {
-      return { body: [{ id: 'postiz-x-integration', identifier: 'x', disabled: false }] }
+      return { body: [{ id: 'social-x-integration', identifier: 'x', disabled: false }] }
     }
     return { body: { error: 'Not found.' }, status: 404 }
   }, 5679)
@@ -75,7 +75,7 @@ test('an approved variant schedules once to a verified Go destination and can be
     await enablePublishingTwoFactor(page, identity.password)
     const variantId = await createApprovedVariant(page)
     const unbound = await trpcMutation(page, 'channelConnection.create', {
-      externalAccountId: 'postiz-x-integration',
+      externalAccountId: 'social-x-integration',
       platform: 'x',
       secretReference: e2eSecretReference,
     })
@@ -84,9 +84,9 @@ test('an approved variant schedules once to a verified Go destination and can be
 
     organizationId = await bindTestGoOrganization(page)
     const wrongCredential = await trpcMutation(page, 'channelConnection.create', {
-      externalAccountId: 'postiz-x-integration',
+      externalAccountId: 'social-x-integration',
       platform: 'x',
-      secretReference: 'POSTIZ_API_KEY',
+      secretReference: 'SOCIAL_API_KEY',
     })
     expect(wrongCredential.status).toBe(409)
     expect(provider.calls).toHaveLength(0)
@@ -101,7 +101,7 @@ test('an approved variant schedules once to a verified Go destination and can be
       '/api/public/v1/integrations',
     ])
     const connectionResponse = await trpcMutation(page, 'channelConnection.create', {
-      externalAccountId: 'postiz-x-integration',
+      externalAccountId: 'social-x-integration',
       platform: 'x',
       providerSettings: { who_can_reply_post: 'everyone' },
       secretReference: e2eSecretReference,
@@ -109,10 +109,10 @@ test('an approved variant schedules once to a verified Go destination and can be
     expect(connectionResponse.status).toBe(200)
     const connectionId = connectionSchema.parse(connectionResponse.body).connection.id
 
-    const first = await createScheduledPost(page, connectionId, 'postiz-launch', variantId)
+    const first = await createScheduledPost(page, connectionId, 'social-launch', variantId)
     expect(first.response.status).toBe(200)
     expect(scheduledPostSchema.parse(first.response.body).created).toBe(true)
-    const duplicate = await createScheduledPost(page, connectionId, 'postiz-launch', variantId)
+    const duplicate = await createScheduledPost(page, connectionId, 'social-launch', variantId)
     expect(duplicate.response.status).toBe(200)
     expect(scheduledPostSchema.parse(duplicate.response.body).created).toBe(false)
     expect(duplicate.scheduledPost.id).toBe(first.scheduledPost.id)

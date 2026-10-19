@@ -17,7 +17,7 @@ import (
 	"github.com/andybalholm/brotli"
 )
 
-// Compress is the compression@1.8.1 middleware Postiz installs with
+// Compress is the compression@1.8.1 middleware the original app installs with
 // app.use(compression()): brotli (quality 4), gzip or deflate chosen by
 // Accept-Encoding with br then gzip preferred, only for compressible
 // Content-Types, 1kb threshold, no Cache-Control: no-transform, not HEAD, and

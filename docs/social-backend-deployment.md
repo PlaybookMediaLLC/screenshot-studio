@@ -20,16 +20,16 @@ Temporal, and private RustFS. To add the social OAuth/API service and its own
 Redis and Temporal execution namespace, use:
 
 ```sh
-make postiz-go-up
+make social-up
 curl --fail http://localhost:3100/
 curl --fail http://localhost:3102/health/status
-make postiz-go-down
+make social-down
 ```
 
 The optional service is named `screenshot-studio-backend` in Compose and uses
 the same `screenshot_studio` database. Its separate Temporal namespace avoids
 workflow name collisions; it does not create another product database. The
-local `.local/postiz-go.env` overlay is ignored and loaded only for the
+local `.local/social.env` overlay is ignored and loaded only for the
 optional service. The web receives no values from that overlay.
 
 The operator binding maps a product workspace to the social organization's
@@ -38,7 +38,7 @@ organization and key through the Go social API, store the key in ignored
 `.local/dev.env`, and run:
 
 ```sh
-npx tsx scripts/bind-postiz-tenant.ts <workspace-id> <key-variable-name>
+npx tsx scripts/bind-social-tenant.ts <workspace-id> <key-variable-name>
 ```
 
 This binding is temporary cutover compatibility. The customer worker uses
@@ -55,10 +55,10 @@ and the live canaries still required.
 ## Provider credentials and callbacks
 
 Provider application secrets belong to the Go social component, never the
-web. In the local overlay, use `POSTIZ_GO_X_API_KEY`,
-`POSTIZ_GO_X_API_SECRET`, `POSTIZ_GO_FACEBOOK_APP_ID`,
-`POSTIZ_GO_FACEBOOK_APP_SECRET`, `POSTIZ_GO_INSTAGRAM_APP_ID`, and
-`POSTIZ_GO_INSTAGRAM_APP_SECRET` as applicable. Compose maps them to the Go
+web. In the local overlay, use `SOCIAL_X_API_KEY`,
+`SOCIAL_X_API_SECRET`, `SOCIAL_FACEBOOK_APP_ID`,
+`SOCIAL_FACEBOOK_APP_SECRET`, `SOCIAL_INSTAGRAM_APP_ID`, and
+`SOCIAL_INSTAGRAM_APP_SECRET` as applicable. Compose maps them to the Go
 process variables. LinkedIn uses `LINKEDIN_CLIENT_ID` and
 `LINKEDIN_CLIENT_SECRET`. Do not commit the overlay or tokens.
 
@@ -73,7 +73,7 @@ Instagram flow includes Page selection.
 
 Register each exact HTTPS callback URL with its provider for live tests.
 Instagram Login rejects an HTTP callback; a local canary needs a temporary
-HTTPS tunnel to the web app, a matching `POSTIZ_GO_FRONTEND_URL`, and that
+HTTPS tunnel to the web app, a matching `SOCIAL_FRONTEND_URL`, and that
 origin in `BETTER_AUTH_TRUSTED_ORIGINS`. Sign in on the tunnel hostname so the
 callback receives its own session cookie. The normal Connect action requires
 two-factor authentication. Avoid putting any provider token in the browser or

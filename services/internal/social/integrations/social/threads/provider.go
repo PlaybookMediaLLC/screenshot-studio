@@ -81,7 +81,7 @@ func handleErrors(body string, _ int) *integrations.HandledError {
 	case strings.Contains(body, "4279013"):
 		return &integrations.HandledError{Type: "bad-body", Value: "User restricted"}
 	case strings.Contains(body, "The media could not be fetched from this URI"):
-		return &integrations.HandledError{Type: "bad-body", Value: "One of the media URLs is invalid or inaccessible, make sure it's being uploaded to Postiz first"}
+		return &integrations.HandledError{Type: "bad-body", Value: "One of the media URLs is invalid or inaccessible, make sure it's being upload to Shots first"}
 	case strings.Contains(body, "4279009"):
 		return &integrations.HandledError{Type: "retry", Value: "Threads could not find the media container yet, please try again in a few seconds"}
 	case strings.Contains(body, "text must be at most 500 characters"):

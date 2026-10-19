@@ -20,11 +20,11 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/onboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/tenantpublishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 	"github.com/getsentry/sentry-go"
@@ -116,7 +116,7 @@ func main() {
 	}
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%d", cfg.Port),
-		Handler: httpapi.NewWithOnboarding(publishing.NewRepository(db.Client), scheduler, postiz.New(os.Getenv("POSTIZ_API_URL"), &http.Client{Timeout: 20 * time.Second}, nil), cfg.ServiceToken, configuration,
+		Handler: httpapi.NewWithOnboarding(publishing.NewRepository(db.Client), scheduler, socialapi.New(os.Getenv("SOCIAL_API_URL"), &http.Client{Timeout: 20 * time.Second}, nil), cfg.ServiceToken, configuration,
 			&onboarding.Service{Background: &temporalonboarding.Client{SeedSurfaces: os.Getenv("PLATFORM_ONBOARDING_SURFACES") == "enabled", Temporal: temporalClient},
 				FastPath: &onboarding.FastPath{Fetcher: onboarding.NewFetcher(), Model: model}, Store: configuration}),
 		ReadHeaderTimeout: 5 * time.Second,

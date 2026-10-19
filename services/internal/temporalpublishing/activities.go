@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postiz"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
 
 type ActivityStore interface {
@@ -24,8 +24,8 @@ type ActivityStore interface {
 }
 
 type Provider interface {
-	Publish(context.Context, postiz.PublishInput) (string, error)
-	Status(context.Context, postiz.StatusInput) (postiz.StatusResult, error)
+	Publish(context.Context, socialapi.PublishInput) (string, error)
+	Status(context.Context, socialapi.StatusInput) (socialapi.StatusResult, error)
 }
 
 type Activities struct {
@@ -73,7 +73,7 @@ func (a *Activities) Publish(ctx context.Context, input PublishInput) (PublishRe
 	if err != nil {
 		return PublishResult{NextAttempt: input.AttemptNumber, Outcome: OutcomeRetry, RetryAfter: time.Second}, nil
 	}
-	providerID, publishErr := a.publish(ctx, postiz.PublishInput{
+	providerID, publishErr := a.publish(ctx, socialapi.PublishInput{
 		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets, Replies: input.Job.Replies, ReplyTo: input.Job.ReplyTo, Poll: input.Job.Poll,
 		Caption: input.Job.Caption, DestinationID: input.Job.DestinationID,
 		OrganizationID: input.Job.OrganizationID, Platform: input.Job.Platform,
@@ -87,7 +87,7 @@ func (a *Activities) Publish(ctx context.Context, input PublishInput) (PublishRe
 		return PublishResult{Outcome: OutcomePublished, ProviderID: providerID}, nil
 	}
 
-	providerErr := &postiz.Error{}
+	providerErr := &socialapi.Error{}
 	failureCode := "UNKNOWN"
 	if errors.As(publishErr, &providerErr) {
 		failureCode = publishing.ProviderFailureCode(providerErr.Status, providerErr.UnknownDelivery)
@@ -147,7 +147,7 @@ func optionalPoll(poll postoptions.Poll) *postoptions.Poll {
 
 // threadPublisher publishes and reports how far a thread got.
 type threadPublisher interface {
-	PublishThread(context.Context, postiz.PublishInput) (postiz.Receipt, error)
+	PublishThread(context.Context, socialapi.PublishInput) (socialapi.Receipt, error)
 }
 
 // threadRecorder keeps a thread's progress on its post.
@@ -158,7 +158,7 @@ type threadRecorder interface {
 // publish uses the provider's thread-aware call when it has one, and keeps
 // the thread's progress; a progress that cannot be kept is logged, since
 // the post is live either way.
-func (a *Activities) publish(ctx context.Context, input postiz.PublishInput) (string, error) {
+func (a *Activities) publish(ctx context.Context, input socialapi.PublishInput) (string, error) {
 	threads, ok := a.provider.(threadPublisher)
 	if !ok || len(input.Replies) == 0 {
 		return a.provider.Publish(ctx, input)
@@ -177,7 +177,7 @@ func (a *Activities) publish(ctx context.Context, input postiz.PublishInput) (st
 
 // autoActor runs a live post's follow-ups (repost, plug, quote).
 type autoActor interface {
-	AutoAct(context.Context, postiz.AutoActionInput) (postiz.AutoActionResult, error)
+	AutoAct(context.Context, socialapi.AutoActionInput) (socialapi.AutoActionResult, error)
 }
 
 // RunAutoActions runs the follow-ups due now; a provider without them has
@@ -188,7 +188,7 @@ func (a *Activities) RunAutoActions(ctx context.Context, input AutoActionsInput)
 	if !ok || actions == nil {
 		return AutoActionsResult{Plugged: true, Quoted: true, Reposted: true}, nil
 	}
-	result, err := actor.AutoAct(ctx, postiz.AutoActionInput{
+	result, err := actor.AutoAct(ctx, socialapi.AutoActionInput{
 		DestinationID: input.Job.DestinationID, OrganizationID: input.Job.OrganizationID,
 		Platform: input.Job.Platform, SecretReference: input.Job.SecretReference, RemotePostID: input.ProviderID,
 		Repost: input.Repost, RepostAtLikes: actions.RepostAtLikes,
@@ -199,7 +199,7 @@ func (a *Activities) RunAutoActions(ctx context.Context, input AutoActionsInput)
 }
 
 func (a *Activities) Submit(ctx context.Context, input SubmitInput) (PublishResult, error) {
-	providerID, err := a.publish(ctx, postiz.PublishInput{
+	providerID, err := a.publish(ctx, socialapi.PublishInput{
 		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets, Replies: input.Job.Replies, ReplyTo: input.Job.ReplyTo, Poll: input.Job.Poll,
 		Caption: input.Job.Caption, DestinationID: input.Job.DestinationID,
 		OrganizationID: input.Job.OrganizationID, Platform: input.Job.Platform,
@@ -212,7 +212,7 @@ func (a *Activities) Submit(ctx context.Context, input SubmitInput) (PublishResu
 		}
 		return PublishResult{Outcome: OutcomePending, ProviderID: providerID}, nil
 	}
-	providerErr := &postiz.Error{}
+	providerErr := &socialapi.Error{}
 	if !errors.As(err, &providerErr) {
 		return PublishResult{FailureCode: "UNKNOWN", Outcome: OutcomeFailed}, nil
 	}
@@ -227,7 +227,7 @@ func (a *Activities) Submit(ctx context.Context, input SubmitInput) (PublishResu
 }
 
 func (a *Activities) Check(ctx context.Context, input CheckInput) (PublishResult, error) {
-	status, err := a.provider.Status(ctx, postiz.StatusInput{
+	status, err := a.provider.Status(ctx, socialapi.StatusInput{
 		PostID: input.ProviderID, SecretReference: input.Job.SecretReference,
 	})
 	if err != nil {
@@ -237,11 +237,11 @@ func (a *Activities) Check(ctx context.Context, input CheckInput) (PublishResult
 	case "PUBLISHED":
 		return PublishResult{Outcome: OutcomePublished, ProviderID: status.ProviderPostID}, nil
 	case "ERROR":
-		return PublishResult{FailureCode: "POSTIZ_ERROR", Outcome: OutcomeFailed}, nil
+		return PublishResult{FailureCode: "SOCIAL_ERROR", Outcome: OutcomeFailed}, nil
 	case "QUEUE":
 		return PublishResult{Outcome: OutcomePending, ProviderID: input.ProviderID}, nil
 	default:
-		return PublishResult{}, fmt.Errorf("unexpected Postiz post state %q", status.State)
+		return PublishResult{}, fmt.Errorf("unexpected social post state %q", status.State)
 	}
 }
 

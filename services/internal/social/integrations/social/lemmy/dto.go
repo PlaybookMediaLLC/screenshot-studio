@@ -86,7 +86,7 @@ var (
 // isURL approximates validator.js isURL with its defaults (http/https/ftp,
 // protocol optional, TLD required, no underscores).
 // ponytail: approximation of validator.js; port its edge cases if a URL is
-// ever accepted/rejected differently from Postiz.
+// ever accepted/rejected differently from the original app.
 func isURL(s string) bool {
 	if s == "" || len(s) >= 2083 || strings.ContainsAny(s, " \t\r\n<>") || strings.HasPrefix(s, "mailto:") || strings.HasPrefix(s, "//") {
 		return false

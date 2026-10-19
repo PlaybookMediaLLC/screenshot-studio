@@ -266,7 +266,7 @@ func (s *Service) SetBetweenRefreshSteps(ctx context.Context, id string) (*ent.I
 	return s.repo.SetBetweenRefreshSteps(ctx, id)
 }
 
-// RefreshTokens refreshes every expiring channel. Like Postiz it stops at the
+// RefreshTokens refreshes every expiring channel. Like the original app it stops at the
 // first channel that fails to refresh.
 func (s *Service) RefreshTokens(ctx context.Context) error {
 	list, err := s.repo.NeedsToBeRefreshed(ctx)

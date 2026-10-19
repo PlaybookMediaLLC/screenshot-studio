@@ -458,7 +458,7 @@
     "name": "postsListTool",
     "id": "postsListTool",
     "mcpOnly": false,
-    "description": "\nList the organization's posts scheduled to be published between two dates (the same data as the \"List Posts\" API endpoint).\nReturns every post in the window whatever its state (scheduled, draft, published, errored).\n\"startDate\" and \"endDate\" are required (UTC) - to list all upcoming posts, pass a wide window (for example from now to a year ahead).\nEach item has an \"id\", its publish date, state, error (for errored posts), content, channel and current provider settings.\nPosts cannot be deleted through the Postiz tools - if the user wants to delete a post, tell them to do it themselves in the Postiz app; never offer to delete a post.\n",
+    "description": "\nList the organization's posts scheduled to be published between two dates (the same data as the \"List Posts\" API endpoint).\nReturns every post in the window whatever its state (scheduled, draft, published, errored).\n\"startDate\" and \"endDate\" are required (UTC) - to list all upcoming posts, pass a wide window (for example from now to a year ahead).\nEach item has an \"id\", its publish date, state, error (for errored posts), content, channel and current provider settings.\nPosts cannot be deleted through these tools - if the user wants to delete a post, tell them to do it themselves in the Shots app; never offer to delete a post.\n",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -935,7 +935,7 @@
     },
     "meta": {
       "ui": {
-        "resourceUri": "ui://postiz/clipping"
+        "resourceUri": "ui://social/clipping"
       }
     }
   },
@@ -1113,14 +1113,14 @@
     "name": "uploadFromUrlTool",
     "id": "uploadFromUrlTool",
     "mcpOnly": false,
-    "description": "Upload a remote image or video into the media library from a public http(s) URL.\nLocal or private files cannot be fetched by this tool: upload them with the Postiz CLI (postiz upload, https://docs.postiz.com/cli/introduction) or the public API (POST /public/v1/upload with an API key, https://docs.postiz.com/public-api/introduction).\nUse this before scheduling a post when the user provides an external media URL (not already hosted on our domain),\nso the attachment passes the upload-domain validation. Returns the hosted media { id, path } to use as an attachment (or as the src of an \u003cimg\u003e in the content, when the channel rules say pictures go inside the content), or { error } on failure.",
+    "description": "Upload a remote image or video into the media library from a public http(s) URL.\nLocal or private files cannot be fetched by this tool: upload them with the public API (POST /public/v1/upload with an API key).\nUse this before scheduling a post when the user provides an external media URL (not already hosted on our domain),\nso the attachment passes the upload-domain validation. Returns the hosted media { id, path } to use as an attachment (or as the src of an \u003cimg\u003e in the content, when the channel rules say pictures go inside the content), or { error } on failure.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "url": {
           "type": "string",
           "format": "uri",
-          "description": "The public http(s) URL of the image or video to upload. Local files and private hosts are not supported, use the Postiz CLI (postiz upload) or POST /public/v1/upload instead"
+          "description": "The public http(s) URL of the image or video to upload. Local files and private hosts are not supported, use POST /public/v1/upload instead"
         }
       },
       "required": [
@@ -1230,7 +1230,7 @@
     "name": "uploadWidgetTool",
     "id": "uploadWidgetTool",
     "mcpOnly": true,
-    "description": "Show the user an upload widget to add images or videos from their own device to the media library.\nUse this when the user wants to attach a local file to a post. When the media is already available on a public URL, use uploadFromUrlTool instead.\nThe widget is only displayed by apps that support MCP Apps (interactive UI); in any other app no widget appears, and local files go through the Postiz CLI (postiz upload, https://docs.postiz.com/cli/introduction) or the public API (POST /public/v1/upload with an API key, https://docs.postiz.com/public-api/introduction). uploadFromUrlTool is only for public URLs.\nReturns a sessionId: the files the user uploads are reported in the conversation, and can also be read with uploadWidgetStatusTool.",
+    "description": "Show the user an upload widget to add images or videos from their own device to the media library.\nUse this when the user wants to attach a local file to a post. When the media is already available on a public URL, use uploadFromUrlTool instead.\nThe widget is only displayed by apps that support MCP Apps (interactive UI); in any other app no widget appears, and local files go through the public API (POST /public/v1/upload with an API key). uploadFromUrlTool is only for public URLs.\nReturns a sessionId: the files the user uploads are reported in the conversation, and can also be read with uploadWidgetStatusTool.",
     "inputSchema": {
       "type": "object",
       "properties": {},
@@ -1257,7 +1257,7 @@
     },
     "meta": {
       "ui": {
-        "resourceUri": "ui://postiz/upload"
+        "resourceUri": "ui://social/upload"
       }
     }
   },

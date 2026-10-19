@@ -52,7 +52,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postiztenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -67,6 +66,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/storepublishingcredential"
@@ -756,12 +756,6 @@ func init() {
 	pageknowledge.DefaultUpdatedAt = pageknowledgeDescUpdatedAt.Default.(func() time.Time)
 	// pageknowledge.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	pageknowledge.UpdateDefaultUpdatedAt = pageknowledgeDescUpdatedAt.UpdateDefault.(func() time.Time)
-	postiztenantbindingFields := schema.PostizTenantBinding{}.Fields()
-	_ = postiztenantbindingFields
-	// postiztenantbindingDescCreatedAt is the schema descriptor for created_at field.
-	postiztenantbindingDescCreatedAt := postiztenantbindingFields[3].Descriptor()
-	// postiztenantbinding.DefaultCreatedAt holds the default value on creation for the created_at field.
-	postiztenantbinding.DefaultCreatedAt = postiztenantbindingDescCreatedAt.Default.(func() time.Time)
 	productprofileFields := schema.ProductProfile{}.Fields()
 	_ = productprofileFields
 	// productprofileDescSummary is the schema descriptor for summary field.
@@ -958,6 +952,12 @@ func init() {
 	socialoauthstartDescCreatedAt := socialoauthstartFields[8].Descriptor()
 	// socialoauthstart.DefaultCreatedAt holds the default value on creation for the created_at field.
 	socialoauthstart.DefaultCreatedAt = socialoauthstartDescCreatedAt.Default.(func() time.Time)
+	socialtenantbindingFields := schema.SocialTenantBinding{}.Fields()
+	_ = socialtenantbindingFields
+	// socialtenantbindingDescCreatedAt is the schema descriptor for created_at field.
+	socialtenantbindingDescCreatedAt := socialtenantbindingFields[3].Descriptor()
+	// socialtenantbinding.DefaultCreatedAt holds the default value on creation for the created_at field.
+	socialtenantbinding.DefaultCreatedAt = socialtenantbindingDescCreatedAt.Default.(func() time.Time)
 	sourceappFields := schema.SourceApp{}.Fields()
 	_ = sourceappFields
 	// sourceappDescProvider is the schema descriptor for provider field.

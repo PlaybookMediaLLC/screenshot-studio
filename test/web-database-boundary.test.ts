@@ -73,7 +73,7 @@ test('the backend SDK is the only web transport for product and social state', (
   const offenders = runtimeFiles()
     .filter((file) => relative(ROOT, file) !== 'lib/backend/sdk.ts')
     .filter((file) =>
-      /process\.env\.(PUBLISHING_API_URL|POSTIZ_API_URL)\b|\/integrations\/social-connect\//.test(
+      /process\.env\.(PUBLISHING_API_URL|SOCIAL_API_URL)\b|\/integrations\/social-connect\//.test(
         readFileSync(file, 'utf8')
       )
     )

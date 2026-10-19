@@ -11,14 +11,14 @@ import (
 func TestSecretReferenceValidation(t *testing.T) {
 	t.Parallel()
 	tests := map[string]bool{
-		"POSTIZ_API_KEY":             true,
-		"POSTIZ_API_KEY_CUSTOMER_12": true,
-		"POSTIZ_OAUTH_TOKEN":         true,
-		"POSTIZ_OAUTH_TOKEN_TEAM":    true,
-		"POSTIZ_API_KEY_":            false,
-		"POSTIZ_api_key":             false,
+		"SOCIAL_API_KEY":             true,
+		"SOCIAL_API_KEY_CUSTOMER_12": true,
+		"SOCIAL_OAUTH_TOKEN":         true,
+		"SOCIAL_OAUTH_TOKEN_TEAM":    true,
+		"SOCIAL_API_KEY_":            false,
+		"SOCIAL_api_key":             false,
 		"DATABASE_URL":               false,
-		"POSTIZ_OTHER":               false,
+		"SOCIAL_OTHER":               false,
 	}
 	for value, expected := range tests {
 		if actual := IsSecretReference(value); actual != expected {

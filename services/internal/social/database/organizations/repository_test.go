@@ -173,7 +173,7 @@ func TestTeamMembers(t *testing.T) {
 
 	client.Subscription.UpdateOne(sub).SetSubscriptionTier(subscription.SubscriptionTierTEAM).ExecX(ctx)
 	loaded, _ = repo.GetOrgByIDWithSubscription(ctx, org.ID)
-	if _, err := service.AddTeamMemberByEmail(ctx, loaded, &settings.AdminAddTeamMemberDto{Email: ptr("nobody@x.io"), Role: ptr("USER")}); !isHTTP(err, "No Postiz account found for this email") {
+	if _, err := service.AddTeamMemberByEmail(ctx, loaded, &settings.AdminAddTeamMemberDto{Email: ptr("nobody@x.io"), Role: ptr("USER")}); !isHTTP(err, "No Shots account found for this email") {
 		t.Fatalf("got %v", err)
 	}
 	if res, err := service.AddTeamMemberByEmail(ctx, loaded, &settings.AdminAddTeamMemberDto{Email: ptr("invitee@x.io"), Role: ptr("ADMIN")}); err != nil || !res.Added {

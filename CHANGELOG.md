@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.23.0...v2.24.0) (2026-10-19)
+
+
+### Features
+
+* **notifications:** add workspace activity inbox and delivery ([#206](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/206)) ([d51ef76](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/d51ef7629e60c444138e52f318a5925fc055944c))
+
 ## [2.23.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.22.0...v2.23.0) (2026-10-19)
 
 

@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -473,12 +474,22 @@ func (s *Service) slackAPI(ctx context.Context, token, method string, payload ma
 	if err != nil {
 		return nil, err
 	}
+	contentType := "application/json; charset=utf-8"
+	if readOnly {
+		// Slack ignores JSON request bodies on its read endpoints.
+		form := url.Values{}
+		for key, value := range payload {
+			form.Set(key, fmt.Sprint(value))
+		}
+		raw = []byte(form.Encode())
+		contentType = "application/x-www-form-urlencoded"
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(s.SlackBase, "/")+"/api/"+method, bytes.NewReader(raw))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("Content-Type", contentType)
 	response, err := s.HTTP.Do(req)
 	if err != nil {
 		return nil, &slackError{Code: "transport_uncertain", Uncertain: !readOnly}

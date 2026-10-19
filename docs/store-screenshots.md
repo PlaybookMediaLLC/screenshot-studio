@@ -1,9 +1,15 @@
 # Store screenshot studio
 
-The studio at `/store-screenshots` builds App Store and Google Play
-screenshot sets: compose slides, localize them, check them against store
+Open **Editor → App Store Screenshots** in the main editor sidebar
+(`/?editor=app-store`). The standalone `/store-screenshots` route also remains available.
+The studio builds App Store and Google Play screenshot sets: compose slides, localize them, check them against store
 rules, export every size, share them for review, and upload them to App
 Store Connect or a Google Play edit.
+
+Switching editor sections retains each document, selection, and undo history.
+Screenshot projects use the existing cloud project flow; App Store projects save
+in this browser. The URL keeps their IDs separate (`project` and `storeProject`).
+On smaller screens, Tools and Inspector open in drawers.
 
 Editing runs in the browser. The server holds review links, comments,
 publishing credentials, and the AI and provider calls.

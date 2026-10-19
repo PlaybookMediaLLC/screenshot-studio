@@ -2,6 +2,7 @@
 
 import {
   Activity01Icon,
+  ArrowDown01Icon,
   Album02Icon,
   Folder01Icon,
   Link01Icon,
@@ -17,24 +18,60 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { type ComponentType, useState } from 'react'
 import { AccountMenu } from '@/components/auth/AccountMenu'
+import { Collapsible } from 'radix-ui'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Building2,
+  UserRound,
+  Users,
+  ShieldCheck,
+  CreditCard,
+  LockKeyhole,
+  KeyRound,
+  ScrollText,
+  Palette,
+  Plug,
+  Bot,
+  Link2,
+  Package,
+  PanelsTopLeft,
+  Share2,
+  Code2,
+} from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useHydratedSession } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
-import { SETTINGS_SECTIONS, settingsHref } from '@/components/workspace/settings-sections'
+import {
+  SETTINGS_SECTIONS,
+  settingsHref,
+  type SettingId,
+} from '@/components/workspace/settings-sections'
 import { workspaceInitials } from '@/lib/workspace/initials'
 import { surface } from './shell-config'
+import { EditorNavigation } from './EditorNavigation'
 
 type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
-type SubItem = { href: string; label: string }
+type SubItem = { href: string; icon: IconComponent; label: string }
 type NavItem = { children?: SubItem[]; href: string; icon: IconComponent; label: string }
+
+const SETTINGS_ICONS: Record<SettingId, IconComponent> = {
+  general: Building2,
+  profile: UserRound,
+  members: Users,
+  roles: ShieldCheck,
+  billing: CreditCard,
+  security: LockKeyhole,
+  sso: KeyRound,
+  audit: ScrollText,
+  brand: Palette,
+  integrations: Plug,
+  agents: Bot,
+  sharing: Link2,
+  product: Package,
+  surfaces: PanelsTopLeft,
+  channels: Share2,
+  api: Code2,
+}
 
 const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
   {
@@ -54,6 +91,7 @@ const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
       {
         children: SETTINGS_SECTIONS.map((section) => ({
           href: settingsHref(section),
+          icon: SETTINGS_ICONS[section.id],
           label: section.title,
         })),
         href: '/workspace',
@@ -86,12 +124,14 @@ function WorkspaceBadge({ name }: { name: string }) {
   )
 }
 
-/** Polar-style sub-links under the current section, on a hairline rail. */
+/** Section links expand inside the rail or underneath the labeled mobile row. */
 function SubNav({
+  collapsed,
   items,
   label,
   onNavigate,
 }: {
+  collapsed: boolean
   items: SubItem[]
   label: string
   onNavigate?: () => void
@@ -100,23 +140,42 @@ function SubNav({
   return (
     <nav
       aria-label={`Workspace ${label.toLowerCase()}`}
-      className="my-1.5 ml-[17px] flex flex-col gap-0.5 border-l border-white/[0.08] pl-3"
+      className={
+        collapsed
+          ? 'mt-1 grid gap-0.5 border-y border-white/[0.06] py-1'
+          : 'my-1.5 ml-[17px] flex flex-col gap-0.5 border-l border-white/[0.08] pl-3'
+      }
     >
-      {items.map((item) => {
-        const active = path === item.href
-        return (
+      {items.map(({ href, label: itemLabel, icon: Icon }) => {
+        const active = path === href
+        const link = (
           <Link
+            href={href}
             aria-current={active ? 'page' : undefined}
+            aria-label={collapsed ? itemLabel : undefined}
             className={cn(
-              'rounded-md py-1 text-sm font-medium transition-colors',
-              active ? 'text-white' : 'text-neutral-500 hover:text-neutral-200'
+              'rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              collapsed
+                ? cn(
+                    'grid size-8 place-items-center rounded-lg border',
+                    active
+                      ? cn(surface.panel, surface.border, 'text-white shadow-xs')
+                      : 'border-transparent text-neutral-500 hover:text-neutral-200'
+                  )
+                : cn('block py-1', active ? 'text-white' : 'text-[#858585] hover:text-neutral-200')
             )}
-            href={item.href}
-            key={item.href}
             onClick={onNavigate}
           >
-            {item.label}
+            {collapsed ? <Icon className="shrink-0" size={14} strokeWidth={1.8} /> : itemLabel}
           </Link>
+        )
+        return collapsed ? (
+          <Tooltip key={href}>
+            <TooltipTrigger asChild>{link}</TooltipTrigger>
+            <TooltipContent side="right">{itemLabel}</TooltipContent>
+          </Tooltip>
+        ) : (
+          <div key={href}>{link}</div>
         )
       })}
     </nav>
@@ -132,20 +191,58 @@ function NavLink({
   item: NavItem
   onNavigate?: () => void
 }) {
-  const active = isActive(usePathname(), href)
+  const pathname = usePathname()
+  const active = isActive(pathname, href)
+  const rowClassName = cn(
+    'flex h-8 items-center gap-2.5 rounded-lg border px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+    active
+      ? cn(surface.panel, surface.border, 'text-white shadow-xs')
+      : 'border-transparent text-[#858585] hover:text-neutral-200',
+    collapsed && 'size-8 justify-center px-0'
+  )
+  if (children) {
+    const trigger = (
+      <Collapsible.Trigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          data-keep-selection
+          className={cn(rowClassName, 'group cursor-pointer', !collapsed && 'w-full')}
+        >
+          <Icon className="shrink-0" size={16} strokeWidth={1.8} />
+          {collapsed ? null : (
+            <>
+              <span className="truncate">{label}</span>
+              <ArrowDown01Icon
+                className="ml-auto shrink-0 transition-transform group-data-[state=closed]:-rotate-90"
+                size={14}
+              />
+            </>
+          )}
+        </button>
+      </Collapsible.Trigger>
+    )
+    return (
+      <Collapsible.Root defaultOpen={active} key={pathname}>
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+            <TooltipContent side="right">{label}</TooltipContent>
+          </Tooltip>
+        ) : (
+          trigger
+        )}
+        <Collapsible.Content>
+          <SubNav collapsed={collapsed} items={children} label={label} onNavigate={onNavigate} />
+        </Collapsible.Content>
+      </Collapsible.Root>
+    )
+  }
   const link = (
     <Link
       aria-current={active ? 'page' : undefined}
       aria-label={collapsed ? label : undefined}
-      className={cn(
-        // Polar-style: quiet text that brightens on hover, and a raised pill
-        // one surface lighter for the current page instead of an accent color.
-        'flex h-8 items-center gap-2.5 rounded-lg border px-2 text-sm font-medium transition-colors',
-        active
-          ? cn(surface.panel, surface.border, 'text-white shadow-xs')
-          : 'border-transparent text-neutral-500 hover:text-neutral-200',
-        collapsed && 'size-8 justify-center px-0'
-      )}
+      className={rowClassName}
       href={href}
       onClick={onNavigate}
     >
@@ -153,52 +250,13 @@ function NavLink({
       {collapsed ? null : <span className="truncate">{label}</span>}
     </Link>
   )
-  if (!collapsed) {
-    return active && children ? (
-      <div>
-        {link}
-        <SubNav items={children} label={label} onNavigate={onNavigate} />
-      </div>
-    ) : (
-      link
-    )
-  }
-  if (children) {
-    // The rail has no room for sub-links, so they open beside it.
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            aria-label={label}
-            className={cn(
-              'grid size-8 cursor-pointer place-items-center rounded-lg border transition-colors',
-              active
-                ? cn(surface.panel, surface.border, 'text-white shadow-xs')
-                : 'border-transparent text-neutral-500 hover:text-neutral-200 data-[state=open]:text-neutral-200'
-            )}
-            type="button"
-          >
-            <Icon className="shrink-0" size={16} strokeWidth={1.8} />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-52" side="right" sideOffset={10}>
-          <DropdownMenuLabel className="text-xs text-muted-foreground">{label}</DropdownMenuLabel>
-          {children.map((child) => (
-            <DropdownMenuItem asChild key={child.href}>
-              <Link href={child.href} onClick={onNavigate}>
-                {child.label}
-              </Link>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    )
-  }
-  return (
+  return collapsed ? (
     <Tooltip>
       <TooltipTrigger asChild>{link}</TooltipTrigger>
       <TooltipContent side="right">{label}</TooltipContent>
     </Tooltip>
+  ) : (
+    link
   )
 }
 
@@ -223,9 +281,18 @@ function Navigation({
           {group.items
             .filter((item) => campaignsEnabled || item.href !== '/campaigns')
             .filter((item) => draftsEnabled || item.href !== '/drafts')
-            .map((item) => (
-              <NavLink collapsed={collapsed} item={item} key={item.href} onNavigate={onNavigate} />
-            ))}
+            .map((item) =>
+              item.href === '/' ? (
+                <EditorNavigation collapsed={collapsed} key={item.href} onNavigate={onNavigate} />
+              ) : (
+                <NavLink
+                  collapsed={collapsed}
+                  item={item}
+                  key={item.href}
+                  onNavigate={onNavigate}
+                />
+              )
+            )}
         </div>
       ))}
     </nav>
@@ -291,8 +358,8 @@ export interface PlatformSidebarProps {
 }
 
 /**
- * Desktop: a fixed icon rail that never expands; labels show as tooltips and
- * Settings opens its sections beside the rail. Mobile: a full drawer.
+ * Desktop: section icons expand inside the fixed rail, with labels in tooltips.
+ * Mobile: a full drawer with collapsible section links.
  */
 export function PlatformSidebar({
   campaignsEnabled,
@@ -300,7 +367,7 @@ export function PlatformSidebar({
   organizationName = 'Workspace',
   variant,
 }: PlatformSidebarProps) {
-  // The editor header holds the account menu and the mobile chrome.
+  // The editor header already holds its account menu.
   const isPage = variant === 'page'
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -314,7 +381,7 @@ export function PlatformSidebar({
       >
         <Brand collapsed />
 
-        <div className="mt-5 flex-1">
+        <div className="mt-5 min-h-0 flex-1 overflow-y-auto px-1 [scrollbar-width:none]">
           <Navigation campaignsEnabled={campaignsEnabled} collapsed draftsEnabled={draftsEnabled} />
         </div>
 
@@ -332,52 +399,50 @@ export function PlatformSidebar({
         ) : null}
       </aside>
 
-      {isPage ? (
-        <header
-          className={cn(
-            'sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-white/[0.06] px-4 md:hidden',
-            surface.base
-          )}
-        >
-          <Sheet onOpenChange={setMobileOpen} open={mobileOpen}>
-            <SheetTrigger asChild>
-              <button
-                aria-label="Open navigation"
-                className="grid size-9 place-items-center rounded-lg text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-100"
-                type="button"
-              >
-                <Menu01Icon size={18} strokeWidth={1.8} />
-              </button>
-            </SheetTrigger>
-            <SheetContent
-              className={cn('w-72 gap-0 border-white/[0.06] p-3', surface.base)}
-              side="left"
+      <header
+        className={cn(
+          'sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-white/[0.06] px-4 md:hidden',
+          surface.base
+        )}
+      >
+        <Sheet onOpenChange={setMobileOpen} open={mobileOpen}>
+          <SheetTrigger asChild>
+            <button
+              aria-label="Open navigation"
+              className="grid size-9 place-items-center rounded-lg text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-100"
+              type="button"
             >
-              <SheetTitle className="sr-only">Navigation</SheetTitle>
-              <div className="px-2 py-1">
-                <Brand collapsed={false} />
-              </div>
-              <div className="mt-6 flex-1">
-                <Navigation
-                  campaignsEnabled={campaignsEnabled}
-                  collapsed={false}
-                  draftsEnabled={draftsEnabled}
-                  onNavigate={() => setMobileOpen(false)}
-                />
-              </div>
-              <div
-                className={cn(
-                  'border-t border-white/[0.06] pt-2',
-                  process.env.NODE_ENV === 'development' && 'mb-12'
-                )}
-              >
-                <WorkspaceSwitcher collapsed={false} organizationName={organizationName} />
-              </div>
-            </SheetContent>
-          </Sheet>
-          <Brand collapsed={false} />
-        </header>
-      ) : null}
+              <Menu01Icon size={18} strokeWidth={1.8} />
+            </button>
+          </SheetTrigger>
+          <SheetContent
+            className={cn('w-72 gap-0 border-white/[0.06] p-3', surface.base)}
+            side="left"
+          >
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <div className="px-2 py-1">
+              <Brand collapsed={false} />
+            </div>
+            <div className="mt-6 min-h-0 flex-1 overflow-y-auto">
+              <Navigation
+                campaignsEnabled={campaignsEnabled}
+                collapsed={false}
+                draftsEnabled={draftsEnabled}
+                onNavigate={() => setMobileOpen(false)}
+              />
+            </div>
+            <div
+              className={cn(
+                'border-t border-white/[0.06] pt-2',
+                process.env.NODE_ENV === 'development' && 'mb-12'
+              )}
+            >
+              <WorkspaceSwitcher collapsed={false} organizationName={organizationName} />
+            </div>
+          </SheetContent>
+        </Sheet>
+        <Brand collapsed={false} />
+      </header>
     </>
   )
 }

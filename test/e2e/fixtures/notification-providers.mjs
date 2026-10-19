@@ -58,12 +58,8 @@ const server = createServer(async (request, response) => {
       if (url.pathname === '/api/auth.test')
         return json({ ok: true, team_id: 'T012345', user_id: 'U012345' })
       if (url.pathname === '/api/conversations.list') {
-        const cursor =
-          (request.headers['content-type']?.includes('json')
-            ? JSON.parse(raw).cursor
-            : form.get('cursor')) ??
-          url.searchParams.get('cursor') ??
-          ''
+        assert.equal(request.headers['content-type'], 'application/x-www-form-urlencoded')
+        const cursor = form.get('cursor') ?? url.searchParams.get('cursor') ?? ''
         sink.channelPages.push(cursor)
         return json({
           ok: true,
@@ -71,7 +67,11 @@ const server = createServer(async (request, response) => {
           response_metadata: { next_cursor: cursor ? '' : 'page-two' },
         })
       }
-      if (url.pathname === '/api/conversations.info') return json({ ok: true, channel })
+      if (url.pathname === '/api/conversations.info') {
+        if (form.get('channel') !== channel.id)
+          return json({ ok: false, error: 'invalid_arguments' })
+        return json({ ok: true, channel })
+      }
       if (url.pathname === '/api/chat.postMessage') {
         const body = request.headers['content-type']?.includes('json')
           ? JSON.parse(raw)

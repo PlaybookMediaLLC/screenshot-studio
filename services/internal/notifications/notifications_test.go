@@ -111,6 +111,41 @@ func TestSlackResponseAndSafeFallback(t *testing.T) {
 		})
 	}
 }
+func TestSlackReadRequestParameters(t *testing.T) {
+	for _, tc := range []struct {
+		method  string
+		payload map[string]any
+		want    map[string]string
+	}{
+		{"auth.test", map[string]any{}, map[string]string{}},
+		{"conversations.info", map[string]any{"channel": "C123"}, map[string]string{"channel": "C123"}},
+		{"conversations.list", map[string]any{"cursor": "page+two/=", "limit": 200, "exclude_archived": true, "types": "public_channel,private_channel"}, map[string]string{"cursor": "page+two/=", "limit": "200", "exclude_archived": "true", "types": "public_channel,private_channel"}},
+		{"chat.getPermalink", map[string]any{"channel": "C123", "message_ts": "123.456"}, map[string]string{"channel": "C123", "message_ts": "123.456"}},
+	} {
+		t.Run(tc.method, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Slack ignores JSON bodies on these read endpoints.
+				if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" || r.ParseForm() != nil {
+					t.Error("read request did not use form encoding")
+					_, _ = w.Write([]byte(`{"ok":false,"error":"invalid_arguments"}`))
+					return
+				}
+				for key, want := range tc.want {
+					if got := r.PostForm.Get(key); got != want {
+						t.Errorf("%s = %q, want %q", key, got, want)
+					}
+				}
+				_, _ = w.Write([]byte(`{"ok":true}`))
+			}))
+			defer server.Close()
+			s := &Service{HTTP: server.Client(), SlackBase: server.URL}
+			if _, err := s.slackAPI(context.Background(), "fixture-token", tc.method, tc.payload); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 func TestEmailIdempotencyAndUncertainAcceptance(t *testing.T) {
 	t.Setenv("RESEND_API_KEY", "fixture-key")
 	t.Setenv("AUTH_EMAIL_FROM", "Workspace <sender@example.test>")

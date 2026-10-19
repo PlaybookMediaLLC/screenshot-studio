@@ -38,20 +38,19 @@ function useAssetUrls(assets: Record<string, StoreAsset>, loadAsset: (id: string
   const [urls, setUrls] = React.useState<ReadonlyMap<string, string>>(() => new Map())
   const pendingRef = React.useRef(new Map<string, Promise<void>>())
   const urlsRef = React.useRef(urls)
-
-  React.useEffect(() => {
-    urlsRef.current = urls
-  }, [urls])
+  const generationRef = React.useRef(0)
 
   const load = React.useCallback(
     (id: string): Promise<void> => {
       const existing = pendingRef.current.get(id)
       if (existing) return existing
+      const generation = generationRef.current
       const promise = loadAsset(id)
         .then((blob) => {
-          if (!blob) return
+          if (!blob || generation !== generationRef.current) return
           const url = URL.createObjectURL(blob)
-          setUrls((previous) => new Map(previous).set(id, url))
+          urlsRef.current = new Map(urlsRef.current).set(id, url)
+          setUrls(urlsRef.current)
         })
         .catch(() => undefined)
       pendingRef.current.set(id, promise)
@@ -68,8 +67,12 @@ function useAssetUrls(assets: Record<string, StoreAsset>, loadAsset: (id: string
 
   React.useEffect(
     () => () => {
-      // ponytail: URLs of assets removed mid-session live until unmount; revoke per asset if sessions get long.
+      // Activity cleans up effects while preserving state; reload revoked URLs on return.
+      generationRef.current += 1
       for (const url of urlsRef.current.values()) URL.revokeObjectURL(url)
+      urlsRef.current = new Map()
+      pendingRef.current.clear()
+      setUrls(urlsRef.current)
     },
     []
   )

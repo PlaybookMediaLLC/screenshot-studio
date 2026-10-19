@@ -57,6 +57,7 @@ export function ImportDialog({ open, onOpenChange, initialFiles }: DialogProps &
   const [dragOver, setDragOver] = React.useState(false)
   const abortRef = React.useRef<AbortController | null>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const consumedFilesRef = React.useRef<File[] | null>(null)
   const onlySamples = document.slides.every((slide) => slide.layers.every((layer) => layer.type !== 'device' || !layer.assetId || layer.assetId.startsWith('public:')))
   const replacing = onlySamples && replaceSamples
   const room = MAX_PROJECT_SLIDES - (replacing ? 0 : document.slides.length)
@@ -69,7 +70,9 @@ export function ImportDialog({ open, onOpenChange, initialFiles }: DialogProps &
   }, [])
 
   React.useEffect(() => {
-    if (open && initialFiles.length) void addFiles(initialFiles)
+    if (!open || !initialFiles.length || consumedFilesRef.current === initialFiles) return
+    consumedFilesRef.current = initialFiles
+    void addFiles(initialFiles)
   }, [open, initialFiles, addFiles])
 
   React.useEffect(() => {

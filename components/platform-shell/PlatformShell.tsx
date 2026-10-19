@@ -32,7 +32,7 @@ export function PlatformShell({
   variant = 'page',
 }: PlatformShellProps) {
   return (
-    <div className={cn('flex min-h-screen flex-col text-foreground md:flex-row', surface.base)}>
+    <div className={cn('flex min-h-screen flex-col text-foreground md:flex-row', variant === 'editor' && '[--editor-height:calc(100dvh-3.5rem)] md:[--editor-height:100dvh]', surface.base)}>
       <PlatformSidebar
         campaignsEnabled={campaignsEnabled}
         draftsEnabled={contentDraftsEnabled()}

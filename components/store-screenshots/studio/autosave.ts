@@ -6,6 +6,7 @@ import type { StoreApi } from 'zustand/vanilla'
 import { domToJpeg } from 'modern-screenshot'
 import type { StoreDocument } from '@/lib/store-screenshots/document/schema'
 import {
+  deleteProject,
   forceSaveProject,
   loadProject,
   onProjectSaved,
@@ -38,7 +39,8 @@ async function captureThumbnail(): Promise<string | null> {
 export function useAutosave(store: StoreApi<EditorState>, initialRevision: number) {
   const baseRevisionRef = React.useRef(initialRevision)
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  const chainRef = React.useRef<Promise<void>>(Promise.resolve())
+  const chainRef = React.useRef<Promise<boolean>>(Promise.resolve(true))
+  const stoppedRef = React.useRef(false)
   const pendingRef = React.useRef<StoreDocument | null>(null)
   const thumbnailRef = React.useRef<{ at: number; value: string | null }>({ at: 0, value: null })
   const errorShownRef = React.useRef(false)
@@ -50,7 +52,8 @@ export function useAutosave(store: StoreApi<EditorState>, initialRevision: numbe
   }, [])
 
   const runSave = React.useCallback(
-    (force = false): Promise<void> => {
+    (force = false): Promise<boolean> => {
+      if (stoppedRef.current) return Promise.resolve(false)
       if (timerRef.current) {
         clearTimeout(timerRef.current)
         timerRef.current = null
@@ -59,6 +62,11 @@ export function useAutosave(store: StoreApi<EditorState>, initialRevision: numbe
       if (!document) return chainRef.current
       pendingRef.current = null
       const run = async () => {
+        if (stoppedRef.current) return false
+        if (!force && store.getState().saveStatus === 'conflict') {
+          pendingRef.current ??= document
+          return false
+        }
         store.getState().setSaveStatus('saving')
         const now = Date.now()
         if (now - thumbnailRef.current.at > THUMBNAIL_INTERVAL_MS) {
@@ -71,11 +79,12 @@ export function useAutosave(store: StoreApi<EditorState>, initialRevision: numbe
           baseRevisionRef.current = saved.revision
           errorShownRef.current = false
           store.getState().setSaveStatus(pendingRef.current ? 'pending' : 'saved')
+          return true
         } catch (cause) {
           if (cause instanceof ProjectConflictError) {
             pendingRef.current = pendingRef.current ?? document
             store.getState().setSaveStatus('conflict')
-            return
+            return false
           }
           pendingRef.current = pendingRef.current ?? document
           store.getState().setSaveStatus('error')
@@ -83,6 +92,7 @@ export function useAutosave(store: StoreApi<EditorState>, initialRevision: numbe
             errorShownRef.current = true
             toast.error('Could not save this project', { description: 'Your changes are still open. Free some browser storage and try again.' })
           }
+          return false
         }
       }
       chainRef.current = chainRef.current.then(run, run)
@@ -94,6 +104,7 @@ export function useAutosave(store: StoreApi<EditorState>, initialRevision: numbe
   React.useEffect(() => {
     let previous = store.getState().document
     return store.subscribe((state) => {
+      if (stoppedRef.current) return
       if (state.document === previous) return
       previous = state.document
       pendingRef.current = state.document
@@ -146,9 +157,28 @@ export function useAutosave(store: StoreApi<EditorState>, initialRevision: numbe
   )
 
   return {
-    saveNow: () => {
+    saveNow: async () => {
       pendingRef.current = pendingRef.current ?? store.getState().document
-      return runSave()
+      while (pendingRef.current) {
+        if (!(await runSave())) return false
+      }
+      return chainRef.current
+    },
+    /** Stop queued saves before deleting so cleanup cannot recreate the project. */
+    deleteCurrent: async () => {
+      stoppedRef.current = true
+      discardPending()
+      await chainRef.current
+      try {
+        await deleteProject(store.getState().document.id)
+        return true
+      } catch {
+        stoppedRef.current = false
+        pendingRef.current = store.getState().document
+        store.getState().setSaveStatus('error')
+        toast.error('Could not delete this project', { description: 'Your project is still open. Try again.' })
+        return false
+      }
     },
     /** Keep this tab's copy and overwrite the other tab's save. */
     keepMine: () => {

@@ -238,7 +238,7 @@ func (s *Service) recipients(ctx context.Context, e occurrence, d activity.Defin
 		if e.resourceType == "release" {
 			releaseID = e.resourceID
 		}
-		if releaseID != "" {
+		if releaseID != "" && (e.resourceType == "release" || e.resourceType == "source_change") {
 			rows, err := s.DB.QueryContext(ctx, `SELECT "createdByUserId" FROM campaign WHERE "releaseId"=$1 AND "organizationId"=$2 AND "createdByUserId" IS NOT NULL`, releaseID, e.org)
 			if err != nil {
 				return nil, err

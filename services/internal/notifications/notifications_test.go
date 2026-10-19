@@ -241,6 +241,41 @@ func (f fixture) event(t *testing.T, kind, actor string) string {
 	}
 	return id
 }
+
+func TestCampaignReviewRecipientsDoNotExpandAcrossRelease(t *testing.T) {
+	f := notificationFixture(t)
+	ctx := context.Background()
+	t.Setenv("RESEND_API_KEY", "fixture")
+	releaseID := "release_" + f.campaign
+	execFixture(t, f, `INSERT INTO release(id,"organizationId",title,"benefitStatement","updatedAt") VALUES($1,$2,'Release','Benefit',now())`, releaseID, f.owner.OrganizationID)
+	execFixture(t, f, `UPDATE campaign SET "releaseId"=$2 WHERE id=$1`, f.campaign, releaseID)
+	execFixture(t, f, `INSERT INTO campaign(id,"organizationId",name,objective,"createdByUserId","releaseId","updatedAt") VALUES($1,$2,'Other campaign','Test',$3,$4,now())`, "other_"+f.campaign, f.owner.OrganizationID, f.creator.UserID, releaseID)
+	event := f.event(t, "campaign_posts.decided", "")
+	sends := 0
+	f.s.Send = func(_ context.Context, d Delivery, _ Envelope) (Outcome, error) {
+		sends++
+		if d.Destination != f.owner.UserID {
+			t.Error("review email reached another campaign's creator")
+		}
+		return Outcome{Status: "SUCCEEDED"}, nil
+	}
+	if err := f.s.Process(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var deliveries, foreign int
+	if err := f.s.DB.QueryRow(`SELECT count(*),count(*) FILTER (WHERE destination<>$2) FROM platform_notification_delivery WHERE event_id=$1`, event, f.owner.UserID).Scan(&deliveries, &foreign); err != nil {
+		t.Fatal(err)
+	}
+	if sends != 1 || deliveries != 2 || foreign != 0 {
+		t.Fatalf("review sends=%d deliveries=%d foreign=%d", sends, deliveries, foreign)
+	}
+	def, _ := activity.Lookup("release.ingested")
+	recipients, err := f.s.recipients(ctx, occurrence{org: f.owner.OrganizationID, kind: def.ID, resourceType: "release", resourceID: releaseID}, def)
+	if err != nil || len(recipients) != 2 {
+		t.Fatalf("release activity lost its campaign creators: %v %v", recipients, err)
+	}
+}
+
 func TestInboxIsolationAcknowledgmentReplayAndMarkAll(t *testing.T) {
 	f := notificationFixture(t)
 	ctx := context.Background()

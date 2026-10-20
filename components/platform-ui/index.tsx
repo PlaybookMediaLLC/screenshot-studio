@@ -8,14 +8,14 @@ import { cn } from '@/lib/utils'
  * empty state. Fork-owned so upstream editor files stay untouched.
  */
 
-const PAGE_WIDTH = { md: 'max-w-3xl', sm: 'max-w-2xl', xl: 'max-w-7xl' } as const
+const PAGE_WIDTH = { md: 'max-w-3xl', sm: 'max-w-2xl', full: 'max-w-none' } as const
 
 export function Page({
   actions,
   children,
   description,
   title,
-  width = 'xl',
+  width = 'full',
 }: {
   actions?: ReactNode
   children: ReactNode

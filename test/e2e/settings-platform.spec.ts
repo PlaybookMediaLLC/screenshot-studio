@@ -61,6 +61,18 @@ test('personal settings are addressable, saved on the server and survive a reloa
   await page.getByRole('radio', { name: /^Sunday/ }).check()
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
 
+  // A save the server refuses never reads as saved: the choice goes back.
+  await page.route('**/api/v1/me/preferences', (route) =>
+    route.request().method() === 'PATCH'
+      ? route.fulfill({ body: '{"error":"Refused for the test."}', status: 500 })
+      : route.continue()
+  )
+  await page.getByRole('radio', { name: /^Dark/ }).check()
+  await expect(page.getByRole('status').filter({ hasText: 'Not saved' }).first()).toBeVisible()
+  await expect(page.getByRole('radio', { name: /^Light/ })).toBeChecked()
+  await expect(page.locator('html')).toHaveClass(/\blight\b/)
+  await page.unroute('**/api/v1/me/preferences')
+
   // Each section is its own address, so back and forward move between them.
   await openWorkspaceSetting(page, 'Notifications')
   await page.goBack()
@@ -78,10 +90,14 @@ test('personal settings are addressable, saved on the server and survive a reloa
 
   await openWorkspaceSetting(page, 'Account')
   await page.getByLabel('Search display time zone').fill('Tokyo')
-  await page.getByLabel('Display time zone', { exact: true }).selectOption('Asia/Tokyo')
+  await page
+    .getByRole('combobox', { exact: true, name: 'Display time zone' })
+    .selectOption('Asia/Tokyo')
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
   await page.reload()
-  await expect(page.getByLabel('Display time zone', { exact: true })).toHaveValue('Asia/Tokyo')
+  await expect(page.getByRole('combobox', { exact: true, name: 'Display time zone' })).toHaveValue(
+    'Asia/Tokyo'
+  )
 
   // The registry says what each experiment is, and promoted or unavailable
   // ones cannot be switched.
@@ -99,7 +115,7 @@ test('a webhook secret shows once, and private addresses are refused', async ({
   page,
 }) => {
   await signUpAndCreateWorkspace(identity, page)
-  await openWorkspaceSetting(page, 'API')
+  await openWorkspaceSetting(page, 'Developer API')
   await page.getByRole('button', { name: 'Add webhook' }).click()
   await page.getByPlaceholder('Zapier').fill('Refused')
   await page.getByPlaceholder('https://example.com/hooks/shots').fill('https://localhost/hook')
@@ -150,7 +166,9 @@ test('social sets keep their own names, schedules and settings beside the compos
     await page.goto(`/workspace/social-sets/${setId}/scheduling`)
     await expect(page.getByTestId('weekly-slot-count')).toHaveText('5 weekly posting slots')
     await page.getByLabel('Search scheduling time zone').fill('Paris')
-    await page.getByLabel('Scheduling time zone', { exact: true }).selectOption('Europe/Paris')
+    await page
+      .getByRole('combobox', { exact: true, name: 'Scheduling time zone' })
+      .selectOption('Europe/Paris')
     await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
     await page.getByLabel('Time to add').selectOption('13:00')
     await page.getByRole('button', { name: 'Add time' }).click()
@@ -158,15 +176,20 @@ test('social sets keep their own names, schedules and settings beside the compos
     await expect.poll(() => slotCount(setId)).toBe(10)
     await page.reload()
     await expect(page.getByTestId('weekly-slot-count')).toHaveText('10 weekly posting slots')
-    await expect(page.getByLabel('Scheduling time zone', { exact: true })).toHaveValue(
-      'Europe/Paris'
-    )
+    await expect(
+      page.getByRole('combobox', { exact: true, name: 'Scheduling time zone' })
+    ).toHaveValue('Europe/Paris')
 
-    // Settings open beside a draft without losing what was typed.
+    // Settings open beside a draft without losing what was typed, and the
+    // editor runs text in the direction Appearance chose.
+    await page.goto('/workspace/appearance')
+    await page.getByRole('radio', { name: /^Right to left/ }).check()
+    await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
     await openNewDraft(page)
+    await expect(draftEditor(page)).toHaveAttribute('dir', 'rtl')
     await draftEditor(page).click()
     await page.keyboard.type('Unsaved thought stays put')
-    await page.getByRole('button', { exact: true, name: 'Settings' }).click()
+    await page.getByRole('button', { name: /^Settings for / }).click()
     await expect(page).toHaveURL(/[?&]settings=scheduling/)
     await expect(page.getByRole('dialog')).toContainText('weekly posting slots')
     await page.goBack()
@@ -202,7 +225,11 @@ test('a public profile is served only while it is turned on', async ({
       const anonymous = await visitor.newPage()
       const shown = await anonymous.goto(path)
       expect(shown?.status()).toBe(200)
-      await expect(anonymous.getByText('@shots_x')).toBeVisible()
+      // The default set is named after the workspace; only public identity shows.
+      await expect(
+        anonymous.getByRole('heading', { level: 1, name: identity.workspaceName })
+      ).toBeVisible()
+      await expect(anonymous.getByRole('listitem').filter({ hasText: 'linkedin' })).toBeVisible()
 
       await toggle.click()
       await expect(toggle).not.toBeChecked()

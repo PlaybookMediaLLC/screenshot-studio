@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { format } from 'date-fns'
 import {
   chooseChannels,
   createDraftWorkspace,
@@ -10,6 +11,7 @@ import {
   openSchedule,
   previewOf,
 } from './framework/content-drafts'
+import { chooseOption } from './framework/controls'
 import { configureE2EFlow, test } from './framework/flow'
 import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
 import { createE2EDatabase, queryRow, queryRows } from './framework/services'
@@ -135,8 +137,14 @@ test('the queue takes the next slot, and the calendar moves a post to another da
     const pad = (value: number) => String(value).padStart(2, '0')
     const local = `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T10:00`
     const scheduleDialog = await openSchedule(page)
-    await scheduleDialog.getByLabel('Day', { exact: true }).fill(local.slice(0, 10))
-    await scheduleDialog.getByLabel('Time', { exact: true }).selectOption(local.slice(11))
+    await scheduleDialog.getByLabel('Day', { exact: true }).click()
+    // react-day-picker names each day button with its full date.
+    const nextMonth = page.getByRole('button', { name: 'Go to the Next Month' })
+    await expect(nextMonth).toBeVisible()
+    const dayButton = page.getByRole('button', { name: format(at, 'PPPP') })
+    if (!(await dayButton.isVisible())) await nextMonth.click()
+    await dayButton.click()
+    await chooseOption(scheduleDialog.getByLabel('Time', { exact: true }), local.slice(11))
     await scheduleDialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
 

@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { renderStoryMotion } from '@/lib/creative-sets/motion-delivery'
 import { DeliveredMotion } from './DeliveredMotion'
@@ -77,15 +84,19 @@ export function MotionDeliveryDialog({
         </DialogDescription>
         <label className="grid gap-1 text-sm">
           Video format
-          <select
+          <Select
             disabled={progress !== null}
-            className="rounded border bg-background p-2"
             value={format}
-            onChange={(event) => setFormat(event.target.value as 'mp4' | 'webm')}
+            onValueChange={(value) => setFormat(value as 'mp4' | 'webm')}
           >
-            <option value="mp4">MP4</option>
-            <option value="webm">WebM</option>
-          </select>
+            <SelectTrigger aria-label="Video format" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mp4">MP4</SelectItem>
+              <SelectItem value="webm">WebM</SelectItem>
+            </SelectContent>
+          </Select>
         </label>
         {progress !== null ? (
           <>

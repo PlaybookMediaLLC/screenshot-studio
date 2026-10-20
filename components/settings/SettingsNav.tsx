@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   SETTING_GROUPS,
   SETTINGS_SECTIONS,
@@ -32,27 +33,32 @@ export function SettingsNav() {
   const current = activeSection(pathname ?? '/workspace')
   return (
     <>
-      <label className="grid gap-1.5 lg:hidden">
+      <div className="grid gap-1.5 lg:hidden">
         <span className="text-xs font-medium text-muted-foreground">Settings section</span>
-        <select
-          className="h-9 rounded-lg border border-border bg-card px-2 text-sm text-foreground"
-          onChange={(event) => router.push(event.target.value)}
+        <Select
+          onValueChange={(href) => router.push(href)}
           value={(() => {
             const section = SETTINGS_SECTIONS.find((item) => item.id === current)
             return section ? settingsHref(section) : ''
           })()}
         >
-          {SETTING_GROUPS.map((group) => (
-            <optgroup key={group.id} label={group.title}>
-              {SETTINGS_SECTIONS.filter((section) => section.group === group.id).map((section) => (
-                <option key={section.id} value={settingsHref(section)}>
-                  {section.title}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-      </label>
+          <SelectTrigger aria-label="Settings section" className="w-full bg-card text-foreground">
+            <SelectValue placeholder="Choose a section" />
+          </SelectTrigger>
+          <SelectContent>
+            {SETTING_GROUPS.map((group) => (
+              <SelectGroup key={group.id}>
+                <SelectLabel>{group.title}</SelectLabel>
+                {SETTINGS_SECTIONS.filter((section) => section.group === group.id).map((section) => (
+                  <SelectItem key={section.id} value={settingsHref(section)}>
+                    {section.title}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <nav aria-label="Settings" className="hidden w-52 shrink-0 lg:block">
         <div className="sticky top-6 grid gap-5">
           {SETTING_GROUPS.map((group) => (

@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,14 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
 import { LocalTime } from '@/components/drafts/local-time'
@@ -309,34 +318,33 @@ export function ScheduleDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <Label className="grid content-start gap-1 text-xs text-neutral-400">
               Day
-              <Input
+              <DatePicker
                 aria-label="Day"
                 min={today}
-                onChange={(event) => event.target.value >= today && setDay(event.target.value)}
-                type="date"
+                onChange={(value) => value >= today && setDay(value)}
                 value={day}
               />
             </Label>
             <div className="grid content-start gap-2">
               <Label className="grid gap-1 text-xs text-neutral-400">
                 Time
-                <select
-                  aria-label="Time"
-                  className="h-9 rounded-md border border-white/10 bg-transparent px-2 text-sm"
-                  onChange={(event) => setTime(event.target.value)}
-                  value={time}
-                >
-                  {QUARTERS.map((quarter) => {
-                    const candidate = resolveLocalTime(`${day}T${quarter}`, zone)
-                    const passed =
-                      candidate.kind === 'exact' && candidate.at.getTime() <= Date.now()
-                    return (
-                      <option disabled={passed} key={quarter} value={quarter}>
-                        {quarter}
-                      </option>
-                    )
-                  })}
-                </select>
+                <Select onValueChange={setTime} value={time}>
+                  <SelectTrigger aria-label="Time" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {QUARTERS.map((quarter) => {
+                      const candidate = resolveLocalTime(`${day}T${quarter}`, zone)
+                      const passed =
+                        candidate.kind === 'exact' && candidate.at.getTime() <= Date.now()
+                      return (
+                        <SelectItem disabled={passed} key={quarter} value={quarter}>
+                          {quarter}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
               </Label>
               <Label className="grid gap-1 text-xs text-neutral-400">
                 Or type a time
@@ -354,23 +362,26 @@ export function ScheduleDialog({
                   <legend className="text-amber-300">
                     {time} happens twice that day. Which one?
                   </legend>
-                  {(['earlier', 'later'] as const).map((option) => (
-                    <label className="flex items-center gap-2" key={option}>
-                      <input
-                        checked={disambiguation === option}
-                        name="disambiguation"
-                        onChange={() => setDisambiguation(option)}
-                        type="radio"
-                      />
-                      {option === 'earlier' ? 'The first' : 'The second'} (
-                      {resolution[option].toLocaleTimeString(undefined, {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        timeZoneName: 'short',
-                      })}
-                      )
-                    </label>
-                  ))}
+                  <RadioGroup
+                    className="gap-1"
+                    onValueChange={(value) =>
+                      setDisambiguation(value === 'later' ? 'later' : 'earlier')
+                    }
+                    value={disambiguation ?? ''}
+                  >
+                    {(['earlier', 'later'] as const).map((option) => (
+                      <label className="flex items-center gap-2" key={option}>
+                        <RadioGroupItem value={option} />
+                        {option === 'earlier' ? 'The first' : 'The second'} (
+                        {resolution[option].toLocaleTimeString(undefined, {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          timeZoneName: 'short',
+                        })}
+                        )
+                      </label>
+                    ))}
+                  </RadioGroup>
                 </fieldset>
               ) : null}
               {resolution.kind === 'gap' ? (

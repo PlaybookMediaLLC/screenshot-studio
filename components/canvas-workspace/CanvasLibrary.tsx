@@ -5,6 +5,13 @@ import Link from 'next/link'
 import { MoreHorizontalIcon } from 'hugeicons-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import {
   DropdownMenu,
@@ -184,15 +191,18 @@ export function CanvasLibrary({
           onChange={(event) => setSearch(event.target.value)}
           className="max-w-sm"
         />
-        <select
-          aria-label="Sort canvases"
+        <Select
           value={sort}
-          onChange={(event) => setSort(event.target.value === 'name' ? 'name' : 'updated')}
-          className="h-9 rounded-md border bg-background px-2 text-sm"
+          onValueChange={(value) => setSort(value === 'name' ? 'name' : 'updated')}
         >
-          <option value="updated">Last edited</option>
-          <option value="name">Name</option>
-        </select>
+          <SelectTrigger aria-label="Sort canvases">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="updated">Last edited</SelectItem>
+            <SelectItem value="name">Name</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       {error ? (
         <p role="alert" className="text-sm text-destructive">

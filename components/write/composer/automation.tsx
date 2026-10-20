@@ -15,6 +15,13 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { serializeDraft } from '@/lib/content-drafts/serialize'
@@ -309,17 +316,20 @@ function RetweetDialog({
                 key={index}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    aria-label="Rule type"
-                    className="h-8 rounded-md border border-white/10 bg-transparent px-2 text-sm"
-                    onChange={(event) =>
-                      set(index, { kind: event.target.value === 'dayAt' ? 'dayAt' : 'after' })
+                  <Select
+                    onValueChange={(value) =>
+                      set(index, { kind: value === 'dayAt' ? 'dayAt' : 'after' })
                     }
                     value={rule.kind}
                   >
-                    <option value="after">After</option>
-                    <option value="dayAt">Days later at</option>
-                  </select>
+                    <SelectTrigger aria-label="Rule type" size="sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="after">After</SelectItem>
+                      <SelectItem value="dayAt">Days later at</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {rule.kind === 'after' ? (
                     <>
                       <Input
@@ -330,17 +340,20 @@ function RetweetDialog({
                         type="number"
                         value={rule.amount}
                       />
-                      <select
-                        aria-label="Unit"
-                        className="h-8 rounded-md border border-white/10 bg-transparent px-2 text-sm"
-                        onChange={(event) =>
-                          set(index, { unit: event.target.value === 'days' ? 'days' : 'hours' })
+                      <Select
+                        onValueChange={(value) =>
+                          set(index, { unit: value === 'days' ? 'days' : 'hours' })
                         }
                         value={rule.unit}
                       >
-                        <option value="hours">hours</option>
-                        <option value="days">days</option>
-                      </select>
+                        <SelectTrigger aria-label="Unit" size="sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hours">hours</SelectItem>
+                          <SelectItem value="days">days</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </>
                   ) : (
                     <>
@@ -483,15 +496,18 @@ function PlugDialog({
             type="number"
             value={threshold}
           />
-          <select
-            aria-label="Metric"
-            className="h-8 rounded-md border border-white/10 bg-transparent px-2 text-sm"
-            onChange={(event) => setMetric(event.target.value === 'reposts' ? 'reposts' : 'likes')}
+          <Select
+            onValueChange={(value) => setMetric(value === 'reposts' ? 'reposts' : 'likes')}
             value={metric}
           >
-            <option value="likes">likes</option>
-            <option value="reposts">reposts</option>
-          </select>
+            <SelectTrigger aria-label="Metric" size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="likes">likes</SelectItem>
+              <SelectItem value="reposts">reposts</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <Label className="grid gap-1 text-xs text-neutral-400">
           Reply

@@ -5,7 +5,15 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { CanvasSession, CanvasSessionState } from '@/lib/canvas/session'
 import { artboardRect, artboardSize, type Artboard } from '@/lib/canvas/document'
@@ -601,12 +609,11 @@ function FormatsButton({
       </legend>
       {artboardPresetSchema.options.map((preset) => (
         <label key={preset} className="flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={chosen.includes(preset)}
-            onChange={(event) =>
+            onCheckedChange={(checked) =>
               setChosen((previous) =>
-                event.target.checked
+                checked === true
                   ? [...previous, preset]
                   : previous.filter((item) => item !== preset)
               )
@@ -741,12 +748,11 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
       </section>
       <section className={section} aria-label="Export size">
         <h2 className={heading}>Size</h2>
-        <select
-          aria-label="Size preset"
+        <Select
           value={preset ?? 'custom'}
           disabled={!canEdit}
-          onChange={(event) => {
-            const parsed = artboardPresetSchema.safeParse(event.target.value)
+          onValueChange={(value) => {
+            const parsed = artboardPresetSchema.safeParse(value)
             if (parsed.success)
               actions.resize(
                 artboard.id,
@@ -754,17 +760,21 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
                 ARTBOARD_PRESETS[parsed.data].height
               )
           }}
-          className="h-8 w-full rounded-md border bg-background px-2 text-sm"
         >
-          <option value="custom">
-            Custom · {size.width} × {size.height}
-          </option>
-          {artboardPresetSchema.options.map((option) => (
-            <option key={option} value={option}>
-              {ARTBOARD_PRESETS[option].name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger aria-label="Size preset" className="h-8 w-full px-2">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="custom">
+              Custom · {size.width} × {size.height}
+            </SelectItem>
+            {artboardPresetSchema.options.map((option) => (
+              <SelectItem key={option} value={option}>
+                {ARTBOARD_PRESETS[option].name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <form
           className="flex items-end gap-2"
           onSubmit={(event) => {

@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   RenderProvider,
   useRenderServices,
 } from '@/components/store-screenshots/render/RenderProvider'
@@ -258,21 +265,22 @@ export function StoreGroupPanel({
         </form>
         <label className="grid gap-1 text-xs text-muted-foreground">
           Device size on the canvas
-          <select
-            aria-label="Store device size"
+          <Select
             value={item.targetId}
             disabled={!canEdit}
-            onChange={(event) =>
-              run({ type: 'set-store-target', id, targetId: event.target.value })
-            }
-            className="rounded-md border bg-background p-1.5 text-sm text-foreground"
+            onValueChange={(targetId) => run({ type: 'set-store-target', id, targetId })}
           >
-            {STORE_TARGETS.map((target) => (
-              <option key={target.id} value={target.id}>
-                {target.store === 'app-store' ? 'App Store' : 'Google Play'} · {target.shortName}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger aria-label="Store device size" className="h-8 w-full text-foreground">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STORE_TARGETS.map((target) => (
+                <SelectItem key={target.id} value={target.id}>
+                  {target.store === 'app-store' ? 'App Store' : 'Google Play'} · {target.shortName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
         <div className="grid grid-cols-2 gap-1">
           <Button size="sm" onClick={() => useCanvasUi.getState().editStore(id)}>
@@ -593,7 +601,7 @@ export function CanvasStoreEditor({
                   </div>
                   {canEdit ? <Inspector /> : null}
                 </div>
-                <input
+                <Input
                   ref={input}
                   type="file"
                   accept="image/png,image/jpeg,image/webp"

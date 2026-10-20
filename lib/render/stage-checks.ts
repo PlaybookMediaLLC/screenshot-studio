@@ -28,10 +28,16 @@ export async function assertStageReady(): Promise<void> {
     const content = (text.textContent ?? '').trim()
     if (!content) continue
     const label = `“${content.length > 48 ? `${content.slice(0, 48)}…` : content}”`
-    const font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
-    await document.fonts.load(font, text.textContent ?? '')
-    if (!document.fonts.check(font, text.textContent ?? ''))
-      throw new Error(`The font for ${label} is unavailable. Choose another font.`)
+    // Only the chosen family must load. next/font fallbacks are local(Arial)
+    // faces, and Chromium rejects a load of the whole list with a network
+    // error wherever Arial is not installed, as on Linux.
+    const family = style.fontFamily.split(',')[0]?.trim() || style.fontFamily
+    const font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${family}`
+    const loaded = await document.fonts.load(font, text.textContent ?? '').then(
+      () => document.fonts.check(font, text.textContent ?? ''),
+      () => false
+    )
+    if (!loaded) throw new Error(`The font for ${label} is unavailable. Choose another font.`)
     const rect = text.getBoundingClientRect()
     if (
       rect.left < bounds.left - 1 ||

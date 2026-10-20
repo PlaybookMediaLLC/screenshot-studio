@@ -98,7 +98,15 @@ if (mode === 'prepare') {
     E2E_SOCIAL_PORT: socialPort,
     RESEND_API_KEY: '',
     OPENAI_API_KEY: '',
-    OPENROUTER_API_KEY: '',
+    // Paid workflow copy calls the local fake model in the GitHub fixture.
+    OPENROUTER_API_KEY: 'fixture-only-local-model',
+    OPENROUTER_BASE_URL: `${githubURL}/api/v1`,
+    // Workflow renders: the worker signs requests to the web, which renders
+    // designs with a local headless Chromium.
+    PLATFORM_WORKFLOW_RENDER_URL: baseURL,
+    PLATFORM_WORKFLOW_RENDER_KEY: secret(),
+    PLATFORM_DESIGN_RENDERER: 'enabled',
+    PLATFORM_RENDER_BASE_URL: baseURL,
   }
   for (const name of ['R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME']) {
     if (!env[name]) throw new Error(`${name} fixture configuration is required.`)
@@ -148,6 +156,8 @@ if (mode === 'prepare') {
       env.DATABASE_URL = ''
       env.HOST_DATABASE_URL = ''
       env.AUDIT_RETENTION_DATABASE_URL = ''
+      env.OPENROUTER_API_KEY = ''
+      env.OPENROUTER_BASE_URL = ''
       break
     case 'test':
       args = [

@@ -13,6 +13,8 @@ const (
 	FieldID = "id"
 	// FieldSchemaVersion holds the string denoting the schema_version field in the database.
 	FieldSchemaVersion = "schemaVersion"
+	// FieldCapabilities holds the string denoting the capabilities field in the database.
+	FieldCapabilities = "capabilities"
 	// FieldExpiresAt holds the string denoting the expires_at field in the database.
 	FieldExpiresAt = "expiresAt"
 	// Table holds the table name of the releaseautomationexecutor in the database.
@@ -23,6 +25,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldSchemaVersion,
+	FieldCapabilities,
 	FieldExpiresAt,
 }
 
@@ -35,6 +38,11 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// DefaultCapabilities holds the default value on creation for the "capabilities" field.
+	DefaultCapabilities []string
+)
 
 // OrderOption defines the ordering options for the ReleaseAutomationExecutor queries.
 type OrderOption func(*sql.Selector)

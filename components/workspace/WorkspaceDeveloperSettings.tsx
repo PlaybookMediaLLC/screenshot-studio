@@ -247,7 +247,7 @@ function NewSourceNotice({ onDismiss, source }: { onDismiss: () => void; source:
           In GitHub, open the repository’s Settings, then Webhooks, then Add webhook. Paste the
           payload URL and secret, choose “Let me select individual events”, and select Pull requests
           and Releases. Merged PRs are held as changes for a published release. To define PR or
-          deployment release triggers, connect the GitHub App in Release automation settings.
+          deployment release triggers, connect the GitHub App in Workflows.
         </p>
       ) : null}
       <div className="flex">

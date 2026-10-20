@@ -20,6 +20,7 @@ import type {
   AutomationHistoryItem,
   AutomationRunDetail,
   AutomationVersion,
+  AutomationHistoryFilter,
 } from './release-automation.js'
 export type * from './release-automation.js'
 
@@ -3099,11 +3100,16 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  /** Explicitly select automation or legacy intake for one source. */
-  async setReleaseAutomationMode(id: string, enabled: boolean, collectUnmatched?: boolean) {
+  /** Explicitly select automation or legacy intake, and the watched branch, for one source. */
+  async setReleaseAutomationMode(
+    id: string,
+    enabled: boolean,
+    collectUnmatched?: boolean,
+    branch?: string
+  ) {
     return this.request<{ updated: boolean }>(
       `v1/release-automation/sources/${encodeURIComponent(id)}/mode`,
-      { method: 'PUT', body: { enabled, collectUnmatched } }
+      { method: 'PUT', body: { enabled, collectUnmatched, branch } }
     )
   }
 
@@ -3113,6 +3119,7 @@ export class ScreenshotStudioBackendSDK {
     graph: AutomationGraph
     eventId?: string
     example?: AutomationEventSnapshot
+    assumeIrrelevant?: boolean
   }) {
     return this.request<AutomationPreview>('v1/release-automation/preview', {
       method: 'POST',
@@ -3129,9 +3136,16 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Read durable tenant history even while Temporal is unavailable. */
-  async listReleaseAutomationHistory(before = '') {
-    return this.request<{ items: AutomationHistoryItem[] }>(
-      `v1/release-automation/runs?before=${encodeURIComponent(before)}`
+  async listReleaseAutomationHistory(filter: AutomationHistoryFilter = {}) {
+    const query = new URLSearchParams()
+    for (const [key, value] of Object.entries(filter)) if (value) query.set(key, value)
+    return this.request<{ items: AutomationHistoryItem[] }>(`v1/release-automation/runs?${query}`)
+  }
+
+  /** List a definition's immutable activated versions, newest first. */
+  async listReleaseAutomationVersions(definitionId: string) {
+    return this.request<{ items: AutomationVersion[] }>(
+      `v1/release-automation/definitions/${encodeURIComponent(definitionId)}/versions`
     )
   }
 

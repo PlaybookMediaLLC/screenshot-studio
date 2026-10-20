@@ -65,6 +65,10 @@ func (a *Activities) Node(ctx context.Context, input NodeInput) (automation.Outp
 	result, err := a.Store.AutomationNode(ctx, input.Run.OrganizationID, input.Run.RunID, input.NodeID, input.Decision, input.Run.Attempt)
 	return result, activityError(err)
 }
+func (a *Activities) Classify(ctx context.Context, input NodeInput) (automation.Decision, error) {
+	result, err := a.Store.AutomationClassify(ctx, input.Run.OrganizationID, input.Run.RunID, input.NodeID, input.Run.Attempt)
+	return result, activityError(err)
+}
 func (a *Activities) Legacy(ctx context.Context, input Input) error {
 	return activityError(a.Store.RunLegacyReleaseEvent(ctx, input.OrganizationID, input.RunID, input.Attempt))
 }

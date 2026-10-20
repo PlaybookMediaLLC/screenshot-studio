@@ -112,6 +112,9 @@ func (ReleaseAutomationNode) Fields() []ent.Field {
 		field.String("node_id").StorageKey("nodeId").Immutable(), field.String("action_key").StorageKey("actionKey").Immutable(),
 		field.String("status").Default("running"), field.Int("attempts").Default(1), field.String("failure_code").StorageKey("failureCode").Default(""),
 		field.JSON("decision", releaseautomation.Decision{}).Optional(), field.JSON("outputs", releaseautomation.Outputs{}).Default(releaseautomation.Outputs{}),
+		// Paid generation persists the model output, then marks the charge,
+		// before applying it, so retries never call or bill twice.
+		field.JSON("generation", &releaseautomation.Generation{}).Optional(), field.Bool("charged").Default(false),
 		field.Time("started_at").StorageKey("startedAt").Default(time.Now).Immutable(), field.Time("completed_at").StorageKey("completedAt").Optional().Nillable(),
 	}
 }
@@ -129,6 +132,7 @@ func (ReleaseAutomationExecutor) Annotations() []schema.Annotation {
 func (ReleaseAutomationExecutor) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("id").Immutable(), field.Int("schema_version").StorageKey("schemaVersion").Immutable(),
+		field.JSON("capabilities", []string{}).Default([]string{}),
 		field.Time("expires_at").StorageKey("expiresAt"),
 	}
 }

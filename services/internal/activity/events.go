@@ -67,6 +67,8 @@ var Catalogue = catalogue([]Definition{
 	{ID: "member.left", Label: "Member left", Group: "membership", Audience: "admins", Restricted: true, EmailDefault: false},
 	{ID: "member.role_changed", Label: "Member role changed", Group: "membership", Audience: "admins", Restricted: true, EmailDefault: false},
 	{ID: "workspace.ownership_transferred", Label: "Workspace owner changed", Group: "membership", Audience: "admins", Restricted: true, EmailDefault: false},
+	{ID: "workflow.completed", Label: "Workflow run completed", Group: "workflows", Audience: "admins", Restricted: false, EmailDefault: false},
+	{ID: "workflow.needs_attention", Label: "Workflow run needs attention", Group: "workflows", Audience: "operators", Restricted: true, EmailDefault: false},
 })
 
 func Lookup(kind string) (Definition, bool) {
@@ -113,8 +115,9 @@ func catalogue(definitions []Definition) []Definition {
 		"draft.review_requested": "ReviewContentDraft", "draft.approved": "ReviewContentDraft", "draft.changes_requested": "ReviewContentDraft", "comment.created": "recordDiscussionActivity / AddGuestComment / AddStoreReviewComment", "comment.resolved": "recordDiscussionActivity / ResolveStoreReviewComment", "member.mentioned": "recordDiscussionActivity",
 		"post.scheduled": "ScheduleContentDraft / publishing.Repository.Schedule", "post.moved": "MoveContentDraft / publishing.Repository.Schedule", "post.cancelled": "CancelContentDraftSchedule / publishing.Repository.Cancel", "post.published": "publishing.Repository.Complete", "post.publish_failed": "publishing.Repository.Fail", "post.publish_recovery_required": "publishing.Repository.MarkUnknown",
 		"integration.connected": "SaveIntegration / FinishOAuth / Slack callback / provider health recovery", "integration.disconnected": "DeleteIntegration / Slack Disconnect", "integration.reconnect_required": "Slack / social provider committed health transition", "invitation.created": "CreateInvitation", "invitation.revoked": "RevokeInvitation", "member.joined": "membership transaction trigger", "member.removed": "RemoveMember / membership transaction trigger", "member.left": "LeaveWorkspace", "member.role_changed": "ChangeMemberRole / membership transaction trigger", "workspace.ownership_transferred": "TransferWorkspaceOwnership",
+		"workflow.completed": "FinishReleaseAutomation", "workflow.needs_attention": "FinishReleaseAutomation",
 	}
-	destinations := map[string]string{"releases": "release intake or associated campaign", "captures": "product page", "assets": "asset or campaign", "generation": "campaign run", "reviews": "campaign step or draft editor", "comments": "resource discussion", "mentions": "resource discussion", "publishing": "draft calendar or campaign", "integrations": "integration or source settings", "membership": "member settings"}
+	destinations := map[string]string{"releases": "release intake or associated campaign", "captures": "product page", "assets": "asset or campaign", "generation": "campaign run", "reviews": "campaign step or draft editor", "comments": "resource discussion", "mentions": "resource discussion", "publishing": "draft calendar or campaign", "integrations": "integration or source settings", "membership": "member settings", "workflows": "workflow run"}
 	for i := range definitions {
 		d := &definitions[i]
 		d.Emitter = sources[d.ID]

@@ -4,8 +4,35 @@ package releaseautomation
 
 import "time"
 
-const SchemaVersion = 1
+// SchemaVersion is the newest graph language this executor runs. Version 1
+// graphs stay valid unchanged. Version 2 adds AI relevance checks, paid copy
+// generation, tag-push and milestone triggers, version and size fields,
+// numeric operators, and release contents, so a worker that only advertises
+// version 1 can never be handed one.
+const SchemaVersion = 2
 const MaxNodes = 64
+
+// MaxGenerationNodes bounds paid generation calls in one run.
+const MaxGenerationNodes = 2
+
+// MaxCreditLimit bounds the AI credits one generation node may spend.
+const MaxCreditLimit = 500
+
+// MaxClassifyNodes bounds AI relevance checks in one run.
+const MaxClassifyNodes = 2
+
+// MaxClassifyCredits bounds the AI credits one relevance check may spend.
+const MaxClassifyCredits = 50
+
+// MaxRenderTemplates bounds creatives one render node produces.
+const MaxRenderTemplates = 3
+
+// CapabilityRender is advertised by a worker that can reach the web renderer.
+const CapabilityRender = "render"
+
+// CapabilityAI is advertised by a worker that has a model provider and the
+// credit meter that bills it; AI checks and copy generation both need it.
+const CapabilityAI = "ai"
 
 // Outputs contains safe product references, never provider tokens or asset URLs.
 type Outputs struct {
@@ -15,17 +42,48 @@ type Outputs struct {
 	ReleaseID       string   `json:"releaseId,omitempty"`
 	CampaignID      string   `json:"campaignId,omitempty"`
 	PostIDs         []string `json:"postIds,omitempty"`
+	CreditsCharged  int      `json:"creditsCharged,omitempty"`
+	// DesignIDs and RenderedAssetIDs are campaign designs and their images.
+	DesignIDs        []string `json:"designIds,omitempty"`
+	RenderedAssetIDs []string `json:"renderedAssetIds,omitempty"`
+}
+
+// Generation is model output persisted before it is applied, so a retried
+// activity reuses it instead of paying for the same work twice.
+type Generation struct {
+	Credits int             `json:"credits"`
+	Posts   []GeneratedPost `json:"posts,omitempty"`
+	// Verdict is an AI relevance check's decision.
+	Verdict *Decision `json:"verdict,omitempty"`
+}
+
+type GeneratedPost struct {
+	PostID string `json:"postId"`
+	Copy   string `json:"copy"`
 }
 
 type Family string
 
 const (
-	Published Family = "release.published"
-	Merged    Family = "pull_request.merged"
-	Deployed  Family = "deployment.succeeded"
+	Published       Family = "release.published"
+	Merged          Family = "pull_request.merged"
+	Deployed        Family = "deployment.succeeded"
+	TagPushed       Family = "tag.pushed"
+	MilestoneClosed Family = "milestone.closed"
 )
 
-func ValidFamily(f Family) bool { return f == Published || f == Merged || f == Deployed }
+func ValidFamily(f Family) bool { return FamilyVersion(f) > 0 }
+
+// FamilyVersion is the lowest graph language a family needs, or 0 if unknown.
+func FamilyVersion(f Family) int {
+	switch f {
+	case Published, Merged, Deployed:
+		return 1
+	case TagPushed, MilestoneClosed:
+		return 2
+	}
+	return 0
+}
 
 // Value records whether a field was actually observed. An absent file list is
 // pending enrichment, never evidence that a pull request changed no files.
@@ -60,6 +118,15 @@ type Condition struct {
 	Values   []string    `json:"values,omitempty"`
 }
 
+// Classify asks a model whether the event is worth marketing. Criteria are
+// the administrator's own words and are trusted; event text never is. The
+// node's true branch needs a marketing-worthy verdict at or above Threshold.
+type Classify struct {
+	Criteria    string  `json:"criteria"`
+	Threshold   float64 `json:"threshold"`
+	CreditLimit int     `json:"creditLimit"`
+}
+
 type Reference struct {
 	NodeID string `json:"nodeId"`
 	Output string `json:"output"`
@@ -74,12 +141,23 @@ type Action struct {
 	DestinationIDs []string   `json:"destinationIds,omitempty"`
 	Audience       string     `json:"audience,omitempty"`
 	CallToAction   string     `json:"callToAction,omitempty"`
+	CreditLimit    int        `json:"creditLimit,omitempty"`
+	// Include chooses a release's contents: empty takes what the event
+	// references; "unreleased" also takes every collected merged pull request
+	// not yet in a release and merged before the event.
+	Include string `json:"include,omitempty"`
+	// TemplateIDs are the design templates render_creatives fills, one
+	// rendered creative each; SurfaceID picks the product surface whose
+	// current capture they show (empty: the most recently captured surface).
+	TemplateIDs []string `json:"templateIds,omitempty"`
+	SurfaceID   string   `json:"surfaceId,omitempty"`
 }
 
 type Node struct {
 	ID        string     `json:"id"`
 	Type      string     `json:"type"`
 	Condition *Condition `json:"condition,omitempty"`
+	Classify  *Classify  `json:"classify,omitempty"`
 	Action    *Action    `json:"action,omitempty"`
 	Outcome   string     `json:"outcome,omitempty"`
 }
@@ -113,6 +191,8 @@ type Decision struct {
 	Status string `json:"status"`
 	Match  bool   `json:"match"`
 	Reason string `json:"reason"`
+	// Score is an AI relevance check's confidence that the change is worth marketing.
+	Score *float64 `json:"score,omitempty"`
 }
 
 type Step struct {
@@ -134,16 +214,36 @@ func StringValue(values ...string) Value { return Value{State: "available", Valu
 func BoolValue(value bool) Value         { return Value{State: "available", Boolean: &value} }
 
 // FieldKinds is also the editor's field catalog. Branch evidence is offered
-// only for PRs: a release target_commitish need not be a branch.
+// only for PRs: a release target_commitish need not be a branch. Number
+// fields hold one decimal string and take numeric operators.
 func FieldKinds(f Family) map[string]string {
-	fields := map[string]string{"repository.id": "string", "event.family": "string", "event.action": "string", "actor.login": "string"}
+	fields := map[string]string{"repository.id": "string", "repository.name": "string", "event.family": "string", "event.action": "string", "actor.login": "string"}
+	version := func() {
+		fields["version.major"], fields["version.minor"], fields["version.patch"] = "number", "number", "number"
+		fields["version.prerelease"], fields["version.level"] = "string", "string"
+	}
 	switch f {
 	case Published:
 		fields["release.tag"], fields["release.title"], fields["release.prerelease"] = "string", "string", "boolean"
+		version()
 	case Merged:
 		fields["pr.base"], fields["pr.labels"], fields["pr.author"], fields["pr.bot"], fields["pr.files"], fields["pr.title"] = "string", "collection", "string", "boolean", "collection", "string"
+		fields["pr.number"], fields["pr.head"] = "string", "string"
+		fields["pr.additions"], fields["pr.deletions"], fields["pr.changed_files"], fields["pr.commits"] = "number", "number", "number", "number"
 	case Deployed:
 		fields["deployment.environment"], fields["deployment.state"], fields["deployment.sha"], fields["deployment.production"] = "string", "string", "string", "boolean"
+	case TagPushed:
+		fields["tag.name"] = "string"
+		version()
+	case MilestoneClosed:
+		fields["milestone.title"], fields["milestone.closed_items"], fields["milestone.open_items"] = "string", "number", "number"
+		version()
 	}
 	return fields
 }
+
+// v1Fields are the fields version 1 graphs could test; anything else needs v2.
+var v1Fields = map[string]bool{"repository.id": true, "event.family": true, "event.action": true, "actor.login": true,
+	"release.tag": true, "release.title": true, "release.prerelease": true, "pr.base": true, "pr.labels": true, "pr.author": true,
+	"pr.bot": true, "pr.files": true, "pr.title": true, "deployment.environment": true, "deployment.state": true,
+	"deployment.sha": true, "deployment.production": true}

@@ -16,6 +16,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationnode"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationversion"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
@@ -186,7 +188,7 @@ func (c *Configuration) AutomationNode(ctx context.Context, org, id, nodeID stri
 		if resultErr != nil {
 			failureCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 			defer cancel()
-			_ = prior.Update().Where(releaseautomationnode.StatusNEQ("completed")).SetStatus("failed").SetFailureCode("action_failed").Exec(failureCtx)
+			_ = prior.Update().Where(releaseautomationnode.StatusNEQ("completed")).SetStatus("failed").SetFailureCode(automationFailureCode(resultErr)).Exec(failureCtx)
 		}
 	}()
 	if node.Type == "condition" {
@@ -202,7 +204,7 @@ func (c *Configuration) AutomationNode(ctx context.Context, org, id, nodeID stri
 			return outputs, ErrInvalidInput
 		}
 	}
-	if node.Type == "action" {
+	if node.Type == "action" || node.Type == "classify" {
 		// Verify GitHub still grants repository access even if a revocation
 		// webhook has not reached the platform yet.
 		reader, installation, readErr := c.readerFor(ctx, source)
@@ -221,6 +223,19 @@ func (c *Configuration) AutomationNode(ctx context.Context, org, id, nodeID stri
 		if err := c.requireWorkspaceFeature(ctx, org, "release:create"); err != nil {
 			return outputs, err
 		}
+	}
+	if node.Type == "classify" {
+		snapshot := event.Snapshot
+		for field, value := range event.Enrichment {
+			snapshot.Fields[field] = value
+		}
+		verdict, credits, err := c.automationJudge(ctx, org, prior, snapshot, node.Classify)
+		if err != nil {
+			return outputs, err
+		}
+		decision, outputs.CreditsCharged = &verdict, credits
+	}
+	if node.Type == "action" {
 		actor := Actor{OrganizationID: org, Kind: "service", Display: "release-automation", RequestID: key}
 		var input automation.Outputs
 		if node.Action.Input != nil {
@@ -232,15 +247,21 @@ func (c *Configuration) AutomationNode(ctx context.Context, org, id, nodeID stri
 		}
 		switch node.Action.Type {
 		case "create_release":
-			outputs, err = c.automationCreateRelease(ctx, actor, event, node.Action)
+			outputs, err = c.automationCreateRelease(ctx, actor, source, event, node.Action)
 		case "create_campaign":
 			outputs, err = c.automationCreateCampaign(ctx, actor, event, input, node.Action, key)
+		case "generate_copy":
+			outputs, err = c.automationGenerateCopy(ctx, actor, prior, event, input, node.Action)
+		case "render_creatives":
+			outputs, err = c.automationRenderCreatives(ctx, org, id, nodeID, event, input, node.Action)
 		case "submit_review":
 			var result *CampaignPostTransition
 			result, err = c.TransitionCampaignPosts(ctx, actor, input.CampaignID, CampaignPostDecision{Decision: "submit", PostIDs: input.PostIDs, IdempotencyKey: key})
 			if err == nil {
 				outputs = input
 				outputs.PostIDs = result.PostIDs
+				// Credits belong to the generation receipt that spent them.
+				outputs.CreditsCharged = 0
 			}
 		default:
 			err = ErrInvalidInput
@@ -281,24 +302,76 @@ func (c *Configuration) AutomationNode(ctx context.Context, org, id, nodeID stri
 		run.Outputs.PostIDs = outputs.PostIDs
 		run.Outputs.BrandKitID, run.Outputs.BrandKitVersion, run.Outputs.DestinationIDs = outputs.BrandKitID, outputs.BrandKitVersion, outputs.DestinationIDs
 	}
+	if len(outputs.DesignIDs) > 0 {
+		run.Outputs.DesignIDs, run.Outputs.RenderedAssetIDs = outputs.DesignIDs, outputs.RenderedAssetIDs
+	}
+	if outputs.CreditsCharged > 0 {
+		// Sum receipts rather than increment: a late duplicate completion of
+		// the same node must not count its credits twice.
+		completed, err := tx.ReleaseAutomationNode.Query().Where(releaseautomationnode.OrganizationID(org), releaseautomationnode.RunID(id), releaseautomationnode.Status("completed")).All(ctx)
+		if err != nil {
+			return outputs, err
+		}
+		run.Outputs.CreditsCharged = 0
+		for _, receipt := range completed {
+			run.Outputs.CreditsCharged += receipt.Outputs.CreditsCharged
+		}
+	}
 	if err := tx.ReleaseAutomationRun.UpdateOneID(id).SetOutputs(run.Outputs).Exec(ctx); err != nil {
 		return outputs, err
 	}
 	return outputs, tx.Commit()
 }
 
-func (c *Configuration) automationCreateRelease(ctx context.Context, actor Actor, event *ent.ReleaseSourceEvent, action *automation.Action) (automation.Outputs, error) {
+// automationCreateRelease decides a release's contents from evidence only:
+// the merged PR itself, PRs the notes reference, a milestone's assigned PRs,
+// and, with include "unreleased", every collected change not yet released
+// that merged before the event. Arrival order is never membership evidence.
+func (c *Configuration) automationCreateRelease(ctx context.Context, actor Actor, source *ent.SourceApp, event *ent.ReleaseSourceEvent, action *automation.Action) (automation.Outputs, error) {
 	e := event.Snapshot
 	numbers := []int{}
 	if e.Family == automation.Merged {
 		numbers = append(numbers, e.Number)
 	}
-	if e.Family == automation.Published {
+	if e.Family == automation.MilestoneClosed {
+		reader, installation, err := c.readerFor(ctx, source)
+		if err != nil {
+			return automation.Outputs{}, err
+		}
+		if reader == nil {
+			return automation.Outputs{}, ErrGitHubUnavailable
+		}
+		assigned, err := reader.MilestonePullRequests(ctx, installation, e.RepositoryID, e.Number)
+		if errors.Is(err, githubapp.ErrIncompleteMilestone) {
+			return automation.Outputs{}, ErrInvalidInput
+		}
+		if err != nil {
+			return automation.Outputs{}, err
+		}
+		numbers = append(numbers, assigned...)
+	}
+	if action.Include == "unreleased" {
+		pending, err := c.client.SourceChange.Query().Where(sourcechange.OrganizationID(actor.OrganizationID), sourcechange.SourceAppID(source.ID),
+			sourcechange.RepositoryID(e.RepositoryID), sourcechange.ReleaseIDIsNil(), sourcechange.MergedAtLTE(e.OccurredAt)).
+			Order(ent.Asc(sourcechange.FieldMergedAt)).Limit(githubapp.MaxMilestonePullRequests).All(ctx)
+		if err != nil {
+			return automation.Outputs{}, err
+		}
+		for _, change := range pending {
+			if !slices.Contains(numbers, change.Number) {
+				numbers = append(numbers, change.Number)
+			}
+		}
+	}
+	if e.Family == automation.Published || e.Family == automation.TagPushed {
 		owner, repo, _ := strings.Cut(e.RepositoryName, "/")
-		numbers = releasenotes.PullRequests(e.Notes, owner, repo)
+		referenced := releasenotes.PullRequests(e.Notes, owner, repo)
 		for _, feature := range releasenotes.Features(e.Notes) {
-			if feature.Number > 0 && !slices.Contains(numbers, feature.Number) {
-				numbers = append(numbers, feature.Number)
+			referenced = append(referenced, feature.Number)
+		}
+		for _, number := range referenced {
+			if number > 0 && !slices.Contains(numbers, number) {
+				numbers = append(numbers, number)
 			}
 		}
 	}
@@ -434,9 +507,34 @@ func (c *Configuration) CollectAutomationChange(ctx context.Context, org, id str
 	return err
 }
 
+// automationFailureCode names why a node stopped, for run inspection.
+func automationFailureCode(err error) string {
+	var entitlement *FeatureNotEntitledError
+	var prohibited *ProhibitedTermsError
+	switch {
+	case errors.Is(err, ErrQuotaExceeded):
+		return "insufficient_credits"
+	case errors.As(err, &entitlement):
+		return "not_entitled"
+	case errors.As(err, &prohibited):
+		return "prohibited_terms"
+	case errors.Is(err, ErrAutomationStopped):
+		return "access_revoked"
+	case errors.Is(err, ErrAutomationModelUnavailable):
+		return "model_unavailable"
+	case errors.Is(err, ErrAutomationRendererUnavailable):
+		return "renderer_unavailable"
+	case errors.Is(err, ErrCaptureMissing):
+		return "capture_missing"
+	case errors.Is(err, ErrInvalidInput), errors.Is(err, publishing.ErrNotFound), ent.IsNotFound(err):
+		return "configuration_invalid"
+	}
+	return "action_failed"
+}
+
 // PermanentAutomationError identifies failures that retries cannot repair.
 func PermanentAutomationError(err error) bool {
 	var entitlement *FeatureNotEntitledError
 	var prohibited *ProhibitedTermsError
-	return errors.Is(err, ErrInvalidInput) || errors.Is(err, ErrAutomationStopped) || errors.Is(err, publishing.ErrForbidden) || errors.Is(err, publishing.ErrUnauthorized) || errors.Is(err, publishing.ErrNotFound) || errors.Is(err, publishing.ErrInvalidState) || ent.IsNotFound(err) || errors.As(err, &entitlement) || errors.As(err, &prohibited)
+	return errors.Is(err, ErrInvalidInput) || errors.Is(err, ErrQuotaExceeded) || errors.Is(err, ErrCaptureMissing) || errors.Is(err, ErrAutomationStopped) || errors.Is(err, publishing.ErrForbidden) || errors.Is(err, publishing.ErrUnauthorized) || errors.Is(err, publishing.ErrNotFound) || errors.Is(err, publishing.ErrInvalidState) || ent.IsNotFound(err) || errors.As(err, &entitlement) || errors.As(err, &prohibited)
 }

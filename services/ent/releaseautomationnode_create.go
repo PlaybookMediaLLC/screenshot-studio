@@ -115,6 +115,26 @@ func (_c *ReleaseAutomationNodeCreate) SetNillableOutputs(v *releaseautomation.O
 	return _c
 }
 
+// SetGeneration sets the "generation" field.
+func (_c *ReleaseAutomationNodeCreate) SetGeneration(v *releaseautomation.Generation) *ReleaseAutomationNodeCreate {
+	_c.mutation.SetGeneration(v)
+	return _c
+}
+
+// SetCharged sets the "charged" field.
+func (_c *ReleaseAutomationNodeCreate) SetCharged(v bool) *ReleaseAutomationNodeCreate {
+	_c.mutation.SetCharged(v)
+	return _c
+}
+
+// SetNillableCharged sets the "charged" field if the given value is not nil.
+func (_c *ReleaseAutomationNodeCreate) SetNillableCharged(v *bool) *ReleaseAutomationNodeCreate {
+	if v != nil {
+		_c.SetCharged(*v)
+	}
+	return _c
+}
+
 // SetStartedAt sets the "started_at" field.
 func (_c *ReleaseAutomationNodeCreate) SetStartedAt(v time.Time) *ReleaseAutomationNodeCreate {
 	_c.mutation.SetStartedAt(v)
@@ -200,6 +220,10 @@ func (_c *ReleaseAutomationNodeCreate) defaults() {
 		v := releaseautomationnode.DefaultOutputs
 		_c.mutation.SetOutputs(v)
 	}
+	if _, ok := _c.mutation.Charged(); !ok {
+		v := releaseautomationnode.DefaultCharged
+		_c.mutation.SetCharged(v)
+	}
 	if _, ok := _c.mutation.StartedAt(); !ok {
 		v := releaseautomationnode.DefaultStartedAt()
 		_c.mutation.SetStartedAt(v)
@@ -231,6 +255,9 @@ func (_c *ReleaseAutomationNodeCreate) check() error {
 	}
 	if _, ok := _c.mutation.Outputs(); !ok {
 		return &ValidationError{Name: "outputs", err: errors.New(`ent: missing required field "ReleaseAutomationNode.outputs"`)}
+	}
+	if _, ok := _c.mutation.Charged(); !ok {
+		return &ValidationError{Name: "charged", err: errors.New(`ent: missing required field "ReleaseAutomationNode.charged"`)}
 	}
 	if _, ok := _c.mutation.StartedAt(); !ok {
 		return &ValidationError{Name: "started_at", err: errors.New(`ent: missing required field "ReleaseAutomationNode.started_at"`)}
@@ -305,6 +332,14 @@ func (_c *ReleaseAutomationNodeCreate) createSpec() (*ReleaseAutomationNode, *sq
 	if value, ok := _c.mutation.Outputs(); ok {
 		_spec.SetField(releaseautomationnode.FieldOutputs, field.TypeJSON, value)
 		_node.Outputs = value
+	}
+	if value, ok := _c.mutation.Generation(); ok {
+		_spec.SetField(releaseautomationnode.FieldGeneration, field.TypeJSON, value)
+		_node.Generation = value
+	}
+	if value, ok := _c.mutation.Charged(); ok {
+		_spec.SetField(releaseautomationnode.FieldCharged, field.TypeBool, value)
+		_node.Charged = value
 	}
 	if value, ok := _c.mutation.StartedAt(); ok {
 		_spec.SetField(releaseautomationnode.FieldStartedAt, field.TypeTime, value)

@@ -37,6 +37,10 @@ type ReleaseAutomationNode struct {
 	Decision releaseautomation.Decision `json:"decision,omitempty"`
 	// Outputs holds the value of the "outputs" field.
 	Outputs releaseautomation.Outputs `json:"outputs,omitempty"`
+	// Generation holds the value of the "generation" field.
+	Generation *releaseautomation.Generation `json:"generation,omitempty"`
+	// Charged holds the value of the "charged" field.
+	Charged bool `json:"charged,omitempty"`
 	// StartedAt holds the value of the "started_at" field.
 	StartedAt time.Time `json:"started_at,omitempty"`
 	// CompletedAt holds the value of the "completed_at" field.
@@ -49,8 +53,10 @@ func (*ReleaseAutomationNode) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case releaseautomationnode.FieldDecision, releaseautomationnode.FieldOutputs:
+		case releaseautomationnode.FieldDecision, releaseautomationnode.FieldOutputs, releaseautomationnode.FieldGeneration:
 			values[i] = new([]byte)
+		case releaseautomationnode.FieldCharged:
+			values[i] = new(sql.NullBool)
 		case releaseautomationnode.FieldAttempts:
 			values[i] = new(sql.NullInt64)
 		case releaseautomationnode.FieldID, releaseautomationnode.FieldOrganizationID, releaseautomationnode.FieldRunID, releaseautomationnode.FieldNodeID, releaseautomationnode.FieldActionKey, releaseautomationnode.FieldStatus, releaseautomationnode.FieldFailureCode:
@@ -136,6 +142,20 @@ func (_m *ReleaseAutomationNode) assignValues(columns []string, values []any) er
 					return fmt.Errorf("unmarshal field outputs: %w", err)
 				}
 			}
+		case releaseautomationnode.FieldGeneration:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field generation", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Generation); err != nil {
+					return fmt.Errorf("unmarshal field generation: %w", err)
+				}
+			}
+		case releaseautomationnode.FieldCharged:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field charged", values[i])
+			} else if value.Valid {
+				_m.Charged = value.Bool
+			}
 		case releaseautomationnode.FieldStartedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field started_at", values[i])
@@ -211,6 +231,12 @@ func (_m *ReleaseAutomationNode) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("outputs=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Outputs))
+	builder.WriteString(", ")
+	builder.WriteString("generation=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Generation))
+	builder.WriteString(", ")
+	builder.WriteString("charged=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Charged))
 	builder.WriteString(", ")
 	builder.WriteString("started_at=")
 	builder.WriteString(_m.StartedAt.Format(time.ANSIC))

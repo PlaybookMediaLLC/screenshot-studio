@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 )
 
 // This optional extension keeps older test doubles and staged backend
@@ -16,15 +17,20 @@ type releaseAutomationStore interface {
 	SaveReleaseAutomation(context.Context, product.Actor, product.SaveAutomationInput) (*product.AutomationDefinition, error)
 	ActivateReleaseAutomation(context.Context, product.Actor, string, int) (*product.AutomationDefinition, error)
 	DisableReleaseAutomation(context.Context, product.Actor, string, int) error
-	SetReleaseAutomationMode(context.Context, product.Actor, string, bool, *bool) error
+	SetReleaseAutomationMode(context.Context, product.Actor, string, bool, *bool, *string) error
 	StopWatchingAutomationSource(context.Context, product.Actor, string) error
 	PreviewReleaseAutomation(context.Context, product.Actor, product.AutomationPreviewInput) (*product.AutomationPreview, error)
-	ListAutomationHistory(context.Context, product.Actor, string) ([]product.AutomationHistoryItem, error)
+	ListAutomationHistory(context.Context, product.Actor, product.AutomationHistoryFilter) ([]product.AutomationHistoryItem, error)
+	ListReleaseAutomationVersions(context.Context, product.Actor, string) ([]product.AutomationVersion, error)
 	GetAutomationRun(context.Context, product.Actor, string) (*product.AutomationRunDetail, error)
 	GetReleaseAutomationVersion(context.Context, product.Actor, string) (*product.AutomationVersion, error)
 	CancelReleaseAutomationRun(context.Context, product.Actor, string) error
 	RetryReleaseAutomationRun(context.Context, product.Actor, string) error
 }
+
+// The product configuration must keep satisfying the optional extension;
+// a signature drift would otherwise surface only as a runtime 503.
+var _ releaseAutomationStore = (*product.Configuration)(nil)
 
 func (s *Server) automationStore(w http.ResponseWriter) releaseAutomationStore {
 	store, ok := s.configuration.(releaseAutomationStore)
@@ -45,6 +51,7 @@ func (s *Server) registerReleaseAutomation(mux *http.ServeMux) {
 	mux.Handle("PUT /v1/release-automation/sources/{id}/mode", s.authenticateProduct(http.HandlerFunc(s.automationSourceMode)))
 	mux.Handle("POST /v1/release-automation/sources/{id}/disconnect", s.authenticateProduct(http.HandlerFunc(s.automationSourceDisconnect)))
 	mux.Handle("GET /v1/release-automation/versions/{id}", s.authenticateProduct(http.HandlerFunc(s.automationVersion)))
+	mux.Handle("GET /v1/release-automation/definitions/{id}/versions", s.authenticateProduct(http.HandlerFunc(s.automationVersions)))
 	mux.Handle("GET /v1/release-automation/runs", s.authenticateProduct(http.HandlerFunc(s.automationHistory)))
 	mux.Handle("GET /v1/release-automation/runs/{id}", s.authenticateProduct(http.HandlerFunc(s.automationRun)))
 	mux.Handle("POST /v1/release-automation/runs/{id}/cancel", s.authenticateProduct(http.HandlerFunc(s.cancelAutomationRun)))
@@ -143,14 +150,15 @@ func (s *Server) automationSourceMode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct {
-		Enabled          *bool `json:"enabled"`
-		CollectUnmatched *bool `json:"collectUnmatched"`
+		Enabled          *bool   `json:"enabled"`
+		CollectUnmatched *bool   `json:"collectUnmatched"`
+		Branch           *string `json:"branch"`
 	}
 	if err := decodeJSON(r, &input); err != nil || input.Enabled == nil {
 		writeError(w, 400, "invalid mode")
 		return
 	}
-	if err := store.SetReleaseAutomationMode(r.Context(), workspaceActor(r), r.PathValue("id"), *input.Enabled, input.CollectUnmatched); err != nil {
+	if err := store.SetReleaseAutomationMode(r.Context(), workspaceActor(r), r.PathValue("id"), *input.Enabled, input.CollectUnmatched, input.Branch); err != nil {
 		writeStoreError(w, err)
 		return
 	}
@@ -202,7 +210,32 @@ func (s *Server) automationHistory(w http.ResponseWriter, r *http.Request) {
 	if store == nil {
 		return
 	}
-	result, err := store.ListAutomationHistory(r.Context(), workspaceActor(r), r.URL.Query().Get("before"))
+	query := r.URL.Query()
+	filter := product.AutomationHistoryFilter{Before: query.Get("before"), DefinitionID: query.Get("definitionId"), VersionID: query.Get("versionId"),
+		SourceAppID: query.Get("sourceAppId"), Family: automation.Family(query.Get("family")), Status: query.Get("status")}
+	for name, target := range map[string]**time.Time{"since": &filter.Since, "until": &filter.Until} {
+		if value := query.Get(name); value != "" {
+			parsed, err := time.Parse(time.RFC3339, value)
+			if err != nil {
+				writeError(w, 400, "invalid "+name)
+				return
+			}
+			*target = &parsed
+		}
+	}
+	result, err := store.ListAutomationHistory(r.Context(), workspaceActor(r), filter)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"items": result})
+}
+func (s *Server) automationVersions(w http.ResponseWriter, r *http.Request) {
+	store := s.automationStore(w)
+	if store == nil {
+		return
+	}
+	result, err := store.ListReleaseAutomationVersions(r.Context(), workspaceActor(r), r.PathValue("id"))
 	if err != nil {
 		writeStoreError(w, err)
 		return

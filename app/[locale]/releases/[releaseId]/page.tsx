@@ -36,8 +36,8 @@ export default async function ReleasePage({
         width="md"
         description={`${release.status} · Updated ${release.updatedAt.toLocaleString('en', { timeZone: 'UTC' })} UTC`}
         actions={
-          <Link className="text-sm underline" href="/workspace/release-automation">
-            Release automation
+          <Link className="text-sm underline" href="/workflows">
+            Workflows
           </Link>
         }
       >

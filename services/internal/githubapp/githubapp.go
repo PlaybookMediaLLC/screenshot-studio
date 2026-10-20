@@ -377,6 +377,41 @@ func (a *App) PullRequestFiles(ctx context.Context, installationID int64, reposi
 
 var ErrIncompleteFiles = errors.New("complete GitHub pull request file evidence unavailable")
 
+// MaxMilestonePullRequests bounds a milestone release's pull requests.
+const MaxMilestonePullRequests = 500
+
+// MilestonePullRequests lists the pull request numbers assigned to a
+// milestone through the issues API, which returns pull requests with a
+// pull_request key. A milestone over the bound fails closed.
+func (a *App) MilestonePullRequests(ctx context.Context, installationID int64, repositoryID string, milestone int) ([]int, error) {
+	numbers := []int{}
+	for page := 1; ; page++ {
+		var out []struct {
+			Number      int             `json:"number"`
+			PullRequest json.RawMessage `json:"pull_request"`
+		}
+		if err := a.get(ctx, installationID, fmt.Sprintf("/repositories/%s/issues?milestone=%d&state=all&per_page=100&page=%d", url.PathEscape(repositoryID), milestone, page), "", &out); err != nil {
+			return nil, err
+		}
+		for _, item := range out {
+			if len(item.PullRequest) > 0 && string(item.PullRequest) != "null" && item.Number > 0 {
+				numbers = append(numbers, item.Number)
+			}
+		}
+		if len(numbers) > MaxMilestonePullRequests {
+			return nil, ErrIncompleteMilestone
+		}
+		if len(out) < 100 {
+			return numbers, nil
+		}
+		if page == MaxMilestonePullRequests/100 {
+			return nil, ErrIncompleteMilestone
+		}
+	}
+}
+
+var ErrIncompleteMilestone = errors.New("the milestone has more pull requests than a release takes")
+
 func (a *App) get(ctx context.Context, installationID int64, path, accept string, out any) error {
 	token, err := a.InstallationToken(ctx, installationID)
 	if err != nil {

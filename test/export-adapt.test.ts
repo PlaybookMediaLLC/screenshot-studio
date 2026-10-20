@@ -145,6 +145,32 @@ test('a wrapping text box wraps instead of shrinking', () => {
   near(adapted.texts[0]!.fontSize * story.width, 0.05 * landscape.width, 'font px kept', 0.01)
 })
 
+test('a wrapping box never ends up narrower than its longest word', () => {
+  const wide = { height: 900, width: 1600 }
+  const square = { height: 1080, width: 1080 }
+  const document = designDocumentSchema.parse({
+    ...baseDocument(),
+    canvas: { aspectRatio: 'custom', size: wide },
+    texts: [
+      { fontSize: 0.048, maxWidth: 0.35, position: { x: 24, y: 35 }, text: 'Bulk approvals' },
+    ],
+  })
+  const [text] = adaptDocumentToSize(document, square).texts
+  assert.ok(text)
+  const word = 'approvals'.length * 0.55 * 1.15 * text.fontSize * square.width
+  assert.ok(word <= 0.35 * square.width + 1e-6, 'the longest word fits its box')
+  const [unchanged] = adaptDocumentToSize(
+    designDocumentSchema.parse({ ...document, texts: [{ ...document.texts[0]!, maxWidth: 0.9 }] }),
+    square
+  ).texts
+  near(
+    unchanged!.fontSize * square.width,
+    0.048 * wide.width * 1.2,
+    'a roomy box keeps the scaled size',
+    0.01
+  )
+})
+
 test('free elements keep their pixel proportions and stay inside the margins', () => {
   const adapted = adaptDocumentToSize(baseDocument(), story)
   const [badge] = adapted.elements

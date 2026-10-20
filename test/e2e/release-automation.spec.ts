@@ -443,6 +443,7 @@ test('turns a version tag into an AI-judged release with rendered creatives', as
       .check()
     await page.getByRole('checkbox', { name: 'Generate copy with AI' }).check()
     await page.getByRole('checkbox', { name: /Browser launch/ }).check()
+    await page.getByRole('checkbox', { name: 'Lay out a canvas from the release' }).check()
     await page.getByRole('button', { name: 'Create draft', exact: true }).click()
     const editor = page.getByRole('dialog', { name: 'Workflow editor', exact: true })
     await expect(editor).toBeVisible()
@@ -461,6 +462,9 @@ test('turns a version tag into an AI-judged release with rendered creatives', as
       page.getByRole('heading', { name: 'Preview: completed', exact: true })
     ).toBeVisible()
     await expect(page.getByText(/Predicted render of 1 creatives/)).toBeVisible()
+    await expect(
+      page.getByText(/Predicted canvas laid out from the release with 2 templates/)
+    ).toBeVisible()
     await page.getByRole('button', { name: 'Activate version', exact: true }).click()
     await expect(
       page.getByText(
@@ -526,6 +530,7 @@ test('turns a version tag into an AI-judged release with rendered creatives', as
     await expect(row).toContainText('Succeeded', { timeout: 180_000 })
     await row.getByRole('link', { name: version }).click()
     await expect(page.getByText(/Creatives · 1 rendered/)).toBeVisible()
+    await expect(page.getByText('Canvas · laid out')).toBeVisible()
     await page
       .getByRole('list', { name: 'Run timeline' })
       .getByRole('button', { name: /AI: worth marketing\? · condition/ })
@@ -551,9 +556,17 @@ test('turns a version tag into an AI-judged release with rendered creatives', as
     expect(posts).toHaveLength(1)
     expect(posts[0]?.status).toBe('READY_FOR_REVIEW')
     expect(posts[0]?.copy).toBe(FIXTURE_COPY)
+    // The run laid out a canvas from the release, with the product capture on it.
+    const canvases = await rows(
+      `SELECT id, document FROM platform_creative_set WHERE "organizationId"=$1 AND kind='canvas'`
+    )
+    expect(canvases).toHaveLength(1)
+    expect(JSON.stringify(canvases[0]?.document)).toContain(`asset:${captureAsset}`)
     await page.getByRole('link', { name: 'Open creatives', exact: true }).click()
     await expect(page).toHaveURL(/\/campaigns\/[a-z0-9]+\/assets$/)
     await page.screenshot({ path: '.context/workflows-campaign-creatives.png', fullPage: true })
+    await page.goto(`/canvas/${canvases[0]?.id}`)
+    await expect(page.locator('[data-artboard-id]').first()).toBeVisible({ timeout: 120_000 })
 
     // A patch tag is not a release here; a maintenance minor tag is not worth marketing.
     expect((await tag(version.replace('.1.0', '.1.1'), 'Fix typo')).status).toBe(200)

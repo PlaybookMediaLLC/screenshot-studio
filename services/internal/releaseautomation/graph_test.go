@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 )
@@ -452,5 +453,61 @@ func TestRenderCreativesAndReleaseContents(t *testing.T) {
 				t.Fatal("invalid configuration accepted")
 			}
 		})
+	}
+}
+
+func TestCreateCanvas(t *testing.T) {
+	g := testGraph()
+	g.SchemaVersion = 2
+	g.Nodes = append(g.Nodes, Node{ID: "board", Type: "action", Action: &Action{Type: "create_canvas", Input: &Reference{NodeID: "campaign", Output: "campaignId"}, RecipeIDs: []string{"feature-announcement", "social-pack"}}})
+	g.Edges[4].To = "board"
+	g.Edges = append(g.Edges, Edge{"board", "review", "next"})
+	if issues := Validate(g); len(issues) > 0 {
+		t.Fatal(issues)
+	}
+	preview := DryRun(g, Event{Family: Published, Fields: map[string]Value{"release.tag": StringValue("v1"), "release.prerelease": BoolValue(false)}})
+	found := false
+	for _, step := range preview.Steps {
+		found = found || (step.Action == "create_canvas" && strings.Contains(step.Outcome, "2 templates"))
+	}
+	if !found {
+		t.Fatalf("no canvas step in %+v", preview.Steps)
+	}
+	for name, change := range map[string]func(*Graph){
+		"in v1":          func(g *Graph) { g.SchemaVersion = 1 },
+		"no templates":   func(g *Graph) { g.Nodes[7].Action.RecipeIDs = nil },
+		"many templates": func(g *Graph) { g.Nodes[7].Action.RecipeIDs = []string{"a", "b", "c", "d"} },
+		"bad template":   func(g *Graph) { g.Nodes[7].Action.RecipeIDs = []string{"../../etc"} },
+		"repeated":       func(g *Graph) { g.Nodes[7].Action.RecipeIDs = []string{"a", "a"} },
+		"misplaced":      func(g *Graph) { g.Nodes[3].Action.RecipeIDs = []string{"social-pack"} },
+		"brand config":   func(g *Graph) { g.Nodes[7].Action.BrandKitID = "brand" },
+		"wrong input":    func(g *Graph) { g.Nodes[7].Action.Input = &Reference{NodeID: "review", Output: "reviewIds"} },
+		"no input":       func(g *Graph) { g.Nodes[7].Action.Input = nil },
+		"twice": func(g *Graph) {
+			g.Nodes = append(g.Nodes, Node{ID: "board2", Type: "action", Action: &Action{Type: "create_canvas", Input: &Reference{NodeID: "release", Output: "releaseId"}, RecipeIDs: []string{"social-pack"}}})
+			g.Edges[len(g.Edges)-1].To = "board2"
+			g.Edges = append(g.Edges, Edge{"board2", "review", "next"})
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			copy := g
+			copy.Nodes = slices.Clone(g.Nodes)
+			copy.Edges = slices.Clone(g.Edges)
+			for i := range copy.Nodes {
+				if copy.Nodes[i].Action != nil {
+					action := *copy.Nodes[i].Action
+					copy.Nodes[i].Action = &action
+				}
+			}
+			change(&copy)
+			if len(Validate(copy)) == 0 {
+				t.Fatal("invalid configuration accepted")
+			}
+		})
+	}
+	// A release output is enough: the canvas reads the release itself.
+	g.Nodes[7].Action.Input = &Reference{NodeID: "release", Output: "releaseId"}
+	if issues := Validate(g); len(issues) > 0 {
+		t.Fatal(issues)
 	}
 }

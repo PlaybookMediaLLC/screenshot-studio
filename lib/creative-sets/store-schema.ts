@@ -41,3 +41,30 @@ export const storeGroupSchema = z.object({
     .optional(),
 })
 export type StoreGroup = z.infer<typeof storeGroupSchema>
+
+/** Whether every store asset is in workspace storage, as a saved document requires. */
+export function storeGroupStored(group: StoreGroup): boolean {
+  return Object.values(group.document.assets).every(
+    (asset) => asset.src === null && Boolean(group.assetMap[asset.id])
+  )
+}
+
+/**
+ * A store group after a save uploaded its new assets: an asset that has not
+ * changed since the upload started takes the uploaded reference and drops
+ * its local copy. Assets edited during the upload stay local for the next save.
+ */
+export function resolveStoreGroupUploads(
+  group: StoreGroup,
+  uploaded: StoreGroup | undefined,
+  previous: StoreGroup | undefined
+): StoreGroup {
+  const next = structuredClone(group)
+  for (const [id, ref] of Object.entries(uploaded?.assetMap ?? {})) {
+    const before = previous?.document.assets[id]
+    if (!next.assetMap[id] && before && JSON.stringify(next.document.assets[id]) === JSON.stringify(before))
+      next.assetMap[id] = ref
+    if (next.assetMap[id] && next.document.assets[id]) next.document.assets[id]!.src = null
+  }
+  return next
+}

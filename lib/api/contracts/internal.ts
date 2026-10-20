@@ -44,3 +44,14 @@ export const workflowRenderContract = defineContract({
   path: '/api/internal/workflow-renders',
   summary: 'Render campaign creatives for a workflow run',
 })
+
+/** `POST /api/internal/workflow-canvases`: a worker-signed request, read as raw text. */
+export const workflowCanvasContract = defineContract({
+  body: z.string(),
+  bodyFormat: 'text',
+  method: 'POST',
+  name: 'workflows.canvases.create',
+  output: z.object({ canvasId: z.string() }),
+  path: '/api/internal/workflow-canvases',
+  summary: 'Lay out a canvas from a release for a workflow run',
+})

@@ -248,6 +248,7 @@ function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canv
             id: shape.id ?? newId('annotation', index),
             isVisible: shape.visible ?? true,
             opacity: shape.opacity,
+            ...(shape.radius ? { radius: shape.radius } : {}),
             strokeColor: shape.strokeColor,
             strokeWidth: shape.strokeWidth,
             type: shape.type,

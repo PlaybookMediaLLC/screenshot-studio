@@ -183,7 +183,7 @@ func execute(ctx workflow.Context, input Input, finish *Finish) error {
 			continue
 		}
 		nodeCtx := ctx
-		if node.Type == "action" && (node.Action.Type == "generate_copy" || node.Action.Type == "render_creatives") {
+		if node.Type == "action" && (node.Action.Type == "generate_copy" || node.Action.Type == "render_creatives" || node.Action.Type == "create_canvas") {
 			nodeCtx = paidCtx
 		}
 		if err := workflow.ExecuteActivity(nodeCtx, NodeActivity, step).Get(ctx, nil); err != nil {

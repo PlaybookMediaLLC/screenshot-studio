@@ -11,11 +11,11 @@ import { Textarea } from '@/components/ui/textarea'
 import type { CanvasSession } from '@/lib/canvas/session'
 import { artboardSize } from '@/lib/canvas/document'
 import {
+  canvasPdfFileName,
   canvasExportFormatSchema,
   exportSelection,
   packageArtboards,
   renderArtboard,
-  type CanvasExportFormat,
   type CanvasExportOrder,
   type RenderedArtboard,
 } from '@/lib/canvas/export'
@@ -36,11 +36,21 @@ import type { CanvasActions } from './use-canvas-actions'
 
 /** Which dialog or sheet is open. */
 export const canvasDialogSchema = z.union([
-  z.enum(['export', 'history', 'brand', 'campaign', 'mobile-artboards', 'mobile-properties']),
+  z.enum([
+    'export',
+    'history',
+    'brand',
+    'campaign',
+    'mobile-artboards',
+    'mobile-properties',
+    'add-store',
+  ]),
   z.templateLiteral(['recipe:', canvasRecipeSchema]),
 ])
 /** One of {@link canvasDialogSchema}. */
 export type CanvasDialog = z.infer<typeof canvasDialogSchema>
+
+import { AddStoreGroupDialog } from './StoreGroups'
 
 type Props = {
   dialog: CanvasDialog | null
@@ -58,6 +68,7 @@ export function CanvasDialogs(props: Props) {
   if (dialog === 'history') return <HistoryDialog {...props} />
   if (dialog === 'brand') return <BrandDialog {...props} />
   if (dialog === 'campaign') return <HandoffDialog {...props} />
+  if (dialog === 'add-store') return <AddStoreGroupDialog {...props} />
   if (dialog?.startsWith('recipe:')) {
     const recipe = canvasRecipeSchema.safeParse(dialog.slice('recipe:'.length))
     if (recipe.success) return <RecipeDialog {...props} recipe={recipe.data} />
@@ -74,13 +85,18 @@ async function saved(session: CanvasSession, flush: () => void, canEdit: boolean
 
 type Row = { id: string; name: string; result?: RenderedArtboard; error?: string }
 
+/** Export choices: the browser's file formats, or a selectable-text PDF printed on the server. */
+const exportChoiceSchema = canvasExportFormatSchema.or(z.literal('pdf-text'))
+type ExportChoice = z.infer<typeof exportChoiceSchema>
+
 function ExportDialog({ onClose, session, canEdit, flush }: Props) {
   const document = session.snapshot().document
   const selection = useCanvasUi.getState().selection
   const [chosen, setChosen] = useState<string[]>(() =>
     selection.length ? selection : document.artboards.map((artboard) => artboard.id)
   )
-  const [format, setFormat] = useState<CanvasExportFormat>('png')
+  const [format, setFormat] = useState<ExportChoice>('png')
+  const [printed, setPrinted] = useState<{ blob: Blob; fileName: string } | null>(null)
   const [scale, setScale] = useState<1 | 2 | 3>(1)
   const [order, setOrder] = useState<CanvasExportOrder>('reading')
   const [transparent, setTransparent] = useState(false)
@@ -114,6 +130,30 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
       abort.current = controller
       const next: Row[] = items.map((artboard) => ({ id: artboard.id, name: artboard.name }))
       setRows([...next])
+      setPrinted(null)
+      if (format === 'pdf-text') {
+        // One server print: every page keeps real text and vector shapes.
+        const response = await fetch(`/api/tenant/canvases/${session.record.id}/pdf`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ artboardIds: items.map((artboard) => artboard.id) }),
+          signal: controller.signal,
+        })
+        if (!response.ok) {
+          const reason = await response
+            .json()
+            .then((body: { error?: { message?: string }; message?: string }) =>
+              typeof body.error === 'string' ? body.error : (body.error?.message ?? body.message)
+            )
+            .catch(() => null)
+          throw new Error(reason ?? 'The PDF could not be printed.')
+        }
+        setPrinted({
+          blob: await response.blob(),
+          fileName: canvasPdfFileName(session.record.name, snapshot.revision),
+        })
+        return
+      }
       for (const [index, artboard] of items.entries()) {
         try {
           const result = await renderArtboard(
@@ -141,9 +181,14 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
   }
 
   const rendered = rows?.flatMap((row) => (row.result ? [row.result] : [])) ?? []
-  const complete = Boolean(rows?.length) && rendered.length === rows!.length
+  const complete = Boolean(printed) || (Boolean(rows?.length) && rendered.length === rows!.length)
 
   async function download() {
+    if (printed) {
+      downloadBlob(printed.blob, printed.fileName)
+      return
+    }
+    if (format === 'pdf-text') return
     try {
       const file = await packageArtboards(rendered, {
         format,
@@ -242,15 +287,14 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
                 <select
                   aria-label="Export format"
                   value={format}
-                  onChange={(event) =>
-                    setFormat(canvasExportFormatSchema.parse(event.target.value))
-                  }
+                  onChange={(event) => setFormat(exportChoiceSchema.parse(event.target.value))}
                   className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
                 >
                   <option value="png">PNG</option>
                   <option value="jpeg">JPEG</option>
                   <option value="webp">WebP</option>
                   <option value="pdf">PDF (one image page per artboard)</option>
+                  <option value="pdf-text">PDF · selectable text and vector shapes</option>
                 </select>
               </label>
               <label className="grid gap-1 text-xs text-muted-foreground">
@@ -340,8 +384,12 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
                     <span role="alert" className="max-w-[60%] text-right text-xs text-destructive">
                       {row.error}
                     </span>
+                  ) : printed ? (
+                    <span className="text-xs text-emerald-600">On its own page</span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">Rendering…</span>
+                    <span className="text-xs text-muted-foreground">
+                      {format === 'pdf-text' && error ? 'Not printed' : 'Rendering…'}
+                    </span>
                   )}
                 </li>
               ))}
@@ -352,20 +400,29 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
               </p>
             ) : null}
             <div className="flex flex-wrap justify-end gap-2">
-              <Button variant="outline" onClick={() => setRows(null)} disabled={busy}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRows(null)
+                  setPrinted(null)
+                }}
+                disabled={busy}
+              >
                 Change settings
               </Button>
               {canEdit ? (
                 <Button
                   variant="outline"
-                  disabled={!complete || busy || delivered || format === 'pdf'}
+                  disabled={
+                    !complete || busy || delivered || format === 'pdf' || format === 'pdf-text'
+                  }
                   onClick={() => void deliver()}
                 >
                   {delivered ? 'Saved to workspace' : 'Save to workspace'}
                 </Button>
               ) : null}
               <Button disabled={!complete || busy} onClick={() => void download()}>
-                {format === 'pdf'
+                {format === 'pdf' || format === 'pdf-text'
                   ? 'Download PDF'
                   : rendered.length > 1
                     ? 'Download ZIP'

@@ -61,9 +61,11 @@ func (c *Configuration) WithAutomationRenderer(renderer AutomationRenderer) *Con
 // HTTPAutomationRenderer calls the web's internal render endpoint with an
 // HMAC over the timestamp and exact body; the web rejects stale signatures.
 type HTTPAutomationRenderer struct {
-	URL  string
-	Key  []byte
-	HTTP *http.Client
+	URL string
+	// CanvasURL is the canvas builder beside the renderer.
+	CanvasURL string
+	Key       []byte
+	HTTP      *http.Client
 }
 
 // AutomationRendererFromEnvironment reads PLATFORM_WORKFLOW_RENDER_URL (the
@@ -75,7 +77,8 @@ func AutomationRendererFromEnvironment() *HTTPAutomationRenderer {
 	if base == "" || len(key) < 32 {
 		return nil
 	}
-	return &HTTPAutomationRenderer{URL: base + "/api/internal/workflow-renders", Key: []byte(key), HTTP: &http.Client{Timeout: 4 * time.Minute}}
+	return &HTTPAutomationRenderer{URL: base + "/api/internal/workflow-renders", CanvasURL: base + "/api/internal/workflow-canvases",
+		Key: []byte(key), HTTP: &http.Client{Timeout: 4 * time.Minute}}
 }
 
 // ErrRendererRefused is a render request the web rejected as invalid; retrying cannot help.

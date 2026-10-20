@@ -26,6 +26,7 @@ export const layerBlockSchema = z.enum([
   'comparison-table',
   'workflow-diagram',
   'rectangle',
+  'rounded-rectangle',
   'ellipse',
   'line',
   'arrow',
@@ -87,6 +88,7 @@ export const BLOCK_GROUPS: {
     title: 'Shapes',
     blocks: [
       { id: 'rectangle', label: 'Rectangle' },
+      { id: 'rounded-rectangle', label: 'Rounded rectangle' },
       { id: 'ellipse', label: 'Ellipse' },
       { id: 'line', label: 'Line' },
       { id: 'arrow', label: 'Arrow' },
@@ -237,7 +239,8 @@ export function blockChanges(
     bottom: number,
     fill: string,
     stroke = fill,
-    type: Annotation['type'] = 'rectangle'
+    type: Annotation['type'] = 'rectangle',
+    radius?: number
   ) =>
     annotations.push({
       id: newId(),
@@ -248,6 +251,7 @@ export function blockChanges(
       strokeColor: stroke,
       strokeWidth: 2,
       opacity: 1,
+      ...(radius ? { radius } : {}),
     })
   const stroke = (
     from: { x: number; y: number },
@@ -413,6 +417,9 @@ export function blockChanges(
     }
     case 'rectangle':
       box(cx - 0.12, cy - 0.1, cx + 0.12, cy + 0.1, 'transparent', ACCENT)
+      break
+    case 'rounded-rectangle':
+      box(cx - 0.12, cy - 0.1, cx + 0.12, cy + 0.1, 'transparent', ACCENT, 'rectangle', 0.2)
       break
     case 'ellipse':
       box(

@@ -6,6 +6,7 @@ import { backendSDK, orNull, withDates } from '@/lib/backend/sdk'
 import { type CreativeSetDocument, creativeSetDocumentSchema } from '@/lib/creative-sets/document'
 import { getLocalDesignSources } from '@/lib/design/document'
 import type { CreativeSetListInput } from '@/lib/creative-sets/schema'
+import { storeGroupStored } from '@/lib/creative-sets/store-schema'
 import { DesignError } from './designs'
 
 /**
@@ -21,14 +22,8 @@ function storableDocument(raw: unknown): CreativeSetDocument {
   if (document.outputs.some((output) => getLocalDesignSources(output.document).length > 0)) {
     throw new DesignError('Upload local images before saving the creativeSet.', 400)
   }
-  for (const group of document.storeGroups) {
-    if (
-      Object.values(group.document.assets).some(
-        (asset) => asset.src !== null || !group.assetMap[asset.id]
-      )
-    )
-      throw new DesignError('Copy every store asset to workspace storage before saving.', 400)
-  }
+  if (!document.storeGroups.every(storeGroupStored))
+    throw new DesignError('Copy every store asset to workspace storage before saving.', 400)
   return document
 }
 

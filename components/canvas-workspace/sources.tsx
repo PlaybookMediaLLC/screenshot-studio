@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTRPCClient } from '@/lib/trpc/react'
 import type { ReleaseEvidence } from '@/lib/canvas/recipes'
+import { releaseEvidence } from '@/lib/canvas/plan'
 import { cn } from '@/lib/utils'
 
 /**
@@ -240,18 +241,7 @@ export function ReleasePicker({
         disabled={disabled}
       />
     )
-  const evidence: ReleaseEvidence = {
-    id: release.id,
-    title: release.title.slice(0, 300),
-    benefitStatement: release.benefitStatement?.slice(0, 300) || undefined,
-    features: (release.features ?? [])
-      .filter((feature) => feature.title?.trim())
-      .slice(0, 20)
-      .map((feature) => ({
-        title: feature.title.slice(0, 300),
-        ...(feature.url && /^https?:\/\//.test(feature.url) ? { url: feature.url } : {}),
-      })),
-  }
+  const evidence = releaseEvidence(release)
   const screenshots = release.screenshotAssetIds ?? []
   return (
     <div className="grid gap-3">

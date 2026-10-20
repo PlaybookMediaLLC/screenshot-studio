@@ -305,14 +305,15 @@ function AnnotationElement({ annotation, isSelected, isHovered, onSelect, onDrag
       const ry = Math.min(y1, y2);
       const rw = Math.abs(x2 - x1);
       const rh = Math.abs(y2 - y1);
+      const corner = (annotation.radius ?? 0) * Math.min(rw, rh);
       return (
         <g style={groupStyle}>
           {/* Wider hit area for the rectangle outline */}
-          <rect x={rx} y={ry} width={rw} height={rh} {...hitProps} />
-          <rect x={rx} y={ry} width={rw} height={rh} {...commonProps} />
+          <rect x={rx} y={ry} width={rw} height={rh} rx={corner} {...hitProps} />
+          <rect x={rx} y={ry} width={rw} height={rh} rx={corner} {...commonProps} />
           {isSelected && (
             <g data-export-exclude="true">
-              <rect x={rx} y={ry} width={rw} height={rh}
+              <rect x={rx} y={ry} width={rw} height={rh} rx={corner}
                 fill="none" stroke={sel} strokeWidth={1.5} strokeDasharray="6 3"
                 style={{ pointerEvents: 'none' }} />
               {onEndpointDrag && (
@@ -759,8 +760,8 @@ export function SVGAnnotationLayer({
       />
 
       {annotations.map((annotation) => (
+        <g key={annotation.id} data-annotation-id={annotation.id}>
         <AnnotationElement
-          key={annotation.id}
           annotation={annotation}
           isSelected={selectedId === annotation.id}
           isHovered={hoveredId === annotation.id}
@@ -774,6 +775,7 @@ export function SVGAnnotationLayer({
           onEndpointDrag={(endpoint, e) => handleEndpointDragStart(annotation.id, endpoint, e)}
           onHover={(h) => setHoveredId(h ? annotation.id : null)}
         />
+        </g>
       ))}
       {renderDrawingPreview()}
 

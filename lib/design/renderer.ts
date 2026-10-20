@@ -22,6 +22,14 @@ import { createRenderToken } from './render-token'
 
 const RENDER_TIMEOUT_MS = 60_000
 
+/** A strict check refused an artboard (a missing font or image, overflowing copy). */
+export class CanvasPrintRefusedError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'CanvasPrintRefusedError'
+  }
+}
+
 export function isDesignRendererAvailable(): boolean {
   return process.env.PLATFORM_DESIGN_RENDERER === 'enabled'
 }
@@ -77,6 +85,8 @@ export type DesignRenderer = {
     organizationId: string,
     options?: DesignRenderOptions
   ) => Promise<RenderedDesign>
+  /** Print canvas artboards to one PDF, a page per artboard at its own size. */
+  printCanvas: (canvasId: string, organizationId: string, artboardIds: string[]) => Promise<Buffer>
 }
 
 type ExportResult = { base64: string; height: number; mediaType?: string; width: number }
@@ -122,28 +132,53 @@ export async function createDesignRenderer(): Promise<DesignRenderer> {
   let browser = await openBrowser()
   const baseUrl = new URL(getRenderBaseUrl())
 
+  /** A fresh page that may load only the app itself and Google Fonts. */
+  async function openPage(viewport = { height: 1400, width: 2200 }) {
+    // A remote session ends after its idle keep_alive; reconnect if it did.
+    if (!browser.isConnected()) browser = await openBrowser()
+    const context = await browser.newContext({ deviceScaleFactor: 1, viewport })
+    const page = await context.newPage()
+    // Only the app itself and Google Fonts (text may use them): no
+    // analytics or ad scripts in a render.
+    await page.route('**/*', (route) => {
+      const url = new URL(route.request().url())
+      return url.protocol === 'data:' ||
+        url.protocol === 'blob:' ||
+        url.origin === baseUrl.origin ||
+        (GOOGLE_FONT_ORIGINS as readonly string[]).includes(url.origin)
+        ? route.continue()
+        : route.abort()
+    })
+    return { context, page }
+  }
+
   return {
     close: () => browser.close(),
-    render: async (designId, organizationId, options = {}) => {
-      // A remote session ends after its idle keep_alive; reconnect if it did.
-      if (!browser.isConnected()) browser = await openBrowser()
-      const context = await browser.newContext({
-        deviceScaleFactor: 1,
-        viewport: { height: 1400, width: 2200 },
-      })
+    printCanvas: async (canvasId, organizationId, artboardIds) => {
+      const { context, page } = await openPage()
       try {
-        const page = await context.newPage()
-        // Only the app itself and Google Fonts (text may use them): no
-        // analytics or ad scripts in a render.
-        await page.route('**/*', (route) => {
-          const url = new URL(route.request().url())
-          return url.protocol === 'data:' ||
-            url.protocol === 'blob:' ||
-            url.origin === baseUrl.origin ||
-            (GOOGLE_FONT_ORIGINS as readonly string[]).includes(url.origin)
-            ? route.continue()
-            : route.abort()
-        })
+        const url = new URL(`/render/canvas/${canvasId}`, getRenderBaseUrl())
+        url.searchParams.set('token', createRenderToken(`canvas:${canvasId}`, organizationId))
+        url.searchParams.set('ids', artboardIds.join(','))
+        const response = await page.goto(url.toString(), { timeout: RENDER_TIMEOUT_MS })
+        if (!response?.ok())
+          throw new Error(`Print page returned ${response?.status() ?? 'no response'}.`)
+        await page.waitForFunction(
+          () => window.__canvasPrintReady === true || Boolean(window.__canvasPrintError),
+          undefined,
+          { timeout: RENDER_TIMEOUT_MS * Math.max(1, Math.ceil(artboardIds.length / 4)) }
+        )
+        const failure = await page.evaluate(() => window.__canvasPrintError)
+        if (failure) throw new CanvasPrintRefusedError(failure)
+        // Each artboard is a named page at its own size; text and shapes stay vector.
+        return await page.pdf({ preferCSSPageSize: true, printBackground: true })
+      } finally {
+        await context.close()
+      }
+    },
+    render: async (designId, organizationId, options = {}) => {
+      const { context, page } = await openPage()
+      try {
         const response = await page.goto(
           renderPageUrl(designId, organizationId, options).toString(),
           {

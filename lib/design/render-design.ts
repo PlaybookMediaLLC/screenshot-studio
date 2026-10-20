@@ -54,7 +54,8 @@ async function assetFingerprints(tenant: TenantContext, document: DesignDocument
   )
 }
 
-async function enforceRenderLimit(organizationId: string) {
+/** One workspace's share of the render service, for designs and printed canvases alike. */
+export async function enforceRenderLimit(organizationId: string) {
   try {
     const result = await checkRateLimit(`design-render:${organizationId}`, DESIGN_RENDER_RATE_LIMIT)
     if (!result.allowed) throw new DesignRenderLimitError()

@@ -71,6 +71,23 @@ before(async () => {
     const url = new URL(request.url ?? '/', 'http://app.local')
     renderQueries.push(url.searchParams)
     response.setHeader('content-type', 'text/html')
+    if (url.pathname.startsWith('/render/canvas/')) {
+      // A print page: two named pages at their own sizes, or a strict-check refusal.
+      response.end(
+        url.pathname.endsWith('/broken')
+          ? `<!doctype html><script>window.__canvasPrintError = 'Font failed to load: Missing.'</script>`
+          : `<!doctype html><style>
+              html, body { margin: 0 }
+              @page { size: 1080px 1350px; margin: 0 }
+              @page a0 { size: 1080px 1350px; margin: 0 }
+              @page a1 { size: 1600px 900px; margin: 0 }
+            </style>
+            <div style="page: a0; width: 1080px; height: 1350px; break-after: page">Portrait</div>
+            <div style="page: a1; width: 1600px; height: 900px">Landscape</div>
+            <script>window.__canvasPrintReady = true</script>`
+      )
+      return
+    }
     response.end(`<!doctype html><script>
       fetch(${JSON.stringify(thirdPartyUrl)}).catch(() => {})
       window.__exportDesign = async () => ({
@@ -115,6 +132,36 @@ test('renders over CDP, keeps the page on the app origin, and reconnects', async
     const second = await renderer.render('design1', 'org1')
     assert.deepEqual(second.bytes, exported)
     assert.equal(second.mediaType, 'image/png')
+  } finally {
+    await renderer.close().catch(() => {})
+  }
+})
+
+test('prints canvas artboards to one PDF, a page per artboard at its own size', async () => {
+  const { CanvasPrintRefusedError, createDesignRenderer } = await import('../lib/design/renderer')
+  const renderer = await createDesignRenderer()
+  try {
+    const pdf = (await renderer.printCanvas('c1', 'org1', ['a', 'b'])).toString('latin1')
+    assert.ok(pdf.startsWith('%PDF-'))
+    // Chromium writes 0.75 pt per CSS pixel.
+    const pages = [...pdf.matchAll(/\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/g)].map(
+      (match) => [Math.round(Number(match[1]) / 0.75), Math.round(Number(match[2]) / 0.75)]
+    )
+    // Page sizes round to Chromium's device units: within a pixel.
+    const sorted = pages.sort((a, b) => a[0]! - b[0]!)
+    assert.equal(sorted.length, 2)
+    for (const [index, [width, height]] of [
+      [1080, 1350],
+      [1600, 900],
+    ].entries()) {
+      assert.ok(Math.abs(sorted[index]![0]! - width!) <= 1, `width ${sorted[index]}`)
+      assert.ok(Math.abs(sorted[index]![1]! - height!) <= 1, `height ${sorted[index]}`)
+    }
+    const query = renderQueries.at(-1)
+    assert.equal(query?.get('ids'), 'a,b')
+    assert.ok(query?.get('token'))
+    assert.equal(thirdPartyRequests, 0)
+    await assert.rejects(renderer.printCanvas('broken', 'org1', ['a']), CanvasPrintRefusedError)
   } finally {
     await renderer.close().catch(() => {})
   }

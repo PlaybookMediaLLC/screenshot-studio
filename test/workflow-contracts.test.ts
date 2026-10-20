@@ -26,12 +26,19 @@ test('templates build the shared fixture graphs the Go validator accepts', () =>
     branch: 'main',
   }
   const variants = {
-    '': { creditLimit: 0, aiRelevance: false, majorMinorOnly: false, renderTemplateIds: [] },
+    '': {
+      creditLimit: 0,
+      aiRelevance: false,
+      majorMinorOnly: false,
+      renderTemplateIds: [],
+      canvas: false,
+    },
     '+all': {
       creditLimit: 40,
       aiRelevance: true,
       majorMinorOnly: true,
       renderTemplateIds: ['layout-browser-launch', 'layout-phone-duo'],
+      canvas: true,
     },
   }
   for (const id of workflowTemplateIdSchema.options) {

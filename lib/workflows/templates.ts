@@ -34,6 +34,8 @@ export const workflowTemplateInputSchema = z.strictObject({
   majorMinorOnly: z.boolean(),
   /** Renders these design templates from the latest capture; empty leaves it out. */
   renderTemplateIds: z.array(z.string().max(64)).max(3),
+  /** Lays out a canvas from the release for the team to refine. */
+  canvas: z.boolean(),
 })
 
 /** Template parameters chosen in the template picker. */
@@ -212,10 +214,22 @@ export function buildWorkflowTemplate(
       },
     })
   }
+  const campaign = after()
+  if (input.canvas) {
+    steps.push({
+      id: 'board',
+      type: 'action',
+      action: {
+        type: 'create_canvas',
+        input: { nodeId: campaign, output: 'campaignId' },
+        recipeIds: ['feature-announcement', 'social-pack'],
+      },
+    })
+  }
   steps.push({
     id: 'review',
     type: 'action',
-    action: { type: 'submit_review', input: { nodeId: after(), output: 'campaignId' } },
+    action: { type: 'submit_review', input: { nodeId: campaign, output: 'campaignId' } },
   })
   const nodes: AutomationNode[] = [
     { id: 'trigger', type: 'trigger' },

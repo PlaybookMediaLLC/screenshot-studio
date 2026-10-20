@@ -7,7 +7,7 @@ import {
 } from '@/lib/api/contracts/release-automation'
 
 /** What an action reads and records; the Go validator checks the same names. */
-export const workflowOutputSchema = z.enum(['releaseId', 'campaignId', 'reviewIds'])
+export const workflowOutputSchema = z.enum(['releaseId', 'campaignId', 'reviewIds', 'canvasId'])
 
 /**
  * Static facts about one executor action. Whether it can run right now
@@ -99,6 +99,21 @@ export const WORKFLOW_ACTIONS = {
     entitlement: 'campaign:workflow',
     retry:
       'Up to 3 attempts, 5 minutes each. A retry reuses the designs and renders it already made.',
+    paid: false,
+    humanApproval: false,
+  },
+  create_canvas: {
+    type: 'create_canvas',
+    label: 'Create a canvas',
+    description:
+      'Lays out a canvas from the release with 1–3 canvas templates, using its screenshots or your latest product capture. Every claim quotes the release; the canvas opens for your team to refine and export.',
+    input: 'releaseId',
+    output: 'canvasId',
+    minSchemaVersion: 2,
+    permission: ADMIN,
+    integrations: ['Release screenshots or a product capture', 'Canvas builder on the web'],
+    entitlement: 'workspace:use',
+    retry: 'Up to 3 attempts, 5 minutes each. A retry finds the canvas this run already made.',
     paid: false,
     humanApproval: false,
   },

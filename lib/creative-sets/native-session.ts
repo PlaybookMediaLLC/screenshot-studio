@@ -70,6 +70,7 @@ export class NativeDocumentBridge {
   private closed = false
   private pointing = false
   private reflowing = false
+  private replacing = 0
   private abort = new AbortController()
   constructor(private target: NativeTarget) {}
   async open() {
@@ -121,6 +122,30 @@ export class NativeDocumentBridge {
     window.addEventListener('pointercancel', this.end)
     window.addEventListener('focusout', this.end)
     window.addEventListener('blur', this.end)
+  }
+  /**
+   * Load the stored document into the open editor in place, after a change
+   * made outside it (undo, a canvas layer command, a collaborator). Pending
+   * editor edits are committed first; the editor stays mounted.
+   */
+  async replace() {
+    if (!this.baseline || this.closed) return
+    this.safeFlush()
+    const run = ++this.replacing
+    this.reflowing = true
+    try {
+      const sources = await applyStoredDocument(
+        this.target.client,
+        this.target.resolved(),
+        'external',
+        { replace: true, signal: this.abort.signal }
+      )
+      if (this.closed || run !== this.replacing) return
+      rememberUploadedSources(sources)
+      this.baseline = withUploadedSources(exportDesignDocument({ keepLocalSources: true }))
+    } finally {
+      if (run === this.replacing) this.reflowing = false
+    }
   }
   private start = () => {
     this.safeFlush()

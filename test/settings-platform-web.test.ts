@@ -98,7 +98,7 @@ test('settings sections are grouped and each has its own address', () => {
 })
 
 test('a writing sample cannot close the fence it is quoted in', async () => {
-  const { voiceInstructions } = await import('@/lib/content-drafts/assist')
+  const { voiceInstructions } = await import('@/lib/write/refine')
   const prompt = voiceInstructions({
     audience: '',
     endings: [],
@@ -120,7 +120,7 @@ test('a writing sample cannot close the fence it is quoted in', async () => {
 })
 
 test("a model's introduction is dropped, but a post that opens the same way is kept", async () => {
-  const { assistPosts } = await import('@/lib/content-drafts/assist')
+  const { assistPosts } = await import('@/lib/write/refine-actions')
   assert.deepEqual(
     assistPosts(
       "Here's the rewritten post for X:\n\nInvoice approvals move faster. See how it works."

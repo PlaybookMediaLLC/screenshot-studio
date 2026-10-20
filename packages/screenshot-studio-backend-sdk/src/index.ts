@@ -844,13 +844,116 @@ export type BackendContentDraft = {
   guestComments: { createdAt: string; name: string; text: string }[]
   /** The draft's live posts (lists only). */
   publishedPosts: number
+  /** Write (RFC 042): an article's title and cover, for an article draft. */
+  article: BackendDraftArticle | null
+  /** Posts that failed or whose outcome is unknown (lists only). */
+  attentionPosts: number
+  kind: BackendDraftKind
+  /** When the next queued post goes out (lists only). */
+  nextPostAt: string | null
+  pinnedAt: string | null
+  planTimeZone: string | null
+  platformVersions: BackendPlatformVersions
+  /** Posts waiting to go out (lists only). */
+  queuedPosts: number
+  /** Internal notes; never part of a post. */
+  scratchpad: string
+  sourceDraftId: string | null
+  /** Tags of the draft's set, by id (an experiment). */
+  tagIds: string[]
+  target: BackendDraftTarget | null
   /** The draft's social set and what it copied from the set when created (RFC 043). */
   engagement: Engagement
   naturalPostingTime: boolean
+  /** A planned time puts the draft on the calendar; nothing publishes from it (an experiment). */
   plannedFor: string | null
+  /** The platform the body is written for. */
   primaryPlatform: string | null
+  /** Null is the workspace's default set. */
   socialSetId: string | null
-  tags: string[]
+}
+
+/** What kind of post a draft is (RFC 042). */
+export type BackendDraftKind = 'standard' | 'reply' | 'quote' | 'repurpose' | 'article'
+
+/** The post a reply answers, a quote embeds, or a repurposed draft came from. */
+export type BackendDraftTarget = {
+  author?: string
+  kind?: 'reply' | 'quote' | 'repurpose'
+  platform?: string
+  remoteId?: string
+  sourceDraftId?: string
+  sourcePostId?: string
+  text?: string
+  url?: string
+}
+
+/** An X article's title and cover. */
+export type BackendDraftArticle = { coverAssetId?: string; title: string }
+
+/** A platform version's settings. */
+export type BackendVersionOptions = {
+  /** X: follow-ups once the post is live. */
+  automation?: BackendAutoActions
+  community?: { id: string; name?: string; shareWithFollowers?: boolean }
+  document?: { assetId: string; title?: string }
+  firstComment?: string
+  numbering?: {
+    enabled: boolean
+    position: 'start' | 'end'
+    skipFirst?: number
+    skipLast?: number
+    style: 'hash' | 'emoji' | 'dot' | 'slash' | 'leading' | 'fraction' | 'of'
+  }
+  visibility?: 'PUBLIC' | 'CONNECTIONS'
+}
+
+/** Each platform's version of a draft beside its primary body. */
+export type BackendPlatformVersions = {
+  schemaVersion: 1
+  versions: {
+    body?: unknown[]
+    channel: string
+    forkedFromVersion?: number
+    mode: 'synced' | 'manual'
+    options?: BackendVersionOptions
+    sourceHash?: string
+  }[]
+}
+
+/** A set's tag. */
+export type BackendDraftTag = {
+  color: string
+  createdAt: string
+  id: string
+  name: string
+  socialSetId: string
+}
+
+/** A set's thread finisher. */
+export type BackendDraftFinisher = {
+  createdAt: string
+  id: string
+  name: string
+  quoteFirstPost: boolean
+  socialSetId: string
+  text: string
+  updatedAt: string
+}
+
+/** A new draft and what the destination could not take. */
+export type BackendDraftCopy = { draft: BackendContentDraft; dropped: string[] }
+
+/** One event in a draft's history. */
+export type BackendDraftActivity = {
+  action: string
+  actorName: string | null
+  actorType: string
+  actorUserId: string | null
+  at: string
+  entityId: string
+  id: string
+  metadata: Record<string, unknown>
 }
 
 /** A workspace's drafts settings: its queue's weekly slots and approvals. */
@@ -875,6 +978,10 @@ export type BackendContentDraftRevision = {
   plainText: string
   title: string
   version: number
+  /** Why the backup was kept: edit, schedule, plan, publish or recovery. */
+  reason: string
+  article?: BackendDraftArticle
+  platformVersions?: BackendPlatformVersions
 }
 
 /** What a share link shows a guest. */
@@ -886,40 +993,87 @@ export type BackendSharedContentDraft = {
   updatedAt: string
 }
 
-/** A live post's follow-ups (X): repost and reply at a like count, quote after hours. */
+/**
+ * A live post's follow-ups (X): repost and reply at a like count, quote
+ * after hours; reposts at set times and their removal (RFC 042).
+ */
 export type BackendAutoActions = {
   plugAtLikes?: number
+  /** What plugAtLikes counts: likes (the default) or reposts. */
+  plugMetric?: 'likes' | 'reposts'
   plugText?: string
   quoteAfterHours?: number
   quoteText?: string
   repostAtLikes?: number
+  /** Each a duration after publishing, or a time of day some days later. */
+  retweets?: BackendRetweetRule[]
+  /** Removes each automatic repost this long after it; 0 keeps them. */
+  unretweetAfterMinutes?: number
+}
+
+/** When to repost: afterMinutes after publishing, or `days` later at `at` in `timeZone`. */
+export type BackendRetweetRule = {
+  afterMinutes?: number
+  at?: string
+  days?: number
+  timeZone?: string
+}
+
+/** An account a post can tag: an X user or a LinkedIn organization (RFC 042). */
+export type BackendSocialMention = {
+  handle?: string
+  image?: string
+  kind: 'person' | 'organization'
+  label: string
+  /** The X username, or a LinkedIn organization URN. */
+  providerId: string
+}
+
+/** A live post's follow-up and its receipt (RFC 042). */
+export type BackendPostAutomation = {
+  attempts: number
+  dueAt: string
+  failureCode: string | null
+  key: string
+  kind: 'first_comment' | 'retweet' | 'unretweet' | 'plug' | 'repost_at_likes' | 'quote'
+  remoteId: string | null
+  status: 'pending' | 'done' | 'failed' | 'skipped' | 'cancelled' | 'expired'
+  updatedAt: string
 }
 
 /** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
 export type BackendPoll = { durationMinutes: number; options: string[] }
 
-export type BackendContentDraftInput = {
+/** The fields a draft is created or updated with. */
+export type BackendContentDraftFields = {
+  article?: BackendDraftArticle
   assetIds?: string[]
   body?: unknown[]
   channelConnectionIds?: string[]
   channelText?: Record<string, string>
   discussions?: Record<string, unknown>
   plainText?: string
+  platformVersions?: BackendPlatformVersions
+  target?: BackendDraftTarget
   title?: string
 }
 
 /** A new draft: without channels it starts with its set's default platforms. */
-export type BackendContentDraftCreate = BackendContentDraftInput & { socialSetId?: string }
+export type BackendContentDraftCreate = BackendContentDraftFields & {
+  kind?: BackendDraftKind
+  scratchpad?: string
+  socialSetId?: string
+  /** An experiment. */
+  tagIds?: string[]
+}
 
-export type BackendContentDraftUpdate = BackendContentDraftInput & {
+export type BackendContentDraftUpdate = BackendContentDraftFields & {
   baseVersion: number
   status?: Exclude<BackendContentDraftStatus, 'scheduled'>
   naturalPostingTime?: boolean
   /** RFC 3339, or an empty string to clear (an experiment). */
   plannedFor?: string
   primaryPlatform?: string
-  /** An experiment. */
-  tags?: string[]
 }
 
 /** A post scheduled from a content draft, with its delivery status. */
@@ -938,6 +1092,8 @@ export type BackendContentDraftPost = {
   /** A thread: its reply count and how many went out. */
   replies: number
   threadProgress: { lastReplyId?: string; posted: number; total: number }
+  /** Its follow-ups once live, each with its receipt (RFC 042). */
+  automations?: BackendPostAutomation[]
   /** How the instant was chosen (RFC 043). */
   naturalOffsetSeconds: number | null
   scheduleMode: 'queue' | 'explicit' | null
@@ -952,17 +1108,55 @@ export type BackendContentDraftScheduleTarget = {
   assetIds?: string[]
   caption: string
   channelConnectionId: string
-  /** A thread's later posts, posted as replies to the first. */
-  replies?: { assetIds: string[]; caption: string }[]
+  /** A thread's later posts, posted as replies to the first, each with its settings. */
+  replies?: { assetIds: string[]; caption: string; options?: BackendPublishOptions }[]
   autoActions?: BackendAutoActions
   poll?: BackendPoll
+  /** The first post's settings beyond its text (RFC 042). */
+  options?: BackendPublishOptions
+  /** The live X post a reply draft answers. */
+  replyTo?: string
+}
+
+/** A post's settings beyond its text, as a scheduled post keeps them (RFC 042). */
+export type BackendPublishOptions = {
+  articleCoverAssetId?: string
+  articleTitle?: string
+  communityId?: string
+  documentAssetId?: string
+  documentTitle?: string
+  firstComment?: string
+  madeWithAi?: boolean
+  paidPartnership?: boolean
+  pollQuestion?: string
+  quoteFirstPost?: boolean
+  quoteRemoteId?: string
+  replySettings?: 'following' | 'mentionedUsers' | 'subscribers' | 'verified'
+  shareWithFollowers?: boolean
+  visibility?: 'PUBLIC' | 'CONNECTIONS'
+}
+
+/** When a schedule goes out (RFC 042); the backend resolves local times. */
+export type BackendScheduleTiming = {
+  disambiguation?: 'earlier' | 'later'
+  localTime?: string
+  naturalPostingTime?: boolean
+  publishNow?: boolean
+  queue?: boolean
+  scheduledFor?: Date
+  timeZone?: string
 }
 
 export type BackendContentDraftListQuery = {
   cursor?: string
+  kind?: BackendDraftKind
   limit?: number
+  search?: string
   socialSetId?: string
+  sort?: 'updated_desc' | 'updated_asc' | 'created_desc' | 'created_asc'
   status?: BackendContentDraftStatus
+  tagId?: string
+  view?: 'drafts' | 'posted' | 'archived'
 }
 
 /** A cloud project: an editor composition with revision-checked writes. */
@@ -2129,6 +2323,14 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
+  /** Describe an image; the description is posted with it (RFC 042). Empty clears it. */
+  async setAssetAltText(id: string, altText: string) {
+    return this.request<{ altText: string | null; id: string }>(
+      `v1/assets/${encodeURIComponent(id)}/alt-text`,
+      { body: { altText }, method: 'PUT' }
+    )
+  }
+
   async deleteAsset(id: string) {
     return this.request<{ status: 'deleted' }>(`v1/assets/${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -2310,9 +2512,11 @@ export class ScreenshotStudioBackendSDK {
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined && value !== '') params.set(key, String(value))
     }
-    return this.request<{ items: BackendContentDraft[]; nextCursor: string | null }>(
-      `v1/content-drafts?${params}`
-    )
+    return this.request<{
+      items: BackendContentDraft[]
+      nextCursor: string | null
+      pinned: BackendContentDraft[]
+    }>(`v1/content-drafts?${params}`)
   }
 
   async createContentDraft(input: BackendContentDraftCreate) {
@@ -2339,13 +2543,7 @@ export class ScreenshotStudioBackendSDK {
   /** Schedules at `scheduledFor`, or with `queue` at the set's next free slot, which the backend reserves. */
   async scheduleContentDraft(
     id: string,
-    input: {
-      naturalPostingTime?: boolean
-      queue?: boolean
-      scheduledFor?: Date
-      targets: BackendContentDraftScheduleTarget[]
-      version: number
-    }
+    input: BackendScheduleTiming & { targets: BackendContentDraftScheduleTarget[]; version: number }
   ) {
     return this.request<{
       created: boolean
@@ -2413,10 +2611,162 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ items: BackendCalendarPost[] }>(`v1/content-draft-posts?${params}`)
   }
 
+  /** Drafts planned in [from, to); one set's when given. */
+  async listPlannedContentDrafts(from: Date, to: Date, socialSetId?: string) {
+    const params = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })
+    if (socialSetId) params.set('socialSetId', socialSetId)
+    return this.request<{ items: BackendContentDraft[] }>(`v1/content-draft-plans?${params}`)
+  }
+
+  /** What the set's account for a channel can mention (RFC 042). */
+  async lookupSocialSetMentions(id: string, channel: 'x' | 'linkedin', query: string) {
+    return this.request<{ items: BackendSocialMention[] }>(
+      `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query })}`
+    )
+  }
+
+  async listDraftTags(setId: string) {
+    return this.request<{ items: BackendDraftTag[] }>(
+      `v1/social-sets/${encodeURIComponent(setId)}/tags`
+    )
+  }
+
+  async createDraftTag(setId: string, input: { color?: string; name: string }) {
+    return this.request<BackendDraftTag>(`v1/social-sets/${encodeURIComponent(setId)}/tags`, {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async updateDraftTag(setId: string, tagId: string, input: { color?: string; name?: string }) {
+    return this.request<BackendDraftTag>(
+      `v1/social-sets/${encodeURIComponent(setId)}/tags/${encodeURIComponent(tagId)}`,
+      { body: input, method: 'PATCH' }
+    )
+  }
+
+  async deleteDraftTag(setId: string, tagId: string) {
+    return this.request<{ deleted: true }>(
+      `v1/social-sets/${encodeURIComponent(setId)}/tags/${encodeURIComponent(tagId)}`,
+      { method: 'DELETE' }
+    )
+  }
+
+  async listDraftFinishers(setId: string) {
+    return this.request<{ items: BackendDraftFinisher[] }>(
+      `v1/social-sets/${encodeURIComponent(setId)}/finishers`
+    )
+  }
+
+  async createDraftFinisher(
+    setId: string,
+    input: { name: string; quoteFirstPost?: boolean; text: string }
+  ) {
+    return this.request<BackendDraftFinisher>(
+      `v1/social-sets/${encodeURIComponent(setId)}/finishers`,
+      {
+        body: input,
+        method: 'POST',
+      }
+    )
+  }
+
+  async updateDraftFinisher(
+    setId: string,
+    finisherId: string,
+    input: { name?: string; quoteFirstPost?: boolean; text?: string }
+  ) {
+    return this.request<BackendDraftFinisher>(
+      `v1/social-sets/${encodeURIComponent(setId)}/finishers/${encodeURIComponent(finisherId)}`,
+      { body: input, method: 'PATCH' }
+    )
+  }
+
+  async deleteDraftFinisher(setId: string, finisherId: string) {
+    return this.request<{ deleted: true }>(
+      `v1/social-sets/${encodeURIComponent(setId)}/finishers/${encodeURIComponent(finisherId)}`,
+      { method: 'DELETE' }
+    )
+  }
+
+  /** Pin, tag or annotate a draft; its version and approval stay. */
+  async updateContentDraftProperties(
+    id: string,
+    input: { addTagIds?: string[]; pinned?: boolean; removeTagIds?: string[]; scratchpad?: string }
+  ) {
+    return this.request<BackendContentDraft>(
+      `v1/content-drafts/${encodeURIComponent(id)}/properties`,
+      {
+        body: input,
+        method: 'PATCH',
+      }
+    )
+  }
+
+  /** Plan a draft on the calendar, or clear its plan with null. Nothing publishes from a plan. */
+  async planContentDraft(id: string, input: { plannedFor: Date | null; timeZone?: string }) {
+    return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}/plan`, {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async duplicateContentDraft(id: string) {
+    return this.request<BackendDraftCopy>(`v1/content-drafts/${encodeURIComponent(id)}/duplicate`, {
+      body: {},
+      method: 'POST',
+    })
+  }
+
+  async copyContentDraft(id: string, input: { socialSetId: string; tagMode: 'match' | 'drop' }) {
+    return this.request<BackendDraftCopy>(`v1/content-drafts/${encodeURIComponent(id)}/copy`, {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  /** A new draft from a backup; the source stays as it is. */
+  async recoverContentDraftRevision(id: string, revisionId: string) {
+    return this.request<BackendDraftCopy>(
+      `v1/content-drafts/${encodeURIComponent(id)}/revisions/${encodeURIComponent(revisionId)}/recover`,
+      { body: {}, method: 'POST' }
+    )
+  }
+
+  async listContentDraftActivity(id: string) {
+    return this.request<{ items: BackendDraftActivity[] }>(
+      `v1/content-drafts/${encodeURIComponent(id)}/activity`
+    )
+  }
+
   async moveContentDraftPost(id: string, scheduledFor: Date) {
     return this.request<{ post: BackendContentDraftPost }>(
       `v1/content-draft-posts/${encodeURIComponent(id)}/move`,
       { body: { scheduledFor }, method: 'POST' }
+    )
+  }
+
+  /** Publish one failed destination again, now; once. */
+  async retryContentDraftPost(id: string) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/retry`,
+      { body: {}, method: 'POST' }
+    )
+  }
+
+  /** Settle a post whose outcome was unknown: live (with its URL) or not live. */
+  async reconcileContentDraftPost(id: string, input: { live: boolean; url?: string }) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/reconcile`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  /** Stop a live post's pending follow-ups; removals of automatic reposts still run. */
+  async cancelContentDraftPostAutomations(id: string) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/automations/cancel`,
+      { body: {}, method: 'POST' }
     )
   }
 

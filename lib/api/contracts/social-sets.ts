@@ -35,6 +35,8 @@ export const socialAccountSchema = mirrors<SocialAccount>()(
     health: socialAccountHealthSchema,
     id: z.string(),
     platform: z.string(),
+    /** X Premium, read from the account (RFC 042); never the workspace's plan. */
+    premium: z.boolean(),
     socialSetId: z.string().nullable(),
   })
 )

@@ -129,6 +129,21 @@ func (c *Configuration) collabClaims(ctx context.Context, token, documentName, d
 	if !owned {
 		return collab.Claims{}, publishing.ErrNotFound
 	}
+	if claims.Kind != "creative-set" {
+		// A member moved out of a restricted set loses the draft on the next
+		// load or store, even with a token that has not expired.
+		draft, err := c.client.ContentDraft.Get(ctx, claims.DraftID)
+		if err != nil {
+			return collab.Claims{}, err
+		}
+		visible, err := contentDraftVisible(ctx, c.client, Actor{OrganizationID: claims.OrganizationID, UserID: claims.UserID}, draft)
+		if err != nil {
+			return collab.Claims{}, err
+		}
+		if !visible {
+			return collab.Claims{}, publishing.ErrNotFound
+		}
+	}
 	current, err := memberAccess(ctx, c.client, claims.OrganizationID, claims.UserID)
 	if err != nil {
 		return collab.Claims{}, err

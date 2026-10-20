@@ -1,0 +1,129 @@
+package product
+
+import (
+	"fmt"
+	"regexp"
+	"slices"
+	"strings"
+	"unicode/utf8"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+)
+
+// Per-platform publishing rules (RFC 042), checked on every schedule. The web
+// checks the same (lib/write/capabilities.ts); Go is the authority. Sources:
+// X API v2 POST /2/tweets (reply_settings, community_id, made_with_ai,
+// paid_partnership, quote_tweet_id, poll), the LinkedIn Posts, Poll and
+// Documents APIs (visibility, poll, document), and X's article endpoints.
+
+const (
+	xPremiumLimit            = 25_000
+	linkedInPollQuestion     = 140
+	linkedInPollOptionLength = 30
+	xPollOptionLength        = 25
+)
+
+var (
+	xReplySettings      = []string{"following", "mentionedUsers", "subscribers", "verified"}
+	linkedInVisibility  = []string{"PUBLIC", "CONNECTIONS"}
+	linkedInPollMinutes = []int{24 * 60, 3 * 24 * 60, 7 * 24 * 60, 14 * 24 * 60}
+	numericID           = regexp.MustCompile(`^[0-9]{1,30}$`)
+	linkedInPostID      = regexp.MustCompile(`^urn:li:(?:share|ugcPost|activity):[0-9]{1,30}$`)
+)
+
+// checkPostOptions checks one post's settings against its channel. First is
+// whether it is the first post; images is how many images it carries.
+func checkPostOptions(channel string, options *postoptions.PublishOptions, first bool) error {
+	if options == nil || options.Empty() {
+		return nil
+	}
+	o := *options
+	xOnly := o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" || o.QuoteFirstPost ||
+		o.ArticleTitle != "" || o.ArticleCoverAssetID != ""
+	linkedInOnly := o.Visibility != "" || o.FirstComment != "" || o.DocumentAssetID != "" || o.PollQuestion != ""
+	switch {
+	case xOnly && channel != "x":
+		return invalid("Reply settings, labels, communities and articles are X settings.")
+	case linkedInOnly && channel != "linkedin":
+		return invalid("Visibility, first comments, documents and poll questions are LinkedIn settings here.")
+	case o.QuoteRemoteID != "" && channel != "x" && channel != "linkedin":
+		return invalid("Quotes are for X and LinkedIn posts.")
+	}
+	if o.ReplySettings != "" && !slices.Contains(xReplySettings, o.ReplySettings) {
+		return invalid("Replies are open to everyone, or limited to following, mentionedUsers, subscribers or verified.")
+	}
+	if o.CommunityID != "" && (!numericID.MatchString(o.CommunityID) || !first) {
+		return invalid("A community is an X community's numeric id, set on the first post.")
+	}
+	if o.QuoteRemoteID != "" {
+		if !first || o.QuoteFirstPost {
+			return invalid("Only the first post quotes another post; a later post may quote the first.")
+		}
+		if channel == "x" && !numericID.MatchString(o.QuoteRemoteID) || channel == "linkedin" && !linkedInPostID.MatchString(o.QuoteRemoteID) {
+			return invalid("The quoted post's id is not valid for " + channel + ".")
+		}
+	}
+	if o.QuoteFirstPost && first {
+		return invalid("The first post cannot quote itself.")
+	}
+	if o.Visibility != "" && !slices.Contains(linkedInVisibility, o.Visibility) {
+		return invalid("A LinkedIn post is visible to anyone (PUBLIC) or connections (CONNECTIONS).")
+	}
+	if utf8.RuneCountInString(strings.TrimSpace(o.FirstComment)) > linkedInFirstCommentLimit {
+		return invalid(fmt.Sprintf("Keep the first comment under %d characters.", linkedInFirstCommentLimit))
+	}
+	if o.DocumentAssetID != "" && !contentDraftRefPattern.MatchString(o.DocumentAssetID) ||
+		utf8.RuneCountInString(o.DocumentTitle) > linkedInDocumentTitleLimit {
+		return invalid("A document is a PDF of this workspace, with a title under 200 characters.")
+	}
+	if utf8.RuneCountInString(o.ArticleTitle) > articleTitleLimit {
+		return invalid(fmt.Sprintf("Keep the article title under %d characters.", articleTitleLimit))
+	}
+	return nil
+}
+
+// checkPoll checks a poll against its platform's rules: X asks the post's
+// text, with 2 to 4 options of 25 characters open 5 minutes to 7 days;
+// LinkedIn asks its own question of 140 characters, with 2 to 4 options of 30
+// characters, open 1, 3, 7 or 14 days. Neither takes media beside a poll.
+func checkPoll(channel string, poll *postoptions.Poll, options *postoptions.PublishOptions, media int) error {
+	if poll == nil || len(poll.Options) == 0 {
+		if options != nil && options.PollQuestion != "" {
+			return invalid("A poll question needs the poll's options.")
+		}
+		return nil
+	}
+	if len(poll.Options) < 2 || len(poll.Options) > 4 {
+		return invalid("A poll has 2 to 4 choices.")
+	}
+	if media > 0 {
+		return invalid(fmt.Sprintf("A %s poll cannot have images, video or a document; remove them or the poll.", channel))
+	}
+	optionLimit := xPollOptionLength
+	switch channel {
+	case "x":
+		if poll.DurationMinutes < 5 || poll.DurationMinutes > 7*24*60 {
+			return invalid("An X poll stays open 5 minutes to 7 days.")
+		}
+	case "linkedin":
+		optionLimit = linkedInPollOptionLength
+		question := ""
+		if options != nil {
+			question = strings.TrimSpace(options.PollQuestion)
+		}
+		if question == "" || utf8.RuneCountInString(question) > linkedInPollQuestion {
+			return invalid("A LinkedIn poll asks a question of 1 to 140 characters.")
+		}
+		if !slices.Contains(linkedInPollMinutes, poll.DurationMinutes) {
+			return invalid("A LinkedIn poll stays open 1 day, 3 days, 1 week or 2 weeks.")
+		}
+	default:
+		return invalid("Polls are for X and LinkedIn posts.")
+	}
+	for _, option := range poll.Options {
+		if strings.TrimSpace(option) == "" || utf8.RuneCountInString(option) > optionLimit {
+			return invalid(fmt.Sprintf("Each poll choice is 1 to %d characters.", optionLimit))
+		}
+	}
+	return nil
+}

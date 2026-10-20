@@ -3,10 +3,10 @@ import type {
   calendarPostSchema,
   contentDraftRevisionSchema,
   contentDraftSettingsSchema,
-  draftAssistContract,
   linkCardSchema,
 } from '@/lib/api/contracts/content-draft-platform'
 import type {
+  contentDraftCreateSchema,
   contentDraftPostSchema,
   contentDraftScheduleSchema,
   contentDraftSchema,
@@ -36,7 +36,11 @@ export class DraftRequestError extends Error {
   }
 }
 
-async function call<T>(path: string, init: { body?: unknown; method?: string } = {}): Promise<T> {
+/** One API call with the session cookie; a failure throws its message and status. */
+export async function call<T>(
+  path: string,
+  init: { body?: unknown; method?: string } = {}
+): Promise<T> {
   const response = await fetch(path, {
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
     headers: init.body === undefined ? undefined : { 'content-type': 'application/json' },
@@ -73,10 +77,15 @@ export type DraftSave = {
   /** Labels (an experiment). */
   tags?: string[]
   title?: string
+  /** Write (RFC 042): the draft's structured parts beside the body. */
+  article?: DraftWire['article'] & object
+  platformVersions?: DraftWire['platformVersions']
+  primaryPlatform?: DraftChannel
+  target?: DraftWire['target'] & object
 }
 
 export const draftsApi = {
-  create: (input: { body?: unknown[]; socialSetId?: string; title?: string } = {}) =>
+  create: (input: z.input<typeof contentDraftCreateSchema> = {}) =>
     call<DraftWire>(base, { body: input, method: 'POST' }),
   get: (id: string) => call<DraftWire>(one(id)),
   posts: (id: string) => call<{ posts: DraftPostWire[] }>(`${one(id)}/posts`),
@@ -95,8 +104,6 @@ export const draftsApi = {
   revisions: (id: string) => call<{ items: RevisionWire[] }>(`${one(id)}/revisions`),
   revision: (id: string, revisionId: string) =>
     call<RevisionWire>(`${one(id)}/revisions/${encodeURIComponent(revisionId)}`),
-  assist: (input: z.input<typeof draftAssistContract.body>) =>
-    call<{ posts: string[] }>(`${base}/assist`, { body: input, method: 'POST' }),
   linkCard: (url: string) =>
     call<z.output<typeof linkCardSchema>>(`${base}/link-card?${new URLSearchParams({ url })}`),
   settings: () => call<SettingsWire>('/api/v1/content-draft-settings'),

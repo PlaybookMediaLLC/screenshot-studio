@@ -78,11 +78,17 @@ type ContentAngle func(*sql.Selector)
 // ContentDraft is the predicate function for contentdraft builders.
 type ContentDraft func(*sql.Selector)
 
+// ContentDraftFinisher is the predicate function for contentdraftfinisher builders.
+type ContentDraftFinisher func(*sql.Selector)
+
 // ContentDraftRevision is the predicate function for contentdraftrevision builders.
 type ContentDraftRevision func(*sql.Selector)
 
 // ContentDraftSettings is the predicate function for contentdraftsettings builders.
 type ContentDraftSettings func(*sql.Selector)
+
+// ContentDraftTag is the predicate function for contentdrafttag builders.
+type ContentDraftTag func(*sql.Selector)
 
 // Conversation is the predicate function for conversation builders.
 type Conversation func(*sql.Selector)
@@ -176,6 +182,9 @@ type PlatformSlackInstallation func(*sql.Selector)
 
 // PlatformSlackPacing is the predicate function for platformslackpacing builders.
 type PlatformSlackPacing func(*sql.Selector)
+
+// PostAutomationRun is the predicate function for postautomationrun builders.
+type PostAutomationRun func(*sql.Selector)
 
 // ProductProfile is the predicate function for productprofile builders.
 type ProductProfile func(*sql.Selector)

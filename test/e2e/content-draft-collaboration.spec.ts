@@ -74,7 +74,7 @@ test('two members co-edit a draft live, and another workspace is refused', async
     await draftEditor(page).click()
     await page.keyboard.type('Written by the owner.')
 
-    await memberPage.goto(`/drafts/${draftId}`)
+    await memberPage.goto(`/write/${draftId}`)
     await expect(draftEditor(memberPage)).toContainText('Written by the owner.', {
       timeout: 60_000,
     })

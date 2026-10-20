@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { draftChannelSchema, type Numbering } from '@/lib/write/document'
+import { numberCaptions } from '@/lib/write/numbering'
 import { xLength } from './x-length'
 
 /**
@@ -9,15 +11,8 @@ import { xLength } from './x-length'
  * preview is what gets posted.
  */
 
-/** Channels a draft can be scheduled to. */
-export const draftChannelSchema = z.enum([
-  'x',
-  'linkedin',
-  'instagram',
-  'threads',
-  'bluesky',
-  'mastodon',
-])
+/** Channels a draft can be scheduled to (defined with the Write document). */
+export { draftChannelSchema }
 
 /** One of {@link draftChannelSchema}. */
 export type DraftChannel = z.infer<typeof draftChannelSchema>
@@ -44,6 +39,12 @@ export type Degradation = { kind: DegradationKind; message: string }
 export type SerializedPost = {
   assetIds: string[]
   caption: string
+  /**
+   * The post's group in the body: its index among the post breaks' groups,
+   * so its settings and identity can be found. Posts joined into one post
+   * for a channel without threads take the first group.
+   */
+  group: number
   /** Images in the post, uploaded or still to render. */
   images: number
   length: number
@@ -74,6 +75,37 @@ export const DRAFT_CHANNEL_LIMITS: Record<DraftChannel, number> = {
 
 /** The block that starts the next post of a thread. */
 export const POST_BREAK = 'post_break'
+
+/**
+ * An atomic mention of an account on a platform, picked from a lookup: its
+ * label, the platform's id for it, and whether it names a person or an
+ * organization. It never splits, and serializes the way its platform reads.
+ */
+export const SOCIAL_MENTION = 'social_mention'
+
+/**
+ * A social mention as its channel writes it: LinkedIn's annotation
+ * `@[Name](urn:li:organization:1)` when the mention is LinkedIn's, the
+ * handle elsewhere, and the plain label when nothing better is known.
+ */
+function socialMentionText(node: PlateNode, channel: DraftChannel): string {
+  const label = String(node.label ?? '').replace(/[[\]()]/g, '')
+  const id = String(node.providerId ?? '')
+  const handle = String(node.handle ?? '')
+  if (node.platform === 'linkedin' && channel === 'linkedin' && id.startsWith('urn:li:')) {
+    return `@[${label}](${id})`
+  }
+  if (node.platform === channel && handle) return `@${handle.replace(/^@/, '')}`
+  return label
+}
+
+/** How a caption is limited and numbered for one account. */
+export type SerializeOptions = {
+  /** The account's caption limit; the channel's standard limit when unset. */
+  limit?: number
+  /** Thread numbering, added to each post and counted in its length. */
+  numbering?: Numbering
+}
 
 /** A caption for one channel, with its limit and what it lost. */
 export type SerializedCaption = {
@@ -161,6 +193,8 @@ const CONTAINERS = new Set(['column_group', 'column', 'ul', 'ol'])
 
 type Context = {
   assetIds: string[]
+  /** The channel the caption is for: mentions are written its way. */
+  channel: DraftChannel
   /** Table and math blocks posted as rendered images, in body order. */
   blockImages: BlockImages | undefined
   /** How many table and math blocks the caption has passed. */
@@ -258,6 +292,8 @@ function inlineText(nodes: PlateNode[] | undefined, context: Context): string {
         }
         case 'mention':
           return `@${String(node.value ?? '')}`
+        case SOCIAL_MENTION:
+          return socialMentionText(node, context.channel)
         case 'tag':
           return `#${String(node.value ?? '').replace(/^#/, '')}`
         case 'inline_equation':
@@ -427,11 +463,13 @@ export function serializeDraft(
   value: unknown,
   channel: DraftChannel,
   blockImages?: BlockImages,
-  text?: string
+  text?: string,
+  options: SerializeOptions = {}
 ): SerializedCaption {
   const nodes = (Array.isArray(value) ? value : []) as PlateNode[]
   const context: Context = {
     assetIds: [],
+    channel,
     blockImages,
     blocks: 0,
     degraded: new Map(),
@@ -441,12 +479,13 @@ export function serializeDraft(
     videos: 0,
   }
   // Each post of a thread serializes on its own; footnotes close the last.
-  const written = splitPosts(nodes).map((group) => {
+  const written = splitPosts(nodes).map((group, index) => {
     const [assets, images, videos] = [context.assetIds.length, context.images, context.videos]
     const caption = tidy(serializeBlocks(group, context))
     return {
       assetIds: context.assetIds.slice(assets),
       caption,
+      group: index,
       images: context.images - images,
       length: 0,
       videos: context.videos - videos,
@@ -469,6 +508,7 @@ export function serializeDraft(
         .map((caption, index) => ({
           assetIds: index === 0 ? images : [],
           caption,
+          group: index,
           images: index === 0 ? count : 0,
           length: 0,
           videos: index === 0 ? written.reduce((total, post) => total + post.videos, 0) : 0,
@@ -480,25 +520,33 @@ export function serializeDraft(
   if (!thread && filled.length > 1) {
     degrade(context, 'thread', `The thread is posted as one ${CHANNEL_NAMES[channel]} post.`)
   }
-  const posts: SerializedPost[] = (
+  const unnumbered: SerializedPost[] =
     thread || filled.length <= 1
       ? filled
       : [
           {
             assetIds: filled.flatMap((post) => post.assetIds),
             caption: filled.map((post) => post.caption).join('\n\n'),
+            group: filled[0].group,
             images: filled.reduce((total, post) => total + post.images, 0),
             length: 0,
             videos: filled.reduce((total, post) => total + post.videos, 0),
           },
         ]
-  ).map((post) => ({
+  const numbered = thread
+    ? numberCaptions(
+        unnumbered.map((post) => post.caption),
+        options.numbering
+      )
+    : unnumbered.map((post) => post.caption)
+  const posts: SerializedPost[] = unnumbered.map((post, index) => ({
     ...post,
+    caption: numbered[index],
     // X counts its own way: links as 23, wide characters as 2.
-    length: channel === 'x' ? xLength(post.caption) : captionLength(post.caption),
+    length: channel === 'x' ? xLength(numbered[index]) : captionLength(numbered[index]),
   }))
 
-  const limit = DRAFT_CHANNEL_LIMITS[channel]
+  const limit = options.limit ?? DRAFT_CHANNEL_LIMITS[channel]
   const imageLimit = CHANNEL_IMAGE_LIMITS[channel]
   const errors: string[] = []
   if (posts.length === 0 || posts.every((post) => !post.caption)) {

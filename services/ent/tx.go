@@ -60,10 +60,14 @@ type Tx struct {
 	ContentAngle *ContentAngleClient
 	// ContentDraft is the client for interacting with the ContentDraft builders.
 	ContentDraft *ContentDraftClient
+	// ContentDraftFinisher is the client for interacting with the ContentDraftFinisher builders.
+	ContentDraftFinisher *ContentDraftFinisherClient
 	// ContentDraftRevision is the client for interacting with the ContentDraftRevision builders.
 	ContentDraftRevision *ContentDraftRevisionClient
 	// ContentDraftSettings is the client for interacting with the ContentDraftSettings builders.
 	ContentDraftSettings *ContentDraftSettingsClient
+	// ContentDraftTag is the client for interacting with the ContentDraftTag builders.
+	ContentDraftTag *ContentDraftTagClient
 	// Conversation is the client for interacting with the Conversation builders.
 	Conversation *ConversationClient
 	// ConversationMessage is the client for interacting with the ConversationMessage builders.
@@ -126,6 +130,8 @@ type Tx struct {
 	PlatformSlackInstallation *PlatformSlackInstallationClient
 	// PlatformSlackPacing is the client for interacting with the PlatformSlackPacing builders.
 	PlatformSlackPacing *PlatformSlackPacingClient
+	// PostAutomationRun is the client for interacting with the PostAutomationRun builders.
+	PostAutomationRun *PostAutomationRunClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
 	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
@@ -359,8 +365,10 @@ func (tx *Tx) init() {
 	tx.CommunicationRecipient = NewCommunicationRecipientClient(tx.config)
 	tx.ContentAngle = NewContentAngleClient(tx.config)
 	tx.ContentDraft = NewContentDraftClient(tx.config)
+	tx.ContentDraftFinisher = NewContentDraftFinisherClient(tx.config)
 	tx.ContentDraftRevision = NewContentDraftRevisionClient(tx.config)
 	tx.ContentDraftSettings = NewContentDraftSettingsClient(tx.config)
+	tx.ContentDraftTag = NewContentDraftTagClient(tx.config)
 	tx.Conversation = NewConversationClient(tx.config)
 	tx.ConversationMessage = NewConversationMessageClient(tx.config)
 	tx.CreativeTemplate = NewCreativeTemplateClient(tx.config)
@@ -392,6 +400,7 @@ func (tx *Tx) init() {
 	tx.PlatformSlackConnection = NewPlatformSlackConnectionClient(tx.config)
 	tx.PlatformSlackInstallation = NewPlatformSlackInstallationClient(tx.config)
 	tx.PlatformSlackPacing = NewPlatformSlackPacingClient(tx.config)
+	tx.PostAutomationRun = NewPostAutomationRunClient(tx.config)
 	tx.ProductProfile = NewProductProfileClient(tx.config)
 	tx.ProductSurface = NewProductSurfaceClient(tx.config)
 	tx.Project = NewProjectClient(tx.config)

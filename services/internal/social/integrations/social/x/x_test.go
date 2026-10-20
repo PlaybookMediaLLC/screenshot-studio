@@ -442,3 +442,92 @@ func TestAPIErrorJSON(t *testing.T) {
 		t.Fatalf("%s", text)
 	}
 }
+
+// RFC 042 follow-ups: engagement reads public metrics (no 100-user cap), a
+// repost is removed by DELETE, and a plug reply returns its id.
+func TestFollowUps(t *testing.T) {
+	calls, done := fakeX(t, func(r recorded) (int, string) {
+		switch {
+		case r.method == "GET" && r.path == "/2/tweets/42":
+			return 200, `{"data":{"id":"42","public_metrics":{"like_count":250,"retweet_count":12}}}`
+		case r.method == "POST" && r.path == "/2/users/me-1/retweets":
+			return 200, `{"data":{"retweeted":true}}`
+		case r.method == "DELETE" && r.path == "/2/users/me-1/retweets/42":
+			return 200, `{"data":{"retweeted":false}}`
+		case r.method == "POST" && r.path == "/2/tweets":
+			return 201, `{"data":{"id":"99"}}`
+		}
+		return 404, `{}`
+	})
+	defer done()
+	ctx := context.Background()
+	account := &ent.Integration{InternalID: "me-1", Token: "a:b"}
+	provider := New()
+	likes, reposts, err := provider.PostEngagement(ctx, account, "42")
+	if err != nil || likes != 250 || reposts != 12 {
+		t.Fatalf("engagement = %d, %d, %v", likes, reposts, err)
+	}
+	if (*calls)[0].query.Get("tweet.fields") != "public_metrics" {
+		t.Fatalf("query = %v", (*calls)[0].query)
+	}
+	if err := provider.RetweetPost(ctx, account, "42"); err != nil {
+		t.Fatal(err)
+	}
+	if err := provider.UnretweetPost(ctx, account, "42"); err != nil {
+		t.Fatal(err)
+	}
+	id, err := provider.ReplyTo(ctx, account, "42", "Get the guide")
+	if err != nil || id != "99" {
+		t.Fatalf("reply = %q, %v", id, err)
+	}
+	var reply struct {
+		Reply struct {
+			InReplyTo string `json:"in_reply_to_tweet_id"`
+		} `json:"reply"`
+	}
+	if err := json.Unmarshal((*calls)[3].body, &reply); err != nil || reply.Reply.InReplyTo != "42" {
+		t.Fatalf("reply body = %s", (*calls)[3].body)
+	}
+	if done, err := provider.AutoRepostPost(ctx, account, "42", map[string]string{"likesAmount": "200"}); err != nil || !done {
+		t.Fatalf("like-gated repost past 100 likes = %v, %v", done, err)
+	}
+}
+
+// An image's description is set on the media before the post that uses it.
+func TestAltTextGoesOnTheMedia(t *testing.T) {
+	t.Setenv("SOCIAL_PRIVATE_MEDIA", "false")
+	calls, done := fakeX(t, func(r recorded) (int, string) {
+		switch r.path {
+		case "/pic.png":
+			return 200, string(pngBytes())
+		case "/2/media/upload/initialize", "/2/media/upload/img1/finalize":
+			return 200, `{"data":{"id":"img1"}}`
+		case "/2/media/upload/img1/append", "/2/media/metadata":
+			return 200, `{}`
+		}
+		return 404, `{}`
+	})
+	defer done()
+	if _, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
+		ID: "p", Message: "image", Media: []integrations.MediaContent{{Path: apiBase + "/pic.png", Alt: "A chart of signups"}},
+	}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	var metadata struct {
+		ID       string `json:"id"`
+		Metadata struct {
+			AltText struct {
+				Text string `json:"text"`
+			} `json:"alt_text"`
+		} `json:"metadata"`
+	}
+	found := false
+	for _, call := range *calls {
+		if call.path == "/2/media/metadata" {
+			found = json.Unmarshal(call.body, &metadata) == nil
+		}
+	}
+	if !found || metadata.ID != "img1" || metadata.Metadata.AltText.Text != "A chart of signups" {
+		t.Fatalf("metadata = %+v (found %v)", metadata, found)
+	}
+}

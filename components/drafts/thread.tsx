@@ -13,14 +13,18 @@ import {
 } from '@shots/platejs-editor/platejs/react'
 import { KEYS, type Value } from '@shots/platejs-editor/platejs'
 import { POST_BREAK } from '@/lib/content-drafts/serialize'
+import type { PostSettings } from '@/lib/write/document'
+import { newPostId, postBreak } from '@/lib/write/versions'
 import { cn } from '@/lib/utils'
 import { POST_COLUMN } from './layout'
 import { Button } from '@/components/ui/button'
 
 /**
- * Threads (RFC 037): a draft is one or more posts. A post break block starts
- * the next one, drawn as that post's header, and a line joins the avatars.
- * X posts each post as a reply to the last; other channels join them.
+ * Threads (RFC 037, RFC 042): a draft is one or more posts. Every post starts
+ * at a post break block, the first one included, so each post has a stable
+ * id and its own settings (who can reply, labels, a poll), kept on its break.
+ * A break is drawn as its post's header; a line joins the avatars. Moving a
+ * post moves its break, blocks, media and comment marks together.
  */
 
 /** The header the host draws for post `number` (1-based) of the thread. */
@@ -28,92 +32,121 @@ export const PostHeaderContext = React.createContext<(number: number) => React.R
   () => null
 )
 
-/** The draft for a document export: each post break becomes a horizontal rule. */
+/** The draft for a document export: each post break after the first becomes a horizontal rule. */
 export function threadAsRules(value: Value): Value {
-  return value.map((node) =>
-    node.type === POST_BREAK ? { children: [{ text: '' }], type: KEYS.hr } : node
+  return value.flatMap((node, index) =>
+    node.type !== POST_BREAK
+      ? [node]
+      : index === 0
+        ? []
+        : [{ children: [{ text: '' }], type: KEYS.hr }]
   )
 }
 
-/** Each post's top-level blocks as [start, end) indexes, breaks left out. */
+/** Each post's [start, end) indexes, the break included at start. */
 export function postRanges(children: Value): [number, number][] {
   const ranges: [number, number][] = []
-  let start = 0
   children.forEach((node, index) => {
-    if (node.type !== POST_BREAK) return
-    ranges.push([start, index])
-    start = index + 1
+    if (node.type === POST_BREAK) ranges.push([index, index])
+    else if (ranges.length === 0) ranges.push([index, index])
+    ranges[ranges.length - 1][1] = index + 1
   })
-  ranges.push([start, children.length])
   return ranges
 }
 
+/** The index of the break that starts post `number` (1-based), or -1. */
+function breakIndex(children: Value, number: number): number {
+  const range = postRanges(children)[number - 1]
+  return range && children[range[0]]?.type === POST_BREAK ? range[0] : -1
+}
+
 /**
- * Move post `from` to position `to` (both 1-based). The posts are put in
- * their new order with a break between each pair, by moving the existing
- * nodes, so a live session and undo see plain moves.
+ * Move post `from` to position `to` (both 1-based). Its break goes with it,
+ * so its id and settings follow its text; a live session and undo see moves.
  */
 export function movePost(editor: PlateEditor, from: number, to: number): void {
-  const children = editor.children
-  const ranges = postRanges(children)
+  const ranges = postRanges(editor.children)
   if (from === to || from < 1 || to < 1 || from > ranges.length || to > ranges.length) return
-  const posts = ranges.map(([start, end]) => children.slice(start, end))
-  const breaks = children.filter((node) => node.type === POST_BREAK)
-  const [moved] = posts.splice(from - 1, 1)
-  posts.splice(to - 1, 0, moved)
-  const desired = posts.flatMap((nodes, index) =>
-    index === 0 ? nodes : [breaks[index - 1], ...nodes]
-  )
+  const [start, end] = ranges[from - 1]
+  const count = end - start
   editor.tf.withoutNormalizing(() => {
-    desired.forEach((node, index) => {
-      const at = editor.children.indexOf(node)
-      if (at !== index) editor.tf.moveNodes({ at: [at], to: [index] })
-    })
+    if (to < from) {
+      const target = ranges[to - 1][0]
+      for (let offset = 0; offset < count; offset += 1) {
+        editor.tf.moveNodes({ at: [start + offset], to: [target + offset] })
+      }
+    } else {
+      const target = ranges[to - 1][1] - 1
+      for (let offset = 0; offset < count; offset += 1) {
+        editor.tf.moveNodes({ at: [start], to: [target] })
+      }
+    }
   })
 }
 
-/** Remove post `number` and the break that set it apart. */
+/** Remove post `number`: its break and its blocks. One post always remains. */
 export function deletePost(editor: PlateEditor, number: number): void {
   const ranges = postRanges(editor.children)
   if (ranges.length < 2) return
   const [start, end] = ranges[number - 1]
-  // The first post takes the break after it; any other, the break before.
-  const [from, to] = number === 1 ? [start, end + 1] : [start - 1, end]
   editor.tf.withoutNormalizing(() => {
-    for (let index = to - 1; index >= from; index -= 1) editor.tf.removeNodes({ at: [index] })
+    for (let index = end - 1; index >= start; index -= 1) editor.tf.removeNodes({ at: [index] })
   })
 }
 
 /** Put the caret at the end of post `number`, to insert into it there. */
 export function selectPostEnd(editor: PlateEditor, number: number): void {
   const [start, end] = postRanges(editor.children)[number - 1]
-  if (end > start) editor.tf.select(editor.api.end([end - 1]))
+  if (end - 1 > start) editor.tf.select(editor.api.end([end - 1]))
   editor.tf.focus()
 }
 
-/** Split the post at the caret: what follows the caret starts the next post. */
+/** A post's settings, set on the break that starts it. */
+export function setPostSettings(editor: PlateEditor, number: number, settings: Partial<PostSettings>): void {
+  const index = breakIndex(editor.children, number)
+  if (index < 0) return
+  const unset = Object.entries(settings)
+    .filter(([, value]) => value === undefined)
+    .map(([key]) => key)
+  const set = Object.fromEntries(Object.entries(settings).filter(([, value]) => value !== undefined))
+  editor.tf.withoutNormalizing(() => {
+    if (Object.keys(set).length > 0) editor.tf.setNodes(set, { at: [index] })
+    if (unset.length > 0) editor.tf.unsetNodes(unset, { at: [index] })
+  })
+}
+
+/** Split the post at the caret: what follows the caret starts the next post, with no settings. */
 export function splitPostAtCaret(editor: PlateEditor): void {
   if (!editor.selection) return
   editor.tf.splitNodes({ always: true, mode: 'highest' })
   const entry = editor.api.block({ highest: true })
   if (!entry) return
-  editor.tf.insertNodes({ children: [{ text: '' }], type: POST_BREAK }, { at: [entry[1][0]] })
+  editor.tf.insertNodes(postBreak(), { at: [entry[1][0]] })
   editor.tf.select(editor.api.start([entry[1][0] + 1]))
 }
 
-/** Start a new post after the block holding the caret, and move into it. */
+/** Start a new post after the post holding the caret's block, and move into it. */
 export function insertPostBreak(editor: PlateEditor): void {
   const entry = editor.api.block({ highest: true })
   const at = entry ? entry[1][0] + 1 : editor.children.length
-  editor.tf.insertNodes(
-    [
-      { children: [{ text: '' }], type: POST_BREAK },
-      { children: [{ text: '' }], type: 'p' },
-    ],
-    { at: [at] }
-  )
+  editor.tf.insertNodes([postBreak(), { children: [{ text: '' }], type: 'p' }], { at: [at] })
   editor.tf.select([at + 1], { edge: 'start' })
   editor.tf.focus()
+}
+
+/** Add an empty post right after post `number`. */
+export function insertPostAfter(editor: PlateEditor, number: number): void {
+  const range = postRanges(editor.children)[number - 1]
+  const at = range ? range[1] : editor.children.length
+  editor.tf.insertNodes([postBreak(), { children: [{ text: '' }], type: 'p' }], { at: [at] })
+  editor.tf.select([at + 1], { edge: 'start' })
+  editor.tf.focus()
+}
+
+/** Append a post with text, such as a thread finisher, as one undoable step. */
+export function appendPost(editor: PlateEditor, text: string, settings: PostSettings = {}): void {
+  const paragraphs = text.split(/\n{2,}/).map((paragraph) => ({ children: [{ text: paragraph }], type: 'p' }))
+  editor.tf.insertNodes([postBreak(settings), ...paragraphs], { at: [editor.children.length] })
 }
 
 function isEmptyParagraph(node: unknown): boolean {
@@ -126,7 +159,10 @@ function isEmptyParagraph(node: unknown): boolean {
 
 /**
  * The post break block. ⌘↵ (Ctrl+↵) starts a new post anywhere, and so does
- * Enter on the second empty line in a row, as in Typefully.
+ * Enter on the second empty line in a row, as in Typefully. Backspace at the
+ * start of a post merges it into the one before; the merged post keeps the
+ * earlier post's settings. The body always starts with exactly one break,
+ * and every break has a unique id.
  */
 export const PostBreakPlugin = createPlatePlugin({
   handlers: {
@@ -158,10 +194,67 @@ export const PostBreakPlugin = createPlatePlugin({
       priority: 1000,
     },
   },
-})
+}).overrideEditor(({ editor, tf: { deleteBackward, normalizeNode } }) => ({
+  transforms: {
+    deleteBackward(unit) {
+      const selection = editor.selection
+      const entry = editor.api.block({ highest: true })
+      if (selection && entry && editor.api.isCollapsed() && editor.api.isStart(selection.anchor, entry[1])) {
+        const index = entry[1][0]
+        if (editor.children[index - 1]?.type === POST_BREAK) {
+          // At the start of a post: merge it into the one before. The first
+          // post has nothing before it to merge into.
+          if (index - 1 > 0) {
+            editor.tf.removeNodes({ at: [index - 1] })
+            editor.tf.select(editor.api.end([index - 2]))
+          }
+          return
+        }
+      }
+      deleteBackward(unit)
+    },
+    normalizeNode(entry, options) {
+      const [, path] = entry
+      if (path.length === 0) {
+        const children = editor.children
+        if (children[0]?.type !== POST_BREAK) {
+          editor.tf.insertNodes(postBreak(), { at: [0] })
+          return
+        }
+        if (children[1]?.type === POST_BREAK) {
+          // Two editors added a first break at once: keep one.
+          editor.tf.removeNodes({ at: [1] })
+          return
+        }
+        const seen = new Set<string>()
+        for (let index = 0; index < children.length; index += 1) {
+          const node = children[index]
+          if (node.type !== POST_BREAK) continue
+          const id = typeof node.id === 'string' ? node.id : ''
+          if (!id || seen.has(id)) {
+            editor.tf.setNodes({ id: newPostId() }, { at: [index] })
+            return
+          }
+          seen.add(id)
+        }
+      }
+      normalizeNode(entry, options)
+    },
+  },
+}))
 
-/** A post's header with its tools: reorder, add an image, delete. */
-function PostHead({ number }: { number: number }) {
+/** What a post's tools can do beyond the editor itself. */
+export type PostTools = {
+  addImage?: () => void
+  /** Settings tools for this platform's posts, drawn beside the header. */
+  settings?: (props: { number: number; settings: PostSettings }) => React.ReactNode
+}
+
+/** The post tools the host provides. */
+export const PostToolsContext = React.createContext<PostTools>({})
+
+/** A post's header with its tools: add below, settings, media, reorder, delete. */
+function PostHead({ number, settings }: { number: number; settings: PostSettings }) {
   const header = React.useContext(PostHeaderContext)
   const tools = React.useContext(PostToolsContext)
   const editor = useEditorRef()
@@ -173,6 +266,7 @@ function PostHead({ number }: { number: number }) {
   return (
     <div
       className={cn('group/post flex items-start gap-2 rounded-lg', over && 'bg-sky-400/[0.06]')}
+      data-post-number={number}
       onDragLeave={() => setOver(false)}
       onDragOver={(event) => {
         if (!event.dataTransfer.types.includes(POST_DRAG)) return
@@ -188,59 +282,87 @@ function PostHead({ number }: { number: number }) {
       }}
     >
       <div className="min-w-0 flex-1">{header(number)}</div>
-      {readOnly || count < 2 ? null : (
-        <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/post:opacity-100 focus-within:opacity-100">
-          <span
-            aria-label={`Drag post ${number}`}
-            className={cn(button, 'cursor-grab')}
-            draggable
-            onDragStart={(event) => {
-              event.dataTransfer.setData(POST_DRAG, String(number))
-              event.dataTransfer.effectAllowed = 'move'
-            }}
-            role="img"
-          >
-            ⠿
-          </span>
-          <Button variant="custom" size={null}
-            aria-label={`Move post ${number} up`}
+      {readOnly ? null : (
+        <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover/post:opacity-100 focus-within:opacity-100">
+          {tools.settings?.({ number, settings })}
+          <Button
+            variant="custom"
+            size={null}
+            aria-label={`Add a post below post ${number}`}
             className={button}
-            disabled={number === 1}
-            onClick={() => movePost(editor, number, number - 1)}
+            onClick={() => insertPostAfter(editor, number)}
+            title="Add post below"
             type="button"
           >
-            ↑
-          </Button>
-          <Button variant="custom" size={null}
-            aria-label={`Move post ${number} down`}
-            className={button}
-            disabled={number === count}
-            onClick={() => movePost(editor, number, number + 1)}
-            type="button"
-          >
-            ↓
+            +
           </Button>
           {tools.addImage ? (
-            <Button variant="custom" size={null}
-              aria-label={`Add an image to post ${number}`}
+            <Button
+              variant="custom"
+              size={null}
+              aria-label={`Add media to post ${number}`}
               className={button}
               onClick={() => {
                 selectPostEnd(editor, number)
                 tools.addImage?.()
               }}
+              title="Add media (⌘⇧I)"
               type="button"
             >
               ▣
             </Button>
           ) : null}
-          <Button variant="custom" size={null}
-            aria-label={`Delete post ${number}`}
-            className={cn(button, 'hover:text-red-700 dark:hover:text-red-400')}
-            onClick={() => deletePost(editor, number)}
-            type="button"
-          >
-            ✕
-          </Button>
+          {count < 2 ? null : (
+            <>
+              <span
+                aria-label={`Drag post ${number}`}
+                className={cn(button, 'cursor-grab')}
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.setData(POST_DRAG, String(number))
+                  event.dataTransfer.effectAllowed = 'move'
+                }}
+                role="img"
+              >
+                ⠿
+              </span>
+              <Button
+                variant="custom"
+                size={null}
+                aria-label={`Move post ${number} up`}
+                className={button}
+                disabled={number === 1}
+                onClick={() => movePost(editor, number, number - 1)}
+                title="Move up (⌥↑)"
+                type="button"
+              >
+                ↑
+              </Button>
+              <Button
+                variant="custom"
+                size={null}
+                aria-label={`Move post ${number} down`}
+                className={button}
+                disabled={number === count}
+                onClick={() => movePost(editor, number, number + 1)}
+                title="Move down (⌥↓)"
+                type="button"
+              >
+                ↓
+              </Button>
+              <Button
+                variant="custom"
+                size={null}
+                aria-label={`Delete post ${number}`}
+                className={cn(button, 'hover:text-red-700 dark:hover:text-red-400')}
+                onClick={() => deletePost(editor, number)}
+                title="Delete post"
+                type="button"
+              >
+                ✕
+              </Button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -250,24 +372,22 @@ function PostHead({ number }: { number: number }) {
 /** The drag type a post header carries, so other drops are left alone. */
 const POST_DRAG = 'application/x-shots-post'
 
-/** What a post's tools can do beyond the editor itself. */
-export const PostToolsContext = React.createContext<{ addImage?: () => void }>({})
-
 function PostBreakElement(props: PlateElementProps) {
   const { element } = props
-  // Count the breaks before this one: inserting one above renumbers it.
+  // Count the breaks up to this one: inserting one above renumbers it.
   const number = useEditorSelector(
     (editor) => {
       const path = editor.api.findPath(element)
-      if (!path) return 2
-      return editor.children.slice(0, path[0]).filter((node) => node.type === POST_BREAK).length + 2
+      if (!path) return 1
+      return editor.children.slice(0, path[0] + 1).filter((node) => node.type === POST_BREAK).length
     },
     [element]
   )
+  const settings = element as unknown as PostSettings
   return (
-    <PlateElement {...props} className="pt-8">
-      <div className="select-none" contentEditable={false}>
-        <PostHead number={number} />
+    <PlateElement {...props} className={number === 1 ? 'pt-2' : 'pt-8'}>
+      <div className="select-none" contentEditable={false} data-post-id={String(element.id ?? '')}>
+        <PostHead number={number} settings={settings} />
       </div>
       {props.children}
     </PlateElement>
@@ -313,11 +433,7 @@ export function ThreadLine() {
   )
 }
 
-/** The editor's first post header, above the text, like every later one. */
+/** Kept for hosts that drew the first header outside the editor: the first break draws it now. */
 export function FirstPostHeader() {
-  return (
-    <div className={cn('pt-10', POST_COLUMN)}>
-      <PostHead number={1} />
-    </div>
-  )
+  return <div className={cn('pt-8', POST_COLUMN)} />
 }

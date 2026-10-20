@@ -103,7 +103,7 @@ const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
       { href: '/creative-sets', icon: Album02Icon, label: 'Story Sets' },
       { href: '/campaigns', icon: Megaphone01Icon, label: 'Campaigns' },
       { href: '/workflows', icon: WorkflowSquare03Icon, label: 'Workflows' },
-      { href: '/drafts', icon: NoteEditIcon, label: 'Drafts' },
+      { href: '/write', icon: NoteEditIcon, label: 'Write' },
       { href: '/assets', icon: Album02Icon, label: 'Assets' },
       { href: '/link-preview', icon: Link01Icon, label: 'Link preview' },
     ],
@@ -311,7 +311,7 @@ function Navigation({
           ) : null}
           {group.items
             .filter((item) => campaignsEnabled || item.href !== '/campaigns')
-            .filter((item) => draftsEnabled || item.href !== '/drafts')
+            .filter((item) => draftsEnabled || item.href !== '/write')
             .map((item) =>
               item.href === '/' ? (
                 <EditorNavigation collapsed={collapsed} key={item.href} onNavigate={onNavigate} />

@@ -39,8 +39,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftfinisher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftsettings"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdrafttag"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversationmessage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
@@ -72,6 +74,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -166,10 +169,14 @@ type Client struct {
 	ContentAngle *ContentAngleClient
 	// ContentDraft is the client for interacting with the ContentDraft builders.
 	ContentDraft *ContentDraftClient
+	// ContentDraftFinisher is the client for interacting with the ContentDraftFinisher builders.
+	ContentDraftFinisher *ContentDraftFinisherClient
 	// ContentDraftRevision is the client for interacting with the ContentDraftRevision builders.
 	ContentDraftRevision *ContentDraftRevisionClient
 	// ContentDraftSettings is the client for interacting with the ContentDraftSettings builders.
 	ContentDraftSettings *ContentDraftSettingsClient
+	// ContentDraftTag is the client for interacting with the ContentDraftTag builders.
+	ContentDraftTag *ContentDraftTagClient
 	// Conversation is the client for interacting with the Conversation builders.
 	Conversation *ConversationClient
 	// ConversationMessage is the client for interacting with the ConversationMessage builders.
@@ -232,6 +239,8 @@ type Client struct {
 	PlatformSlackInstallation *PlatformSlackInstallationClient
 	// PlatformSlackPacing is the client for interacting with the PlatformSlackPacing builders.
 	PlatformSlackPacing *PlatformSlackPacingClient
+	// PostAutomationRun is the client for interacting with the PostAutomationRun builders.
+	PostAutomationRun *PostAutomationRunClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
 	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
@@ -345,8 +354,10 @@ func (c *Client) init() {
 	c.CommunicationRecipient = NewCommunicationRecipientClient(c.config)
 	c.ContentAngle = NewContentAngleClient(c.config)
 	c.ContentDraft = NewContentDraftClient(c.config)
+	c.ContentDraftFinisher = NewContentDraftFinisherClient(c.config)
 	c.ContentDraftRevision = NewContentDraftRevisionClient(c.config)
 	c.ContentDraftSettings = NewContentDraftSettingsClient(c.config)
+	c.ContentDraftTag = NewContentDraftTagClient(c.config)
 	c.Conversation = NewConversationClient(c.config)
 	c.ConversationMessage = NewConversationMessageClient(c.config)
 	c.CreativeTemplate = NewCreativeTemplateClient(c.config)
@@ -378,6 +389,7 @@ func (c *Client) init() {
 	c.PlatformSlackConnection = NewPlatformSlackConnectionClient(c.config)
 	c.PlatformSlackInstallation = NewPlatformSlackInstallationClient(c.config)
 	c.PlatformSlackPacing = NewPlatformSlackPacingClient(c.config)
+	c.PostAutomationRun = NewPostAutomationRunClient(c.config)
 	c.ProductProfile = NewProductProfileClient(c.config)
 	c.ProductSurface = NewProductSurfaceClient(c.config)
 	c.Project = NewProjectClient(c.config)
@@ -533,8 +545,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		CommunicationRecipient:         NewCommunicationRecipientClient(cfg),
 		ContentAngle:                   NewContentAngleClient(cfg),
 		ContentDraft:                   NewContentDraftClient(cfg),
+		ContentDraftFinisher:           NewContentDraftFinisherClient(cfg),
 		ContentDraftRevision:           NewContentDraftRevisionClient(cfg),
 		ContentDraftSettings:           NewContentDraftSettingsClient(cfg),
+		ContentDraftTag:                NewContentDraftTagClient(cfg),
 		Conversation:                   NewConversationClient(cfg),
 		ConversationMessage:            NewConversationMessageClient(cfg),
 		CreativeTemplate:               NewCreativeTemplateClient(cfg),
@@ -566,6 +580,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PlatformSlackConnection:        NewPlatformSlackConnectionClient(cfg),
 		PlatformSlackInstallation:      NewPlatformSlackInstallationClient(cfg),
 		PlatformSlackPacing:            NewPlatformSlackPacingClient(cfg),
+		PostAutomationRun:              NewPostAutomationRunClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		Project:                        NewProjectClient(cfg),
@@ -648,8 +663,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		CommunicationRecipient:         NewCommunicationRecipientClient(cfg),
 		ContentAngle:                   NewContentAngleClient(cfg),
 		ContentDraft:                   NewContentDraftClient(cfg),
+		ContentDraftFinisher:           NewContentDraftFinisherClient(cfg),
 		ContentDraftRevision:           NewContentDraftRevisionClient(cfg),
 		ContentDraftSettings:           NewContentDraftSettingsClient(cfg),
+		ContentDraftTag:                NewContentDraftTagClient(cfg),
 		Conversation:                   NewConversationClient(cfg),
 		ConversationMessage:            NewConversationMessageClient(cfg),
 		CreativeTemplate:               NewCreativeTemplateClient(cfg),
@@ -681,6 +698,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PlatformSlackConnection:        NewPlatformSlackConnectionClient(cfg),
 		PlatformSlackInstallation:      NewPlatformSlackInstallationClient(cfg),
 		PlatformSlackPacing:            NewPlatformSlackPacingClient(cfg),
+		PostAutomationRun:              NewPostAutomationRunClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		Project:                        NewProjectClient(cfg),
@@ -755,17 +773,18 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BrandProfile, c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
 		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
 		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft,
-		c.ContentDraftRevision, c.ContentDraftSettings, c.Conversation,
-		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
-		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
-		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
-		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
-		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PageKnowledge, c.PlatformCreativeSet,
-		c.PlatformCreativeSetVersion, c.PlatformNotificationDelivery,
-		c.PlatformNotificationInbox, c.PlatformNotificationPolicy,
-		c.PlatformNotificationPreference, c.PlatformNotificationSeenAction,
-		c.PlatformSlackConnection, c.PlatformSlackInstallation, c.PlatformSlackPacing,
+		c.ContentDraftFinisher, c.ContentDraftRevision, c.ContentDraftSettings,
+		c.ContentDraftTag, c.Conversation, c.ConversationMessage, c.CreativeTemplate,
+		c.CreativeVariant, c.CustomerCommunication, c.DeploymentEvent, c.Design,
+		c.EnrichmentRecord, c.GitHubInstallStart, c.GitHubInstallation,
+		c.IdealCustomerProfile, c.IntegrationConnection, c.Invitation, c.LaunchRun,
+		c.LaunchRunStep, c.Member, c.OnboardingRun, c.Organization,
+		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PageKnowledge,
+		c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
+		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
+		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
+		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
+		c.PlatformSlackInstallation, c.PlatformSlackPacing, c.PostAutomationRun,
 		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
 		c.PublicationAttempt, c.Release, c.ReleaseAutomation,
 		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
@@ -793,17 +812,18 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BrandProfile, c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
 		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
 		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft,
-		c.ContentDraftRevision, c.ContentDraftSettings, c.Conversation,
-		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
-		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
-		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
-		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
-		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PageKnowledge, c.PlatformCreativeSet,
-		c.PlatformCreativeSetVersion, c.PlatformNotificationDelivery,
-		c.PlatformNotificationInbox, c.PlatformNotificationPolicy,
-		c.PlatformNotificationPreference, c.PlatformNotificationSeenAction,
-		c.PlatformSlackConnection, c.PlatformSlackInstallation, c.PlatformSlackPacing,
+		c.ContentDraftFinisher, c.ContentDraftRevision, c.ContentDraftSettings,
+		c.ContentDraftTag, c.Conversation, c.ConversationMessage, c.CreativeTemplate,
+		c.CreativeVariant, c.CustomerCommunication, c.DeploymentEvent, c.Design,
+		c.EnrichmentRecord, c.GitHubInstallStart, c.GitHubInstallation,
+		c.IdealCustomerProfile, c.IntegrationConnection, c.Invitation, c.LaunchRun,
+		c.LaunchRunStep, c.Member, c.OnboardingRun, c.Organization,
+		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PageKnowledge,
+		c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
+		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
+		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
+		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
+		c.PlatformSlackInstallation, c.PlatformSlackPacing, c.PostAutomationRun,
 		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
 		c.PublicationAttempt, c.Release, c.ReleaseAutomation,
 		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
@@ -872,10 +892,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ContentAngle.mutate(ctx, m)
 	case *ContentDraftMutation:
 		return c.ContentDraft.mutate(ctx, m)
+	case *ContentDraftFinisherMutation:
+		return c.ContentDraftFinisher.mutate(ctx, m)
 	case *ContentDraftRevisionMutation:
 		return c.ContentDraftRevision.mutate(ctx, m)
 	case *ContentDraftSettingsMutation:
 		return c.ContentDraftSettings.mutate(ctx, m)
+	case *ContentDraftTagMutation:
+		return c.ContentDraftTag.mutate(ctx, m)
 	case *ConversationMutation:
 		return c.Conversation.mutate(ctx, m)
 	case *ConversationMessageMutation:
@@ -938,6 +962,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PlatformSlackInstallation.mutate(ctx, m)
 	case *PlatformSlackPacingMutation:
 		return c.PlatformSlackPacing.mutate(ctx, m)
+	case *PostAutomationRunMutation:
+		return c.PostAutomationRun.mutate(ctx, m)
 	case *ProductProfileMutation:
 		return c.ProductProfile.mutate(ctx, m)
 	case *ProductSurfaceMutation:
@@ -4261,6 +4287,139 @@ func (c *ContentDraftClient) mutate(ctx context.Context, m *ContentDraftMutation
 	}
 }
 
+// ContentDraftFinisherClient is a client for the ContentDraftFinisher schema.
+type ContentDraftFinisherClient struct {
+	config
+}
+
+// NewContentDraftFinisherClient returns a client for the ContentDraftFinisher from the given config.
+func NewContentDraftFinisherClient(c config) *ContentDraftFinisherClient {
+	return &ContentDraftFinisherClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `contentdraftfinisher.Hooks(f(g(h())))`.
+func (c *ContentDraftFinisherClient) Use(hooks ...Hook) {
+	c.hooks.ContentDraftFinisher = append(c.hooks.ContentDraftFinisher, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `contentdraftfinisher.Intercept(f(g(h())))`.
+func (c *ContentDraftFinisherClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ContentDraftFinisher = append(c.inters.ContentDraftFinisher, interceptors...)
+}
+
+// Create returns a builder for creating a ContentDraftFinisher entity.
+func (c *ContentDraftFinisherClient) Create() *ContentDraftFinisherCreate {
+	mutation := newContentDraftFinisherMutation(c.config, OpCreate)
+	return &ContentDraftFinisherCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ContentDraftFinisher entities.
+func (c *ContentDraftFinisherClient) CreateBulk(builders ...*ContentDraftFinisherCreate) *ContentDraftFinisherCreateBulk {
+	return &ContentDraftFinisherCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ContentDraftFinisherClient) MapCreateBulk(slice any, setFunc func(*ContentDraftFinisherCreate, int)) *ContentDraftFinisherCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ContentDraftFinisherCreateBulk{err: fmt.Errorf("calling to ContentDraftFinisherClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ContentDraftFinisherCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ContentDraftFinisherCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ContentDraftFinisher.
+func (c *ContentDraftFinisherClient) Update() *ContentDraftFinisherUpdate {
+	mutation := newContentDraftFinisherMutation(c.config, OpUpdate)
+	return &ContentDraftFinisherUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ContentDraftFinisherClient) UpdateOne(_m *ContentDraftFinisher) *ContentDraftFinisherUpdateOne {
+	mutation := newContentDraftFinisherMutation(c.config, OpUpdateOne, withContentDraftFinisher(_m))
+	return &ContentDraftFinisherUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ContentDraftFinisherClient) UpdateOneID(id string) *ContentDraftFinisherUpdateOne {
+	mutation := newContentDraftFinisherMutation(c.config, OpUpdateOne, withContentDraftFinisherID(id))
+	return &ContentDraftFinisherUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ContentDraftFinisher.
+func (c *ContentDraftFinisherClient) Delete() *ContentDraftFinisherDelete {
+	mutation := newContentDraftFinisherMutation(c.config, OpDelete)
+	return &ContentDraftFinisherDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ContentDraftFinisherClient) DeleteOne(_m *ContentDraftFinisher) *ContentDraftFinisherDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ContentDraftFinisherClient) DeleteOneID(id string) *ContentDraftFinisherDeleteOne {
+	builder := c.Delete().Where(contentdraftfinisher.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ContentDraftFinisherDeleteOne{builder}
+}
+
+// Query returns a query builder for ContentDraftFinisher.
+func (c *ContentDraftFinisherClient) Query() *ContentDraftFinisherQuery {
+	return &ContentDraftFinisherQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeContentDraftFinisher},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ContentDraftFinisher entity by its id.
+func (c *ContentDraftFinisherClient) Get(ctx context.Context, id string) (*ContentDraftFinisher, error) {
+	return c.Query().Where(contentdraftfinisher.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ContentDraftFinisherClient) GetX(ctx context.Context, id string) *ContentDraftFinisher {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ContentDraftFinisherClient) Hooks() []Hook {
+	return c.hooks.ContentDraftFinisher
+}
+
+// Interceptors returns the client interceptors.
+func (c *ContentDraftFinisherClient) Interceptors() []Interceptor {
+	return c.inters.ContentDraftFinisher
+}
+
+func (c *ContentDraftFinisherClient) mutate(ctx context.Context, m *ContentDraftFinisherMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ContentDraftFinisherCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ContentDraftFinisherUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ContentDraftFinisherUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ContentDraftFinisherDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ContentDraftFinisher mutation op: %q", m.Op())
+	}
+}
+
 // ContentDraftRevisionClient is a client for the ContentDraftRevision schema.
 type ContentDraftRevisionClient struct {
 	config
@@ -4524,6 +4683,139 @@ func (c *ContentDraftSettingsClient) mutate(ctx context.Context, m *ContentDraft
 		return (&ContentDraftSettingsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ContentDraftSettings mutation op: %q", m.Op())
+	}
+}
+
+// ContentDraftTagClient is a client for the ContentDraftTag schema.
+type ContentDraftTagClient struct {
+	config
+}
+
+// NewContentDraftTagClient returns a client for the ContentDraftTag from the given config.
+func NewContentDraftTagClient(c config) *ContentDraftTagClient {
+	return &ContentDraftTagClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `contentdrafttag.Hooks(f(g(h())))`.
+func (c *ContentDraftTagClient) Use(hooks ...Hook) {
+	c.hooks.ContentDraftTag = append(c.hooks.ContentDraftTag, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `contentdrafttag.Intercept(f(g(h())))`.
+func (c *ContentDraftTagClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ContentDraftTag = append(c.inters.ContentDraftTag, interceptors...)
+}
+
+// Create returns a builder for creating a ContentDraftTag entity.
+func (c *ContentDraftTagClient) Create() *ContentDraftTagCreate {
+	mutation := newContentDraftTagMutation(c.config, OpCreate)
+	return &ContentDraftTagCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ContentDraftTag entities.
+func (c *ContentDraftTagClient) CreateBulk(builders ...*ContentDraftTagCreate) *ContentDraftTagCreateBulk {
+	return &ContentDraftTagCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ContentDraftTagClient) MapCreateBulk(slice any, setFunc func(*ContentDraftTagCreate, int)) *ContentDraftTagCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ContentDraftTagCreateBulk{err: fmt.Errorf("calling to ContentDraftTagClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ContentDraftTagCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ContentDraftTagCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ContentDraftTag.
+func (c *ContentDraftTagClient) Update() *ContentDraftTagUpdate {
+	mutation := newContentDraftTagMutation(c.config, OpUpdate)
+	return &ContentDraftTagUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ContentDraftTagClient) UpdateOne(_m *ContentDraftTag) *ContentDraftTagUpdateOne {
+	mutation := newContentDraftTagMutation(c.config, OpUpdateOne, withContentDraftTag(_m))
+	return &ContentDraftTagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ContentDraftTagClient) UpdateOneID(id string) *ContentDraftTagUpdateOne {
+	mutation := newContentDraftTagMutation(c.config, OpUpdateOne, withContentDraftTagID(id))
+	return &ContentDraftTagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ContentDraftTag.
+func (c *ContentDraftTagClient) Delete() *ContentDraftTagDelete {
+	mutation := newContentDraftTagMutation(c.config, OpDelete)
+	return &ContentDraftTagDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ContentDraftTagClient) DeleteOne(_m *ContentDraftTag) *ContentDraftTagDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ContentDraftTagClient) DeleteOneID(id string) *ContentDraftTagDeleteOne {
+	builder := c.Delete().Where(contentdrafttag.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ContentDraftTagDeleteOne{builder}
+}
+
+// Query returns a query builder for ContentDraftTag.
+func (c *ContentDraftTagClient) Query() *ContentDraftTagQuery {
+	return &ContentDraftTagQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeContentDraftTag},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ContentDraftTag entity by its id.
+func (c *ContentDraftTagClient) Get(ctx context.Context, id string) (*ContentDraftTag, error) {
+	return c.Query().Where(contentdrafttag.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ContentDraftTagClient) GetX(ctx context.Context, id string) *ContentDraftTag {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ContentDraftTagClient) Hooks() []Hook {
+	return c.hooks.ContentDraftTag
+}
+
+// Interceptors returns the client interceptors.
+func (c *ContentDraftTagClient) Interceptors() []Interceptor {
+	return c.inters.ContentDraftTag
+}
+
+func (c *ContentDraftTagClient) mutate(ctx context.Context, m *ContentDraftTagMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ContentDraftTagCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ContentDraftTagUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ContentDraftTagUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ContentDraftTagDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ContentDraftTag mutation op: %q", m.Op())
 	}
 }
 
@@ -8679,6 +8971,139 @@ func (c *PlatformSlackPacingClient) mutate(ctx context.Context, m *PlatformSlack
 		return (&PlatformSlackPacingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown PlatformSlackPacing mutation op: %q", m.Op())
+	}
+}
+
+// PostAutomationRunClient is a client for the PostAutomationRun schema.
+type PostAutomationRunClient struct {
+	config
+}
+
+// NewPostAutomationRunClient returns a client for the PostAutomationRun from the given config.
+func NewPostAutomationRunClient(c config) *PostAutomationRunClient {
+	return &PostAutomationRunClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `postautomationrun.Hooks(f(g(h())))`.
+func (c *PostAutomationRunClient) Use(hooks ...Hook) {
+	c.hooks.PostAutomationRun = append(c.hooks.PostAutomationRun, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `postautomationrun.Intercept(f(g(h())))`.
+func (c *PostAutomationRunClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PostAutomationRun = append(c.inters.PostAutomationRun, interceptors...)
+}
+
+// Create returns a builder for creating a PostAutomationRun entity.
+func (c *PostAutomationRunClient) Create() *PostAutomationRunCreate {
+	mutation := newPostAutomationRunMutation(c.config, OpCreate)
+	return &PostAutomationRunCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PostAutomationRun entities.
+func (c *PostAutomationRunClient) CreateBulk(builders ...*PostAutomationRunCreate) *PostAutomationRunCreateBulk {
+	return &PostAutomationRunCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PostAutomationRunClient) MapCreateBulk(slice any, setFunc func(*PostAutomationRunCreate, int)) *PostAutomationRunCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PostAutomationRunCreateBulk{err: fmt.Errorf("calling to PostAutomationRunClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PostAutomationRunCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PostAutomationRunCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PostAutomationRun.
+func (c *PostAutomationRunClient) Update() *PostAutomationRunUpdate {
+	mutation := newPostAutomationRunMutation(c.config, OpUpdate)
+	return &PostAutomationRunUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PostAutomationRunClient) UpdateOne(_m *PostAutomationRun) *PostAutomationRunUpdateOne {
+	mutation := newPostAutomationRunMutation(c.config, OpUpdateOne, withPostAutomationRun(_m))
+	return &PostAutomationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PostAutomationRunClient) UpdateOneID(id string) *PostAutomationRunUpdateOne {
+	mutation := newPostAutomationRunMutation(c.config, OpUpdateOne, withPostAutomationRunID(id))
+	return &PostAutomationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PostAutomationRun.
+func (c *PostAutomationRunClient) Delete() *PostAutomationRunDelete {
+	mutation := newPostAutomationRunMutation(c.config, OpDelete)
+	return &PostAutomationRunDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PostAutomationRunClient) DeleteOne(_m *PostAutomationRun) *PostAutomationRunDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PostAutomationRunClient) DeleteOneID(id string) *PostAutomationRunDeleteOne {
+	builder := c.Delete().Where(postautomationrun.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PostAutomationRunDeleteOne{builder}
+}
+
+// Query returns a query builder for PostAutomationRun.
+func (c *PostAutomationRunClient) Query() *PostAutomationRunQuery {
+	return &PostAutomationRunQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePostAutomationRun},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PostAutomationRun entity by its id.
+func (c *PostAutomationRunClient) Get(ctx context.Context, id string) (*PostAutomationRun, error) {
+	return c.Query().Where(postautomationrun.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PostAutomationRunClient) GetX(ctx context.Context, id string) *PostAutomationRun {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PostAutomationRunClient) Hooks() []Hook {
+	return c.hooks.PostAutomationRun
+}
+
+// Interceptors returns the client interceptors.
+func (c *PostAutomationRunClient) Interceptors() []Interceptor {
+	return c.inters.PostAutomationRun
+}
+
+func (c *PostAutomationRunClient) mutate(ctx context.Context, m *PostAutomationRunMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PostAutomationRunCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PostAutomationRunUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PostAutomationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PostAutomationRunDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PostAutomationRun mutation op: %q", m.Op())
 	}
 }
 
@@ -13925,16 +14350,17 @@ type (
 		AuditRetentionPolicy, BillingEntitlementEvent, BrandKit, BrandProfile,
 		Campaign, CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision,
 		ChannelConnection, CommunicationAttempt, CommunicationRecipient, ContentAngle,
-		ContentDraft, ContentDraftRevision, ContentDraftSettings, Conversation,
-		ConversationMessage, CreativeTemplate, CreativeVariant, CustomerCommunication,
-		DeploymentEvent, Design, EnrichmentRecord, GitHubInstallStart,
-		GitHubInstallation, IdealCustomerProfile, IntegrationConnection, Invitation,
-		LaunchRun, LaunchRunStep, Member, OnboardingRun, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
-		PlatformCreativeSet, PlatformCreativeSetVersion, PlatformNotificationDelivery,
-		PlatformNotificationInbox, PlatformNotificationPolicy,
-		PlatformNotificationPreference, PlatformNotificationSeenAction,
-		PlatformSlackConnection, PlatformSlackInstallation, PlatformSlackPacing,
+		ContentDraft, ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
+		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
+		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
+		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
+		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
+		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
+		PageKnowledge, PlatformCreativeSet, PlatformCreativeSetVersion,
+		PlatformNotificationDelivery, PlatformNotificationInbox,
+		PlatformNotificationPolicy, PlatformNotificationPreference,
+		PlatformNotificationSeenAction, PlatformSlackConnection,
+		PlatformSlackInstallation, PlatformSlackPacing, PostAutomationRun,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
 		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
 		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
@@ -13952,16 +14378,17 @@ type (
 		AuditRetentionPolicy, BillingEntitlementEvent, BrandKit, BrandProfile,
 		Campaign, CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision,
 		ChannelConnection, CommunicationAttempt, CommunicationRecipient, ContentAngle,
-		ContentDraft, ContentDraftRevision, ContentDraftSettings, Conversation,
-		ConversationMessage, CreativeTemplate, CreativeVariant, CustomerCommunication,
-		DeploymentEvent, Design, EnrichmentRecord, GitHubInstallStart,
-		GitHubInstallation, IdealCustomerProfile, IntegrationConnection, Invitation,
-		LaunchRun, LaunchRunStep, Member, OnboardingRun, Organization,
-		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
-		PlatformCreativeSet, PlatformCreativeSetVersion, PlatformNotificationDelivery,
-		PlatformNotificationInbox, PlatformNotificationPolicy,
-		PlatformNotificationPreference, PlatformNotificationSeenAction,
-		PlatformSlackConnection, PlatformSlackInstallation, PlatformSlackPacing,
+		ContentDraft, ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
+		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
+		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
+		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
+		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
+		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
+		PageKnowledge, PlatformCreativeSet, PlatformCreativeSetVersion,
+		PlatformNotificationDelivery, PlatformNotificationInbox,
+		PlatformNotificationPolicy, PlatformNotificationPreference,
+		PlatformNotificationSeenAction, PlatformSlackConnection,
+		PlatformSlackInstallation, PlatformSlackPacing, PostAutomationRun,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
 		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
 		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,

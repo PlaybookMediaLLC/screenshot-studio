@@ -178,6 +178,26 @@ func (_u *AssetUpdate) SetNillableStatus(v *asset.Status) *AssetUpdate {
 	return _u
 }
 
+// SetAltText sets the "alt_text" field.
+func (_u *AssetUpdate) SetAltText(v string) *AssetUpdate {
+	_u.mutation.SetAltText(v)
+	return _u
+}
+
+// SetNillableAltText sets the "alt_text" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableAltText(v *string) *AssetUpdate {
+	if v != nil {
+		_u.SetAltText(*v)
+	}
+	return _u
+}
+
+// ClearAltText clears the value of the "alt_text" field.
+func (_u *AssetUpdate) ClearAltText() *AssetUpdate {
+	_u.mutation.ClearAltText()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *AssetUpdate) SetUpdatedAt(v time.Time) *AssetUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -327,6 +347,12 @@ func (_u *AssetUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.AltText(); ok {
+		_spec.SetField(asset.FieldAltText, field.TypeString, value)
+	}
+	if _u.mutation.AltTextCleared() {
+		_spec.ClearField(asset.FieldAltText, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(asset.FieldUpdatedAt, field.TypeTime, value)
@@ -545,6 +571,26 @@ func (_u *AssetUpdateOne) SetNillableStatus(v *asset.Status) *AssetUpdateOne {
 	return _u
 }
 
+// SetAltText sets the "alt_text" field.
+func (_u *AssetUpdateOne) SetAltText(v string) *AssetUpdateOne {
+	_u.mutation.SetAltText(v)
+	return _u
+}
+
+// SetNillableAltText sets the "alt_text" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableAltText(v *string) *AssetUpdateOne {
+	if v != nil {
+		_u.SetAltText(*v)
+	}
+	return _u
+}
+
+// ClearAltText clears the value of the "alt_text" field.
+func (_u *AssetUpdateOne) ClearAltText() *AssetUpdateOne {
+	_u.mutation.ClearAltText()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *AssetUpdateOne) SetUpdatedAt(v time.Time) *AssetUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -724,6 +770,12 @@ func (_u *AssetUpdateOne) sqlSave(ctx context.Context) (_node *Asset, err error)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.AltText(); ok {
+		_spec.SetField(asset.FieldAltText, field.TypeString, value)
+	}
+	if _u.mutation.AltTextCleared() {
+		_spec.ClearField(asset.FieldAltText, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(asset.FieldUpdatedAt, field.TypeTime, value)

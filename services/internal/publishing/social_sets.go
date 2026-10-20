@@ -3,6 +3,7 @@ package publishing
 import (
 	"context"
 	"errors"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdrafttag"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -110,9 +111,24 @@ func emitDraftPublished(ctx context.Context, tx *ent.Tx, post *ent.ScheduledPost
 	if err != nil {
 		return err
 	}
+	tagRows, err := tx.ContentDraftTag.Query().Where(contentdrafttag.IDIn(draft.TagIds...),
+		contentdrafttag.OrganizationID(draft.OrganizationID)).All(ctx)
+	if err != nil {
+		return err
+	}
+	names := map[string]string{}
+	for _, row := range tagRows {
+		names[row.ID] = row.Name
+	}
+	tags := []map[string]string{}
+	for _, id := range draft.TagIds {
+		if name, ok := names[id]; ok {
+			tags = append(tags, map[string]string{"id": id, "name": name})
+		}
+	}
 	data := map[string]any{
 		"draft": map[string]any{"id": draft.ID, "socialSetId": draft.SocialSetID, "status": string(draft.Status),
-			"tags": draft.Tags, "title": draft.Title},
+			"tags": tags, "title": draft.Title},
 		"post": map[string]any{"id": post.ID, "platform": connection.Platform, "publishedAt": time.Now().UTC(),
 			"remotePostId": providerPostID, "url": postoptions.LivePostURL(connection.Platform, &providerPostID)},
 	}

@@ -7,6 +7,7 @@ import {
   contentDraftSchema,
   plateValueSchema,
 } from '@/lib/api/contracts/content-drafts'
+import { articleSchema, platformVersionsSchema } from '@/lib/write/document'
 
 /**
  * Content drafts, round two (RFC 037): the posting queue and its settings,
@@ -145,13 +146,21 @@ export const shareContentDraftContract = defineContract({
   summary: "Turn a draft's read-and-comment link on or off",
 })
 
-/** A saved point in a draft's history. */
+/** Why a backup was kept. */
+export const revisionReasonSchema = z.enum(['edit', 'schedule', 'plan', 'publish', 'recovery'])
+
+/** A saved point in a draft's history: an immutable automatic backup. */
 export const contentDraftRevisionSchema = z.object({
+  /** An article's title and cover as they were (one revision's read). */
+  article: articleSchema.optional(),
   body: plateValueSchema.optional(),
   createdAt: timestampSchema,
   createdByUserId: z.string().nullable(),
   id: z.string(),
   plainText: z.string(),
+  /** The platform versions as they were (one revision's read). */
+  platformVersions: platformVersionsSchema.optional(),
+  reason: revisionReasonSchema,
   title: z.string(),
   version: z.number().int(),
 })
@@ -174,26 +183,6 @@ export const getContentDraftRevisionContract = defineContract({
   params: contentDraftParamsSchema.extend({ revisionId: contentDraftIdSchema }),
   path: '/api/v1/content-drafts/{id}/revisions/{revisionId}',
   summary: 'Read one revision of a draft, with its body',
-})
-
-/** What the AI can do to a draft's text. */
-export const draftAssistActionSchema = z.enum(['rewrite', 'thread', 'shorten'])
-
-/** `POST /api/v1/content-drafts/assist` */
-export const draftAssistContract = defineContract({
-  body: z.object({
-    action: draftAssistActionSchema,
-    channel: z.enum(['x', 'linkedin', 'instagram', 'threads', 'bluesky', 'mastodon']),
-    /** The draft being helped, so its social set's Writing Assistant applies (RFC 043). */
-    draftId: contentDraftIdSchema.optional(),
-    /** The draft's posts as plain text. */
-    posts: z.array(z.string().max(10_000)).min(1).max(25),
-  }),
-  method: 'POST',
-  name: 'content-drafts.assist',
-  output: z.object({ posts: z.array(z.string()).min(1) }),
-  path: '/api/v1/content-drafts/assist',
-  summary: 'Rewrite, thread or shorten a draft for a channel',
 })
 
 /** A link's card: what a channel shows for it. */

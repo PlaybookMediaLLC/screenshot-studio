@@ -74,10 +74,15 @@ type PreparedPublication struct {
 	AssetObjectKey string
 	Assets         []publishing.MediaAsset `json:",omitempty"`
 	// Replies follow the post as a thread; jobs from before threads have none.
-	Replies          []publishing.PublishReply `json:",omitempty"`
-	ReplyTo          string                    `json:",omitempty"`
-	AutoActions      *postoptions.AutoActions  `json:",omitempty"`
-	Poll             *postoptions.Poll         `json:",omitempty"`
+	Replies     []publishing.PublishReply `json:",omitempty"`
+	ReplyTo     string                    `json:",omitempty"`
+	AutoActions *postoptions.AutoActions  `json:",omitempty"`
+	Poll        *postoptions.Poll         `json:",omitempty"`
+	// Write (RFC 042): the post's settings, a LinkedIn document and an
+	// article cover. Jobs recorded before them have none.
+	Options          *postoptions.PublishOptions `json:",omitempty"`
+	Document         *publishing.MediaAsset      `json:",omitempty"`
+	Cover            *publishing.MediaAsset      `json:",omitempty"`
 	Caption          string
 	DestinationID    string
 	OrganizationID   string

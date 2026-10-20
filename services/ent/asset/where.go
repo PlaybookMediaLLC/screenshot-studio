@@ -110,6 +110,11 @@ func Height(v int) predicate.Asset {
 	return predicate.Asset(sql.FieldEQ(FieldHeight, v))
 }
 
+// AltText applies equality check predicate on the "alt_text" field. It's identical to AltTextEQ.
+func AltText(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldEQ(FieldAltText, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Asset {
 	return predicate.Asset(sql.FieldEQ(FieldCreatedAt, v))
@@ -698,6 +703,81 @@ func StatusIn(vs ...Status) predicate.Asset {
 // StatusNotIn applies the NotIn predicate on the "status" field.
 func StatusNotIn(vs ...Status) predicate.Asset {
 	return predicate.Asset(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// AltTextEQ applies the EQ predicate on the "alt_text" field.
+func AltTextEQ(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldEQ(FieldAltText, v))
+}
+
+// AltTextNEQ applies the NEQ predicate on the "alt_text" field.
+func AltTextNEQ(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldNEQ(FieldAltText, v))
+}
+
+// AltTextIn applies the In predicate on the "alt_text" field.
+func AltTextIn(vs ...string) predicate.Asset {
+	return predicate.Asset(sql.FieldIn(FieldAltText, vs...))
+}
+
+// AltTextNotIn applies the NotIn predicate on the "alt_text" field.
+func AltTextNotIn(vs ...string) predicate.Asset {
+	return predicate.Asset(sql.FieldNotIn(FieldAltText, vs...))
+}
+
+// AltTextGT applies the GT predicate on the "alt_text" field.
+func AltTextGT(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldGT(FieldAltText, v))
+}
+
+// AltTextGTE applies the GTE predicate on the "alt_text" field.
+func AltTextGTE(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldGTE(FieldAltText, v))
+}
+
+// AltTextLT applies the LT predicate on the "alt_text" field.
+func AltTextLT(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldLT(FieldAltText, v))
+}
+
+// AltTextLTE applies the LTE predicate on the "alt_text" field.
+func AltTextLTE(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldLTE(FieldAltText, v))
+}
+
+// AltTextContains applies the Contains predicate on the "alt_text" field.
+func AltTextContains(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldContains(FieldAltText, v))
+}
+
+// AltTextHasPrefix applies the HasPrefix predicate on the "alt_text" field.
+func AltTextHasPrefix(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldHasPrefix(FieldAltText, v))
+}
+
+// AltTextHasSuffix applies the HasSuffix predicate on the "alt_text" field.
+func AltTextHasSuffix(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldHasSuffix(FieldAltText, v))
+}
+
+// AltTextIsNil applies the IsNil predicate on the "alt_text" field.
+func AltTextIsNil() predicate.Asset {
+	return predicate.Asset(sql.FieldIsNull(FieldAltText))
+}
+
+// AltTextNotNil applies the NotNil predicate on the "alt_text" field.
+func AltTextNotNil() predicate.Asset {
+	return predicate.Asset(sql.FieldNotNull(FieldAltText))
+}
+
+// AltTextEqualFold applies the EqualFold predicate on the "alt_text" field.
+func AltTextEqualFold(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldEqualFold(FieldAltText, v))
+}
+
+// AltTextContainsFold applies the ContainsFold predicate on the "alt_text" field.
+func AltTextContainsFold(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldContainsFold(FieldAltText, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

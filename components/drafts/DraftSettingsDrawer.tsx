@@ -1,5 +1,6 @@
 'use client'
 
+import { Settings2 } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { z } from 'zod'
@@ -55,8 +56,17 @@ export function DraftSettingsDrawer({
 
   return (
     <>
-      <Button aria-label={`Settings for ${socialSet.name}`} onClick={() => go('scheduling')} size="sm" type="button" variant="ghost">
-        Settings
+      <Button
+        aria-label={`Settings for ${socialSet.name}`}
+        aria-pressed={page !== null}
+        className="size-8 px-0"
+        onClick={() => go('scheduling')}
+        size="sm"
+        title={`Settings for ${socialSet.name}`}
+        type="button"
+        variant="ghost"
+      >
+        <Settings2 aria-hidden className="size-4" />
       </Button>
       <Sheet onOpenChange={(open) => (open ? null : go(null))} open={page !== null}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-xl" side="right">

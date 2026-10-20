@@ -320,6 +320,9 @@ func (_u *ScheduledPostUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.PollCleared() {
 		_spec.ClearField(scheduledpost.FieldPoll, field.TypeJSON)
 	}
+	if _u.mutation.PublishOptionsCleared() {
+		_spec.ClearField(scheduledpost.FieldPublishOptions, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)
 	}
@@ -737,6 +740,9 @@ func (_u *ScheduledPostUpdateOne) sqlSave(ctx context.Context) (_node *Scheduled
 	}
 	if _u.mutation.PollCleared() {
 		_spec.ClearField(scheduledpost.FieldPoll, field.TypeJSON)
+	}
+	if _u.mutation.PublishOptionsCleared() {
+		_spec.ClearField(scheduledpost.FieldPublishOptions, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)

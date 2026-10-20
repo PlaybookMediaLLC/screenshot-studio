@@ -18,11 +18,16 @@ function readableDay(key: string, options: Intl.DateTimeFormatOptions): string {
   return new Date(`${key}T12:00:00Z`).toLocaleDateString(undefined, { ...options, timeZone: 'UTC' })
 }
 
+/** A draft planned for a time: on the calendar, never published by itself. */
+export type PlannedDraft = { at: string; caption: string; draftId: string; title: string }
+
 /**
  * A week of draft posts in the social set's scheduling time zone (RFC 043):
  * each day's posts in time order, the same for every reader. A queued post
  * drags to another day and keeps its time of day there; live posts stay put.
  * Moving the view's first weekday changes only how the week is drawn.
+ * Planned drafts show dashed: they hold a time but publish nothing until
+ * scheduled (RFC 042).
  */
 export function DraftCalendar({
   canMove,
@@ -34,7 +39,7 @@ export function DraftCalendar({
 }: {
   canMove: boolean
   /** Drafts placed on a day without scheduling (an experiment). */
-  planned?: { id: string; plannedFor: string; title: string }[]
+  planned?: PlannedDraft[]
   posts: CalendarPostWire[]
   /** The set the calendar shows, kept when moving between weeks. */
   socialSetId?: string
@@ -47,10 +52,10 @@ export function DraftCalendar({
   const [over, setOver] = React.useState<string | null>(null)
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index))
   const weekHref = (weeks: number | null) => {
-    const params = new URLSearchParams(socialSetId ? { socialSet: socialSetId } : {})
+    const params = new URLSearchParams(socialSetId ? { set: socialSetId } : {})
     if (weeks !== null) params.set('week', addDays(weekStart, weeks * 7))
     const query = params.toString()
-    return `/drafts/calendar${query ? `?${query}` : ''}`
+    return `/write/plan${query ? `?${query}` : ''}`
   }
   const move = async (postId: string, day: string) => {
     const post = posts.find((item) => item.id === postId)
@@ -100,7 +105,7 @@ export function DraftCalendar({
         {days.map((day) => {
           const key = day
           const dayPosts = posts.filter((post) => zonedDayKey(new Date(post.scheduledFor), timeZone) === key)
-          const dayPlanned = planned.filter((item) => zonedDayKey(new Date(item.plannedFor), timeZone) === key)
+          const dayPlanned = planned.filter((item) => zonedDayKey(new Date(item.at), timeZone) === key)
           return (
             <section
               aria-label={readableDay(day, { day: 'numeric', month: 'long', weekday: 'long', year: 'numeric' })}
@@ -138,14 +143,14 @@ export function DraftCalendar({
                 <Link
                   className="block rounded-lg border border-dashed border-foreground/20 p-2 text-xs"
                   data-testid="calendar-planned"
-                  href={`/drafts/${item.id}`}
-                  key={`planned-${item.id}`}
+                  href={`/write/${item.draftId}`}
+                  key={`planned-${item.draftId}`}
                 >
                   <span className="text-muted-foreground">
                     Planned ·{' '}
-                    {new Date(item.plannedFor).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone })}
+                    {new Date(item.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone })}
                   </span>
-                  <span className="mt-1 line-clamp-2 block text-foreground">{item.title}</span>
+                  <span className="mt-1 line-clamp-2 block text-foreground">{item.title || item.caption}</span>
                 </Link>
               ))}
               {dayPosts.map((post) => {
@@ -162,7 +167,7 @@ export function DraftCalendar({
                     )}
                     data-testid="calendar-post"
                     draggable={movable}
-                    href={`/drafts/${post.draftId}`}
+                    href={`/write/${post.draftId}`}
                     key={post.id}
                     onDragStart={(event) => {
                       event.dataTransfer.setData(CALENDAR_DRAG, post.id)

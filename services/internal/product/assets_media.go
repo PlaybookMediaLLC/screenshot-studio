@@ -86,7 +86,16 @@ func validAssetSegment(value string) bool {
 }
 
 func validAssetUpload(input AssetUploadInput) bool {
-	if input.Bytes < 1 || input.Bytes > 50<<20 || len(input.FileName) > 128 || !validAssetSegment(input.FileName) ||
+	limit := 50 << 20
+	if input.ContentType == "application/pdf" {
+		// LinkedIn documents (RFC 042): up to 100 MB, named .pdf so the
+		// publisher sends them as documents.
+		limit = pdfByteLimit
+		if !strings.HasSuffix(strings.ToLower(input.FileName), ".pdf") {
+			return false
+		}
+	}
+	if input.Bytes < 1 || input.Bytes > limit || len(input.FileName) > 128 || !validAssetSegment(input.FileName) ||
 		(input.SHA256 != nil && !assetHashPattern.MatchString(*input.SHA256)) {
 		return false
 	}
@@ -96,7 +105,7 @@ func validAssetUpload(input AssetUploadInput) bool {
 		return false
 	}
 	switch input.ContentType {
-	case "image/gif", "image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm",
+	case "image/gif", "image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm", "application/pdf",
 		// Audio for design timelines (music, voice-over).
 		"audio/aac", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/wav", "audio/webm",
 		"font/woff", "font/woff2", "font/ttf", "font/otf":
@@ -202,6 +211,9 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	if !exists {
 		return nil, ErrObjectMissing
 	}
+	if err := c.checkUploadedBytes(ctx, actor, row); err != nil {
+		return nil, err
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
@@ -235,6 +247,29 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	}
 	result := recordAsset(current)
 	return &result, nil
+}
+
+// checkUploadedBytes reads an upload back from storage and fails it when its
+// bytes are not its declared type (RFC 042). A store that cannot stream
+// objects skips the check.
+func (c *Configuration) checkUploadedBytes(ctx context.Context, actor Actor, row *ent.Asset) error {
+	opener, ok := c.objects.(objectOpener)
+	if !ok {
+		return nil
+	}
+	object, err := opener.Open(ctx, row.ObjectKey)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+	}
+	defer object.Close()
+	if err := verifyAssetBytes(row.MediaType, object); err != nil {
+		if _, failErr := c.client.Asset.Update().Where(asset.ID(row.ID), asset.OrganizationID(actor.OrganizationID),
+			asset.StatusEQ(asset.StatusPENDING)).SetStatus(asset.StatusFAILED).Save(ctx); failErr != nil {
+			return failErr
+		}
+		return err
+	}
+	return nil
 }
 
 func (c *Configuration) SignAssetDownload(ctx context.Context, actor Actor, assetID string) (string, error) {

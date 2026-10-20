@@ -149,3 +149,38 @@ export const deleteAssetContract = defineContract({
   status: 202,
   summary: 'Delete a workspace asset',
 })
+
+/** An image's description, posted with it as alt text (RFC 042). */
+export const assetAltTextSchema = z.object({
+  altText: z.string().nullable(),
+  id: z.string(),
+})
+
+/** `PUT /api/v1/assets/{assetId}/alt-text` */
+export const setAssetAltTextContract = defineContract({
+  access: {
+    apiKeyScope: 'asset:write',
+    feature: 'content:drafts',
+    permission: 'artifact:edit',
+    quota: 'api:write:minute',
+  },
+  body: z.strictObject({ altText: z.string().max(1_000) }),
+  docs: workspaceDocs({
+    description:
+      'Describes an uploaded image for people who cannot see it. The description is posted with the image wherever it goes (X takes up to 1,000 characters, LinkedIn more); an empty string clears it.',
+    operationId: 'setAssetAltText',
+    outputName: 'AssetAltText',
+    responses: {
+      '200': 'The image and its description.',
+      '400': 'The description is too long, or the asset is not an image.',
+      '404': assetNotFound,
+    },
+    tag: 'Assets',
+  }),
+  method: 'PUT',
+  name: 'assets.alt-text',
+  output: assetAltTextSchema,
+  params: assetParamsSchema,
+  path: '/api/v1/assets/{assetId}/alt-text',
+  summary: "Set an image's alt text",
+})

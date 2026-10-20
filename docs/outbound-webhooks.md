@@ -50,7 +50,7 @@ X-Shots-Signature: v1=5d41…
     "status": "scheduled",
     "platforms": ["x", "linkedin"],
     "primaryPlatform": "x",
-    "tags": [],
+    "tags": [{ "id": "…", "name": "Launch" }],
     "plannedFor": null,
     "version": 4,
     "createdAt": "…",
@@ -61,8 +61,10 @@ X-Shots-Signature: v1=5d41…
 }
 ```
 
-`data` carries identifiers, titles, statuses, tags, platforms and times. It
-never carries a draft's body, comments, member details or credentials. Fetch
+`data` carries identifiers, titles, statuses, tags, platforms and times.
+Tags are the draft's tag records in its social set, each with its id and name
+(RFC 042); `draft.tags_changed` also carries `previousTags`, the same pairs
+before the change. It never carries a draft's body, comments, member details or credentials. Fetch
 those with the [API](rfcs/034-rest-api-scalar-reference.md) if you need them.
 A breaking change to the envelope bumps `schemaVersion`; new fields can appear
 at any time.

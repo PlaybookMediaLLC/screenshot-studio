@@ -297,6 +297,18 @@ func (f ContentDraftFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftMutation", m)
 }
 
+// The ContentDraftFinisherFunc type is an adapter to allow the use of ordinary
+// function as ContentDraftFinisher mutator.
+type ContentDraftFinisherFunc func(context.Context, *ent.ContentDraftFinisherMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentDraftFinisherFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentDraftFinisherMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftFinisherMutation", m)
+}
+
 // The ContentDraftRevisionFunc type is an adapter to allow the use of ordinary
 // function as ContentDraftRevision mutator.
 type ContentDraftRevisionFunc func(context.Context, *ent.ContentDraftRevisionMutation) (ent.Value, error)
@@ -319,6 +331,18 @@ func (f ContentDraftSettingsFunc) Mutate(ctx context.Context, m ent.Mutation) (e
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftSettingsMutation", m)
+}
+
+// The ContentDraftTagFunc type is an adapter to allow the use of ordinary
+// function as ContentDraftTag mutator.
+type ContentDraftTagFunc func(context.Context, *ent.ContentDraftTagMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentDraftTagFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentDraftTagMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftTagMutation", m)
 }
 
 // The ConversationFunc type is an adapter to allow the use of ordinary
@@ -691,6 +715,18 @@ func (f PlatformSlackPacingFunc) Mutate(ctx context.Context, m ent.Mutation) (en
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSlackPacingMutation", m)
+}
+
+// The PostAutomationRunFunc type is an adapter to allow the use of ordinary
+// function as PostAutomationRun mutator.
+type PostAutomationRunFunc func(context.Context, *ent.PostAutomationRunMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PostAutomationRunFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PostAutomationRunMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PostAutomationRunMutation", m)
 }
 
 // The ProductProfileFunc type is an adapter to allow the use of ordinary

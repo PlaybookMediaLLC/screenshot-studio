@@ -53,12 +53,17 @@ type CreateScheduledPostResult struct {
 type MediaAsset struct {
 	MediaType string
 	ObjectKey string
+	// Alt describes an image (RFC 042); jobs recorded before it have none.
+	Alt string `json:",omitempty"`
 }
 
 // PublishReply is a thread reply to publish after the post: its text and files.
 type PublishReply struct {
 	Assets  []MediaAsset
 	Caption string
+	// Options are the reply's own settings (RFC 042); replies from before
+	// them have none.
+	Options *postoptions.PublishOptions `json:",omitempty"`
 }
 
 type PublishJob struct {
@@ -69,9 +74,15 @@ type PublishJob struct {
 	// Replies follow the post as a thread, each answering the one before.
 	Replies []PublishReply
 	// ReplyTo is the live post a resumed thread answers; empty for a new post.
-	ReplyTo         string
-	AutoActions     postoptions.AutoActions
-	Poll            postoptions.Poll
+	ReplyTo     string
+	AutoActions postoptions.AutoActions
+	Poll        postoptions.Poll
+	// Options are the first post's settings beyond its text (RFC 042).
+	Options postoptions.PublishOptions
+	// Document is a LinkedIn PDF posted as a document carousel; Cover is an
+	// X article's cover image.
+	Document        *MediaAsset
+	Cover           *MediaAsset
 	Connection      *ent.ChannelConnection
 	Post            *ent.ScheduledPost
 	WorkspaceActive bool
@@ -86,4 +97,12 @@ type RecoverablePost struct {
 	ID             string
 	OrganizationID string
 	ScheduledFor   time.Time
+}
+
+// AutomationReceipt is a live post's follow-up to record (RFC 042): its
+// key, its kind and when it is first due.
+type AutomationReceipt struct {
+	DueAt time.Time
+	Key   string
+	Kind  string
 }

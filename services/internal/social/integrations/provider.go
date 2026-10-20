@@ -69,6 +69,10 @@ type MediaContent struct {
 type PollDetails struct {
 	Options  []string `json:"options"`
 	Duration int      `json:"duration"` // hours
+	// DurationMinutes, when set, is the exact length (X takes minutes).
+	DurationMinutes int `json:"durationMinutes,omitempty"`
+	// Question is asked by platforms whose polls have their own (LinkedIn).
+	Question string `json:"question,omitempty"`
 }
 
 // PostDetails is one entry to publish: the post or a comment. Settings is the

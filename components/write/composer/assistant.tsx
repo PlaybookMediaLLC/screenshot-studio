@@ -1,0 +1,220 @@
+'use client'
+
+import * as React from 'react'
+import Link from 'next/link'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { socialSetHref } from '@/components/workspace/settings-sections'
+import { call } from '@/lib/content-drafts/client'
+import { assistPosts } from '@/lib/write/refine-actions'
+import type { DraftChannel } from '@/lib/write/document'
+import { useWrite, type WriteSet } from '../write-context'
+
+/** One turn of the conversation. */
+type Turn = { content: string; role: 'assistant' | 'user' }
+
+/** Starting points for a conversation about the draft. */
+const STARTERS = [
+  'Give me three stronger hooks for the first post.',
+  'How could the ending get more replies?',
+  'What is unclear or too long here?',
+  'Adapt this for LinkedIn.',
+]
+
+/**
+ * The writing assistant (RFC 042): a conversation about the open draft in
+ * the set's voice, from its Writing Assistant (RFC 043): the workspace brand
+ * refined by the set's style guide and samples, merged by the backend. The
+ * conversation stays in this panel; nothing in the draft changes unless the
+ * writer adds a reply to it. Each answer uses the workspace's AI credits.
+ */
+export function AssistantPanel({
+  channel,
+  draftId,
+  onInsert,
+  posts,
+  set,
+}: {
+  channel: DraftChannel
+  draftId: string
+  /** Add a reply to the draft as a new post. */
+  onInsert?: (text: string) => void
+  /** The draft's posts as the platform reads them. */
+  posts: string[]
+  set: WriteSet | null
+}) {
+  const [turns, setTurns] = React.useState<Turn[]>([])
+  const [message, setMessage] = React.useState('')
+  const [busy, setBusy] = React.useState(false)
+  const [setup, setSetup] = React.useState(false)
+  const [skipped, setSkipped] = React.useState(false)
+  const configured = set?.writingAssistant.status === 'configured'
+  const send = async (text: string) => {
+    const content = text.trim()
+    if (!content || busy) return
+    const next: Turn[] = [...turns, { content, role: 'user' }]
+    setTurns(next)
+    setMessage('')
+    setBusy(true)
+    try {
+      const answer = await call<{ reply: string }>('/api/v1/content-drafts/assistant', {
+        body: { channel, draft: posts, draftId, messages: next.slice(-30) },
+        method: 'POST',
+      })
+      setTurns([...next, { content: answer.reply, role: 'assistant' }])
+    } catch (error) {
+      setTurns(turns)
+      setMessage(content)
+      toast.error(error instanceof Error ? error.message : 'The assistant could not answer.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  if (setup || (!configured && !skipped && turns.length === 0 && set)) {
+    return (
+      <AssistantSetup
+        onDone={() => {
+          setSetup(false)
+          setSkipped(true)
+        }}
+        set={set}
+      />
+    )
+  }
+  return (
+    <div className="flex h-full flex-col gap-3 p-4 text-sm" data-testid="assistant-panel">
+      <p className="text-xs text-neutral-500">
+        Writing in {set?.name ?? 'this set'}’s voice
+        {configured ? '' : ' (no style guide yet)'}.{' '}
+        <Button
+          className="text-sky-300"
+          onClick={() => setSetup(true)}
+          size={null}
+          type="button"
+          variant="custom"
+        >
+          Style guide and samples
+        </Button>
+      </p>
+      {turns.length === 0 ? (
+        <div className="grid gap-1.5">
+          {STARTERS.map((starter) => (
+            <Button
+              className="h-auto justify-start whitespace-normal rounded-lg border border-white/[0.06] px-3 py-2 text-left text-xs"
+              key={starter}
+              onClick={() => void send(starter)}
+              size={null}
+              type="button"
+              variant="ghost"
+            >
+              {starter}
+            </Button>
+          ))}
+        </div>
+      ) : (
+        <ol aria-live="polite" className="grid gap-3">
+          {turns.map((turn, index) => (
+            <li
+              className={
+                turn.role === 'user'
+                  ? 'ml-6 rounded-lg bg-white/[0.06] px-3 py-2'
+                  : 'rounded-lg border border-white/[0.06] px-3 py-2'
+              }
+              data-testid={`assistant-${turn.role}`}
+              key={index}
+            >
+              <p className="whitespace-pre-wrap text-neutral-200">{turn.content}</p>
+              {turn.role === 'assistant' ? (
+                <p className="mt-1.5 flex gap-2 text-xs">
+                  {onInsert ? (
+                    <Button
+                      className="text-sky-300"
+                      // Only the post goes in: never the model's introduction.
+                      onClick={() => assistPosts(turn.content).forEach(onInsert)}
+                      size={null}
+                      type="button"
+                      variant="custom"
+                    >
+                      Add as a new post
+                    </Button>
+                  ) : null}
+                  <Button
+                    className="text-neutral-400 hover:text-white"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(turn.content)
+                      toast.success('Copied.')
+                    }}
+                    size={null}
+                    type="button"
+                    variant="custom"
+                  >
+                    Copy
+                  </Button>
+                </p>
+              ) : null}
+            </li>
+          ))}
+          {busy ? <li className="text-xs text-neutral-500">Writing…</li> : null}
+        </ol>
+      )}
+      <form
+        className="mt-auto grid gap-2"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void send(message)
+        }}
+      >
+        <Textarea
+          aria-label="Ask the assistant"
+          onChange={(event) => setMessage(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault()
+              void send(message)
+            }
+          }}
+          placeholder="Ask about this draft…"
+          rows={3}
+          value={message}
+        />
+        <span className="flex items-center justify-between text-[11px] text-neutral-500">
+          Uses your workspace’s AI credits.
+          <Button disabled={busy || !message.trim()} size="sm" type="submit">
+            Send
+          </Button>
+        </span>
+      </form>
+    </div>
+  )
+}
+
+/**
+ * Where a set's Writing Assistant is set up: its style guide and samples
+ * live in the set's settings (RFC 043), and the assistant and Refine follow
+ * them.
+ */
+function AssistantSetup({ onDone, set }: { onDone: () => void; set: WriteSet | null }) {
+  const { canManageSets } = useWrite()
+  return (
+    <div className="grid gap-3 p-4 text-sm" data-testid="assistant-setup">
+      <p className="text-neutral-300">Set up the assistant for {set?.name ?? 'this set'}</p>
+      <p className="text-xs text-neutral-500">
+        The assistant and Refine write in the set&rsquo;s voice: its style guide and writing
+        samples. Everyone who writes in the set shares it.
+      </p>
+      {set && canManageSets ? (
+        <Button asChild>
+          <Link href={socialSetHref(set.id, 'writing-assistant')}>Open the Writing Assistant</Link>
+        </Button>
+      ) : (
+        <p className="text-xs text-neutral-400">
+          An owner or admin sets up the Writing Assistant for a set.
+        </p>
+      )}
+      <Button onClick={onDone} size="sm" type="button" variant="ghost">
+        {set?.writingAssistant.status === 'configured' ? 'Back' : 'Skip for now'}
+      </Button>
+    </div>
+  )
+}

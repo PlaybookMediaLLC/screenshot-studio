@@ -2,7 +2,13 @@ import { createHash } from 'node:crypto'
 import { createServer } from 'node:http'
 
 // State contains receipts only. Never expose credentials or signed media URLs.
-const state = { mode: 'normal', requests: 0, posts: [] }
+const state = {
+  actions: [],
+  engagement: { likes: 0, reposts: 0 },
+  mode: 'normal',
+  requests: 0,
+  posts: [],
+}
 const mediaOrigin = process.env.SOCIAL_E2E_MEDIA_ORIGIN
 
 function reply(response, status, body) {
@@ -44,12 +50,28 @@ createServer(async (request, response) => {
       return reply(response, 200, { status: 'ok' })
     if (request.method === 'GET' && path === '/state') return reply(response, 200, state)
     if (request.method === 'POST' && path === '/control') {
-      const { mode } = await readJSON(request)
+      const { engagement, mode } = await readJSON(request)
+      if (engagement) {
+        state.engagement = {
+          likes: Number(engagement.likes) || 0,
+          reposts: Number(engagement.reposts) || 0,
+        }
+        return reply(response, 200, { ok: true })
+      }
       if (!['normal', 'throttle-once', 'server-error-once'].includes(mode)) {
         return reply(response, 400, { error: 'invalid mode' })
       }
-      Object.assign(state, { mode, posts: [], requests: 0 })
+      Object.assign(state, { actions: [], mode, posts: [], requests: 0 })
       return reply(response, 200, { ok: true })
+    }
+    // RFC 042 follow-ups: comments, reposts and their removal, plug replies.
+    if (request.method === 'GET' && path === '/engagement')
+      return reply(response, 200, state.engagement)
+    if (request.method === 'POST' && path === '/actions') {
+      const { kind, postId, text } = await readJSON(request)
+      const id = `fake-action-${state.actions.length + 1}`
+      state.actions.push({ id, kind, postId, text })
+      return reply(response, 201, { id })
     }
     if (request.method !== 'POST' || path !== '/posts') {
       return reply(response, 404, { error: 'not found' })

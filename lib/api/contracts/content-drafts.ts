@@ -1,6 +1,18 @@
 import { z } from 'zod'
 import { defineContract, timestampSchema } from '@/lib/api/contract'
+import { scheduledPostStatusSchema } from '@/lib/api/contracts/scheduled-posts'
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
+import { automationSchema, draftKindSchema } from '@/lib/write/document'
+import {
+  contentDraftSortSchema,
+  contentDraftViewSchema,
+  draftEngagementSchema,
+  draftWriteFieldsSchema,
+  draftWriteInputSchema,
+  pollSchema,
+  postAutomationSchema,
+  scheduleTimingSchema,
+} from '@/lib/write/wire'
 
 /** Where a draft is in its life. Scheduling sets `scheduled`. */
 export const contentDraftStatusSchema = z.enum(['draft', 'scheduled', 'archived'])
@@ -19,64 +31,53 @@ export const plateValueSchema = z.array(z.record(z.string(), z.unknown())).max(5
 /** A platform a draft posts to. */
 const platformSchema = z.enum(['x', 'linkedin', 'instagram', 'threads', 'bluesky', 'mastodon'])
 
-/** One X follow-up a draft runs once its post reaches a number of likes. */
-const draftEngagementRuleSchema = z.object({
-  atLikes: z.number().int(),
-  enabled: z.boolean(),
-  text: z.string().optional(),
-})
-
-const NO_RULE = { atLikes: 0, enabled: false }
-
 /** A draft as the API returns it. */
-export const contentDraftSchema = z.object({
-  assetIds: z.array(z.string()),
-  body: plateValueSchema,
-  channelConnectionIds: z.array(z.string()),
-  createdAt: timestampSchema,
-  createdByUserId: z.string().nullable(),
-  /** Text a channel posts instead of the body's, by channel. */
-  channelText: z.record(z.string(), z.string()),
-  discussions: z.record(z.string(), z.unknown()),
-  id: z.string(),
-  organizationId: z.string(),
-  plainText: z.string(),
-  status: contentDraftStatusSchema,
-  title: z.string(),
-  updatedAt: timestampSchema,
-  updatedByUserId: z.string().nullable(),
-  version: z.number().int().min(1),
-  /** Review before scheduling; approval holds for `approvedVersion` only. */
-  approvedVersion: z.number().int().nullable(),
-  reviewNote: z.string().nullable(),
-  reviewStatus: z.enum(['none', 'pending', 'approved', 'changes_requested']),
-  reviewedByUserId: z.string().nullable(),
-  /** The read-and-comment link's token, while the link is on. */
-  shareToken: z.string().nullable(),
-  /** Comments guests left through that link. */
-  guestComments: z.array(
-    z.object({ createdAt: timestampSchema, name: z.string(), text: z.string() })
-  ),
-  /** The draft's live posts (lists only). */
-  publishedPosts: z.number().int(),
-  /**
-   * The draft's social set and what it copied from the set's defaults when it
-   * was created (RFC 043). Defaults keep an older backend's answer readable.
-   */
-  engagement: z
-    .object({ autoPlug: draftEngagementRuleSchema, autoRepost: draftEngagementRuleSchema })
-    .default({ autoPlug: NO_RULE, autoRepost: NO_RULE }),
-  naturalPostingTime: z.boolean().default(false),
-  /** A calendar placement without scheduling, as an ISO 8601 instant (an experiment). */
-  plannedFor: z.string().nullable().default(null),
-  primaryPlatform: z.string().nullable().default(null),
-  socialSetId: z.string().nullable().default(null),
-  /** Labels on the draft (an experiment). */
-  tags: z.array(z.string()).default([]),
-})
+export const contentDraftSchema = z
+  .object({
+    assetIds: z.array(z.string()),
+    body: plateValueSchema,
+    channelConnectionIds: z.array(z.string()),
+    createdAt: timestampSchema,
+    createdByUserId: z.string().nullable(),
+    /** Text a channel posts instead of the body's, by channel. */
+    channelText: z.record(z.string(), z.string()),
+    discussions: z.record(z.string(), z.unknown()),
+    id: z.string(),
+    organizationId: z.string(),
+    plainText: z.string(),
+    status: contentDraftStatusSchema,
+    title: z.string(),
+    updatedAt: timestampSchema,
+    updatedByUserId: z.string().nullable(),
+    version: z.number().int().min(1),
+    /** Review before scheduling; approval holds for `approvedVersion` only. */
+    approvedVersion: z.number().int().nullable(),
+    reviewNote: z.string().nullable(),
+    reviewStatus: z.enum(['none', 'pending', 'approved', 'changes_requested']),
+    reviewedByUserId: z.string().nullable(),
+    /** The read-and-comment link's token, while the link is on. */
+    shareToken: z.string().nullable(),
+    /** Comments guests left through that link. */
+    guestComments: z.array(
+      z.object({ createdAt: timestampSchema, name: z.string(), text: z.string() })
+    ),
+    /** The draft's live posts (lists only). */
+    publishedPosts: z.number().int(),
+    /**
+     * The draft's social set and what it copied from the set's defaults when it
+     * was created (RFC 043). Defaults keep an older backend's answer readable.
+     */
+    engagement: draftEngagementSchema,
+    naturalPostingTime: z.boolean().default(false),
+    /** A calendar placement without scheduling, as an ISO 8601 instant (an experiment). */
+    plannedFor: timestampSchema.nullable().default(null),
+    primaryPlatform: z.string().nullable().default(null),
+    socialSetId: z.string().nullable().default(null),
+  })
+  .extend(draftWriteFieldsSchema.shape)
 
 /** The fields a draft is created or updated with. */
-export const contentDraftFieldsSchema = z.object({
+export const contentDraftFieldsSchema = draftWriteInputSchema.extend({
   assetIds: z.array(contentDraftIdSchema).max(20).optional(),
   body: plateValueSchema.optional(),
   channelConnectionIds: z.array(contentDraftIdSchema).max(10).optional(),
@@ -89,11 +90,18 @@ export const contentDraftFieldsSchema = z.object({
 })
 
 /**
- * A new draft: the fields above and its social set (RFC 043). Without
- * `channelConnectionIds` it starts with the set's default platforms in order.
+ * A new draft: the fields, plus what only creation sets. Without a social
+ * set the draft goes to the workspace's default set; without channels it
+ * takes the set's default platforms.
  */
 export const contentDraftCreateSchema = contentDraftFieldsSchema.extend({
+  kind: draftKindSchema.optional(),
+  /** The platform the body is written for; the set's primary platform when omitted. */
+  primaryPlatform: platformSchema.optional(),
+  scratchpad: z.string().max(20_000).optional(),
   socialSetId: contentDraftIdSchema.optional(),
+  /** Tags of the draft's set (an experiment). */
+  tagIds: z.array(contentDraftIdSchema).max(20).optional(),
 })
 
 /** An update: the fields it sets, based on the version the client last saw. */
@@ -105,17 +113,22 @@ export const contentDraftUpdateSchema = contentDraftFieldsSchema.extend({
   primaryPlatform: z.union([platformSchema, z.literal('')]).optional(),
   /** An ISO 8601 instant, or an empty string to clear it (an experiment). */
   plannedFor: z.union([z.iso.datetime({ offset: true }), z.literal('')]).optional(),
-  /** Labels (an experiment): at most ten of 32 characters. */
-  tags: z.array(z.string().trim().max(32)).max(10).optional(),
 })
 
-/** The list query. Without `status`, archived drafts are left out. */
+/**
+ * The list query. Without `status` or `view`, archived drafts are left out.
+ * Pinned drafts come first, in `pinned`, on the first page.
+ */
 export const contentDraftListQuerySchema = z.object({
   cursor: z.string().max(500).optional(),
+  kind: draftKindSchema.optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
-  /** One social set's drafts; every set you can see when omitted. */
+  search: z.string().max(200).optional(),
   socialSetId: contentDraftIdSchema.optional(),
+  sort: contentDraftSortSchema.optional(),
   status: contentDraftStatusSchema.optional(),
+  tagId: contentDraftIdSchema.optional(),
+  view: contentDraftViewSchema.optional(),
 })
 
 /** Path parameters naming one draft. */
@@ -139,7 +152,11 @@ export const listContentDraftsContract = defineContract({
   }),
   method: 'GET',
   name: 'content-drafts.list',
-  output: z.object({ items: z.array(contentDraftSchema), nextCursor: z.string().nullable() }),
+  output: z.object({
+    items: z.array(contentDraftSchema),
+    nextCursor: z.string().nullable(),
+    pinned: z.array(contentDraftSchema),
+  }),
   path: '/api/v1/content-drafts',
   query: contentDraftListQuerySchema,
   summary: 'List content drafts',
@@ -241,17 +258,6 @@ export const deleteContentDraftContract = defineContract({
   summary: 'Delete a content draft',
 })
 
-/** Delivery states of a scheduled post. */
-export const scheduledPostStatusSchema = z.enum([
-  'DRAFT',
-  'SCHEDULED',
-  'PROCESSING',
-  'PUBLISHED',
-  'FAILED',
-  'CANCELLED',
-  'UNKNOWN_DELIVERY',
-])
-
 /** A post scheduled from a draft, with the caption it will publish. */
 export const contentDraftPostSchema = z.object({
   caption: z.string(),
@@ -272,6 +278,8 @@ export const contentDraftPostSchema = z.object({
     posted: z.number().int(),
     total: z.number().int(),
   }),
+  /** Its follow-ups once live, each with its receipt (RFC 042). */
+  automations: z.array(postAutomationSchema).default([]),
   /**
    * How the instant was chosen (RFC 043): queue or explicit, the instant
    * before any natural offset, the offset in seconds, and the time zone.
@@ -283,26 +291,11 @@ export const contentDraftPostSchema = z.object({
   socialSetId: z.string().nullable().default(null),
 })
 
-/** A live post's follow-ups (X): repost and reply at a like count, quote after hours. */
-export const autoActionsSchema = z.object({
-  plugAtLikes: z.number().int().min(0).max(1_000_000).optional(),
-  plugText: z.string().max(1_000).optional(),
-  quoteAfterHours: z.number().int().min(0).max(720).optional(),
-  quoteText: z.string().max(1_000).optional(),
-  repostAtLikes: z.number().int().min(0).max(1_000_000).optional(),
-})
-
-/** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
-export const pollSchema = z.object({
-  durationMinutes: z.number().int().min(5).max(10_080),
-  options: z.array(z.string().trim().min(1).max(25)).min(2).max(4),
-})
-
 /**
  * A schedule request. The server serializes the draft for each channel, so
  * the posted captions are the ones the composer previewed.
  */
-export const contentDraftScheduleSchema = z.object({
+export const contentDraftScheduleSchema = scheduleTimingSchema.extend({
   /**
    * The draft's table and math blocks rendered as uploaded images, in body
    * order; null for a block posted as text.
@@ -313,7 +306,8 @@ export const contentDraftScheduleSchema = z.object({
   options: z
     .record(
       contentDraftIdSchema,
-      z.object({ autoActions: autoActionsSchema.optional(), poll: pollSchema.optional() })
+      // X follow-ups: repost and reply at a count, quote later, timed reposts.
+      z.object({ autoActions: automationSchema.optional(), poll: pollSchema.optional() })
     )
     .optional(),
   /** The queue's next free slot instead of `scheduledFor`; the backend reserves it. */

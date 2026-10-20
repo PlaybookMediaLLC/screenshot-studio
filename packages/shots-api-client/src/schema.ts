@@ -256,6 +256,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assets/{assetId}/alt-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set an image's alt text
+         * @description Describes an uploaded image for people who cannot see it. The description is posted with the image wherever it goes (X takes up to 1,000 characters, LinkedIn more); an empty string clears it.
+         */
+        put: operations["setAssetAltText"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campaigns": {
         parameters: {
             query?: never;
@@ -514,6 +534,174 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a draft's pin, tags, or scratchpad
+         * @description Pins, tags, or annotates a draft. Properties are not content: the draft's version, and any approval of it, stay. Tags are added and removed by id, so concurrent taggers both count.
+         */
+        patch: operations["updateContentDraftProperties"];
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Plan a draft on the calendar
+         * @description Puts a draft on the calendar at a time, or takes it off. A plan creates no scheduled post: a planned draft never publishes when its time passes.
+         */
+        post: operations["planContentDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate a draft
+         * @description Duplicates a draft in its social set: a new draft at version 1 with the same writing, destinations and tags, and no share link, comments, review, plan or scheduled posts.
+         */
+        post: operations["duplicateContentDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy a draft to another social set
+         * @description Copies a draft into another social set. Destinations become that set's accounts on the same platforms; platforms it lacks, and unmatched tags, are reported in `dropped`.
+         */
+        post: operations["copyContentDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/revisions/{revisionId}/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recover a backup as a new draft
+         * @description Creates a new draft from an automatic backup. The source draft is left exactly as it is, and the new draft has no publication state.
+         */
+        post: operations["recoverContentDraftRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a draft's activity
+         * @description Lists a draft's history, newest first: creation, edits, renames, destinations, tags, review, sharing, planning, scheduling, publication and recovery, with who and when. Viewing a draft is never recorded.
+         */
+        get: operations["listContentDraftActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social-sets/{id}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a set's tags
+         * @description Lists a social set's tags. Each set has its own.
+         */
+        get: operations["listDraftTags"];
+        put?: never;
+        /**
+         * Create a tag
+         * @description Adds a tag to a social set. Names are unique within a set, ignoring case.
+         */
+        post: operations["createDraftTag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social-sets/{id}/tags/{tagId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a tag
+         * @description Deletes a tag and takes it off the set's drafts, without changing their versions.
+         */
+        delete: operations["deleteDraftTag"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a tag
+         * @description Renames or recolours a tag.
+         */
+        patch: operations["updateDraftTag"];
         trace?: never;
     };
     "/api/v1/onboarding-runs": {
@@ -1058,6 +1246,10 @@ export interface components {
             /** Format: uri */
             downloadUrl: string;
         };
+        AssetAltText: {
+            altText: string | null;
+            id: string;
+        };
         CampaignListResponse: {
             data: {
                 audience: string | null;
@@ -1375,12 +1567,308 @@ export interface components {
                 primaryPlatform: string | null;
                 /** @default null */
                 socialSetId: string | null;
-                /** @default [] */
-                tags: string[];
+                article: {
+                    coverAssetId?: string;
+                    title: string;
+                } | null;
+                attentionPosts: number;
+                /** @enum {string} */
+                kind: "standard" | "reply" | "quote" | "repurpose" | "article";
+                nextPostAt: string | null;
+                pinnedAt: string | null;
+                planTimeZone: string | null;
+                platformVersions: {
+                    /** @constant */
+                    schemaVersion: 1;
+                    versions: {
+                        body?: {
+                            [key: string]: unknown;
+                        }[];
+                        /** @enum {string} */
+                        channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                        forkedFromVersion?: number;
+                        /** @enum {string} */
+                        mode: "synced" | "manual";
+                        options?: {
+                            automation?: {
+                                plugAtLikes?: number;
+                                /** @enum {string} */
+                                plugMetric?: "likes" | "reposts";
+                                plugText?: string;
+                                quoteAfterHours?: number;
+                                quoteText?: string;
+                                repostAtLikes?: number;
+                                retweets?: ({
+                                    afterMinutes: number;
+                                } | {
+                                    at: string;
+                                    days: number;
+                                    timeZone: string;
+                                })[];
+                                unretweetAfterMinutes?: number;
+                            };
+                            community?: {
+                                id: string;
+                                name?: string;
+                                shareWithFollowers?: boolean;
+                            };
+                            document?: {
+                                assetId: string;
+                                title?: string;
+                            };
+                            firstComment?: string;
+                            numbering?: {
+                                enabled: boolean;
+                                /** @enum {string} */
+                                position: "start" | "end";
+                                skipFirst?: number;
+                                skipLast?: number;
+                                /** @enum {string} */
+                                style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                            };
+                            /** @enum {string} */
+                            visibility?: "PUBLIC" | "CONNECTIONS";
+                        };
+                        sourceHash?: string;
+                    }[];
+                };
+                queuedPosts: number;
+                scratchpad: string;
+                sourceDraftId: string | null;
+                tagIds: string[];
+                target: {
+                    author?: string;
+                    /** @enum {string} */
+                    kind?: "reply" | "quote" | "repurpose";
+                    platform?: string;
+                    remoteId?: string;
+                    sourceDraftId?: string;
+                    sourcePostId?: string;
+                    text?: string;
+                    url?: string;
+                } | null;
             }[];
             nextCursor: string | null;
+            pinned: {
+                assetIds: string[];
+                body: {
+                    [key: string]: unknown;
+                }[];
+                channelConnectionIds: string[];
+                createdAt: string;
+                createdByUserId: string | null;
+                channelText: {
+                    [key: string]: string;
+                };
+                discussions: {
+                    [key: string]: unknown;
+                };
+                id: string;
+                organizationId: string;
+                plainText: string;
+                /** @enum {string} */
+                status: "draft" | "scheduled" | "archived";
+                title: string;
+                updatedAt: string;
+                updatedByUserId: string | null;
+                version: number;
+                approvedVersion: number | null;
+                reviewNote: string | null;
+                /** @enum {string} */
+                reviewStatus: "none" | "pending" | "approved" | "changes_requested";
+                reviewedByUserId: string | null;
+                shareToken: string | null;
+                guestComments: {
+                    createdAt: string;
+                    name: string;
+                    text: string;
+                }[];
+                publishedPosts: number;
+                /**
+                 * @default {
+                 *       "autoPlug": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       },
+                 *       "autoRepost": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       }
+                 *     }
+                 */
+                engagement: {
+                    autoPlug: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                    autoRepost: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                };
+                /** @default false */
+                naturalPostingTime: boolean;
+                /** @default null */
+                plannedFor: string | null;
+                /** @default null */
+                primaryPlatform: string | null;
+                /** @default null */
+                socialSetId: string | null;
+                article: {
+                    coverAssetId?: string;
+                    title: string;
+                } | null;
+                attentionPosts: number;
+                /** @enum {string} */
+                kind: "standard" | "reply" | "quote" | "repurpose" | "article";
+                nextPostAt: string | null;
+                pinnedAt: string | null;
+                planTimeZone: string | null;
+                platformVersions: {
+                    /** @constant */
+                    schemaVersion: 1;
+                    versions: {
+                        body?: {
+                            [key: string]: unknown;
+                        }[];
+                        /** @enum {string} */
+                        channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                        forkedFromVersion?: number;
+                        /** @enum {string} */
+                        mode: "synced" | "manual";
+                        options?: {
+                            automation?: {
+                                plugAtLikes?: number;
+                                /** @enum {string} */
+                                plugMetric?: "likes" | "reposts";
+                                plugText?: string;
+                                quoteAfterHours?: number;
+                                quoteText?: string;
+                                repostAtLikes?: number;
+                                retweets?: ({
+                                    afterMinutes: number;
+                                } | {
+                                    at: string;
+                                    days: number;
+                                    timeZone: string;
+                                })[];
+                                unretweetAfterMinutes?: number;
+                            };
+                            community?: {
+                                id: string;
+                                name?: string;
+                                shareWithFollowers?: boolean;
+                            };
+                            document?: {
+                                assetId: string;
+                                title?: string;
+                            };
+                            firstComment?: string;
+                            numbering?: {
+                                enabled: boolean;
+                                /** @enum {string} */
+                                position: "start" | "end";
+                                skipFirst?: number;
+                                skipLast?: number;
+                                /** @enum {string} */
+                                style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                            };
+                            /** @enum {string} */
+                            visibility?: "PUBLIC" | "CONNECTIONS";
+                        };
+                        sourceHash?: string;
+                    }[];
+                };
+                queuedPosts: number;
+                scratchpad: string;
+                sourceDraftId: string | null;
+                tagIds: string[];
+                target: {
+                    author?: string;
+                    /** @enum {string} */
+                    kind?: "reply" | "quote" | "repurpose";
+                    platform?: string;
+                    remoteId?: string;
+                    sourceDraftId?: string;
+                    sourcePostId?: string;
+                    text?: string;
+                    url?: string;
+                } | null;
+            }[];
         };
         ContentDraftCreateRequest: {
+            article?: {
+                coverAssetId?: string;
+                title: string;
+            };
+            platformVersions?: {
+                /** @constant */
+                schemaVersion: 1;
+                versions: {
+                    body?: {
+                        [key: string]: unknown;
+                    }[];
+                    /** @enum {string} */
+                    channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                    forkedFromVersion?: number;
+                    /** @enum {string} */
+                    mode: "synced" | "manual";
+                    options?: {
+                        automation?: {
+                            plugAtLikes?: number;
+                            /** @enum {string} */
+                            plugMetric?: "likes" | "reposts";
+                            plugText?: string;
+                            quoteAfterHours?: number;
+                            quoteText?: string;
+                            repostAtLikes?: number;
+                            retweets?: ({
+                                afterMinutes: number;
+                            } | {
+                                at: string;
+                                days: number;
+                                timeZone: string;
+                            })[];
+                            unretweetAfterMinutes?: number;
+                        };
+                        community?: {
+                            id: string;
+                            name?: string;
+                            shareWithFollowers?: boolean;
+                        };
+                        document?: {
+                            assetId: string;
+                            title?: string;
+                        };
+                        firstComment?: string;
+                        numbering?: {
+                            enabled: boolean;
+                            /** @enum {string} */
+                            position: "start" | "end";
+                            skipFirst?: number;
+                            skipLast?: number;
+                            /** @enum {string} */
+                            style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                        };
+                        /** @enum {string} */
+                        visibility?: "PUBLIC" | "CONNECTIONS";
+                    };
+                    sourceHash?: string;
+                }[];
+            };
+            target?: {
+                author?: string;
+                /** @enum {string} */
+                kind?: "reply" | "quote" | "repurpose";
+                platform?: string;
+                remoteId?: string;
+                sourceDraftId?: string;
+                sourcePostId?: string;
+                text?: string;
+                url?: string;
+            };
             assetIds?: string[];
             body?: {
                 [key: string]: unknown;
@@ -1394,7 +1882,13 @@ export interface components {
             };
             plainText?: string;
             title?: string;
+            /** @enum {string} */
+            kind?: "standard" | "reply" | "quote" | "repurpose" | "article";
+            /** @enum {string} */
+            primaryPlatform?: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+            scratchpad?: string;
             socialSetId?: string;
+            tagIds?: string[];
         };
         ContentDraft: {
             assetIds: string[];
@@ -1463,10 +1957,158 @@ export interface components {
             primaryPlatform: string | null;
             /** @default null */
             socialSetId: string | null;
-            /** @default [] */
-            tags: string[];
+            article: {
+                coverAssetId?: string;
+                title: string;
+            } | null;
+            attentionPosts: number;
+            /** @enum {string} */
+            kind: "standard" | "reply" | "quote" | "repurpose" | "article";
+            nextPostAt: string | null;
+            pinnedAt: string | null;
+            planTimeZone: string | null;
+            platformVersions: {
+                /** @constant */
+                schemaVersion: 1;
+                versions: {
+                    body?: {
+                        [key: string]: unknown;
+                    }[];
+                    /** @enum {string} */
+                    channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                    forkedFromVersion?: number;
+                    /** @enum {string} */
+                    mode: "synced" | "manual";
+                    options?: {
+                        automation?: {
+                            plugAtLikes?: number;
+                            /** @enum {string} */
+                            plugMetric?: "likes" | "reposts";
+                            plugText?: string;
+                            quoteAfterHours?: number;
+                            quoteText?: string;
+                            repostAtLikes?: number;
+                            retweets?: ({
+                                afterMinutes: number;
+                            } | {
+                                at: string;
+                                days: number;
+                                timeZone: string;
+                            })[];
+                            unretweetAfterMinutes?: number;
+                        };
+                        community?: {
+                            id: string;
+                            name?: string;
+                            shareWithFollowers?: boolean;
+                        };
+                        document?: {
+                            assetId: string;
+                            title?: string;
+                        };
+                        firstComment?: string;
+                        numbering?: {
+                            enabled: boolean;
+                            /** @enum {string} */
+                            position: "start" | "end";
+                            skipFirst?: number;
+                            skipLast?: number;
+                            /** @enum {string} */
+                            style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                        };
+                        /** @enum {string} */
+                        visibility?: "PUBLIC" | "CONNECTIONS";
+                    };
+                    sourceHash?: string;
+                }[];
+            };
+            queuedPosts: number;
+            scratchpad: string;
+            sourceDraftId: string | null;
+            tagIds: string[];
+            target: {
+                author?: string;
+                /** @enum {string} */
+                kind?: "reply" | "quote" | "repurpose";
+                platform?: string;
+                remoteId?: string;
+                sourceDraftId?: string;
+                sourcePostId?: string;
+                text?: string;
+                url?: string;
+            } | null;
         };
         ContentDraftUpdateRequest: {
+            article?: {
+                coverAssetId?: string;
+                title: string;
+            };
+            platformVersions?: {
+                /** @constant */
+                schemaVersion: 1;
+                versions: {
+                    body?: {
+                        [key: string]: unknown;
+                    }[];
+                    /** @enum {string} */
+                    channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                    forkedFromVersion?: number;
+                    /** @enum {string} */
+                    mode: "synced" | "manual";
+                    options?: {
+                        automation?: {
+                            plugAtLikes?: number;
+                            /** @enum {string} */
+                            plugMetric?: "likes" | "reposts";
+                            plugText?: string;
+                            quoteAfterHours?: number;
+                            quoteText?: string;
+                            repostAtLikes?: number;
+                            retweets?: ({
+                                afterMinutes: number;
+                            } | {
+                                at: string;
+                                days: number;
+                                timeZone: string;
+                            })[];
+                            unretweetAfterMinutes?: number;
+                        };
+                        community?: {
+                            id: string;
+                            name?: string;
+                            shareWithFollowers?: boolean;
+                        };
+                        document?: {
+                            assetId: string;
+                            title?: string;
+                        };
+                        firstComment?: string;
+                        numbering?: {
+                            enabled: boolean;
+                            /** @enum {string} */
+                            position: "start" | "end";
+                            skipFirst?: number;
+                            skipLast?: number;
+                            /** @enum {string} */
+                            style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                        };
+                        /** @enum {string} */
+                        visibility?: "PUBLIC" | "CONNECTIONS";
+                    };
+                    sourceHash?: string;
+                }[];
+            };
+            target?: {
+                author?: string;
+                /** @enum {string} */
+                kind?: "reply" | "quote" | "repurpose";
+                platform?: string;
+                remoteId?: string;
+                sourceDraftId?: string;
+                sourcePostId?: string;
+                text?: string;
+                url?: string;
+            };
             assetIds?: string[];
             body?: {
                 [key: string]: unknown;
@@ -1486,7 +2128,6 @@ export interface components {
             naturalPostingTime?: boolean;
             primaryPlatform?: ("x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon") | "";
             plannedFor?: string | "";
-            tags?: string[];
         };
         ContentDraftPostList: {
             posts: {
@@ -1509,6 +2150,19 @@ export interface components {
                     posted: number;
                     total: number;
                 };
+                /** @default [] */
+                automations: {
+                    attempts: number;
+                    dueAt: string;
+                    failureCode: string | null;
+                    key: string;
+                    /** @enum {string} */
+                    kind: "first_comment" | "retweet" | "unretweet" | "plug" | "repost_at_likes" | "quote";
+                    remoteId: string | null;
+                    /** @enum {string} */
+                    status: "pending" | "done" | "failed" | "skipped" | "cancelled" | "expired";
+                    updatedAt: string;
+                }[];
                 /** @default null */
                 naturalOffsetSeconds: number | null;
                 /** @default null */
@@ -1520,6 +2174,189 @@ export interface components {
                 /** @default null */
                 socialSetId: string | null;
             }[];
+        };
+        ContentDraftCopy: {
+            draft: {
+                assetIds: string[];
+                body: {
+                    [key: string]: unknown;
+                }[];
+                channelConnectionIds: string[];
+                createdAt: string;
+                createdByUserId: string | null;
+                channelText: {
+                    [key: string]: string;
+                };
+                discussions: {
+                    [key: string]: unknown;
+                };
+                id: string;
+                organizationId: string;
+                plainText: string;
+                /** @enum {string} */
+                status: "draft" | "scheduled" | "archived";
+                title: string;
+                updatedAt: string;
+                updatedByUserId: string | null;
+                version: number;
+                approvedVersion: number | null;
+                reviewNote: string | null;
+                /** @enum {string} */
+                reviewStatus: "none" | "pending" | "approved" | "changes_requested";
+                reviewedByUserId: string | null;
+                shareToken: string | null;
+                guestComments: {
+                    createdAt: string;
+                    name: string;
+                    text: string;
+                }[];
+                publishedPosts: number;
+                /**
+                 * @default {
+                 *       "autoPlug": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       },
+                 *       "autoRepost": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       }
+                 *     }
+                 */
+                engagement: {
+                    autoPlug: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                    autoRepost: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                };
+                /** @default false */
+                naturalPostingTime: boolean;
+                /** @default null */
+                plannedFor: string | null;
+                /** @default null */
+                primaryPlatform: string | null;
+                /** @default null */
+                socialSetId: string | null;
+                article: {
+                    coverAssetId?: string;
+                    title: string;
+                } | null;
+                attentionPosts: number;
+                /** @enum {string} */
+                kind: "standard" | "reply" | "quote" | "repurpose" | "article";
+                nextPostAt: string | null;
+                pinnedAt: string | null;
+                planTimeZone: string | null;
+                platformVersions: {
+                    /** @constant */
+                    schemaVersion: 1;
+                    versions: {
+                        body?: {
+                            [key: string]: unknown;
+                        }[];
+                        /** @enum {string} */
+                        channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                        forkedFromVersion?: number;
+                        /** @enum {string} */
+                        mode: "synced" | "manual";
+                        options?: {
+                            automation?: {
+                                plugAtLikes?: number;
+                                /** @enum {string} */
+                                plugMetric?: "likes" | "reposts";
+                                plugText?: string;
+                                quoteAfterHours?: number;
+                                quoteText?: string;
+                                repostAtLikes?: number;
+                                retweets?: ({
+                                    afterMinutes: number;
+                                } | {
+                                    at: string;
+                                    days: number;
+                                    timeZone: string;
+                                })[];
+                                unretweetAfterMinutes?: number;
+                            };
+                            community?: {
+                                id: string;
+                                name?: string;
+                                shareWithFollowers?: boolean;
+                            };
+                            document?: {
+                                assetId: string;
+                                title?: string;
+                            };
+                            firstComment?: string;
+                            numbering?: {
+                                enabled: boolean;
+                                /** @enum {string} */
+                                position: "start" | "end";
+                                skipFirst?: number;
+                                skipLast?: number;
+                                /** @enum {string} */
+                                style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                            };
+                            /** @enum {string} */
+                            visibility?: "PUBLIC" | "CONNECTIONS";
+                        };
+                        sourceHash?: string;
+                    }[];
+                };
+                queuedPosts: number;
+                scratchpad: string;
+                sourceDraftId: string | null;
+                tagIds: string[];
+                target: {
+                    author?: string;
+                    /** @enum {string} */
+                    kind?: "reply" | "quote" | "repurpose";
+                    platform?: string;
+                    remoteId?: string;
+                    sourceDraftId?: string;
+                    sourcePostId?: string;
+                    text?: string;
+                    url?: string;
+                } | null;
+            };
+            dropped: string[];
+        };
+        ContentDraftActivityList: {
+            items: {
+                action: string;
+                actorName: string | null;
+                actorType: string;
+                actorUserId: string | null;
+                at: string;
+                entityId: string;
+                id: string;
+                metadata: {
+                    [key: string]: unknown;
+                };
+            }[];
+        };
+        DraftTagList: {
+            items: {
+                /** @enum {string} */
+                color: "gray" | "red" | "orange" | "amber" | "green" | "teal" | "sky" | "blue" | "violet" | "pink";
+                createdAt: string;
+                id: string;
+                name: string;
+                socialSetId: string;
+            }[];
+        };
+        DraftTag: {
+            /** @enum {string} */
+            color: "gray" | "red" | "orange" | "amber" | "green" | "teal" | "sky" | "blue" | "violet" | "pink";
+            createdAt: string;
+            id: string;
+            name: string;
+            socialSetId: string;
         };
         OnboardingRunCreateRequest: {
             sentence?: string;
@@ -2811,6 +3648,79 @@ export interface operations {
             };
         };
     };
+    setAssetAltText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    altText: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The image and its description. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetAltText"];
+                };
+            };
+            /** @description The description is too long, or the asset is not an image. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The asset was not found in this workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listCampaigns: {
         parameters: {
             query?: never;
@@ -3956,9 +4866,14 @@ export interface operations {
         parameters: {
             query?: {
                 cursor?: string;
+                kind?: "standard" | "reply" | "quote" | "repurpose" | "article";
                 limit?: number;
+                search?: string;
                 socialSetId?: string;
+                sort?: "updated_desc" | "updated_asc" | "created_desc" | "created_asc";
                 status?: "draft" | "scheduled" | "archived";
+                tagId?: string;
+                view?: "drafts" | "posted" | "archived";
             };
             header?: never;
             path?: never;
@@ -4339,6 +5254,677 @@ export interface operations {
             };
             /** @description The draft was not found in this workspace. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateContentDraftProperties: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    addTagIds?: string[];
+                    pinned?: boolean;
+                    removeTagIds?: string[];
+                    scratchpad?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The draft. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraft"];
+                };
+            };
+            /** @description A tag is not in the draft's set. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    planContentDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plannedFor: string | null;
+                    timeZone?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The draft. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraft"];
+                };
+            };
+            /** @description The time is past or the zone unknown. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    duplicateContentDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The copy. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraftCopy"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An image was deleted. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    copyContentDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    socialSetId: string;
+                    /** @enum {string} */
+                    tagMode: "match" | "drop";
+                };
+            };
+        };
+        responses: {
+            /** @description The copy. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraftCopy"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft or set was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    recoverContentDraftRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                revisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The recovered draft. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraftCopy"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft or backup was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listContentDraftActivity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The activity. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraftActivityList"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listDraftTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tags. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftTagList"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The set was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createDraftTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    color?: "gray" | "red" | "orange" | "amber" | "green" | "teal" | "sky" | "blue" | "violet" | "pink";
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Tag created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftTag"];
+                };
+            };
+            /** @description The tag is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The set has a tag of that name. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteDraftTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                tagId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tag deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        deleted: true;
+                    };
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The tag was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateDraftTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                tagId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    color?: "gray" | "red" | "orange" | "amber" | "green" | "teal" | "sky" | "blue" | "violet" | "pink";
+                    name?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The tag. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftTag"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The tag was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The set has a tag of that name. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

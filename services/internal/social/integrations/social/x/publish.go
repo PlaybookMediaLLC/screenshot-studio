@@ -52,6 +52,9 @@ type pendingSettings struct {
 	PostType        *string `json:"post_type,omitempty"`
 	ArticleTitle    *string `json:"article_title,omitempty"`
 	ArticleStatus   *string `json:"article_status,omitempty"`
+	// Write (RFC 042). Pending data from before these fields has neither.
+	ShareWithFollowers *bool   `json:"share_with_followers,omitempty"`
+	QuoteTweetID       *string `json:"quote_tweet_id,omitempty"`
 }
 
 func marshal(v any) json.RawMessage {
@@ -219,12 +222,15 @@ func (p *Provider) uploadImage(ctx context.Context, c *client, mediaPath string,
 type mediaEntry struct {
 	id    string
 	paths []string
+	// alts are the paths' descriptions, by index; empty for none.
+	alts []string
 }
 
 func entryOf(post integrations.PostDetails) mediaEntry {
 	e := mediaEntry{id: post.ID}
 	for _, m := range post.Media {
 		e.paths = append(e.paths, m.Path)
+		e.alts = append(e.alts, m.Alt)
 	}
 	return e
 }
@@ -239,7 +245,7 @@ func (p *Provider) uploadMediaEntries(ctx context.Context, c *client, entries []
 	media := map[string][]string{}
 	processingIDs := []string{}
 	for _, e := range entries {
-		for _, mediaPath := range e.paths {
+		for index, mediaPath := range e.paths {
 			mediaPath, err = mediaSigner.SignURL(ctx, mediaPath)
 			if err != nil {
 				return nil, nil, err
@@ -261,6 +267,12 @@ func (p *Provider) uploadMediaEntries(ctx context.Context, c *client, entries []
 			}
 			if up.mediaID == "" {
 				continue
+			}
+			// Alt text goes on the media after FINALIZE and before the post exists.
+			if index < len(e.alts) && strings.TrimSpace(e.alts[index]) != "" {
+				if err := c.setAltText(ctx, up.mediaID, e.alts[index]); err != nil {
+					return nil, nil, err
+				}
 			}
 			media[e.id] = append(media[e.id], up.mediaID)
 			if up.processing {
@@ -353,13 +365,15 @@ func (p *Provider) PostPending(ctx context.Context, _, accessToken string, posts
 	pending := pendingData{
 		Message: message,
 		Settings: pendingSettings{
-			WhoCanReplyPost: settings.WhoCanReplyPost,
-			Community:       settings.Community,
-			MadeWithAI:      settings.MadeWithAI,
-			PaidPartnership: settings.PaidPartnership,
-			PostType:        settings.PostType,
-			ArticleTitle:    settings.ArticleTitle,
-			ArticleStatus:   settings.ArticleStatus,
+			WhoCanReplyPost:    settings.WhoCanReplyPost,
+			Community:          settings.Community,
+			MadeWithAI:         settings.MadeWithAI,
+			PaidPartnership:    settings.PaidPartnership,
+			PostType:           settings.PostType,
+			ArticleTitle:       settings.ArticleTitle,
+			ArticleStatus:      settings.ArticleStatus,
+			ShareWithFollowers: settings.ShareWithFollowers,
+			QuoteTweetID:       settings.QuoteTweetID,
 		},
 		MediaIDs:      nonEmpty(media[first.ID]),
 		CoverMediaID:  coverMediaID,
@@ -479,16 +493,24 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 	}
 	if community := str(settings.Community); community != "" {
 		share := true
+		if settings.ShareWithFollowers != nil {
+			share = *settings.ShareWithFollowers
+		}
 		parts := strings.Split(community, "/")
 		body.ShareWithFollowers = &share
 		body.CommunityID = &parts[len(parts)-1]
 	}
+	body.QuoteTweetID = str(settings.QuoteTweetID)
 	if len(mediaIDs) > 0 {
 		body.Media = &tweetMedia{MediaIDs: mediaIDs}
 	}
 	if poll := pending.Poll; poll != nil && len(poll.Options) >= 2 {
 		// X takes the duration in minutes, from 5 minutes to 7 days.
-		body.Poll = &tweetPoll{Options: poll.Options, DurationMinutes: min(max(poll.Duration*60, 5), 7*24*60)}
+		minutes := poll.Duration * 60
+		if poll.DurationMinutes > 0 {
+			minutes = poll.DurationMinutes
+		}
+		body.Poll = &tweetPoll{Options: poll.Options, DurationMinutes: min(max(minutes, 5), 7*24*60)}
 	}
 	id, err := p.createTweet(ctx, token, secret, body)
 	if err != nil {
@@ -514,6 +536,7 @@ type tweetBody struct {
 	Reply              *struct {
 		InReplyToTweetID string `json:"in_reply_to_tweet_id"`
 	} `json:"reply,omitempty"`
+	QuoteTweetID    string     `json:"quote_tweet_id,omitempty"`
 	MadeWithAI      bool       `json:"made_with_ai"`
 	PaidPartnership bool       `json:"paid_partnership"`
 	Poll            *tweetPoll `json:"poll,omitempty"`
@@ -707,6 +730,10 @@ func (p *Provider) Comment(ctx context.Context, _, postID, lastCommentID, access
 		Text:            commentText,
 		MadeWithAI:      integrations.AssetBoolean(settings.MadeWithAI),
 		PaidPartnership: integrations.AssetBoolean(settings.PaidPartnership),
+		QuoteTweetID:    str(settings.QuoteTweetID),
+	}
+	if who := str(settings.WhoCanReplyPost); who != "" && who != "everyone" {
+		body.ReplySettings = who
 	}
 	if len(mediaIDs) > 0 {
 		body.Media = &tweetMedia{MediaIDs: mediaIDs}

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
 // ContentDraftCreate is the builder for creating a ContentDraft entity.
@@ -229,12 +230,6 @@ func (_c *ContentDraftCreate) SetNillableEngagement(v *schema.Engagement) *Conte
 	return _c
 }
 
-// SetTags sets the "tags" field.
-func (_c *ContentDraftCreate) SetTags(v []string) *ContentDraftCreate {
-	_c.mutation.SetTags(v)
-	return _c
-}
-
 // SetPlannedFor sets the "planned_for" field.
 func (_c *ContentDraftCreate) SetPlannedFor(v time.Time) *ContentDraftCreate {
 	_c.mutation.SetPlannedFor(v)
@@ -245,6 +240,108 @@ func (_c *ContentDraftCreate) SetPlannedFor(v time.Time) *ContentDraftCreate {
 func (_c *ContentDraftCreate) SetNillablePlannedFor(v *time.Time) *ContentDraftCreate {
 	if v != nil {
 		_c.SetPlannedFor(*v)
+	}
+	return _c
+}
+
+// SetKind sets the "kind" field.
+func (_c *ContentDraftCreate) SetKind(v contentdraft.Kind) *ContentDraftCreate {
+	_c.mutation.SetKind(v)
+	return _c
+}
+
+// SetNillableKind sets the "kind" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableKind(v *contentdraft.Kind) *ContentDraftCreate {
+	if v != nil {
+		_c.SetKind(*v)
+	}
+	return _c
+}
+
+// SetTarget sets the "target" field.
+func (_c *ContentDraftCreate) SetTarget(v *draftdoc.Target) *ContentDraftCreate {
+	_c.mutation.SetTarget(v)
+	return _c
+}
+
+// SetPlatformVersions sets the "platform_versions" field.
+func (_c *ContentDraftCreate) SetPlatformVersions(v draftdoc.PlatformVersions) *ContentDraftCreate {
+	_c.mutation.SetPlatformVersions(v)
+	return _c
+}
+
+// SetNillablePlatformVersions sets the "platform_versions" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillablePlatformVersions(v *draftdoc.PlatformVersions) *ContentDraftCreate {
+	if v != nil {
+		_c.SetPlatformVersions(*v)
+	}
+	return _c
+}
+
+// SetArticle sets the "article" field.
+func (_c *ContentDraftCreate) SetArticle(v *draftdoc.Article) *ContentDraftCreate {
+	_c.mutation.SetArticle(v)
+	return _c
+}
+
+// SetScratchpad sets the "scratchpad" field.
+func (_c *ContentDraftCreate) SetScratchpad(v string) *ContentDraftCreate {
+	_c.mutation.SetScratchpad(v)
+	return _c
+}
+
+// SetNillableScratchpad sets the "scratchpad" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableScratchpad(v *string) *ContentDraftCreate {
+	if v != nil {
+		_c.SetScratchpad(*v)
+	}
+	return _c
+}
+
+// SetTagIds sets the "tag_ids" field.
+func (_c *ContentDraftCreate) SetTagIds(v []string) *ContentDraftCreate {
+	_c.mutation.SetTagIds(v)
+	return _c
+}
+
+// SetPinnedAt sets the "pinned_at" field.
+func (_c *ContentDraftCreate) SetPinnedAt(v time.Time) *ContentDraftCreate {
+	_c.mutation.SetPinnedAt(v)
+	return _c
+}
+
+// SetNillablePinnedAt sets the "pinned_at" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillablePinnedAt(v *time.Time) *ContentDraftCreate {
+	if v != nil {
+		_c.SetPinnedAt(*v)
+	}
+	return _c
+}
+
+// SetPlanTimeZone sets the "plan_time_zone" field.
+func (_c *ContentDraftCreate) SetPlanTimeZone(v string) *ContentDraftCreate {
+	_c.mutation.SetPlanTimeZone(v)
+	return _c
+}
+
+// SetNillablePlanTimeZone sets the "plan_time_zone" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillablePlanTimeZone(v *string) *ContentDraftCreate {
+	if v != nil {
+		_c.SetPlanTimeZone(*v)
+	}
+	return _c
+}
+
+// SetSourceDraftID sets the "source_draft_id" field.
+func (_c *ContentDraftCreate) SetSourceDraftID(v string) *ContentDraftCreate {
+	_c.mutation.SetSourceDraftID(v)
+	return _c
+}
+
+// SetNillableSourceDraftID sets the "source_draft_id" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableSourceDraftID(v *string) *ContentDraftCreate {
+	if v != nil {
+		_c.SetSourceDraftID(*v)
 	}
 	return _c
 }
@@ -384,9 +481,21 @@ func (_c *ContentDraftCreate) defaults() {
 		v := contentdraft.DefaultEngagement
 		_c.mutation.SetEngagement(v)
 	}
-	if _, ok := _c.mutation.Tags(); !ok {
-		v := contentdraft.DefaultTags
-		_c.mutation.SetTags(v)
+	if _, ok := _c.mutation.Kind(); !ok {
+		v := contentdraft.DefaultKind
+		_c.mutation.SetKind(v)
+	}
+	if _, ok := _c.mutation.PlatformVersions(); !ok {
+		v := contentdraft.DefaultPlatformVersions
+		_c.mutation.SetPlatformVersions(v)
+	}
+	if _, ok := _c.mutation.Scratchpad(); !ok {
+		v := contentdraft.DefaultScratchpad
+		_c.mutation.SetScratchpad(v)
+	}
+	if _, ok := _c.mutation.TagIds(); !ok {
+		v := contentdraft.DefaultTagIds
+		_c.mutation.SetTagIds(v)
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := contentdraft.DefaultCreatedAt()
@@ -452,8 +561,22 @@ func (_c *ContentDraftCreate) check() error {
 	if _, ok := _c.mutation.Engagement(); !ok {
 		return &ValidationError{Name: "engagement", err: errors.New(`ent: missing required field "ContentDraft.engagement"`)}
 	}
-	if _, ok := _c.mutation.Tags(); !ok {
-		return &ValidationError{Name: "tags", err: errors.New(`ent: missing required field "ContentDraft.tags"`)}
+	if _, ok := _c.mutation.Kind(); !ok {
+		return &ValidationError{Name: "kind", err: errors.New(`ent: missing required field "ContentDraft.kind"`)}
+	}
+	if v, ok := _c.mutation.Kind(); ok {
+		if err := contentdraft.KindValidator(v); err != nil {
+			return &ValidationError{Name: "kind", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.kind": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.PlatformVersions(); !ok {
+		return &ValidationError{Name: "platform_versions", err: errors.New(`ent: missing required field "ContentDraft.platform_versions"`)}
+	}
+	if _, ok := _c.mutation.Scratchpad(); !ok {
+		return &ValidationError{Name: "scratchpad", err: errors.New(`ent: missing required field "ContentDraft.scratchpad"`)}
+	}
+	if _, ok := _c.mutation.TagIds(); !ok {
+		return &ValidationError{Name: "tag_ids", err: errors.New(`ent: missing required field "ContentDraft.tag_ids"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ContentDraft.created_at"`)}
@@ -576,13 +699,45 @@ func (_c *ContentDraftCreate) createSpec() (*ContentDraft, *sqlgraph.CreateSpec)
 		_spec.SetField(contentdraft.FieldEngagement, field.TypeJSON, value)
 		_node.Engagement = value
 	}
-	if value, ok := _c.mutation.Tags(); ok {
-		_spec.SetField(contentdraft.FieldTags, field.TypeJSON, value)
-		_node.Tags = value
-	}
 	if value, ok := _c.mutation.PlannedFor(); ok {
 		_spec.SetField(contentdraft.FieldPlannedFor, field.TypeTime, value)
 		_node.PlannedFor = &value
+	}
+	if value, ok := _c.mutation.Kind(); ok {
+		_spec.SetField(contentdraft.FieldKind, field.TypeEnum, value)
+		_node.Kind = value
+	}
+	if value, ok := _c.mutation.Target(); ok {
+		_spec.SetField(contentdraft.FieldTarget, field.TypeJSON, value)
+		_node.Target = value
+	}
+	if value, ok := _c.mutation.PlatformVersions(); ok {
+		_spec.SetField(contentdraft.FieldPlatformVersions, field.TypeJSON, value)
+		_node.PlatformVersions = value
+	}
+	if value, ok := _c.mutation.Article(); ok {
+		_spec.SetField(contentdraft.FieldArticle, field.TypeJSON, value)
+		_node.Article = value
+	}
+	if value, ok := _c.mutation.Scratchpad(); ok {
+		_spec.SetField(contentdraft.FieldScratchpad, field.TypeString, value)
+		_node.Scratchpad = value
+	}
+	if value, ok := _c.mutation.TagIds(); ok {
+		_spec.SetField(contentdraft.FieldTagIds, field.TypeJSON, value)
+		_node.TagIds = value
+	}
+	if value, ok := _c.mutation.PinnedAt(); ok {
+		_spec.SetField(contentdraft.FieldPinnedAt, field.TypeTime, value)
+		_node.PinnedAt = &value
+	}
+	if value, ok := _c.mutation.PlanTimeZone(); ok {
+		_spec.SetField(contentdraft.FieldPlanTimeZone, field.TypeString, value)
+		_node.PlanTimeZone = &value
+	}
+	if value, ok := _c.mutation.SourceDraftID(); ok {
+		_spec.SetField(contentdraft.FieldSourceDraftID, field.TypeString, value)
+		_node.SourceDraftID = &value
 	}
 	if value, ok := _c.mutation.CollabState(); ok {
 		_spec.SetField(contentdraft.FieldCollabState, field.TypeBytes, value)

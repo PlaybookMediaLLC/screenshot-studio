@@ -367,22 +367,26 @@ func TestSocialSetsPlatform(t *testing.T) {
 
 	t.Run("experiments are enforced by the backend", func(t *testing.T) {
 		draft, _ := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Title: "Tags", SocialSetID: defaultSet.ID})
-		tags := []string{"Launch", "launch", " q4 "}
-		if _, err := repo.UpdateContentDraft(ctx, owner, draft.ID, ContentDraftUpdate{BaseVersion: draft.Version, Tags: &tags}); !errors.Is(err, publishing.ErrForbidden) {
+		launch, err := repo.CreateContentDraftTag(ctx, owner, defaultSet.ID, ContentDraftTagInput{Name: ptr("Launch")})
+		if err != nil {
+			t.Fatal(err)
+		}
+		add := ContentDraftPropertiesInput{AddTagIDs: []string{launch.ID}}
+		if _, err := repo.UpdateContentDraftProperties(ctx, owner, draft.ID, add); !errors.Is(err, publishing.ErrForbidden) {
 			t.Fatalf("tags without opting in: %v", err)
 		}
 		if _, err := repo.UpdateUserPreferences(ctx, owner, UserPreferencesUpdate{Experiments: map[string]bool{ExperimentDraftTags: true}}); err != nil {
 			t.Fatal(err)
 		}
-		tagged, err := repo.UpdateContentDraft(ctx, owner, draft.ID, ContentDraftUpdate{BaseVersion: draft.Version, Tags: &tags})
-		if err != nil || len(tagged.Tags) != 2 || tagged.Tags[0] != "launch" {
+		tagged, err := repo.UpdateContentDraftProperties(ctx, owner, draft.ID, add)
+		if err != nil || len(tagged.TagIDs) != 1 || tagged.TagIDs[0] != launch.ID {
 			t.Fatalf("tags=%v err=%v", tagged, err)
 		}
 		if _, err := repo.SetWorkspaceExperiment(ctx, owner, ExperimentDraftTags, true); err != nil {
 			t.Fatal(err)
 		}
-		more := []string{"other"}
-		if _, err := repo.UpdateContentDraft(ctx, owner, draft.ID, ContentDraftUpdate{BaseVersion: tagged.Version, Tags: &more}); !errors.Is(err, publishing.ErrForbidden) {
+		remove := ContentDraftPropertiesInput{RemoveTagIDs: []string{launch.ID}}
+		if _, err := repo.UpdateContentDraftProperties(ctx, owner, draft.ID, remove); !errors.Is(err, publishing.ErrForbidden) {
 			t.Fatalf("a workspace-disabled experiment still worked: %v", err)
 		}
 		if _, err := repo.UpdateUserPreferences(ctx, owner, UserPreferencesUpdate{Experiments: map[string]bool{"realistic-previews": false}}); !errors.Is(err, ErrInvalidInput) {

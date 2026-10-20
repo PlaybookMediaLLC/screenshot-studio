@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
 // ContentDraftRevision is the model entity for the ContentDraftRevision schema.
@@ -30,6 +31,12 @@ type ContentDraftRevision struct {
 	Body []interface{} `json:"body,omitempty"`
 	// PlainText holds the value of the "plain_text" field.
 	PlainText string `json:"plain_text,omitempty"`
+	// PlatformVersions holds the value of the "platform_versions" field.
+	PlatformVersions draftdoc.PlatformVersions `json:"platform_versions,omitempty"`
+	// Article holds the value of the "article" field.
+	Article *draftdoc.Article `json:"article,omitempty"`
+	// Reason holds the value of the "reason" field.
+	Reason string `json:"reason,omitempty"`
 	// CreatedByUserID holds the value of the "created_by_user_id" field.
 	CreatedByUserID *string `json:"created_by_user_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -42,11 +49,11 @@ func (*ContentDraftRevision) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case contentdraftrevision.FieldBody:
+		case contentdraftrevision.FieldBody, contentdraftrevision.FieldPlatformVersions, contentdraftrevision.FieldArticle:
 			values[i] = new([]byte)
 		case contentdraftrevision.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case contentdraftrevision.FieldID, contentdraftrevision.FieldOrganizationID, contentdraftrevision.FieldContentDraftID, contentdraftrevision.FieldTitle, contentdraftrevision.FieldPlainText, contentdraftrevision.FieldCreatedByUserID:
+		case contentdraftrevision.FieldID, contentdraftrevision.FieldOrganizationID, contentdraftrevision.FieldContentDraftID, contentdraftrevision.FieldTitle, contentdraftrevision.FieldPlainText, contentdraftrevision.FieldReason, contentdraftrevision.FieldCreatedByUserID:
 			values[i] = new(sql.NullString)
 		case contentdraftrevision.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -108,6 +115,28 @@ func (_m *ContentDraftRevision) assignValues(columns []string, values []any) err
 				return fmt.Errorf("unexpected type %T for field plain_text", values[i])
 			} else if value.Valid {
 				_m.PlainText = value.String
+			}
+		case contentdraftrevision.FieldPlatformVersions:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field platform_versions", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.PlatformVersions); err != nil {
+					return fmt.Errorf("unmarshal field platform_versions: %w", err)
+				}
+			}
+		case contentdraftrevision.FieldArticle:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field article", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Article); err != nil {
+					return fmt.Errorf("unmarshal field article: %w", err)
+				}
+			}
+		case contentdraftrevision.FieldReason:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field reason", values[i])
+			} else if value.Valid {
+				_m.Reason = value.String
 			}
 		case contentdraftrevision.FieldCreatedByUserID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -175,6 +204,15 @@ func (_m *ContentDraftRevision) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("plain_text=")
 	builder.WriteString(_m.PlainText)
+	builder.WriteString(", ")
+	builder.WriteString("platform_versions=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PlatformVersions))
+	builder.WriteString(", ")
+	builder.WriteString("article=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Article))
+	builder.WriteString(", ")
+	builder.WriteString("reason=")
+	builder.WriteString(_m.Reason)
 	builder.WriteString(", ")
 	if v := _m.CreatedByUserID; v != nil {
 		builder.WriteString("created_by_user_id=")

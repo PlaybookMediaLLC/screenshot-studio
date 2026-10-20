@@ -156,13 +156,24 @@ func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishIn
 	if err != nil {
 		return socialapi.Receipt{}, err
 	}
-	// A content draft post without an image publishes as text (RFC 037).
-	media, err := p.signedMedia(ctx, input.OrganizationID, input.Media())
+	// A content draft post without an image publishes as text (RFC 037); a
+	// LinkedIn document goes out as the post's one media (RFC 042).
+	assets := input.Media()
+	if input.Document != nil {
+		assets = []publishing.MediaAsset{*input.Document}
+	}
+	media, err := p.signedMedia(ctx, input.OrganizationID, assets)
 	if err != nil {
 		return socialapi.Receipt{}, err
 	}
+	if settings, err = postSettings(input.Platform, input.ProviderSettings, input.Options, ""); err != nil {
+		return socialapi.Receipt{}, socialapi.NewError(http.StatusBadRequest, false, "invalid post settings")
+	}
+	if settings, err = p.articleCover(ctx, input, settings); err != nil {
+		return socialapi.Receipt{}, socialapi.NewError(http.StatusServiceUnavailable, false, "article cover could not be signed")
+	}
 	details := []integrations.PostDetails{{
-		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media, Poll: pollDetails(input.Poll),
+		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media, Poll: pollFor(input.Poll, input.Options),
 	}}
 	var response []integrations.PostResponse
 	if input.ReplyTo != "" {
@@ -293,10 +304,18 @@ func (p *Publisher) postReplies(ctx context.Context, provider poster, account *s
 	last := ""
 	for index, reply := range input.Replies {
 		media, err := p.signedMedia(ctx, input.OrganizationID, reply.Assets)
+		// A reply has only its own settings: never the first post's
+		// community, quote or article.
+		var replySettings json.RawMessage
+		replySettings, err = postSettings(input.Platform, input.ProviderSettings, nil, "")
+		if err == nil && reply.Options != nil {
+			// The first post is live now, so a reply quoting it can name it.
+			replySettings, err = postSettings(input.Platform, input.ProviderSettings, reply.Options, postID)
+		}
 		if err == nil {
 			var response []integrations.PostResponse
 			response, err = commenter.Comment(ctx, account.InternalID, postID, last, account.Token, []integrations.PostDetails{{
-				ID: fmt.Sprintf("%s-reply-%d", input.PostID, index+1), Message: reply.Caption, Settings: settings, Media: media,
+				ID: fmt.Sprintf("%s-reply-%d", input.PostID, index+1), Message: reply.Caption, Settings: replySettings, Media: media,
 			}}, account)
 			if err == nil && (len(response) == 0 || response[0].PostID == "") {
 				err = errors.New("provider returned no reply receipt")
@@ -325,7 +344,7 @@ func (p *Publisher) signedMedia(ctx context.Context, organizationID string, asse
 		if strings.HasPrefix(asset.MediaType, "video/") {
 			mediaType = "video"
 		}
-		media = append(media, integrations.MediaContent{Type: mediaType, Path: path})
+		media = append(media, integrations.MediaContent{Alt: asset.Alt, Type: mediaType, Path: path})
 	}
 	return media, nil
 }

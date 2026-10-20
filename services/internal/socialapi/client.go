@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -38,8 +39,13 @@ type PublishInput struct {
 	// Replies follow the post as a thread, each answering the one before.
 	Replies []publishing.PublishReply
 	// ReplyTo is the live post a resumed thread answers.
-	ReplyTo          string
-	Poll             *postoptions.Poll
+	ReplyTo string
+	Poll    *postoptions.Poll
+	// Options are the post's settings beyond its text (RFC 042); Document is
+	// a LinkedIn PDF and Cover an X article's cover.
+	Options          *postoptions.PublishOptions
+	Document         *publishing.MediaAsset
+	Cover            *publishing.MediaAsset
 	Caption          string
 	DestinationID    string
 	OrganizationID   string
@@ -79,6 +85,31 @@ type AutoActionResult struct {
 	Quoted   bool
 	Reposted bool
 }
+
+// AutomationInput is one follow-up of a live post (RFC 042). Kind is a
+// temporalpublishing step kind; Threshold and Metric gate a plug or a
+// like-gated repost; Text is a first comment, plug or quote.
+type AutomationInput struct {
+	DestinationID   string
+	Kind            string
+	Metric          string
+	OrganizationID  string
+	Platform        string
+	RemotePostID    string
+	SecretReference string
+	Text            string
+	Threshold       int
+}
+
+// AutomationResult is a follow-up's outcome: Done when it acted (RemoteID
+// is what it posted, if anything); not done when its threshold is not met.
+type AutomationResult struct {
+	Done     bool
+	RemoteID string
+}
+
+// ErrUnsupported is a follow-up the account's platform cannot do.
+var ErrUnsupported = errors.New("the platform does not support this follow-up")
 
 // Media is every file to publish, in order.
 func (input PublishInput) Media() []publishing.MediaAsset {
@@ -149,6 +180,9 @@ type Error struct {
 }
 
 func (e *Error) Error() string { return e.message }
+
+// HTTPStatus is the error's status, for receipts that keep a code only.
+func (e *Error) HTTPStatus() int { return e.Status }
 
 func NewError(status int, unknownDelivery bool, message string) *Error {
 	return &Error{Status: status, UnknownDelivery: unknownDelivery, message: message}

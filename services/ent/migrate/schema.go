@@ -142,6 +142,7 @@ var (
 		{Name: "width", Type: field.TypeInt, Nullable: true},
 		{Name: "height", Type: field.TypeInt, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"PENDING", "UPLOADED", "FAILED", "DELETED"}, Default: "PENDING"},
+		{Name: "altText", Type: field.TypeString, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
 	}
@@ -159,7 +160,7 @@ var (
 			{
 				Name:    "asset_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{AssetColumns[1], AssetColumns[11]},
+				Columns: []*schema.Column{AssetColumns[1], AssetColumns[12]},
 			},
 		},
 	}
@@ -737,8 +738,16 @@ var (
 		{Name: "primaryPlatform", Type: field.TypeString, Nullable: true},
 		{Name: "naturalPostingTime", Type: field.TypeBool, Default: false},
 		{Name: "engagement", Type: field.TypeJSON},
-		{Name: "tags", Type: field.TypeJSON},
 		{Name: "plannedFor", Type: field.TypeTime, Nullable: true},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"standard", "reply", "quote", "repurpose", "article"}, Default: "standard"},
+		{Name: "target", Type: field.TypeJSON, Nullable: true},
+		{Name: "platformVersions", Type: field.TypeJSON},
+		{Name: "article", Type: field.TypeJSON, Nullable: true},
+		{Name: "scratchpad", Type: field.TypeString, Default: ""},
+		{Name: "tagIds", Type: field.TypeJSON},
+		{Name: "pinnedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "planTimeZone", Type: field.TypeString, Nullable: true},
+		{Name: "sourceDraftId", Type: field.TypeString, Nullable: true},
 		{Name: "collabState", Type: field.TypeBytes, Nullable: true},
 		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
 		{Name: "updatedByUserId", Type: field.TypeString, Nullable: true},
@@ -754,12 +763,36 @@ var (
 			{
 				Name:    "contentdraft_organizationId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[27]},
+				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[35]},
 			},
 			{
 				Name:    "contentdraft_socialSetId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[17], ContentDraftColumns[27]},
+				Columns: []*schema.Column{ContentDraftColumns[17], ContentDraftColumns[35]},
+			},
+		},
+	}
+	// ContentDraftFinisherColumns holds the columns for the "content_draft_finisher" table.
+	ContentDraftFinisherColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "socialSetId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "text", Type: field.TypeString},
+		{Name: "quoteFirstPost", Type: field.TypeBool, Default: false},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ContentDraftFinisherTable holds the schema information for the "content_draft_finisher" table.
+	ContentDraftFinisherTable = &schema.Table{
+		Name:       "content_draft_finisher",
+		Columns:    ContentDraftFinisherColumns,
+		PrimaryKey: []*schema.Column{ContentDraftFinisherColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "contentdraftfinisher_socialSetId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ContentDraftFinisherColumns[2], ContentDraftFinisherColumns[6]},
 			},
 		},
 	}
@@ -772,6 +805,9 @@ var (
 		{Name: "title", Type: field.TypeString},
 		{Name: "body", Type: field.TypeJSON},
 		{Name: "plainText", Type: field.TypeString},
+		{Name: "platformVersions", Type: field.TypeJSON, Nullable: true},
+		{Name: "article", Type: field.TypeJSON, Nullable: true},
+		{Name: "reason", Type: field.TypeString, Default: "edit"},
 		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
 	}
@@ -784,7 +820,7 @@ var (
 			{
 				Name:    "contentdraftrevision_contentDraftId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftRevisionColumns[2], ContentDraftRevisionColumns[8]},
+				Columns: []*schema.Column{ContentDraftRevisionColumns[2], ContentDraftRevisionColumns[11]},
 			},
 		},
 	}
@@ -800,6 +836,28 @@ var (
 		Name:       "content_draft_settings",
 		Columns:    ContentDraftSettingsColumns,
 		PrimaryKey: []*schema.Column{ContentDraftSettingsColumns[0]},
+	}
+	// ContentDraftTagColumns holds the columns for the "content_draft_tag" table.
+	ContentDraftTagColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "socialSetId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "color", Type: field.TypeString, Default: "gray"},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// ContentDraftTagTable holds the schema information for the "content_draft_tag" table.
+	ContentDraftTagTable = &schema.Table{
+		Name:       "content_draft_tag",
+		Columns:    ContentDraftTagColumns,
+		PrimaryKey: []*schema.Column{ContentDraftTagColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "contentdrafttag_socialSetId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ContentDraftTagColumns[2], ContentDraftTagColumns[5]},
+			},
+		},
 	}
 	// ConversationColumns holds the columns for the "conversation" table.
 	ConversationColumns = []*schema.Column{
@@ -1716,6 +1774,34 @@ var (
 		Columns:    PlatformSlackPacingColumns,
 		PrimaryKey: []*schema.Column{PlatformSlackPacingColumns[0]},
 	}
+	// PostAutomationRunColumns holds the columns for the "post_automation_run" table.
+	PostAutomationRunColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "scheduledPostId", Type: field.TypeString},
+		{Name: "key", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"first_comment", "retweet", "unretweet", "plug", "repost_at_likes", "quote"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "done", "failed", "skipped", "cancelled", "expired"}, Default: "pending"},
+		{Name: "dueAt", Type: field.TypeTime},
+		{Name: "remoteId", Type: field.TypeString, Nullable: true},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+		{Name: "failureCode", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// PostAutomationRunTable holds the schema information for the "post_automation_run" table.
+	PostAutomationRunTable = &schema.Table{
+		Name:       "post_automation_run",
+		Columns:    PostAutomationRunColumns,
+		PrimaryKey: []*schema.Column{PostAutomationRunColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "postautomationrun_scheduledPostId_key",
+				Unique:  true,
+				Columns: []*schema.Column{PostAutomationRunColumns[2], PostAutomationRunColumns[3]},
+			},
+		},
+	}
 	// ProductProfileColumns holds the columns for the "product_profile" table.
 	ProductProfileColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -2186,6 +2272,7 @@ var (
 		{Name: "metricsAt", Type: field.TypeTime, Nullable: true},
 		{Name: "autoActions", Type: field.TypeJSON, Nullable: true},
 		{Name: "poll", Type: field.TypeJSON, Nullable: true},
+		{Name: "publishOptions", Type: field.TypeJSON, Nullable: true},
 		{Name: "scheduledFor", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED", "UNKNOWN_DELIVERY"}, Default: "DRAFT"},
 		{Name: "caption", Type: field.TypeString},
@@ -2208,7 +2295,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "scheduled_post_channel_connection_scheduled_posts",
-				Columns:    []*schema.Column{ScheduledPostColumns[26]},
+				Columns:    []*schema.Column{ScheduledPostColumns[27]},
 				RefColumns: []*schema.Column{ChannelConnectionColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2217,17 +2304,17 @@ var (
 			{
 				Name:    "scheduledpost_channelConnectionId_idempotencyKey",
 				Unique:  true,
-				Columns: []*schema.Column{ScheduledPostColumns[26], ScheduledPostColumns[17]},
+				Columns: []*schema.Column{ScheduledPostColumns[27], ScheduledPostColumns[18]},
 			},
 			{
 				Name:    "scheduledpost_organizationId_status_scheduledFor",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[1], ScheduledPostColumns[15], ScheduledPostColumns[14]},
+				Columns: []*schema.Column{ScheduledPostColumns[1], ScheduledPostColumns[16], ScheduledPostColumns[15]},
 			},
 			{
 				Name:    "scheduledpost_status_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[15], ScheduledPostColumns[25]},
+				Columns: []*schema.Column{ScheduledPostColumns[16], ScheduledPostColumns[26]},
 			},
 			{
 				Name:    "scheduledpost_contentDraftId",
@@ -2952,8 +3039,10 @@ var (
 		CommunicationRecipientTable,
 		ContentAngleTable,
 		ContentDraftTable,
+		ContentDraftFinisherTable,
 		ContentDraftRevisionTable,
 		ContentDraftSettingsTable,
+		ContentDraftTagTable,
 		ConversationTable,
 		ConversationMessageTable,
 		CreativeTemplateTable,
@@ -2985,6 +3074,7 @@ var (
 		PlatformSlackConnectionTable,
 		PlatformSlackInstallationTable,
 		PlatformSlackPacingTable,
+		PostAutomationRunTable,
 		ProductProfileTable,
 		ProductSurfaceTable,
 		ProjectTable,
@@ -3101,11 +3191,17 @@ func init() {
 	ContentDraftTable.Annotation = &entsql.Annotation{
 		Table: "content_draft",
 	}
+	ContentDraftFinisherTable.Annotation = &entsql.Annotation{
+		Table: "content_draft_finisher",
+	}
 	ContentDraftRevisionTable.Annotation = &entsql.Annotation{
 		Table: "content_draft_revision",
 	}
 	ContentDraftSettingsTable.Annotation = &entsql.Annotation{
 		Table: "content_draft_settings",
+	}
+	ContentDraftTagTable.Annotation = &entsql.Annotation{
+		Table: "content_draft_tag",
 	}
 	ConversationTable.Annotation = &entsql.Annotation{
 		Table: "conversation",
@@ -3200,6 +3296,9 @@ func init() {
 	}
 	PlatformSlackPacingTable.Annotation = &entsql.Annotation{
 		Table: "platform_slack_pacing",
+	}
+	PostAutomationRunTable.Annotation = &entsql.Annotation{
+		Table: "post_automation_run",
 	}
 	ProductProfileTable.Annotation = &entsql.Annotation{
 		Table: "product_profile",

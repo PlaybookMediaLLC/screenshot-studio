@@ -41,24 +41,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { DraftDiscussions } from '@/lib/content-drafts/discussions'
-import { draftsApi } from '@/lib/content-drafts/client'
-import { type DraftChannel, POST_BREAK, serializeDraft } from '@/lib/content-drafts/serialize'
 import { cn } from '@/lib/utils'
-import { CHANNEL_META } from './channel-meta'
 import { POST_COLUMN } from './layout'
-
-/** What the AI can do to a draft (the assist contract's actions). */
-type DraftAssistAction = 'rewrite' | 'thread' | 'shorten'
 import {
-  FirstPostHeader,
   insertPostBreak,
   PostBreakPlugin,
   PostHeaderContext,
+  type PostTools,
   PostToolsContext,
   splitPostAtCaret,
   ThreadLine,
   threadAsRules,
 } from './thread'
+import { normalizePosts, postBreak } from '@/lib/write/versions'
+import type { PlateBody } from '@/lib/write/document'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import type { z } from 'zod'
@@ -102,10 +98,6 @@ function HashtagChips({ hashtags }: { hashtags: string[] }) {
 }
 
 export type DraftEditorProps = {
-  /** The channel the AI writes for: the first selected thread channel. */
-  assistChannel: DraftChannel
-  /** The draft, so AI help writes in its social set's voice (RFC 043). */
-  draftId?: string
   /** The direction text runs in, from Appearance settings. */
   textDirection?: z.infer<typeof textDirectionSchema>
   collaboration: DraftCollaboration | null
@@ -117,6 +109,14 @@ export type DraftEditorProps = {
   hashtags: string[]
   /** Each post's header, by its 1-based number in the thread: who it is from. */
   postHeader: (number: number) => React.ReactNode
+  /** Per-post settings tools for the platform being edited. */
+  postSettings?: PostTools['settings']
+  /** Extra buttons for the bottom toolbar: numbering, finishers, platform tools. */
+  toolbarExtras?: React.ReactNode
+  /** Plugins the host adds, such as social mentions. */
+  extraPlugins?: unknown[]
+  /** Collaboration is off for a platform's own version: it saves with the draft. */
+  documentName?: string
   /** Comment threads stored with the draft. */
   initialDiscussions: DraftDiscussions
   initialValue: Value
@@ -129,7 +129,10 @@ export type DraftEditorProps = {
   user: DraftEditorUser
 }
 
-const EMPTY_VALUE: Value = [{ children: [{ text: '' }], type: 'p' }]
+/** A new body: one post, empty. */
+function emptyValue(): Value {
+  return [postBreak(), { children: [{ text: '' }], type: 'p' }] as Value
+}
 
 function download(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob)
@@ -197,15 +200,20 @@ function DiscussionsWatcher({ onChange }: { onChange: (discussions: DraftDiscuss
   const threads = usePluginOption(discussionPlugin, 'discussions')
   const users = usePluginOption(discussionPlugin, 'users')
   const first = React.useRef(threads)
-  React.useEffect(() => {
-    if (threads === first.current) return
+  // Only a change to the threads or people is news: the host's callback is
+  // often a new function each render, and reacting to that saved forever.
+  const report = React.useEffectEvent(() =>
     onChange({
       threads: threads as DraftDiscussions['threads'],
       users: Object.fromEntries(
         Object.entries(users).map(([id, person]) => [id, { id, name: person.name }])
       ),
     })
-  }, [onChange, threads, users])
+  )
+  React.useEffect(() => {
+    if (threads === first.current) return
+    report()
+  }, [threads, users])
   return null
 }
 
@@ -320,64 +328,6 @@ function InsertButton({
   )
 }
 
-/** What each AI action is called in the menu. */
-const ASSIST_LABELS: Record<DraftAssistAction, (channel: string) => string> = {
-  rewrite: (channel) => `Rewrite for ${channel}`,
-  shorten: (channel) => `Shorten to fit ${channel}`,
-  thread: () => 'Turn into a thread',
-}
-
-/**
- * AI help on the whole draft: rewrite it for a channel, turn it into a
- * thread, or shorten it to fit. The answer replaces the text in one step,
- * so undo brings the writer's own back; images stay with the first post.
- */
-function AssistMenu({ channel, draftId, editor }: { channel: DraftChannel; draftId?: string; editor: PlateEditor }) {
-  const [busy, setBusy] = React.useState(false)
-  const label = CHANNEL_META[channel].label
-  const run = async (action: DraftAssistAction) => {
-    const posts = serializeDraft(editor.children, channel).posts.map((post) => post.caption)
-    if (posts.every((post) => !post.trim())) {
-      toast.info('Write something first.')
-      return
-    }
-    setBusy(true)
-    try {
-      const answer = await draftsApi.assist({ action, channel, draftId, posts })
-      const media = editor.children.filter((node) => node.type === 'img' || node.type === 'video')
-      const value = answer.posts.flatMap((post, index) => [
-        ...(index > 0 ? [{ children: [{ text: '' }], type: POST_BREAK }] : []),
-        ...post
-          .split(/\n{2,}/)
-          .map((paragraph) => ({ children: [{ text: paragraph }], type: 'p' })),
-        ...(index === 0 ? media : []),
-      ])
-      editor.tf.withoutNormalizing(() => editor.tf.setValue(value as Value))
-      toast.success('Done. Undo brings your version back.')
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'The AI could not answer.')
-    } finally {
-      setBusy(false)
-    }
-  }
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <ToolbarButton aria-label="AI help" disabled={busy} tooltip="AI help">
-          {busy ? 'Writing…' : 'AI'}
-        </ToolbarButton>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" side="top">
-        {(Object.keys(ASSIST_LABELS) as DraftAssistAction[]).map((action) => (
-          <DropdownMenuItem key={action} onSelect={() => void run(action)}>
-            {ASSIST_LABELS[action](label)}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 /** Import and export, out of the writing toolbar's way behind one button. */
 function DocumentMenu({
   exports,
@@ -430,19 +380,17 @@ function DocumentMenu({
 }
 
 function DraftToolbar({
-  assistChannel,
-  draftId,
   editor,
   imageInput,
   services,
   title,
+  extras,
 }: {
-  assistChannel: DraftChannel
-  draftId?: string
   editor: PlateEditor
   imageInput: React.RefObject<HTMLInputElement | null>
   services: EditorServices
   title: string
+  extras?: React.ReactNode
 }) {
   const importDocument = async (file: File) => {
     try {
@@ -532,11 +480,7 @@ function DraftToolbar({
           Image
         </FileButton>
       </ToolbarGroup>
-      {services.ai ? (
-        <ToolbarGroup>
-          <AssistMenu channel={assistChannel} draftId={draftId} editor={editor} />
-        </ToolbarGroup>
-      ) : null}
+      {extras ? <ToolbarGroup>{extras}</ToolbarGroup> : null}
       <ToolbarGroup>
         <DocumentMenu
           files={[
@@ -559,14 +503,16 @@ function DraftToolbar({
 }
 
 export default function DraftEditor({
-  assistChannel,
   collaboration,
-  draftId,
   textDirection = 'ltr',
   onEditor,
   handles,
   hashtags,
   postHeader,
+  postSettings,
+  toolbarExtras,
+  extraPlugins,
+  documentName,
   initialDiscussions: storedDiscussions,
   initialValue,
   onChange,
@@ -583,7 +529,7 @@ export default function DraftEditor({
       ? createYjsPlugin(
           {
             access: readOnly ? 'read' : 'write',
-            documentName: `content-draft:${collaboration.draftId}`,
+            documentName: documentName ?? `content-draft:${collaboration.draftId}`,
             getToken: () => collabToken(collaboration.draftId),
             hocuspocusUrl: collaboration.url,
             // WebRTC stays off: it would need our own signaling and TURN servers.
@@ -592,8 +538,9 @@ export default function DraftEditor({
           { color: colorFor(user.id), name: user.name, userId: user.id }
         )
       : null
+    const hosted = (extraPlugins ?? []) as typeof PostBreakPlugin[]
     return createEditorKit({
-      additionalPlugins: live ? [PostBreakPlugin, live] : [PostBreakPlugin],
+      additionalPlugins: live ? [PostBreakPlugin, ...hosted, live] : [PostBreakPlugin, ...hosted],
       // Comments and suggestions are authored by the signed-in member, not
       // the upstream demo users.
       overridePlugins: [
@@ -612,7 +559,7 @@ export default function DraftEditor({
         }),
       ],
     })
-  }, [collaboration, initialDiscussions, readOnly, user.id, user.name])
+  }, [collaboration, documentName, extraPlugins, initialDiscussions, readOnly, user.id, user.name])
   // Mentions offer the signed-in member and the handles the workspace already
   // writes, instead of the upstream demo list.
   const handleList = handles.join(' ')
@@ -630,7 +577,11 @@ export default function DraftEditor({
     readOnly,
     // A live session takes its value from the shared document instead.
     skipInitialization: Boolean(collaboration),
-    value: collaboration ? undefined : initialValue.length > 0 ? initialValue : EMPTY_VALUE,
+    value: collaboration
+      ? undefined
+      : initialValue.length > 0
+        ? (normalizePosts(initialValue as PlateBody) as Value)
+        : emptyValue(),
   })
   React.useEffect(() => onEditor?.(editor), [editor, onEditor])
   const firstValue = React.useRef(initialValue)
@@ -650,7 +601,10 @@ export default function DraftEditor({
         .init({
           autoSelect: 'end',
           id: `content-draft:${collaboration.draftId}`,
-          value: firstValue.current.length > 0 ? firstValue.current : EMPTY_VALUE,
+          value:
+            firstValue.current.length > 0
+              ? (normalizePosts(firstValue.current as PlateBody) as Value)
+              : emptyValue(),
         })
         .then(() => setLive(true))
         .catch((error: unknown) => console.error('[drafts] live session failed', error))
@@ -662,9 +616,9 @@ export default function DraftEditor({
   }, [collaboration, editor])
 
   const imageInput = React.useRef<HTMLInputElement>(null)
-  const postTools = React.useMemo(
-    () => (readOnly ? {} : { addImage: () => imageInput.current?.click() }),
-    [readOnly]
+  const postTools = React.useMemo<PostTools>(
+    () => (readOnly ? {} : { addImage: () => imageInput.current?.click(), settings: postSettings }),
+    [postSettings, readOnly]
   )
   return (
     <EditorServicesProvider services={services}>
@@ -674,7 +628,6 @@ export default function DraftEditor({
             {collaboration ? <Presence /> : null}
             <DiscussionsWatcher onChange={onDiscussionsChange} />
             <CommentColumn key={live ? 'live' : 'local'}>
-              <FirstPostHeader />
               <ThreadLine />
               <Editor
                 aria-label="Draft body"
@@ -687,12 +640,12 @@ export default function DraftEditor({
             {readOnly || hashtags.length === 0 ? null : <HashtagChips hashtags={hashtags} />}
             {readOnly ? null : (
               // The formatting bar floats at the bottom of the page, out of the text's way.
-              <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center">
-                <div className="pointer-events-auto">
+              <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center px-2">
+                {/* A narrow column scrolls the bar instead of clipping its start. */}
+                <div className="pointer-events-auto max-w-full overflow-x-auto rounded-full">
                   <DraftToolbar
-                    assistChannel={assistChannel}
-                    draftId={draftId}
                     editor={editor}
+                    extras={toolbarExtras}
                     imageInput={imageInput}
                     services={services}
                     title={title}

@@ -19,6 +19,7 @@ type ContentDraftStore interface {
 	ScheduleContentDraft(context.Context, product.Actor, string, product.ScheduleContentDraftInput) (*product.ScheduleContentDraftResult, error)
 	ListContentDraftPosts(context.Context, product.Actor, string) ([]product.ContentDraftPost, error)
 	IssueContentDraftCollabToken(context.Context, product.Actor, string) (*product.CollabToken, error)
+	WriteStore
 	AuthorizeCollab(context.Context, string, string) (*product.CollabGrant, error)
 	LoadCollabState(context.Context, string, string) ([]byte, error)
 	StoreCollabState(context.Context, string, string, []byte) error
@@ -35,6 +36,7 @@ func (s *Server) registerContentDrafts(mux *http.ServeMux) {
 	mux.Handle("POST /v1/content-drafts/{id}/collab-token", s.authenticateProduct(http.HandlerFunc(s.issueCollabToken)))
 	s.registerCollab(mux)
 	s.registerContentDraftPlatform(mux)
+	s.registerWrite(mux)
 }
 
 // writeContentDraftError answers a stale write with the version the draft is
@@ -66,8 +68,14 @@ func (s *Server) listContentDrafts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	query := r.URL.Query()
+	if setID := query.Get("socialSetId"); setID != "" && !resourceIDPattern.MatchString(setID) {
+		writeError(w, http.StatusBadRequest, "invalid social set ID")
+		return
+	}
 	page, err := s.configuration.ListContentDrafts(r.Context(), workspaceActor(r), product.ContentDraftListQuery{
-		Cursor: query.Get("cursor"), Limit: limit, SocialSetID: query.Get("socialSetId"), Status: query.Get("status"),
+		Cursor: query.Get("cursor"), Kind: query.Get("kind"), Limit: limit, Search: query.Get("search"),
+		SocialSetID: query.Get("socialSetId"), Sort: query.Get("sort"), Status: query.Get("status"),
+		TagID: query.Get("tagId"), View: query.Get("view"),
 	})
 	if err != nil {
 		writeStoreError(w, err)

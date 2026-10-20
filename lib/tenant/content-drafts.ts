@@ -12,8 +12,19 @@ import type {
 } from 'screenshot-studio-backend-sdk'
 import type { OrganizationAccess, TenantContext } from '@/lib/auth/access'
 import { backendSDK, orNull, serviceBackend, withDates } from '@/lib/backend/sdk'
-import { channelForPlatform, serializeDraft } from '@/lib/content-drafts/serialize'
+import { channelForPlatform, type DraftChannel } from '@/lib/content-drafts/serialize'
+import { revisionReasonSchema } from '@/lib/api/contracts/content-draft-platform'
 import { listBackendConnections } from '@/lib/tenant/publishing-backend'
+import { buildPublication } from '@/lib/write/publication'
+import { readVersions } from '@/lib/write/versions'
+import {
+  articleSchema,
+  draftKindSchema,
+  draftTargetSchema,
+  EMPTY_PLATFORM_VERSIONS,
+  platformVersionsSchema,
+  primaryChannel,
+} from '@/lib/write/document'
 import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 
 /**
@@ -23,10 +34,24 @@ import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
  * 409.
  */
 
-/** Dates for the draft's own timestamps; the Plate body passes through as is. */
-function readDraft(draft: BackendContentDraft) {
-  const { body, ...fields } = draft
-  return { ...withDates(fields), body: body as Record<string, unknown>[] }
+/**
+ * A draft as the web reads it: Dates for its timestamps, the Plate body as
+ * is, and its Write document parsed at this boundary, so a malformed one
+ * fails here instead of in the composer.
+ */
+export function readDraft(draft: BackendContentDraft) {
+  const { article, body, kind, plannedFor, platformVersions, primaryPlatform, target, ...fields } =
+    draft
+  return {
+    ...withDates(fields),
+    article: article ? articleSchema.parse(article) : null,
+    body: body as Record<string, unknown>[],
+    kind: draftKindSchema.parse(kind ?? 'standard'),
+    plannedFor: plannedFor ? new Date(plannedFor) : null,
+    platformVersions: platformVersionsSchema.parse(platformVersions ?? EMPTY_PLATFORM_VERSIONS),
+    primaryPlatform: primaryChannel(primaryPlatform),
+    target: target ? draftTargetSchema.parse(target) : null,
+  }
 }
 
 /** One page of the workspace's drafts, newest first. */
@@ -35,7 +60,11 @@ export async function listContentDrafts(
   query: BackendContentDraftListQuery
 ) {
   const page = await backendSDK(context).listContentDrafts(query)
-  return { items: page.items.map(readDraft), nextCursor: page.nextCursor }
+  return {
+    items: page.items.map(readDraft),
+    nextCursor: page.nextCursor,
+    pinned: (page.pinned ?? []).map(readDraft),
+  }
 }
 
 /** Create a draft. */
@@ -66,7 +95,15 @@ export async function deleteContentDraft(context: TenantContext, id: string) {
 
 /** A draft's post with its times as Dates. */
 function readPost(post: BackendContentDraftPost) {
-  return { ...withDates(post), scheduledFor: new Date(post.scheduledFor) }
+  return {
+    ...withDates(post),
+    automations: (post.automations ?? []).map((automation) => ({
+      ...automation,
+      dueAt: new Date(automation.dueAt),
+      updatedAt: new Date(automation.updatedAt),
+    })),
+    scheduledFor: new Date(post.scheduledFor),
+  }
 }
 
 /** Every post scheduled from a draft; null when it is not in this workspace. */
@@ -76,11 +113,12 @@ export async function listContentDraftPosts(context: TenantContext, id: string) 
 }
 
 /**
- * Schedule the draft to channels. Each caption is serialized here from the
- * stored draft, with the same function the composer previews with, and a
- * caption a channel cannot take is refused before anything is queued. Each
- * post's images are the draft's, in body order, with rendered table and math
- * blocks among them; the backend checks they are the workspace's.
+ * Schedule the draft to channels, or publish it now. Each destination's
+ * payload is built here from the stored draft (its primary body, platform
+ * versions, kind and target) with the same function the composer previews
+ * with, for the account's own standing; anything that blocks it is refused
+ * before anything is queued. Go resolves the time and checks every payload
+ * again.
  */
 export async function scheduleContentDraft(
   context: OrganizationAccess,
@@ -88,60 +126,73 @@ export async function scheduleContentDraft(
   input: {
     blockImages?: (string | null)[]
     channelConnectionIds: string[]
-    /** Per channel: X follow-ups and a poll. */
+    disambiguation?: 'earlier' | 'later'
+    localTime?: string
+    naturalTiming?: boolean
+    /** Per channel connection: X follow-ups, and a poll from older composers. */
     options?: Record<string, { autoActions?: BackendAutoActions; poll?: BackendPoll }>
-    /** When set, the queue's next free slot instead of `scheduledFor`. */
+    publishNow?: boolean
+    /** When set, the set's next free queue slot, reserved by the backend. */
     queue?: boolean
     /** Overrides the draft's natural posting time for this schedule. */
     naturalPostingTime?: boolean
     scheduledFor?: Date
+    timeZone?: string
     version: number
   }
 ) {
   const draft = await getContentDraft(context, id)
   if (!draft) return null
-  // The backend picks and reserves a queued slot inside the scheduling
-  // transaction, so two requests cannot take the same one.
-  if (!input.queue && !input.scheduledFor)
-    throw new ScheduledPostError('Pick a time, or add the draft to the queue.', 400)
-  const platforms = new Map(
-    (await listBackendConnections(context)).map((connection) => [
-      connection.id,
-      connection.platform,
-    ])
+  if (!input.publishNow && !input.queue && !input.localTime && !input.scheduledFor) {
+    throw new ScheduledPostError('Pick a time, add the draft to the queue, or publish it now.', 400)
+  }
+  const [connections, sets] = await Promise.all([
+    listBackendConnections(context),
+    backendSDK(context).listSocialSets(),
+  ])
+  const platforms = new Map(connections.map((connection) => [connection.id, connection.platform]))
+  const premium = new Set(
+    sets.items.flatMap((set) =>
+      set.accounts.filter((account) => account.premium).map((account) => account.id)
+    )
+  )
+  const versions = readVersions(
+    draft.platformVersions,
+    draft.channelText as Partial<Record<DraftChannel, string>>,
+    draft.body
   )
   const targets = input.channelConnectionIds.map((channelConnectionId) => {
     const platform = platforms.get(channelConnectionId)
     const channel = platform ? channelForPlatform(platform) : null
     if (!channel) throw new ScheduledPostError('A selected channel cannot take this draft.', 404)
-    const serialized = serializeDraft(
-      draft.body,
-      channel,
-      input.blockImages,
-      draft.channelText[channel]
+    const { problems, target } = buildPublication(
+      { ...draft, platformVersions: versions },
+      {
+        channel,
+        connectionId: channelConnectionId,
+        standing: { premium: premium.has(channelConnectionId) },
+      },
+      input.blockImages
     )
-    if (serialized.errors.length > 0) {
-      throw new ScheduledPostError(`${channel}: ${serialized.errors.join(' ')}`, 409)
+    if (problems.length > 0) {
+      throw new ScheduledPostError(`${channel}: ${problems.join(' ')}`, 409)
     }
-    // A thread channel posts the first post, then the rest as replies; every
-    // other channel gets the whole draft as its one post.
-    const [first, ...replies] = serialized.posts
+    const legacy = input.options?.[channelConnectionId]
     return {
-      assetIds: first?.assetIds ?? [],
-      caption: first?.caption ?? '',
-      channelConnectionId,
-      ...(replies.length > 0
-        ? { replies: replies.map(({ assetIds, caption }) => ({ assetIds, caption })) }
-        : {}),
-      ...input.options?.[channelConnectionId],
+      ...target,
+      ...(legacy?.autoActions ? { autoActions: legacy.autoActions } : {}),
+      ...(!target.poll && legacy?.poll ? { poll: legacy.poll } : {}),
     }
   })
   const result = await backendSDK(context).scheduleContentDraft(id, {
-    ...(input.naturalPostingTime === undefined
-      ? {}
-      : { naturalPostingTime: input.naturalPostingTime }),
-    ...(input.queue ? { queue: true } : { scheduledFor: input.scheduledFor }),
+    disambiguation: input.disambiguation,
+    localTime: input.localTime,
+    naturalPostingTime: input.naturalPostingTime,
+    publishNow: input.publishNow,
+    queue: input.queue,
+    scheduledFor: input.scheduledFor,
     targets,
+    timeZone: input.timeZone,
     version: input.version,
   })
   return {
@@ -149,6 +200,28 @@ export async function scheduleContentDraft(
     draft: readDraft(result.draft),
     posts: result.posts.map(readPost),
   }
+}
+
+/** Retry one failed destination; null when it is not visible. */
+export async function retryContentDraftPost(context: TenantContext, id: string) {
+  const result = await orNull(backendSDK(context).retryContentDraftPost(id))
+  return result ? readPost(result.post) : null
+}
+
+/** Settle a post of unknown outcome; null when it is not visible. */
+export async function reconcileContentDraftPost(
+  context: TenantContext,
+  id: string,
+  input: { live: boolean; url?: string }
+) {
+  const result = await orNull(backendSDK(context).reconcileContentDraftPost(id, input))
+  return result ? readPost(result.post) : null
+}
+
+/** Stop a live post's pending follow-ups; null when it is not in this workspace. */
+export async function cancelContentDraftPostAutomations(context: TenantContext, id: string) {
+  const result = await orNull(backendSDK(context).cancelContentDraftPostAutomations(id))
+  return result ? readPost(result.post) : null
 }
 
 /** A collaboration token for the draft; null when it is not in this workspace. */
@@ -181,12 +254,12 @@ export async function nextQueueSlot(context: TenantContext, socialSetId = '') {
   return new Date((await backendSDK(context).nextContentDraftQueueSlot(socialSetId)).scheduledFor)
 }
 
-/** Draft posts due in [from, to), with their drafts' titles. */
+/** Draft posts due in [from, to), with their drafts' titles; one set's when given. */
 export async function listContentDraftPostsBetween(
   context: TenantContext,
   from: Date,
   to: Date,
-  socialSetId = ''
+  socialSetId?: string
 ) {
   const { items } = await backendSDK(context).listContentDraftPostsBetween(from, to, socialSetId)
   return items.map((post) => ({
@@ -236,11 +309,12 @@ export async function listContentDraftRevisions(context: TenantContext, id: stri
   // A list carries no bodies; one revision's read does.
   return result
     ? result.items.map(
-        ({ createdAt, createdByUserId, id: revisionId, plainText, title, version }) => ({
+        ({ createdAt, createdByUserId, id: revisionId, plainText, reason, title, version }) => ({
           createdAt: new Date(createdAt),
           createdByUserId,
           id: revisionId,
           plainText,
+          reason: revisionReasonSchema.parse(reason ?? 'edit'),
           title,
           version,
         })
@@ -256,8 +330,14 @@ export async function getContentDraftRevision(
 ) {
   const revision = await orNull(backendSDK(context).getContentDraftRevision(id, revisionId))
   if (!revision) return null
-  const { body, ...fields } = revision
-  return { ...withDates(fields), body: body as Record<string, unknown>[] | undefined }
+  const { article, body, platformVersions, reason, ...fields } = revision
+  return {
+    ...withDates(fields),
+    article: article ? articleSchema.parse(article) : undefined,
+    body: body as Record<string, unknown>[] | undefined,
+    platformVersions: platformVersions ? platformVersionsSchema.parse(platformVersions) : undefined,
+    reason: revisionReasonSchema.parse(reason ?? 'edit'),
+  }
 }
 
 /** A shared draft with Dates, and its body as Plate nodes. */

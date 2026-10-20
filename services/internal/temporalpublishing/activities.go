@@ -58,7 +58,8 @@ func (a *Activities) Prepare(ctx context.Context, input PrepareInput) (PreparedP
 	}
 	return PreparedPublication{
 		AssetMediaType: job.AssetMediaType, AssetObjectKey: job.AssetObjectKey, Assets: job.Assets, Replies: job.Replies, ReplyTo: job.ReplyTo,
-		AutoActions: optionalActions(job.AutoActions), Poll: optionalPoll(job.Poll),
+		AutoActions: optionalActions(job.AutoActions), Poll: optionalPoll(job.Poll), Options: optionalOptions(job.Options),
+		Document: job.Document, Cover: job.Cover,
 		Caption: job.Post.Caption, DestinationID: job.Connection.ExternalAccountID,
 		OrganizationID: job.Post.OrganizationID, Platform: job.Connection.Platform,
 		PostID: job.Post.ID, ProviderSettings: job.Connection.ProviderSettings,
@@ -75,6 +76,7 @@ func (a *Activities) Publish(ctx context.Context, input PublishInput) (PublishRe
 	}
 	providerID, publishErr := a.publish(ctx, socialapi.PublishInput{
 		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets, Replies: input.Job.Replies, ReplyTo: input.Job.ReplyTo, Poll: input.Job.Poll,
+		Options: input.Job.Options, Document: input.Job.Document, Cover: input.Job.Cover,
 		Caption: input.Job.Caption, DestinationID: input.Job.DestinationID,
 		OrganizationID: input.Job.OrganizationID, Platform: input.Job.Platform,
 		PostID:           input.Job.PostID,
@@ -136,6 +138,13 @@ func optionalActions(actions postoptions.AutoActions) *postoptions.AutoActions {
 		return nil
 	}
 	return &actions
+}
+
+func optionalOptions(options postoptions.PublishOptions) *postoptions.PublishOptions {
+	if options.Empty() {
+		return nil
+	}
+	return &options
 }
 
 func optionalPoll(poll postoptions.Poll) *postoptions.Poll {
@@ -234,6 +243,7 @@ func (a *Activities) RunAutoActions(ctx context.Context, input AutoActionsInput)
 func (a *Activities) Submit(ctx context.Context, input SubmitInput) (PublishResult, error) {
 	providerID, err := a.publish(ctx, socialapi.PublishInput{
 		AssetMediaType: input.Job.AssetMediaType, AssetObjectKey: input.Job.AssetObjectKey, Assets: input.Job.Assets, Replies: input.Job.Replies, ReplyTo: input.Job.ReplyTo, Poll: input.Job.Poll,
+		Options: input.Job.Options, Document: input.Job.Document, Cover: input.Job.Cover,
 		Caption: input.Job.Caption, DestinationID: input.Job.DestinationID,
 		OrganizationID: input.Job.OrganizationID, Platform: input.Job.Platform,
 		PostID:           input.Job.PostID,

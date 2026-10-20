@@ -36,6 +36,8 @@ const SUPPORTED_CONTENT_TYPES = new Set([
   'font/woff2',
   'font/ttf',
   'font/otf',
+  // LinkedIn documents (RFC 042).
+  'application/pdf',
 ])
 
 /** Mirrors the server-side ceiling so oversized files fail before upload. */
@@ -90,8 +92,12 @@ function assertSupported(blob: Blob): void {
     )
   }
 
-  if (blob.size > MAX_ASSET_BYTES) {
-    throw new WorkspaceSaveError('This export is larger than the 50 MB asset limit.', 'too-large')
+  const limit = blob.type === 'application/pdf' ? 2 * MAX_ASSET_BYTES : MAX_ASSET_BYTES
+  if (blob.size > limit) {
+    throw new WorkspaceSaveError(
+      `This file is larger than the ${limit / 1024 / 1024} MB asset limit.`,
+      'too-large'
+    )
   }
 }
 

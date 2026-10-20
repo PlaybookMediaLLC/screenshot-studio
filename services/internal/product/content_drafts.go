@@ -6,18 +6,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
 
+	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdrafttag"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
@@ -88,22 +93,46 @@ type ContentDraftRecord struct {
 	PlannedFor         *time.Time        `json:"plannedFor"`
 	PrimaryPlatform    *string           `json:"primaryPlatform"`
 	SocialSetID        *string           `json:"socialSetId"`
-	Tags               []string          `json:"tags"`
+	// Write (RFC 042): the draft's kind and target, platform versions,
+	// article, internal scratchpad, tags of its set, pin and plan zone.
+	Article          *draftdoc.Article         `json:"article"`
+	Kind             string                    `json:"kind"`
+	PinnedAt         *time.Time                `json:"pinnedAt"`
+	PlanTimeZone     *string                   `json:"planTimeZone"`
+	PlatformVersions draftdoc.PlatformVersions `json:"platformVersions"`
+	Scratchpad       string                    `json:"scratchpad"`
+	SourceDraftID    *string                   `json:"sourceDraftId"`
+	TagIDs           []string                  `json:"tagIds"`
+	Target           *draftdoc.Target          `json:"target"`
+	// Lists only: posts waiting to go out, the next one's time, and posts
+	// that failed or whose outcome is unknown, which need attention.
+	AttentionPosts int        `json:"attentionPosts"`
+	NextPostAt     *time.Time `json:"nextPostAt"`
+	QueuedPosts    int        `json:"queuedPosts"`
 }
 
-// ContentDraftPage is one page of a workspace's drafts, newest first.
+// ContentDraftPage is one page of a workspace's drafts in the asked order.
+// Pinned drafts come first, in Pinned, on the first page only.
 type ContentDraftPage struct {
 	Items      []ContentDraftRecord `json:"items"`
 	NextCursor *string              `json:"nextCursor"`
+	Pinned     []ContentDraftRecord `json:"pinned"`
 }
 
 // ContentDraftListQuery filters a draft list. Status is empty for every
-// status except archived; SocialSetID is empty for every set the actor sees.
+// status except archived. View, when set, is a lifecycle tab: drafts (not
+// yet live), posted (something went live), or archived. Sort is updated_desc
+// (the default), updated_asc, created_desc or created_asc.
 type ContentDraftListQuery struct {
 	Cursor      string
+	Kind        string
 	Limit       int
+	Search      string
 	SocialSetID string
+	Sort        string
 	Status      string
+	TagID       string
+	View        string
 }
 
 // ContentDraftInput is a new draft. Every field is optional.
@@ -119,6 +148,15 @@ type ContentDraftInput struct {
 	// default set. Without ChannelConnectionIDs the draft starts with the
 	// set's default platforms.
 	SocialSetID string `json:"socialSetId"`
+	// Write (RFC 042): the kind and its target, the platform the body is
+	// written for (the set's primary when empty), versions, tags of the set.
+	Article          *draftdoc.Article          `json:"article"`
+	Kind             string                     `json:"kind"`
+	PlatformVersions *draftdoc.PlatformVersions `json:"platformVersions"`
+	PrimaryPlatform  string                     `json:"primaryPlatform"`
+	Scratchpad       string                     `json:"scratchpad"`
+	TagIDs           []string                   `json:"tagIds"`
+	Target           *draftdoc.Target           `json:"target"`
 }
 
 // ContentDraftUpdate changes the fields it sets, based on BaseVersion.
@@ -136,9 +174,12 @@ type ContentDraftUpdate struct {
 	// The draft's own choices, which start as copies of its set's defaults.
 	NaturalPostingTime *bool   `json:"naturalPostingTime"`
 	PrimaryPlatform    *string `json:"primaryPlatform"`
-	// Tags and PlannedFor are experiments; PlannedFor is RFC 3339, or empty to clear.
-	PlannedFor *string   `json:"plannedFor"`
-	Tags       *[]string `json:"tags"`
+	// PlannedFor is an experiment; RFC 3339, or empty to clear.
+	PlannedFor *string `json:"plannedFor"`
+	// Write (RFC 042): content that bumps the version like the body.
+	Article          *draftdoc.Article          `json:"article"`
+	PlatformVersions *draftdoc.PlatformVersions `json:"platformVersions"`
+	Target           *draftdoc.Target           `json:"target"`
 }
 
 func contentDraftRecord(row *ent.ContentDraft) ContentDraftRecord {
@@ -150,7 +191,19 @@ func contentDraftRecord(row *ent.ContentDraft) ContentDraftRecord {
 		ReviewStatus: string(row.ReviewStatus), ReviewedByUserID: row.ReviewedByUserID, ShareToken: row.ShareToken,
 		GuestComments: nonNilComments(row.GuestComments), Engagement: row.Engagement,
 		NaturalPostingTime: row.NaturalPostingTime, PlannedFor: row.PlannedFor, PrimaryPlatform: row.PrimaryPlatform,
-		SocialSetID: row.SocialSetID, Tags: nonNilStrings(row.Tags)}
+		SocialSetID: row.SocialSetID, Article: row.Article, Kind: string(row.Kind), PinnedAt: row.PinnedAt,
+		PlanTimeZone: row.PlanTimeZone, PlatformVersions: nonNilVersions(row.PlatformVersions), Scratchpad: row.Scratchpad,
+		SourceDraftID: row.SourceDraftID, TagIDs: nonNilStrings(row.TagIds), Target: row.Target}
+}
+
+func nonNilVersions(doc draftdoc.PlatformVersions) draftdoc.PlatformVersions {
+	if doc.Versions == nil {
+		doc.Versions = []draftdoc.PlatformVersion{}
+	}
+	if doc.SchemaVersion == 0 {
+		doc.SchemaVersion = draftdoc.SchemaVersion
+	}
+	return doc
 }
 
 func nonNilBody(body []any) []any {
@@ -386,30 +439,6 @@ func (c *Configuration) draftDefaults(ctx context.Context, tx *ent.Tx, actor Act
 	return set, channels, primary, nil
 }
 
-// draftTags normalizes tags: trimmed, lowercase, distinct, at most ten of at
-// most 32 characters.
-func draftTags(tags []string) ([]string, error) {
-	seen := map[string]bool{}
-	out := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		tag = strings.ToLower(strings.TrimSpace(tag))
-		if tag == "" {
-			continue
-		}
-		if utf8.RuneCountInString(tag) > 32 {
-			return nil, invalid("Keep each tag to 32 characters.")
-		}
-		if !seen[tag] {
-			seen[tag] = true
-			out = append(out, tag)
-		}
-	}
-	if len(out) > 10 {
-		return nil, invalid("Add at most 10 tags to a draft.")
-	}
-	return out, nil
-}
-
 // authorizeContentDrafts checks the role and the plan for a draft operation.
 func (c *Configuration) authorizeContentDrafts(ctx context.Context, actor Actor, write bool) error {
 	var err error
@@ -422,6 +451,47 @@ func (c *Configuration) authorizeContentDrafts(ctx context.Context, actor Actor,
 		return err
 	}
 	return c.requireWorkspaceFeature(ctx, actor.OrganizationID, contentDraftFeature)
+}
+
+// loadDraft reads a draft of the actor's workspace that the actor may see:
+// one in another workspace or in someone else's private set is not found.
+func (c *Configuration) loadDraft(ctx context.Context, actor Actor, id string) (*ent.ContentDraft, error) {
+	return visibleContentDraft(ctx, c.client, actor, id)
+}
+
+// draftPrimary is the platform a draft's body is written for: its own, or X
+// for a draft whose set had no default platform.
+func draftPrimary(row *ent.ContentDraft) string {
+	if row.PrimaryPlatform != nil && draftPlatformChannels[*row.PrimaryPlatform] != "" {
+		return draftPlatformChannels[*row.PrimaryPlatform]
+	}
+	return "x"
+}
+
+// sameString reports whether two optional strings are equal.
+func sameString(a, b *string) bool {
+	return (a == nil) == (b == nil) && (a == nil || *a == *b)
+}
+
+// draftTagIDs checks tag ids against the draft's set. Tags are behind the
+// draft-tags experiment.
+func (c *Configuration) draftTagIDs(ctx context.Context, tx *ent.Tx, actor Actor, setID string, ids []string) ([]string, error) {
+	ids, err := uniqueIDs(ids, contentDraftTagLimit, "tag")
+	if err != nil || len(ids) == 0 {
+		return ids, err
+	}
+	if err := c.requireExperiment(ctx, actor, ExperimentDraftTags); err != nil {
+		return nil, err
+	}
+	count, err := tx.ContentDraftTag.Query().Where(contentdrafttag.IDIn(ids...), contentdrafttag.OrganizationID(actor.OrganizationID),
+		contentdrafttag.SocialSetID(setID)).Count(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if count != len(ids) {
+		return nil, invalid("Every tag must belong to the draft's social set.")
+	}
+	return ids, nil
 }
 
 func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, input ContentDraftInput) (*ContentDraftRecord, error) {
@@ -448,39 +518,103 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 	if err != nil {
 		return nil, err
 	}
+	scratchpad, err := draftScratchpad(input.Scratchpad)
+	if err != nil {
+		return nil, err
+	}
+	kind := input.Kind
+	if kind == "" {
+		kind = "standard"
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
-	assets, err := contentDraftAssets(ctx, tx, actor.OrganizationID, input.AssetIDs)
+	set, defaults, defaultPrimary, err := c.draftDefaults(ctx, tx, actor, input.SocialSetID)
 	if err != nil {
 		return nil, err
 	}
-	set, defaults, primary, err := c.draftDefaults(ctx, tx, actor, input.SocialSetID)
+	primary := input.PrimaryPlatform
+	if primary == "" {
+		primary = "x"
+		// A set names a platform; the body is written for its channel.
+		if defaultPrimary != nil && draftPlatformChannels[*defaultPrimary] != "" {
+			primary = draftPlatformChannels[*defaultPrimary]
+		}
+		// Replies and articles are X's; a quote is the platform of the post it quotes.
+		if kind == "reply" || kind == "article" || kind == "quote" && (input.Target == nil || !strings.Contains(input.Target.URL, "linkedin.com")) {
+			primary = "x"
+		} else if kind == "quote" {
+			primary = "linkedin"
+		}
+	}
+	if err := draftKindChannel(kind, primary); err != nil {
+		return nil, err
+	}
+	target, err := draftTarget(kind, input.Target)
 	if err != nil {
 		return nil, err
 	}
+	if err := draftTargetChannel(kind, primary, target); err != nil {
+		return nil, err
+	}
+	article, err := draftArticle(kind, input.Article)
+	if err != nil {
+		return nil, err
+	}
+	versions := draftdoc.PlatformVersions{}
+	if input.PlatformVersions != nil {
+		versions = *input.PlatformVersions
+	}
+	if versions, err = draftPlatformVersions(versions, primary); err != nil {
+		return nil, err
+	}
+	assets, err := contentDraftAssets(ctx, tx, actor.OrganizationID, append(append([]string{}, input.AssetIDs...), versionDocumentAssets(versions)...))
+	if err != nil {
+		return nil, err
+	}
+	assets = slices.DeleteFunc(assets, func(id string) bool {
+		return slices.Contains(versionDocumentAssets(versions), id) && !slices.Contains(input.AssetIDs, id)
+	})
 	channels := defaults
 	if input.ChannelConnectionIDs != nil {
 		if channels, err = contentDraftChannels(ctx, tx, actor.OrganizationID, &set.ID, input.ChannelConnectionIDs); err != nil {
 			return nil, err
 		}
+	} else if kind == "article" || kind == "reply" || kind == "quote" {
+		// These kinds publish only on their primary platform.
+		channels = slices.DeleteFunc(slices.Clone(channels), func(id string) bool {
+			connection, err := tx.ChannelConnection.Get(ctx, id)
+			return err != nil || draftPlatformChannels[connection.Platform] != primary
+		})
 	}
-	engagement := set.EngagementDefaults
+	tags, err := c.draftTagIDs(ctx, tx, actor, set.ID, input.TagIDs)
+	if err != nil {
+		return nil, err
+	}
 	draftID := cuid.New()
 	if err = recordDiscussionActivity(ctx, tx, actor, &ent.ContentDraft{ID: draftID, Discussions: map[string]any{}}, discussions); err != nil {
 		return nil, err
 	}
-	row, err := tx.ContentDraft.Create().SetID(draftID).SetOrganizationID(actor.OrganizationID).SetTitle(title).
+	create := tx.ContentDraft.Create().SetID(draftID).SetOrganizationID(actor.OrganizationID).SetTitle(title).
 		SetBody(body).SetPlainText(text).SetAssetIds(assets).SetChannelConnectionIds(channels).SetDiscussions(discussions).SetChannelText(channelText).
-		SetSocialSetID(set.ID).SetNillablePrimaryPlatform(primary).SetNaturalPostingTime(set.NaturalPostingTimes).
-		SetEngagement(engagement).
-		SetNillableCreatedByUserID(projectActor(actor)).SetNillableUpdatedByUserID(projectActor(actor)).Save(ctx)
+		SetSocialSetID(set.ID).SetPrimaryPlatform(primary).SetNaturalPostingTime(set.NaturalPostingTimes).
+		SetEngagement(set.EngagementDefaults).
+		SetKind(contentdraft.Kind(kind)).SetPlatformVersions(versions).SetScratchpad(scratchpad).SetTagIds(tags).
+		SetNillableCreatedByUserID(projectActor(actor)).SetNillableUpdatedByUserID(projectActor(actor))
+	if target != nil {
+		create.SetTarget(target)
+	}
+	if article != nil {
+		create.SetArticle(article)
+	}
+	row, err := create.Save(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_created", "content_draft", row.ID); err != nil {
+	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_created", "content_draft", row.ID,
+		map[string]any{"kind": kind, "socialSetId": set.ID}); err != nil {
 		return nil, err
 	}
 	if err := emitDraftEvent(ctx, tx, row, webhooks.DraftCreated, nil); err != nil {
@@ -505,6 +639,92 @@ func (c *Configuration) GetContentDraft(ctx context.Context, actor Actor, id str
 	return &result, nil
 }
 
+// contentDraftOrder is a list's sort: the field, and newest or oldest first.
+type contentDraftOrder struct {
+	field string
+	desc  bool
+}
+
+var contentDraftOrders = map[string]contentDraftOrder{
+	"": {contentdraft.FieldUpdatedAt, true}, "updated_desc": {contentdraft.FieldUpdatedAt, true},
+	"updated_asc": {contentdraft.FieldUpdatedAt, false}, "created_desc": {contentdraft.FieldCreatedAt, true},
+	"created_asc": {contentdraft.FieldCreatedAt, false},
+}
+
+// draftPostExists matches drafts with a post in one of the statuses.
+func draftPostExists(statuses ...string) predicate.ContentDraft {
+	return func(s *sql.Selector) {
+		posts := sql.Table(scheduledpost.Table)
+		values := make([]any, 0, len(statuses))
+		for _, status := range statuses {
+			values = append(values, status)
+		}
+		s.Where(sql.Exists(sql.Select(posts.C(scheduledpost.FieldID)).From(posts).Where(sql.And(
+			sql.ColumnsEQ(posts.C(scheduledpost.FieldContentDraftID), s.C(contentdraft.FieldID)),
+			sql.In(posts.C(scheduledpost.FieldStatus), values...)))))
+	}
+}
+
+// draftListFilters turns a list query into predicates.
+func (c *Configuration) draftListFilters(ctx context.Context, actor Actor, query ContentDraftListQuery) ([]predicate.ContentDraft, error) {
+	filters := []predicate.ContentDraft{contentdraft.OrganizationID(actor.OrganizationID)}
+	var sets predicate.ContentDraft
+	var err error
+	if query.SocialSetID != "" {
+		sets, err = c.draftSetFilter(ctx, actor, query.SocialSetID)
+	} else {
+		sets, err = c.draftVisibilityPredicate(ctx, actor)
+	}
+	if err != nil {
+		return nil, err
+	}
+	filters = append(filters, sets)
+	switch query.Status {
+	case "":
+		if query.View == "" {
+			filters = append(filters, contentdraft.StatusNEQ(contentdraft.StatusArchived))
+		}
+	case "draft", "scheduled", "archived":
+		filters = append(filters, contentdraft.StatusEQ(contentdraft.Status(query.Status)))
+	default:
+		return nil, invalid("Filter by draft, scheduled, or archived.")
+	}
+	switch query.View {
+	case "":
+	case "drafts":
+		filters = append(filters, contentdraft.StatusNEQ(contentdraft.StatusArchived), contentdraft.Not(draftPostExists("PUBLISHED")))
+	case "posted":
+		filters = append(filters, contentdraft.StatusNEQ(contentdraft.StatusArchived), draftPostExists("PUBLISHED"))
+	case "archived":
+		filters = append(filters, contentdraft.StatusEQ(contentdraft.StatusArchived))
+	default:
+		return nil, invalid("A view is drafts, posted, or archived.")
+	}
+	if query.Kind != "" {
+		if _, ok := draftKindChannels[query.Kind]; !ok {
+			return nil, invalid("Filter by a draft kind.")
+		}
+		filters = append(filters, contentdraft.KindEQ(contentdraft.Kind(query.Kind)))
+	}
+	if search := strings.TrimSpace(query.Search); search != "" {
+		if utf8.RuneCountInString(search) > 200 {
+			return nil, invalid("Search for at most 200 characters.")
+		}
+		filters = append(filters, contentdraft.Or(contentdraft.TitleContainsFold(search), contentdraft.PlainTextContainsFold(search),
+			contentdraft.ScratchpadContainsFold(search)))
+	}
+	if query.TagID != "" {
+		if !contentDraftRefPattern.MatchString(query.TagID) {
+			return nil, invalid("Filter by a valid tag.")
+		}
+		tag := query.TagID
+		filters = append(filters, func(s *sql.Selector) {
+			s.Where(sqljson.ValueContains(s.C(contentdraft.FieldTagIds), tag))
+		})
+	}
+	return filters, nil
+}
+
 func (c *Configuration) ListContentDrafts(ctx context.Context, actor Actor, query ContentDraftListQuery) (*ContentDraftPage, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
@@ -512,59 +732,116 @@ func (c *Configuration) ListContentDrafts(ctx context.Context, actor Actor, quer
 	if query.Limit < 1 || query.Limit > 100 {
 		query.Limit = 24
 	}
-	visible, err := c.draftVisibilityPredicate(ctx, actor)
+	order, ok := contentDraftOrders[query.Sort]
+	if !ok {
+		return nil, invalid("Sort by updated_desc, updated_asc, created_desc or created_asc.")
+	}
+	filters, err := c.draftListFilters(ctx, actor, query)
 	if err != nil {
 		return nil, err
 	}
-	rows := c.client.ContentDraft.Query().Where(contentdraft.OrganizationID(actor.OrganizationID), visible)
-	if query.SocialSetID != "" {
-		rows.Where(contentdraft.SocialSetID(query.SocialSetID))
+	page := &ContentDraftPage{Items: []ContentDraftRecord{}, Pinned: []ContentDraftRecord{}}
+	var pinned []*ent.ContentDraft
+	if query.Cursor == "" {
+		pinned, err = c.client.ContentDraft.Query().Where(append(filters, contentdraft.PinnedAtNotNil())...).
+			Order(ent.Desc(contentdraft.FieldPinnedAt), ent.Desc(contentdraft.FieldID)).Limit(50).All(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
-	switch query.Status {
-	case "":
-		rows.Where(contentdraft.StatusNEQ(contentdraft.StatusArchived))
-	case "draft", "scheduled", "archived":
-		rows.Where(contentdraft.StatusEQ(contentdraft.Status(query.Status)))
-	default:
-		return nil, invalid("Filter by draft, scheduled, or archived.")
-	}
+	rows := c.client.ContentDraft.Query().Where(append(filters, contentdraft.PinnedAtIsNil())...)
 	if query.Cursor != "" {
 		at, id, err := decodeTimeCursor(query.Cursor)
 		if err != nil {
 			return nil, err
 		}
-		rows.Where(contentdraft.Or(contentdraft.UpdatedAtLT(at), contentdraft.And(contentdraft.UpdatedAt(at), contentdraft.IDLT(id))))
+		if order.desc {
+			rows.Where(func(s *sql.Selector) {
+				s.Where(sql.Or(sql.LT(s.C(order.field), at), sql.And(sql.EQ(s.C(order.field), at), sql.LT(s.C(contentdraft.FieldID), id))))
+			})
+		} else {
+			rows.Where(func(s *sql.Selector) {
+				s.Where(sql.Or(sql.GT(s.C(order.field), at), sql.And(sql.EQ(s.C(order.field), at), sql.GT(s.C(contentdraft.FieldID), id))))
+			})
+		}
 	}
-	found, err := rows.Order(ent.Desc(contentdraft.FieldUpdatedAt), ent.Desc(contentdraft.FieldID)).Limit(query.Limit + 1).All(ctx)
+	direction := ent.Asc
+	if order.desc {
+		direction = ent.Desc
+	}
+	found, err := rows.Order(direction(order.field), direction(contentdraft.FieldID)).Limit(query.Limit + 1).All(ctx)
 	if err != nil {
 		return nil, err
 	}
-	page := &ContentDraftPage{Items: make([]ContentDraftRecord, 0, len(found))}
 	if len(found) > query.Limit {
 		found = found[:query.Limit]
 		last := found[len(found)-1]
-		next := encodeTimeCursor(last.UpdatedAt, last.ID)
+		value := last.UpdatedAt
+		if order.field == contentdraft.FieldCreatedAt {
+			value = last.CreatedAt
+		}
+		next := encodeTimeCursor(value, last.ID)
 		page.NextCursor = &next
 	}
-	ids := make([]string, 0, len(found))
-	for _, row := range found {
-		ids = append(ids, row.ID)
-	}
-	live, err := c.client.ScheduledPost.Query().Where(scheduledpost.ContentDraftIDIn(ids...),
-		scheduledpost.OrganizationID(actor.OrganizationID), scheduledpost.StatusEQ(scheduledpost.StatusPUBLISHED)).All(ctx)
+	all := append(append([]*ent.ContentDraft{}, pinned...), found...)
+	summaries, err := c.draftPostSummaries(ctx, actor, all)
 	if err != nil {
 		return nil, err
 	}
-	published := map[string]int{}
-	for _, post := range live {
-		published[*post.ContentDraftID]++
+	for _, row := range pinned {
+		page.Pinned = append(page.Pinned, summaries(row))
 	}
 	for _, row := range found {
-		record := contentDraftRecord(row)
-		record.PublishedPosts = published[row.ID]
-		page.Items = append(page.Items, record)
+		page.Items = append(page.Items, summaries(row))
 	}
 	return page, nil
+}
+
+// draftPostSummaries reads the posts of listed drafts once, for each row's
+// live, queued and attention counts and next post time.
+func (c *Configuration) draftPostSummaries(ctx context.Context, actor Actor, rows []*ent.ContentDraft) (func(*ent.ContentDraft) ContentDraftRecord, error) {
+	ids := make([]string, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.ID)
+	}
+	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.ContentDraftIDIn(ids...),
+		scheduledpost.OrganizationID(actor.OrganizationID), scheduledpost.StatusIn(scheduledpost.StatusPUBLISHED,
+			scheduledpost.StatusSCHEDULED, scheduledpost.StatusPROCESSING, scheduledpost.StatusFAILED,
+			scheduledpost.StatusUNKNOWN_DELIVERY)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	type summary struct {
+		attention, published, queued int
+		next                         *time.Time
+	}
+	byDraft := map[string]*summary{}
+	for _, post := range posts {
+		item := byDraft[*post.ContentDraftID]
+		if item == nil {
+			item = &summary{}
+			byDraft[*post.ContentDraftID] = item
+		}
+		switch post.Status {
+		case scheduledpost.StatusPUBLISHED:
+			item.published++
+		case scheduledpost.StatusSCHEDULED, scheduledpost.StatusPROCESSING:
+			item.queued++
+			if item.next == nil || post.ScheduledFor.Before(*item.next) {
+				at := post.ScheduledFor
+				item.next = &at
+			}
+		default:
+			item.attention++
+		}
+	}
+	return func(row *ent.ContentDraft) ContentDraftRecord {
+		record := contentDraftRecord(row)
+		if item := byDraft[row.ID]; item != nil {
+			record.AttentionPosts, record.PublishedPosts, record.QueuedPosts, record.NextPostAt = item.attention, item.published, item.queued, item.next
+		}
+		return record
+	}, nil
 }
 
 func encodeTimeCursor(at time.Time, id string) string {
@@ -586,18 +863,8 @@ func decodeTimeCursor(raw string) (time.Time, string, error) {
 }
 
 // applyContentDraftUpdate validates the fields an update sets onto the update builder.
-func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx, actor Actor, draft *ent.ContentDraft,
+func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx, actor Actor, current *ent.ContentDraft,
 	update *ent.ContentDraftUpdate, input ContentDraftUpdate) error {
-	if input.Tags != nil {
-		if err := c.requireExperiment(ctx, actor, ExperimentDraftTags); err != nil {
-			return err
-		}
-		tags, err := draftTags(*input.Tags)
-		if err != nil {
-			return err
-		}
-		update.SetTags(tags)
-	}
 	if input.PlannedFor != nil {
 		if err := c.requireExperiment(ctx, actor, ExperimentDraftPlanning); err != nil {
 			return err
@@ -614,15 +881,6 @@ func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx,
 	}
 	if input.NaturalPostingTime != nil {
 		update.SetNaturalPostingTime(*input.NaturalPostingTime)
-	}
-	if input.PrimaryPlatform != nil {
-		if *input.PrimaryPlatform == "" {
-			update.ClearPrimaryPlatform()
-		} else if _, ok := draftPlatformChannels[*input.PrimaryPlatform]; !ok {
-			return invalid("The primary platform is a draft platform.")
-		} else {
-			update.SetPrimaryPlatform(*input.PrimaryPlatform)
-		}
 	}
 	if input.Title != nil {
 		title, err := contentDraftTitle(*input.Title)
@@ -645,6 +903,62 @@ func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx,
 		}
 		update.SetPlainText(text)
 	}
+	primary := draftPrimary(current)
+	if input.PrimaryPlatform != nil {
+		if *input.PrimaryPlatform == "" {
+			update.ClearPrimaryPlatform()
+			primary = "x"
+		} else {
+			if _, ok := draftPlatformChannels[*input.PrimaryPlatform]; !ok {
+				return invalid("The primary platform is a draft platform.")
+			}
+			primary = *input.PrimaryPlatform
+			update.SetPrimaryPlatform(primary)
+		}
+		if err := draftKindChannel(string(current.Kind), primary); err != nil {
+			return err
+		}
+	}
+	versions := current.PlatformVersions
+	if input.PlatformVersions != nil {
+		versions = *input.PlatformVersions
+	}
+	if input.PlatformVersions != nil || input.PrimaryPlatform != nil {
+		checked, err := draftPlatformVersions(versions, primary)
+		if err != nil {
+			return err
+		}
+		if _, err := contentDraftAssets(ctx, tx, actor.OrganizationID, versionDocumentAssets(checked)); err != nil {
+			return err
+		}
+		update.SetPlatformVersions(checked)
+	}
+	if input.Target != nil {
+		target, err := draftTarget(string(current.Kind), input.Target)
+		if err != nil {
+			return err
+		}
+		if err := draftTargetChannel(string(current.Kind), primary, target); err != nil {
+			return err
+		}
+		if target == nil {
+			update.ClearTarget()
+		} else {
+			update.SetTarget(target)
+		}
+	}
+	if input.Article != nil {
+		article, err := draftArticle(string(current.Kind), input.Article)
+		if err != nil {
+			return err
+		}
+		if article != nil && article.CoverAssetID != "" {
+			if _, err := contentDraftAssets(ctx, tx, actor.OrganizationID, []string{article.CoverAssetID}); err != nil {
+				return err
+			}
+		}
+		update.SetArticle(article)
+	}
 	if input.AssetIDs != nil {
 		assets, err := contentDraftAssets(ctx, tx, actor.OrganizationID, *input.AssetIDs)
 		if err != nil {
@@ -653,7 +967,7 @@ func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx,
 		update.SetAssetIds(assets)
 	}
 	if input.ChannelConnectionIDs != nil {
-		channels, err := contentDraftChannels(ctx, tx, actor.OrganizationID, draft.SocialSetID, *input.ChannelConnectionIDs)
+		channels, err := contentDraftChannels(ctx, tx, actor.OrganizationID, current.SocialSetID, *input.ChannelConnectionIDs)
 		if err != nil {
 			return err
 		}
@@ -689,21 +1003,30 @@ func (c *Configuration) UpdateContentDraft(ctx context.Context, actor Actor, id 
 	if input.BaseVersion < 1 {
 		return nil, invalid("baseVersion is required.")
 	}
+	if _, err := c.loadDraft(ctx, actor, id); err != nil {
+		return nil, err
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
-	if input.Discussions != nil {
-		if _, err = tx.PlatformExec(ctx, `SELECT id FROM content_draft WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, id, actor.OrganizationID); err != nil {
-			return nil, err
-		}
+	if _, err = tx.PlatformExec(ctx, `SELECT id FROM content_draft WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, id, actor.OrganizationID); err != nil {
+		return nil, err
 	}
 	previous, err := visibleContentDraft(ctx, tx.Client(), actor, id)
 	if err != nil {
 		return nil, err
 	}
 	if input.Discussions != nil {
+		if _, err := contentDraftDiscussions(*input.Discussions); err != nil {
+			return nil, err
+		}
+		kept, err := keepOthersComments(ctx, tx, actor, previous.Discussions, *input.Discussions)
+		if err != nil {
+			return nil, err
+		}
+		input.Discussions = &kept
 		if err = recordDiscussionActivity(ctx, tx, actor, previous, *input.Discussions); err != nil {
 			return nil, err
 		}
@@ -726,11 +1049,11 @@ func (c *Configuration) UpdateContentDraft(ctx context.Context, actor Actor, id 
 	if err != nil {
 		return nil, err
 	}
-	if err := recordContentDraftRevision(ctx, tx, actor, row, false); err != nil {
+	if err := recordContentDraftRevision(ctx, tx, actor, row, false, "edit"); err != nil {
 		return nil, err
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_updated", "content_draft", id,
-		map[string]any{"version": row.Version}); err != nil {
+		draftChangeMetadata(previous, row)); err != nil {
 		return nil, err
 	}
 	if err := emitDraftChanges(ctx, tx, previous, row); err != nil {
@@ -741,6 +1064,38 @@ func (c *Configuration) UpdateContentDraft(ctx context.Context, actor Actor, id 
 	}
 	result := contentDraftRecord(row)
 	return &result, nil
+}
+
+// draftChangeMetadata names what an update changed, for the activity
+// timeline: never the text itself.
+func draftChangeMetadata(before, after *ent.ContentDraft) map[string]any {
+	changed := []string{}
+	if before.Title != after.Title {
+		changed = append(changed, "title")
+	}
+	if before.PlainText != after.PlainText || !sameJSON(before.Body, after.Body) {
+		changed = append(changed, "content")
+	}
+	if !slices.Equal(before.ChannelConnectionIds, after.ChannelConnectionIds) {
+		changed = append(changed, "destinations")
+	}
+	if !sameJSON(before.PlatformVersions, after.PlatformVersions) || !sameString(before.PrimaryPlatform, after.PrimaryPlatform) {
+		changed = append(changed, "platform_versions")
+	}
+	if before.Status != after.Status {
+		changed = append(changed, "status:"+string(after.Status))
+	}
+	if !sameJSON(before.Target, after.Target) || !sameJSON(before.Article, after.Article) {
+		changed = append(changed, "details")
+	}
+	return map[string]any{"version": after.Version, "changed": changed}
+}
+
+// sameJSON reports whether two values encode alike.
+func sameJSON(a, b any) bool {
+	left, _ := json.Marshal(a)
+	right, _ := json.Marshal(b)
+	return string(left) == string(right)
 }
 
 // contentDraftMiss explains a guarded write that touched no row: the draft is
@@ -758,6 +1113,9 @@ func contentDraftMiss(ctx context.Context, tx *ent.Tx, actor Actor, id string) e
 
 func (c *Configuration) DeleteContentDraft(ctx context.Context, actor Actor, id string) error {
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
+		return err
+	}
+	if _, err := c.loadDraft(ctx, actor, id); err != nil {
 		return err
 	}
 	tx, err := c.client.Tx(ctx)

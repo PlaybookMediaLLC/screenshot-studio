@@ -124,6 +124,26 @@ func PlannedFor(v time.Time) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldPlannedFor, v))
 }
 
+// Scratchpad applies equality check predicate on the "scratchpad" field. It's identical to ScratchpadEQ.
+func Scratchpad(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldScratchpad, v))
+}
+
+// PinnedAt applies equality check predicate on the "pinned_at" field. It's identical to PinnedAtEQ.
+func PinnedAt(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldPinnedAt, v))
+}
+
+// PlanTimeZone applies equality check predicate on the "plan_time_zone" field. It's identical to PlanTimeZoneEQ.
+func PlanTimeZone(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldPlanTimeZone, v))
+}
+
+// SourceDraftID applies equality check predicate on the "source_draft_id" field. It's identical to SourceDraftIDEQ.
+func SourceDraftID(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldSourceDraftID, v))
+}
+
 // CollabState applies equality check predicate on the "collab_state" field. It's identical to CollabStateEQ.
 func CollabState(v []byte) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldCollabState, v))
@@ -907,6 +927,311 @@ func PlannedForIsNil() predicate.ContentDraft {
 // PlannedForNotNil applies the NotNil predicate on the "planned_for" field.
 func PlannedForNotNil() predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldNotNull(FieldPlannedFor))
+}
+
+// KindEQ applies the EQ predicate on the "kind" field.
+func KindEQ(v Kind) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldKind, v))
+}
+
+// KindNEQ applies the NEQ predicate on the "kind" field.
+func KindNEQ(v Kind) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldKind, v))
+}
+
+// KindIn applies the In predicate on the "kind" field.
+func KindIn(vs ...Kind) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldKind, vs...))
+}
+
+// KindNotIn applies the NotIn predicate on the "kind" field.
+func KindNotIn(vs ...Kind) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldKind, vs...))
+}
+
+// TargetIsNil applies the IsNil predicate on the "target" field.
+func TargetIsNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIsNull(FieldTarget))
+}
+
+// TargetNotNil applies the NotNil predicate on the "target" field.
+func TargetNotNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotNull(FieldTarget))
+}
+
+// ArticleIsNil applies the IsNil predicate on the "article" field.
+func ArticleIsNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIsNull(FieldArticle))
+}
+
+// ArticleNotNil applies the NotNil predicate on the "article" field.
+func ArticleNotNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotNull(FieldArticle))
+}
+
+// ScratchpadEQ applies the EQ predicate on the "scratchpad" field.
+func ScratchpadEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldScratchpad, v))
+}
+
+// ScratchpadNEQ applies the NEQ predicate on the "scratchpad" field.
+func ScratchpadNEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldScratchpad, v))
+}
+
+// ScratchpadIn applies the In predicate on the "scratchpad" field.
+func ScratchpadIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldScratchpad, vs...))
+}
+
+// ScratchpadNotIn applies the NotIn predicate on the "scratchpad" field.
+func ScratchpadNotIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldScratchpad, vs...))
+}
+
+// ScratchpadGT applies the GT predicate on the "scratchpad" field.
+func ScratchpadGT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldScratchpad, v))
+}
+
+// ScratchpadGTE applies the GTE predicate on the "scratchpad" field.
+func ScratchpadGTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldScratchpad, v))
+}
+
+// ScratchpadLT applies the LT predicate on the "scratchpad" field.
+func ScratchpadLT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldScratchpad, v))
+}
+
+// ScratchpadLTE applies the LTE predicate on the "scratchpad" field.
+func ScratchpadLTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldScratchpad, v))
+}
+
+// ScratchpadContains applies the Contains predicate on the "scratchpad" field.
+func ScratchpadContains(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContains(FieldScratchpad, v))
+}
+
+// ScratchpadHasPrefix applies the HasPrefix predicate on the "scratchpad" field.
+func ScratchpadHasPrefix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasPrefix(FieldScratchpad, v))
+}
+
+// ScratchpadHasSuffix applies the HasSuffix predicate on the "scratchpad" field.
+func ScratchpadHasSuffix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasSuffix(FieldScratchpad, v))
+}
+
+// ScratchpadEqualFold applies the EqualFold predicate on the "scratchpad" field.
+func ScratchpadEqualFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEqualFold(FieldScratchpad, v))
+}
+
+// ScratchpadContainsFold applies the ContainsFold predicate on the "scratchpad" field.
+func ScratchpadContainsFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContainsFold(FieldScratchpad, v))
+}
+
+// PinnedAtEQ applies the EQ predicate on the "pinned_at" field.
+func PinnedAtEQ(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldPinnedAt, v))
+}
+
+// PinnedAtNEQ applies the NEQ predicate on the "pinned_at" field.
+func PinnedAtNEQ(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldPinnedAt, v))
+}
+
+// PinnedAtIn applies the In predicate on the "pinned_at" field.
+func PinnedAtIn(vs ...time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldPinnedAt, vs...))
+}
+
+// PinnedAtNotIn applies the NotIn predicate on the "pinned_at" field.
+func PinnedAtNotIn(vs ...time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldPinnedAt, vs...))
+}
+
+// PinnedAtGT applies the GT predicate on the "pinned_at" field.
+func PinnedAtGT(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldPinnedAt, v))
+}
+
+// PinnedAtGTE applies the GTE predicate on the "pinned_at" field.
+func PinnedAtGTE(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldPinnedAt, v))
+}
+
+// PinnedAtLT applies the LT predicate on the "pinned_at" field.
+func PinnedAtLT(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldPinnedAt, v))
+}
+
+// PinnedAtLTE applies the LTE predicate on the "pinned_at" field.
+func PinnedAtLTE(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldPinnedAt, v))
+}
+
+// PinnedAtIsNil applies the IsNil predicate on the "pinned_at" field.
+func PinnedAtIsNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIsNull(FieldPinnedAt))
+}
+
+// PinnedAtNotNil applies the NotNil predicate on the "pinned_at" field.
+func PinnedAtNotNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotNull(FieldPinnedAt))
+}
+
+// PlanTimeZoneEQ applies the EQ predicate on the "plan_time_zone" field.
+func PlanTimeZoneEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldPlanTimeZone, v))
+}
+
+// PlanTimeZoneNEQ applies the NEQ predicate on the "plan_time_zone" field.
+func PlanTimeZoneNEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldPlanTimeZone, v))
+}
+
+// PlanTimeZoneIn applies the In predicate on the "plan_time_zone" field.
+func PlanTimeZoneIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldPlanTimeZone, vs...))
+}
+
+// PlanTimeZoneNotIn applies the NotIn predicate on the "plan_time_zone" field.
+func PlanTimeZoneNotIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldPlanTimeZone, vs...))
+}
+
+// PlanTimeZoneGT applies the GT predicate on the "plan_time_zone" field.
+func PlanTimeZoneGT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldPlanTimeZone, v))
+}
+
+// PlanTimeZoneGTE applies the GTE predicate on the "plan_time_zone" field.
+func PlanTimeZoneGTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldPlanTimeZone, v))
+}
+
+// PlanTimeZoneLT applies the LT predicate on the "plan_time_zone" field.
+func PlanTimeZoneLT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldPlanTimeZone, v))
+}
+
+// PlanTimeZoneLTE applies the LTE predicate on the "plan_time_zone" field.
+func PlanTimeZoneLTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldPlanTimeZone, v))
+}
+
+// PlanTimeZoneContains applies the Contains predicate on the "plan_time_zone" field.
+func PlanTimeZoneContains(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContains(FieldPlanTimeZone, v))
+}
+
+// PlanTimeZoneHasPrefix applies the HasPrefix predicate on the "plan_time_zone" field.
+func PlanTimeZoneHasPrefix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasPrefix(FieldPlanTimeZone, v))
+}
+
+// PlanTimeZoneHasSuffix applies the HasSuffix predicate on the "plan_time_zone" field.
+func PlanTimeZoneHasSuffix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasSuffix(FieldPlanTimeZone, v))
+}
+
+// PlanTimeZoneIsNil applies the IsNil predicate on the "plan_time_zone" field.
+func PlanTimeZoneIsNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIsNull(FieldPlanTimeZone))
+}
+
+// PlanTimeZoneNotNil applies the NotNil predicate on the "plan_time_zone" field.
+func PlanTimeZoneNotNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotNull(FieldPlanTimeZone))
+}
+
+// PlanTimeZoneEqualFold applies the EqualFold predicate on the "plan_time_zone" field.
+func PlanTimeZoneEqualFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEqualFold(FieldPlanTimeZone, v))
+}
+
+// PlanTimeZoneContainsFold applies the ContainsFold predicate on the "plan_time_zone" field.
+func PlanTimeZoneContainsFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContainsFold(FieldPlanTimeZone, v))
+}
+
+// SourceDraftIDEQ applies the EQ predicate on the "source_draft_id" field.
+func SourceDraftIDEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldSourceDraftID, v))
+}
+
+// SourceDraftIDNEQ applies the NEQ predicate on the "source_draft_id" field.
+func SourceDraftIDNEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldSourceDraftID, v))
+}
+
+// SourceDraftIDIn applies the In predicate on the "source_draft_id" field.
+func SourceDraftIDIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldSourceDraftID, vs...))
+}
+
+// SourceDraftIDNotIn applies the NotIn predicate on the "source_draft_id" field.
+func SourceDraftIDNotIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldSourceDraftID, vs...))
+}
+
+// SourceDraftIDGT applies the GT predicate on the "source_draft_id" field.
+func SourceDraftIDGT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldSourceDraftID, v))
+}
+
+// SourceDraftIDGTE applies the GTE predicate on the "source_draft_id" field.
+func SourceDraftIDGTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldSourceDraftID, v))
+}
+
+// SourceDraftIDLT applies the LT predicate on the "source_draft_id" field.
+func SourceDraftIDLT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldSourceDraftID, v))
+}
+
+// SourceDraftIDLTE applies the LTE predicate on the "source_draft_id" field.
+func SourceDraftIDLTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldSourceDraftID, v))
+}
+
+// SourceDraftIDContains applies the Contains predicate on the "source_draft_id" field.
+func SourceDraftIDContains(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContains(FieldSourceDraftID, v))
+}
+
+// SourceDraftIDHasPrefix applies the HasPrefix predicate on the "source_draft_id" field.
+func SourceDraftIDHasPrefix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasPrefix(FieldSourceDraftID, v))
+}
+
+// SourceDraftIDHasSuffix applies the HasSuffix predicate on the "source_draft_id" field.
+func SourceDraftIDHasSuffix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasSuffix(FieldSourceDraftID, v))
+}
+
+// SourceDraftIDIsNil applies the IsNil predicate on the "source_draft_id" field.
+func SourceDraftIDIsNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIsNull(FieldSourceDraftID))
+}
+
+// SourceDraftIDNotNil applies the NotNil predicate on the "source_draft_id" field.
+func SourceDraftIDNotNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotNull(FieldSourceDraftID))
+}
+
+// SourceDraftIDEqualFold applies the EqualFold predicate on the "source_draft_id" field.
+func SourceDraftIDEqualFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEqualFold(FieldSourceDraftID, v))
+}
+
+// SourceDraftIDContainsFold applies the ContainsFold predicate on the "source_draft_id" field.
+func SourceDraftIDContainsFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContainsFold(FieldSourceDraftID, v))
 }
 
 // CollabStateEQ applies the EQ predicate on the "collab_state" field.

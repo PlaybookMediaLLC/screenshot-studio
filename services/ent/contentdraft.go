@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
 // ContentDraft is the model entity for the ContentDraft schema.
@@ -59,10 +60,26 @@ type ContentDraft struct {
 	NaturalPostingTime bool `json:"natural_posting_time,omitempty"`
 	// Engagement holds the value of the "engagement" field.
 	Engagement schema.Engagement `json:"engagement,omitempty"`
-	// Tags holds the value of the "tags" field.
-	Tags []string `json:"tags,omitempty"`
 	// PlannedFor holds the value of the "planned_for" field.
 	PlannedFor *time.Time `json:"planned_for,omitempty"`
+	// Kind holds the value of the "kind" field.
+	Kind contentdraft.Kind `json:"kind,omitempty"`
+	// Target holds the value of the "target" field.
+	Target *draftdoc.Target `json:"target,omitempty"`
+	// PlatformVersions holds the value of the "platform_versions" field.
+	PlatformVersions draftdoc.PlatformVersions `json:"platform_versions,omitempty"`
+	// Article holds the value of the "article" field.
+	Article *draftdoc.Article `json:"article,omitempty"`
+	// Scratchpad holds the value of the "scratchpad" field.
+	Scratchpad string `json:"scratchpad,omitempty"`
+	// TagIds holds the value of the "tag_ids" field.
+	TagIds []string `json:"tag_ids,omitempty"`
+	// PinnedAt holds the value of the "pinned_at" field.
+	PinnedAt *time.Time `json:"pinned_at,omitempty"`
+	// PlanTimeZone holds the value of the "plan_time_zone" field.
+	PlanTimeZone *string `json:"plan_time_zone,omitempty"`
+	// SourceDraftID holds the value of the "source_draft_id" field.
+	SourceDraftID *string `json:"source_draft_id,omitempty"`
 	// CollabState holds the value of the "collab_state" field.
 	CollabState *[]byte `json:"collab_state,omitempty"`
 	// CreatedByUserID holds the value of the "created_by_user_id" field.
@@ -81,15 +98,15 @@ func (*ContentDraft) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case contentdraft.FieldBody, contentdraft.FieldAssetIds, contentdraft.FieldChannelConnectionIds, contentdraft.FieldDiscussions, contentdraft.FieldChannelText, contentdraft.FieldGuestComments, contentdraft.FieldEngagement, contentdraft.FieldTags, contentdraft.FieldCollabState:
+		case contentdraft.FieldBody, contentdraft.FieldAssetIds, contentdraft.FieldChannelConnectionIds, contentdraft.FieldDiscussions, contentdraft.FieldChannelText, contentdraft.FieldGuestComments, contentdraft.FieldEngagement, contentdraft.FieldTarget, contentdraft.FieldPlatformVersions, contentdraft.FieldArticle, contentdraft.FieldTagIds, contentdraft.FieldCollabState:
 			values[i] = new([]byte)
 		case contentdraft.FieldNaturalPostingTime:
 			values[i] = new(sql.NullBool)
 		case contentdraft.FieldApprovedVersion, contentdraft.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case contentdraft.FieldID, contentdraft.FieldOrganizationID, contentdraft.FieldTitle, contentdraft.FieldPlainText, contentdraft.FieldStatus, contentdraft.FieldReviewStatus, contentdraft.FieldReviewedByUserID, contentdraft.FieldReviewNote, contentdraft.FieldShareToken, contentdraft.FieldSocialSetID, contentdraft.FieldPrimaryPlatform, contentdraft.FieldCreatedByUserID, contentdraft.FieldUpdatedByUserID:
+		case contentdraft.FieldID, contentdraft.FieldOrganizationID, contentdraft.FieldTitle, contentdraft.FieldPlainText, contentdraft.FieldStatus, contentdraft.FieldReviewStatus, contentdraft.FieldReviewedByUserID, contentdraft.FieldReviewNote, contentdraft.FieldShareToken, contentdraft.FieldSocialSetID, contentdraft.FieldPrimaryPlatform, contentdraft.FieldKind, contentdraft.FieldScratchpad, contentdraft.FieldPlanTimeZone, contentdraft.FieldSourceDraftID, contentdraft.FieldCreatedByUserID, contentdraft.FieldUpdatedByUserID:
 			values[i] = new(sql.NullString)
-		case contentdraft.FieldPlannedFor, contentdraft.FieldCreatedAt, contentdraft.FieldUpdatedAt:
+		case contentdraft.FieldPlannedFor, contentdraft.FieldPinnedAt, contentdraft.FieldCreatedAt, contentdraft.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -252,20 +269,77 @@ func (_m *ContentDraft) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field engagement: %w", err)
 				}
 			}
-		case contentdraft.FieldTags:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field tags", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Tags); err != nil {
-					return fmt.Errorf("unmarshal field tags: %w", err)
-				}
-			}
 		case contentdraft.FieldPlannedFor:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field planned_for", values[i])
 			} else if value.Valid {
 				_m.PlannedFor = new(time.Time)
 				*_m.PlannedFor = value.Time
+			}
+		case contentdraft.FieldKind:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field kind", values[i])
+			} else if value.Valid {
+				_m.Kind = contentdraft.Kind(value.String)
+			}
+		case contentdraft.FieldTarget:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field target", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Target); err != nil {
+					return fmt.Errorf("unmarshal field target: %w", err)
+				}
+			}
+		case contentdraft.FieldPlatformVersions:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field platform_versions", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.PlatformVersions); err != nil {
+					return fmt.Errorf("unmarshal field platform_versions: %w", err)
+				}
+			}
+		case contentdraft.FieldArticle:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field article", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Article); err != nil {
+					return fmt.Errorf("unmarshal field article: %w", err)
+				}
+			}
+		case contentdraft.FieldScratchpad:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field scratchpad", values[i])
+			} else if value.Valid {
+				_m.Scratchpad = value.String
+			}
+		case contentdraft.FieldTagIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field tag_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.TagIds); err != nil {
+					return fmt.Errorf("unmarshal field tag_ids: %w", err)
+				}
+			}
+		case contentdraft.FieldPinnedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field pinned_at", values[i])
+			} else if value.Valid {
+				_m.PinnedAt = new(time.Time)
+				*_m.PinnedAt = value.Time
+			}
+		case contentdraft.FieldPlanTimeZone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field plan_time_zone", values[i])
+			} else if value.Valid {
+				_m.PlanTimeZone = new(string)
+				*_m.PlanTimeZone = value.String
+			}
+		case contentdraft.FieldSourceDraftID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field source_draft_id", values[i])
+			} else if value.Valid {
+				_m.SourceDraftID = new(string)
+				*_m.SourceDraftID = value.String
 			}
 		case contentdraft.FieldCollabState:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -407,12 +481,42 @@ func (_m *ContentDraft) String() string {
 	builder.WriteString("engagement=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Engagement))
 	builder.WriteString(", ")
-	builder.WriteString("tags=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Tags))
-	builder.WriteString(", ")
 	if v := _m.PlannedFor; v != nil {
 		builder.WriteString("planned_for=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("kind=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Kind))
+	builder.WriteString(", ")
+	builder.WriteString("target=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Target))
+	builder.WriteString(", ")
+	builder.WriteString("platform_versions=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PlatformVersions))
+	builder.WriteString(", ")
+	builder.WriteString("article=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Article))
+	builder.WriteString(", ")
+	builder.WriteString("scratchpad=")
+	builder.WriteString(_m.Scratchpad)
+	builder.WriteString(", ")
+	builder.WriteString("tag_ids=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TagIds))
+	builder.WriteString(", ")
+	if v := _m.PinnedAt; v != nil {
+		builder.WriteString("pinned_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.PlanTimeZone; v != nil {
+		builder.WriteString("plan_time_zone=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SourceDraftID; v != nil {
+		builder.WriteString("source_draft_id=")
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	if v := _m.CollabState; v != nil {

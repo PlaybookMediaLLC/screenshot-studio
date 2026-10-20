@@ -37,6 +37,8 @@ type Asset struct {
 	Height *int `json:"height,omitempty"`
 	// Status holds the value of the "status" field.
 	Status asset.Status `json:"status,omitempty"`
+	// AltText holds the value of the "alt_text" field.
+	AltText *string `json:"alt_text,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -72,7 +74,7 @@ func (*Asset) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case asset.FieldBytes, asset.FieldWidth, asset.FieldHeight:
 			values[i] = new(sql.NullInt64)
-		case asset.FieldID, asset.FieldOrganizationID, asset.FieldCaptureID, asset.FieldParentAssetID, asset.FieldObjectKey, asset.FieldSha256, asset.FieldMediaType, asset.FieldStatus:
+		case asset.FieldID, asset.FieldOrganizationID, asset.FieldCaptureID, asset.FieldParentAssetID, asset.FieldObjectKey, asset.FieldSha256, asset.FieldMediaType, asset.FieldStatus, asset.FieldAltText:
 			values[i] = new(sql.NullString)
 		case asset.FieldCreatedAt, asset.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -161,6 +163,13 @@ func (_m *Asset) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = asset.Status(value.String)
+			}
+		case asset.FieldAltText:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field alt_text", values[i])
+			} else if value.Valid {
+				_m.AltText = new(string)
+				*_m.AltText = value.String
 			}
 		case asset.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -254,6 +263,11 @@ func (_m *Asset) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	if v := _m.AltText; v != nil {
+		builder.WriteString("alt_text=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

@@ -21,6 +21,10 @@ type XDto struct {
 	ArticleCover    *MediaDto `json:"article_cover,omitempty"`
 	MadeWithAI      any       `json:"made_with_ai,omitempty"`
 	PaidPartnership any       `json:"paid_partnership,omitempty"`
+	// ShareWithFollowers shows a community post to followers too; unset is true.
+	ShareWithFollowers *bool `json:"share_with_followers,omitempty"`
+	// QuoteTweetID quotes another post (X API v2 quote_tweet_id).
+	QuoteTweetID *string `json:"quote_tweet_id,omitempty"`
 }
 
 var communityURL = regexp.MustCompile(`^(https://x\.com/i/communities/\d+)?$`)

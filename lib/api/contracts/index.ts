@@ -8,6 +8,7 @@ import {
   createAssetDownloadUrlContract,
   createAssetUploadUrlContract,
   deleteAssetContract,
+  setAssetAltTextContract,
 } from '@/lib/api/contracts/assets'
 import {
   createCampaignContract,
@@ -51,6 +52,20 @@ import {
   listOrganizationsContract,
 } from '@/lib/api/contracts/shell'
 import { createSourceAppContract, updateSourceAppContract } from '@/lib/api/contracts/source-apps'
+import {
+  createDraftTagContract,
+  deleteDraftTagContract,
+  listDraftTagsContract,
+  updateDraftTagContract,
+} from '@/lib/api/contracts/draft-tags'
+import {
+  contentDraftActivityContract,
+  copyContentDraftContract,
+  duplicateContentDraftContract,
+  planContentDraftContract,
+  recoverContentDraftRevisionContract,
+  updateDraftPropertiesContract,
+} from '@/lib/api/contracts/write'
 
 /** Every contract in the public OpenAPI spec, in the order the spec lists them. */
 export const documentedContracts = [
@@ -63,6 +78,7 @@ export const documentedContracts = [
   completeAssetUploadContract,
   createAssetDownloadUrlContract,
   deleteAssetContract,
+  setAssetAltTextContract,
   listCampaignsContract,
   createCampaignContract,
   getCampaignContract,
@@ -80,6 +96,16 @@ export const documentedContracts = [
   updateContentDraftContract,
   deleteContentDraftContract,
   listContentDraftPostsContract,
+  updateDraftPropertiesContract,
+  planContentDraftContract,
+  duplicateContentDraftContract,
+  copyContentDraftContract,
+  recoverContentDraftRevisionContract,
+  contentDraftActivityContract,
+  listDraftTagsContract,
+  createDraftTagContract,
+  updateDraftTagContract,
+  deleteDraftTagContract,
   createOnboardingRunContract,
   getOnboardingRunContract,
   cancelOnboardingRunContract,

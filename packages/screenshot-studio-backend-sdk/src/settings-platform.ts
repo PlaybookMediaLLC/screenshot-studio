@@ -81,6 +81,8 @@ export type SocialAccount = {
   health: SocialAccountHealth
   id: string
   platform: string
+  /** X Premium, read from the account (RFC 042); never the workspace's plan. */
+  premium: boolean
   socialSetId: string | null
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
@@ -395,16 +396,31 @@ func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.Schedule
 		return inactive, err
 	}
 	job.Assets = assets
-	job.AutoActions, job.Poll = post.AutoActions, post.Poll
+	job.AutoActions, job.Poll, job.Options = post.AutoActions, post.Poll, post.PublishOptions
 	if post.ReplyTo != nil {
 		job.ReplyTo = *post.ReplyTo
+	}
+	// A document or article cover that was deleted cancels the post too.
+	for _, id := range []string{post.PublishOptions.DocumentAssetID, post.PublishOptions.ArticleCoverAssetID} {
+		if id == "" {
+			continue
+		}
+		media, missing, err := r.draftMedia(ctx, post.OrganizationID, []string{id})
+		if err != nil || missing {
+			return inactive, err
+		}
+		if id == post.PublishOptions.DocumentAssetID {
+			job.Document = &media[0]
+		} else {
+			job.Cover = &media[0]
+		}
 	}
 	for _, reply := range post.Replies {
 		media, missing, err := r.draftMedia(ctx, post.OrganizationID, reply.AssetIDs)
 		if err != nil || missing {
 			return inactive, err
 		}
-		job.Replies = append(job.Replies, PublishReply{Assets: media, Caption: reply.Caption})
+		job.Replies = append(job.Replies, PublishReply{Assets: media, Caption: reply.Caption, Options: reply.Options})
 	}
 	if len(job.Assets) > 0 {
 		job.AssetObjectKey, job.AssetMediaType = job.Assets[0].ObjectKey, job.Assets[0].MediaType
@@ -435,7 +451,11 @@ func (r *Repository) draftMedia(ctx context.Context, organizationID string, ids 
 		if err != nil {
 			return nil, false, err
 		}
-		media = append(media, MediaAsset{MediaType: row.MediaType, ObjectKey: row.ObjectKey})
+		alt := ""
+		if row.AltText != nil {
+			alt = *row.AltText
+		}
+		media = append(media, MediaAsset{Alt: alt, MediaType: row.MediaType, ObjectKey: row.ObjectKey})
 	}
 	return media, false, nil
 }
@@ -708,4 +728,75 @@ var secretReferencePattern = regexp.MustCompile(`^SOCIAL_(?:API_KEY|OAUTH_TOKEN)
 
 func IsSecretReference(value string) bool {
 	return secretReferencePattern.MatchString(value)
+}
+
+// PlanAutomations records a pending receipt for each follow-up not yet
+// recorded and returns every one's status by key; a replayed plan keeps the
+// receipts it finds.
+func (r *Repository) PlanAutomations(ctx context.Context, organizationID, postID string, receipts []AutomationReceipt) (map[string]string, error) {
+	seen := map[string]bool{}
+	for _, receipt := range receipts {
+		if seen[receipt.Key] {
+			continue
+		}
+		seen[receipt.Key] = true
+		err := r.client.PostAutomationRun.Create().
+			SetID(cuid.New()).SetOrganizationID(organizationID).SetScheduledPostID(postID).
+			SetKey(receipt.Key).SetKind(postautomationrun.Kind(receipt.Kind)).SetDueAt(receipt.DueAt).
+			Exec(ctx)
+		// A receipt that exists already (a replayed plan) keeps its state.
+		if err != nil && !ent.IsConstraintError(err) {
+			return nil, err
+		}
+	}
+	rows, err := r.client.PostAutomationRun.Query().Where(postautomationrun.ScheduledPostID(postID)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	statuses := make(map[string]string, len(rows))
+	for _, row := range rows {
+		statuses[row.Key] = string(row.Status)
+	}
+	return statuses, nil
+}
+
+// AutomationReceipt is a follow-up's status and what it posted; a missing
+// receipt reads as skipped, so a step without one never acts.
+func (r *Repository) AutomationReceipt(ctx context.Context, postID, key string) (string, string, error) {
+	row, err := r.client.PostAutomationRun.Query().
+		Where(postautomationrun.ScheduledPostID(postID), postautomationrun.Key(key)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return string(postautomationrun.StatusSkipped), "", nil
+	}
+	if err != nil {
+		return "", "", err
+	}
+	remoteID := ""
+	if row.RemoteID != nil {
+		remoteID = *row.RemoteID
+	}
+	return string(row.Status), remoteID, nil
+}
+
+// RecordAutomation counts a try of a pending follow-up and settles it with
+// status unless that is pending. It changes only a pending receipt (false:
+// settled meanwhile, nothing changed), except that a step that acted is
+// recorded done even if it was cancelled while in flight: the receipt says
+// what is on the platform.
+func (r *Repository) RecordAutomation(ctx context.Context, postID, key, status, remoteID, failureCode string) (bool, error) {
+	open := []postautomationrun.Status{postautomationrun.StatusPending}
+	if status == string(postautomationrun.StatusDone) {
+		open = append(open, postautomationrun.StatusCancelled)
+	}
+	update := r.client.PostAutomationRun.Update().
+		Where(postautomationrun.ScheduledPostID(postID), postautomationrun.Key(key), postautomationrun.StatusIn(open...)).
+		AddAttempts(1).SetStatus(postautomationrun.Status(status))
+	if remoteID != "" {
+		update.SetRemoteID(remoteID)
+	}
+	if failureCode != "" {
+		update.SetFailureCode(failureCode)
+	}
+	changed, err := update.Save(ctx)
+	return changed > 0, err
 }

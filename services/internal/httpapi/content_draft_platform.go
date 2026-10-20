@@ -95,7 +95,12 @@ func (s *Server) listContentDraftPostsBetween(w http.ResponseWriter, r *http.Req
 		writeError(w, http.StatusBadRequest, "from and to are RFC 3339 times")
 		return
 	}
-	posts, err := s.configuration.ListContentDraftPostsBetween(r.Context(), workspaceActor(r), from, to, r.URL.Query().Get("socialSetId"))
+	setID := r.URL.Query().Get("socialSetId")
+	if setID != "" && !resourceIDPattern.MatchString(setID) {
+		writeError(w, http.StatusBadRequest, "invalid social set ID")
+		return
+	}
+	posts, err := s.configuration.ListContentDraftPostsBetween(r.Context(), workspaceActor(r), from, to, setID)
 	if err != nil {
 		writeStoreError(w, err)
 		return

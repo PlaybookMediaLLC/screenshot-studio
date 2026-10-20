@@ -117,6 +117,15 @@ func (s *S3Store) Delete(ctx context.Context, key string) error {
 	return err
 }
 
+// Open streams an object, for reading it back without holding it whole.
+func (s *S3Store) Open(ctx context.Context, key string) (io.ReadCloser, error) {
+	response, err := s.client.GetObject(ctx, &s3.GetObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key)})
+	if err != nil {
+		return nil, err
+	}
+	return response.Body, nil
+}
+
 func (s *S3Store) Read(ctx context.Context, key string) ([]byte, error) {
 	response, err := s.client.GetObject(ctx, &s3.GetObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key)})
 	if err != nil {

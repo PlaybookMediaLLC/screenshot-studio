@@ -76,7 +76,7 @@ func main() {
 	if publisher, closeShared, err := tenantpublishing.OpenShared(ctx, cfg.DatabaseURL, publishing.NewRepository(db.Client),
 		media.NewTenantObjects(objects)); err == nil {
 		defer closeShared()
-		configuration.WithPostMetrics(publisher)
+		configuration.WithPostMetrics(publisher).WithAccountStanding(publisher)
 	} else {
 		slog.Warn("post engagement unavailable", "error", err)
 	}
@@ -87,6 +87,10 @@ func main() {
 		os.Exit(1)
 	}
 	configuration.WithWebhooks(webhookKey, nil)
+	// End-to-end runs publish drafts through the local provider fixture (RFC 042).
+	if os.Getenv("PLATFORM_E2E_DRAFT_PLATFORM") == "enabled" {
+		product.EnableE2EDraftPlatform()
+	}
 	// Content draft collaboration (RFC 037): only the backend can sign tokens.
 	if key := os.Getenv("COLLAB_TOKEN_SECRET"); key != "" {
 		configuration.WithCollabKey([]byte(key))

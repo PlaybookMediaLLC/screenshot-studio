@@ -1,0 +1,1021 @@
+'use client'
+
+import * as React from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { Add01Icon, PinIcon } from 'hugeicons-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { ChannelIcon } from '@/components/drafts/channel-meta'
+import { LocalTime, useHydrated } from '@/components/drafts/local-time'
+import { draftsApi } from '@/lib/content-drafts/client'
+import { writeApi } from '@/lib/write/client'
+import type { DraftKind } from '@/lib/write/document'
+import type { ContentDraftSort } from '@/lib/write/wire'
+import { cn } from '@/lib/utils'
+import { SetDot, SocialSetSwitcher } from './sets'
+import { TagChip, TagManager } from './tags'
+import { draftHref, type LibraryDraft, since, useWrite } from './write-context'
+import { useKeys } from './shortcuts'
+
+/** The library tabs, in order. */
+const TABS = [
+  { label: 'Drafts', tab: 'drafts' },
+  { label: 'Queue', tab: 'queue' },
+  { label: 'Posted', tab: 'posted' },
+  { label: 'Archived', tab: 'archived' },
+] as const
+
+/** The orders the library sorts by. */
+const SORTS: { label: string; sort: ContentDraftSort }[] = [
+  { label: 'Recently updated', sort: 'updated_desc' },
+  { label: 'Least recently updated', sort: 'updated_asc' },
+  { label: 'Newest created', sort: 'created_desc' },
+  { label: 'Oldest created', sort: 'created_asc' },
+]
+
+/** A kind's label in the library. */
+const KIND_LABELS: Record<DraftKind, string> = {
+  article: 'Article',
+  quote: 'Quote',
+  reply: 'Reply',
+  repurpose: 'Repurposed',
+  standard: 'Post',
+}
+
+/**
+ * The left rail: the social set, the lifecycle tabs, search and filters,
+ * new drafts, and the draft list with its actions. Every action that
+ * changes access (a public link) asks first.
+ */
+export function WriteRail() {
+  const { activeId, canEdit, data, setQuery } = useWrite()
+  const [selected, setSelected] = React.useState<string[]>([])
+  const [lastClicked, setLastClicked] = React.useState<string | null>(null)
+  const [managingTags, setManagingTags] = React.useState(false)
+  const tab = data.query.tab
+  const select = (id: string, range: boolean) => {
+    setSelected((current) => {
+      if (range && lastClicked) {
+        const ids = data.library.map((draft) => draft.id)
+        const [from, to] = [ids.indexOf(lastClicked), ids.indexOf(id)].sort((a, b) => a - b)
+        return [...new Set([...current, ...ids.slice(from, to + 1)])]
+      }
+      return current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    })
+    setLastClicked(id)
+  }
+  return (
+    <aside
+      aria-label="Write library"
+      className="flex h-full min-h-0 w-full flex-col"
+      data-testid="write-rail"
+    >
+      <div className="flex items-center gap-1 px-3 pt-3 pb-2">
+        <div className="min-w-0 flex-1">
+          <SocialSetSwitcher />
+        </div>
+        <Link
+          className="rounded-md px-2 py-1 text-xs text-neutral-500 hover:text-white"
+          href={data.activeSet ? `/write/plan?set=${data.activeSet.id}` : '/write/plan'}
+        >
+          Plan
+        </Link>
+        <Link
+          className="rounded-md px-2 py-1 text-xs text-neutral-500 hover:text-white"
+          href="/write/settings"
+        >
+          Settings
+        </Link>
+      </div>
+      <div className="px-3" role="tablist" aria-label="Library">
+        <div className="grid grid-cols-4 rounded-lg bg-white/[0.04] p-0.5">
+          {TABS.map((item) => (
+            <Button
+              aria-selected={tab === item.tab}
+              className={cn(
+                'rounded-md px-1 py-1 text-[11px] transition-colors',
+                tab === item.tab
+                  ? 'bg-white/[0.08] text-white'
+                  : 'text-neutral-500 hover:text-neutral-300'
+              )}
+              key={item.tab}
+              onClick={() => {
+                setSelected([])
+                setQuery({ tab: item.tab === 'drafts' ? undefined : item.tab })
+              }}
+              role="tab"
+              size={null}
+              type="button"
+              variant="custom"
+            >
+              {item.label}
+              {item.tab === 'queue' && data.queue.length > 0 ? (
+                <span className="ml-1 text-neutral-500">{data.queue.length}</span>
+              ) : null}
+            </Button>
+          ))}
+        </div>
+      </div>
+      {tab === 'queue' ? null : <LibraryFilters onManageTags={() => setManagingTags(true)} />}
+      {canEdit && tab !== 'queue' ? <NewDraftMenu /> : null}
+      {selected.length > 0 ? <BulkBar onDone={() => setSelected([])} selected={selected} /> : null}
+      <nav
+        aria-label="Drafts"
+        className="mt-2 min-h-0 flex-1 overflow-y-auto border-t border-white/[0.06]"
+      >
+        {tab === 'queue' ? (
+          <QueueList />
+        ) : data.library.length === 0 ? (
+          <p className="px-4 py-6 text-xs text-neutral-500">
+            {data.query.q || data.query.tag || data.query.kind
+              ? 'No drafts match these filters.'
+              : {
+                  archived: 'Nothing archived.',
+                  drafts: 'No drafts in this set. Start one above.',
+                  posted: 'Nothing posted from this set yet.',
+                  queue: '',
+                }[tab]}
+          </p>
+        ) : (
+          <ul>
+            {data.library.map((draft) => (
+              <DraftRow
+                active={draft.id === activeId}
+                draft={draft}
+                key={draft.id}
+                onSelect={select}
+                selected={selected.includes(draft.id)}
+                selecting={selected.length > 0}
+              />
+            ))}
+          </ul>
+        )}
+      </nav>
+      {managingTags && data.activeSet ? (
+        <TagManager onClose={() => setManagingTags(false)} setId={data.activeSet.id} />
+      ) : null}
+    </aside>
+  )
+}
+
+/** Search, tag filter, kind filter and sort. */
+function LibraryFilters({ onManageTags }: { onManageTags: () => void }) {
+  const { data, setQuery } = useWrite()
+  const [search, setSearch] = React.useState(data.query.q ?? '')
+  const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  React.useEffect(() => () => void (timer.current && clearTimeout(timer.current)), [])
+  const activeTag = data.tags.find((tag) => tag.id === data.query.tag)
+  return (
+    <div className="flex items-center gap-1.5 px-3 pt-2">
+      <Input
+        aria-label="Search drafts"
+        className="h-8 min-w-0 flex-1 text-xs"
+        onChange={(event) => {
+          const value = event.target.value
+          setSearch(value)
+          if (timer.current) clearTimeout(timer.current)
+          timer.current = setTimeout(() => setQuery({ q: value.trim() || undefined }), 300)
+        }}
+        placeholder="Search drafts"
+        type="search"
+        value={search}
+      />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            aria-label="Draft filters"
+            className={cn(
+              'h-8 rounded-md border border-white/[0.08] px-2 text-xs text-neutral-400 hover:text-white',
+              (activeTag || data.query.kind || data.query.sort) && 'border-sky-400/50 text-sky-200'
+            )}
+            size={null}
+            type="button"
+            variant="custom"
+          >
+            Filters
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuLabel>Sort</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            onValueChange={(value) =>
+              setQuery({ sort: value === 'updated_desc' ? undefined : value })
+            }
+            value={data.query.sort ?? 'updated_desc'}
+          >
+            {SORTS.map((item) => (
+              <DropdownMenuRadioItem key={item.sort} value={item.sort}>
+                {item.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+          {/* Tags are an experiment (RFC 043): shown only when it is on. */}
+          {data.experiments.tags ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Tags</DropdownMenuLabel>
+              {data.tags.length === 0 ? (
+                <DropdownMenuItem disabled>No tags yet</DropdownMenuItem>
+              ) : (
+                data.tags.map((tag) => (
+                  <DropdownMenuCheckboxItem
+                    checked={tag.id === data.query.tag}
+                    key={tag.id}
+                    onCheckedChange={(checked) => setQuery({ tag: checked ? tag.id : undefined })}
+                  >
+                    <TagChip tag={tag} />
+                  </DropdownMenuCheckboxItem>
+                ))
+              )}
+              <DropdownMenuItem onSelect={onManageTags}>Manage tags…</DropdownMenuItem>
+            </>
+          ) : null}
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Kind</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            onValueChange={(value) => setQuery({ kind: value || undefined })}
+            value={data.query.kind ?? ''}
+          >
+            <DropdownMenuRadioItem value="">Every kind</DropdownMenuRadioItem>
+            {(Object.keys(KIND_LABELS) as DraftKind[]).map((kind) => (
+              <DropdownMenuRadioItem key={kind} value={kind}>
+                {KIND_LABELS[kind]}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {activeTag ? (
+        <Button
+          aria-label={`Clear the ${activeTag.name} filter`}
+          className="text-xs text-neutral-500 hover:text-white"
+          onClick={() => setQuery({ tag: undefined })}
+          size={null}
+          type="button"
+          variant="custom"
+        >
+          ✕
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
+/** What a new draft of each kind needs before it can be written. */
+type NewKind = { kind: DraftKind; label: string; needs?: 'url' | 'source' }
+
+/**
+ * New draft, and the kinds the set's platforms take: a post, an X article,
+ * a quote, a reply, or a repurposed post. A draft made while a tag filter is
+ * on carries that tag.
+ */
+export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
+  const router = useRouter()
+  const { mod } = useKeys()
+  const { data } = useWrite()
+  const [creating, setCreating] = React.useState(false)
+  const [asking, setAsking] = React.useState<NewKind | null>(null)
+  const channels = new Set(data.activeSet?.accounts.map((account) => account.channel) ?? [])
+  const kinds: NewKind[] = [
+    ...(channels.has('x') ? [{ kind: 'article' as const, label: 'X Article' }] : []),
+    ...(channels.has('x') || channels.has('linkedin')
+      ? [{ kind: 'quote' as const, label: 'Quote a post', needs: 'url' as const }]
+      : []),
+    ...(channels.has('x')
+      ? [{ kind: 'reply' as const, label: 'Reply to an X post', needs: 'url' as const }]
+      : []),
+    { kind: 'repurpose', label: 'Repurpose published content', needs: 'source' },
+  ]
+  const create = async (kind: DraftKind, target?: { sourceDraftId?: string; url?: string }) => {
+    setCreating(true)
+    try {
+      const draft = await draftsApi.create({
+        kind,
+        socialSetId: data.activeSet?.id,
+        tagIds: data.experiments.tags && data.query.tag ? [data.query.tag] : undefined,
+        target,
+      })
+      router.push(draftHref(draft.id, data.activeSet?.id))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'The draft could not be created.')
+      setCreating(false)
+    }
+  }
+  return (
+    <div className={cn('flex items-center gap-0.5', compact ? '' : 'mx-3 mt-2')}>
+      <Button
+        className="flex flex-1 items-center gap-2 rounded-l-lg px-2 py-2 text-sm text-neutral-200 hover:bg-white/[0.05] disabled:opacity-50"
+        data-testid="new-draft"
+        disabled={creating}
+        onClick={() => void create('standard')}
+        size={null}
+        title={`New draft (${mod}.)`}
+        type="button"
+        variant="custom"
+      >
+        <Add01Icon aria-hidden className="size-4" />
+        New draft
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            aria-label="New draft of another kind"
+            className="rounded-r-lg px-2 py-2 text-sm text-neutral-400 hover:bg-white/[0.05] hover:text-white"
+            size={null}
+            type="button"
+            variant="custom"
+          >
+            ▾
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuLabel>New post</DropdownMenuLabel>
+          <DropdownMenuItem onSelect={() => void create('standard')}>
+            Post or thread
+          </DropdownMenuItem>
+          {kinds
+            .filter((item) => item.kind === 'article')
+            .map((item) => (
+              <DropdownMenuItem key={item.kind} onSelect={() => void create('article')}>
+                {item.label}
+              </DropdownMenuItem>
+            ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Engagements</DropdownMenuLabel>
+          {kinds
+            .filter((item) => item.kind === 'quote' || item.kind === 'reply')
+            .map((item) => (
+              <DropdownMenuItem key={item.kind} onSelect={() => setAsking(item)}>
+                {item.label}
+              </DropdownMenuItem>
+            ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Reuse</DropdownMenuLabel>
+          <DropdownMenuItem onSelect={() => setAsking(kinds[kinds.length - 1])}>
+            Repurpose published content
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {asking ? (
+        <TargetDialog
+          kind={asking}
+          onClose={() => setAsking(null)}
+          onCreate={(target) => {
+            setAsking(null)
+            void create(asking.kind, target)
+          }}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+const POST_URL =
+  /^https:\/\/(?:www\.|mobile\.)?(?:(?:x|twitter)\.com\/[^/]+\/status\/\d+|linkedin\.com\/.*urn:li:(?:share|ugcPost|activity):\d+)/
+
+/** Ask for the post a quote or reply answers, or the published post a draft repurposes. */
+function TargetDialog({
+  kind,
+  onClose,
+  onCreate,
+}: {
+  kind: NewKind
+  onClose: () => void
+  onCreate: (target: { sourceDraftId?: string; url?: string }) => void
+}) {
+  const { data } = useWrite()
+  const [url, setUrl] = React.useState('')
+  const [posted, setPosted] = React.useState<{ id: string; title: string }[]>([])
+  React.useEffect(() => {
+    if (kind.needs !== 'source') return
+    const query = new URLSearchParams({ view: 'posted', limit: '50' })
+    if (data.activeSet) query.set('socialSetId', data.activeSet.id)
+    void fetch(`/api/v1/content-drafts?${query}`)
+      .then((response) => (response.ok ? response.json() : { items: [] }))
+      .then((body: { items: { id: string; title: string }[] }) => setPosted(body.items))
+      .catch(() => setPosted([]))
+  }, [data.activeSet, kind.needs])
+  const valid = kind.needs === 'source' ? /^https:\/\//.test(url) : POST_URL.test(url.trim())
+  return (
+    <Dialog onOpenChange={(open) => !open && onClose()} open>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{kind.label}</DialogTitle>
+          <DialogDescription>
+            {kind.needs === 'source'
+              ? 'Start from a post this set published, or paste the URL of any published post.'
+              : 'Paste the post’s URL. It is stored as the draft’s target, not as text in the post.'}
+          </DialogDescription>
+        </DialogHeader>
+        {kind.needs === 'source' && posted.length > 0 ? (
+          <ul className="max-h-48 overflow-y-auto rounded-md border border-white/[0.06]">
+            {posted.map((draft) => (
+              <li key={draft.id}>
+                <Button
+                  className="w-full truncate px-3 py-2 text-left text-sm hover:bg-white/[0.04]"
+                  onClick={() => onCreate({ sourceDraftId: draft.id })}
+                  size={null}
+                  type="button"
+                  variant="custom"
+                >
+                  {draft.title}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <Input
+          aria-label="Post URL"
+          autoFocus
+          onChange={(event) => setUrl(event.target.value)}
+          placeholder={kind.kind === 'reply' ? 'https://x.com/name/status/123' : 'https://…'}
+          value={url}
+        />
+        {url && !valid ? (
+          <p className="text-xs text-amber-300" role="alert">
+            {kind.kind === 'reply'
+              ? 'Use the URL of an X post (x.com/…/status/…).'
+              : 'Use the URL of an X post or a LinkedIn post.'}
+          </p>
+        ) : null}
+        <DialogFooter>
+          <Button onClick={onClose} type="button" variant="ghost">
+            Cancel
+          </Button>
+          <Button disabled={!valid} onClick={() => onCreate({ url: url.trim() })} type="button">
+            Start writing
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** A draft's line: its text, title, destinations, time, status and tags. */
+function DraftRow({
+  active,
+  draft,
+  onSelect,
+  selected,
+  selecting,
+}: {
+  active: boolean
+  draft: LibraryDraft
+  onSelect: (id: string, range: boolean) => void
+  selected: boolean
+  selecting: boolean
+}) {
+  const { data, saved } = useWrite()
+  const hydrated = useHydrated()
+  const shown = { ...draft, ...saved[draft.id] }
+  const channels = [
+    ...new Set(
+      (data.activeSet?.accounts ?? [])
+        .filter((connection) => draft.channelConnectionIds.includes(connection.id))
+        .map((connection) => connection.channel)
+    ),
+  ]
+  const tags = data.tags.filter((tag) => draft.tagIds.includes(tag.id))
+  return (
+    <li
+      className={cn(
+        'group/row relative border-b border-l-2 border-b-white/[0.04] transition-colors',
+        active ? 'border-l-sky-400 bg-white/[0.04]' : 'border-l-transparent hover:bg-white/[0.02]',
+        selected && 'bg-sky-400/[0.06]'
+      )}
+      data-testid="draft-row"
+    >
+      <Link
+        aria-current={active ? 'page' : undefined}
+        className="block px-4 py-3 pr-10"
+        href={draftHref(draft.id, data.activeSet?.id)}
+        onClick={(event) => {
+          if (event.shiftKey || selecting) {
+            event.preventDefault()
+            onSelect(draft.id, event.shiftKey)
+          }
+        }}
+      >
+        <p className="flex items-start gap-1.5">
+          {selecting ? (
+            <Checkbox
+              aria-label={`Select ${shown.title}`}
+              checked={selected}
+              className="mt-0.5"
+              tabIndex={-1}
+            />
+          ) : null}
+          {draft.pinned ? (
+            <PinIcon aria-label="Pinned" className="mt-0.5 size-3.5 shrink-0 text-sky-300" />
+          ) : null}
+          <span className="line-clamp-2 text-[13px] leading-snug text-neutral-200">
+            {shown.excerpt || <span className="text-neutral-500">Empty draft</span>}
+          </span>
+        </p>
+        <p className="mt-1.5 flex items-center gap-2 text-[11px] text-neutral-500">
+          <span className="min-w-0 flex-1 truncate">
+            {draft.kind !== 'standard' ? (
+              <span className="mr-1 text-neutral-400">{KIND_LABELS[draft.kind]} ·</span>
+            ) : null}
+            {shown.title}
+          </span>
+          <span className="flex shrink-0 items-center gap-1">
+            {channels.map((channel) => (
+              <ChannelIcon channel={channel} key={channel} />
+            ))}
+          </span>
+          <span className="shrink-0">{hydrated ? since(shown.updatedAt) : null}</span>
+        </p>
+        <RowStatus draft={draft} />
+        {tags.length > 0 ? (
+          <p className="mt-1.5 flex flex-wrap gap-1">
+            {tags.map((tag) => (
+              <TagChip key={tag.id} tag={tag} />
+            ))}
+          </p>
+        ) : null}
+      </Link>
+      <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover/row:opacity-100 focus-within:opacity-100">
+        <DraftRowMenu draft={draft} onSelect={() => onSelect(draft.id, false)} />
+      </div>
+    </li>
+  )
+}
+
+/** A row's status line: scheduled, planned, posted, needs attention, in review, shared. */
+function RowStatus({ draft }: { draft: LibraryDraft }) {
+  // Times read in the set's scheduling zone, as the Plan calendar shows them.
+  const timeZone = useWrite().data.activeSet?.timeZone
+  const parts: React.ReactNode[] = []
+  if (draft.attentionPosts > 0) {
+    parts.push(
+      <span className="text-red-300" key="attention">
+        {draft.attentionPosts} need{draft.attentionPosts === 1 ? 's' : ''} attention
+      </span>
+    )
+  }
+  if (draft.nextPostAt) {
+    parts.push(
+      <span className="text-sky-300" key="next">
+        Scheduled{' '}
+        <LocalTime
+          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short', timeZone }}
+          value={draft.nextPostAt}
+        />
+      </span>
+    )
+  } else if (draft.plannedFor) {
+    parts.push(
+      <span className="text-violet-300" key="planned">
+        Planned{' '}
+        <LocalTime
+          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short', timeZone }}
+          value={draft.plannedFor}
+        />
+      </span>
+    )
+  }
+  if (draft.publishedPosts > 0) parts.push(<span key="live">{draft.publishedPosts} live</span>)
+  if (draft.reviewStatus === 'pending')
+    parts.push(
+      <span className="text-amber-300" key="review">
+        In review
+      </span>
+    )
+  if (draft.shared) parts.push(<span key="shared">Public link on</span>)
+  if (parts.length === 0) return null
+  return (
+    <p className="mt-1 flex flex-wrap gap-x-2 text-[11px] text-neutral-500">
+      {parts.map((part, index) => (
+        <React.Fragment key={index}>{part}</React.Fragment>
+      ))}
+    </p>
+  )
+}
+
+/**
+ * A row's actions. Deleting asks first; sharing a public link asks first and
+ * says it gives anyone with the link read and comment access.
+ */
+export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelect?: () => void }) {
+  const router = useRouter()
+  const { mod } = useKeys()
+  const { canEdit, data } = useWrite()
+  const [confirm, setConfirm] = React.useState<'delete' | 'share' | null>(null)
+  const [copyTo, setCopyTo] = React.useState<string | null>(null)
+  const act = async (work: () => Promise<unknown>, done: string) => {
+    try {
+      await work()
+      toast.success(done)
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'That did not work.')
+    }
+  }
+  const internalLink = () => `${window.location.origin}${draftHref(draft.id, data.activeSet?.id)}`
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            aria-label={`Actions for ${draft.title}`}
+            className="flex size-7 items-center justify-center rounded-md bg-[#151515] text-neutral-400 hover:text-white"
+            size={null}
+            type="button"
+            variant="custom"
+          >
+            ⋯
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          {canEdit ? (
+            <>
+              <DropdownMenuItem
+                onSelect={() =>
+                  void act(async () => {
+                    const copy = await writeApi.duplicate(draft.id)
+                    router.push(draftHref(copy.draft.id, data.activeSet?.id))
+                  }, 'Duplicated. The copy has no schedule, share link or comments.')
+                }
+              >
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Copy to social set</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-60">
+                  {data.sets
+                    .filter((set) => set.id !== data.activeSet?.id)
+                    .map((set) => (
+                      <DropdownMenuItem
+                        className="flex items-center gap-2"
+                        key={set.id}
+                        onSelect={() => setCopyTo(set.id)}
+                      >
+                        <SetDot color={set.color} />
+                        <span className="truncate">{set.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  {data.sets.length < 2 ? (
+                    <DropdownMenuItem disabled>No other set</DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuItem
+                onSelect={() =>
+                  void act(
+                    () => writeApi.properties(draft.id, { pinned: !draft.pinned }),
+                    draft.pinned ? 'Unpinned.' : 'Pinned to the top.'
+                  )
+                }
+              >
+                {draft.pinned ? 'Unpin draft' : 'Pin draft'}
+                <DropdownMenuShortcut>{mod}⇧P</DropdownMenuShortcut>
+              </DropdownMenuItem>
+              {data.experiments.tags ? (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>Tag this draft</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-56">
+                    {data.tags.length === 0 ? (
+                      <DropdownMenuItem disabled>No tags yet</DropdownMenuItem>
+                    ) : null}
+                    {data.tags.map((tag) => {
+                      const on = draft.tagIds.includes(tag.id)
+                      return (
+                        <DropdownMenuCheckboxItem
+                          checked={on}
+                          key={tag.id}
+                          onCheckedChange={() =>
+                            void act(
+                              () =>
+                                writeApi.properties(
+                                  draft.id,
+                                  on ? { removeTagIds: [tag.id] } : { addTagIds: [tag.id] }
+                                ),
+                              on ? `Removed ${tag.name}.` : `Tagged ${tag.name}.`
+                            )
+                          }
+                        >
+                          <TagChip tag={tag} />
+                        </DropdownMenuCheckboxItem>
+                      )
+                    })}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              ) : null}
+            </>
+          ) : null}
+          {onSelect ? (
+            <DropdownMenuItem onSelect={onSelect}>
+              Select multiple
+              <DropdownMenuShortcut>⇧Click</DropdownMenuShortcut>
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem
+            onSelect={() => router.push(draftHref(draft.id, data.activeSet?.id, 'backups'))}
+          >
+            View automatic backups
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => {
+              void navigator.clipboard.writeText(internalLink())
+              toast.success('Internal link copied. Only members who can see this set can open it.')
+            }}
+          >
+            Copy internal link
+          </DropdownMenuItem>
+          {canEdit ? (
+            <DropdownMenuItem onSelect={() => setConfirm('share')}>
+              Share & copy public link…
+            </DropdownMenuItem>
+          ) : null}
+          {canEdit ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-red-300" onSelect={() => setConfirm('delete')}>
+                Delete…
+              </DropdownMenuItem>
+            </>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <AlertDialog onOpenChange={(open) => !open && setConfirm(null)} open={confirm !== null}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirm === 'delete' ? `Delete “${draft.title}”?` : 'Turn on the public link?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirm === 'delete'
+                ? 'The draft and its backups are deleted. A draft with scheduled or published posts cannot be deleted; archive it instead.'
+                : 'Anyone with the link will be able to read this draft and comment on it, without signing in. You can turn the link off at any time, and it stops working at once.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={
+                confirm === 'delete' ? 'bg-red-500 text-white hover:bg-red-400' : undefined
+              }
+              onClick={() =>
+                confirm === 'delete'
+                  ? void act(async () => {
+                      await draftsApi.remove(draft.id)
+                      if (window.location.pathname.includes(draft.id)) router.push('/write')
+                    }, 'Draft deleted.')
+                  : void act(async () => {
+                      const shared = await draftsApi.share(draft.id, true)
+                      if (shared.shareToken) {
+                        await navigator.clipboard.writeText(
+                          `${window.location.origin}/d/${shared.shareToken}`
+                        )
+                      }
+                    }, 'Public link on and copied.')
+              }
+            >
+              {confirm === 'delete' ? 'Delete draft' : 'Turn on and copy'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {copyTo ? (
+        <CopyDialog
+          draftId={draft.id}
+          onClose={() => setCopyTo(null)}
+          setName={data.sets.find((set) => set.id === copyTo)?.name ?? ''}
+          socialSetId={copyTo}
+        />
+      ) : null}
+    </>
+  )
+}
+
+/** Copy a draft into another set, choosing what happens to its tags. */
+function CopyDialog({
+  draftId,
+  onClose,
+  setName,
+  socialSetId,
+}: {
+  draftId: string
+  onClose: () => void
+  setName: string
+  socialSetId: string
+}) {
+  const router = useRouter()
+  const [busy, setBusy] = React.useState(false)
+  const copy = async (tagMode: 'match' | 'drop') => {
+    setBusy(true)
+    try {
+      const result = await writeApi.copy(draftId, { socialSetId, tagMode })
+      const dropped = result.dropped.map((item) =>
+        item.replace(/^platform:/, '').replace(/^tag:/, '#')
+      )
+      toast.success(
+        `Copied to ${setName}.${dropped.length > 0 ? ` Left behind: ${dropped.join(', ')}.` : ''}`
+      )
+      onClose()
+      router.push(draftHref(result.draft.id, socialSetId))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'The draft could not be copied.')
+      setBusy(false)
+    }
+  }
+  return (
+    <Dialog onOpenChange={(open) => !open && onClose()} open>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Copy to {setName}</DialogTitle>
+          <DialogDescription>
+            The copy is a new draft that posts as {setName}’s accounts on the same platforms. Its
+            schedule, share link, comments and approval stay with the original. Each set has its own
+            tags.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2">
+          <Button disabled={busy} onClick={() => void copy('drop')} type="button" variant="outline">
+            Copy without tags
+          </Button>
+          <Button disabled={busy} onClick={() => void copy('match')} type="button">
+            Copy, matching tags by name
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Actions on several selected drafts. */
+function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] }) {
+  const router = useRouter()
+  const { data } = useWrite()
+  const [confirm, setConfirm] = React.useState(false)
+  const run = async (label: string, work: (id: string) => Promise<unknown>) => {
+    // One at a time: a duplicate points at its source, and deleting both at
+    // once can race on that link.
+    let failed = 0
+    for (const id of selected) {
+      try {
+        await work(id)
+      } catch {
+        failed += 1
+      }
+    }
+    if (failed > 0) toast.error(`${label}: ${failed} of ${selected.length} did not change.`)
+    else toast.success(`${label}: ${selected.length} drafts.`)
+    onDone()
+    router.refresh()
+  }
+  const version = (id: string) => data.library.find((draft) => draft.id === id)
+  return (
+    <div
+      className="mx-3 mt-2 flex flex-wrap items-center gap-1 rounded-lg border border-sky-400/30 bg-sky-400/[0.05] px-2 py-1.5 text-xs"
+      role="toolbar"
+      aria-label="Selected drafts"
+    >
+      <span className="mr-auto text-sky-200">{selected.length} selected</span>
+      <Button
+        onClick={() => void run('Pinned', (id) => writeApi.properties(id, { pinned: true }))}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        Pin
+      </Button>
+      <Button
+        onClick={() =>
+          void run('Archived', async (id) => {
+            const fresh = await draftsApi.get(id)
+            return draftsApi.save(id, { baseVersion: fresh.version, status: 'archived' })
+          })
+        }
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        Archive
+      </Button>
+      <Button
+        className="text-red-300"
+        onClick={() => setConfirm(true)}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        Delete
+      </Button>
+      <Button aria-label="Clear selection" onClick={onDone} size="sm" type="button" variant="ghost">
+        ✕
+      </Button>
+      <AlertDialog onOpenChange={setConfirm} open={confirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selected.length} drafts?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Drafts with scheduled or published posts are kept; archive those instead.
+              {selected.some((id) => version(id)?.publishedPosts)
+                ? ' Some selected drafts have live posts.'
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 text-white hover:bg-red-400"
+              onClick={() => void run('Deleted', (id) => draftsApi.remove(id))}
+            >
+              Delete drafts
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}
+
+/** The queue: scheduled posts and planned drafts, soonest first. Planned ones never publish by themselves. */
+function QueueList() {
+  const { data } = useWrite()
+  if (data.queue.length === 0) {
+    return (
+      <p className="px-4 py-6 text-xs text-neutral-500">
+        Nothing queued or planned for this set. Schedule a draft, add it to the queue, or plan it.
+      </p>
+    )
+  }
+  return (
+    <ul>
+      {data.queue.map((item) => (
+        <li key={item.id}>
+          <Link
+            className={cn(
+              'm-2 block rounded-lg border px-3 py-2.5 hover:bg-white/[0.02]',
+              item.kind === 'planned' ? 'border-dashed border-violet-400/40' : 'border-white/[0.06]'
+            )}
+            data-testid={item.kind === 'planned' ? 'queue-planned' : 'queue-item'}
+            href={draftHref(item.draftId, data.activeSet?.id)}
+          >
+            <p
+              className={cn(
+                'flex items-center gap-1.5 text-[11px]',
+                item.kind === 'planned' ? 'text-violet-300' : 'text-sky-300'
+              )}
+            >
+              <LocalTime
+                options={{
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  month: 'short',
+                  timeZone: data.activeSet?.timeZone,
+                  weekday: 'short',
+                }}
+                value={item.at}
+              />
+              · {item.kind === 'planned' ? 'planned, not scheduled' : item.platform}
+            </p>
+            <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-neutral-200">
+              {item.caption}
+            </p>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+}

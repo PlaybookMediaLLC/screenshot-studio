@@ -68,6 +68,12 @@ func (_u *ContentDraftRevisionUpdate) sqlSave(ctx context.Context) (_node int, e
 			}
 		}
 	}
+	if _u.mutation.PlatformVersionsCleared() {
+		_spec.ClearField(contentdraftrevision.FieldPlatformVersions, field.TypeJSON)
+	}
+	if _u.mutation.ArticleCleared() {
+		_spec.ClearField(contentdraftrevision.FieldArticle, field.TypeJSON)
+	}
 	if _u.mutation.CreatedByUserIDCleared() {
 		_spec.ClearField(contentdraftrevision.FieldCreatedByUserID, field.TypeString)
 	}
@@ -161,6 +167,12 @@ func (_u *ContentDraftRevisionUpdateOne) sqlSave(ctx context.Context) (_node *Co
 				ps[i](selector)
 			}
 		}
+	}
+	if _u.mutation.PlatformVersionsCleared() {
+		_spec.ClearField(contentdraftrevision.FieldPlatformVersions, field.TypeJSON)
+	}
+	if _u.mutation.ArticleCleared() {
+		_spec.ClearField(contentdraftrevision.FieldArticle, field.TypeJSON)
 	}
 	if _u.mutation.CreatedByUserIDCleared() {
 		_spec.ClearField(contentdraftrevision.FieldCreatedByUserID, field.TypeString)

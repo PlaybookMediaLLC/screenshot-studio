@@ -6,6 +6,7 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdrafttag"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhooksubscription"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 )
@@ -33,10 +34,37 @@ func draftEventData(ctx context.Context, tx *ent.Tx, draft *ent.ContentDraft) (m
 			}
 		}
 	}
+	tags, err := draftTagData(ctx, tx, draft.OrganizationID, draft.TagIds)
+	if err != nil {
+		return nil, err
+	}
 	return map[string]any{"createdAt": draft.CreatedAt, "id": draft.ID, "plannedFor": draft.PlannedFor,
 		"platforms": platforms, "primaryPlatform": draft.PrimaryPlatform, "socialSetId": draft.SocialSetID,
-		"status": string(draft.Status), "tags": nonNilStrings(draft.Tags), "title": draft.Title,
+		"status": string(draft.Status), "tags": tags, "title": draft.Title,
 		"updatedAt": draft.UpdatedAt, "version": draft.Version}, nil
+}
+
+// draftTagData is tags as webhooks show them (RFC 042): each tag's id and
+// name, in the draft's order; a tag deleted meanwhile is left out.
+func draftTagData(ctx context.Context, tx *ent.Tx, organizationID string, ids []string) ([]map[string]string, error) {
+	items := []map[string]string{}
+	if len(ids) == 0 {
+		return items, nil
+	}
+	rows, err := tx.ContentDraftTag.Query().Where(contentdrafttag.IDIn(ids...), contentdrafttag.OrganizationID(organizationID)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	names := map[string]string{}
+	for _, row := range rows {
+		names[row.ID] = row.Name
+	}
+	for _, id := range ids {
+		if name, ok := names[id]; ok {
+			items = append(items, map[string]string{"id": id, "name": name})
+		}
+	}
+	return items, nil
 }
 
 // emitDraftEvent writes one draft event, when any enabled subscription of the
@@ -72,9 +100,12 @@ func emitDraftChanges(ctx context.Context, tx *ent.Tx, before, after *ent.Conten
 			return err
 		}
 	}
-	if !slices.Equal(nonNilStrings(before.Tags), nonNilStrings(after.Tags)) {
-		if err := emitDraftEvent(ctx, tx, after, webhooks.DraftTagsChanged,
-			map[string]any{"previousTags": nonNilStrings(before.Tags), "tags": nonNilStrings(after.Tags)}); err != nil {
+	if !slices.Equal(nonNilStrings(before.TagIds), nonNilStrings(after.TagIds)) {
+		previous, err := draftTagData(ctx, tx, before.OrganizationID, before.TagIds)
+		if err != nil {
+			return err
+		}
+		if err := emitDraftEvent(ctx, tx, after, webhooks.DraftTagsChanged, map[string]any{"previousTags": previous}); err != nil {
 			return err
 		}
 	}

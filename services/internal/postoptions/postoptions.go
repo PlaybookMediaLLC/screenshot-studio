@@ -3,25 +3,69 @@
 // got. A leaf package, so the ent schema can use its types.
 package postoptions
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+	"time"
+)
 
 // AutoActions are what happens after a post is live, on channels that
 // support them (X). Zero values are off.
 type AutoActions struct {
 	// RepostAtLikes reposts the post once it has this many likes.
 	RepostAtLikes int `json:"repostAtLikes,omitempty"`
-	// PlugAtLikes replies PlugText under the post once it has this many likes.
+	// PlugAtLikes replies PlugText under the post once it has this many of
+	// PlugMetric: likes (the default) or reposts. It plugs once.
 	PlugAtLikes int    `json:"plugAtLikes,omitempty"`
 	PlugText    string `json:"plugText,omitempty"`
+	PlugMetric  string `json:"plugMetric,omitempty"`
 	// QuoteAfterHours posts QuoteText with a link to the post this many hours
 	// after it went out, which X shows as a quote.
 	QuoteAfterHours int    `json:"quoteAfterHours,omitempty"`
 	QuoteText       string `json:"quoteText,omitempty"`
+	// Retweets repost the post at each rule's time (RFC 042), and
+	// UnretweetAfterMinutes removes each of those reposts this long after
+	// it went up; 0 keeps them.
+	Retweets              []RetweetRule `json:"retweets,omitempty"`
+	UnretweetAfterMinutes int           `json:"unretweetAfterMinutes,omitempty"`
 }
 
 // Empty reports whether no action is set.
 func (a AutoActions) Empty() bool {
-	return a.RepostAtLikes == 0 && a.PlugAtLikes == 0 && a.QuoteAfterHours == 0
+	return a.RepostAtLikes == 0 && a.PlugAtLikes == 0 && a.QuoteAfterHours == 0 && len(a.Retweets) == 0
+}
+
+// RetweetRule is when to repost: AfterMinutes after publishing, or Days
+// after the day it was published at the wall-clock time At ("15:04") in
+// TimeZone. The two forms are kept apart: a wall-clock time stays put
+// across a daylight-saving change, a duration does not.
+type RetweetRule struct {
+	AfterMinutes int    `json:"afterMinutes,omitempty"`
+	Days         int    `json:"days,omitempty"`
+	At           string `json:"at,omitempty"`
+	TimeZone     string `json:"timeZone,omitempty"`
+}
+
+// When is the rule's time for a post published at publishedAt. A wall-clock
+// time that does not exist that day (a spring-forward gap) moves forward
+// by the gap, as Go's time.Date does.
+func (r RetweetRule) When(publishedAt time.Time) (time.Time, error) {
+	if r.At == "" {
+		if r.AfterMinutes <= 0 {
+			return time.Time{}, fmt.Errorf("retweet rule needs afterMinutes or at")
+		}
+		return publishedAt.Add(time.Duration(r.AfterMinutes) * time.Minute), nil
+	}
+	zone, err := time.LoadLocation(r.TimeZone)
+	if err != nil || r.TimeZone == "" {
+		return time.Time{}, fmt.Errorf("retweet rule time zone %q", r.TimeZone)
+	}
+	clock, err := time.Parse("15:04", r.At)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("retweet rule time %q", r.At)
+	}
+	local := publishedAt.In(zone)
+	return time.Date(local.Year(), local.Month(), local.Day()+r.Days, clock.Hour(), clock.Minute(), 0, 0, zone), nil
 }
 
 // Poll is a question's choices and how long it stays open.
@@ -41,6 +85,41 @@ type ThreadProgress struct {
 // Metrics are a live post's engagement counts by name (likes, reposts,
 // replies, impressions, …), as its platform reports them.
 type Metrics map[string]float64
+
+// PublishOptions are a draft post's settings beyond its text (RFC 042):
+// who can reply, its labels, where it goes, and what it quotes. Each field
+// belongs to the platforms whose adapter sends it; scheduling refuses it
+// anywhere else. Zero values are off.
+type PublishOptions struct {
+	// X: who can reply (following, mentionedUsers, subscribers, verified);
+	// empty is everyone. Replies never change who can see the post.
+	ReplySettings string `json:"replySettings,omitempty"`
+	// X: content labels.
+	MadeWithAI      bool `json:"madeWithAi,omitempty"`
+	PaidPartnership bool `json:"paidPartnership,omitempty"`
+	// X: post to a community, and whether followers see it too.
+	CommunityID        string `json:"communityId,omitempty"`
+	ShareWithFollowers bool   `json:"shareWithFollowers,omitempty"`
+	// X: the post this one quotes; LinkedIn: the post this one reshares.
+	QuoteRemoteID string `json:"quoteRemoteId,omitempty"`
+	// X: this reply quotes the thread's first post, once it is live.
+	QuoteFirstPost bool `json:"quoteFirstPost,omitempty"`
+	// X articles: the title and cover; the caption is the body.
+	ArticleTitle        string `json:"articleTitle,omitempty"`
+	ArticleCoverAssetID string `json:"articleCoverAssetId,omitempty"`
+	// LinkedIn: PUBLIC or CONNECTIONS; empty is PUBLIC.
+	Visibility string `json:"visibility,omitempty"`
+	// LinkedIn: a comment posted under the post once it is live.
+	FirstComment string `json:"firstComment,omitempty"`
+	// LinkedIn: a PDF asset posted as a document carousel, with its title.
+	DocumentAssetID string `json:"documentAssetId,omitempty"`
+	DocumentTitle   string `json:"documentTitle,omitempty"`
+	// LinkedIn: a poll's question (X polls ask the post's text).
+	PollQuestion string `json:"pollQuestion,omitempty"`
+}
+
+// Empty reports whether no option is set.
+func (o PublishOptions) Empty() bool { return o == PublishOptions{} }
 
 // LivePostURL is a live post's address on its platform, where one can be
 // built from its id.

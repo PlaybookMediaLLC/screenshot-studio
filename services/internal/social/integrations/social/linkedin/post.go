@@ -32,6 +32,8 @@ type pendingData struct {
 	IsPdf    bool     `json:"isPdf"`
 	PdfTitle string   `json:"pdfTitle,omitempty"`
 	MediaIDs []string `json:"mediaIds"`
+	// AltTexts describe MediaIDs' images, by index; empty for none.
+	AltTexts []string `json:"altTexts,omitempty"`
 	// Media whose processing status can be read via GET: videos for every
 	// token, images/documents only for organization tokens.
 	Poll []pollMedia `json:"poll"`
@@ -48,6 +50,33 @@ type pendingData struct {
 	// again (LinkedIn has no idempotency key).
 	Attempting bool `json:"attempting,omitempty"`
 	Confirmed  bool `json:"confirmed,omitempty"`
+	// Write (RFC 042): who sees the post, a poll, and a reshared post.
+	Visibility    string                    `json:"visibility,omitempty"`
+	Question      *integrations.PollDetails `json:"linkedinPoll,omitempty"`
+	ReshareParent string                    `json:"reshareParent,omitempty"`
+}
+
+// linkedInPollDurations are the Poll API's lengths by whole days.
+var linkedInPollDurations = map[int]string{1: "ONE_DAY", 3: "THREE_DAYS", 7: "SEVEN_DAYS", 14: "FOURTEEN_DAYS"}
+
+// pollContent is a poll as the Posts API takes it: a question, 2 to 4
+// options, and one of its durations.
+func pollContent(poll *integrations.PollDetails) map[string]any {
+	minutes := poll.DurationMinutes
+	if minutes == 0 {
+		minutes = poll.Duration * 60
+	}
+	duration, ok := linkedInPollDurations[minutes/(24*60)]
+	if !ok || minutes%(24*60) != 0 {
+		duration = "SEVEN_DAYS"
+	}
+	options := make([]map[string]string, 0, len(poll.Options))
+	for _, option := range poll.Options {
+		options = append(options, map[string]string{"text": option})
+	}
+	return map[string]any{"poll": map[string]any{
+		"question": poll.Question, "options": options, "settings": map[string]string{"duration": duration},
+	}}
 }
 
 func authorURN(postType, id string) string {
@@ -255,7 +284,18 @@ func (p *Provider) processMedia(ctx context.Context, media []mediaItem, accessTo
 	return mediaIDs, poll, graceChecks, nil
 }
 
-func buildPostContent(isPdf bool, mediaIDs []string, pdfTitle string) map[string]any {
+// buildPostContent is the post's media; alts describe images by index
+// (LinkedIn's altText, at most 4,086 characters).
+func buildPostContent(isPdf bool, mediaIDs []string, pdfTitle string, alts ...string) map[string]any {
+	alt := func(index int) string {
+		if index >= len(alts) {
+			return ""
+		}
+		if runes := []rune(alts[index]); len(runes) > 4086 {
+			return string(runes[:4086])
+		}
+		return alts[index]
+	}
 	switch len(mediaIDs) {
 	case 0:
 		return nil
@@ -266,12 +306,17 @@ func buildPostContent(isPdf bool, mediaIDs []string, pdfTitle string) map[string
 				pdfTitle = "slides"
 			}
 			media["title"] = pdfTitle
+		} else if text := alt(0); text != "" {
+			media["altText"] = text
 		}
 		return map[string]any{"media": media}
 	}
 	images := make([]map[string]string, len(mediaIDs))
 	for i, id := range mediaIDs {
 		images[i] = map[string]string{"id": id}
+		if text := alt(i); text != "" {
+			images[i]["altText"] = text
+		}
 	}
 	return map[string]any{"multiImage": map[string]any{"images": images}}
 }
@@ -303,13 +348,27 @@ func newPayload(author, commentary string) postPayload {
 
 func (p *Provider) createMainPost(ctx context.Context, data *pendingData, accessToken string) (string, error) {
 	payload := newPayload(authorURN(data.PostType, data.AuthorID), FixText(data.Message))
-	var mediaIDs []string
-	for _, id := range data.MediaIDs {
+	if data.Visibility != "" {
+		payload.Visibility = data.Visibility
+	}
+	var mediaIDs, alts []string
+	for index, id := range data.MediaIDs {
 		if id != "" {
 			mediaIDs = append(mediaIDs, id)
+			alt := ""
+			if index < len(data.AltTexts) {
+				alt = data.AltTexts[index]
+			}
+			alts = append(alts, alt)
 		}
 	}
-	payload.Content = buildPostContent(data.IsPdf, mediaIDs, data.PdfTitle)
+	payload.Content = buildPostContent(data.IsPdf, mediaIDs, data.PdfTitle, alts...)
+	if data.Question != nil && len(data.Question.Options) >= 2 {
+		payload.Content = pollContent(data.Question)
+	}
+	if data.ReshareParent != "" {
+		payload.ReshareContext = map[string]string{"parent": data.ReshareParent}
+	}
 	body, _ := json.Marshal(payload)
 	// Fetch only returns 200/201, so TypeScript's "Error posting to LinkedIn"
 	// status check cannot trigger here.
@@ -380,6 +439,7 @@ func (p *Provider) PostPendingAs(ctx context.Context, id, accessToken string, po
 	isPdf := integrations.AssetBoolean(settings.PostAsImagesCarousel)
 
 	var media []mediaItem
+	var alts []string
 	if isPdf && len(first.Media) > 0 {
 		// The first post's media is replaced with a single PDF carousel.
 		pdf, err := p.convertImagesToPDFCarousel(ctx, first.Media)
@@ -387,9 +447,11 @@ func (p *Provider) PostPendingAs(ctx context.Context, id, accessToken string, po
 			return nil, err
 		}
 		media = []mediaItem{{path: "carousel.pdf", data: pdf}}
+		alts = nil
 	} else {
 		for _, m := range first.Media {
 			media = append(media, mediaItem{path: m.Path})
+			alts = append(alts, m.Alt)
 		}
 	}
 
@@ -399,12 +461,25 @@ func (p *Provider) PostPendingAs(ctx context.Context, id, accessToken string, po
 	}
 	data := pendingData{
 		AuthorID: id, PostType: postType, Message: first.Message, IsPdf: isPdf,
-		MediaIDs: mediaIDs, Poll: poll, GraceChecks: graceChecks,
+		MediaIDs: mediaIDs, AltTexts: alts, Poll: poll, GraceChecks: graceChecks,
+	}
+	data.Visibility, _ = settings.Visibility.(string)
+	data.ReshareParent, _ = settings.ReshareParent.(string)
+	if first.Poll != nil && len(first.Poll.Options) >= 2 {
+		data.Question = first.Poll
 	}
 	if isPdf {
 		data.PdfTitle, _ = settings.CarouselName.(string)
 		if data.PdfTitle == "" {
 			data.PdfTitle = "slides"
+		}
+	}
+	// An uploaded PDF goes out as a document post with its own title.
+	if !isPdf && len(first.Media) == 1 && helpers.HasExtension(first.Media[0].Path, "pdf") {
+		data.IsPdf = true
+		data.PdfTitle, _ = settings.DocumentTitle.(string)
+		if data.PdfTitle == "" {
+			data.PdfTitle = "Document"
 		}
 	}
 	raw, err := json.Marshal(data)

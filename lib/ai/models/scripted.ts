@@ -781,6 +781,19 @@ function scriptCaptions(text: string) {
   }
 }
 
+/**
+ * Write's Refine (RFC 042): one text per <text>, plainly changed, so a
+ * test can tell the refinement from the original. A title is the first
+ * words of the first text.
+ */
+function scriptRefinement(text: string, system: string) {
+  const texts = [...text.matchAll(/<text index="\d+">([\s\S]*?)<\/text>/g)].map((match) => match[1]!.trim())
+  if (system.includes('internal title')) {
+    return { texts: [clip((texts[0] ?? 'Draft').split(/\s+/).slice(0, 6).join(' '), 60)] }
+  }
+  return { texts: texts.map((item) => `${item.replace(/\s+/g, ' ')} (refined)`) }
+}
+
 function respond(content: LanguageModelV4Content[]): LanguageModelV4GenerateResult {
   const hasCalls = content.some((part) => part.type === 'tool-call')
   return {
@@ -792,6 +805,7 @@ function respond(content: LanguageModelV4Content[]): LanguageModelV4GenerateResu
 }
 
 const SUBMIT_TOOLS = [
+  'submitRefinement',
   'submitSpec',
   'submitPlan',
   'saveLaunchCopy',
@@ -857,7 +871,9 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
           return respond([{ text: 'Submitted.', type: 'text' }])
         }
         const input =
-          submit === 'submitSpec'
+          submit === 'submitRefinement'
+            ? scriptRefinement(text, systemText(options))
+            : submit === 'submitSpec'
             ? scriptSpec(text)
             : submit === 'submitPlan'
               ? scriptPlan(text)

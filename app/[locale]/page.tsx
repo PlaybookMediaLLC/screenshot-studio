@@ -3,9 +3,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { EditorWorkspace } from '@/components/platform-shell/EditorWorkspace'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { FAQ } from '@/components/landing/FAQ'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
-import { AgentSummary } from '@/components/seo/AgentSummary'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
 import { OG_DEFAULTS } from '@/lib/seo/metadata'
 
@@ -104,8 +102,6 @@ export default async function EditorPage({ params }: EditorPageProps) {
       <ErrorBoundary>
         <EditorWorkspace />
       </ErrorBoundary>
-      <AgentSummary />
-      <FAQ />
     </PlatformShell>
   )
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.2...v2.24.3) (2026-10-20)
+
+
+### Bug Fixes
+
+* **editor:** remove the SEO text below the editor ([#218](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/218)) ([7b4cf94](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/7b4cf9428ddb838f535506dd563e5b97ef85873b))
+
 ## [2.24.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.1...v2.24.2) (2026-10-20)
 
 

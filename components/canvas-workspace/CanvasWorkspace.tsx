@@ -28,6 +28,8 @@ import { Minimap, ZoomBar } from './BoardChrome'
 import { CanvasDialogs, type CanvasDialog } from './CanvasDialogs'
 import { useCanvasActions } from './use-canvas-actions'
 import { useNativeArtboard } from './use-native-artboard'
+import { useLayerActions } from './use-layer-actions'
+import { LayerSelection } from './LayerSelection'
 import { useCanvasShortcuts } from './use-canvas-shortcuts'
 
 const TimelineEditor = dynamic(
@@ -63,6 +65,7 @@ export function CanvasWorkspace({
   const editing = canEdit && !isMobile
   const native = useNativeArtboard(session, editing ? activeId : null, editing, state.loadEpoch)
   const flushNative = native.flush
+  const layerActions = useLayerActions(session, native.flush, native.sync)
   const flush = useCallback(() => {
     try {
       flushNative()
@@ -125,7 +128,8 @@ export function CanvasWorkspace({
     const timer = setInterval(() => {
       if (
         pointing ||
-        document.activeElement?.closest('input,textarea,[contenteditable="true"],[role="dialog"]')
+        (document.activeElement as HTMLElement | null)?.isContentEditable ||
+        document.activeElement?.closest('input,textarea,[role="dialog"]')
       )
         return
       void session.refreshRemote(flushNative)
@@ -189,7 +193,7 @@ export function CanvasWorkspace({
   useEffect(() => {
     const paste = (event: ClipboardEvent) => {
       const target = event.target as HTMLElement | null
-      if (target?.closest('input,textarea,[contenteditable="true"],[role="dialog"]')) return
+      if (target?.isContentEditable || target?.closest('input,textarea,[role="dialog"]')) return
       const files = transferImageFiles(event.clipboardData)
       if (!files.length) return
       event.preventDefault()
@@ -200,7 +204,7 @@ export function CanvasWorkspace({
   }, [addScreenshots])
 
   const openExport = useCallback(() => setDialog('export'), [])
-  useCanvasShortcuts(actions, canEdit, openExport)
+  useCanvasShortcuts(actions, canEdit, openExport, layerActions)
 
   const status = state.status
   const panelProps = {
@@ -210,6 +214,7 @@ export function CanvasWorkspace({
     canEdit,
     editing: Boolean(active && native.ready),
     onDialog: setDialog,
+    layerActions,
   }
   const banners = useMemo(() => {
     const message = error ?? state.error ?? state.recoveryError ?? notice
@@ -300,7 +305,16 @@ export function CanvasWorkspace({
             onDropFiles={(files, at) => void addScreenshots(files, at)}
             editor={
               active && editing ? (
-                <ActiveArtboardEditor artboard={active} ready={native.ready} error={native.error} />
+                <ActiveArtboardEditor artboard={active} ready={native.ready} error={native.error}>
+                  <LayerSelection
+                    artboard={active}
+                    actions={layerActions}
+                    canEdit={canEdit}
+                    componentName={(id) =>
+                      state.document.components.find((item) => item.id === id)?.name
+                    }
+                  />
+                </ActiveArtboardEditor>
               ) : null
             }
           />

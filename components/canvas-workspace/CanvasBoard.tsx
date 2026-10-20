@@ -162,7 +162,7 @@ export function CanvasBoard({
   useEffect(() => {
     const editable = (target: EventTarget | null) =>
       target instanceof HTMLElement &&
-      Boolean(target.closest('input,textarea,select,[contenteditable="true"]'))
+      (target.isContentEditable || Boolean(target.closest('input,textarea,select')))
     const down = (event: KeyboardEvent) => {
       if (event.code === 'Space' && !editable(event.target) && !event.repeat) setSpaceHeld(true)
     }

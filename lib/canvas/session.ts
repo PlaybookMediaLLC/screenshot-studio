@@ -22,6 +22,7 @@ import {
 import { NativeDocumentBridge } from '@/lib/creative-sets/native-session'
 import { applyCanvasCommand, type CanvasCommand } from './commands'
 import { canvasDocumentSchema, type CanvasDocument } from './document'
+import { componentDocument, withComponentDocument } from './components'
 import type { DesignDocument } from '@/lib/design/document'
 
 /** A stored canvas workspace. */
@@ -42,9 +43,15 @@ export function mergeCanvasConcurrent(
 
 const canvasRecovery: RecoveryKind<CanvasDocument> = {
   parse: (raw) => canvasDocumentSchema.parse(raw),
-  natives: (document) => document.artboards.map((artboard) => artboard.document),
+  natives: (document) => [
+    ...document.artboards.map((artboard) => artboard.document),
+    ...document.components.map(componentDocument),
+  ],
   mapNatives: (document, map) => {
     for (const artboard of document.artboards) artboard.document = map(artboard.document)
+    document.components = document.components.map((component) =>
+      withComponentDocument(component, map(componentDocument(component)))
+    )
     return document
   },
 }
@@ -83,12 +90,20 @@ export class CanvasSession extends RevisionedSession<CanvasDocument> {
       upload: async (document) => {
         for (const artboard of document.artboards)
           artboard.document = await uploadDesignSources(client, artboard.document)
+        for (const [index, component] of document.components.entries())
+          document.components[index] = withComponentDocument(
+            component,
+            await uploadDesignSources(client, componentDocument(component))
+          )
         return document
       },
       resolveUploads: (original) => {
         const current = structuredClone(original)
         for (const artboard of current.artboards)
           artboard.document = withUploadedSources(artboard.document)
+        current.components = current.components.map((component) =>
+          withComponentDocument(component, withUploadedSources(componentDocument(component)))
+        )
         return current
       },
       get: () => client.canvas.get.query({ canvasId: record.id }),

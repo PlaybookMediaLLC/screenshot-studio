@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { create } from 'zustand'
 import { DEFAULT_VIEWPORT, type ScreenSize, type Viewport } from './viewport'
+import { layerKey, type LayerRef } from './layers'
 
 /**
  * Board session state: what is selected, which artboard the native editor
@@ -10,8 +11,8 @@ import { DEFAULT_VIEWPORT, type ScreenSize, type Viewport } from './viewport'
  * document or undone; the camera is remembered per canvas on this device.
  */
 
-/** Pointer tools: select and move, or pan the board. */
-export const canvasToolSchema = z.enum(['select', 'hand'])
+/** Pointer tools: select and move, pan the board, or place text in the open artboard. */
+export const canvasToolSchema = z.enum(['select', 'hand', 'text'])
 /** One of {@link canvasToolSchema}. */
 export type CanvasTool = z.infer<typeof canvasToolSchema>
 
@@ -34,6 +35,12 @@ type CanvasUiState = {
   leftOpen: boolean
   rightOpen: boolean
   renamingId: string | null
+  /** Layers selected together in the open artboard. The editor's own selection holds one layer at a time. */
+  layers: LayerRef[]
+  /** The group whose layers are picked one at a time, after a double-click into it. */
+  enteredGroup: string | null
+  /** The text layer being typed into on the stage. */
+  editingText: string | null
   select: (ids: string[]) => void
   toggle: (id: string) => void
   activate: (id: string | null) => void
@@ -42,6 +49,10 @@ type CanvasUiState = {
   setLeftTab: (tab: LeftTab) => void
   togglePanel: (side: 'left' | 'right') => void
   rename: (id: string | null) => void
+  selectLayers: (layers: LayerRef[]) => void
+  toggleLayer: (layer: LayerRef) => void
+  enterGroup: (id: string | null) => void
+  editText: (id: string | null) => void
   reset: () => void
 }
 
@@ -54,6 +65,9 @@ const initial = {
   leftOpen: true,
   rightOpen: true,
   renamingId: null as string | null,
+  layers: [] as LayerRef[],
+  enteredGroup: null as string | null,
+  editingText: null as string | null,
 }
 
 /** The open board's session state. */
@@ -71,6 +85,10 @@ export const useCanvasUi = create<CanvasUiState>((set) => ({
       activeId: id,
       selection: id ? [id] : state.selection,
       leftTab: id ? state.leftTab : state.leftTab === 'design' ? 'insert' : state.leftTab,
+      layers: [],
+      enteredGroup: null,
+      editingText: null,
+      tool: state.tool === 'text' && !id ? 'select' : state.tool,
     })),
   setTool: (tool) => set({ tool }),
   setGrid: (grid) => set((state) => ({ grid: { ...state.grid, ...grid } })),
@@ -80,6 +98,16 @@ export const useCanvasUi = create<CanvasUiState>((set) => ({
       side === 'left' ? { leftOpen: !state.leftOpen } : { rightOpen: !state.rightOpen }
     ),
   rename: (renamingId) => set({ renamingId }),
+  selectLayers: (layers) =>
+    set({ layers: [...new Map(layers.map((layer) => [layerKey(layer), layer])).values()] }),
+  toggleLayer: (layer) =>
+    set((state) => ({
+      layers: state.layers.some((item) => layerKey(item) === layerKey(layer))
+        ? state.layers.filter((item) => layerKey(item) !== layerKey(layer))
+        : [...state.layers, layer],
+    })),
+  enterGroup: (enteredGroup) => set({ enteredGroup, layers: [] }),
+  editText: (editingText) => set({ editingText }),
   reset: () => set(initial),
 }))
 

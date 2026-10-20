@@ -45,6 +45,8 @@ import { screenshotFromAsset, screenshotFromUrl } from '@/lib/canvas/create'
 import { ProductContextPanel } from './ProductContextPanel'
 import type { CanvasActions } from './use-canvas-actions'
 import type { CanvasDialog } from './CanvasDialogs'
+import type { LayerActions } from './use-layer-actions'
+import { ComponentList, LayerSelectionPanel } from './LayerPanel'
 
 const ComposePanel = dynamic(
   () => import('@/components/editor/panels/EditorPanel').then((module) => module.ComposePanel),
@@ -70,6 +72,7 @@ export type PanelProps = {
   /** True when the native editor has an artboard open and ready. */
   editing: boolean
   onDialog: (dialog: CanvasDialog) => void
+  layerActions: LayerActions
 }
 
 const section = 'space-y-2 border-b px-4 py-4'
@@ -152,7 +155,15 @@ async function insertBlock(block: LayerBlock | ScreenBlock, flush: () => void) {
   flush()
 }
 
-function InsertPanel({ actions, canEdit, editing, onDialog }: PanelProps) {
+function InsertPanel({
+  session,
+  state,
+  actions,
+  canEdit,
+  editing,
+  onDialog,
+  layerActions,
+}: PanelProps) {
   const [width, setWidth] = useState('1600')
   const [height, setHeight] = useState('900')
   const [busy, setBusy] = useState(false)
@@ -244,6 +255,16 @@ function InsertPanel({ actions, canEdit, editing, onDialog }: PanelProps) {
             App Store screenshots ↗
           </Link>
         </div>
+      </section>
+      <section aria-label="Components" className={section}>
+        <h2 className={heading}>Components</h2>
+        <ComponentList
+          session={session}
+          components={state.document.components}
+          actions={layerActions}
+          editing={editing}
+          canEdit={canEdit}
+        />
       </section>
       <section aria-label="Blocks" className={section}>
         <h2 className={heading}>Blocks</h2>
@@ -399,6 +420,7 @@ export function RightPanel(props: PanelProps) {
   const { state, actions, canEdit, editing, onDialog } = props
   const selection = useCanvasUi((ui) => ui.selection)
   const activeId = useCanvasUi((ui) => ui.activeId)
+  const layers = useCanvasUi((ui) => ui.layers)
   const chosen = state.document.artboards.filter((artboard) => selection.includes(artboard.id))
   const active = state.document.artboards.find((artboard) => artboard.id === activeId)
   if (active && editing)
@@ -415,7 +437,16 @@ export function RightPanel(props: PanelProps) {
             Done
           </Button>
         </div>
-        <InspectorPanel />
+        {layers.length ? (
+          <LayerSelectionPanel
+            artboard={active}
+            components={state.document.components}
+            actions={props.layerActions}
+            canEdit={canEdit}
+          />
+        ) : (
+          <InspectorPanel />
+        )}
         <ProductContextPanel {...props} artboard={active} />
       </div>
     )

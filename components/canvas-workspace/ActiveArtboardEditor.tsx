@@ -20,10 +20,13 @@ export function ActiveArtboardEditor({
   artboard,
   ready,
   error,
+  children,
 }: {
   artboard: Artboard
   ready: boolean
   error: string | null
+  /** Drawn over the stage in its coordinates, such as the layer selection. */
+  children?: React.ReactNode
 }) {
   const viewport = useCanvasViewport((state) => state.viewport)
   const settledZoom = useCanvasViewport((state) => state.settledZoom)
@@ -64,6 +67,7 @@ export function ActiveArtboardEditor({
             <ClientCanvas embedded />
           </CanvasStageShell>
         </div>
+        {shown ? children : null}
       </div>
       {!shown ? (
         <div

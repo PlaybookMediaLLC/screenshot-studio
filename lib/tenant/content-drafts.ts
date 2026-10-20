@@ -137,7 +137,9 @@ export async function scheduleContentDraft(
     }
   })
   const result = await backendSDK(context).scheduleContentDraft(id, {
-    ...(input.naturalPostingTime === undefined ? {} : { naturalPostingTime: input.naturalPostingTime }),
+    ...(input.naturalPostingTime === undefined
+      ? {}
+      : { naturalPostingTime: input.naturalPostingTime }),
     ...(input.queue ? { queue: true } : { scheduledFor: input.scheduledFor }),
     targets,
     version: input.version,
@@ -169,19 +171,24 @@ export async function updateContentDraftSettings(
 }
 
 /** Suggested posting times, from the workspace's engagement. */
-export async function bestPostingTimes(context: TenantContext) {
-  const { items } = await backendSDK(context).bestPostingTimes()
+export async function bestPostingTimes(context: TenantContext, socialSetId = '') {
+  const { items } = await backendSDK(context).bestPostingTimes(socialSetId)
   return items.map((item) => ({ ...item, at: new Date(item.at) }))
 }
 
 /** The queue's next free slot. */
-export async function nextQueueSlot(context: TenantContext) {
-  return new Date((await backendSDK(context).nextContentDraftQueueSlot()).scheduledFor)
+export async function nextQueueSlot(context: TenantContext, socialSetId = '') {
+  return new Date((await backendSDK(context).nextContentDraftQueueSlot(socialSetId)).scheduledFor)
 }
 
 /** Draft posts due in [from, to), with their drafts' titles. */
-export async function listContentDraftPostsBetween(context: TenantContext, from: Date, to: Date) {
-  const { items } = await backendSDK(context).listContentDraftPostsBetween(from, to)
+export async function listContentDraftPostsBetween(
+  context: TenantContext,
+  from: Date,
+  to: Date,
+  socialSetId = ''
+) {
+  const { items } = await backendSDK(context).listContentDraftPostsBetween(from, to, socialSetId)
   return items.map((post) => ({
     ...readPost(post),
     draftId: post.draftId,

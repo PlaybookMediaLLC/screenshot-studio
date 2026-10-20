@@ -178,6 +178,12 @@ export function useCanvasShortcuts(
       } else if (mod && lower === 'v') {
         // Images arrive as a paste event; artboards come from the board clipboard.
         actions.paste()
+      } else if ((event.key === 'Delete' || event.key === 'Backspace') && ui.storeSelection) {
+        handled()
+        actions.removeStoreGroup(ui.storeSelection)
+      } else if (event.key === 'Enter' && ui.storeSelection) {
+        handled()
+        ui.editStore(ui.storeSelection)
       } else if ((event.key === 'Delete' || event.key === 'Backspace') && ui.selection.length) {
         handled()
         actions.remove()

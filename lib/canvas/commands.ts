@@ -9,6 +9,8 @@ import {
   reconcileInstance,
 } from './components'
 import { layerGroupSchema, pruneGroups } from './layers'
+import { canvasStoreGroupSchema, storeTargetIdSchema } from './store-groups'
+import { storeDocumentSchema } from '@/lib/store-screenshots/document/schema'
 import {
   artboardSchema,
   canvasDocumentSchema,
@@ -96,6 +98,18 @@ export const canvasCommandSchema = z.discriminatedUnion('type', [
   }),
   /** Delete a component; its instances stay as plain layers. */
   z.object({ type: z.literal('remove-component'), componentId: id }),
+  z.object({ type: z.literal('add-store-group'), storeGroup: canvasStoreGroupSchema }),
+  z.object({
+    type: z.literal('move-store-group'),
+    id,
+    x: workspaceCoordinateSchema,
+    y: workspaceCoordinateSchema,
+  }),
+  /** An edit made in the store editor: the group's whole native store document. */
+  z.object({ type: z.literal('edit-store-group'), id, document: storeDocumentSchema }),
+  z.object({ type: z.literal('set-store-target'), id, targetId: storeTargetIdSchema }),
+  z.object({ type: z.literal('rename-store-group'), id, name: z.string().trim().min(1).max(120) }),
+  z.object({ type: z.literal('remove-store-group'), id }),
 ])
 /** One of {@link canvasCommandSchema}. */
 export type CanvasCommand = z.infer<typeof canvasCommandSchema>
@@ -104,6 +118,12 @@ function artboardOf(canvas: CanvasDocument, artboardId: string): Artboard {
   const artboard = canvas.artboards.find((item) => item.id === artboardId)
   if (!artboard) throw new Error('That artboard is no longer on this canvas.')
   return artboard
+}
+
+function storeGroupOf(canvas: CanvasDocument, groupId: string) {
+  const item = canvas.storeGroups.find((entry) => entry.group.id === groupId)
+  if (!item) throw new Error('That store group is no longer on this canvas.')
+  return item
 }
 
 function componentOf(canvas: CanvasDocument, componentId: string) {
@@ -265,6 +285,30 @@ export function applyCanvasCommand(canvas: CanvasDocument, raw: CanvasCommand): 
     }
     case 'rename-component':
       componentOf(next, command.componentId).name = command.name
+      break
+    case 'add-store-group':
+      if (next.storeGroups.some((item) => item.group.id === command.storeGroup.group.id))
+        throw new Error('That store group is already on this canvas.')
+      next.storeGroups.push(command.storeGroup)
+      break
+    case 'move-store-group': {
+      const item = storeGroupOf(next, command.id)
+      item.x = command.x
+      item.y = command.y
+      break
+    }
+    case 'edit-store-group':
+      storeGroupOf(next, command.id).group.document = command.document
+      break
+    case 'set-store-target':
+      storeGroupOf(next, command.id).targetId = command.targetId
+      break
+    case 'rename-store-group':
+      storeGroupOf(next, command.id).group.name = command.name
+      break
+    case 'remove-store-group':
+      storeGroupOf(next, command.id)
+      next.storeGroups = next.storeGroups.filter((item) => item.group.id !== command.id)
       break
     case 'remove-component':
       componentOf(next, command.componentId)

@@ -36,11 +36,21 @@ import type { CanvasActions } from './use-canvas-actions'
 
 /** Which dialog or sheet is open. */
 export const canvasDialogSchema = z.union([
-  z.enum(['export', 'history', 'brand', 'campaign', 'mobile-artboards', 'mobile-properties']),
+  z.enum([
+    'export',
+    'history',
+    'brand',
+    'campaign',
+    'mobile-artboards',
+    'mobile-properties',
+    'add-store',
+  ]),
   z.templateLiteral(['recipe:', canvasRecipeSchema]),
 ])
 /** One of {@link canvasDialogSchema}. */
 export type CanvasDialog = z.infer<typeof canvasDialogSchema>
+
+import { AddStoreGroupDialog } from './StoreGroups'
 
 type Props = {
   dialog: CanvasDialog | null
@@ -58,6 +68,7 @@ export function CanvasDialogs(props: Props) {
   if (dialog === 'history') return <HistoryDialog {...props} />
   if (dialog === 'brand') return <BrandDialog {...props} />
   if (dialog === 'campaign') return <HandoffDialog {...props} />
+  if (dialog === 'add-store') return <AddStoreGroupDialog {...props} />
   if (dialog?.startsWith('recipe:')) {
     const recipe = canvasRecipeSchema.safeParse(dialog.slice('recipe:'.length))
     if (recipe.success) return <RecipeDialog {...props} recipe={recipe.data} />

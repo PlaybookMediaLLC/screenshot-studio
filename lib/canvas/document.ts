@@ -4,6 +4,7 @@ import { documentCanvasSize } from '@/lib/export/adapt'
 import { deliverySchema } from '@/lib/creative-sets/document'
 import { canvasComponentSchema, componentInstanceSchema } from './components'
 import { layerGroupSchema } from './layers'
+import { canvasStoreGroupSchema } from './store-groups'
 
 /**
  * A canvas workspace (RFC 041): finite artboards placed on an unbounded plane.
@@ -120,12 +121,16 @@ export const canvasDocumentSchema = z
     deliveries: z.array(deliverySchema).max(1000).default([]),
     /** Reusable components; their instances live in artboards. */
     components: z.array(canvasComponentSchema).max(100).default([]),
+    /** App Store and Google Play screenshot groups, drawn by the store renderer. */
+    storeGroups: z.array(canvasStoreGroupSchema).max(20).default([]),
   })
   .superRefine((canvas, context) => {
     if (new Set(canvas.artboards.map((artboard) => artboard.id)).size !== canvas.artboards.length)
       context.addIssue({ code: 'custom', message: 'Artboards need unique IDs.' })
     if (new Set(canvas.components.map((item) => item.id)).size !== canvas.components.length)
       context.addIssue({ code: 'custom', message: 'Components need unique IDs.' })
+    if (new Set(canvas.storeGroups.map((item) => item.group.id)).size !== canvas.storeGroups.length)
+      context.addIssue({ code: 'custom', message: 'Store groups need unique IDs.' })
   })
 /** A stored canvas workspace. */
 export type CanvasDocument = z.infer<typeof canvasDocumentSchema>

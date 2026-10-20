@@ -23,6 +23,8 @@ import { NativeDocumentBridge } from '@/lib/creative-sets/native-session'
 import { applyCanvasCommand, type CanvasCommand } from './commands'
 import { canvasDocumentSchema, type CanvasDocument } from './document'
 import { componentDocument, withComponentDocument } from './components'
+import { uploadStoreGroupAssets } from '@/lib/creative-sets/store-assets'
+import { resolveStoreGroupUploads } from '@/lib/creative-sets/store-schema'
 import type { DesignDocument } from '@/lib/design/document'
 
 /** A stored canvas workspace. */
@@ -83,6 +85,8 @@ export class CanvasSession extends RevisionedSession<CanvasDocument> {
       remove: removeCanvasRecovery,
     }
   ) {
+    // Store assets already verified in this tab are not uploaded twice.
+    const storeUploads = new Map<string, string>()
     super(record, client, storage, {
       label: 'canvas',
       parse: (document) => canvasDocumentSchema.parse(document),
@@ -95,15 +99,25 @@ export class CanvasSession extends RevisionedSession<CanvasDocument> {
             component,
             await uploadDesignSources(client, componentDocument(component))
           )
+        for (const item of document.storeGroups)
+          item.group = await uploadStoreGroupAssets(client, item.group, storeUploads)
         return document
       },
-      resolveUploads: (original) => {
+      resolveUploads: (original, uploaded, snapshot) => {
         const current = structuredClone(original)
         for (const artboard of current.artboards)
           artboard.document = withUploadedSources(artboard.document)
         current.components = current.components.map((component) =>
           withComponentDocument(component, withUploadedSources(componentDocument(component)))
         )
+        for (const item of current.storeGroups) {
+          const id = item.group.id
+          item.group = resolveStoreGroupUploads(
+            item.group,
+            uploaded.storeGroups.find((entry) => entry.group.id === id)?.group,
+            snapshot.storeGroups.find((entry) => entry.group.id === id)?.group
+          )
+        }
         return current
       },
       get: () => client.canvas.get.query({ canvasId: record.id }),

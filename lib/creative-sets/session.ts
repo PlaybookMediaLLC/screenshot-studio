@@ -9,6 +9,7 @@ import { mergeSetConcurrent } from './concurrent'
 import { removeSetRecovery, writeSetRecovery } from './recovery'
 import { trackEvent } from '@/lib/analytics'
 import { uploadStoreGroupAssets } from './store-assets'
+import { resolveStoreGroupUploads } from './store-schema'
 import {
   RevisionedSession,
   type RevisionedRecord,
@@ -18,7 +19,6 @@ import {
 
 export type SetRecord = RevisionedRecord<CreativeSetDocument>
 export type SetSessionState = RevisionedSessionState<CreativeSetDocument>
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 
 /** One owner for set transactions, undo and serialized cloud saves. */
 export class CreativeSetSession extends RevisionedSession<CreativeSetDocument> {
@@ -47,17 +47,13 @@ export class CreativeSetSession extends RevisionedSession<CreativeSetDocument> {
       resolveUploads: (original, uploaded, snapshot) => {
         const current = structuredClone(original)
         for (const output of current.outputs) output.document = withUploadedSources(output.document)
-        for (const group of current.storeGroups) {
-          const done = uploaded.storeGroups.find((candidate) => candidate.id === group.id)
-          for (const [id, ref] of Object.entries(done?.assetMap ?? {})) {
-            const previous = snapshot.storeGroups.find((candidate) => candidate.id === group.id)
-              ?.document.assets[id]
-            if (!group.assetMap[id] && previous && same(group.document.assets[id], previous))
-              group.assetMap[id] = ref
-            if (group.assetMap[id] && group.document.assets[id])
-              group.document.assets[id]!.src = null
-          }
-        }
+        current.storeGroups = current.storeGroups.map((group) =>
+          resolveStoreGroupUploads(
+            group,
+            uploaded.storeGroups.find((candidate) => candidate.id === group.id),
+            snapshot.storeGroups.find((candidate) => candidate.id === group.id)
+          )
+        )
         return current
       },
       get: () => client.creativeSet.get.query({ creativeSetId: record.id }),

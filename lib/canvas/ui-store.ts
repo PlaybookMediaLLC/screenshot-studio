@@ -41,6 +41,9 @@ type CanvasUiState = {
   enteredGroup: string | null
   /** The text layer being typed into on the stage. */
   editingText: string | null
+  /** The store group selected on the board, and the one open in the store editor. */
+  storeSelection: string | null
+  editingStore: string | null
   select: (ids: string[]) => void
   toggle: (id: string) => void
   activate: (id: string | null) => void
@@ -53,6 +56,8 @@ type CanvasUiState = {
   toggleLayer: (layer: LayerRef) => void
   enterGroup: (id: string | null) => void
   editText: (id: string | null) => void
+  selectStore: (id: string | null) => void
+  editStore: (id: string | null) => void
   reset: () => void
 }
 
@@ -68,12 +73,14 @@ const initial = {
   layers: [] as LayerRef[],
   enteredGroup: null as string | null,
   editingText: null as string | null,
+  storeSelection: null as string | null,
+  editingStore: null as string | null,
 }
 
 /** The open board's session state. */
 export const useCanvasUi = create<CanvasUiState>((set) => ({
   ...initial,
-  select: (ids) => set({ selection: [...new Set(ids)] }),
+  select: (ids) => set({ selection: [...new Set(ids)], storeSelection: null }),
   toggle: (id) =>
     set((state) => ({
       selection: state.selection.includes(id)
@@ -108,6 +115,9 @@ export const useCanvasUi = create<CanvasUiState>((set) => ({
     })),
   enterGroup: (enteredGroup) => set({ enteredGroup, layers: [] }),
   editText: (editingText) => set({ editingText }),
+  selectStore: (storeSelection) =>
+    set((state) => ({ storeSelection, selection: storeSelection ? [] : state.selection })),
+  editStore: (editingStore) => set({ editingStore }),
   reset: () => set(initial),
 }))
 

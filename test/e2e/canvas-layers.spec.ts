@@ -1,5 +1,7 @@
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
+import JSZip from 'jszip'
+import sharp from 'sharp'
 import type { Page } from '@playwright/test'
 import type { CanvasDocument } from '@/lib/canvas/document'
 import { getActiveOrganizationId, getE2EUrl, signUpViaApi } from './framework/auth'
@@ -297,4 +299,83 @@ test('G: members see who else is on a canvas and which artboard each is editing'
   } finally {
     await context.close()
   }
+})
+
+test('H: App Store screenshot groups sit on the canvas, edit in the store editor and export store sizes', async ({
+  identity,
+  page,
+}) => {
+  await setUp(identity, page)
+  await page.goto(getE2EUrl('/canvas/new?blank=1'))
+  await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
+  await saved(page)
+  await page.getByRole('button', { name: /^App Store screenshots/ }).click()
+  await page.getByRole('button', { name: 'New store screenshot group' }).click()
+  await expect(page.getByRole('dialog', { name: 'Add App Store screenshots' })).toBeHidden({
+    timeout: 120_000,
+  })
+  await saved(page)
+  let canvas = await stored(page)
+  expect(canvas.storeGroups).toHaveLength(1)
+  const item = canvas.storeGroups[0]!
+  expect(item.targetId).toBe('ios-iphone-6.9')
+  expect(item.group.document.slides).toHaveLength(1)
+  // Every store asset lives in workspace storage.
+  for (const asset of Object.values(item.group.document.assets)) {
+    expect(asset.src).toBeNull()
+    expect(item.group.assetMap[asset.id]).toMatch(/^asset:/)
+  }
+  const group = page.locator(`[data-store-group-id="${item.group.id}"]`)
+  await expect(group).toBeVisible()
+  await expect(page.getByTestId('store-group-panel')).toBeVisible()
+
+  // The device size sets how the slides sit on the plane.
+  await page.getByLabel('Store device size').selectOption('ios-ipad-13')
+  await saved(page)
+  expect((await stored(page)).storeGroups[0]!.targetId).toBe('ios-ipad-13')
+
+  // Drag the group by its label.
+  const label = (await group.locator('[data-store-group-label]').boundingBox())!
+  await page.mouse.move(label.x + 10, label.y + 6)
+  await page.mouse.down()
+  await page.mouse.move(label.x + 90, label.y + 46, { steps: 8 })
+  await page.mouse.up()
+  await saved(page)
+  canvas = await stored(page)
+  expect(canvas.storeGroups[0]!.x).toBeGreaterThan(item.x)
+
+  // The store editor edits the native store document; the canvas saves it.
+  await group.dblclick()
+  const editor = page.getByTestId('canvas-store-editor')
+  await expect(editor).toBeVisible({ timeout: 60_000 })
+  await editor.getByRole('button', { name: 'Duplicate slide' }).click()
+  await expect(editor.getByLabel(/^Slide 2 of 2/)).toBeVisible()
+
+  // Export writes every slide at the store's own pixel size.
+  await editor.getByRole('button', { name: 'Export store sizes' }).click()
+  const exporting = page.getByRole('dialog', { name: 'Export screenshots' })
+  const download = page.waitForEvent('download', { timeout: 180_000 })
+  await exporting.getByRole('button', { name: /^Export \d+ files?$/ }).click()
+  const file = path.join(out, (await download).suggestedFilename())
+  await (await download).saveAs(file)
+  const zip = await JSZip.loadAsync(await readFile(file))
+  const images = Object.keys(zip.files).filter((name) => name.endsWith('.png'))
+  expect(images.length).toBeGreaterThanOrEqual(2)
+  const first = await sharp(await zip.files[images[0]!]!.async('nodebuffer')).metadata()
+  expect([first.width, first.height]).toEqual(expect.arrayContaining([expect.any(Number)]))
+  expect(first.width! * first.height!).toBeGreaterThan(1_000_000)
+  await page.keyboard.press('Escape')
+  await editor.getByRole('button', { name: 'Done' }).click()
+  await expect(editor).toBeHidden()
+  await saved(page)
+  canvas = await stored(page)
+  expect(canvas.storeGroups[0]!.group.document.slides).toHaveLength(2)
+  await expect(group.locator('.bg-white')).toHaveCount(2)
+  await page.screenshot({ path: path.join(out, 'h-store-group.png') })
+
+  // Reload: the group, its size and both slides come back.
+  await page.reload()
+  await expect(page.locator(`[data-store-group-id="${item.group.id}"] .bg-white`)).toHaveCount(2, {
+    timeout: 120_000,
+  })
 })

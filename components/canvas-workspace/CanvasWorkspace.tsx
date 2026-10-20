@@ -31,6 +31,7 @@ import { useNativeArtboard } from './use-native-artboard'
 import { useLayerActions } from './use-layer-actions'
 import { LayerSelection } from './LayerSelection'
 import { PeerMarkers, PresenceSummary, useCanvasPresence } from './CanvasPresence'
+import { CanvasStoreEditor, StoreGroupsLayer } from './StoreGroups'
 import { useCanvasShortcuts } from './use-canvas-shortcuts'
 
 const TimelineEditor = dynamic(
@@ -65,6 +66,7 @@ export function CanvasWorkspace({
   const leftOpen = useCanvasUi((ui) => ui.leftOpen)
   const rightOpen = useCanvasUi((ui) => ui.rightOpen)
   const showTimeline = useImageStore((store) => store.showTimeline)
+  const editingStoreId = useCanvasUi((ui) => ui.editingStore)
   const [dialog, setDialog] = useState<CanvasDialog | null>(null)
   const [error, setError] = useState<string | null>(null)
   const editing = canEdit && !isMobile
@@ -87,6 +89,8 @@ export function CanvasWorkspace({
   }, [flushNative])
   const actions = useCanvasActions(session, flush)
   const active = state.document.artboards.find((artboard) => artboard.id === activeId) ?? null
+  const editingStore =
+    state.document.storeGroups.find((item) => item.group.id === editingStoreId) ?? null
 
   // Leave edit mode if the open artboard disappears (undo, a collaborator, deletion).
   useEffect(() => {
@@ -317,6 +321,11 @@ export function CanvasWorkspace({
             onDropFiles={(files, at) => void addScreenshots(files, at)}
             editor={
               <>
+                <StoreGroupsLayer
+                  session={session}
+                  storeGroups={state.document.storeGroups}
+                  canEdit={canEdit}
+                />
                 <PeerMarkers peers={presence.peers} artboards={state.document.artboards} />
                 {active && editing ? (
                   <ActiveArtboardEditor artboard={active} ready={native.ready} error={native.error}>
@@ -374,6 +383,15 @@ export function CanvasWorkspace({
             </SheetContent>
           </Sheet>
         </>
+      ) : null}
+      {editingStore ? (
+        <CanvasStoreEditor
+          key={editingStore.group.id}
+          session={session}
+          item={editingStore}
+          canEdit={canEdit}
+          onClose={() => useCanvasUi.getState().editStore(null)}
+        />
       ) : null}
       <CanvasDialogs
         dialog={dialog}

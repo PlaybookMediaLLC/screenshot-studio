@@ -10,6 +10,7 @@ import {
 } from '@/lib/canvas/document'
 import type { CanvasHandoffInput, CanvasListInput } from '@/lib/canvas/schema'
 import { componentDocument } from '@/lib/canvas/components'
+import { storeGroupStored } from '@/lib/creative-sets/store-schema'
 import { getLocalDesignSources } from '@/lib/design/document'
 import { DesignError } from './designs'
 
@@ -30,6 +31,8 @@ function storableDocument(raw: unknown): CanvasDocument {
   ]
   if (natives.some((native) => getLocalDesignSources(native).length > 0))
     throw new DesignError('Upload local images before saving the canvas.', 400)
+  if (!document.storeGroups.every((item) => storeGroupStored(item.group)))
+    throw new DesignError('Copy every store asset to workspace storage before saving.', 400)
   return document
 }
 

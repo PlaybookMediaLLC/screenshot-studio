@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react'
 import { toast } from 'sonner'
+import { placeStoreGroup, storeGroupRect } from '@/lib/canvas/store-groups'
+import type { StoreGroup } from '@/lib/creative-sets/store-schema'
 import type { CanvasSession } from '@/lib/canvas/session'
 import type { CanvasCommand } from '@/lib/canvas/commands'
 import {
@@ -36,6 +38,11 @@ export function useCanvasActions(session: CanvasSession, flush: () => void) {
       document()
         .artboards.filter((artboard) => !ids || ids.includes(artboard.id))
         .map((artboard) => ({ id: artboard.id, rect: artboardRect(artboard) }))
+    /** Everything on the plane: artboards and store groups. */
+    const content = () => [
+      ...rects().map((item) => item.rect),
+      ...document().storeGroups.map(storeGroupRect),
+    ]
     const ui = () => useCanvasUi.getState()
     const camera = () => useCanvasViewport.getState()
 
@@ -60,7 +67,7 @@ export function useCanvasActions(session: CanvasSession, flush: () => void) {
     function addArtboards(artboards: Artboard[], { select = true, zoom = true } = {}) {
       if (!artboards.length) return []
       const group = boundsOf(artboards.map(artboardRect))!
-      const target = nextArtboardPosition(rects().map((item) => item.rect))
+      const target = nextArtboardPosition(content())
       const placed = artboards.map((artboard) =>
         artboardSchema.parse({
           ...artboard,
@@ -216,7 +223,18 @@ export function useCanvasActions(session: CanvasSession, flush: () => void) {
         session.redo()
       },
       fitAll() {
-        focus(boundsOf(rects().map((item) => item.rect)))
+        focus(boundsOf(content()))
+      },
+      removeStoreGroup(id: string) {
+        if (run({ type: 'remove-store-group', id })) ui().selectStore(null)
+      },
+      /** Place a store group to the right of everything, select it and bring it into view. */
+      addStoreGroup(group: StoreGroup) {
+        const item = placeStoreGroup(group, nextArtboardPosition(content()))
+        if (!run({ type: 'add-store-group', storeGroup: item })) return false
+        ui().selectStore(group.id)
+        focus(storeGroupRect(item))
+        return true
       },
       fitSelection() {
         const ids = ui().selection.length ? ui().selection : ui().activeId ? [ui().activeId!] : []

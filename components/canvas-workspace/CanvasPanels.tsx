@@ -47,6 +47,7 @@ import type { CanvasActions } from './use-canvas-actions'
 import type { CanvasDialog } from './CanvasDialogs'
 import type { LayerActions } from './use-layer-actions'
 import { ComponentList, LayerSelectionPanel } from './LayerPanel'
+import { StoreGroupPanel } from './StoreGroups'
 
 const ComposePanel = dynamic(
   () => import('@/components/editor/panels/EditorPanel').then((module) => module.ComposePanel),
@@ -248,11 +249,22 @@ function InsertPanel({
               </span>
             </button>
           ))}
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={() => onDialog('add-store')}
+            className="rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/[0.05] disabled:opacity-50"
+          >
+            <span className="block">App Store screenshots</span>
+            <span className="block text-[11px] text-muted-foreground">
+              A store screenshot group · every store size and language
+            </span>
+          </button>
           <Link
             href="/store-screenshots"
             className="rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-foreground/[0.05]"
           >
-            App Store screenshots ↗
+            Open the screenshots studio ↗
           </Link>
         </div>
       </section>
@@ -421,6 +433,8 @@ export function RightPanel(props: PanelProps) {
   const selection = useCanvasUi((ui) => ui.selection)
   const activeId = useCanvasUi((ui) => ui.activeId)
   const layers = useCanvasUi((ui) => ui.layers)
+  const storeSelection = useCanvasUi((ui) => ui.storeSelection)
+  const chosenStore = state.document.storeGroups.find((item) => item.group.id === storeSelection)
   const chosen = state.document.artboards.filter((artboard) => selection.includes(artboard.id))
   const active = state.document.artboards.find((artboard) => artboard.id === activeId)
   if (active && editing)
@@ -449,6 +463,15 @@ export function RightPanel(props: PanelProps) {
         )}
         <ProductContextPanel {...props} artboard={active} />
       </div>
+    )
+  if (chosenStore)
+    return (
+      <StoreGroupPanel
+        key={chosenStore.group.id}
+        session={props.session}
+        item={chosenStore}
+        canEdit={canEdit}
+      />
     )
   if (chosen.length === 1) return <ArtboardInspector {...props} artboard={chosen[0]!} />
   if (chosen.length > 1)

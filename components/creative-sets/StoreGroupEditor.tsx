@@ -30,8 +30,7 @@ import {
   ShortcutsDialog,
 } from '@/components/store-screenshots/studio/dialogs/BasicDialogs'
 import { StudioFeatureDialogs } from '@/components/store-screenshots/studio/dialogs/FeatureDialogs'
-import { createImageLayer } from '@/lib/store-screenshots/document/elements'
-import { ingestImageFile } from '@/lib/store-screenshots/persistence/ingest'
+import { addStoreImages, type StoreImageTarget } from './store-images'
 import { EMPTY_HISTORY } from '@/lib/store-screenshots/commands/history'
 import { applySetCommand } from '@/lib/creative-sets/commands'
 import { loadStoreAsset } from '@/lib/creative-sets/store-assets'
@@ -71,9 +70,7 @@ export function StoreGroupEditor({
   const [error, setError] = useState<string | null>(null)
   const [storyId, setStoryId] = useState(session.snapshot().document.stories[0]!.id)
   const input = useRef<HTMLInputElement>(null)
-  const target = useRef<
-    { kind: 'device'; slideId: string; layerId: string } | { kind: 'image' | 'background' }
-  >({ kind: 'image' })
+  const target = useRef<StoreImageTarget>({ kind: 'image' })
   const baseline = useRef(group.document)
   const flush = useCallback(() => {
     if (!canEdit) return
@@ -155,56 +152,7 @@ export function StoreGroupEditor({
   async function importFiles(files: File[], device: { slideId: string; layerId: string } | null) {
     if (!canEdit) return
     try {
-      for (const file of files) {
-        const asset = await ingestImageFile(file)
-        const state = store.getState()
-        const owner = { kind: 'slide' as const, id: device?.slideId ?? state.activeSlideId }
-        if (device)
-          state.dispatchMany(
-            [
-              { type: 'assets.add', assets: [asset] },
-              {
-                type: 'layers.patch',
-                owner,
-                layerIds: [device.layerId],
-                patch: {
-                  assetId: asset.id,
-                  image: { mode: 'fill', scale: 1, offsetX: 0, offsetY: 0 },
-                },
-              },
-            ],
-            'Replace screenshot'
-          )
-        else if (target.current.kind === 'background')
-          state.dispatchMany(
-            [
-              { type: 'assets.add', assets: [asset] },
-              {
-                type: 'slides.patch',
-                slideIds: state.selectedSlideIds,
-                patch: {
-                  background: {
-                    kind: 'image',
-                    assetId: asset.id,
-                    fit: 'cover',
-                    focusX: 50,
-                    focusY: 50,
-                    color: asset.topColor,
-                  },
-                },
-              },
-            ],
-            'Change background'
-          )
-        else
-          state.dispatchMany(
-            [
-              { type: 'assets.add', assets: [asset] },
-              { type: 'layers.add', owner, layers: [createImageLayer(asset.id, asset.name)] },
-            ],
-            'Add image'
-          )
-      }
+      await addStoreImages(store, files, device ? { kind: 'device', ...device } : target.current)
       flush()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Image import failed.')

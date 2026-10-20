@@ -2,7 +2,7 @@
 
 **Status:** Partially implemented
 **Status note (2026-10-16):** Shipped: the GitHub App, the install handshake, and release backfill. Missing: suggestions.
-**Implementation update (2026-10-19):** [Release automation](../release-automation.md) implements administrator-authored, first-match release definitions and draft/review workflows. Its explicitly activated campaign action supersedes the blanket “never a campaign” statement below for opted-in sources only. Automatic relevance suggestions remain unimplemented; legacy merge collection remains the default.
+**Implementation update (2026-10-19):** [Release automation](../release-automation.md) implements administrator-authored, first-match release definitions and draft/review workflows. Its explicitly activated campaign action supersedes the blanket “never a campaign” statement below for opted-in sources only. Automatic relevance suggestions remain unimplemented; legacy merge collection remains the default. On 2026-10-20 the language gained budgeted AI channel copy (v2), watched-branch editing, and run history filters; PR qualification in templates is rule-based.
 **Date:** 2026-08-17
 **Revised:** 2026-10-15
 **Depends on:** RFC 005 and RFC 021

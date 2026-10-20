@@ -1,4 +1,4 @@
-/** The v1 execution language; the Go validator is the execution authority. */
+/** The v1/v2 execution language; the Go validator is the execution authority. */
 export type AutomationFamily = 'release.published' | 'pull_request.merged' | 'deployment.succeeded'
 export type AutomationCondition = {
   group?: 'ALL' | 'ANY' | 'NOT'
@@ -7,14 +7,18 @@ export type AutomationCondition = {
   operator?: string
   values?: string[]
 }
-export type AutomationAction = {
-  type: 'create_release' | 'create_campaign' | 'submit_review'
-  input?: { nodeId: string; output: string }
-  brandKitId?: string
-  destinationIds?: string[]
-  audience?: string
-  callToAction?: string
-}
+export type AutomationAction =
+  | { type: 'create_release'; audience?: string }
+  | {
+      type: 'create_campaign'
+      input?: { nodeId: string; output: string }
+      brandKitId?: string
+      destinationIds?: string[]
+      audience?: string
+      callToAction?: string
+    }
+  | { type: 'generate_copy'; input?: { nodeId: string; output: string }; creditLimit?: number }
+  | { type: 'submit_review'; input?: { nodeId: string; output: string } }
 export type AutomationNode = {
   id: string
   type: 'trigger' | 'condition' | 'action' | 'end'
@@ -46,6 +50,8 @@ export type AutomationDefinition = {
   modifiedBy: string
   updatedAt: string
   issues: AutomationIssue[]
+  lastRun?: { id: string; status: string; createdAt: string } | null
+  recentRuns?: number
 }
 export type SaveAutomationInput = {
   id: string
@@ -90,6 +96,7 @@ export type AutomationPreview = {
 export type AutomationOverview = {
   definitions: AutomationDefinition[]
   sources: {
+    branch?: string
     id: string
     name: string
     repositoryId: string
@@ -104,6 +111,9 @@ export type AutomationOverview = {
   destinations: { id: string; name: string }[]
   fields: Record<AutomationFamily, Record<string, string>>
   executorAvailable: boolean
+  executor?: { available: boolean; schemaVersion: number; capabilities: string[] }
+  actions?: { type: AutomationAction['type']; available: boolean; reason: string }[]
+  runCounts?: Record<string, number>
 }
 export type AutomationOutputs = {
   releaseId?: string
@@ -112,6 +122,7 @@ export type AutomationOutputs = {
   brandKitId?: string
   brandKitVersion?: number
   destinationIds?: string[]
+  creditsCharged?: number
 }
 export type AutomationHistoryItem = {
   event: {
@@ -132,6 +143,7 @@ export type AutomationHistoryItem = {
     eventId: string
     definitionId: string | null
     versionId: string | null
+    versionRevision?: number | null
     workflowId: string
     temporalRunId: string
     status: string
@@ -163,4 +175,17 @@ export type AutomationVersion = {
   revision: number
   graph: AutomationGraph
   contentHash: string
+  activatedBy?: string
+  createdAt?: string
+}
+/** Optional run-history filters; the backend scopes them to the caller's workspace. */
+export type AutomationHistoryFilter = {
+  before?: string
+  definitionId?: string
+  versionId?: string
+  sourceAppId?: string
+  family?: AutomationFamily
+  status?: string
+  since?: string
+  until?: string
 }

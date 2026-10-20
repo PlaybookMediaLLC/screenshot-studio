@@ -25,6 +25,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/tenantpublishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalmaintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
@@ -163,6 +164,25 @@ func main() {
 	if github != nil {
 		automationStore.WithGitHubApp(github)
 	}
+	// Paid workflow copy needs a model and the credit meter that bills it;
+	// without both this worker never advertises the ai_copy capability.
+	if model := platformai.FromEnvironment(); model != nil {
+		automationStore.WithAutomationModel(model)
+	}
+	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+		counter, err := quota.NewRedisCounter(redisURL)
+		if err != nil {
+			slog.Error("invalid quota counter configuration")
+			os.Exit(1)
+		}
+		defer counter.Close()
+		meter, err := counter.MonthlyMeter()
+		if err != nil {
+			slog.Error("monthly quota meter unavailable")
+			os.Exit(1)
+		}
+		automationStore.WithMonthlyMeter(meter)
+	}
 	if !slices.Contains(cfg.ExcludedQueues, temporalreleaseautomation.TaskQueue) {
 		automationWorker := worker.New(temporalClient, temporalreleaseautomation.TaskQueue, worker.Options{
 			MaxConcurrentActivityExecutionSize: max(1, 5/cfg.WorkerConcurrencyDivider), MaxHeartbeatThrottleInterval: 5 * time.Second,
@@ -181,7 +201,7 @@ func main() {
 			for {
 				if github != nil && cfg.RunMaintenance {
 					leaseCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-					if err := automationStore.AdvertiseReleaseAutomationExecutor(leaseCtx, leaseID); err != nil {
+					if err := automationStore.AdvertiseReleaseAutomationExecutor(leaseCtx, leaseID, automationStore.AutomationCapabilities()...); err != nil {
 						slog.Warn("release automation capability lease not renewed")
 					}
 					cancel()

@@ -112,6 +112,32 @@ func (_u *ReleaseAutomationNodeUpdate) SetNillableOutputs(v *releaseautomation.O
 	return _u
 }
 
+// SetGeneration sets the "generation" field.
+func (_u *ReleaseAutomationNodeUpdate) SetGeneration(v *releaseautomation.Generation) *ReleaseAutomationNodeUpdate {
+	_u.mutation.SetGeneration(v)
+	return _u
+}
+
+// ClearGeneration clears the value of the "generation" field.
+func (_u *ReleaseAutomationNodeUpdate) ClearGeneration() *ReleaseAutomationNodeUpdate {
+	_u.mutation.ClearGeneration()
+	return _u
+}
+
+// SetCharged sets the "charged" field.
+func (_u *ReleaseAutomationNodeUpdate) SetCharged(v bool) *ReleaseAutomationNodeUpdate {
+	_u.mutation.SetCharged(v)
+	return _u
+}
+
+// SetNillableCharged sets the "charged" field if the given value is not nil.
+func (_u *ReleaseAutomationNodeUpdate) SetNillableCharged(v *bool) *ReleaseAutomationNodeUpdate {
+	if v != nil {
+		_u.SetCharged(*v)
+	}
+	return _u
+}
+
 // SetCompletedAt sets the "completed_at" field.
 func (_u *ReleaseAutomationNodeUpdate) SetCompletedAt(v time.Time) *ReleaseAutomationNodeUpdate {
 	_u.mutation.SetCompletedAt(v)
@@ -193,6 +219,15 @@ func (_u *ReleaseAutomationNodeUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if value, ok := _u.mutation.Outputs(); ok {
 		_spec.SetField(releaseautomationnode.FieldOutputs, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.Generation(); ok {
+		_spec.SetField(releaseautomationnode.FieldGeneration, field.TypeJSON, value)
+	}
+	if _u.mutation.GenerationCleared() {
+		_spec.ClearField(releaseautomationnode.FieldGeneration, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Charged(); ok {
+		_spec.SetField(releaseautomationnode.FieldCharged, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.CompletedAt(); ok {
 		_spec.SetField(releaseautomationnode.FieldCompletedAt, field.TypeTime, value)
@@ -299,6 +334,32 @@ func (_u *ReleaseAutomationNodeUpdateOne) SetOutputs(v releaseautomation.Outputs
 func (_u *ReleaseAutomationNodeUpdateOne) SetNillableOutputs(v *releaseautomation.Outputs) *ReleaseAutomationNodeUpdateOne {
 	if v != nil {
 		_u.SetOutputs(*v)
+	}
+	return _u
+}
+
+// SetGeneration sets the "generation" field.
+func (_u *ReleaseAutomationNodeUpdateOne) SetGeneration(v *releaseautomation.Generation) *ReleaseAutomationNodeUpdateOne {
+	_u.mutation.SetGeneration(v)
+	return _u
+}
+
+// ClearGeneration clears the value of the "generation" field.
+func (_u *ReleaseAutomationNodeUpdateOne) ClearGeneration() *ReleaseAutomationNodeUpdateOne {
+	_u.mutation.ClearGeneration()
+	return _u
+}
+
+// SetCharged sets the "charged" field.
+func (_u *ReleaseAutomationNodeUpdateOne) SetCharged(v bool) *ReleaseAutomationNodeUpdateOne {
+	_u.mutation.SetCharged(v)
+	return _u
+}
+
+// SetNillableCharged sets the "charged" field if the given value is not nil.
+func (_u *ReleaseAutomationNodeUpdateOne) SetNillableCharged(v *bool) *ReleaseAutomationNodeUpdateOne {
+	if v != nil {
+		_u.SetCharged(*v)
 	}
 	return _u
 }
@@ -414,6 +475,15 @@ func (_u *ReleaseAutomationNodeUpdateOne) sqlSave(ctx context.Context) (_node *R
 	}
 	if value, ok := _u.mutation.Outputs(); ok {
 		_spec.SetField(releaseautomationnode.FieldOutputs, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.Generation(); ok {
+		_spec.SetField(releaseautomationnode.FieldGeneration, field.TypeJSON, value)
+	}
+	if _u.mutation.GenerationCleared() {
+		_spec.ClearField(releaseautomationnode.FieldGeneration, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Charged(); ok {
+		_spec.SetField(releaseautomationnode.FieldCharged, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.CompletedAt(); ok {
 		_spec.SetField(releaseautomationnode.FieldCompletedAt, field.TypeTime, value)

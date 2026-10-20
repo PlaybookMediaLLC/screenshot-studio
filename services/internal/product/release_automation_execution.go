@@ -186,7 +186,7 @@ func (c *Configuration) AutomationNode(ctx context.Context, org, id, nodeID stri
 		if resultErr != nil {
 			failureCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 			defer cancel()
-			_ = prior.Update().Where(releaseautomationnode.StatusNEQ("completed")).SetStatus("failed").SetFailureCode("action_failed").Exec(failureCtx)
+			_ = prior.Update().Where(releaseautomationnode.StatusNEQ("completed")).SetStatus("failed").SetFailureCode(automationFailureCode(resultErr)).Exec(failureCtx)
 		}
 	}()
 	if node.Type == "condition" {
@@ -235,12 +235,16 @@ func (c *Configuration) AutomationNode(ctx context.Context, org, id, nodeID stri
 			outputs, err = c.automationCreateRelease(ctx, actor, event, node.Action)
 		case "create_campaign":
 			outputs, err = c.automationCreateCampaign(ctx, actor, event, input, node.Action, key)
+		case "generate_copy":
+			outputs, err = c.automationGenerateCopy(ctx, actor, prior, event, input, node.Action)
 		case "submit_review":
 			var result *CampaignPostTransition
 			result, err = c.TransitionCampaignPosts(ctx, actor, input.CampaignID, CampaignPostDecision{Decision: "submit", PostIDs: input.PostIDs, IdempotencyKey: key})
 			if err == nil {
 				outputs = input
 				outputs.PostIDs = result.PostIDs
+				// Credits belong to the generation receipt that spent them.
+				outputs.CreditsCharged = 0
 			}
 		default:
 			err = ErrInvalidInput
@@ -280,6 +284,18 @@ func (c *Configuration) AutomationNode(ctx context.Context, org, id, nodeID stri
 		run.Outputs.CampaignID = outputs.CampaignID
 		run.Outputs.PostIDs = outputs.PostIDs
 		run.Outputs.BrandKitID, run.Outputs.BrandKitVersion, run.Outputs.DestinationIDs = outputs.BrandKitID, outputs.BrandKitVersion, outputs.DestinationIDs
+	}
+	if outputs.CreditsCharged > 0 {
+		// Sum receipts rather than increment: a late duplicate completion of
+		// the same node must not count its credits twice.
+		completed, err := tx.ReleaseAutomationNode.Query().Where(releaseautomationnode.OrganizationID(org), releaseautomationnode.RunID(id), releaseautomationnode.Status("completed")).All(ctx)
+		if err != nil {
+			return outputs, err
+		}
+		run.Outputs.CreditsCharged = 0
+		for _, receipt := range completed {
+			run.Outputs.CreditsCharged += receipt.Outputs.CreditsCharged
+		}
 	}
 	if err := tx.ReleaseAutomationRun.UpdateOneID(id).SetOutputs(run.Outputs).Exec(ctx); err != nil {
 		return outputs, err
@@ -434,9 +450,30 @@ func (c *Configuration) CollectAutomationChange(ctx context.Context, org, id str
 	return err
 }
 
+// automationFailureCode names why a node stopped, for run inspection.
+func automationFailureCode(err error) string {
+	var entitlement *FeatureNotEntitledError
+	var prohibited *ProhibitedTermsError
+	switch {
+	case errors.Is(err, ErrQuotaExceeded):
+		return "insufficient_credits"
+	case errors.As(err, &entitlement):
+		return "not_entitled"
+	case errors.As(err, &prohibited):
+		return "prohibited_terms"
+	case errors.Is(err, ErrAutomationStopped):
+		return "access_revoked"
+	case errors.Is(err, ErrAutomationModelUnavailable):
+		return "model_unavailable"
+	case errors.Is(err, ErrInvalidInput), errors.Is(err, publishing.ErrNotFound), ent.IsNotFound(err):
+		return "configuration_invalid"
+	}
+	return "action_failed"
+}
+
 // PermanentAutomationError identifies failures that retries cannot repair.
 func PermanentAutomationError(err error) bool {
 	var entitlement *FeatureNotEntitledError
 	var prohibited *ProhibitedTermsError
-	return errors.Is(err, ErrInvalidInput) || errors.Is(err, ErrAutomationStopped) || errors.Is(err, publishing.ErrForbidden) || errors.Is(err, publishing.ErrUnauthorized) || errors.Is(err, publishing.ErrNotFound) || errors.Is(err, publishing.ErrInvalidState) || ent.IsNotFound(err) || errors.As(err, &entitlement) || errors.As(err, &prohibited)
+	return errors.Is(err, ErrInvalidInput) || errors.Is(err, ErrQuotaExceeded) || errors.Is(err, ErrAutomationStopped) || errors.Is(err, publishing.ErrForbidden) || errors.Is(err, publishing.ErrUnauthorized) || errors.Is(err, publishing.ErrNotFound) || errors.Is(err, publishing.ErrInvalidState) || ent.IsNotFound(err) || errors.As(err, &entitlement) || errors.As(err, &prohibited)
 }

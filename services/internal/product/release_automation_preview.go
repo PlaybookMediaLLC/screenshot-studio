@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
@@ -15,6 +16,7 @@ import (
 )
 
 type AutomationSource struct {
+	Branch             string `json:"branch"`
 	CollectUnmatched   bool   `json:"collectUnmatched"`
 	ConnectionState    string `json:"connectionState"`
 	ID                 string `json:"id"`
@@ -29,6 +31,15 @@ type AutomationChoice struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
+
+// AutomationActionAvailability says whether the backend can execute an action
+// for this workspace now, and if not, what has to be configured first.
+type AutomationActionAvailability struct {
+	Type      string `json:"type"`
+	Available bool   `json:"available"`
+	Reason    string `json:"reason"`
+}
+
 type AutomationOverview struct {
 	Definitions       []AutomationDefinition                  `json:"definitions"`
 	Sources           []AutomationSource                      `json:"sources"`
@@ -36,6 +47,35 @@ type AutomationOverview struct {
 	Destinations      []AutomationChoice                      `json:"destinations"`
 	Fields            map[automation.Family]map[string]string `json:"fields"`
 	ExecutorAvailable bool                                    `json:"executorAvailable"`
+	Executor          AutomationExecutor                      `json:"executor"`
+	Actions           []AutomationActionAvailability          `json:"actions"`
+	RunCounts         map[string]int                          `json:"runCounts"`
+}
+
+// automationActions reports the registered actions against live workers and
+// workspace entitlements. Activation and every activity check them again.
+func (c *Configuration) automationActions(ctx context.Context, org string, executor AutomationExecutor) ([]AutomationActionAvailability, error) {
+	result := []AutomationActionAvailability{}
+	for _, action := range []struct{ kind, feature string }{{"create_release", "release:create"}, {"create_campaign", "campaign:workflow"}, {"generate_copy", "campaign:workflow"}, {"submit_review", "release:create"}} {
+		item := AutomationActionAvailability{Type: action.kind, Available: true}
+		err := c.requireWorkspaceFeature(ctx, org, action.feature)
+		var entitlement *FeatureNotEntitledError
+		switch {
+		case errors.As(err, &entitlement):
+			item.Reason = "Your plan does not include this action. Upgrade to " + entitlement.RequiredPlan + " to use it."
+		case err != nil:
+			return nil, err
+		case !executor.Available:
+			item.Reason = "No workflow worker is running. You can save and test drafts; activation waits for a worker."
+		case action.kind == "generate_copy" && executor.SchemaVersion < 2:
+			item.Reason = "Running workers predate copy generation. Deploy the current product worker."
+		case action.kind == "generate_copy" && !slices.Contains(executor.Capabilities, automation.CapabilityAICopy):
+			item.Reason = "No worker has an AI model provider configured (OPENROUTER_API_KEY)."
+		}
+		item.Available = item.Reason == ""
+		result = append(result, item)
+	}
+	return result, nil
 }
 
 func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Actor) (*AutomationOverview, error) {
@@ -44,8 +84,18 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 		return nil, err
 	}
 	result := &AutomationOverview{Definitions: definitions, Sources: []AutomationSource{}, Brands: []AutomationChoice{}, Destinations: []AutomationChoice{}, Fields: map[automation.Family]map[string]string{}}
-	result.ExecutorAvailable, err = c.ReleaseAutomationAvailable(ctx)
+	result.Executor, err = c.ReleaseAutomationExecutor(ctx)
 	if err != nil {
+		return nil, err
+	}
+	result.ExecutorAvailable = result.Executor.Available
+	if result.Actions, err = c.automationActions(ctx, actor.OrganizationID, result.Executor); err != nil {
+		return nil, err
+	}
+	if result.RunCounts, err = c.automationRunCounts(ctx, actor.OrganizationID); err != nil {
+		return nil, err
+	}
+	if err := c.attachLastRuns(ctx, actor.OrganizationID, result.Definitions); err != nil {
 		return nil, err
 	}
 	for _, family := range []automation.Family{automation.Published, automation.Merged, automation.Deployed} {
@@ -58,6 +108,9 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 	for _, source := range sources {
 		item := AutomationSource{ID: source.ID, Name: source.Name, Status: string(source.Status), Mode: "legacy", InstallationStatus: "DELETED"}
 		item.CollectUnmatched = source.AutomationCollectUnmatched
+		if source.Branch != nil {
+			item.Branch = *source.Branch
+		}
 		if source.ExternalID != nil {
 			item.RepositoryID = *source.ExternalID
 		}

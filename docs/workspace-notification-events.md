@@ -60,6 +60,8 @@ configuration. Personal opt-outs and global channel availability take precedence
 | `member.left`                     | `LeaveWorkspace`                                                            | admins          | restricted; in-app, email        | Member left                     | member settings                       |
 | `member.role_changed`             | `ChangeMemberRole / membership transaction trigger`                         | admins          | restricted; in-app, email        | Member role changed             | member settings                       |
 | `workspace.ownership_transferred` | `TransferWorkspaceOwnership`                                                | admins          | restricted; in-app, email        | Workspace owner changed         | member settings                       |
+| `workflow.completed`              | `FinishReleaseAutomation`                                                   | admins          | coarse; in-app, email, Slack     | Workflow run completed          | workflow run                          |
+| `workflow.needs_attention`        | `FinishReleaseAutomation`                                                   | operators       | restricted; in-app, email        | Workflow run needs attention    | workflow run                          |
 
 Existing event IDs for release ingestion, assets, source changes, deployments,
 and campaign review are retained. New activity keys include stable operation,

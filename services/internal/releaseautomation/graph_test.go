@@ -1,6 +1,8 @@
 package releaseautomation
 
 import (
+	"encoding/json"
+	"os"
 	"slices"
 	"testing"
 	"time"
@@ -53,7 +55,10 @@ func TestGraphRejectsUnsafeStructures(t *testing.T) {
 		{"unknown action", "action", func(g *Graph) { g.Nodes[2].Action.Type = "publish" }},
 		{"foreign field", "condition", func(g *Graph) { g.Nodes[1].Condition.Field = "pr.files" }},
 		{"review continuation", "review_terminal", func(g *Graph) { g.Edges[5].To = "release" }},
-		{"unsupported schema", "schema_version", func(g *Graph) { g.SchemaVersion = 2 }},
+		{"unsupported schema", "schema_version", func(g *Graph) { g.SchemaVersion = 3 }},
+		{"generation in v1", "action", func(g *Graph) {
+			g.Nodes[4].Action = &Action{Type: "generate_copy", Input: &Reference{NodeID: "campaign", Output: "campaignId"}, CreditLimit: 10}
+		}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -182,5 +187,94 @@ func TestNormalizeMergedPRAndDeploymentEvidence(t *testing.T) {
 	_, event, err = NormalizeGitHub("deployment_status", deployment)
 	if err != nil || event.SemanticKey != "deployment:42:99:success" || event.Fields["deployment.environment"].Values[0] != "production" || event.Fields["deployment.sha"].Values[0] != "abc123" {
 		t.Fatalf("deployment=%+v err=%v", event, err)
+	}
+}
+
+// generationGraph inserts paid copy generation between drafting and review.
+func generationGraph() Graph {
+	g := testGraph()
+	g.SchemaVersion = 2
+	g.Nodes = append(g.Nodes, Node{ID: "copy", Type: "action", Action: &Action{Type: "generate_copy", Input: &Reference{NodeID: "campaign", Output: "campaignId"}, CreditLimit: 40}})
+	g.Nodes[4].Action.Input.NodeID = "copy"
+	g.Edges[4].To = "copy"
+	g.Edges = append(g.Edges, Edge{"copy", "review", "next"})
+	return g
+}
+
+func TestGenerationRequiresVersionTwoAndBudget(t *testing.T) {
+	g := generationGraph()
+	if issues := Validate(g); len(issues) > 0 {
+		t.Fatal(issues)
+	}
+	e := Event{Family: Published, Fields: map[string]Value{"release.tag": StringValue("v1"), "release.prerelease": BoolValue(false)}}
+	preview := DryRun(g, e)
+	if preview.Outcome != "completed" || len(preview.Steps) != 7 || preview.Steps[4].Action != "generate_copy" {
+		t.Fatalf("%+v", preview)
+	}
+	for name, test := range map[string]struct {
+		code   string
+		change func(*Graph)
+	}{
+		"no budget":        {"action", func(g *Graph) { g.Nodes[7].Action.CreditLimit = 0 }},
+		"over budget":      {"action", func(g *Graph) { g.Nodes[7].Action.CreditLimit = MaxCreditLimit + 1 }},
+		"release input":    {"action", func(g *Graph) { g.Nodes[7].Action.Input = &Reference{NodeID: "release", Output: "releaseId"} }},
+		"own destination":  {"action", func(g *Graph) { g.Nodes[7].Action.DestinationIDs = []string{"channel"} }},
+		"budget elsewhere": {"action", func(g *Graph) { g.Nodes[2].Action.CreditLimit = 5 }},
+		"too many": {"generation_limit", func(g *Graph) {
+			for _, id := range []string{"copy2", "copy3"} {
+				previous := g.Edges[len(g.Edges)-1]
+				g.Nodes = append(g.Nodes, Node{ID: id, Type: "action", Action: &Action{Type: "generate_copy", Input: &Reference{NodeID: previous.From, Output: "campaignId"}, CreditLimit: 1}})
+				g.Edges[len(g.Edges)-1].To = id
+				g.Edges = append(g.Edges, Edge{id, "review", "next"})
+				g.Nodes[4].Action.Input.NodeID = id
+			}
+		}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			g := generationGraph()
+			test.change(&g)
+			if issues := Validate(g); !slices.ContainsFunc(issues, func(i Issue) bool { return i.Code == test.code }) {
+				t.Fatalf("wanted %s: %+v", test.code, issues)
+			}
+		})
+	}
+}
+
+func TestNormalizedPullRequestExposesNumberAndRepository(t *testing.T) {
+	body := []byte(`{"action":"closed","installation":{"id":7},"repository":{"id":9,"full_name":"acme/app","default_branch":"main"},
+		"pull_request":{"id":3,"number":42,"title":"Faster exports","merged":true,"merged_at":"2026-10-19T10:00:00Z","base":{"ref":"main"},"user":{"login":"dev","type":"User"},"labels":[]}}`)
+	_, event, err := NormalizeGitHub("pull_request", body)
+	if err != nil || event == nil {
+		t.Fatal(err)
+	}
+	if got := event.Fields["pr.number"].Values; len(got) != 1 || got[0] != "42" {
+		t.Fatal(got)
+	}
+	if got := event.Fields["repository.name"].Values; len(got) != 1 || got[0] != "acme/app" {
+		t.Fatal(got)
+	}
+	if Evaluate(Condition{Field: "pr.number", Operator: "in", Values: []string{"41", "42"}}, *event).Match != true {
+		t.Fatal("pr.number was not evaluated")
+	}
+}
+
+// The web's workflow templates are generated into this shared fixture
+// (test/workflow-contracts.test.ts); each must be executable as written.
+func TestWorkflowTemplatesFixtureValidates(t *testing.T) {
+	body, err := os.ReadFile("testdata/workflow-templates.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	templates := map[string]Graph{}
+	if err := json.Unmarshal(body, &templates); err != nil {
+		t.Fatal(err)
+	}
+	if len(templates) != 6 {
+		t.Fatalf("templates=%d", len(templates))
+	}
+	for name, graph := range templates {
+		if issues := Validate(graph); len(issues) > 0 {
+			t.Errorf("%s: %+v", name, issues)
+		}
 	}
 }

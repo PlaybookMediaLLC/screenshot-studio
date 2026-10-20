@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"slices"
 )
@@ -51,7 +52,7 @@ func Validate(graph Graph) []Issue {
 		add("", "graph_size", "Use at most 32 KiB, 64 nodes, 128 edges, and condition depth 8.")
 		return issues
 	}
-	if graph.SchemaVersion != SchemaVersion {
+	if graph.SchemaVersion < 1 || graph.SchemaVersion > SchemaVersion {
 		add("", "schema_version", "This executor does not support the graph schema.")
 	}
 	if !ValidFamily(graph.Family) {
@@ -65,7 +66,7 @@ func Validate(graph Graph) []Issue {
 		return issues
 	}
 	nodes, outgoing, incoming := map[string]Node{}, map[string][]Edge{}, map[string][]string{}
-	trigger := ""
+	trigger, generations := "", 0
 	for _, n := range graph.Nodes {
 		if _, ok := nodes[n.ID]; ok || !nodeID.MatchString(n.ID) {
 			add(n.ID, "node_id", "Node IDs must be unique letters, numbers, underscores, or hyphens.")
@@ -87,8 +88,13 @@ func Validate(graph Graph) []Issue {
 				add(n.ID, "condition", reason)
 			}
 		case "action":
-			if reason := validateAction(n.Action); reason != "" {
+			if reason := validateAction(n.Action, graph.SchemaVersion); reason != "" {
 				add(n.ID, "action", reason)
+			}
+			if n.Action != nil && n.Action.Type == "generate_copy" {
+				if generations++; generations > MaxGenerationNodes {
+					add(n.ID, "generation_limit", fmt.Sprintf("A workflow can generate copy at most %d times per run.", MaxGenerationNodes))
+				}
 			}
 		case "end":
 			if n.Outcome != "completed" && n.Outcome != "skipped" {
@@ -205,7 +211,7 @@ func outputOf(action string) string {
 	switch action {
 	case "create_release":
 		return "releaseId"
-	case "create_campaign":
+	case "create_campaign", "generate_copy":
 		return "campaignId"
 	case "submit_review":
 		return "reviewIds"
@@ -213,12 +219,15 @@ func outputOf(action string) string {
 	return ""
 }
 
-func validateAction(action *Action) string {
+func validateAction(action *Action, version int) string {
 	if action == nil {
 		return "Choose an action."
 	}
 	if len(action.Audience) > 1000 || len(action.CallToAction) > 300 || len(action.BrandKitID) > 64 || len(action.DestinationIDs) > 10 {
 		return "Action configuration exceeds its limit."
+	}
+	if action.CreditLimit != 0 && action.Type != "generate_copy" {
+		return "Only copy generation spends AI credits."
 	}
 	switch action.Type {
 	case "create_release":
@@ -238,6 +247,19 @@ func validateAction(action *Action) string {
 				return "Destination IDs must be present and unique."
 			}
 			seen[id] = true
+		}
+	case "generate_copy":
+		if version < 2 {
+			return "Copy generation requires workflow language version 2."
+		}
+		if action.Input == nil || action.Input.Output != "campaignId" {
+			return "Generate copy requires a campaign output."
+		}
+		if action.CreditLimit < 1 || action.CreditLimit > MaxCreditLimit {
+			return fmt.Sprintf("Set an AI credit limit from 1 to %d.", MaxCreditLimit)
+		}
+		if action.BrandKitID != "" || len(action.DestinationIDs) > 0 || action.Audience != "" || action.CallToAction != "" {
+			return "Generate copy uses the campaign's brand and destinations."
 		}
 	case "submit_review":
 		if action.Input == nil || action.Input.Output != "campaignId" {
@@ -326,6 +348,9 @@ func DryRun(graph Graph, event Event) Preview {
 			step.Outcome = "Predicted action; output references remain unresolved until execution."
 			if n.Action.Type == "submit_review" {
 				step.Outcome = "Predicted review submission; human approval is required and this workflow ends."
+			}
+			if n.Action.Type == "generate_copy" {
+				step.Outcome = fmt.Sprintf("Predicted paid copy generation of up to %d AI credits; preview never calls a model.", n.Action.CreditLimit)
 			}
 		case "end":
 			step.Outcome = n.Outcome

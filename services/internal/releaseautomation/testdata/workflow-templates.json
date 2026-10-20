@@ -1,0 +1,705 @@
+{
+  "release-launch": {
+    "schemaVersion": 1,
+    "family": "release.published",
+    "qualification": {
+      "field": "release.tag",
+      "operator": "glob",
+      "values": [
+        "v*"
+      ]
+    },
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "trigger"
+      },
+      {
+        "id": "condition",
+        "type": "condition",
+        "condition": {
+          "field": "release.prerelease",
+          "operator": "is_false"
+        }
+      },
+      {
+        "id": "release",
+        "type": "action",
+        "action": {
+          "type": "create_release"
+        }
+      },
+      {
+        "id": "campaign",
+        "type": "action",
+        "action": {
+          "type": "create_campaign",
+          "input": {
+            "nodeId": "release",
+            "output": "releaseId"
+          },
+          "brandKitId": "brand-fixture",
+          "destinationIds": [
+            "destination-fixture"
+          ]
+        }
+      },
+      {
+        "id": "review",
+        "type": "action",
+        "action": {
+          "type": "submit_review",
+          "input": {
+            "nodeId": "campaign",
+            "output": "campaignId"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end",
+        "outcome": "completed"
+      },
+      {
+        "id": "skip",
+        "type": "end",
+        "outcome": "skipped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "trigger",
+        "to": "condition",
+        "branch": "next"
+      },
+      {
+        "from": "condition",
+        "to": "release",
+        "branch": "true"
+      },
+      {
+        "from": "condition",
+        "to": "skip",
+        "branch": "false"
+      },
+      {
+        "from": "release",
+        "to": "campaign",
+        "branch": "next"
+      },
+      {
+        "from": "campaign",
+        "to": "review",
+        "branch": "next"
+      },
+      {
+        "from": "review",
+        "to": "done",
+        "branch": "next"
+      }
+    ]
+  },
+  "release-launch+copy": {
+    "schemaVersion": 2,
+    "family": "release.published",
+    "qualification": {
+      "field": "release.tag",
+      "operator": "glob",
+      "values": [
+        "v*"
+      ]
+    },
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "trigger"
+      },
+      {
+        "id": "condition",
+        "type": "condition",
+        "condition": {
+          "field": "release.prerelease",
+          "operator": "is_false"
+        }
+      },
+      {
+        "id": "release",
+        "type": "action",
+        "action": {
+          "type": "create_release"
+        }
+      },
+      {
+        "id": "campaign",
+        "type": "action",
+        "action": {
+          "type": "create_campaign",
+          "input": {
+            "nodeId": "release",
+            "output": "releaseId"
+          },
+          "brandKitId": "brand-fixture",
+          "destinationIds": [
+            "destination-fixture"
+          ]
+        }
+      },
+      {
+        "id": "copy",
+        "type": "action",
+        "action": {
+          "type": "generate_copy",
+          "input": {
+            "nodeId": "campaign",
+            "output": "campaignId"
+          },
+          "creditLimit": 40
+        }
+      },
+      {
+        "id": "review",
+        "type": "action",
+        "action": {
+          "type": "submit_review",
+          "input": {
+            "nodeId": "copy",
+            "output": "campaignId"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end",
+        "outcome": "completed"
+      },
+      {
+        "id": "skip",
+        "type": "end",
+        "outcome": "skipped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "trigger",
+        "to": "condition",
+        "branch": "next"
+      },
+      {
+        "from": "condition",
+        "to": "release",
+        "branch": "true"
+      },
+      {
+        "from": "condition",
+        "to": "skip",
+        "branch": "false"
+      },
+      {
+        "from": "release",
+        "to": "campaign",
+        "branch": "next"
+      },
+      {
+        "from": "campaign",
+        "to": "copy",
+        "branch": "next"
+      },
+      {
+        "from": "copy",
+        "to": "review",
+        "branch": "next"
+      },
+      {
+        "from": "review",
+        "to": "done",
+        "branch": "next"
+      }
+    ]
+  },
+  "feature-announcement": {
+    "schemaVersion": 1,
+    "family": "pull_request.merged",
+    "qualification": {
+      "group": "ALL",
+      "children": [
+        {
+          "field": "pr.base",
+          "operator": "eq",
+          "values": [
+            "main"
+          ]
+        },
+        {
+          "field": "pr.bot",
+          "operator": "is_false"
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "trigger"
+      },
+      {
+        "id": "condition",
+        "type": "condition",
+        "condition": {
+          "group": "ANY",
+          "children": [
+            {
+              "field": "pr.labels",
+              "operator": "in",
+              "values": [
+                "feature",
+                "marketing",
+                "release"
+              ]
+            },
+            {
+              "field": "pr.title",
+              "operator": "starts_with",
+              "values": [
+                "feat"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "release",
+        "type": "action",
+        "action": {
+          "type": "create_release"
+        }
+      },
+      {
+        "id": "campaign",
+        "type": "action",
+        "action": {
+          "type": "create_campaign",
+          "input": {
+            "nodeId": "release",
+            "output": "releaseId"
+          },
+          "brandKitId": "brand-fixture",
+          "destinationIds": [
+            "destination-fixture"
+          ]
+        }
+      },
+      {
+        "id": "review",
+        "type": "action",
+        "action": {
+          "type": "submit_review",
+          "input": {
+            "nodeId": "campaign",
+            "output": "campaignId"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end",
+        "outcome": "completed"
+      },
+      {
+        "id": "skip",
+        "type": "end",
+        "outcome": "skipped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "trigger",
+        "to": "condition",
+        "branch": "next"
+      },
+      {
+        "from": "condition",
+        "to": "release",
+        "branch": "true"
+      },
+      {
+        "from": "condition",
+        "to": "skip",
+        "branch": "false"
+      },
+      {
+        "from": "release",
+        "to": "campaign",
+        "branch": "next"
+      },
+      {
+        "from": "campaign",
+        "to": "review",
+        "branch": "next"
+      },
+      {
+        "from": "review",
+        "to": "done",
+        "branch": "next"
+      }
+    ]
+  },
+  "feature-announcement+copy": {
+    "schemaVersion": 2,
+    "family": "pull_request.merged",
+    "qualification": {
+      "group": "ALL",
+      "children": [
+        {
+          "field": "pr.base",
+          "operator": "eq",
+          "values": [
+            "main"
+          ]
+        },
+        {
+          "field": "pr.bot",
+          "operator": "is_false"
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "trigger"
+      },
+      {
+        "id": "condition",
+        "type": "condition",
+        "condition": {
+          "group": "ANY",
+          "children": [
+            {
+              "field": "pr.labels",
+              "operator": "in",
+              "values": [
+                "feature",
+                "marketing",
+                "release"
+              ]
+            },
+            {
+              "field": "pr.title",
+              "operator": "starts_with",
+              "values": [
+                "feat"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "release",
+        "type": "action",
+        "action": {
+          "type": "create_release"
+        }
+      },
+      {
+        "id": "campaign",
+        "type": "action",
+        "action": {
+          "type": "create_campaign",
+          "input": {
+            "nodeId": "release",
+            "output": "releaseId"
+          },
+          "brandKitId": "brand-fixture",
+          "destinationIds": [
+            "destination-fixture"
+          ]
+        }
+      },
+      {
+        "id": "copy",
+        "type": "action",
+        "action": {
+          "type": "generate_copy",
+          "input": {
+            "nodeId": "campaign",
+            "output": "campaignId"
+          },
+          "creditLimit": 40
+        }
+      },
+      {
+        "id": "review",
+        "type": "action",
+        "action": {
+          "type": "submit_review",
+          "input": {
+            "nodeId": "copy",
+            "output": "campaignId"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end",
+        "outcome": "completed"
+      },
+      {
+        "id": "skip",
+        "type": "end",
+        "outcome": "skipped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "trigger",
+        "to": "condition",
+        "branch": "next"
+      },
+      {
+        "from": "condition",
+        "to": "release",
+        "branch": "true"
+      },
+      {
+        "from": "condition",
+        "to": "skip",
+        "branch": "false"
+      },
+      {
+        "from": "release",
+        "to": "campaign",
+        "branch": "next"
+      },
+      {
+        "from": "campaign",
+        "to": "copy",
+        "branch": "next"
+      },
+      {
+        "from": "copy",
+        "to": "review",
+        "branch": "next"
+      },
+      {
+        "from": "review",
+        "to": "done",
+        "branch": "next"
+      }
+    ]
+  },
+  "deployment-marketing": {
+    "schemaVersion": 1,
+    "family": "deployment.succeeded",
+    "qualification": {
+      "field": "deployment.environment",
+      "operator": "eq",
+      "values": [
+        "production"
+      ]
+    },
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "trigger"
+      },
+      {
+        "id": "condition",
+        "type": "condition",
+        "condition": {
+          "field": "deployment.production",
+          "operator": "is_true"
+        }
+      },
+      {
+        "id": "release",
+        "type": "action",
+        "action": {
+          "type": "create_release"
+        }
+      },
+      {
+        "id": "campaign",
+        "type": "action",
+        "action": {
+          "type": "create_campaign",
+          "input": {
+            "nodeId": "release",
+            "output": "releaseId"
+          },
+          "brandKitId": "brand-fixture",
+          "destinationIds": [
+            "destination-fixture"
+          ]
+        }
+      },
+      {
+        "id": "review",
+        "type": "action",
+        "action": {
+          "type": "submit_review",
+          "input": {
+            "nodeId": "campaign",
+            "output": "campaignId"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end",
+        "outcome": "completed"
+      },
+      {
+        "id": "skip",
+        "type": "end",
+        "outcome": "skipped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "trigger",
+        "to": "condition",
+        "branch": "next"
+      },
+      {
+        "from": "condition",
+        "to": "release",
+        "branch": "true"
+      },
+      {
+        "from": "condition",
+        "to": "skip",
+        "branch": "false"
+      },
+      {
+        "from": "release",
+        "to": "campaign",
+        "branch": "next"
+      },
+      {
+        "from": "campaign",
+        "to": "review",
+        "branch": "next"
+      },
+      {
+        "from": "review",
+        "to": "done",
+        "branch": "next"
+      }
+    ]
+  },
+  "deployment-marketing+copy": {
+    "schemaVersion": 2,
+    "family": "deployment.succeeded",
+    "qualification": {
+      "field": "deployment.environment",
+      "operator": "eq",
+      "values": [
+        "production"
+      ]
+    },
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "trigger"
+      },
+      {
+        "id": "condition",
+        "type": "condition",
+        "condition": {
+          "field": "deployment.production",
+          "operator": "is_true"
+        }
+      },
+      {
+        "id": "release",
+        "type": "action",
+        "action": {
+          "type": "create_release"
+        }
+      },
+      {
+        "id": "campaign",
+        "type": "action",
+        "action": {
+          "type": "create_campaign",
+          "input": {
+            "nodeId": "release",
+            "output": "releaseId"
+          },
+          "brandKitId": "brand-fixture",
+          "destinationIds": [
+            "destination-fixture"
+          ]
+        }
+      },
+      {
+        "id": "copy",
+        "type": "action",
+        "action": {
+          "type": "generate_copy",
+          "input": {
+            "nodeId": "campaign",
+            "output": "campaignId"
+          },
+          "creditLimit": 40
+        }
+      },
+      {
+        "id": "review",
+        "type": "action",
+        "action": {
+          "type": "submit_review",
+          "input": {
+            "nodeId": "copy",
+            "output": "campaignId"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end",
+        "outcome": "completed"
+      },
+      {
+        "id": "skip",
+        "type": "end",
+        "outcome": "skipped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "trigger",
+        "to": "condition",
+        "branch": "next"
+      },
+      {
+        "from": "condition",
+        "to": "release",
+        "branch": "true"
+      },
+      {
+        "from": "condition",
+        "to": "skip",
+        "branch": "false"
+      },
+      {
+        "from": "release",
+        "to": "campaign",
+        "branch": "next"
+      },
+      {
+        "from": "campaign",
+        "to": "copy",
+        "branch": "next"
+      },
+      {
+        "from": "copy",
+        "to": "review",
+        "branch": "next"
+      },
+      {
+        "from": "review",
+        "to": "done",
+        "branch": "next"
+      }
+    ]
+  }
+}

@@ -1,38 +1,27 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { type KeyboardEvent, useEffect, useState } from 'react'
+import Link from 'next/link'
 import {
   AlertCircle,
   ArrowLeft,
   Check,
   ChevronRight,
-  CircleStop,
-  GitBranch,
+  Copy,
   GitPullRequest,
   Loader2,
   Play,
   Plus,
+  Redo2,
   Save,
   ShieldCheck,
   Trash2,
-  Workflow,
+  Undo2,
   Zap,
 } from 'lucide-react'
-import {
-  Background,
-  Controls,
-  MarkerType,
-  Handle,
-  Position,
-  ReactFlow,
-  type Node,
-  type NodeProps,
-  type Connection,
-} from '@xyflow/react'
+import { Background, Controls, ReactFlow, type Connection } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type {
-  AutomationAction,
-  AutomationCondition,
   AutomationDefinition,
   AutomationGraph,
   AutomationHistoryItem,
@@ -40,7 +29,8 @@ import type {
   AutomationNode,
   AutomationOverview,
   AutomationPreview,
-} from 'screenshot-studio-backend-sdk'
+} from '@/lib/api/contracts/release-automation'
+import type { AutomationVersion } from '@/lib/api/contracts/workflow-runs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -54,11 +44,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { cn } from '@/lib/utils'
-import { useTRPCClient } from '@/lib/trpc/react'
-import { releaseExample } from '@/lib/release-automation/examples'
-import { getErrorMessage } from '../settings-client'
-import { automationSelectClass, ConditionEditor } from './ConditionEditor'
 import { Label } from '@/components/ui/label'
 import {
   Select as UiSelect,
@@ -67,118 +52,29 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
+import { useTRPCClient } from '@/lib/trpc/react'
+import { actionAvailability, requiredSchemaVersion } from '@/lib/workflows/actions'
+import { releaseExample } from '@/lib/workflows/examples'
+import { getErrorMessage } from '@/components/workspace/settings-client'
+import { ActionEditor } from './ActionEditor'
+import { automationSelectClass, ConditionEditor } from './ConditionEditor'
+import {
+  canvasEdges,
+  canvasNodes,
+  FAMILY_NAMES,
+  nodeLabel,
+  workflowNodeTypes,
+} from './workflow-canvas'
 
-const actionNames = {
-  create_release: 'Create release draft',
-  create_campaign: 'Create campaign drafts',
-  submit_review: 'Submit for human review',
-}
-const familyNames = {
-  'release.published': 'Release published',
-  'pull_request.merged': 'Pull request merged',
-  'deployment.succeeded': 'Deployment succeeded',
-}
-const nodeIcons = { trigger: Zap, condition: GitBranch, action: Workflow, end: CircleStop }
-type CanvasNode = Node<{
-  label: string
-  detail: string
-  kind: AutomationNode['type']
-  visited: boolean
-  invalid: boolean
-}>
+type Snapshot = { graph: AutomationGraph; layout: AutomationLayout }
 
-function conditionSummary(condition?: AutomationCondition) {
-  if (!condition) return 'Choose a condition'
-  if (condition.group) return `${condition.group} of ${condition.children?.length ?? 0} conditions`
-  return `${condition.field} ${condition.operator?.replaceAll('_', ' ') ?? ''} ${(condition.values ?? []).join(', ')}`.trim()
-}
+const HISTORY_LIMIT = 50
 
-function nodeLabel(node: AutomationNode, family: AutomationGraph['family']) {
-  if (node.type === 'action')
-    return node.action ? actionNames[node.action.type] : 'Choose an action'
-  if (node.type === 'trigger') return familyNames[family]
-  if (node.type === 'end')
-    return node.outcome === 'skipped' ? 'Skip this event' : 'Workflow complete'
-  return 'If / then / else'
+/** The graph sent to the backend, at the lowest language version that can hold it. */
+function normalized(graph: AutomationGraph): AutomationGraph {
+  return { ...graph, schemaVersion: requiredSchemaVersion(graph) }
 }
-
-function WorkflowNode({ data, selected }: NodeProps<CanvasNode>) {
-  const Icon = nodeIcons[data.kind]
-  return (
-    <div
-      className={cn(
-        'w-64 rounded-xl border bg-card text-card-foreground shadow-sm transition-[border-color,box-shadow] motion-reduce:transition-none',
-        selected ? 'border-emerald-500 ring-4 ring-emerald-500/15' : 'border-border',
-        data.visited && 'border-emerald-500/70',
-        data.invalid && 'border-destructive'
-      )}
-    >
-      {data.kind !== 'trigger' ? (
-        <Handle
-          type="target"
-          position={Position.Top}
-          className="!size-2.5 !border-2 !border-card !bg-muted-foreground"
-          aria-label="Incoming connection"
-        />
-      ) : null}
-      <div className="flex items-center gap-3 p-3">
-        <span
-          className={cn(
-            'flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted',
-            data.kind === 'condition' && 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-            data.kind === 'trigger' && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-          )}
-        >
-          <Icon className="size-4" aria-hidden="true" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-5">{data.label}</p>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground" title={data.detail}>
-            {data.detail}
-          </p>
-        </div>
-        {data.visited ? (
-          <Check className="size-3.5 shrink-0 text-emerald-500" aria-label="On preview path" />
-        ) : null}
-      </div>
-      {data.kind === 'condition' ? (
-        <div className="relative grid grid-cols-2 border-t border-border text-center text-[10px] font-medium">
-          <span className="border-r border-border py-1.5 text-emerald-600 dark:text-emerald-400">
-            TRUE · Continue
-          </span>
-          <span className="py-1.5 text-amber-600 dark:text-amber-400">FALSE · Otherwise</span>
-          <Handle
-            type="source"
-            id="true"
-            position={Position.Bottom}
-            className="!size-2.5 !border-2 !border-card !bg-emerald-500"
-            style={{ left: '25%' }}
-            aria-label="True branch"
-          />
-          <Handle
-            type="source"
-            id="false"
-            position={Position.Bottom}
-            className="!size-2.5 !border-2 !border-card !bg-amber-500"
-            style={{ left: '75%' }}
-            aria-label="False branch"
-          />
-        </div>
-      ) : data.kind !== 'end' ? (
-        <Handle
-          type="source"
-          id="next"
-          position={Position.Bottom}
-          className="!size-2.5 !border-2 !border-card !bg-muted-foreground"
-          aria-label="Next step"
-        />
-      ) : null}
-    </div>
-  )
-}
-
-const nodeTypes = { workflow: WorkflowNode }
 
 /** The canvas authors a server-validated graph; it never executes actions. */
 export function WorkflowEditor({
@@ -187,17 +83,22 @@ export function WorkflowEditor({
   history,
   onSaved,
   onClose,
+  readOnly = false,
 }: {
   definition: AutomationDefinition
   overview: AutomationOverview
   history: AutomationHistoryItem[]
   onSaved: (value: AutomationDefinition) => void
   onClose: () => void
+  /** Members inspect workflows; only owner/admin sessions edit them. */
+  readOnly?: boolean
 }) {
   const client = useTRPCClient()
   const [record, setRecord] = useState(definition)
   const [graph, setGraph] = useState<AutomationGraph>(definition.draft)
   const [layout, setLayout] = useState<AutomationLayout>(definition.layout)
+  const [past, setPast] = useState<Snapshot[]>([])
+  const [future, setFuture] = useState<Snapshot[]>([])
   const [name, setName] = useState(definition.name)
   const [description, setDescription] = useState(definition.description)
   const [priority, setPriority] = useState(definition.priority)
@@ -206,6 +107,7 @@ export function WorkflowEditor({
   const [confirmClose, setConfirmClose] = useState(false)
   const [sample, setSample] = useState('example:match')
   const [preview, setPreview] = useState<AutomationPreview | null>(null)
+  const [versions, setVersions] = useState<AutomationVersion[] | null>(null)
   const [issues, setIssues] = useState(definition.issues)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -214,6 +116,15 @@ export function WorkflowEditor({
   const source = overview.sources.find((item) => item.id === record.sourceAppId)
   const selectedNode = graph.nodes.find((node) => node.id === selected)
   const fields = overview.fields[graph.family]
+  const recorded = history.filter(
+    (item) =>
+      item.event.snapshot.family === graph.family && item.event.sourceAppId === record.sourceAppId
+  )
+  const unavailable = graph.nodes.flatMap((node) =>
+    node.action && !actionAvailability(overview, node.action.type).available
+      ? [actionAvailability(overview, node.action.type)]
+      : []
+  )
 
   useEffect(() => {
     if (!dirty) return
@@ -222,22 +133,56 @@ export function WorkflowEditor({
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
 
+  useEffect(() => {
+    if (panel !== 'versions' || !record.id || versions) return
+    client.releaseAutomation.versions
+      .query({ id: record.id })
+      .then((result) => setVersions(result.items))
+      .catch((failure) => setError(getErrorMessage(failure)))
+  }, [client, panel, record.id, versions])
+
   function closeEditor() {
     if (busy) return
-    if (dirty) setConfirmClose(true)
+    if (dirty && !readOnly) setConfirmClose(true)
     else onClose()
   }
   function selectNode(id: string) {
     setSelected(id)
     setPanel('node')
   }
-  function changeGraph(next: AutomationGraph) {
-    setGraph(next)
+  function markDirty(note = 'Unsaved draft changes.') {
     setDirty(true)
     setPreview(null)
     setIssues([])
-    setMessage('Unsaved draft changes.')
+    setMessage(note)
   }
+  function remember() {
+    setPast((items) => [...items.slice(1 - HISTORY_LIMIT), { graph, layout }])
+    setFuture([])
+  }
+  function changeGraph(next: AutomationGraph, nextLayout: AutomationLayout = layout) {
+    if (readOnly) return
+    remember()
+    setGraph(next)
+    setLayout(nextLayout)
+    markDirty()
+  }
+  function travel(
+    from: Snapshot[],
+    to: Snapshot[],
+    setFrom: typeof setPast,
+    setTo: typeof setPast
+  ) {
+    const target = from.at(-1)
+    if (!target || readOnly) return
+    setFrom(from.slice(0, -1))
+    setTo([...to, { graph, layout }])
+    setGraph(target.graph)
+    setLayout(target.layout)
+    markDirty()
+  }
+  const undo = () => travel(past, future, setPast, setFuture)
+  const redo = () => travel(future, past, setFuture, setPast)
   function changeNode(next: AutomationNode) {
     changeGraph({ ...graph, nodes: graph.nodes.map((node) => (node.id === next.id ? next : node)) })
   }
@@ -254,20 +199,37 @@ export function WorkflowEditor({
     if (connection.source && connection.target)
       connect(connection.source, connection.target, connection.sourceHandle ?? 'next')
   }
+  function insertNode(node: AutomationNode, near?: { x: number; y: number }) {
+    changeGraph(
+      { ...graph, nodes: [...graph.nodes, node] },
+      {
+        ...layout,
+        [node.id]: near
+          ? { x: near.x + 40, y: near.y + 60 }
+          : { x: 300, y: graph.nodes.length * 50 },
+      }
+    )
+    selectNode(node.id)
+  }
   function addNode(type: AutomationNode['type']) {
-    const id = `${type}_${crypto.randomUUID().slice(0, 8)}`
-    const node: AutomationNode = {
-      id,
+    insertNode({
+      id: `${type}_${crypto.randomUUID().slice(0, 8)}`,
       type,
       ...(type === 'condition'
         ? { condition: { field: 'event.family', operator: 'eq', values: [graph.family] } }
         : {}),
       ...(type === 'action' ? { action: { type: 'create_release' as const } } : {}),
       ...(type === 'end' ? { outcome: 'completed' } : {}),
-    }
-    changeGraph({ ...graph, nodes: [...graph.nodes, node] })
-    setLayout({ ...layout, [id]: { x: 300, y: graph.nodes.length * 50 } })
-    selectNode(id)
+    })
+  }
+  /** A copy keeps its configuration and drops its connections. */
+  function duplicateNode(id: string) {
+    const node = graph.nodes.find((candidate) => candidate.id === id)
+    if (!node || node.type === 'trigger' || graph.nodes.length >= 64) return
+    insertNode(
+      { ...structuredClone(node), id: `${node.type}_${crypto.randomUUID().slice(0, 8)}` },
+      layout[id]
+    )
   }
   function removeNode(id: string) {
     changeGraph({
@@ -276,6 +238,25 @@ export function WorkflowEditor({
       edges: graph.edges.filter((edge) => edge.from !== id && edge.to !== id),
     })
     setSelected('')
+  }
+  function canvasKeys(event: KeyboardEvent) {
+    if (readOnly || busy) return
+    const mod = event.metaKey || event.ctrlKey
+    const key = event.key.toLowerCase()
+    if (mod && key === 'z') {
+      event.preventDefault()
+      if (event.shiftKey) redo()
+      else undo()
+    } else if (mod && key === 'y') {
+      event.preventDefault()
+      redo()
+    } else if (mod && key === 'd' && selected) {
+      event.preventDefault()
+      duplicateNode(selected)
+    } else if ((event.key === 'Delete' || event.key === 'Backspace') && selectedNode) {
+      event.preventDefault()
+      removeNode(selectedNode.id)
+    }
   }
 
   async function save(): Promise<AutomationDefinition> {
@@ -286,10 +267,11 @@ export function WorkflowEditor({
       description,
       priority,
       expectedRevision: record.id ? record.revision : 0,
-      graph,
+      graph: normalized(graph),
       layout,
     })
     setRecord(saved)
+    setGraph(saved.draft)
     setIssues(saved.issues)
     setDirty(false)
     onSaved(saved)
@@ -316,69 +298,26 @@ export function WorkflowEditor({
       sample.startsWith('example:')
         ? {
             sourceAppId: record.sourceAppId,
-            graph,
+            graph: normalized(graph),
             example: releaseExample(graph.family, source?.repositoryId ?? '1', sample.slice(8)),
           }
-        : { sourceAppId: record.sourceAppId, graph, eventId: sample }
+        : { sourceAppId: record.sourceAppId, graph: normalized(graph), eventId: sample }
     )
     setPreview(result)
     setIssues(result.issues)
     setPanel('test')
   }
 
-  const visited = new Set(preview?.steps.map((step) => step.nodeId))
-  const nodes: CanvasNode[] = graph.nodes.map((node, index) => ({
-    id: node.id,
-    type: 'workflow',
-    selected: node.id === selected,
-    position: layout[node.id] ?? { x: 40, y: index * 150 },
-    data: {
-      kind: node.type,
-      label: nodeLabel(node, graph.family),
-      detail:
-        node.type === 'condition'
-          ? conditionSummary(node.condition)
-          : node.type === 'trigger'
-            ? (source?.name ?? 'Connected repository')
-            : node.type === 'end'
-              ? node.outcome === 'skipped'
-                ? 'No further actions'
-                : 'End of this path'
-              : node.action?.type === 'create_campaign'
-                ? `${node.action.destinationIds?.length ?? 0} draft destinations`
-                : node.action?.type === 'submit_review'
-                  ? 'A person approves before publishing'
-                  : 'From the source event',
-      visited: visited.has(node.id),
-      invalid: issues.some((issue) => issue.nodeId === node.id),
-    },
-    ariaLabel: `${node.id}: ${node.type}`,
-  }))
-  const edges = graph.edges.map((edge) => {
-    const onPath = preview?.steps.some(
-      (step, index) => step.nodeId === edge.from && preview.steps[index + 1]?.nodeId === edge.to
-    )
-    const color =
-      edge.branch === 'false' ? '#d99a38' : onPath || edge.branch === 'true' ? '#2caa83' : '#7c8793'
-    return {
-      id: `${edge.from}:${edge.branch}:${edge.to}`,
-      source: edge.from,
-      target: edge.to,
-      sourceHandle: edge.branch,
-      type: 'smoothstep',
-      label: edge.branch === 'next' ? undefined : edge.branch === 'true' ? 'True' : 'False',
-      style: {
-        stroke: color,
-        strokeWidth: onPath ? 2.5 : 1.5,
-        opacity: preview && !onPath ? 0.25 : 1,
-      },
-      markerEnd: { type: MarkerType.ArrowClosed, color },
-      labelStyle: { fill: color, fontSize: 11, fontWeight: 600 },
-      labelBgStyle: { fill: 'var(--card)' },
-      labelBgPadding: [6, 3] as [number, number],
-      labelBgBorderRadius: 4,
-    }
+  const path = preview?.steps.map((step) => step.nodeId) ?? null
+  const nodes = canvasNodes(graph, layout, {
+    selected,
+    path: new Set(path),
+    invalid: new Set(issues.map((issue) => issue.nodeId)),
+    sourceName: source?.name,
   })
+  const edges = canvasEdges(graph, path)
+  const latest = recorded[0]?.event
+  const latestFields = latest ? { ...latest.snapshot.fields, ...latest.enrichment } : {}
 
   return (
     <>
@@ -412,7 +351,8 @@ export function WorkflowEditor({
                   <span className={record.enabled ? 'text-emerald-600 dark:text-emerald-400' : ''}>
                     {record.enabled ? 'Active version' : 'Draft'}
                   </span>
-                  {dirty ? (
+                  {readOnly ? <span>· Read only</span> : null}
+                  {dirty && !readOnly ? (
                     <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-700 dark:text-amber-400">
                       Unsaved
                     </span>
@@ -420,7 +360,7 @@ export function WorkflowEditor({
                 </div>
                 <Input
                   aria-label="Definition name"
-                  disabled={busy}
+                  disabled={busy || readOnly}
                   className="-ml-2 mt-1 h-8 w-[min(26rem,65vw)] border-transparent bg-transparent px-2 text-base font-semibold shadow-none hover:border-border md:text-base"
                   value={name}
                   onChange={(event) => {
@@ -430,106 +370,139 @@ export function WorkflowEditor({
                   }}
                 />
                 <DialogDescription className="sr-only">
-                  Build a release workflow on the canvas. Configure nodes in the side panel, test a
-                  path, then activate a saved version.
+                  Build a workflow on the canvas. Configure nodes in the side panel, test a path,
+                  then activate a saved version.
                 </DialogDescription>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                disabled={busy}
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  void perform(async () => {
-                    await save()
-                  })
-                }
-              >
-                <Save className="size-3.5" aria-hidden="true" /> Save draft
-              </Button>
-              <Button
-                disabled={busy}
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setPanel('test')
-                  void perform(testDraft)
-                }}
-              >
-                <Play className="size-3.5" aria-hidden="true" /> Test draft
-              </Button>
-              <Button
-                disabled={busy || !overview.executorAvailable}
-                type="button"
-                onClick={() =>
-                  void perform(async () => {
-                    const saved = dirty ? await save() : record
-                    const active = await client.releaseAutomation.activate.mutate({
-                      id: saved.id,
-                      revision: saved.revision,
+            {readOnly ? null : (
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  disabled={busy}
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    void perform(async () => {
+                      await save()
                     })
-                    setRecord(active)
-                    onSaved(active)
-                    setMessage(
-                      'Version activated for future events. Previously accepted events retain their versions.'
-                    )
-                  })
-                }
-              >
-                <Zap className="size-3.5" aria-hidden="true" /> Activate version
-              </Button>
-            </div>
+                  }
+                >
+                  <Save className="size-3.5" aria-hidden="true" /> Save draft
+                </Button>
+                <Button
+                  disabled={busy}
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setPanel('test')
+                    void perform(testDraft)
+                  }}
+                >
+                  <Play className="size-3.5" aria-hidden="true" /> Test draft
+                </Button>
+                <Button
+                  disabled={busy || !overview.executorAvailable || unavailable.length > 0}
+                  title={unavailable[0]?.reason}
+                  type="button"
+                  onClick={() =>
+                    void perform(async () => {
+                      const saved = dirty ? await save() : record
+                      const active = await client.releaseAutomation.activate.mutate({
+                        id: saved.id,
+                        revision: saved.revision,
+                      })
+                      setRecord(active)
+                      setVersions(null)
+                      onSaved(active)
+                      setMessage(
+                        'Version activated for future events. Previously accepted events retain their versions.'
+                      )
+                    })
+                  }
+                >
+                  <Zap className="size-3.5" aria-hidden="true" /> Activate version
+                </Button>
+              </div>
+            )}
           </header>
           <div className="grid min-h-0 flex-1 grid-rows-[minmax(240px,45%)_minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_360px] md:grid-rows-1 xl:grid-cols-[minmax(0,1fr)_380px]">
             <section
               className="relative flex min-h-0 min-w-0 flex-col bg-muted/20"
               aria-label="Workflow canvas"
+              onKeyDown={canvasKeys}
             >
               <div className="z-10 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-card/80 px-4 py-2.5">
                 <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                   <GitPullRequest className="size-3.5 shrink-0" aria-hidden="true" />
                   <span className="truncate">{source?.name}</span>
                 </span>
-                <div aria-label="Node palette" className="flex flex-wrap gap-1">
-                  {(['trigger', 'condition', 'action', 'end'] as const).map((type) => (
+                {readOnly ? null : (
+                  <div aria-label="Node palette" className="flex flex-wrap gap-1">
                     <Button
-                      key={type}
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-7 gap-1 px-2 text-xs"
-                      disabled={
-                        busy ||
-                        graph.nodes.length >= 64 ||
-                        (type === 'trigger' && graph.nodes.some((node) => node.type === 'trigger'))
-                      }
-                      onClick={() => addNode(type)}
+                      className="h-7 px-2"
+                      aria-label="Undo"
+                      title="Undo (⌘Z)"
+                      disabled={busy || past.length === 0}
+                      onClick={undo}
                     >
-                      <Plus className="size-3" aria-hidden="true" /> Add {type}
+                      <Undo2 className="size-3.5" aria-hidden="true" />
                     </Button>
-                  ))}
-                </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2"
+                      aria-label="Redo"
+                      title="Redo (⇧⌘Z)"
+                      disabled={busy || future.length === 0}
+                      onClick={redo}
+                    >
+                      <Redo2 className="size-3.5" aria-hidden="true" />
+                    </Button>
+                    {(['trigger', 'condition', 'action', 'end'] as const).map((type) => (
+                      <Button
+                        key={type}
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 gap-1 px-2 text-xs"
+                        disabled={
+                          busy ||
+                          graph.nodes.length >= 64 ||
+                          (type === 'trigger' &&
+                            graph.nodes.some((node) => node.type === 'trigger'))
+                        }
+                        onClick={() => addNode(type)}
+                      >
+                        <Plus className="size-3" aria-hidden="true" /> Add {type}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="min-h-0 flex-1">
                 <ReactFlow
                   nodes={nodes}
                   edges={edges}
-                  nodeTypes={nodeTypes}
+                  nodeTypes={workflowNodeTypes}
                   onConnect={drawConnection}
                   fitView
                   fitViewOptions={{ padding: 0.15 }}
                   minZoom={0.15}
                   maxZoom={1.5}
-                  nodesDraggable={!busy}
-                  nodesConnectable={!busy}
+                  nodesDraggable={!busy && !readOnly}
+                  nodesConnectable={!busy && !readOnly}
                   deleteKeyCode={null}
                   onNodeClick={(_, node) => selectNode(node.id)}
+                  onNodeDragStart={remember}
                   onNodesChange={(changes) => {
                     const positions = { ...layout }
                     let moved = false
                     for (const change of changes) {
-                      if (change.type === 'position' && change.position) {
+                      if (change.type === 'position' && change.position && !readOnly) {
                         positions[change.id] = change.position
                         moved = true
                       }
@@ -555,7 +528,11 @@ export function WorkflowEditor({
                   {graph.nodes.length} nodes · {graph.edges.length} connections
                 </span>
                 <span>
-                  {preview ? 'Preview path highlighted' : 'Drag to connect · Select a node to edit'}
+                  {preview
+                    ? 'Preview path highlighted'
+                    : readOnly
+                      ? 'Select a node to inspect it'
+                      : 'Drag to connect · ⌘Z undo · ⌘D duplicate · Delete removes'}
                 </span>
               </div>
             </section>
@@ -566,17 +543,20 @@ export function WorkflowEditor({
               <Tabs value={panel} onValueChange={setPanel} className="min-h-0 flex-1 gap-0">
                 <TabsList
                   aria-label="Workflow inspector panels"
-                  className="mx-4 my-3 grid w-auto shrink-0 grid-cols-3"
+                  className="mx-4 my-3 grid w-auto shrink-0 grid-cols-4"
                 >
                   <TabsTrigger value="node">Node</TabsTrigger>
                   <TabsTrigger value="workflow">Workflow</TabsTrigger>
-                  <TabsTrigger value="test">
+                  <TabsTrigger value="test" disabled={readOnly}>
                     Test{' '}
                     {preview ? <span className="size-1.5 rounded-full bg-emerald-500" /> : null}
                   </TabsTrigger>
+                  <TabsTrigger value="versions" disabled={!record.id}>
+                    Versions
+                  </TabsTrigger>
                 </TabsList>
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">
-                  <fieldset disabled={busy} className="min-w-0">
+                  <fieldset disabled={busy || readOnly} className="min-w-0">
                     <TabsContent value="node" className="space-y-5">
                       <div>
                         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -634,10 +614,42 @@ export function WorkflowEditor({
                             />
                           ) : null}
                           {selectedNode.type === 'trigger' ? (
-                            <p className="text-sm">
-                              This trigger is bound to {graph.family}. A different event family
-                              needs another definition.
-                            </p>
+                            <div className="space-y-3">
+                              <p className="text-sm">
+                                This trigger is bound to {FAMILY_NAMES[graph.family]}. A different
+                                event family needs another definition.
+                              </p>
+                              <table aria-label="Event fields" className="w-full text-left text-xs">
+                                <caption className="mb-2 text-left text-xs text-muted-foreground">
+                                  Fields conditions can test.{' '}
+                                  {latest
+                                    ? `Values from the latest recorded event, “${latest.snapshot.title}”.`
+                                    : 'No event has been recorded for this repository yet.'}
+                                </caption>
+                                <tbody>
+                                  {Object.entries(fields).map(([field, kind]) => {
+                                    const value = latestFields[field]
+                                    return (
+                                      <tr key={field} className="border-t border-border">
+                                        <th scope="row" className="py-1 pr-2 font-mono font-normal">
+                                          {field}
+                                        </th>
+                                        <td className="py-1 pr-2 text-muted-foreground">{kind}</td>
+                                        <td className="max-w-32 truncate py-1 text-muted-foreground">
+                                          {!value
+                                            ? '—'
+                                            : value.state !== 'available'
+                                              ? value.state
+                                              : value.boolean !== undefined
+                                                ? String(value.boolean)
+                                                : (value.values ?? []).join(', ') || '(empty)'}
+                                        </td>
+                                      </tr>
+                                    )
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
                           ) : null}
                           {selectedNode.type === 'end' ? (
                             <Label className="grid gap-1 text-sm">
@@ -705,15 +717,30 @@ export function WorkflowEditor({
                               </UiSelect>
                             </Label>
                           ))}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            type="button"
-                            onClick={() => removeNode(selectedNode.id)}
-                          >
-                            <Trash2 className="size-3.5" aria-hidden="true" /> Remove{' '}
-                            {selectedNode.id}
-                          </Button>
+                          {readOnly ? null : (
+                            <div className="flex flex-wrap gap-2">
+                              {selectedNode.type !== 'trigger' ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  type="button"
+                                  onClick={() => duplicateNode(selectedNode.id)}
+                                >
+                                  <Copy className="size-3.5" aria-hidden="true" /> Duplicate{' '}
+                                  {selectedNode.id}
+                                </Button>
+                              ) : null}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                type="button"
+                                onClick={() => removeNode(selectedNode.id)}
+                              >
+                                <Trash2 className="size-3.5" aria-hidden="true" /> Remove{' '}
+                                {selectedNode.id}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ) : null}
 
@@ -732,9 +759,10 @@ export function WorkflowEditor({
                       </div>
                       <div className="rounded-lg border border-border bg-muted/20 p-3">
                         <p className="text-xs text-muted-foreground">GitHub event</p>
-                        <p className="mt-1 text-sm font-medium">{familyNames[graph.family]}</p>
+                        <p className="mt-1 text-sm font-medium">{FAMILY_NAMES[graph.family]}</p>
                         <p className="mt-1 break-words text-xs text-muted-foreground">
                           {source?.name}
+                          {source?.branch ? ` · watching ${source.branch}` : ''}
                         </p>
                       </div>
                       <Label className="grid gap-1.5 text-sm">
@@ -776,17 +804,18 @@ export function WorkflowEditor({
                       <div className="flex gap-2 rounded-lg bg-muted/40 p-3 text-xs leading-5 text-muted-foreground">
                         <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                         <p>
-                          Drafts use recorded source text. A person must approve and schedule
-                          content after review.
+                          Drafts use recorded source text, and AI copy treats it as evidence only. A
+                          person must approve and schedule content after review.
                         </p>
                       </div>
                       <p className="text-xs leading-5 text-muted-foreground">
-                        Draft revision {record.revision || 'new'}
+                        Draft revision {record.revision || 'new'} · language v
+                        {requiredSchemaVersion(graph)}
                         {record.updatedAt
                           ? ` · Saved ${new Date(record.updatedAt).toLocaleString()}`
                           : ''}
                       </p>
-                      {record.enabled ? (
+                      {record.enabled && !readOnly ? (
                         <Button
                           disabled={busy}
                           variant="outline"
@@ -822,7 +851,7 @@ export function WorkflowEditor({
                         <h3 className="mt-1 text-lg font-semibold">Follow the evidence</h3>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
                           See which path an event takes. Testing creates no releases, notifications,
-                          or posts.
+                          or posts, and never calls a model.
                         </p>
                       </div>
                       <Label className="grid gap-1 text-sm">
@@ -847,18 +876,12 @@ export function WorkflowEditor({
                                 Example: file enrichment pending
                               </SelectItem>
                             ) : null}
-                            {history
-                              .filter(
-                                (item) =>
-                                  item.event.snapshot.family === graph.family &&
-                                  item.event.sourceAppId === record.sourceAppId
-                              )
-                              .map((item) => (
-                                <SelectItem key={item.event.id} value={item.event.id}>
-                                  Recorded: {item.event.snapshot.title} ·{' '}
-                                  {new Date(item.event.receivedAt).toLocaleString()}
-                                </SelectItem>
-                              ))}
+                            {recorded.map((item) => (
+                              <SelectItem key={item.event.id} value={item.event.id}>
+                                Recorded: {item.event.snapshot.title} ·{' '}
+                                {new Date(item.event.receivedAt).toLocaleString()}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </UiSelect>
                       </Label>
@@ -892,7 +915,9 @@ export function WorkflowEditor({
                           <ol className="space-y-1">
                             {preview.steps.map((step, index) => (
                               <li key={step.nodeId}>
-                                <Button variant="custom" size={null}
+                                <Button
+                                  variant="custom"
+                                  size={null}
                                   type="button"
                                   onClick={() => selectNode(step.nodeId)}
                                   className="group flex w-full items-start gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
@@ -907,7 +932,7 @@ export function WorkflowEditor({
                                     </span>
                                     <span className="mt-1 block text-[11px] leading-4 text-muted-foreground">
                                       {step.decision
-                                        ? `${step.decision.match ? 'True' : 'False'} · ${step.decision.reason}`
+                                        ? `${step.decision.status !== 'evaluated' ? 'No branch' : step.decision.match ? 'True' : 'False'} · ${step.decision.reason}`
                                         : (step.outcome ??
                                           (step.type === 'trigger'
                                             ? 'Event received'
@@ -950,8 +975,71 @@ export function WorkflowEditor({
                       )}
                     </TabsContent>
                   </fieldset>
+                  <TabsContent value="versions" className="space-y-4">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Activated versions
+                      </p>
+                      <h3 className="mt-1 text-lg font-semibold">Immutable history</h3>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Each run keeps the version it was accepted with. Editing the draft never
+                        changes a version or a run in flight.
+                      </p>
+                    </div>
+                    {versions === null ? (
+                      <p role="status" className="text-sm text-muted-foreground">
+                        Loading versions…
+                      </p>
+                    ) : versions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Not activated yet. Activate a saved draft to create version 1.
+                      </p>
+                    ) : (
+                      <ol aria-label="Versions" className="space-y-2">
+                        {versions.map((version) => (
+                          <li
+                            key={version.id}
+                            className="space-y-1 rounded-lg border border-border p-3 text-sm"
+                          >
+                            <p className="flex items-center justify-between gap-2 font-medium">
+                              Revision {version.revision}
+                              {version.id === record.activeVersionId ? (
+                                <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-300">
+                                  {record.enabled ? 'Active' : 'Last active'}
+                                </span>
+                              ) : null}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {version.createdAt
+                                ? `Activated ${new Date(version.createdAt).toLocaleString()}`
+                                : ''}{' '}
+                              · v{version.graph.schemaVersion} · {version.graph.nodes.length} nodes
+                            </p>
+                            <div className="flex flex-wrap gap-3 text-xs">
+                              <Link
+                                className="underline"
+                                href={`/workflows/runs?versionId=${encodeURIComponent(version.id)}`}
+                              >
+                                Runs on revision {version.revision}
+                              </Link>
+                              {readOnly ? null : (
+                                <Button
+                                  variant="custom"
+                                  size={null}
+                                  type="button"
+                                  className="underline"
+                                  onClick={() => changeGraph(structuredClone(version.graph))}
+                                >
+                                  Load revision {version.revision} into draft
+                                </Button>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </TabsContent>
                   <div className="mt-5">
-                    {' '}
                     <div
                       aria-label="Workflow validation"
                       className="space-y-2 rounded-lg border border-border bg-muted/20 p-3"
@@ -962,7 +1050,9 @@ export function WorkflowEditor({
                         <ul className="space-y-1">
                           {issues.map((issue, index) => (
                             <li key={`${issue.code}-${index}`}>
-                              <Button variant="custom" size={null}
+                              <Button
+                                variant="custom"
+                                size={null}
                                 type="button"
                                 className="text-left text-sm text-destructive underline"
                                 onClick={() =>
@@ -1016,6 +1106,10 @@ export function WorkflowEditor({
                 No compatible executor is available. You can save and test; activation is
                 unavailable.
               </p>
+            ) : unavailable.length && !readOnly ? (
+              <p className="w-full text-amber-600 dark:text-amber-400">
+                Activation is blocked: {unavailable[0]?.reason}
+              </p>
             ) : null}
             {error ? (
               <p role="alert" className="w-full text-destructive">
@@ -1039,142 +1133,5 @@ export function WorkflowEditor({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
-}
-
-function ActionEditor({
-  node,
-  graph,
-  overview,
-  onChange,
-}: {
-  node: AutomationNode
-  graph: AutomationGraph
-  overview: AutomationOverview
-  onChange: (action: AutomationAction) => void
-}) {
-  const action = node.action ?? { type: 'create_release' as const }
-  const producer = action.type === 'create_campaign' ? 'create_release' : 'create_campaign'
-  const output = action.type === 'create_campaign' ? 'releaseId' : 'campaignId'
-  return (
-    <div className="space-y-3">
-      <Label className="grid gap-1 text-sm">
-        Action
-        <UiSelect
-          value={action.type}
-          onValueChange={(nextValue) => onChange({ type: nextValue as AutomationAction['type'] })}
-        >
-          <SelectTrigger className={automationSelectClass}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(actionNames).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </UiSelect>
-      </Label>
-      {action.type !== 'create_release' ? (
-        <Label className="grid gap-1 text-sm">
-          Input from action
-          <UiSelect
-            value={String(action.input?.nodeId ?? '') || '__empty_option__'}
-            onValueChange={(nextValue) =>
-              onChange({
-                ...action,
-                input: { nodeId: nextValue === '__empty_option__' ? '' : nextValue, output },
-              })
-            }
-          >
-            <SelectTrigger className={automationSelectClass}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={'__empty_option__'}>Choose an output</SelectItem>
-              {graph.nodes
-                .filter((candidate) => candidate.action?.type === producer)
-                .map((candidate) => (
-                  <SelectItem key={candidate.id} value={candidate.id}>
-                    {candidate.id}.{output}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </UiSelect>
-        </Label>
-      ) : null}
-      {action.type === 'create_campaign' ? (
-        <>
-          <Label className="grid gap-1 text-sm">
-            Brand kit
-            <UiSelect
-              value={String(action.brandKitId ?? '') || '__empty_option__'}
-              onValueChange={(nextValue) =>
-                onChange({
-                  ...action,
-                  brandKitId: nextValue === '__empty_option__' ? '' : nextValue,
-                })
-              }
-            >
-              <SelectTrigger className={automationSelectClass}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={'__empty_option__'}>Select a published brand kit</SelectItem>
-                {overview.brands.map((brand) => (
-                  <SelectItem key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </UiSelect>
-          </Label>
-          <fieldset className="space-y-2">
-            <legend className="text-sm">Draft destinations</legend>
-            {overview.destinations.map((destination) => (
-              <Label key={destination.id} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={action.destinationIds?.includes(destination.id) ?? false}
-                  onCheckedChange={(checked) => onChange({
-                      ...action,
-                      destinationIds: (checked === true)
-                        ? [...(action.destinationIds ?? []), destination.id]
-                        : action.destinationIds?.filter((id) => id !== destination.id),
-                    })}
-                />
-                {destination.name}
-              </Label>
-            ))}
-            {overview.destinations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Connect a destination in workspace Channels first.
-              </p>
-            ) : null}
-          </fieldset>
-          <Label className="grid gap-1 text-sm">
-            Call to action
-            <Input
-              value={action.callToAction ?? ''}
-              onChange={(event) => onChange({ ...action, callToAction: event.target.value })}
-            />
-          </Label>
-        </>
-      ) : null}
-      {action.type !== 'submit_review' ? (
-        <Label className="grid gap-1 text-sm">
-          Audience
-          <Input
-            value={action.audience ?? ''}
-            onChange={(event) => onChange({ ...action, audience: event.target.value })}
-          />
-        </Label>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          Uses the existing review queue and notifications. This node must connect directly to an
-          end node. Approval stays with a person.
-        </p>
-      )}
-    </div>
   )
 }

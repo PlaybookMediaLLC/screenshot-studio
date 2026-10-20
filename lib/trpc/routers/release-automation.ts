@@ -12,6 +12,11 @@ import {
   automationRunDetailSchema,
   automationSaveSchema,
 } from '@/lib/api/contracts/release-automation'
+import {
+  automationHistoryFilterSchema,
+  automationSourceModeSchema,
+  automationVersionSchema,
+} from '@/lib/api/contracts/workflow-runs'
 import { backendSDK } from '@/lib/backend/sdk'
 import { router } from '../init'
 import { organizationProcedure } from '../procedures'
@@ -37,17 +42,13 @@ export const releaseAutomationRouter = router({
       backendSDK(ctx.access).disableReleaseAutomation(input.id, input.revision)
     ),
   sourceMode: organizationProcedure('workspace:update')
-    .input(
-      automationIdentitySchema.extend({
-        enabled: z.boolean(),
-        collectUnmatched: z.boolean().optional(),
-      })
-    )
+    .input(automationSourceModeSchema)
     .mutation(({ ctx, input }) =>
       backendSDK(ctx.access).setReleaseAutomationMode(
         input.id,
         input.enabled,
-        input.collectUnmatched
+        input.collectUnmatched,
+        input.branch
       )
     ),
   preview: organizationProcedure('workspace:update')
@@ -60,15 +61,20 @@ export const releaseAutomationRouter = router({
       backendSDK(ctx.access).disconnectReleaseAutomationSource(input.id)
     ),
   history: organizationProcedure('workspace:read')
-    .input(z.object({ before: z.string().max(64).optional() }).optional())
+    .input(automationHistoryFilterSchema.optional())
     .output(z.object({ items: z.array(automationHistoryItemSchema) }))
-    .query(({ ctx, input }) => backendSDK(ctx.access).listReleaseAutomationHistory(input?.before)),
+    .query(({ ctx, input }) => backendSDK(ctx.access).listReleaseAutomationHistory(input)),
+  versions: organizationProcedure('workspace:read')
+    .input(automationIdentitySchema)
+    .output(z.object({ items: z.array(automationVersionSchema) }))
+    .query(({ ctx, input }) => backendSDK(ctx.access).listReleaseAutomationVersions(input.id)),
   run: organizationProcedure('workspace:read')
     .input(automationIdentitySchema)
     .output(automationRunDetailSchema)
     .query(({ ctx, input }) => backendSDK(ctx.access).getReleaseAutomationRun(input.id)),
   version: organizationProcedure('workspace:read')
     .input(automationIdentitySchema)
+    .output(automationVersionSchema)
     .query(({ ctx, input }) => backendSDK(ctx.access).getReleaseAutomationVersion(input.id)),
   cancel: organizationProcedure('workspace:update')
     .input(automationIdentitySchema)

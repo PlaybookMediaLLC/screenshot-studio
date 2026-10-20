@@ -9,7 +9,7 @@ import { githubChoiceStateSchema, githubInstallationChoiceSchema } from './githu
 import { verifyWebhookSignature } from './webhooks'
 
 /** Where users return in the app after connecting GitHub. */
-const SETTINGS_PATH = '/workspace/release-automation'
+const SETTINGS_PATH = '/workflows'
 
 /** The outcome shown on the settings page after a connection attempt. */
 export const githubConnectOutcomeSchema = z.enum([

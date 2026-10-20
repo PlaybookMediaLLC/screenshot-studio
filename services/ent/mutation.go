@@ -58573,16 +58573,18 @@ func (m *ReleaseAutomationMutation) ResetEdge(name string) error {
 // ReleaseAutomationExecutorMutation represents an operation that mutates the ReleaseAutomationExecutor nodes in the graph.
 type ReleaseAutomationExecutorMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *string
-	schema_version    *int
-	addschema_version *int
-	expires_at        *time.Time
-	clearedFields     map[string]struct{}
-	done              bool
-	oldValue          func(context.Context) (*ReleaseAutomationExecutor, error)
-	predicates        []predicate.ReleaseAutomationExecutor
+	op                 Op
+	typ                string
+	id                 *string
+	schema_version     *int
+	addschema_version  *int
+	capabilities       *[]string
+	appendcapabilities []string
+	expires_at         *time.Time
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*ReleaseAutomationExecutor, error)
+	predicates         []predicate.ReleaseAutomationExecutor
 }
 
 var _ ent.Mutation = (*ReleaseAutomationExecutorMutation)(nil)
@@ -58745,6 +58747,57 @@ func (m *ReleaseAutomationExecutorMutation) ResetSchemaVersion() {
 	m.addschema_version = nil
 }
 
+// SetCapabilities sets the "capabilities" field.
+func (m *ReleaseAutomationExecutorMutation) SetCapabilities(s []string) {
+	m.capabilities = &s
+	m.appendcapabilities = nil
+}
+
+// Capabilities returns the value of the "capabilities" field in the mutation.
+func (m *ReleaseAutomationExecutorMutation) Capabilities() (r []string, exists bool) {
+	v := m.capabilities
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapabilities returns the old "capabilities" field's value of the ReleaseAutomationExecutor entity.
+// If the ReleaseAutomationExecutor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationExecutorMutation) OldCapabilities(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCapabilities is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCapabilities requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapabilities: %w", err)
+	}
+	return oldValue.Capabilities, nil
+}
+
+// AppendCapabilities adds s to the "capabilities" field.
+func (m *ReleaseAutomationExecutorMutation) AppendCapabilities(s []string) {
+	m.appendcapabilities = append(m.appendcapabilities, s...)
+}
+
+// AppendedCapabilities returns the list of values that were appended to the "capabilities" field in this mutation.
+func (m *ReleaseAutomationExecutorMutation) AppendedCapabilities() ([]string, bool) {
+	if len(m.appendcapabilities) == 0 {
+		return nil, false
+	}
+	return m.appendcapabilities, true
+}
+
+// ResetCapabilities resets all changes to the "capabilities" field.
+func (m *ReleaseAutomationExecutorMutation) ResetCapabilities() {
+	m.capabilities = nil
+	m.appendcapabilities = nil
+}
+
 // SetExpiresAt sets the "expires_at" field.
 func (m *ReleaseAutomationExecutorMutation) SetExpiresAt(t time.Time) {
 	m.expires_at = &t
@@ -58815,9 +58868,12 @@ func (m *ReleaseAutomationExecutorMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ReleaseAutomationExecutorMutation) Fields() []string {
-	fields := make([]string, 0, 2)
+	fields := make([]string, 0, 3)
 	if m.schema_version != nil {
 		fields = append(fields, releaseautomationexecutor.FieldSchemaVersion)
+	}
+	if m.capabilities != nil {
+		fields = append(fields, releaseautomationexecutor.FieldCapabilities)
 	}
 	if m.expires_at != nil {
 		fields = append(fields, releaseautomationexecutor.FieldExpiresAt)
@@ -58832,6 +58888,8 @@ func (m *ReleaseAutomationExecutorMutation) Field(name string) (ent.Value, bool)
 	switch name {
 	case releaseautomationexecutor.FieldSchemaVersion:
 		return m.SchemaVersion()
+	case releaseautomationexecutor.FieldCapabilities:
+		return m.Capabilities()
 	case releaseautomationexecutor.FieldExpiresAt:
 		return m.ExpiresAt()
 	}
@@ -58845,6 +58903,8 @@ func (m *ReleaseAutomationExecutorMutation) OldField(ctx context.Context, name s
 	switch name {
 	case releaseautomationexecutor.FieldSchemaVersion:
 		return m.OldSchemaVersion(ctx)
+	case releaseautomationexecutor.FieldCapabilities:
+		return m.OldCapabilities(ctx)
 	case releaseautomationexecutor.FieldExpiresAt:
 		return m.OldExpiresAt(ctx)
 	}
@@ -58862,6 +58922,13 @@ func (m *ReleaseAutomationExecutorMutation) SetField(name string, value ent.Valu
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSchemaVersion(v)
+		return nil
+	case releaseautomationexecutor.FieldCapabilities:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapabilities(v)
 		return nil
 	case releaseautomationexecutor.FieldExpiresAt:
 		v, ok := value.(time.Time)
@@ -58937,6 +59004,9 @@ func (m *ReleaseAutomationExecutorMutation) ResetField(name string) error {
 	case releaseautomationexecutor.FieldSchemaVersion:
 		m.ResetSchemaVersion()
 		return nil
+	case releaseautomationexecutor.FieldCapabilities:
+		m.ResetCapabilities()
+		return nil
 	case releaseautomationexecutor.FieldExpiresAt:
 		m.ResetExpiresAt()
 		return nil
@@ -59008,6 +59078,8 @@ type ReleaseAutomationNodeMutation struct {
 	failure_code    *string
 	decision        *releaseautomation.Decision
 	outputs         *releaseautomation.Outputs
+	generation      **releaseautomation.Generation
+	charged         *bool
 	started_at      *time.Time
 	completed_at    *time.Time
 	clearedFields   map[string]struct{}
@@ -59477,6 +59549,91 @@ func (m *ReleaseAutomationNodeMutation) ResetOutputs() {
 	m.outputs = nil
 }
 
+// SetGeneration sets the "generation" field.
+func (m *ReleaseAutomationNodeMutation) SetGeneration(r *releaseautomation.Generation) {
+	m.generation = &r
+}
+
+// Generation returns the value of the "generation" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) Generation() (r *releaseautomation.Generation, exists bool) {
+	v := m.generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGeneration returns the old "generation" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldGeneration(ctx context.Context) (v *releaseautomation.Generation, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGeneration is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGeneration requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGeneration: %w", err)
+	}
+	return oldValue.Generation, nil
+}
+
+// ClearGeneration clears the value of the "generation" field.
+func (m *ReleaseAutomationNodeMutation) ClearGeneration() {
+	m.generation = nil
+	m.clearedFields[releaseautomationnode.FieldGeneration] = struct{}{}
+}
+
+// GenerationCleared returns if the "generation" field was cleared in this mutation.
+func (m *ReleaseAutomationNodeMutation) GenerationCleared() bool {
+	_, ok := m.clearedFields[releaseautomationnode.FieldGeneration]
+	return ok
+}
+
+// ResetGeneration resets all changes to the "generation" field.
+func (m *ReleaseAutomationNodeMutation) ResetGeneration() {
+	m.generation = nil
+	delete(m.clearedFields, releaseautomationnode.FieldGeneration)
+}
+
+// SetCharged sets the "charged" field.
+func (m *ReleaseAutomationNodeMutation) SetCharged(b bool) {
+	m.charged = &b
+}
+
+// Charged returns the value of the "charged" field in the mutation.
+func (m *ReleaseAutomationNodeMutation) Charged() (r bool, exists bool) {
+	v := m.charged
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCharged returns the old "charged" field's value of the ReleaseAutomationNode entity.
+// If the ReleaseAutomationNode object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationNodeMutation) OldCharged(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCharged is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCharged requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCharged: %w", err)
+	}
+	return oldValue.Charged, nil
+}
+
+// ResetCharged resets all changes to the "charged" field.
+func (m *ReleaseAutomationNodeMutation) ResetCharged() {
+	m.charged = nil
+}
+
 // SetStartedAt sets the "started_at" field.
 func (m *ReleaseAutomationNodeMutation) SetStartedAt(t time.Time) {
 	m.started_at = &t
@@ -59596,7 +59753,7 @@ func (m *ReleaseAutomationNodeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ReleaseAutomationNodeMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 13)
 	if m.organization_id != nil {
 		fields = append(fields, releaseautomationnode.FieldOrganizationID)
 	}
@@ -59623,6 +59780,12 @@ func (m *ReleaseAutomationNodeMutation) Fields() []string {
 	}
 	if m.outputs != nil {
 		fields = append(fields, releaseautomationnode.FieldOutputs)
+	}
+	if m.generation != nil {
+		fields = append(fields, releaseautomationnode.FieldGeneration)
+	}
+	if m.charged != nil {
+		fields = append(fields, releaseautomationnode.FieldCharged)
 	}
 	if m.started_at != nil {
 		fields = append(fields, releaseautomationnode.FieldStartedAt)
@@ -59656,6 +59819,10 @@ func (m *ReleaseAutomationNodeMutation) Field(name string) (ent.Value, bool) {
 		return m.Decision()
 	case releaseautomationnode.FieldOutputs:
 		return m.Outputs()
+	case releaseautomationnode.FieldGeneration:
+		return m.Generation()
+	case releaseautomationnode.FieldCharged:
+		return m.Charged()
 	case releaseautomationnode.FieldStartedAt:
 		return m.StartedAt()
 	case releaseautomationnode.FieldCompletedAt:
@@ -59687,6 +59854,10 @@ func (m *ReleaseAutomationNodeMutation) OldField(ctx context.Context, name strin
 		return m.OldDecision(ctx)
 	case releaseautomationnode.FieldOutputs:
 		return m.OldOutputs(ctx)
+	case releaseautomationnode.FieldGeneration:
+		return m.OldGeneration(ctx)
+	case releaseautomationnode.FieldCharged:
+		return m.OldCharged(ctx)
 	case releaseautomationnode.FieldStartedAt:
 		return m.OldStartedAt(ctx)
 	case releaseautomationnode.FieldCompletedAt:
@@ -59763,6 +59934,20 @@ func (m *ReleaseAutomationNodeMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetOutputs(v)
 		return nil
+	case releaseautomationnode.FieldGeneration:
+		v, ok := value.(*releaseautomation.Generation)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGeneration(v)
+		return nil
+	case releaseautomationnode.FieldCharged:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCharged(v)
+		return nil
 	case releaseautomationnode.FieldStartedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -59825,6 +60010,9 @@ func (m *ReleaseAutomationNodeMutation) ClearedFields() []string {
 	if m.FieldCleared(releaseautomationnode.FieldDecision) {
 		fields = append(fields, releaseautomationnode.FieldDecision)
 	}
+	if m.FieldCleared(releaseautomationnode.FieldGeneration) {
+		fields = append(fields, releaseautomationnode.FieldGeneration)
+	}
 	if m.FieldCleared(releaseautomationnode.FieldCompletedAt) {
 		fields = append(fields, releaseautomationnode.FieldCompletedAt)
 	}
@@ -59844,6 +60032,9 @@ func (m *ReleaseAutomationNodeMutation) ClearField(name string) error {
 	switch name {
 	case releaseautomationnode.FieldDecision:
 		m.ClearDecision()
+		return nil
+	case releaseautomationnode.FieldGeneration:
+		m.ClearGeneration()
 		return nil
 	case releaseautomationnode.FieldCompletedAt:
 		m.ClearCompletedAt()
@@ -59882,6 +60073,12 @@ func (m *ReleaseAutomationNodeMutation) ResetField(name string) error {
 		return nil
 	case releaseautomationnode.FieldOutputs:
 		m.ResetOutputs()
+		return nil
+	case releaseautomationnode.FieldGeneration:
+		m.ResetGeneration()
+		return nil
+	case releaseautomationnode.FieldCharged:
+		m.ResetCharged()
 		return nil
 	case releaseautomationnode.FieldStartedAt:
 		m.ResetStartedAt()

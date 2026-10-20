@@ -1,8 +1,9 @@
 # Local release automation fixture
 
 This fixture uses real Postgres, Redis, S3-compatible local storage, browser auth,
-the Go API, the tenant outbox, and Temporal. GitHub, destination verification, and email transport are
-local protocol fixtures. It never proves live GitHub or deployed Temporal access.
+the Go API, the tenant outbox, and Temporal. GitHub, the OpenRouter chat API,
+destination verification, and email transport are local protocol fixtures. It
+never proves live GitHub, a real model, or deployed Temporal access.
 
 Use an isolated stack and test database. Do not point this runner at a shared
 customer database or another workspace's Temporal queue. The fixture worker
@@ -61,10 +62,17 @@ node test/e2e/framework/release-automation-stack.mjs test
 ```
 
 The browser creates a new owner/workspace, enables two-factor auth, configures a
-brand and destination fixture, connects the local GitHub App, watches a repository,
-edits/validates/previews/activates a workflow, submits signed events, and checks
-actual Temporal-created releases and reviewable posts. It checks signature and
-payload rejection, unsupported events, semantic redelivery, and a skipped branch.
+brand and destination fixture, opens Workflows from the sidebar, connects the
+local GitHub App, watches a repository, creates a workflow from the release
+template with AI copy, edits/validates/previews/activates it, submits signed
+events, and checks actual Temporal-created releases, AI-written posts in review,
+and the run page. It checks signature and payload rejection, unsupported events,
+semantic redelivery with no second model call, a needs-attention run for missing
+evidence, deactivation, mobile navigation, and the old settings redirect. The
+fixture worker advertises `ai_copy` because the stack points
+`OPENROUTER_BASE_URL` at the GitHub fixture's fake chat endpoint; the web
+process gets no model key. Fixture workspaces share one installation, so the
+fake model counts calls per campaign post rather than globally.
 Screenshots are written under `.context/`; Playwright reports/traces use the
 existing ignored test-results directory. The normal E2E suite skips this test
 unless `E2E_RELEASE_AUTOMATION=1` is explicitly set.
@@ -72,6 +80,22 @@ unless `E2E_RELEASE_AUTOMATION=1` is explicitly set.
 Stop the fixture processes with Ctrl-C. Preserve reports as needed, then stop only
 the Compose project and database that you created for this fixture. No cleanup
 command in this guide targets another workspace's stack.
+
+## Verification recorded on 2026-10-20
+
+The Workflows browser journey passed locally in 40 seconds (one test) on an
+isolated stack: Postgres 16, Redis 7.4, RustFS, and Temporal dev server
+containers on shifted ports, with the GitHub/model protocol fixture, Go API,
+fixture worker, and Next.js dev server on the host. Screenshots
+`workflows-dashboard.png`, `workflows-dashboard-mobile.png`,
+`workflows-editor.png`, `workflows-run-success.png`, and
+`workflows-run-attention.png` are local artifacts under `.context/`.
+
+Also passing: the Go suite with `PUBLISHING_TEST_DATABASE_URL` set (including
+the release automation and workflow integration tests), `go vet ./...`, root and
+workspace JavaScript tests, full ESLint with zero warnings, TypeScript, the
+backend SDK build, and all 17 RFC checks. This is not live GitHub, model,
+social publishing, or deployed Temporal verification.
 
 ## Verification recorded on 2026-10-19
 

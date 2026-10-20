@@ -18,15 +18,48 @@ export const automationConditionSchema = z.object({
   values: z.array(z.string().max(1000)).max(50).optional(),
 })
 
-/** Registered draft/review actions. Approval and publishing are not actions. */
-export const automationActionSchema = z.object({
-  type: z.enum(['create_release', 'create_campaign', 'submit_review']),
-  input: z.object({ nodeId: z.string().max(64), output: z.string().max(64) }).optional(),
-  brandKitId: z.string().max(64).optional(),
-  destinationIds: z.array(z.string().max(64)).max(10).optional(),
-  audience: z.string().max(1000).optional(),
-  callToAction: z.string().max(300).optional(),
+/** Action identifiers the Go executor registers. Approval and publishing are not actions. */
+export const automationActionTypeSchema = z.enum([
+  'create_release',
+  'create_campaign',
+  'generate_copy',
+  'submit_review',
+])
+
+/** A reference to an output recorded by an earlier action on every path. */
+export const automationReferenceSchema = z.object({
+  nodeId: z.string().max(64),
+  output: z.string().max(64),
 })
+
+/**
+ * One action's configuration, discriminated by type. Drafts may be
+ * incomplete, so fields are optional here; the Go validator decides whether
+ * a configuration is executable.
+ */
+export const automationActionSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('create_release'),
+    audience: z.string().max(1000).optional(),
+  }),
+  z.object({
+    type: z.literal('create_campaign'),
+    input: automationReferenceSchema.optional(),
+    brandKitId: z.string().max(64).optional(),
+    destinationIds: z.array(z.string().max(64)).max(10).optional(),
+    audience: z.string().max(1000).optional(),
+    callToAction: z.string().max(300).optional(),
+  }),
+  z.object({
+    type: z.literal('generate_copy'),
+    input: automationReferenceSchema.optional(),
+    creditLimit: z.number().int().min(0).max(500).optional(),
+  }),
+  z.object({
+    type: z.literal('submit_review'),
+    input: automationReferenceSchema.optional(),
+  }),
+])
 
 /** Draft nodes may be incomplete; server activation requires valid configuration. */
 export const automationNodeSchema = z.object({
@@ -82,6 +115,11 @@ export const automationDefinitionSchema = z.object({
   modifiedBy: z.string(),
   updatedAt: z.string(),
   issues: z.array(automationIssueSchema),
+  lastRun: z
+    .object({ id: z.string(), status: z.string(), createdAt: z.string() })
+    .nullable()
+    .optional(),
+  recentRuns: z.number().int().optional(),
 })
 
 /** Optimistic concurrency prevents a stale tab from replacing another admin's draft. */
@@ -160,11 +198,26 @@ export const automationPreviewSchema = z.object({
   evidence: z.string(),
 })
 
+/** The newest graph language and capabilities that some live worker advertises. */
+export const automationExecutorSchema = z.object({
+  available: z.boolean(),
+  schemaVersion: z.number().int(),
+  capabilities: z.array(z.string()),
+})
+
+/** Whether the backend can execute an action now, and what to configure if not. */
+export const automationActionAvailabilitySchema = z.object({
+  type: automationActionTypeSchema,
+  available: z.boolean(),
+  reason: z.string(),
+})
+
 /** Safe workspace resources and the live worker capability reported by the backend. */
 export const automationOverviewSchema = z.object({
   definitions: z.array(automationDefinitionSchema),
   sources: z.array(
     z.object({
+      branch: z.string().optional(),
       id: z.string(),
       name: z.string(),
       repositoryId: z.string(),
@@ -180,6 +233,9 @@ export const automationOverviewSchema = z.object({
   destinations: z.array(z.object({ id: z.string(), name: z.string() })),
   fields: z.record(automationFamilySchema, z.record(z.string(), z.string())),
   executorAvailable: z.boolean(),
+  executor: automationExecutorSchema.optional(),
+  actions: z.array(automationActionAvailabilitySchema).optional(),
+  runCounts: z.record(z.string(), z.number().int()).optional(),
 })
 
 /** Product references produced by completed actions. */
@@ -190,6 +246,7 @@ export const automationOutputsSchema = z.object({
   brandKitId: z.string().optional(),
   brandKitVersion: z.number().int().optional(),
   destinationIds: z.array(z.string()).optional(),
+  creditsCharged: z.number().int().optional(),
 })
 
 /** Persisted event/run history remains readable during a Temporal outage. */
@@ -212,6 +269,7 @@ export const automationHistoryItemSchema = z.object({
     eventId: z.string(),
     definitionId: z.string().nullable(),
     versionId: z.string().nullable(),
+    versionRevision: z.number().int().nullable().optional(),
     workflowId: z.string(),
     temporalRunId: z.string(),
     status: z.string(),
@@ -254,3 +312,25 @@ export const automationRevisionSchema = automationIdentitySchema.extend({
 export type AutomationCondition = z.infer<typeof automationConditionSchema>
 /** The graph type inferred from its transport contract. */
 export type AutomationGraph = z.infer<typeof automationGraphSchema>
+/** One graph node inferred from its transport contract. */
+export type AutomationNode = z.infer<typeof automationNodeSchema>
+/** One action configuration inferred from its discriminated union. */
+export type AutomationAction = z.infer<typeof automationActionSchema>
+/** A registered action identifier. */
+export type AutomationActionType = z.infer<typeof automationActionTypeSchema>
+/** A GitHub event family. */
+export type AutomationFamily = z.infer<typeof automationFamilySchema>
+/** Canvas positions keyed by node ID. */
+export type AutomationLayout = z.infer<typeof automationLayoutSchema>
+/** A definition with its draft and dashboard run summary. */
+export type AutomationDefinition = z.infer<typeof automationDefinitionSchema>
+/** The workspace's workflows, sources, resources, and executor capability. */
+export type AutomationOverview = z.infer<typeof automationOverviewSchema>
+/** A normalized event snapshot. */
+export type AutomationEvent = z.infer<typeof automationEventSchema>
+/** A dry-run prediction. */
+export type AutomationPreview = z.infer<typeof automationPreviewSchema>
+/** One persisted event and its logical run. */
+export type AutomationHistoryItem = z.infer<typeof automationHistoryItemSchema>
+/** A run with its node receipts. */
+export type AutomationRunDetail = z.infer<typeof automationRunDetailSchema>

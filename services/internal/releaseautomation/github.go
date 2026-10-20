@@ -107,6 +107,9 @@ func NormalizeGitHub(eventName string, body json.RawMessage) (int64, *Event, err
 	}
 	e := &Event{RepositoryID: strconv.FormatInt(payload.Repository.ID, 10), RepositoryName: payload.Repository.FullName, DefaultBranch: payload.Repository.DefaultBranch, Origin: "live", Fields: map[string]Value{}}
 	e.Fields["repository.id"] = StringValue(e.RepositoryID)
+	if e.RepositoryName != "" {
+		e.Fields["repository.name"] = StringValue(e.RepositoryName)
+	}
 	if payload.Sender.Login != "" {
 		e.Fields["actor.login"] = StringValue(payload.Sender.Login)
 	}
@@ -135,7 +138,7 @@ func NormalizeGitHub(eventName string, body json.RawMessage) (int64, *Event, err
 		e.Family, e.ObjectID, e.Number, e.OccurredAt, e.URL = Merged, strconv.FormatInt(pr.ID, 10), pr.Number, pr.MergedAt, pr.URL
 		e.Title, e.Notes = releasenotes.Clean(pr.Title, 160), releasenotes.Clean(pr.Body, 10000)
 		e.SemanticKey = fmt.Sprintf("pr:%s:%d", e.RepositoryID, pr.Number)
-		e.Fields["pr.base"], e.Fields["pr.title"] = StringValue(pr.Base.Ref), StringValue(e.Title)
+		e.Fields["pr.base"], e.Fields["pr.title"], e.Fields["pr.number"] = StringValue(pr.Base.Ref), StringValue(e.Title), StringValue(strconv.Itoa(pr.Number))
 		if len(pr.Labels) > 100 {
 			return 0, nil, ErrPayload
 		}

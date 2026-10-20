@@ -4,8 +4,20 @@ package releaseautomation
 
 import "time"
 
-const SchemaVersion = 1
+// SchemaVersion is the newest graph language this executor runs. Version 1
+// graphs stay valid unchanged; version 2 adds paid copy generation, so a
+// worker that only advertises version 1 can never be handed one.
+const SchemaVersion = 2
 const MaxNodes = 64
+
+// MaxGenerationNodes bounds paid generation calls in one run.
+const MaxGenerationNodes = 2
+
+// MaxCreditLimit bounds the AI credits one generation node may spend.
+const MaxCreditLimit = 500
+
+// CapabilityAICopy is advertised by a worker that has a model provider.
+const CapabilityAICopy = "ai_copy"
 
 // Outputs contains safe product references, never provider tokens or asset URLs.
 type Outputs struct {
@@ -15,6 +27,19 @@ type Outputs struct {
 	ReleaseID       string   `json:"releaseId,omitempty"`
 	CampaignID      string   `json:"campaignId,omitempty"`
 	PostIDs         []string `json:"postIds,omitempty"`
+	CreditsCharged  int      `json:"creditsCharged,omitempty"`
+}
+
+// Generation is model output persisted before it is applied, so a retried
+// activity reuses it instead of paying for the same work twice.
+type Generation struct {
+	Credits int             `json:"credits"`
+	Posts   []GeneratedPost `json:"posts"`
+}
+
+type GeneratedPost struct {
+	PostID string `json:"postId"`
+	Copy   string `json:"copy"`
 }
 
 type Family string
@@ -74,6 +99,7 @@ type Action struct {
 	DestinationIDs []string   `json:"destinationIds,omitempty"`
 	Audience       string     `json:"audience,omitempty"`
 	CallToAction   string     `json:"callToAction,omitempty"`
+	CreditLimit    int        `json:"creditLimit,omitempty"`
 }
 
 type Node struct {
@@ -136,12 +162,13 @@ func BoolValue(value bool) Value         { return Value{State: "available", Bool
 // FieldKinds is also the editor's field catalog. Branch evidence is offered
 // only for PRs: a release target_commitish need not be a branch.
 func FieldKinds(f Family) map[string]string {
-	fields := map[string]string{"repository.id": "string", "event.family": "string", "event.action": "string", "actor.login": "string"}
+	fields := map[string]string{"repository.id": "string", "repository.name": "string", "event.family": "string", "event.action": "string", "actor.login": "string"}
 	switch f {
 	case Published:
 		fields["release.tag"], fields["release.title"], fields["release.prerelease"] = "string", "string", "boolean"
 	case Merged:
 		fields["pr.base"], fields["pr.labels"], fields["pr.author"], fields["pr.bot"], fields["pr.files"], fields["pr.title"] = "string", "collection", "string", "boolean", "collection", "string"
+		fields["pr.number"] = "string"
 	case Deployed:
 		fields["deployment.environment"], fields["deployment.state"], fields["deployment.sha"], fields["deployment.production"] = "string", "string", "string", "boolean"
 	}

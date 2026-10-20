@@ -40,7 +40,7 @@ func TestAutomationQueuedCancellationUpdatesEventAndRun(t *testing.T) {
 	if _, err := f.repo.AcceptGitHubEvent(f.ctx, f.delivery(99, "cancel-before-start")); err != nil {
 		t.Fatal(err)
 	}
-	history, _ := f.repo.ListAutomationHistory(f.ctx, f.owner, "")
+	history, _ := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{})
 	id := history[0].Run.ID
 	if err := f.repo.CancelReleaseAutomationRun(f.ctx, f.owner, id); err != nil {
 		t.Fatal(err)
@@ -80,7 +80,7 @@ func TestAutomationPRAndDeploymentCreateReviewableReleases(t *testing.T) {
 			if _, err := f.repo.AcceptGitHubEvent(f.ctx, input); err != nil {
 				t.Fatal(err)
 			}
-			history, _ := f.repo.ListAutomationHistory(f.ctx, f.owner, "")
+			history, _ := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{})
 			id := history[0].Run.ID
 			loaded, err := f.repo.LoadReleaseAutomation(f.ctx, f.org, id, 0)
 			if err != nil {
@@ -202,7 +202,7 @@ func TestAutomationDurableAcceptancePinsVersionsAndDeduplicates(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	history, err := f.repo.ListAutomationHistory(f.ctx, f.owner, "")
+	history, err := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{})
 	if err != nil || len(history) != 1 {
 		t.Fatalf("history=%+v err=%v", history, err)
 	}
@@ -238,7 +238,7 @@ func TestAutomationDurableAcceptancePinsVersionsAndDeduplicates(t *testing.T) {
 	if _, err := f.repo.AcceptGitHubEvent(f.ctx, f.delivery(2, "after-disable")); err != nil {
 		t.Fatal(err)
 	}
-	history, _ = f.repo.ListAutomationHistory(f.ctx, f.owner, "")
+	history, _ = f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{})
 	if history[0].Run.Status != "skipped" || history[0].Event.Mode != "automation" {
 		t.Fatalf("disabled source fell back: %+v", history[0])
 	}
@@ -250,7 +250,7 @@ func TestAutomationActionsReuseReceiptsAndRequireHumanApproval(t *testing.T) {
 	if _, err := f.repo.AcceptGitHubEvent(f.ctx, f.delivery(3, "action-delivery")); err != nil {
 		t.Fatal(err)
 	}
-	history, _ := f.repo.ListAutomationHistory(f.ctx, f.owner, "")
+	history, _ := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{})
 	runID := history[0].Run.ID
 	if _, err := f.repo.LoadReleaseAutomation(f.ctx, f.org, runID, 0); err != nil {
 		t.Fatal(err)
@@ -399,7 +399,7 @@ func TestAutomationRecoveryFencesOldActivitiesAndRetainsReceipts(t *testing.T) {
 	if _, err := f.repo.AcceptGitHubEvent(f.ctx, f.delivery(80, "recover")); err != nil {
 		t.Fatal(err)
 	}
-	history, _ := f.repo.ListAutomationHistory(f.ctx, f.owner, "")
+	history, _ := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{})
 	id := history[0].Run.ID
 	if err := f.repo.SelectReleaseAutomation(f.ctx, f.org, id, *active.ActiveVersionID, 0); err != nil {
 		t.Fatal(err)
@@ -459,7 +459,7 @@ func TestAutomationHistoricalBackfillCannotRunMarketing(t *testing.T) {
 	if err := f.repo.backfillSource(f.ctx, f.org, f.source.ID); err != nil {
 		t.Fatal(err)
 	}
-	history, err := f.repo.ListAutomationHistory(f.ctx, f.owner, "")
+	history, err := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{})
 	if err != nil || len(history) == 0 {
 		t.Fatalf("history=%d err=%v", len(history), err)
 	}
@@ -535,7 +535,7 @@ func TestAutomationSharedInstallationFanoutIsAtomicAndScoped(t *testing.T) {
 		t.Fatalf("fanout=%+v err=%v", accepted, err)
 	}
 	for _, f := range []*automationFixture{a, b} {
-		history, _ := f.repo.ListAutomationHistory(f.ctx, f.owner, "")
+		history, _ := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{})
 		loaded, err := f.repo.LoadReleaseAutomation(f.ctx, f.org, history[0].Run.ID, 0)
 		if err != nil {
 			t.Fatal(err)

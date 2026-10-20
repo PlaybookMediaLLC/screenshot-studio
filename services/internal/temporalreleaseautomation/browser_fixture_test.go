@@ -13,7 +13,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/maintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
@@ -50,6 +52,20 @@ func TestBrowserFixtureWorker(t *testing.T) {
 	}
 	defer temporalClient.Close()
 	store := product.NewConfiguration(db.Client).WithGitHubApp(github).WithObjectStore(objects).WithAutomationDispatcher(&Client{Temporal: temporalClient})
+	// The fixture's model is a local fake provider (OPENROUTER_BASE_URL).
+	if model := platformai.FromEnvironment(); model != nil {
+		store.WithAutomationModel(model)
+	}
+	counter, err := quota.NewRedisCounter(os.Getenv("REDIS_URL"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer counter.Close()
+	meter, err := counter.MonthlyMeter()
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.WithMonthlyMeter(meter)
 	w := worker.New(temporalClient, TaskQueue, worker.Options{MaxConcurrentActivityExecutionSize: 5})
 	Register(w, &Activities{Store: store})
 	if err := w.Start(); err != nil {
@@ -60,7 +76,7 @@ func TestBrowserFixtureWorker(t *testing.T) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	for {
-		if err := store.AdvertiseReleaseAutomationExecutor(ctx, "browser-fixture-worker"); err != nil && ctx.Err() == nil {
+		if err := store.AdvertiseReleaseAutomationExecutor(ctx, "browser-fixture-worker", store.AutomationCapabilities()...); err != nil && ctx.Err() == nil {
 			t.Fatal(err)
 		}
 		if _, err := jobs.Outbox(ctx); err != nil && ctx.Err() == nil {

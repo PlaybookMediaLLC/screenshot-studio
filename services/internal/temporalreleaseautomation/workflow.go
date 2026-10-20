@@ -162,7 +162,14 @@ func execute(ctx workflow.Context, input Input, finish *Finish) error {
 				branch = "true"
 			}
 		}
-		if err := workflow.ExecuteActivity(ctx, NodeActivity, step).Get(ctx, nil); err != nil {
+		nodeCtx := ctx
+		if node.Type == "action" && node.Action.Type == "generate_copy" {
+			// Only version 2 graphs contain this action, so v1 histories replay
+			// unchanged. The receipt persists model output before billing, so
+			// these bounded retries never call or charge twice.
+			nodeCtx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 5 * time.Minute, RetryPolicy: &temporal.RetryPolicy{InitialInterval: 5 * time.Second, MaximumInterval: time.Minute, MaximumAttempts: 3, NonRetryableErrorTypes: []string{StoppedError, PermanentError}}})
+		}
+		if err := workflow.ExecuteActivity(nodeCtx, NodeActivity, step).Get(ctx, nil); err != nil {
 			return err
 		}
 		if node.Type == "action" && node.Action.Type == "submit_review" {

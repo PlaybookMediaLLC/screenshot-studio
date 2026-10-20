@@ -59,7 +59,9 @@ type Configuration struct {
 	meter         MonthlyMeter
 	github        GitHubApp
 	automation    AutomationDispatcher
-	capture       Capturer
+	// automationModel writes paid workflow copy; nil disables generate_copy.
+	automationModel AutomationModel
+	capture         Capturer
 	// collabKey signs content draft collaboration tokens (RFC 037).
 	collabKey []byte
 	// agentClients finds the OAuth clients agents connect through (RFC 038).

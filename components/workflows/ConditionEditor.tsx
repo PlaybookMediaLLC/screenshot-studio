@@ -1,6 +1,6 @@
 'use client'
 
-import type { AutomationCondition } from 'screenshot-studio-backend-sdk'
+import type { AutomationCondition } from '@/lib/api/contracts/release-automation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

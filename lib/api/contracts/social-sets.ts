@@ -226,7 +226,8 @@ export const socialMentionSchema = z.object({
 
 /** `GET /api/v1/social-sets/{id}/mentions` */
 export const lookupMentionsContract = defineContract({
-  access: { feature: 'content:drafts', permission: 'artifact:edit' },
+  // Each lookup spends the account's provider rate limit.
+  access: { feature: 'content:drafts', permission: 'artifact:edit', quota: 'api:write:minute' },
   docs: memberDocs({
     description:
       "Looks a mention up with the set's own account: an X user by exact username, or a LinkedIn company page by the name in its address. LinkedIn people are not looked up.",

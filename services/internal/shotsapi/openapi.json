@@ -6944,7 +6944,8 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "pro"
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
         },
         "description": "Looks a mention up with the set's own account: an X user by exact username, or a LinkedIn company page by the name in its address. LinkedIn people are not looked up.",
         "operationId": "lookupSocialSetMentions",

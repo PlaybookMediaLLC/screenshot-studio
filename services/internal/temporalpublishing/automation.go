@@ -281,6 +281,7 @@ func runAutomations(ctx workflow.Context, input WorkflowInput, job PreparedPubli
 	if err := workflow.ExecuteActivity(mainCtx, PlanAutomationsActivityName, PlanAutomationsInput{
 		Job: job, ProviderID: providerID, PublishedAt: workflow.Now(ctx),
 	}).Get(ctx, &steps); err != nil {
+		workflow.GetLogger(ctx).Error("follow-ups were not planned; the post is live without them", "post", job.PostID, "error", err)
 		return
 	}
 	stepCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{

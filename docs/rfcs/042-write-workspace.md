@@ -1,6 +1,6 @@
-# RFC 041: The Write Workspace
+# RFC 042: The Write Workspace
 
-**Status:** Accepted; implementation in progress (see the [coverage matrix](../scheduling/typefully/write/implementation-matrix.md))
+**Status:** Accepted; implemented (each section's state is in the [coverage matrix](../scheduling/typefully/write/implementation-matrix.md))
 
 **Date:** 2026-10-20
 
@@ -124,15 +124,16 @@ Nothing promotional is ever inserted into a customer's draft.
   A draft keeps tag ids. Copying a draft to another set maps tags by name or
   drops them, as the person copying chooses.
 - **Pinning** sets `pinnedAt`; pinned drafts sort first.
-- **Activity** is the existing product activity stream, filtered to the draft:
-  creation, content edits (one event per revision window), renames,
-  destination changes, tag changes, review, sharing, planning, scheduling,
-  publication, failures, recovery, and automation. Viewing writes nothing.
+- **Activity** reads the audit log for the draft and its posts: creation,
+  content edits, renames, destination and tag changes, review, sharing,
+  planning, scheduling, publication, failures, reconciliation, recovery, and
+  stopped follow-ups. Only safe metadata keys are shown. Viewing writes nothing.
 - **Backups** are `content_draft_revision` rows: immutable snapshots of title,
-  body, platform versions, and kind, kept at most every ten minutes of editing
-  and at every schedule, plan, and recovery. Retention: every snapshot of the
-  last 30 days, then one a day for a year. Recovering a snapshot creates a new
-  draft and leaves the source alone.
+  body, platform versions, and article, kept at most every ten minutes of
+  editing and at every plan, schedule, publish, and recovery, each with its
+  reason. Retention: every snapshot of the last 30 days, then the last one of
+  each day for a year, then none; it is applied as a draft gains a backup.
+  Recovering a snapshot creates a new draft and leaves the source alone.
 - **Duplicate and copy** create a new draft: new id, version 1, status draft,
   no share token, no guest comments, no discussions, no review, no plan, no
   scheduled posts. Copying to another set rechecks destinations and set access.
@@ -167,23 +168,62 @@ never publishes twice.
 
 ## Follow-up automation
 
-The X follow-ups of RFC 037 run in the publishing workflow's follow-up step.
-This RFC extends them:
+Follow-ups run in the publishing workflow after the post is live; nothing is
+planned before then. Version 2 of the workflow's `post-auto-actions` marker
+runs them as receipted steps; version 1 (RFC 037) stays for workflows that
+started under it.
 
-- **Auto-retweet** rules: after N hours, or N days later at a local time;
-  each repost is removed 12 hours later when the rule asks.
-- **Auto-plug**: likes or reposts as the metric, a threshold, and a reply.
-- **Auto-DM**: the configuration and the condition engine (follows-you
-  required or optional, any or all of repost and reply, an optional reply-text
-  match, personalization variables, a duration, a daily cap, recipient
-  deduplication). Execution is **unavailable** until the X app holds the
-  `dm.write` scope and a test account has sent a message; until then the
-  dialog shows that reason and nothing is sent.
+- **First comment** (LinkedIn): posted right after the post.
+- **Auto-RT**: up to five rules, each a duration after publishing or a time of
+  day some days later in a named zone (so it holds across a daylight-saving
+  change); each repost can be removed a set time later.
+- **Auto-Plug**: a reply posted once when the post reaches a like or repost
+  count, checked every 15 minutes for six hours, then hourly, for 48 hours;
+  it then expires.
+- The RFC 037 like-gated repost and delayed quote run as steps too.
 
-Every automation run is a `post_automation_run` row with a unique key per post,
-rule, and occurrence, a status (pending, executed, failed, uncertain,
-cancelled), and the provider's receipt. Cancelling stops pending runs and says
-plainly that completed actions were not undone.
+`PlanPostAutomations` (on the main queue) computes the steps from the post's
+options and records a `post_automation_run` receipt per post and key
+(`first-comment`, `retweet:N`, `unretweet:N`, `plug`, `repost-at-likes`,
+`quote`). `RunPostAutomation` reads the receipt before it acts and settles it:
+`done` (with the platform's id), `failed` (with a short code such as
+`http_403`, never the provider's message), `skipped` (the platform cannot, or
+a removal whose repost never went up), `expired`, or `cancelled`. A replayed
+workflow or a retried activity finds the receipt and does nothing again.
+
+Stopping follow-ups (`POST /api/v1/content-draft-posts/{id}/automations/cancel`)
+cancels pending steps but keeps the removals: one whose repost never went up
+skips itself, and one whose repost did, even a repost in flight while the
+cancel ran, still takes it down. Completed actions are not undone. Sets can
+save follow-up defaults, which new drafts in the set start with.
+
+**Auto-DM is not built.** Sending needs X's direct-message permission and a
+paid X API plan; the workspace's X connection is authorized with write access
+only, and there is no event ingestion for reposts and replies. The composer
+shows the switch off with that reason, and nothing is sent.
+
+X engagement is read from the post's public metrics; the RFC 037 check
+counted one page of liking users and never passed 100.
+
+## Mentions, media, and AI
+
+- **Mentions** are looked up with the set's own account: an X user by exact
+  username, a LinkedIn company page by the name in its address. LinkedIn's API
+  gives this connection no people search, so the picker says so. A mention is
+  an atomic inline element written per platform when the post is serialized:
+  the LinkedIn annotation for a LinkedIn organization, the @handle for an X
+  user, the plain name elsewhere. Lookups are for signed-in members only.
+- **Alt text** is kept on the image asset (up to 1,000 characters) and sent
+  with it: X sets it with `POST /2/media/metadata` after the upload finishes
+  and before the post exists; LinkedIn sends `altText` on image content.
+- **Refine** works on an explicit scope (the selection, the post at the caret,
+  or every post of the open version) with twelve actions or the writer's own
+  instruction. The server answers one text per text, each within the
+  platform's limit, or fails; the composer previews the answer and applies it
+  only on Accept, as one change Undo takes back, and refuses if the text
+  changed meanwhile. The **writing assistant** talks about the draft in the
+  set's voice (style guide, audience, and samples saved on the set). Both use
+  the workspace's AI credits.
 
 ## Provider capabilities
 
@@ -200,9 +240,12 @@ documentation, linked in the matrix:
 | Disclosures | `paid_partnership`, `made_with_ai` | n/a |
 | Polls | 2–4 choices, 25 chars, 5 min–7 days, no media | 2–4 options, 30 chars, question 140, 1/3/7/14 days, no media |
 | Documents | n/a | PDF up to 100 MB and 300 pages |
-| Mentions | @handle text | organization and member annotations |
+| Mentions | @handle, looked up by username | organization annotation, looked up by company page; no people |
 | Articles | `POST /2/articles/draft` then `/publish`; X Premium | n/a |
 | Long posts | X Premium accounts only | n/a |
+| Alt text | `POST /2/media/metadata` | `altText` on images |
+| Follow-ups | repost, removal, plug reply | first comment |
+| Direct messages | not available (no DM permission) | n/a |
 
 An account's X Premium status is the account's, read from X, never inferred
 from the workspace's plan. Until it is read, the account is treated as
@@ -210,10 +253,31 @@ standard (280).
 
 ## Rollout
 
-All schema changes are additive. Old composers keep working against the new
-columns because Go ignores what it is not sent. The Write surface ships behind
-`PLATFORM_CONTENT_DRAFTS`, as drafts do; capabilities that need provider
-permissions (articles, LinkedIn documents and polls, DMs) each have a gate and
-stay off until verified with a real account. Turning Write off hides the UI;
-planned drafts never publish because they have no scheduled posts, and
-scheduled posts keep running in Temporal as before.
+All schema changes are additive, in four migrations:
+`20261027090000_write_workspace` (social sets, tags, finishers, draft and
+revision columns), `20261027090100_write_publish_options` (a scheduled post's
+settings), `20261027090200_write_post_automation` (follow-up receipts), and
+`20261027090300_write_asset_alt_text`. Older clients keep working: Go ignores
+what it is not sent, and drafts from before social sets belong to the
+workspace's default set.
+
+Write ships behind `PLATFORM_CONTENT_DRAFTS`, as drafts do. Capabilities that
+need provider permissions (articles, LinkedIn documents and polls, mentions,
+follow-ups) only act when the account has them; Auto-DM stays off. Turning
+Write off hides the UI; planned drafts never publish because they have no
+scheduled posts, and scheduled posts keep running in Temporal as before.
+
+### Rolling back
+
+- **Web**: the previous release reads drafts without the new fields. Planned
+  drafts stay planned (no posts); manual platform versions are not shown, and
+  the old composer's per-channel text was cleared on first save, so a draft
+  edited in Write and then in the old composer publishes the primary text.
+- **API and worker**: the new columns and tables are unused by older code, so
+  no down-migration is needed. A follow-up workflow that started under version
+  2 of `post-auto-actions` cannot be replayed by an older worker; before
+  rolling the worker back, let those finish (at most 48 hours after their post
+  went live, or the last repost removal) or terminate them, which stops only
+  follow-ups: their posts are already live.
+- **Data**: deleting `post_automation_run` rows loses receipts, so a later
+  replay could act again; keep them until every version-2 workflow is gone.

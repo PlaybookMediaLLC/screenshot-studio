@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { AUTO_DM_UNAVAILABLE } from '@/lib/write/automation'
 import type { DraftChannel, DraftKind, PostPoll } from '@/lib/write/document'
 
 /**
@@ -69,6 +70,15 @@ export type PlatformCapabilities = {
   }
   /** Threads: posts after the first go out as replies, up to this many posts. */
   thread: { maxPosts: number } | null
+  /** Follow-ups once live: reposts at set times, a plug reply, direct messages. */
+  automation: { directMessage: Availability; plug: Availability; retweet: Availability }
+}
+
+/** Follow-ups a platform does not have. */
+const NO_AUTOMATION: PlatformCapabilities['automation'] = {
+  directMessage: { action: 'none', available: false, reason: 'Follow-ups are for X posts.' },
+  plug: { action: 'none', available: false, reason: 'Follow-ups are for X posts.' },
+  retweet: { action: 'none', available: false, reason: 'Follow-ups are for X posts.' },
 }
 
 const MINUTES = { day: 1_440, hour: 60 }
@@ -107,6 +117,11 @@ const X: PlatformCapabilities = {
     visibility: false,
   },
   thread: { maxPosts: 25 },
+  automation: {
+    directMessage: { action: 'none', available: false, reason: AUTO_DM_UNAVAILABLE },
+    plug: AVAILABLE,
+    retweet: AVAILABLE,
+  },
 }
 
 /** LinkedIn: one post, polls, PDF documents and organization mentions (Posts API). */
@@ -135,6 +150,7 @@ const LINKEDIN: PlatformCapabilities = {
     visibility: true,
   },
   thread: null,
+  automation: NO_AUTOMATION,
 }
 
 function simple(
@@ -160,6 +176,7 @@ function simple(
       visibility: false,
     },
     thread: thread ? { maxPosts: 25 } : null,
+    automation: NO_AUTOMATION,
   }
 }
 

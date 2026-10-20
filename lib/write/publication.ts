@@ -14,6 +14,7 @@ import {
 } from '@/lib/write/capabilities'
 import {
   type Article,
+  type Automation,
   type DraftChannel,
   type DraftKind,
   type DraftTarget,
@@ -58,6 +59,8 @@ export type PublicationTarget = {
   caption: string
   channelConnectionId: string
   options?: PublishOptions
+  /** X follow-ups once live (Auto-RT, Auto-Plug). */
+  autoActions?: Automation
   poll?: { durationMinutes: number; options: string[] }
   replies?: { assetIds: string[]; caption: string; options?: PublishOptions }[]
   replyTo?: string
@@ -110,6 +113,28 @@ function postOptions(
   }
   if (channel === 'x' && settings.quoteFirstPost && !first) options.quoteFirstPost = true
   return options
+}
+
+/** Follow-ups that do something, or undefined when none is on. */
+export function activeAutomation(automation: Automation | undefined): Automation | undefined {
+  if (!automation) return undefined
+  const active: Automation = {}
+  if (automation.retweets?.length) {
+    active.retweets = automation.retweets
+    if (automation.unretweetAfterMinutes)
+      active.unretweetAfterMinutes = automation.unretweetAfterMinutes
+  }
+  if (automation.plugAtLikes) {
+    active.plugAtLikes = automation.plugAtLikes
+    active.plugMetric = automation.plugMetric ?? 'likes'
+    active.plugText = automation.plugText
+  }
+  if (automation.repostAtLikes) active.repostAtLikes = automation.repostAtLikes
+  if (automation.quoteAfterHours && automation.quoteText?.trim()) {
+    active.quoteAfterHours = automation.quoteAfterHours
+    active.quoteText = automation.quoteText
+  }
+  return Object.keys(active).length > 0 ? active : undefined
 }
 
 /** Options without empty fields, or undefined when nothing is set. */
@@ -185,6 +210,9 @@ export function buildPublication(
     }
   }
   if (poll.question) firstOptions.pollQuestion = poll.question
+  const automation = channel === 'x' ? activeAutomation(options.automation) : undefined
+  if (automation?.plugAtLikes && !automation.plugText?.trim())
+    problems.push('The auto plug needs its reply text.')
   let replyTo: string | undefined
   if (draft.kind === 'reply') {
     if (draft.target?.platform === channel && draft.target.remoteId) replyTo = draft.target.remoteId
@@ -208,6 +236,7 @@ export function buildPublication(
     caption: first?.caption ?? '',
     channelConnectionId: account.connectionId,
     ...(compact(firstOptions) ? { options: compact(firstOptions) } : {}),
+    ...(automation ? { autoActions: automation } : {}),
     ...(poll.poll ? { poll: poll.poll } : {}),
     ...(replyTo ? { replyTo } : {}),
     ...(rest.length > 0

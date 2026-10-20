@@ -99,3 +99,65 @@ func (p *Provider) Post(ctx context.Context, id, accessToken string, posts []int
 		ID: posts[0].ID, PostID: result.PostID, ReleaseURL: result.ReleaseURL, Status: "success",
 	}}, nil
 }
+
+// action asks the fake to record a follow-up (RFC 041) and returns the id it
+// gives the result, if any.
+func (p *Provider) action(ctx context.Context, kind, postID, text string) (string, error) {
+	body, err := json.Marshal(map[string]string{"kind": kind, "postId": postID, "text": text})
+	if err != nil {
+		return "", err
+	}
+	response, err := p.Fetch(ctx, p.endpoint+"/actions", integrations.Request{
+		Method: http.MethodPost, Body: body, Headers: map[string]string{"Content-Type": "application/json"},
+		Client: &http.Client{Timeout: 30 * time.Second},
+	})
+	if err != nil {
+		return "", err
+	}
+	var result struct {
+		ID string `json:"id"`
+	}
+	return result.ID, response.JSON(&result)
+}
+
+// Comment answers a post: a thread's next post or a first comment.
+func (p *Provider) Comment(ctx context.Context, _, postID, _, _ string, posts []integrations.PostDetails, _ *ent.Integration) ([]integrations.PostResponse, error) {
+	responses := make([]integrations.PostResponse, 0, len(posts))
+	for _, post := range posts {
+		id, err := p.action(ctx, "comment", postID, post.Message)
+		if err != nil {
+			return nil, err
+		}
+		responses = append(responses, integrations.PostResponse{ID: post.ID, PostID: id, Status: "success"})
+	}
+	return responses, nil
+}
+
+func (p *Provider) RetweetPost(ctx context.Context, _ *ent.Integration, postID string) error {
+	_, err := p.action(ctx, "retweet", postID, "")
+	return err
+}
+
+func (p *Provider) UnretweetPost(ctx context.Context, _ *ent.Integration, postID string) error {
+	_, err := p.action(ctx, "unretweet", postID, "")
+	return err
+}
+
+func (p *Provider) ReplyTo(ctx context.Context, _ *ent.Integration, postID, text string) (string, error) {
+	return p.action(ctx, "reply", postID, text)
+}
+
+// PostEngagement is the fake's configured like and repost counts.
+func (p *Provider) PostEngagement(ctx context.Context, _ *ent.Integration, postID string) (int, int, error) {
+	response, err := p.Fetch(ctx, p.endpoint+"/engagement?postId="+url.QueryEscape(postID), integrations.Request{
+		Method: http.MethodGet, Client: &http.Client{Timeout: 30 * time.Second},
+	})
+	if err != nil {
+		return 0, 0, err
+	}
+	var result struct {
+		Likes   int `json:"likes"`
+		Reposts int `json:"reposts"`
+	}
+	return result.Likes, result.Reposts, response.JSON(&result)
+}

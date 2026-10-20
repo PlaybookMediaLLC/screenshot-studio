@@ -229,12 +229,18 @@ func waitForCancelAndDrainPoke(ctx workflow.Context, cancelSignal, pokeSignal wo
 // after it goes out: like counts take hours to build.
 var autoActionChecks = []time.Duration{6 * time.Hour, 12 * time.Hour, 18 * time.Hour}
 
-// runAutoActions runs a live post's follow-ups (RFC 037): a repost and a
-// plug reply once it has enough likes, tried at autoActionChecks, and a
-// quote after QuoteAfterHours. Versioned: workflows from before it skip it.
-// A follow-up that fails is left undone; the post is live either way.
+// runAutoActions runs a live post's follow-ups. Version 2 (RFC 041) runs
+// them as receipted steps (runAutomations); version 1 (RFC 037) is kept for
+// workflows that started under it: a repost and a plug reply once it has
+// enough likes, tried at autoActionChecks, and a quote after
+// QuoteAfterHours. Workflows from before either skip them. A follow-up
+// that fails is left undone; the post is live either way.
 func runAutoActions(ctx workflow.Context, input WorkflowInput, job PreparedPublication, providerID string) {
-	if workflow.GetVersion(ctx, "post-auto-actions", workflow.DefaultVersion, 1) == workflow.DefaultVersion {
+	switch workflow.GetVersion(ctx, "post-auto-actions", workflow.DefaultVersion, 2) {
+	case workflow.DefaultVersion:
+		return
+	case 2:
+		runAutomations(ctx, input, job, providerID)
 		return
 	}
 	actions := job.AutoActions

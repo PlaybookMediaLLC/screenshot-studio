@@ -34,6 +34,7 @@ type WriteStore interface {
 	ListPlannedContentDrafts(context.Context, product.Actor, time.Time, time.Time, string) ([]product.ContentDraftRecord, error)
 	RetryContentDraftPost(context.Context, product.Actor, string) (*product.MovedDraftPost, error)
 	ReconcileContentDraftPost(context.Context, product.Actor, string, product.ReconcileInput) (*product.ContentDraftPost, error)
+	CancelContentDraftPostAutomations(context.Context, product.Actor, string) (*product.ContentDraftPost, error)
 }
 
 func (s *Server) registerWrite(mux *http.ServeMux) {
@@ -59,6 +60,7 @@ func (s *Server) registerWrite(mux *http.ServeMux) {
 	mux.Handle("GET /v1/content-draft-plans", s.authenticateProduct(http.HandlerFunc(s.listPlannedContentDrafts)))
 	mux.Handle("POST /v1/content-draft-posts/{id}/retry", s.authenticateProduct(http.HandlerFunc(s.retryContentDraftPost)))
 	mux.Handle("POST /v1/content-draft-posts/{id}/reconcile", s.authenticateProduct(http.HandlerFunc(s.reconcileContentDraftPost)))
+	mux.Handle("POST /v1/content-draft-posts/{id}/automations/cancel", s.authenticateProduct(http.HandlerFunc(s.cancelContentDraftPostAutomations)))
 }
 
 // pathIDs reads path values that must be resource IDs.
@@ -338,5 +340,15 @@ func (s *Server) reconcileContentDraftPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	post, err := s.configuration.ReconcileContentDraftPost(r.Context(), workspaceActor(r), ids[0], input)
+	respond(w, http.StatusOK, map[string]any{"post": post}, err)
+}
+
+// cancelContentDraftPostAutomations stops a live post's pending follow-ups.
+func (s *Server) cancelContentDraftPostAutomations(w http.ResponseWriter, r *http.Request) {
+	ids, ok := pathIDs(w, r, "id")
+	if !ok {
+		return
+	}
+	post, err := s.configuration.CancelContentDraftPostAutomations(r.Context(), workspaceActor(r), ids[0])
 	respond(w, http.StatusOK, map[string]any{"post": post}, err)
 }

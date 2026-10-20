@@ -4,6 +4,8 @@
 // package, so the ent schema can use its types.
 package draftdoc
 
+import "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+
 // SchemaVersion is the platform versions document this backend writes.
 const SchemaVersion = 1
 
@@ -49,6 +51,8 @@ type VersionOptions struct {
 	FirstComment string `json:"firstComment,omitempty"`
 	// LinkedIn: a PDF document shown as a carousel.
 	Document *Document `json:"document,omitempty"`
+	// X: follow-ups once the post is live (Auto-RT, Auto-Plug).
+	Automation *postoptions.AutoActions `json:"automation,omitempty"`
 }
 
 // Community is an X community and whether the post is also shown to followers.

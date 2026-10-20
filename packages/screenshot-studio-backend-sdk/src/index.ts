@@ -868,6 +868,8 @@ export type BackendDraftArticle = { coverAssetId?: string; title: string }
 
 /** A platform version's settings. */
 export type BackendVersionOptions = {
+  /** X: follow-ups once the post is live. */
+  automation?: BackendAutoActions
   community?: { id: string; name?: string; shareWithFollowers?: boolean }
   document?: { assetId: string; title?: string }
   firstComment?: string
@@ -915,7 +917,14 @@ export type BackendSocialSet = {
   isDefault: boolean
   memberUserIds: string[]
   name: string
-  preferences: { audience?: string; naturalTiming?: boolean; samples?: string[]; voice?: string }
+  preferences: {
+    audience?: string
+    /** The X follow-ups new drafts in the set start with. */
+    automation?: BackendAutoActions
+    naturalTiming?: boolean
+    samples?: string[]
+    voice?: string
+  }
   timeZone: string | null
   updatedAt: string
   visibility: 'workspace' | 'restricted'
@@ -1007,13 +1016,42 @@ export type BackendSharedContentDraft = {
   updatedAt: string
 }
 
-/** A live post's follow-ups (X): repost and reply at a like count, quote after hours. */
+/**
+ * A live post's follow-ups (X): repost and reply at a like count, quote
+ * after hours; reposts at set times and their removal (RFC 041).
+ */
 export type BackendAutoActions = {
   plugAtLikes?: number
+  /** What plugAtLikes counts: likes (the default) or reposts. */
+  plugMetric?: 'likes' | 'reposts'
   plugText?: string
   quoteAfterHours?: number
   quoteText?: string
   repostAtLikes?: number
+  /** Each a duration after publishing, or a time of day some days later. */
+  retweets?: BackendRetweetRule[]
+  /** Removes each automatic repost this long after it; 0 keeps them. */
+  unretweetAfterMinutes?: number
+}
+
+/** When to repost: afterMinutes after publishing, or `days` later at `at` in `timeZone`. */
+export type BackendRetweetRule = {
+  afterMinutes?: number
+  at?: string
+  days?: number
+  timeZone?: string
+}
+
+/** A live post's follow-up and its receipt (RFC 041). */
+export type BackendPostAutomation = {
+  attempts: number
+  dueAt: string
+  failureCode: string | null
+  key: string
+  kind: 'first_comment' | 'retweet' | 'unretweet' | 'plug' | 'repost_at_likes' | 'quote'
+  remoteId: string | null
+  status: 'pending' | 'done' | 'failed' | 'skipped' | 'cancelled' | 'expired'
+  updatedAt: string
 }
 
 /** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
@@ -1063,6 +1101,8 @@ export type BackendContentDraftPost = {
   /** A thread: its reply count and how many went out. */
   replies: number
   threadProgress: { lastReplyId?: string; posted: number; total: number }
+  /** Its follow-ups once live, each with its receipt (RFC 041). */
+  automations?: BackendPostAutomation[]
 }
 
 /** One channel of a draft schedule and the caption serialized for it. */
@@ -2725,6 +2765,14 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ post: BackendContentDraftPost }>(
       `v1/content-draft-posts/${encodeURIComponent(id)}/reconcile`,
       { body: input, method: 'POST' }
+    )
+  }
+
+  /** Stop a live post's pending follow-ups; removals of automatic reposts still run. */
+  async cancelContentDraftPostAutomations(id: string) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/automations/cancel`,
+      { body: {}, method: 'POST' }
     )
   }
 

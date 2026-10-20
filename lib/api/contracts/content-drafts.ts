@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import { defineContract, timestampSchema } from '@/lib/api/contract'
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
-import { draftKindSchema } from '@/lib/write/document'
+import { automationSchema, draftKindSchema } from '@/lib/write/document'
 import {
   contentDraftSortSchema,
   contentDraftViewSchema,
   draftWriteFieldsSchema,
   draftWriteInputSchema,
+  postAutomationSchema,
   scheduleTimingSchema,
 } from '@/lib/write/wire'
 
@@ -269,16 +270,15 @@ export const contentDraftPostSchema = z.object({
     posted: z.number().int(),
     total: z.number().int(),
   }),
+  /** Its follow-ups once live, each with its receipt (RFC 041). */
+  automations: z.array(postAutomationSchema).default([]),
 })
 
-/** A live post's follow-ups (X): repost and reply at a like count, quote after hours. */
-export const autoActionsSchema = z.object({
-  plugAtLikes: z.number().int().min(0).max(1_000_000).optional(),
-  plugText: z.string().max(1_000).optional(),
-  quoteAfterHours: z.number().int().min(0).max(720).optional(),
-  quoteText: z.string().max(1_000).optional(),
-  repostAtLikes: z.number().int().min(0).max(1_000_000).optional(),
-})
+/**
+ * A live post's follow-ups (X): repost and reply at a like or repost
+ * count, quote after hours, reposts at set times and their removal.
+ */
+export const autoActionsSchema = automationSchema
 
 /** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
 export const pollSchema = z.object({

@@ -239,3 +239,13 @@ export const reconcileDraftPostContract = defineContract({
   path: '/api/v1/content-draft-posts/{id}/reconcile',
   summary: 'Settle a post whose outcome is unknown, without contacting the platform',
 })
+
+/** `POST /api/v1/content-draft-posts/{id}/automations/cancel` */
+export const cancelDraftPostAutomationsContract = defineContract({
+  method: 'POST',
+  name: 'content-draft-posts.automations.cancel',
+  output: z.object({ post: contentDraftPostSchema }),
+  params: z.object({ id: contentDraftIdSchema }),
+  path: '/api/v1/content-draft-posts/{id}/automations/cancel',
+  summary: "Stop a live post's pending follow-ups; removals of automatic reposts still run",
+})

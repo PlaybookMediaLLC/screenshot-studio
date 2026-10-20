@@ -3,23 +3,68 @@
 // got. A leaf package, so the ent schema can use its types.
 package postoptions
 
+import (
+	"fmt"
+	"time"
+)
+
 // AutoActions are what happens after a post is live, on channels that
 // support them (X). Zero values are off.
 type AutoActions struct {
 	// RepostAtLikes reposts the post once it has this many likes.
 	RepostAtLikes int `json:"repostAtLikes,omitempty"`
-	// PlugAtLikes replies PlugText under the post once it has this many likes.
+	// PlugAtLikes replies PlugText under the post once it has this many of
+	// PlugMetric: likes (the default) or reposts. It plugs once.
 	PlugAtLikes int    `json:"plugAtLikes,omitempty"`
 	PlugText    string `json:"plugText,omitempty"`
+	PlugMetric  string `json:"plugMetric,omitempty"`
 	// QuoteAfterHours posts QuoteText with a link to the post this many hours
 	// after it went out, which X shows as a quote.
 	QuoteAfterHours int    `json:"quoteAfterHours,omitempty"`
 	QuoteText       string `json:"quoteText,omitempty"`
+	// Retweets repost the post at each rule's time (RFC 041), and
+	// UnretweetAfterMinutes removes each of those reposts this long after
+	// it went up; 0 keeps them.
+	Retweets              []RetweetRule `json:"retweets,omitempty"`
+	UnretweetAfterMinutes int           `json:"unretweetAfterMinutes,omitempty"`
 }
 
 // Empty reports whether no action is set.
 func (a AutoActions) Empty() bool {
-	return a.RepostAtLikes == 0 && a.PlugAtLikes == 0 && a.QuoteAfterHours == 0
+	return a.RepostAtLikes == 0 && a.PlugAtLikes == 0 && a.QuoteAfterHours == 0 && len(a.Retweets) == 0
+}
+
+// RetweetRule is when to repost: AfterMinutes after publishing, or Days
+// after the day it was published at the wall-clock time At ("15:04") in
+// TimeZone. The two forms are kept apart: a wall-clock time stays put
+// across a daylight-saving change, a duration does not.
+type RetweetRule struct {
+	AfterMinutes int    `json:"afterMinutes,omitempty"`
+	Days         int    `json:"days,omitempty"`
+	At           string `json:"at,omitempty"`
+	TimeZone     string `json:"timeZone,omitempty"`
+}
+
+// When is the rule's time for a post published at publishedAt. A wall-clock
+// time that does not exist that day (a spring-forward gap) moves forward
+// by the gap, as Go's time.Date does.
+func (r RetweetRule) When(publishedAt time.Time) (time.Time, error) {
+	if r.At == "" {
+		if r.AfterMinutes <= 0 {
+			return time.Time{}, fmt.Errorf("retweet rule needs afterMinutes or at")
+		}
+		return publishedAt.Add(time.Duration(r.AfterMinutes) * time.Minute), nil
+	}
+	zone, err := time.LoadLocation(r.TimeZone)
+	if err != nil || r.TimeZone == "" {
+		return time.Time{}, fmt.Errorf("retweet rule time zone %q", r.TimeZone)
+	}
+	clock, err := time.Parse("15:04", r.At)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("retweet rule time %q", r.At)
+	}
+	local := publishedAt.In(zone)
+	return time.Date(local.Year(), local.Month(), local.Day()+r.Days, clock.Hour(), clock.Minute(), 0, 0, zone), nil
 }
 
 // Poll is a question's choices and how long it stays open.

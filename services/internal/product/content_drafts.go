@@ -483,6 +483,7 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 	if versions, err = draftPlatformVersions(versions, primary); err != nil {
 		return nil, err
 	}
+	versions = withDefaultAutomation(versions, set.Preferences.Automation)
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err

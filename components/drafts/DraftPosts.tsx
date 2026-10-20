@@ -211,11 +211,75 @@ export function DraftPosts({
                   </Button>
                 </div>
               ) : null}
+              {post.automations.length > 0 ? (
+                <FollowUps
+                  busy={busy === post.id}
+                  onStop={
+                    canSchedule && post.automations.some((item) => item.status === 'pending' && item.kind !== 'unretweet')
+                      ? () =>
+                          void run(
+                            post.id,
+                            () => writeApi.cancelAutomations(post.id),
+                            'Follow-ups stopped. A repost already up is still removed on time.'
+                          )
+                      : undefined
+                  }
+                  post={post}
+                />
+              ) : null}
             </li>
           )
         })}
       </ul>
     </section>
+  )
+}
+
+/** What each follow-up is, as a person reads it. */
+const FOLLOW_UP_LABELS: Record<DraftPostWire['automations'][number]['kind'], string> = {
+  first_comment: 'First comment',
+  plug: 'Auto-Plug reply',
+  quote: 'Quote',
+  repost_at_likes: 'Repost at likes',
+  retweet: 'Auto-RT repost',
+  unretweet: 'Remove the repost',
+}
+
+/** Where a follow-up is. */
+const FOLLOW_UP_STATUS: Record<DraftPostWire['automations'][number]['status'], string> = {
+  cancelled: 'stopped',
+  done: 'done',
+  expired: 'not reached in time',
+  failed: 'failed',
+  pending: 'waiting',
+  skipped: 'skipped',
+}
+
+/** A live post's follow-ups and their receipts (RFC 041). */
+function FollowUps({ busy, onStop, post }: { busy: boolean; onStop?: () => void; post: DraftPostWire }) {
+  return (
+    <div className="grid gap-1 text-xs" data-testid="follow-ups">
+      <p className="flex items-center justify-between text-neutral-400">
+        After it went live
+        {onStop ? (
+          <Button disabled={busy} onClick={onStop} size="sm" variant="outline">
+            Stop follow-ups
+          </Button>
+        ) : null}
+      </p>
+      <ul className="grid gap-0.5">
+        {post.automations.map((item) => (
+          <li className="flex items-center gap-2 text-neutral-500" data-testid="follow-up" key={item.key}>
+            <span className="text-neutral-300">{FOLLOW_UP_LABELS[item.kind]}</span>
+            <LocalTime value={item.dueAt} />
+            <span className={cn(item.status === 'failed' && 'text-red-300', item.status === 'done' && 'text-emerald-300')}>
+              {FOLLOW_UP_STATUS[item.status]}
+              {item.failureCode && item.status !== 'done' ? ` (${item.failureCode})` : ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 

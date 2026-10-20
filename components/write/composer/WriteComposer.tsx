@@ -254,8 +254,17 @@ export function WriteComposer({
     requireApproval,
     setTimeZone: set?.timeZone ?? null,
     versionRef: version,
+    automation: versionFor(document.versions, 'x').options?.automation,
+    onAutomation: canEdit
+      ? (automation) =>
+          update((current) => ({
+            versions: withOptions(current.versions, 'x', {
+              ...versionFor(current.versions, 'x').options,
+              automation,
+            }),
+          }))
+      : undefined,
   }
-  const followUps: string[] = []
   const togglePanel = (next: Panel) => setPanel((current) => (current === next ? null : next))
   useShortcuts([
     {
@@ -834,7 +843,6 @@ export function WriteComposer({
       {dialog === 'publish' ? (
         <PublishReview
           context={context}
-          followUps={followUps}
           onClose={() => setDialog(null)}
           onPreview={() => {
             setDialog(null)

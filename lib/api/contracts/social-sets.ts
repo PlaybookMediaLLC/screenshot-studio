@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { defineContract, timestampSchema } from '@/lib/api/contract'
 import { contentDraftIdSchema } from '@/lib/api/contracts/content-drafts'
 import { memberDocs, workspaceDocs } from '@/lib/api/contracts/workspace-docs'
-import { draftChannelSchema } from '@/lib/write/document'
+import { automationSchema, draftChannelSchema } from '@/lib/write/document'
 
 /**
  * Social sets (RFC 041): a workspace's publishing identities. Reads take an
@@ -40,6 +40,8 @@ export const socialSetColorSchema = z.enum([
 /** A set's writing and posting defaults. */
 export const socialSetPreferencesSchema = z.strictObject({
   audience: z.string().max(2_000).optional(),
+  /** The X follow-ups new drafts in the set start with. */
+  automation: automationSchema.optional(),
   naturalTiming: z.boolean().optional(),
   samples: z.array(z.string().max(5_000)).max(20).optional(),
   voice: z.string().max(2_000).optional(),

@@ -89,6 +89,8 @@ export const writeApi = {
     }),
   activity: (id: string) => call<{ items: DraftActivityWire[] }>(`${draft(id)}/activity`),
   retryPost: (id: string) => call<{ post: DraftPostWire }>(`${post(id)}/retry`, { method: 'POST' }),
+  cancelAutomations: (id: string) =>
+    call<{ post: DraftPostWire }>(`${post(id)}/automations/cancel`, { method: 'POST' }),
   reconcilePost: (id: string, input: { live: boolean; url?: string }) =>
     call<{ post: DraftPostWire }>(`${post(id)}/reconcile`, { body: input, method: 'POST' }),
 }

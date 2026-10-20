@@ -89,3 +89,39 @@ export const scheduleTimingSchema = z.object({
   publishNow: z.boolean().optional(),
   timeZone: z.string().max(80).optional(),
 })
+
+/** A follow-up's kind. */
+export const postAutomationKindSchema = z.enum([
+  'first_comment',
+  'retweet',
+  'unretweet',
+  'plug',
+  'repost_at_likes',
+  'quote',
+])
+
+/** Where a follow-up is: waiting, settled one way or another. */
+export const postAutomationStatusSchema = z.enum([
+  'pending',
+  'done',
+  'failed',
+  'skipped',
+  'cancelled',
+  'expired',
+])
+
+/**
+ * A live post's follow-up and its receipt (RFC 041). `failureCode` is a
+ * short code such as `http_403` or `threshold_not_reached`, never a
+ * provider message.
+ */
+export const postAutomationSchema = z.object({
+  attempts: z.number().int(),
+  dueAt: timestampSchema,
+  failureCode: z.string().nullable(),
+  key: z.string(),
+  kind: postAutomationKindSchema,
+  remoteId: z.string().nullable(),
+  status: postAutomationStatusSchema,
+  updatedAt: timestampSchema,
+})

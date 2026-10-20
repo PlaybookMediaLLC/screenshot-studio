@@ -34,6 +34,7 @@ func TestEntProjectionsMatchMigratedTables(t *testing.T) {
 		"content_draft_revision":           func() error { _, err := c.ContentDraftRevision.Query().Limit(1).All(ctx); return err },
 		"content_draft_tag":                func() error { _, err := c.ContentDraftTag.Query().Limit(1).All(ctx); return err },
 		"content_draft_finisher":           func() error { _, err := c.ContentDraftFinisher.Query().Limit(1).All(ctx); return err },
+		"post_automation_run":              func() error { _, err := c.PostAutomationRun.Query().Limit(1).All(ctx); return err },
 		"social_set":                       func() error { _, err := c.SocialSet.Query().Limit(1).All(ctx); return err },
 		"organization_enterprise_settings": func() error { _, err := c.OrganizationEnterpriseSettings.Query().Limit(1).All(ctx); return err },
 		"session":                          func() error { _, err := c.Session.Query().Limit(1).All(ctx); return err },

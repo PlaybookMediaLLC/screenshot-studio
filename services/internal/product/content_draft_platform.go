@@ -711,7 +711,27 @@ func recordContentDraftRevision(ctx context.Context, tx *ent.Tx, actor Actor, dr
 	if draft.Article != nil {
 		create.SetArticle(draft.Article)
 	}
-	return create.Exec(ctx)
+	if err := create.Exec(ctx); err != nil {
+		return err
+	}
+	return pruneContentDraftRevisions(ctx, tx, draft.ID)
+}
+
+// pruneContentDraftRevisions applies the backup retention (RFC 041): every
+// backup from the last 30 days, then the last one of each day for a year,
+// then none. It runs as a draft gains a backup, so a draft nobody edits
+// keeps what it had.
+func pruneContentDraftRevisions(ctx context.Context, tx *ent.Tx, draftID string) error {
+	_, err := tx.PlatformExec(ctx, `
+		DELETE FROM content_draft_revision r
+		WHERE r."contentDraftId" = $1 AND (
+			r."createdAt" < now() - interval '365 days'
+			OR (r."createdAt" < now() - interval '30 days' AND EXISTS (
+				SELECT 1 FROM content_draft_revision later
+				WHERE later."contentDraftId" = r."contentDraftId"
+					AND date_trunc('day', later."createdAt") = date_trunc('day', r."createdAt")
+					AND (later."createdAt", later.id) > (r."createdAt", r.id))))`, draftID)
+	return err
 }
 
 // ContentDraftRevisionRecord is a revision as the API returns it. The body is

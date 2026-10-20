@@ -70,6 +70,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
@@ -182,6 +183,7 @@ const (
 	TypePlatformSlackConnection        = "PlatformSlackConnection"
 	TypePlatformSlackInstallation      = "PlatformSlackInstallation"
 	TypePlatformSlackPacing            = "PlatformSlackPacing"
+	TypePostAutomationRun              = "PostAutomationRun"
 	TypeProductProfile                 = "ProductProfile"
 	TypeProductSurface                 = "ProductSurface"
 	TypeProject                        = "Project"
@@ -53779,6 +53781,955 @@ func (m *PlatformSlackPacingMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *PlatformSlackPacingMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PlatformSlackPacing edge %s", name)
+}
+
+// PostAutomationRunMutation represents an operation that mutates the PostAutomationRun nodes in the graph.
+type PostAutomationRunMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *string
+	organization_id   *string
+	scheduled_post_id *string
+	key               *string
+	kind              *postautomationrun.Kind
+	status            *postautomationrun.Status
+	due_at            *time.Time
+	remote_id         *string
+	attempts          *int
+	addattempts       *int
+	failure_code      *string
+	created_at        *time.Time
+	updated_at        *time.Time
+	clearedFields     map[string]struct{}
+	done              bool
+	oldValue          func(context.Context) (*PostAutomationRun, error)
+	predicates        []predicate.PostAutomationRun
+}
+
+var _ ent.Mutation = (*PostAutomationRunMutation)(nil)
+
+// postautomationrunOption allows management of the mutation configuration using functional options.
+type postautomationrunOption func(*PostAutomationRunMutation)
+
+// newPostAutomationRunMutation creates new mutation for the PostAutomationRun entity.
+func newPostAutomationRunMutation(c config, op Op, opts ...postautomationrunOption) *PostAutomationRunMutation {
+	m := &PostAutomationRunMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePostAutomationRun,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPostAutomationRunID sets the ID field of the mutation.
+func withPostAutomationRunID(id string) postautomationrunOption {
+	return func(m *PostAutomationRunMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PostAutomationRun
+		)
+		m.oldValue = func(ctx context.Context) (*PostAutomationRun, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PostAutomationRun.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPostAutomationRun sets the old PostAutomationRun of the mutation.
+func withPostAutomationRun(node *PostAutomationRun) postautomationrunOption {
+	return func(m *PostAutomationRunMutation) {
+		m.oldValue = func(context.Context) (*PostAutomationRun, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PostAutomationRunMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PostAutomationRunMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PostAutomationRun entities.
+func (m *PostAutomationRunMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PostAutomationRunMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PostAutomationRunMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PostAutomationRun.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PostAutomationRunMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PostAutomationRunMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PostAutomationRun entity.
+// If the PostAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PostAutomationRunMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PostAutomationRunMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetScheduledPostID sets the "scheduled_post_id" field.
+func (m *PostAutomationRunMutation) SetScheduledPostID(s string) {
+	m.scheduled_post_id = &s
+}
+
+// ScheduledPostID returns the value of the "scheduled_post_id" field in the mutation.
+func (m *PostAutomationRunMutation) ScheduledPostID() (r string, exists bool) {
+	v := m.scheduled_post_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScheduledPostID returns the old "scheduled_post_id" field's value of the PostAutomationRun entity.
+// If the PostAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PostAutomationRunMutation) OldScheduledPostID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScheduledPostID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScheduledPostID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScheduledPostID: %w", err)
+	}
+	return oldValue.ScheduledPostID, nil
+}
+
+// ResetScheduledPostID resets all changes to the "scheduled_post_id" field.
+func (m *PostAutomationRunMutation) ResetScheduledPostID() {
+	m.scheduled_post_id = nil
+}
+
+// SetKey sets the "key" field.
+func (m *PostAutomationRunMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *PostAutomationRunMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the PostAutomationRun entity.
+// If the PostAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PostAutomationRunMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *PostAutomationRunMutation) ResetKey() {
+	m.key = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *PostAutomationRunMutation) SetKind(po postautomationrun.Kind) {
+	m.kind = &po
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *PostAutomationRunMutation) Kind() (r postautomationrun.Kind, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the PostAutomationRun entity.
+// If the PostAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PostAutomationRunMutation) OldKind(ctx context.Context) (v postautomationrun.Kind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *PostAutomationRunMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *PostAutomationRunMutation) SetStatus(po postautomationrun.Status) {
+	m.status = &po
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *PostAutomationRunMutation) Status() (r postautomationrun.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the PostAutomationRun entity.
+// If the PostAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PostAutomationRunMutation) OldStatus(ctx context.Context) (v postautomationrun.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *PostAutomationRunMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetDueAt sets the "due_at" field.
+func (m *PostAutomationRunMutation) SetDueAt(t time.Time) {
+	m.due_at = &t
+}
+
+// DueAt returns the value of the "due_at" field in the mutation.
+func (m *PostAutomationRunMutation) DueAt() (r time.Time, exists bool) {
+	v := m.due_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDueAt returns the old "due_at" field's value of the PostAutomationRun entity.
+// If the PostAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PostAutomationRunMutation) OldDueAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDueAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDueAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDueAt: %w", err)
+	}
+	return oldValue.DueAt, nil
+}
+
+// ResetDueAt resets all changes to the "due_at" field.
+func (m *PostAutomationRunMutation) ResetDueAt() {
+	m.due_at = nil
+}
+
+// SetRemoteID sets the "remote_id" field.
+func (m *PostAutomationRunMutation) SetRemoteID(s string) {
+	m.remote_id = &s
+}
+
+// RemoteID returns the value of the "remote_id" field in the mutation.
+func (m *PostAutomationRunMutation) RemoteID() (r string, exists bool) {
+	v := m.remote_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRemoteID returns the old "remote_id" field's value of the PostAutomationRun entity.
+// If the PostAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PostAutomationRunMutation) OldRemoteID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRemoteID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRemoteID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRemoteID: %w", err)
+	}
+	return oldValue.RemoteID, nil
+}
+
+// ClearRemoteID clears the value of the "remote_id" field.
+func (m *PostAutomationRunMutation) ClearRemoteID() {
+	m.remote_id = nil
+	m.clearedFields[postautomationrun.FieldRemoteID] = struct{}{}
+}
+
+// RemoteIDCleared returns if the "remote_id" field was cleared in this mutation.
+func (m *PostAutomationRunMutation) RemoteIDCleared() bool {
+	_, ok := m.clearedFields[postautomationrun.FieldRemoteID]
+	return ok
+}
+
+// ResetRemoteID resets all changes to the "remote_id" field.
+func (m *PostAutomationRunMutation) ResetRemoteID() {
+	m.remote_id = nil
+	delete(m.clearedFields, postautomationrun.FieldRemoteID)
+}
+
+// SetAttempts sets the "attempts" field.
+func (m *PostAutomationRunMutation) SetAttempts(i int) {
+	m.attempts = &i
+	m.addattempts = nil
+}
+
+// Attempts returns the value of the "attempts" field in the mutation.
+func (m *PostAutomationRunMutation) Attempts() (r int, exists bool) {
+	v := m.attempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAttempts returns the old "attempts" field's value of the PostAutomationRun entity.
+// If the PostAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PostAutomationRunMutation) OldAttempts(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAttempts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAttempts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAttempts: %w", err)
+	}
+	return oldValue.Attempts, nil
+}
+
+// AddAttempts adds i to the "attempts" field.
+func (m *PostAutomationRunMutation) AddAttempts(i int) {
+	if m.addattempts != nil {
+		*m.addattempts += i
+	} else {
+		m.addattempts = &i
+	}
+}
+
+// AddedAttempts returns the value that was added to the "attempts" field in this mutation.
+func (m *PostAutomationRunMutation) AddedAttempts() (r int, exists bool) {
+	v := m.addattempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAttempts resets all changes to the "attempts" field.
+func (m *PostAutomationRunMutation) ResetAttempts() {
+	m.attempts = nil
+	m.addattempts = nil
+}
+
+// SetFailureCode sets the "failure_code" field.
+func (m *PostAutomationRunMutation) SetFailureCode(s string) {
+	m.failure_code = &s
+}
+
+// FailureCode returns the value of the "failure_code" field in the mutation.
+func (m *PostAutomationRunMutation) FailureCode() (r string, exists bool) {
+	v := m.failure_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailureCode returns the old "failure_code" field's value of the PostAutomationRun entity.
+// If the PostAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PostAutomationRunMutation) OldFailureCode(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailureCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailureCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailureCode: %w", err)
+	}
+	return oldValue.FailureCode, nil
+}
+
+// ClearFailureCode clears the value of the "failure_code" field.
+func (m *PostAutomationRunMutation) ClearFailureCode() {
+	m.failure_code = nil
+	m.clearedFields[postautomationrun.FieldFailureCode] = struct{}{}
+}
+
+// FailureCodeCleared returns if the "failure_code" field was cleared in this mutation.
+func (m *PostAutomationRunMutation) FailureCodeCleared() bool {
+	_, ok := m.clearedFields[postautomationrun.FieldFailureCode]
+	return ok
+}
+
+// ResetFailureCode resets all changes to the "failure_code" field.
+func (m *PostAutomationRunMutation) ResetFailureCode() {
+	m.failure_code = nil
+	delete(m.clearedFields, postautomationrun.FieldFailureCode)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PostAutomationRunMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PostAutomationRunMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PostAutomationRun entity.
+// If the PostAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PostAutomationRunMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PostAutomationRunMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *PostAutomationRunMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *PostAutomationRunMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the PostAutomationRun entity.
+// If the PostAutomationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PostAutomationRunMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *PostAutomationRunMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the PostAutomationRunMutation builder.
+func (m *PostAutomationRunMutation) Where(ps ...predicate.PostAutomationRun) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PostAutomationRunMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PostAutomationRunMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PostAutomationRun, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PostAutomationRunMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PostAutomationRunMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PostAutomationRun).
+func (m *PostAutomationRunMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PostAutomationRunMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.organization_id != nil {
+		fields = append(fields, postautomationrun.FieldOrganizationID)
+	}
+	if m.scheduled_post_id != nil {
+		fields = append(fields, postautomationrun.FieldScheduledPostID)
+	}
+	if m.key != nil {
+		fields = append(fields, postautomationrun.FieldKey)
+	}
+	if m.kind != nil {
+		fields = append(fields, postautomationrun.FieldKind)
+	}
+	if m.status != nil {
+		fields = append(fields, postautomationrun.FieldStatus)
+	}
+	if m.due_at != nil {
+		fields = append(fields, postautomationrun.FieldDueAt)
+	}
+	if m.remote_id != nil {
+		fields = append(fields, postautomationrun.FieldRemoteID)
+	}
+	if m.attempts != nil {
+		fields = append(fields, postautomationrun.FieldAttempts)
+	}
+	if m.failure_code != nil {
+		fields = append(fields, postautomationrun.FieldFailureCode)
+	}
+	if m.created_at != nil {
+		fields = append(fields, postautomationrun.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, postautomationrun.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PostAutomationRunMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case postautomationrun.FieldOrganizationID:
+		return m.OrganizationID()
+	case postautomationrun.FieldScheduledPostID:
+		return m.ScheduledPostID()
+	case postautomationrun.FieldKey:
+		return m.Key()
+	case postautomationrun.FieldKind:
+		return m.Kind()
+	case postautomationrun.FieldStatus:
+		return m.Status()
+	case postautomationrun.FieldDueAt:
+		return m.DueAt()
+	case postautomationrun.FieldRemoteID:
+		return m.RemoteID()
+	case postautomationrun.FieldAttempts:
+		return m.Attempts()
+	case postautomationrun.FieldFailureCode:
+		return m.FailureCode()
+	case postautomationrun.FieldCreatedAt:
+		return m.CreatedAt()
+	case postautomationrun.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PostAutomationRunMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case postautomationrun.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case postautomationrun.FieldScheduledPostID:
+		return m.OldScheduledPostID(ctx)
+	case postautomationrun.FieldKey:
+		return m.OldKey(ctx)
+	case postautomationrun.FieldKind:
+		return m.OldKind(ctx)
+	case postautomationrun.FieldStatus:
+		return m.OldStatus(ctx)
+	case postautomationrun.FieldDueAt:
+		return m.OldDueAt(ctx)
+	case postautomationrun.FieldRemoteID:
+		return m.OldRemoteID(ctx)
+	case postautomationrun.FieldAttempts:
+		return m.OldAttempts(ctx)
+	case postautomationrun.FieldFailureCode:
+		return m.OldFailureCode(ctx)
+	case postautomationrun.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case postautomationrun.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PostAutomationRun field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PostAutomationRunMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case postautomationrun.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case postautomationrun.FieldScheduledPostID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScheduledPostID(v)
+		return nil
+	case postautomationrun.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
+	case postautomationrun.FieldKind:
+		v, ok := value.(postautomationrun.Kind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case postautomationrun.FieldStatus:
+		v, ok := value.(postautomationrun.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case postautomationrun.FieldDueAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDueAt(v)
+		return nil
+	case postautomationrun.FieldRemoteID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRemoteID(v)
+		return nil
+	case postautomationrun.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAttempts(v)
+		return nil
+	case postautomationrun.FieldFailureCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailureCode(v)
+		return nil
+	case postautomationrun.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case postautomationrun.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PostAutomationRun field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PostAutomationRunMutation) AddedFields() []string {
+	var fields []string
+	if m.addattempts != nil {
+		fields = append(fields, postautomationrun.FieldAttempts)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PostAutomationRunMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case postautomationrun.FieldAttempts:
+		return m.AddedAttempts()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PostAutomationRunMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case postautomationrun.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAttempts(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PostAutomationRun numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PostAutomationRunMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(postautomationrun.FieldRemoteID) {
+		fields = append(fields, postautomationrun.FieldRemoteID)
+	}
+	if m.FieldCleared(postautomationrun.FieldFailureCode) {
+		fields = append(fields, postautomationrun.FieldFailureCode)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PostAutomationRunMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PostAutomationRunMutation) ClearField(name string) error {
+	switch name {
+	case postautomationrun.FieldRemoteID:
+		m.ClearRemoteID()
+		return nil
+	case postautomationrun.FieldFailureCode:
+		m.ClearFailureCode()
+		return nil
+	}
+	return fmt.Errorf("unknown PostAutomationRun nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PostAutomationRunMutation) ResetField(name string) error {
+	switch name {
+	case postautomationrun.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case postautomationrun.FieldScheduledPostID:
+		m.ResetScheduledPostID()
+		return nil
+	case postautomationrun.FieldKey:
+		m.ResetKey()
+		return nil
+	case postautomationrun.FieldKind:
+		m.ResetKind()
+		return nil
+	case postautomationrun.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case postautomationrun.FieldDueAt:
+		m.ResetDueAt()
+		return nil
+	case postautomationrun.FieldRemoteID:
+		m.ResetRemoteID()
+		return nil
+	case postautomationrun.FieldAttempts:
+		m.ResetAttempts()
+		return nil
+	case postautomationrun.FieldFailureCode:
+		m.ResetFailureCode()
+		return nil
+	case postautomationrun.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case postautomationrun.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PostAutomationRun field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PostAutomationRunMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PostAutomationRunMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PostAutomationRunMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PostAutomationRunMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PostAutomationRunMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PostAutomationRunMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PostAutomationRunMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PostAutomationRun unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PostAutomationRunMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PostAutomationRun edge %s", name)
 }
 
 // ProductProfileMutation represents an operation that mutates the ProductProfile nodes in the graph.

@@ -95,7 +95,15 @@ export async function deleteContentDraft(context: TenantContext, id: string) {
 
 /** A draft's post with its times as Dates. */
 function readPost(post: BackendContentDraftPost) {
-  return { ...withDates(post), scheduledFor: new Date(post.scheduledFor) }
+  return {
+    ...withDates(post),
+    automations: (post.automations ?? []).map((automation) => ({
+      ...automation,
+      dueAt: new Date(automation.dueAt),
+      updatedAt: new Date(automation.updatedAt),
+    })),
+    scheduledFor: new Date(post.scheduledFor),
+  }
 }
 
 /** Every post scheduled from a draft; null when it is not in this workspace. */
@@ -205,6 +213,12 @@ export async function reconcileContentDraftPost(
   input: { live: boolean; url?: string }
 ) {
   const result = await orNull(backendSDK(context).reconcileContentDraftPost(id, input))
+  return result ? readPost(result.post) : null
+}
+
+/** Stop a live post's pending follow-ups; null when it is not in this workspace. */
+export async function cancelContentDraftPostAutomations(context: TenantContext, id: string) {
+  const result = await orNull(backendSDK(context).cancelContentDraftPostAutomations(id))
   return result ? readPost(result.post) : null
 }
 

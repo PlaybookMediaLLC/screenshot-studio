@@ -3,6 +3,7 @@ package product
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"net/url"
 	"regexp"
 	"slices"
@@ -256,6 +257,11 @@ func versionOptions(channel string, options *draftdoc.VersionOptions) (*draftdoc
 			return nil, invalid("A document is an uploaded PDF of this workspace, with a title under 200 characters.")
 		}
 	}
+	if clean.Automation != nil {
+		if err := checkDraftExtras(channel, ContentDraftScheduleTarget{AutoActions: clean.Automation}); err != nil {
+			return nil, err
+		}
+	}
 	return &clean, nil
 }
 
@@ -277,4 +283,31 @@ func draftScratchpad(text string) (string, error) {
 		return "", invalid("Keep the scratchpad under 20,000 characters.")
 	}
 	return text, nil
+}
+
+// withDefaultAutomation gives a new draft's X version the set's follow-ups
+// (RFC 041) unless the draft brings its own.
+func withDefaultAutomation(versions draftdoc.PlatformVersions, automation *postoptions.AutoActions) draftdoc.PlatformVersions {
+	if automation == nil || automation.Empty() {
+		return versions
+	}
+	defaults := *automation
+	for index, version := range versions.Versions {
+		if version.Channel != "x" {
+			continue
+		}
+		options := draftdoc.VersionOptions{}
+		if version.Options != nil {
+			options = *version.Options
+		}
+		if options.Automation == nil {
+			options.Automation = &defaults
+			versions.Versions[index].Options = &options
+		}
+		return versions
+	}
+	versions.Versions = append(versions.Versions, draftdoc.PlatformVersion{
+		Channel: "x", Mode: "synced", Options: &draftdoc.VersionOptions{Automation: &defaults},
+	})
+	return versions
 }

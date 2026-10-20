@@ -101,6 +101,7 @@ func main() {
 	workflowWorker.RegisterActivityWithOptions(activities.CompleteV2, activity.RegisterOptions{Name: temporalpublishing.CompleteActivityName})
 	workflowWorker.RegisterActivityWithOptions(activities.FailV2, activity.RegisterOptions{Name: temporalpublishing.FailActivityName})
 	workflowWorker.RegisterActivityWithOptions(activities.MarkUnknown, activity.RegisterOptions{Name: temporalpublishing.MarkUnknownActivityName})
+	workflowWorker.RegisterActivityWithOptions(activities.PlanAutomations, activity.RegisterOptions{Name: temporalpublishing.PlanAutomationsActivityName})
 	workflowWorker.RegisterActivityWithOptions(recovery.Recover, activity.RegisterOptions{Name: temporalpublishing.RecoverActivityName})
 
 	var activityWorker, legacyActivityWorker worker.Worker
@@ -117,6 +118,7 @@ func main() {
 		activityWorker.RegisterActivityWithOptions(activities.MarkUnknown, activity.RegisterOptions{Name: temporalpublishing.MarkUnknownActivityName})
 		activityWorker.RegisterActivityWithOptions(activities.Submit, activity.RegisterOptions{Name: temporalpublishing.SubmitActivityName})
 		activityWorker.RegisterActivityWithOptions(activities.RunAutoActions, activity.RegisterOptions{Name: temporalpublishing.AutoActionsActivityName})
+		activityWorker.RegisterActivityWithOptions(activities.RunAutomation, activity.RegisterOptions{Name: temporalpublishing.RunAutomationActivityName})
 		activityWorker.RegisterActivityWithOptions(activities.Check, activity.RegisterOptions{Name: temporalpublishing.CheckActivityName})
 		return activityWorker
 	}

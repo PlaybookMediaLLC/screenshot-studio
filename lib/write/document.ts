@@ -96,8 +96,55 @@ export const documentAttachmentSchema = z.strictObject({
 /** One of {@link documentAttachmentSchema}. */
 export type DocumentAttachment = z.infer<typeof documentAttachmentSchema>
 
+/** A wall-clock time of day, "HH:MM". */
+export const clockTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+
+/**
+ * When to repost (Auto-RT): `afterMinutes` after publishing, or `days`
+ * after the day it was published at `at` in `timeZone`. The forms stay
+ * apart: a time of day holds across a daylight-saving change, a duration
+ * does not.
+ */
+export const retweetRuleSchema = z.union([
+  z.strictObject({ afterMinutes: z.number().int().min(1).max(43_200) }),
+  z.strictObject({
+    at: clockTimeSchema,
+    days: z.number().int().min(0).max(30),
+    timeZone: z.string().min(1).max(64),
+  }),
+])
+
+/** One of {@link retweetRuleSchema}. */
+export type RetweetRule = z.infer<typeof retweetRuleSchema>
+
+/** What an auto plug waits for. */
+export const plugMetricSchema = z.enum(['likes', 'reposts'])
+
+/** One of {@link plugMetricSchema}. */
+export type PlugMetric = z.infer<typeof plugMetricSchema>
+
+/**
+ * An X post's follow-ups once live (RFC 041): reposts at set times and
+ * their removal, a plug reply at a like or repost count, and the RFC 037
+ * like-gated repost and delayed quote.
+ */
+export const automationSchema = z.strictObject({
+  plugAtLikes: z.number().int().min(0).max(1_000_000).optional(),
+  plugMetric: plugMetricSchema.optional(),
+  plugText: z.string().max(1_000).optional(),
+  quoteAfterHours: z.number().int().min(0).max(720).optional(),
+  quoteText: z.string().max(1_000).optional(),
+  repostAtLikes: z.number().int().min(0).max(1_000_000).optional(),
+  retweets: z.array(retweetRuleSchema).max(5).optional(),
+  unretweetAfterMinutes: z.number().int().min(0).max(10_080).optional(),
+})
+
+/** One of {@link automationSchema}. */
+export type Automation = z.infer<typeof automationSchema>
+
 /** A platform version's settings; each belongs to the platforms that support it. */
 export const versionOptionsSchema = z.strictObject({
+  automation: automationSchema.optional(),
   community: communitySchema.optional(),
   document: documentAttachmentSchema.optional(),
   firstComment: z.string().max(1_250).optional(),

@@ -12,7 +12,11 @@ import type { TenantContext } from '@/lib/auth/access'
 import { backendSDK, orNull, withDates } from '@/lib/backend/sdk'
 import { readDraft } from '@/lib/tenant/content-drafts'
 import { tagColorSchema } from '@/lib/api/contracts/draft-tags'
-import { socialSetColorSchema, socialSetVisibilitySchema } from '@/lib/api/contracts/social-sets'
+import {
+  socialSetColorSchema,
+  socialSetPreferencesSchema,
+  socialSetVisibilitySchema,
+} from '@/lib/api/contracts/social-sets'
 import { draftChannelSchema } from '@/lib/write/document'
 
 /**
@@ -32,6 +36,8 @@ function readSet(set: BackendSocialSet) {
       channel: draftChannelSchema.parse(connection.channel),
     })),
     defaultChannels: set.defaultChannels.map((channel) => draftChannelSchema.parse(channel)),
+    // Go checks preferences with the same rules on write.
+    preferences: socialSetPreferencesSchema.parse(set.preferences ?? {}),
     visibility: socialSetVisibilitySchema.parse(set.visibility),
   }
 }

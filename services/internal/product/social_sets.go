@@ -415,6 +415,11 @@ func (c *Configuration) socialSetFields(ctx context.Context, tx *ent.Tx, actor A
 				return nil, invalid("Keep each writing sample under 5,000 characters.")
 			}
 		}
+		if prefs.Automation != nil {
+			if err := checkDraftExtras("x", ContentDraftScheduleTarget{AutoActions: prefs.Automation}); err != nil {
+				return nil, err
+			}
+		}
 		fields["preferences"] = prefs
 	}
 	if input.MemberUserIDs != nil {

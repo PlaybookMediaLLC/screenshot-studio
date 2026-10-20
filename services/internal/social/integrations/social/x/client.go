@@ -133,6 +133,9 @@ func (e *apiResponseError) Error() string { return fmt.Sprintf("Request failed w
 // rateLimitError is ApiResponseError.rateLimitError.
 func (e *apiResponseError) rateLimitError() bool { return e.Code == 420 || e.Code == 429 }
 
+// HTTPStatus is the response's status, for receipts that keep a code only.
+func (e *apiResponseError) HTTPStatus() int { return e.Code }
+
 func newAPIError(res *http.Response, body []byte) *apiResponseError {
 	e := &apiResponseError{Type: "response", Code: res.StatusCode, Err: true, Headers: map[string]string{}}
 	for k, v := range res.Header {
@@ -371,18 +374,32 @@ func (c *client) me(ctx context.Context, query url.Values) (*user, error) {
 	return &res.Data, nil
 }
 
-// tweetLikedByCount is v2.tweetLikedBy(id).meta.result_count.
-func (c *client) tweetLikedByCount(ctx context.Context, tweetID string) (int, error) {
+// tweetEngagement is a tweet's public like and retweet counts. The
+// liking_users count it replaces stopped at one page (100 users).
+func (c *client) tweetEngagement(ctx context.Context, tweetID string) (likes, retweets int, err error) {
 	var res struct {
-		Meta struct {
-			ResultCount int `json:"result_count"`
-		} `json:"meta"`
+		Data struct {
+			PublicMetrics struct {
+				LikeCount    int `json:"like_count"`
+				RetweetCount int `json:"retweet_count"`
+			} `json:"public_metrics"`
+		} `json:"data"`
 	}
-	err := c.get(ctx, v2("tweets/"+tweetID+"/liking_users"), nil, &res)
-	return res.Meta.ResultCount, err
+	err = c.get(ctx, v2("tweets/"+tweetID), url.Values{"tweet.fields": {"public_metrics"}}, &res)
+	return res.Data.PublicMetrics.LikeCount, res.Data.PublicMetrics.RetweetCount, err
 }
 
 // retweet is v2.retweet(loggedUserId, tweetId).
 func (c *client) retweet(ctx context.Context, userID, tweetID string) error {
 	return c.postJSON(ctx, v2("users/"+userID+"/retweets"), map[string]string{"tweet_id": tweetID}, nil)
+}
+
+// unretweet is DELETE /2/users/:id/retweets/:source_tweet_id.
+func (c *client) unretweet(ctx context.Context, userID, tweetID string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, v2("users/"+userID+"/retweets/"+tweetID), nil)
+	if err != nil {
+		return err
+	}
+	_, err = c.do(req, nil)
+	return err
 }

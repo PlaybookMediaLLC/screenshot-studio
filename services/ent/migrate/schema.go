@@ -1753,6 +1753,34 @@ var (
 		Columns:    PlatformSlackPacingColumns,
 		PrimaryKey: []*schema.Column{PlatformSlackPacingColumns[0]},
 	}
+	// PostAutomationRunColumns holds the columns for the "post_automation_run" table.
+	PostAutomationRunColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "scheduledPostId", Type: field.TypeString},
+		{Name: "key", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"first_comment", "retweet", "unretweet", "plug", "repost_at_likes", "quote"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "done", "failed", "skipped", "cancelled", "expired"}, Default: "pending"},
+		{Name: "dueAt", Type: field.TypeTime},
+		{Name: "remoteId", Type: field.TypeString, Nullable: true},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+		{Name: "failureCode", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// PostAutomationRunTable holds the schema information for the "post_automation_run" table.
+	PostAutomationRunTable = &schema.Table{
+		Name:       "post_automation_run",
+		Columns:    PostAutomationRunColumns,
+		PrimaryKey: []*schema.Column{PostAutomationRunColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "postautomationrun_scheduledPostId_key",
+				Unique:  true,
+				Columns: []*schema.Column{PostAutomationRunColumns[2], PostAutomationRunColumns[3]},
+			},
+		},
+	}
 	// ProductProfileColumns holds the columns for the "product_profile" table.
 	ProductProfileColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -2863,6 +2891,7 @@ var (
 		PlatformSlackConnectionTable,
 		PlatformSlackInstallationTable,
 		PlatformSlackPacingTable,
+		PostAutomationRunTable,
 		ProductProfileTable,
 		ProductSurfaceTable,
 		ProjectTable,
@@ -3076,6 +3105,9 @@ func init() {
 	}
 	PlatformSlackPacingTable.Annotation = &entsql.Annotation{
 		Table: "platform_slack_pacing",
+	}
+	PostAutomationRunTable.Annotation = &entsql.Annotation{
+		Table: "post_automation_run",
 	}
 	ProductProfileTable.Annotation = &entsql.Annotation{
 		Table: "product_profile",

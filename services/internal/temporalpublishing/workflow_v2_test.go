@@ -157,15 +157,14 @@ func TestPostWorkflowV2StopsAfterLastRateLimitAttempt(t *testing.T) {
 	}
 }
 
-// A live post's follow-ups run on schedule: the like-gated repost is tried
-// until it is done, and the quote goes out once, after its delay.
-func TestPostWorkflowV2RunsAutoActionsAfterPublishing(t *testing.T) {
+// A live post's follow-ups run as planned: each step at its time, and a key
+// settles at its first settled step, so its later checks do not run.
+func TestPostWorkflowV2RunsAutomationsAfterPublishing(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	env := suite.NewTestWorkflowEnvironment()
-	var calls []AutoActionsInput
 	env.RegisterActivityWithOptions(func(context.Context, PrepareInput) (PreparedPublication, error) {
 		return PreparedPublication{PostID: "post-1", OrganizationID: "org-1", Ready: true,
-			AutoActions: &postoptions.AutoActions{RepostAtLikes: 10, QuoteAfterHours: 12, QuoteText: "Still true"}}, nil
+			AutoActions: &postoptions.AutoActions{PlugAtLikes: 10, PlugText: "Get the guide"}}, nil
 	}, activity.RegisterOptions{Name: PrepareActivityName})
 	env.RegisterActivityWithOptions(func(context.Context, BeginInput) (BeginResult, error) {
 		return BeginResult{AttemptID: "attempt-1", AttemptNumber: 1}, nil
@@ -175,11 +174,33 @@ func TestPostWorkflowV2RunsAutoActionsAfterPublishing(t *testing.T) {
 	}, activity.RegisterOptions{Name: SubmitActivityName})
 	env.RegisterActivityWithOptions(func(context.Context, CompleteInput) error { return nil },
 		activity.RegisterOptions{Name: CompleteActivityName})
-	env.RegisterActivityWithOptions(func(_ context.Context, input AutoActionsInput) (AutoActionsResult, error) {
-		calls = append(calls, input)
-		// The repost reaches its likes on the second check.
-		return AutoActionsResult{Quoted: input.Quote, Reposted: len(calls) >= 2}, nil
-	}, activity.RegisterOptions{Name: AutoActionsActivityName})
+	var published time.Time
+	env.RegisterActivityWithOptions(func(_ context.Context, input PlanAutomationsInput) ([]AutomationStep, error) {
+		published = input.PublishedAt
+		at := input.PublishedAt
+		return []AutomationStep{
+			{At: at.Add(15 * time.Minute), Key: "plug", Kind: AutomationPlug},
+			{At: at.Add(30 * time.Minute), Key: "plug", Kind: AutomationPlug},
+			{At: at.Add(45 * time.Minute), Final: true, Key: "plug", Kind: AutomationPlug},
+			{At: at.Add(6 * time.Hour), Key: "retweet:0", Kind: AutomationRetweet},
+		}, nil
+	}, activity.RegisterOptions{Name: PlanAutomationsActivityName})
+	type call struct {
+		after time.Duration
+		key   string
+	}
+	var calls []call
+	env.RegisterActivityWithOptions(func(ctx context.Context, input AutomationInput) (AutomationResult, error) {
+		calls = append(calls, call{env.Now().Sub(published).Round(time.Minute), input.Step.Key})
+		// The plug's threshold is met at its second check.
+		plugChecks := 0
+		for _, item := range calls {
+			if item.key == "plug" {
+				plugChecks++
+			}
+		}
+		return AutomationResult{Settled: input.Step.Key != "plug" || plugChecks >= 2}, nil
+	}, activity.RegisterOptions{Name: RunAutomationActivityName})
 	env.ExecuteWorkflow(PostWorkflowV2, WorkflowInput{
 		ActivityTaskQueue: DefaultActivityQueue, ActivityTimeout: time.Minute,
 		MainTaskQueue: DefaultWorkflowQueue, MaxAttempts: 3, PostID: "post-1",
@@ -188,9 +209,13 @@ func TestPostWorkflowV2RunsAutoActionsAfterPublishing(t *testing.T) {
 	if err := env.GetWorkflowError(); err != nil {
 		t.Fatal(err)
 	}
-	// 6h: repost only; 12h: repost (done) and the quote; then nothing is left.
-	if len(calls) != 2 || !calls[0].Repost || calls[0].Quote || !calls[1].Repost || !calls[1].Quote ||
-		calls[1].ProviderID != "remote-post-1" {
+	want := []call{{15 * time.Minute, "plug"}, {30 * time.Minute, "plug"}, {6 * time.Hour, "retweet:0"}}
+	if len(calls) != len(want) {
 		t.Fatalf("calls=%+v", calls)
+	}
+	for index := range want {
+		if calls[index] != want[index] {
+			t.Fatalf("calls=%+v", calls)
+		}
 	}
 }

@@ -63,6 +63,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationseenaction"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -1002,6 +1003,22 @@ func init() {
 	platformslackinstallationDescUpdatedAt := platformslackinstallationFields[13].Descriptor()
 	// platformslackinstallation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	platformslackinstallation.DefaultUpdatedAt = platformslackinstallationDescUpdatedAt.Default.(func() time.Time)
+	postautomationrunFields := schema.PostAutomationRun{}.Fields()
+	_ = postautomationrunFields
+	// postautomationrunDescAttempts is the schema descriptor for attempts field.
+	postautomationrunDescAttempts := postautomationrunFields[8].Descriptor()
+	// postautomationrun.DefaultAttempts holds the default value on creation for the attempts field.
+	postautomationrun.DefaultAttempts = postautomationrunDescAttempts.Default.(int)
+	// postautomationrunDescCreatedAt is the schema descriptor for created_at field.
+	postautomationrunDescCreatedAt := postautomationrunFields[10].Descriptor()
+	// postautomationrun.DefaultCreatedAt holds the default value on creation for the created_at field.
+	postautomationrun.DefaultCreatedAt = postautomationrunDescCreatedAt.Default.(func() time.Time)
+	// postautomationrunDescUpdatedAt is the schema descriptor for updated_at field.
+	postautomationrunDescUpdatedAt := postautomationrunFields[11].Descriptor()
+	// postautomationrun.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	postautomationrun.DefaultUpdatedAt = postautomationrunDescUpdatedAt.Default.(func() time.Time)
+	// postautomationrun.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	postautomationrun.UpdateDefaultUpdatedAt = postautomationrunDescUpdatedAt.UpdateDefault.(func() time.Time)
 	productprofileFields := schema.ProductProfile{}.Fields()
 	_ = productprofileFields
 	// productprofileDescSummary is the schema descriptor for summary field.

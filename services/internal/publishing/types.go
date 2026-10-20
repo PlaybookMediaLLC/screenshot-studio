@@ -94,3 +94,11 @@ type RecoverablePost struct {
 	OrganizationID string
 	ScheduledFor   time.Time
 }
+
+// AutomationReceipt is a live post's follow-up to record (RFC 041): its
+// key, its kind and when it is first due.
+type AutomationReceipt struct {
+	DueAt time.Time
+	Key   string
+	Kind  string
+}

@@ -73,6 +73,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/project"
@@ -230,6 +231,8 @@ type Client struct {
 	PlatformSlackInstallation *PlatformSlackInstallationClient
 	// PlatformSlackPacing is the client for interacting with the PlatformSlackPacing builders.
 	PlatformSlackPacing *PlatformSlackPacingClient
+	// PostAutomationRun is the client for interacting with the PostAutomationRun builders.
+	PostAutomationRun *PostAutomationRunClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
 	ProductProfile *ProductProfileClient
 	// ProductSurface is the client for interacting with the ProductSurface builders.
@@ -367,6 +370,7 @@ func (c *Client) init() {
 	c.PlatformSlackConnection = NewPlatformSlackConnectionClient(c.config)
 	c.PlatformSlackInstallation = NewPlatformSlackInstallationClient(c.config)
 	c.PlatformSlackPacing = NewPlatformSlackPacingClient(c.config)
+	c.PostAutomationRun = NewPostAutomationRunClient(c.config)
 	c.ProductProfile = NewProductProfileClient(c.config)
 	c.ProductSurface = NewProductSurfaceClient(c.config)
 	c.Project = NewProjectClient(c.config)
@@ -551,6 +555,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PlatformSlackConnection:        NewPlatformSlackConnectionClient(cfg),
 		PlatformSlackInstallation:      NewPlatformSlackInstallationClient(cfg),
 		PlatformSlackPacing:            NewPlatformSlackPacingClient(cfg),
+		PostAutomationRun:              NewPostAutomationRunClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		Project:                        NewProjectClient(cfg),
@@ -662,6 +667,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PlatformSlackConnection:        NewPlatformSlackConnectionClient(cfg),
 		PlatformSlackInstallation:      NewPlatformSlackInstallationClient(cfg),
 		PlatformSlackPacing:            NewPlatformSlackPacingClient(cfg),
+		PostAutomationRun:              NewPostAutomationRunClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
 		Project:                        NewProjectClient(cfg),
@@ -742,13 +748,14 @@ func (c *Client) Use(hooks ...Hook) {
 		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
-		c.PlatformSlackInstallation, c.PlatformSlackPacing, c.ProductProfile,
-		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
-		c.ReleaseAutomation, c.ReleaseAutomationExecutor, c.ReleaseAutomationNode,
-		c.ReleaseAutomationRun, c.ReleaseAutomationVersion, c.ReleaseDocument,
-		c.ReleaseSourceEvent, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
-		c.Session, c.ShareLink, c.SocialOAuthStart, c.SocialSet, c.SocialTenantBinding,
-		c.SourceApp, c.SourceChange, c.StorePublishingCredential, c.StoreReview,
+		c.PlatformSlackInstallation, c.PlatformSlackPacing, c.PostAutomationRun,
+		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
+		c.PublicationAttempt, c.Release, c.ReleaseAutomation,
+		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
+		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
+		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
+		c.SocialOAuthStart, c.SocialSet, c.SocialTenantBinding, c.SourceApp,
+		c.SourceChange, c.StorePublishingCredential, c.StoreReview,
 		c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture, c.User,
 		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
 		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
@@ -778,13 +785,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
-		c.PlatformSlackInstallation, c.PlatformSlackPacing, c.ProductProfile,
-		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
-		c.ReleaseAutomation, c.ReleaseAutomationExecutor, c.ReleaseAutomationNode,
-		c.ReleaseAutomationRun, c.ReleaseAutomationVersion, c.ReleaseDocument,
-		c.ReleaseSourceEvent, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
-		c.Session, c.ShareLink, c.SocialOAuthStart, c.SocialSet, c.SocialTenantBinding,
-		c.SourceApp, c.SourceChange, c.StorePublishingCredential, c.StoreReview,
+		c.PlatformSlackInstallation, c.PlatformSlackPacing, c.PostAutomationRun,
+		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
+		c.PublicationAttempt, c.Release, c.ReleaseAutomation,
+		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
+		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
+		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
+		c.SocialOAuthStart, c.SocialSet, c.SocialTenantBinding, c.SourceApp,
+		c.SourceChange, c.StorePublishingCredential, c.StoreReview,
 		c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture, c.User,
 		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
 		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
@@ -912,6 +920,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PlatformSlackInstallation.mutate(ctx, m)
 	case *PlatformSlackPacingMutation:
 		return c.PlatformSlackPacing.mutate(ctx, m)
+	case *PostAutomationRunMutation:
+		return c.PostAutomationRun.mutate(ctx, m)
 	case *ProductProfileMutation:
 		return c.ProductProfile.mutate(ctx, m)
 	case *ProductSurfaceMutation:
@@ -8779,6 +8789,139 @@ func (c *PlatformSlackPacingClient) mutate(ctx context.Context, m *PlatformSlack
 	}
 }
 
+// PostAutomationRunClient is a client for the PostAutomationRun schema.
+type PostAutomationRunClient struct {
+	config
+}
+
+// NewPostAutomationRunClient returns a client for the PostAutomationRun from the given config.
+func NewPostAutomationRunClient(c config) *PostAutomationRunClient {
+	return &PostAutomationRunClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `postautomationrun.Hooks(f(g(h())))`.
+func (c *PostAutomationRunClient) Use(hooks ...Hook) {
+	c.hooks.PostAutomationRun = append(c.hooks.PostAutomationRun, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `postautomationrun.Intercept(f(g(h())))`.
+func (c *PostAutomationRunClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PostAutomationRun = append(c.inters.PostAutomationRun, interceptors...)
+}
+
+// Create returns a builder for creating a PostAutomationRun entity.
+func (c *PostAutomationRunClient) Create() *PostAutomationRunCreate {
+	mutation := newPostAutomationRunMutation(c.config, OpCreate)
+	return &PostAutomationRunCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PostAutomationRun entities.
+func (c *PostAutomationRunClient) CreateBulk(builders ...*PostAutomationRunCreate) *PostAutomationRunCreateBulk {
+	return &PostAutomationRunCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PostAutomationRunClient) MapCreateBulk(slice any, setFunc func(*PostAutomationRunCreate, int)) *PostAutomationRunCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PostAutomationRunCreateBulk{err: fmt.Errorf("calling to PostAutomationRunClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PostAutomationRunCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PostAutomationRunCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PostAutomationRun.
+func (c *PostAutomationRunClient) Update() *PostAutomationRunUpdate {
+	mutation := newPostAutomationRunMutation(c.config, OpUpdate)
+	return &PostAutomationRunUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PostAutomationRunClient) UpdateOne(_m *PostAutomationRun) *PostAutomationRunUpdateOne {
+	mutation := newPostAutomationRunMutation(c.config, OpUpdateOne, withPostAutomationRun(_m))
+	return &PostAutomationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PostAutomationRunClient) UpdateOneID(id string) *PostAutomationRunUpdateOne {
+	mutation := newPostAutomationRunMutation(c.config, OpUpdateOne, withPostAutomationRunID(id))
+	return &PostAutomationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PostAutomationRun.
+func (c *PostAutomationRunClient) Delete() *PostAutomationRunDelete {
+	mutation := newPostAutomationRunMutation(c.config, OpDelete)
+	return &PostAutomationRunDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PostAutomationRunClient) DeleteOne(_m *PostAutomationRun) *PostAutomationRunDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PostAutomationRunClient) DeleteOneID(id string) *PostAutomationRunDeleteOne {
+	builder := c.Delete().Where(postautomationrun.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PostAutomationRunDeleteOne{builder}
+}
+
+// Query returns a query builder for PostAutomationRun.
+func (c *PostAutomationRunClient) Query() *PostAutomationRunQuery {
+	return &PostAutomationRunQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePostAutomationRun},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PostAutomationRun entity by its id.
+func (c *PostAutomationRunClient) Get(ctx context.Context, id string) (*PostAutomationRun, error) {
+	return c.Query().Where(postautomationrun.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PostAutomationRunClient) GetX(ctx context.Context, id string) *PostAutomationRun {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PostAutomationRunClient) Hooks() []Hook {
+	return c.hooks.PostAutomationRun
+}
+
+// Interceptors returns the client interceptors.
+func (c *PostAutomationRunClient) Interceptors() []Interceptor {
+	return c.inters.PostAutomationRun
+}
+
+func (c *PostAutomationRunClient) mutate(ctx context.Context, m *PostAutomationRunMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PostAutomationRunCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PostAutomationRunUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PostAutomationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PostAutomationRunDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PostAutomationRun mutation op: %q", m.Op())
+	}
+}
+
 // ProductProfileClient is a client for the ProductProfile schema.
 type ProductProfileClient struct {
 	config
@@ -13367,15 +13510,16 @@ type (
 		PlatformNotificationDelivery, PlatformNotificationInbox,
 		PlatformNotificationPolicy, PlatformNotificationPreference,
 		PlatformNotificationSeenAction, PlatformSlackConnection,
-		PlatformSlackInstallation, PlatformSlackPacing, ProductProfile, ProductSurface,
-		Project, ProjectVersion, PublicationAttempt, Release, ReleaseAutomation,
-		ReleaseAutomationExecutor, ReleaseAutomationNode, ReleaseAutomationRun,
-		ReleaseAutomationVersion, ReleaseDocument, ReleaseSourceEvent, ReleaseSpec,
-		ScheduledPost, ScreenshotCache, Session, ShareLink, SocialOAuthStart,
-		SocialSet, SocialTenantBinding, SourceApp, SourceChange,
-		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
-		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
-		WorkspaceEntitlement, WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
+		PlatformSlackInstallation, PlatformSlackPacing, PostAutomationRun,
+		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
+		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
+		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
+		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ShareLink, SocialOAuthStart, SocialSet, SocialTenantBinding, SourceApp,
+		SourceChange, StorePublishingCredential, StoreReview, StoreReviewComment,
+		SupportAccessGrant, SurfaceCapture, User, WorkspaceCreditGrant,
+		WorkspaceDeletion, WorkspaceEntitlement, WorkspaceGitHubInstallation,
+		WorkspaceSettings []ent.Hook
 	}
 	inters struct {
 		AgentAuthorization, Apikey, Approval, Asset, AudienceSubscriber, AuditDrain,
@@ -13393,15 +13537,15 @@ type (
 		PlatformNotificationDelivery, PlatformNotificationInbox,
 		PlatformNotificationPolicy, PlatformNotificationPreference,
 		PlatformNotificationSeenAction, PlatformSlackConnection,
-		PlatformSlackInstallation, PlatformSlackPacing, ProductProfile, ProductSurface,
-		Project, ProjectVersion, PublicationAttempt, Release, ReleaseAutomation,
-		ReleaseAutomationExecutor, ReleaseAutomationNode, ReleaseAutomationRun,
-		ReleaseAutomationVersion, ReleaseDocument, ReleaseSourceEvent, ReleaseSpec,
-		ScheduledPost, ScreenshotCache, Session, ShareLink, SocialOAuthStart,
-		SocialSet, SocialTenantBinding, SourceApp, SourceChange,
-		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
-		SurfaceCapture, User, WorkspaceCreditGrant, WorkspaceDeletion,
-		WorkspaceEntitlement, WorkspaceGitHubInstallation,
+		PlatformSlackInstallation, PlatformSlackPacing, PostAutomationRun,
+		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
+		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
+		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
+		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ShareLink, SocialOAuthStart, SocialSet, SocialTenantBinding, SourceApp,
+		SourceChange, StorePublishingCredential, StoreReview, StoreReviewComment,
+		SupportAccessGrant, SurfaceCapture, User, WorkspaceCreditGrant,
+		WorkspaceDeletion, WorkspaceEntitlement, WorkspaceGitHubInstallation,
 		WorkspaceSettings []ent.Interceptor
 	}
 )

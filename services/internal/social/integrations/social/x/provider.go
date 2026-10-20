@@ -244,7 +244,7 @@ func (p *Provider) InternalPlugs() []integrations.InternalPlug {
 
 func (p *Provider) AutoRepostPost(ctx context.Context, integration *ent.Integration, id string, fields map[string]string) (bool, error) {
 	c := newClient(integration.Token)
-	count, err := c.tweetLikedByCount(ctx, id)
+	count, _, err := c.tweetEngagement(ctx, id)
 	if err != nil {
 		return false, err
 	}
@@ -272,7 +272,7 @@ func (p *Provider) RepostPostUsers(ctx context.Context, integration, _ *ent.Inte
 
 func (p *Provider) AutoPlugPost(ctx context.Context, integration *ent.Integration, id string, fields map[string]string) (bool, error) {
 	c := newClient(integration.Token)
-	count, err := c.tweetLikedByCount(ctx, id)
+	count, _, err := c.tweetEngagement(ctx, id)
 	if err != nil {
 		return false, err
 	}
@@ -291,6 +291,40 @@ func (p *Provider) AutoPlugPost(ctx context.Context, integration *ent.Integratio
 		"reply": map[string]string{"in_reply_to_tweet_id": id},
 	}, nil)
 	return err == nil, err
+}
+
+// RetweetPost reposts a post from the account (RFC 041 Auto-RT).
+func (p *Provider) RetweetPost(ctx context.Context, integration *ent.Integration, id string) error {
+	return newClient(integration.Token).retweet(ctx, integration.InternalID, id)
+}
+
+// UnretweetPost removes the account's repost of a post.
+func (p *Provider) UnretweetPost(ctx context.Context, integration *ent.Integration, id string) error {
+	return newClient(integration.Token).unretweet(ctx, integration.InternalID, id)
+}
+
+// PostEngagement is a post's public like and repost counts.
+func (p *Provider) PostEngagement(ctx context.Context, integration *ent.Integration, id string) (int, int, error) {
+	return newClient(integration.Token).tweetEngagement(ctx, id)
+}
+
+// ReplyTo posts text as a reply to a post (RFC 041 Auto-Plug) and returns
+// the reply's id, which the plug's receipt keeps.
+func (p *Provider) ReplyTo(ctx context.Context, integration *ent.Integration, id, text string) (string, error) {
+	text = helpers.StripHTMLValidation("normal", text, helpers.StripOptions{ReplaceBold: true})
+	if p.StripLinks() {
+		text = helpers.StripLinks(text)
+	}
+	var res struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	err := newClient(integration.Token).postJSON(ctx, v2("tweets"), map[string]any{
+		"text":  text,
+		"reply": map[string]string{"in_reply_to_tweet_id": id},
+	}, &res)
+	return res.Data.ID, err
 }
 
 func (p *Provider) RefreshToken(context.Context, string) (*integrations.AuthTokenDetails, error) {

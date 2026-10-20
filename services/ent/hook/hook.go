@@ -705,6 +705,18 @@ func (f PlatformSlackPacingFunc) Mutate(ctx context.Context, m ent.Mutation) (en
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSlackPacingMutation", m)
 }
 
+// The PostAutomationRunFunc type is an adapter to allow the use of ordinary
+// function as PostAutomationRun mutator.
+type PostAutomationRunFunc func(context.Context, *ent.PostAutomationRunMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PostAutomationRunFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PostAutomationRunMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PostAutomationRunMutation", m)
+}
+
 // The ProductProfileFunc type is an adapter to allow the use of ordinary
 // function as ProductProfile mutator.
 type ProductProfileFunc func(context.Context, *ent.ProductProfileMutation) (ent.Value, error)

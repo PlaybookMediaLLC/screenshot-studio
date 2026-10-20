@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"time"
 
 	"entgo.io/ent"
@@ -26,6 +27,8 @@ type SocialSetPreferences struct {
 	Samples []string `json:"samples,omitempty"`
 	// NaturalTiming offsets scheduled posts by a stable few minutes.
 	NaturalTiming bool `json:"naturalTiming,omitempty"`
+	// Automation is the X follow-ups new drafts start with (RFC 041).
+	Automation *postoptions.AutoActions `json:"automation,omitempty"`
 }
 
 func (SocialSet) Annotations() []schema.Annotation {

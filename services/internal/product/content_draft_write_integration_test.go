@@ -2,10 +2,15 @@ package product
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
@@ -363,6 +368,77 @@ func TestWriteWorkspace(t *testing.T) {
 		if err != nil || len(items) != 3 || items[0].Action != "product.content_draft_shared" || items[2].Action != "product.content_draft_created" ||
 			items[1].Metadata["changed"] == nil || items[0].ActorName == nil || *items[0].ActorName != "owner" {
 			t.Fatalf("activity=%+v err=%v", items, err)
+		}
+	})
+
+	t.Run("a set's follow-up defaults start new drafts; bad follow-ups are refused", func(t *testing.T) {
+		bad := schema.SocialSetPreferences{Automation: &postoptions.AutoActions{Retweets: []postoptions.RetweetRule{{At: "25:00", TimeZone: "UTC"}}}}
+		if _, err := repo.UpdateSocialSet(ctx, owner, defaultSet.ID, SocialSetInput{Preferences: &bad}); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("a bad default: %v", err)
+		}
+		defaults := schema.SocialSetPreferences{Voice: "Plain", Automation: &postoptions.AutoActions{
+			Retweets: []postoptions.RetweetRule{{AfterMinutes: 360}}, UnretweetAfterMinutes: 720}}
+		if _, err := repo.UpdateSocialSet(ctx, owner, defaultSet.ID, SocialSetInput{Preferences: &defaults}); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			_, _ = repo.UpdateSocialSet(ctx, owner, defaultSet.ID, SocialSetInput{Preferences: &schema.SocialSetPreferences{}})
+		})
+		created, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: &defaultSet.ID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var automation *postoptions.AutoActions
+		for _, version := range created.PlatformVersions.Versions {
+			if version.Channel == "x" && version.Options != nil {
+				automation = version.Options.Automation
+			}
+		}
+		if automation == nil || len(automation.Retweets) != 1 || automation.UnretweetAfterMinutes != 720 {
+			t.Fatalf("new draft automation = %+v", automation)
+		}
+		own := draftdoc.PlatformVersions{SchemaVersion: 1, Versions: []draftdoc.PlatformVersion{{Channel: "x", Mode: "synced",
+			Options: &draftdoc.VersionOptions{Automation: &postoptions.AutoActions{PlugAtLikes: 5, PlugText: "Mine"}}}}}
+		mine, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: &defaultSet.ID, PlatformVersions: &own})
+		if err != nil || mine.PlatformVersions.Versions[0].Options.Automation.PlugAtLikes != 5 || len(mine.PlatformVersions.Versions[0].Options.Automation.Retweets) != 0 {
+			t.Fatalf("a draft's own follow-ups were replaced: %+v %v", mine, err)
+		}
+		onLinkedIn := draftdoc.PlatformVersions{SchemaVersion: 1, Versions: []draftdoc.PlatformVersion{{Channel: "linkedin", Mode: "synced",
+			Options: &draftdoc.VersionOptions{Automation: &postoptions.AutoActions{Retweets: []postoptions.RetweetRule{{AfterMinutes: 60}}}}}}}
+		if _, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: &defaultSet.ID, PlatformVersions: &onLinkedIn}); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("LinkedIn reposts: %v", err)
+		}
+	})
+
+	t.Run("backups are kept for 30 days, then one a day for a year", func(t *testing.T) {
+		draft, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Body: text("kept"), PlainText: "kept"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		backup := func(name string, age time.Duration) {
+			w.exec(t, `INSERT INTO content_draft_revision (id,"organizationId","contentDraftId",version,title,body,"plainText","createdAt",reason)
+				VALUES ($1,$2,$3,1,'',`+"'[]'::jsonb"+`,'',now() - $4::interval,'edit')`, name+"_"+draft.ID, w.org, draft.ID, fmt.Sprintf("%d seconds", int(age.Seconds())))
+		}
+		day := 24 * time.Hour
+		backup("recent_a", 2*day)
+		backup("recent_b", 2*day+time.Hour)
+		backup("old_morning", 40*day+2*time.Hour)
+		backup("old_evening", 40*day)
+		backup("ancient", 400*day)
+		planned := time.Now().Add(day)
+		if _, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{PlannedFor: &planned, TimeZone: "UTC"}); err != nil {
+			t.Fatal(err)
+		}
+		rows, err := w.db.Client.ContentDraftRevision.Query().Where(contentdraftrevision.ContentDraftID(draft.ID)).All(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		kept := map[string]bool{}
+		for _, row := range rows {
+			kept[strings.TrimSuffix(row.ID, "_"+draft.ID)] = true
+		}
+		if len(rows) != 4 || !kept["recent_a"] || !kept["recent_b"] || !kept["old_evening"] || kept["old_morning"] || kept["ancient"] {
+			t.Fatalf("kept=%v", kept)
 		}
 	})
 

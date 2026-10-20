@@ -6157,6 +6157,94 @@
                         "type": "string",
                         "maxLength": 2000
                       },
+                      "automation": {
+                        "type": "object",
+                        "properties": {
+                          "plugAtLikes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          "plugMetric": {
+                            "type": "string",
+                            "enum": [
+                              "likes",
+                              "reposts"
+                            ]
+                          },
+                          "plugText": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "quoteAfterHours": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 720
+                          },
+                          "quoteText": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "repostAtLikes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          "retweets": {
+                            "maxItems": 5,
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "afterMinutes": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 43200
+                                    }
+                                  },
+                                  "required": [
+                                    "afterMinutes"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "at": {
+                                      "type": "string",
+                                      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                                    },
+                                    "days": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 30
+                                    },
+                                    "timeZone": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 64
+                                    }
+                                  },
+                                  "required": [
+                                    "at",
+                                    "days",
+                                    "timeZone"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            }
+                          },
+                          "unretweetAfterMinutes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10080
+                          }
+                        },
+                        "additionalProperties": false
+                      },
                       "naturalTiming": {
                         "type": "boolean"
                       },
@@ -6436,6 +6524,94 @@
                       "audience": {
                         "type": "string",
                         "maxLength": 2000
+                      },
+                      "automation": {
+                        "type": "object",
+                        "properties": {
+                          "plugAtLikes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          "plugMetric": {
+                            "type": "string",
+                            "enum": [
+                              "likes",
+                              "reposts"
+                            ]
+                          },
+                          "plugText": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "quoteAfterHours": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 720
+                          },
+                          "quoteText": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "repostAtLikes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          "retweets": {
+                            "maxItems": 5,
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "afterMinutes": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 43200
+                                    }
+                                  },
+                                  "required": [
+                                    "afterMinutes"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "at": {
+                                      "type": "string",
+                                      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                                    },
+                                    "days": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 30
+                                    },
+                                    "timeZone": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 64
+                                    }
+                                  },
+                                  "required": [
+                                    "at",
+                                    "days",
+                                    "timeZone"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              ]
+                            }
+                          },
+                          "unretweetAfterMinutes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10080
+                          }
+                        },
+                        "additionalProperties": false
                       },
                       "naturalTiming": {
                         "type": "boolean"
@@ -11207,7 +11383,7 @@
           "bytes": {
             "type": "integer",
             "exclusiveMinimum": 0,
-            "maximum": 52428800
+            "maximum": 104857600
           },
           "classification": {
             "default": "input",
@@ -11221,7 +11397,7 @@
           },
           "contentType": {
             "type": "string",
-            "pattern": "^(image\\/(gif|jpeg|png|webp)|video\\/(mp4|webm)|audio\\/(aac|mp4|mpeg|ogg|wav|webm)|font\\/(woff2?|ttf|otf))$"
+            "pattern": "^(image\\/(gif|jpeg|png|webp)|video\\/(mp4|webm)|audio\\/(aac|mp4|mpeg|ogg|wav|webm)|font\\/(woff2?|ttf|otf)|application\\/pdf)$"
           },
           "fileName": {
             "type": "string",
@@ -12801,6 +12977,94 @@
                           "options": {
                             "type": "object",
                             "properties": {
+                              "automation": {
+                                "type": "object",
+                                "properties": {
+                                  "plugAtLikes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1000000
+                                  },
+                                  "plugMetric": {
+                                    "type": "string",
+                                    "enum": [
+                                      "likes",
+                                      "reposts"
+                                    ]
+                                  },
+                                  "plugText": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
+                                  "quoteAfterHours": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 720
+                                  },
+                                  "quoteText": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
+                                  "repostAtLikes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1000000
+                                  },
+                                  "retweets": {
+                                    "maxItems": 5,
+                                    "type": "array",
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "afterMinutes": {
+                                              "type": "integer",
+                                              "minimum": 1,
+                                              "maximum": 43200
+                                            }
+                                          },
+                                          "required": [
+                                            "afterMinutes"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "at": {
+                                              "type": "string",
+                                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                                            },
+                                            "days": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 30
+                                            },
+                                            "timeZone": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 64
+                                            }
+                                          },
+                                          "required": [
+                                            "at",
+                                            "days",
+                                            "timeZone"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "unretweetAfterMinutes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 10080
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
                               "community": {
                                 "type": "object",
                                 "properties": {
@@ -13316,6 +13580,94 @@
                           "options": {
                             "type": "object",
                             "properties": {
+                              "automation": {
+                                "type": "object",
+                                "properties": {
+                                  "plugAtLikes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1000000
+                                  },
+                                  "plugMetric": {
+                                    "type": "string",
+                                    "enum": [
+                                      "likes",
+                                      "reposts"
+                                    ]
+                                  },
+                                  "plugText": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
+                                  "quoteAfterHours": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 720
+                                  },
+                                  "quoteText": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
+                                  "repostAtLikes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1000000
+                                  },
+                                  "retweets": {
+                                    "maxItems": 5,
+                                    "type": "array",
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "afterMinutes": {
+                                              "type": "integer",
+                                              "minimum": 1,
+                                              "maximum": 43200
+                                            }
+                                          },
+                                          "required": [
+                                            "afterMinutes"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "at": {
+                                              "type": "string",
+                                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                                            },
+                                            "days": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 30
+                                            },
+                                            "timeZone": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 64
+                                            }
+                                          },
+                                          "required": [
+                                            "at",
+                                            "days",
+                                            "timeZone"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "unretweetAfterMinutes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 10080
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
                               "community": {
                                 "type": "object",
                                 "properties": {
@@ -13636,6 +13988,94 @@
                     "options": {
                       "type": "object",
                       "properties": {
+                        "automation": {
+                          "type": "object",
+                          "properties": {
+                            "plugAtLikes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 1000000
+                            },
+                            "plugMetric": {
+                              "type": "string",
+                              "enum": [
+                                "likes",
+                                "reposts"
+                              ]
+                            },
+                            "plugText": {
+                              "type": "string",
+                              "maxLength": 1000
+                            },
+                            "quoteAfterHours": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 720
+                            },
+                            "quoteText": {
+                              "type": "string",
+                              "maxLength": 1000
+                            },
+                            "repostAtLikes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 1000000
+                            },
+                            "retweets": {
+                              "maxItems": 5,
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "afterMinutes": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 43200
+                                      }
+                                    },
+                                    "required": [
+                                      "afterMinutes"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "at": {
+                                        "type": "string",
+                                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                                      },
+                                      "days": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 30
+                                      },
+                                      "timeZone": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 64
+                                      }
+                                    },
+                                    "required": [
+                                      "at",
+                                      "days",
+                                      "timeZone"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              }
+                            },
+                            "unretweetAfterMinutes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10080
+                            }
+                          },
+                          "additionalProperties": false
+                        },
                         "community": {
                           "type": "object",
                           "properties": {
@@ -14155,6 +14595,94 @@
                     "options": {
                       "type": "object",
                       "properties": {
+                        "automation": {
+                          "type": "object",
+                          "properties": {
+                            "plugAtLikes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 1000000
+                            },
+                            "plugMetric": {
+                              "type": "string",
+                              "enum": [
+                                "likes",
+                                "reposts"
+                              ]
+                            },
+                            "plugText": {
+                              "type": "string",
+                              "maxLength": 1000
+                            },
+                            "quoteAfterHours": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 720
+                            },
+                            "quoteText": {
+                              "type": "string",
+                              "maxLength": 1000
+                            },
+                            "repostAtLikes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 1000000
+                            },
+                            "retweets": {
+                              "maxItems": 5,
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "afterMinutes": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 43200
+                                      }
+                                    },
+                                    "required": [
+                                      "afterMinutes"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "at": {
+                                        "type": "string",
+                                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                                      },
+                                      "days": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 30
+                                      },
+                                      "timeZone": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 64
+                                      }
+                                    },
+                                    "required": [
+                                      "at",
+                                      "days",
+                                      "timeZone"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              }
+                            },
+                            "unretweetAfterMinutes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10080
+                            }
+                          },
+                          "additionalProperties": false
+                        },
                         "community": {
                           "type": "object",
                           "properties": {
@@ -14466,6 +14994,94 @@
                     "options": {
                       "type": "object",
                       "properties": {
+                        "automation": {
+                          "type": "object",
+                          "properties": {
+                            "plugAtLikes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 1000000
+                            },
+                            "plugMetric": {
+                              "type": "string",
+                              "enum": [
+                                "likes",
+                                "reposts"
+                              ]
+                            },
+                            "plugText": {
+                              "type": "string",
+                              "maxLength": 1000
+                            },
+                            "quoteAfterHours": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 720
+                            },
+                            "quoteText": {
+                              "type": "string",
+                              "maxLength": 1000
+                            },
+                            "repostAtLikes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 1000000
+                            },
+                            "retweets": {
+                              "maxItems": 5,
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "afterMinutes": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 43200
+                                      }
+                                    },
+                                    "required": [
+                                      "afterMinutes"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "at": {
+                                        "type": "string",
+                                        "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                                      },
+                                      "days": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 30
+                                      },
+                                      "timeZone": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 64
+                                      }
+                                    },
+                                    "required": [
+                                      "at",
+                                      "days",
+                                      "timeZone"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              }
+                            },
+                            "unretweetAfterMinutes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10080
+                            }
+                          },
+                          "additionalProperties": false
+                        },
                         "community": {
                           "type": "object",
                           "properties": {
@@ -14802,6 +15418,74 @@
                     "total"
                   ],
                   "additionalProperties": false
+                },
+                "automations": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "attempts": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "dueAt": {
+                        "type": "string"
+                      },
+                      "failureCode": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "key": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "first_comment",
+                          "retweet",
+                          "unretweet",
+                          "plug",
+                          "repost_at_likes",
+                          "quote"
+                        ]
+                      },
+                      "remoteId": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "done",
+                          "failed",
+                          "skipped",
+                          "cancelled",
+                          "expired"
+                        ]
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "attempts",
+                      "dueAt",
+                      "failureCode",
+                      "key",
+                      "kind",
+                      "remoteId",
+                      "status",
+                      "updatedAt"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "required": [
@@ -14816,7 +15500,8 @@
                 "metricsAt",
                 "url",
                 "replies",
-                "threadProgress"
+                "threadProgress",
+                "automations"
               ],
               "additionalProperties": false
             }
@@ -15095,6 +15780,94 @@
                         "options": {
                           "type": "object",
                           "properties": {
+                            "automation": {
+                              "type": "object",
+                              "properties": {
+                                "plugAtLikes": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1000000
+                                },
+                                "plugMetric": {
+                                  "type": "string",
+                                  "enum": [
+                                    "likes",
+                                    "reposts"
+                                  ]
+                                },
+                                "plugText": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "quoteAfterHours": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 720
+                                },
+                                "quoteText": {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                },
+                                "repostAtLikes": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1000000
+                                },
+                                "retweets": {
+                                  "maxItems": 5,
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "afterMinutes": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 43200
+                                          }
+                                        },
+                                        "required": [
+                                          "afterMinutes"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "at": {
+                                            "type": "string",
+                                            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                                          },
+                                          "days": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 30
+                                          },
+                                          "timeZone": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 64
+                                          }
+                                        },
+                                        "required": [
+                                          "at",
+                                          "days",
+                                          "timeZone"
+                                        ],
+                                        "additionalProperties": false
+                                      }
+                                    ]
+                                  }
+                                },
+                                "unretweetAfterMinutes": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 10080
+                                }
+                              },
+                              "additionalProperties": false
+                            },
                             "community": {
                               "type": "object",
                               "properties": {
@@ -15540,6 +16313,94 @@
                       "type": "string",
                       "maxLength": 2000
                     },
+                    "automation": {
+                      "type": "object",
+                      "properties": {
+                        "plugAtLikes": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "plugMetric": {
+                          "type": "string",
+                          "enum": [
+                            "likes",
+                            "reposts"
+                          ]
+                        },
+                        "plugText": {
+                          "type": "string",
+                          "maxLength": 1000
+                        },
+                        "quoteAfterHours": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 720
+                        },
+                        "quoteText": {
+                          "type": "string",
+                          "maxLength": 1000
+                        },
+                        "repostAtLikes": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "retweets": {
+                          "maxItems": 5,
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "afterMinutes": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 43200
+                                  }
+                                },
+                                "required": [
+                                  "afterMinutes"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "at": {
+                                    "type": "string",
+                                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                                  },
+                                  "days": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 30
+                                  },
+                                  "timeZone": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64
+                                  }
+                                },
+                                "required": [
+                                  "at",
+                                  "days",
+                                  "timeZone"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          }
+                        },
+                        "unretweetAfterMinutes": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 10080
+                        }
+                      },
+                      "additionalProperties": false
+                    },
                     "naturalTiming": {
                       "type": "boolean"
                     },
@@ -15722,6 +16583,94 @@
               "audience": {
                 "type": "string",
                 "maxLength": 2000
+              },
+              "automation": {
+                "type": "object",
+                "properties": {
+                  "plugAtLikes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  "plugMetric": {
+                    "type": "string",
+                    "enum": [
+                      "likes",
+                      "reposts"
+                    ]
+                  },
+                  "plugText": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "quoteAfterHours": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 720
+                  },
+                  "quoteText": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "repostAtLikes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  "retweets": {
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "afterMinutes": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 43200
+                            }
+                          },
+                          "required": [
+                            "afterMinutes"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "at": {
+                              "type": "string",
+                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                            },
+                            "days": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 30
+                            },
+                            "timeZone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            }
+                          },
+                          "required": [
+                            "at",
+                            "days",
+                            "timeZone"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "unretweetAfterMinutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10080
+                  }
+                },
+                "additionalProperties": false
               },
               "naturalTiming": {
                 "type": "boolean"

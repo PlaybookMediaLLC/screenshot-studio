@@ -1587,6 +1587,23 @@ export interface components {
                         /** @enum {string} */
                         mode: "synced" | "manual";
                         options?: {
+                            automation?: {
+                                plugAtLikes?: number;
+                                /** @enum {string} */
+                                plugMetric?: "likes" | "reposts";
+                                plugText?: string;
+                                quoteAfterHours?: number;
+                                quoteText?: string;
+                                repostAtLikes?: number;
+                                retweets?: ({
+                                    afterMinutes: number;
+                                } | {
+                                    at: string;
+                                    days: number;
+                                    timeZone: string;
+                                })[];
+                                unretweetAfterMinutes?: number;
+                            };
                             community?: {
                                 id: string;
                                 name?: string;
@@ -1691,6 +1708,23 @@ export interface components {
                         /** @enum {string} */
                         mode: "synced" | "manual";
                         options?: {
+                            automation?: {
+                                plugAtLikes?: number;
+                                /** @enum {string} */
+                                plugMetric?: "likes" | "reposts";
+                                plugText?: string;
+                                quoteAfterHours?: number;
+                                quoteText?: string;
+                                repostAtLikes?: number;
+                                retweets?: ({
+                                    afterMinutes: number;
+                                } | {
+                                    at: string;
+                                    days: number;
+                                    timeZone: string;
+                                })[];
+                                unretweetAfterMinutes?: number;
+                            };
                             community?: {
                                 id: string;
                                 name?: string;
@@ -1754,6 +1788,23 @@ export interface components {
                     /** @enum {string} */
                     mode: "synced" | "manual";
                     options?: {
+                        automation?: {
+                            plugAtLikes?: number;
+                            /** @enum {string} */
+                            plugMetric?: "likes" | "reposts";
+                            plugText?: string;
+                            quoteAfterHours?: number;
+                            quoteText?: string;
+                            repostAtLikes?: number;
+                            retweets?: ({
+                                afterMinutes: number;
+                            } | {
+                                at: string;
+                                days: number;
+                                timeZone: string;
+                            })[];
+                            unretweetAfterMinutes?: number;
+                        };
                         community?: {
                             id: string;
                             name?: string;
@@ -1870,6 +1921,23 @@ export interface components {
                     /** @enum {string} */
                     mode: "synced" | "manual";
                     options?: {
+                        automation?: {
+                            plugAtLikes?: number;
+                            /** @enum {string} */
+                            plugMetric?: "likes" | "reposts";
+                            plugText?: string;
+                            quoteAfterHours?: number;
+                            quoteText?: string;
+                            repostAtLikes?: number;
+                            retweets?: ({
+                                afterMinutes: number;
+                            } | {
+                                at: string;
+                                days: number;
+                                timeZone: string;
+                            })[];
+                            unretweetAfterMinutes?: number;
+                        };
                         community?: {
                             id: string;
                             name?: string;
@@ -1932,6 +2000,23 @@ export interface components {
                     /** @enum {string} */
                     mode: "synced" | "manual";
                     options?: {
+                        automation?: {
+                            plugAtLikes?: number;
+                            /** @enum {string} */
+                            plugMetric?: "likes" | "reposts";
+                            plugText?: string;
+                            quoteAfterHours?: number;
+                            quoteText?: string;
+                            repostAtLikes?: number;
+                            retweets?: ({
+                                afterMinutes: number;
+                            } | {
+                                at: string;
+                                days: number;
+                                timeZone: string;
+                            })[];
+                            unretweetAfterMinutes?: number;
+                        };
                         community?: {
                             id: string;
                             name?: string;
@@ -2008,6 +2093,19 @@ export interface components {
                     posted: number;
                     total: number;
                 };
+                /** @default [] */
+                automations: {
+                    attempts: number;
+                    dueAt: string;
+                    failureCode: string | null;
+                    key: string;
+                    /** @enum {string} */
+                    kind: "first_comment" | "retweet" | "unretweet" | "plug" | "repost_at_likes" | "quote";
+                    remoteId: string | null;
+                    /** @enum {string} */
+                    status: "pending" | "done" | "failed" | "skipped" | "cancelled" | "expired";
+                    updatedAt: string;
+                }[];
             }[];
         };
         ContentDraftCopy: {
@@ -2070,6 +2168,23 @@ export interface components {
                         /** @enum {string} */
                         mode: "synced" | "manual";
                         options?: {
+                            automation?: {
+                                plugAtLikes?: number;
+                                /** @enum {string} */
+                                plugMetric?: "likes" | "reposts";
+                                plugText?: string;
+                                quoteAfterHours?: number;
+                                quoteText?: string;
+                                repostAtLikes?: number;
+                                retweets?: ({
+                                    afterMinutes: number;
+                                } | {
+                                    at: string;
+                                    days: number;
+                                    timeZone: string;
+                                })[];
+                                unretweetAfterMinutes?: number;
+                            };
                             community?: {
                                 id: string;
                                 name?: string;
@@ -2154,6 +2269,23 @@ export interface components {
                 name: string;
                 preferences: {
                     audience?: string;
+                    automation?: {
+                        plugAtLikes?: number;
+                        /** @enum {string} */
+                        plugMetric?: "likes" | "reposts";
+                        plugText?: string;
+                        quoteAfterHours?: number;
+                        quoteText?: string;
+                        repostAtLikes?: number;
+                        retweets?: ({
+                            afterMinutes: number;
+                        } | {
+                            at: string;
+                            days: number;
+                            timeZone: string;
+                        })[];
+                        unretweetAfterMinutes?: number;
+                    };
                     naturalTiming?: boolean;
                     samples?: string[];
                     voice?: string;
@@ -2187,6 +2319,23 @@ export interface components {
             name: string;
             preferences: {
                 audience?: string;
+                automation?: {
+                    plugAtLikes?: number;
+                    /** @enum {string} */
+                    plugMetric?: "likes" | "reposts";
+                    plugText?: string;
+                    quoteAfterHours?: number;
+                    quoteText?: string;
+                    repostAtLikes?: number;
+                    retweets?: ({
+                        afterMinutes: number;
+                    } | {
+                        at: string;
+                        days: number;
+                        timeZone: string;
+                    })[];
+                    unretweetAfterMinutes?: number;
+                };
                 naturalTiming?: boolean;
                 samples?: string[];
                 voice?: string;
@@ -5520,6 +5669,23 @@ export interface operations {
                     name: string;
                     preferences?: {
                         audience?: string;
+                        automation?: {
+                            plugAtLikes?: number;
+                            /** @enum {string} */
+                            plugMetric?: "likes" | "reposts";
+                            plugText?: string;
+                            quoteAfterHours?: number;
+                            quoteText?: string;
+                            repostAtLikes?: number;
+                            retweets?: ({
+                                afterMinutes: number;
+                            } | {
+                                at: string;
+                                days: number;
+                                timeZone: string;
+                            })[];
+                            unretweetAfterMinutes?: number;
+                        };
                         naturalTiming?: boolean;
                         samples?: string[];
                         voice?: string;
@@ -5735,6 +5901,23 @@ export interface operations {
                     name?: string;
                     preferences?: {
                         audience?: string;
+                        automation?: {
+                            plugAtLikes?: number;
+                            /** @enum {string} */
+                            plugMetric?: "likes" | "reposts";
+                            plugText?: string;
+                            quoteAfterHours?: number;
+                            quoteText?: string;
+                            repostAtLikes?: number;
+                            retweets?: ({
+                                afterMinutes: number;
+                            } | {
+                                at: string;
+                                days: number;
+                                timeZone: string;
+                            })[];
+                            unretweetAfterMinutes?: number;
+                        };
                         naturalTiming?: boolean;
                         samples?: string[];
                         voice?: string;

@@ -319,6 +319,88 @@ func TestWritePublishing(t *testing.T) {
 			t.Fatalf("the draft has %d posts, want the two and one retry: %v", n, err)
 		}
 	})
+
+	t.Run("follow-ups are checked, kept with receipts, and cancelled without stranding a repost", func(t *testing.T) {
+		schedule := func(actions postoptions.AutoActions) (*ScheduleContentDraftResult, error) {
+			return repo.ScheduleContentDraft(ctx, owner, draft(ContentDraftInput{}).ID, ScheduleContentDraftInput{
+				PublishNow: true, Version: 1,
+				Targets: []ContentDraftScheduleTarget{{AutoActions: &actions, Caption: "Follow-ups", ChannelConnectionID: x}},
+			})
+		}
+		for name, bad := range map[string]postoptions.AutoActions{
+			"six reposts":   {Retweets: make([]postoptions.RetweetRule, 6)},
+			"no time":       {Retweets: []postoptions.RetweetRule{{}}},
+			"bad zone":      {Retweets: []postoptions.RetweetRule{{At: "10:30", TimeZone: "Mars/Olympus"}}},
+			"both forms":    {Retweets: []postoptions.RetweetRule{{AfterMinutes: 60, At: "10:30", TimeZone: "UTC"}}},
+			"long removal":  {Retweets: []postoptions.RetweetRule{{AfterMinutes: 60}}, UnretweetAfterMinutes: 8 * 24 * 60},
+			"plug on views": {PlugAtLikes: 10, PlugMetric: "views", PlugText: "Guide"},
+		} {
+			if _, err := schedule(bad); !errors.Is(err, ErrInvalidInput) {
+				t.Fatalf("%s: %v", name, err)
+			}
+		}
+		actions := postoptions.AutoActions{
+			Retweets:              []postoptions.RetweetRule{{AfterMinutes: 360}, {Days: 1, At: "10:30", TimeZone: "Europe/Paris"}},
+			UnretweetAfterMinutes: 720, PlugAtLikes: 50, PlugMetric: "reposts", PlugText: "Get the guide",
+		}
+		result, err := schedule(actions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		postID := result.Posts[0].ID
+		stored, err := w.db.Client.ScheduledPost.Get(ctx, postID)
+		if err != nil || len(stored.AutoActions.Retweets) != 2 || stored.AutoActions.PlugMetric != "reposts" {
+			t.Fatalf("stored=%+v err=%v", stored.AutoActions, err)
+		}
+
+		store := publishing.NewRepository(w.db.Client)
+		now := time.Now()
+		receipts := []publishing.AutomationReceipt{
+			{DueAt: now, Key: "retweet:0", Kind: "retweet"}, {DueAt: now, Key: "unretweet:0", Kind: "unretweet"},
+			{DueAt: now, Key: "retweet:1", Kind: "retweet"}, {DueAt: now, Key: "unretweet:1", Kind: "unretweet"},
+			{DueAt: now, Key: "plug", Kind: "plug"}, {DueAt: now.Add(time.Hour), Key: "plug", Kind: "plug"},
+		}
+		statuses, err := store.PlanAutomations(ctx, w.org, postID, receipts)
+		if err != nil || len(statuses) != 5 || statuses["plug"] != "pending" {
+			t.Fatalf("planned=%v err=%v", statuses, err)
+		}
+		if ok, err := store.RecordAutomation(ctx, postID, "retweet:0", "done", "", ""); !ok || err != nil {
+			t.Fatalf("record repost: %v %v", ok, err)
+		}
+		cancelled, err := repo.CancelContentDraftPostAutomations(ctx, owner, postID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := map[string]string{}
+		for _, item := range cancelled.Automations {
+			got[item.Key] = item.Status
+		}
+		want := map[string]string{"retweet:0": "done", "unretweet:0": "pending", "retweet:1": "cancelled",
+			"unretweet:1": "pending", "plug": "cancelled"}
+		for key, status := range want {
+			if got[key] != status {
+				t.Fatalf("after cancel %s=%s, want %s (%v)", key, got[key], status, got)
+			}
+		}
+		// A replayed plan keeps the receipts; a cancelled step that never acted stays cancelled.
+		if statuses, _ := store.PlanAutomations(ctx, w.org, postID, receipts); statuses["plug"] != "cancelled" {
+			t.Fatalf("replanned=%v", statuses)
+		}
+		if ok, _ := store.RecordAutomation(ctx, postID, "plug", "expired", "", "threshold_not_reached"); ok {
+			t.Fatal("a cancelled plug was settled again")
+		}
+		// A repost in flight when cancelled is recorded as up, so its removal runs.
+		if ok, _ := store.RecordAutomation(ctx, postID, "retweet:1", "done", "", ""); !ok {
+			t.Fatal("an in-flight repost was not recorded")
+		}
+		listed := posts(result.Draft.ID)
+		if len(listed) != 1 || len(listed[0].Automations) != 5 || listed[0].Automations[0].DueAt.After(listed[0].Automations[4].DueAt) {
+			t.Fatalf("listed=%+v", listed)
+		}
+		if _, err := repo.CancelContentDraftPostAutomations(ctx, w.actor("viewer"), postID); err == nil {
+			t.Fatal("a member without publishing rights cancelled follow-ups")
+		}
+	})
 }
 
 // kindTarget is a valid target for a kind of draft in these tests.

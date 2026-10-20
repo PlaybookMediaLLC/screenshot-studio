@@ -179,6 +179,8 @@ type ContentDraftPost struct {
 	// A thread: how many replies it has and how many went out.
 	Replies        int                        `json:"replies"`
 	ThreadProgress postoptions.ThreadProgress `json:"threadProgress"`
+	// Its follow-ups once live (RFC 041), each with its receipt.
+	Automations []PostAutomation `json:"automations"`
 }
 
 // livePostURL is a live post's address on its platform, where one can be
@@ -227,7 +229,8 @@ func contentDraftPost(post *ent.ScheduledPost, platform string) ContentDraftPost
 	return ContentDraftPost{Caption: post.Caption, ChannelConnectionID: post.ChannelConnectionID,
 		CreatedAt: post.CreatedAt, ID: post.ID, Platform: platform, ScheduledFor: post.ScheduledFor,
 		Status: string(post.Status), Metrics: post.Metrics, MetricsAt: post.MetricsAt,
-		URL: livePostURL(platform, post.RemotePostID), Replies: len(post.Replies), ThreadProgress: post.ThreadProgress}
+		URL: livePostURL(platform, post.RemotePostID), Replies: len(post.Replies), ThreadProgress: post.ThreadProgress,
+		Automations: []PostAutomation{}}
 }
 
 // validateDraftTargets checks the shape of a schedule before any lookup.
@@ -356,6 +359,36 @@ func checkDraftExtras(channel string, target ContentDraftScheduleTarget) error {
 		}
 		if actions.QuoteAfterHours > 0 && (strings.TrimSpace(actions.QuoteText) == "" || xLength(actions.QuoteText)+1+xLinkLength > 280) {
 			return invalid("The quote needs text that fits in one X post with the link.")
+		}
+		if actions.PlugMetric != "" && actions.PlugMetric != "likes" && actions.PlugMetric != "reposts" {
+			return invalid("An auto plug waits for likes or reposts.")
+		}
+		if err := checkRetweetRules(actions); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkRetweetRules checks automatic reposts (RFC 041): at most five, each
+// a duration after publishing (up to 30 days) or a wall-clock time up to 30
+// days later in a real time zone, and a removal delay of up to a week.
+func checkRetweetRules(actions postoptions.AutoActions) error {
+	if len(actions.Retweets) > 5 {
+		return invalid("Add up to five automatic reposts.")
+	}
+	if actions.UnretweetAfterMinutes < 0 || actions.UnretweetAfterMinutes > 7*24*60 {
+		return invalid("Remove automatic reposts within a week, or keep them.")
+	}
+	for _, rule := range actions.Retweets {
+		if rule.At == "" && (rule.AfterMinutes < 1 || rule.AfterMinutes > 30*24*60 || rule.Days != 0 || rule.TimeZone != "") {
+			return invalid("Repost between one minute and 30 days after publishing.")
+		}
+		if rule.At != "" && (rule.AfterMinutes != 0 || rule.Days < 0 || rule.Days > 30) {
+			return invalid("Repost at a time of day up to 30 days after publishing.")
+		}
+		if _, err := rule.When(time.Now()); err != nil {
+			return invalid("Each repost needs a time like 10:30 and a time zone like Europe/Paris.")
 		}
 	}
 	return nil
@@ -673,9 +706,17 @@ func (c *Configuration) ListContentDraftPosts(ctx context.Context, actor Actor, 
 	if err != nil {
 		return nil, err
 	}
+	automations, err := c.postAutomations(ctx, posts...)
+	if err != nil {
+		return nil, err
+	}
 	items := make([]ContentDraftPost, 0, len(posts))
 	for _, post := range posts {
-		items = append(items, contentDraftPost(post, post.Edges.ChannelConnection.Platform))
+		item := contentDraftPost(post, post.Edges.ChannelConnection.Platform)
+		if found := automations[post.ID]; found != nil {
+			item.Automations = found
+		}
+		items = append(items, item)
 	}
 	return items, nil
 }

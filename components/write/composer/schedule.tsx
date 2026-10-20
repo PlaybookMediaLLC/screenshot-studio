@@ -23,7 +23,9 @@ import {
   type SettingsWire,
 } from '@/lib/content-drafts/client'
 import { parseWhen } from '@/lib/content-drafts/when'
+import { followUpLines } from '@/lib/write/automation'
 import { writeApi } from '@/lib/write/client'
+import type { Automation } from '@/lib/write/document'
 import {
   naturalOffsetMinutes,
   offsetLabel,
@@ -31,6 +33,7 @@ import {
   wallTime,
 } from '@/lib/write/zoned-time'
 import { cn } from '@/lib/utils'
+import { AutomationControls } from './automation'
 import type { PreviewItem } from './preview'
 import { SetDot } from '../sets'
 import { useWrite } from '../write-context'
@@ -60,6 +63,9 @@ export type ScheduleContext = {
   requireApproval: boolean
   setTimeZone: string | null
   versionRef: React.MutableRefObject<number>
+  /** The X version's follow-ups, and how to change them on the draft. */
+  automation: Automation | undefined
+  onAutomation?: (automation: Automation | undefined) => void
 }
 
 /** Problems that block every destination, collected for the dialogs. */
@@ -399,7 +405,7 @@ export function ScheduleDialog({
             ))}
           </div>
         ) : null}
-        <Destinations context={context} />
+        <Destinations context={context} publishAt={instant ?? now} timeZone={zone} />
         <Label className="flex items-center justify-between gap-3 text-sm">
           <span>
             Natural posting time
@@ -513,7 +519,15 @@ function upcomingSlots(
 }
 
 /** The destinations with their switches, accounts and health. */
-function Destinations({ context }: { context: ScheduleContext }) {
+function Destinations({
+  context,
+  publishAt,
+  timeZone,
+}: {
+  context: ScheduleContext
+  publishAt: Date
+  timeZone: string
+}) {
   const { data } = useWrite()
   const setId = context.draft.socialSetId ?? data.sets.find((set) => set.isDefault)?.id
   const set = data.sets.find((item) => item.id === setId)
@@ -543,6 +557,16 @@ function Destinations({ context }: { context: ScheduleContext }) {
           />
         </Label>
       ))}
+      {context.items.some((item) => item.account.channel === 'x') ? (
+        <AutomationControls
+          automation={context.automation}
+          onChange={(next) => context.onAutomation?.(next)}
+          publishAt={publishAt}
+          readOnly={!context.onAutomation}
+          setId={set.id}
+          timeZone={timeZone}
+        />
+      ) : null}
     </fieldset>
   )
 }
@@ -569,12 +593,10 @@ function Problems({ problems }: { problems: string[] }) {
  */
 export function PublishReview({
   context,
-  followUps,
   onClose,
   onPreview,
 }: {
   context: ScheduleContext
-  followUps: string[]
   onClose: () => void
   onPreview: () => void
 }) {
@@ -584,6 +606,13 @@ export function PublishReview({
   const set = data.sets.find(
     (item) =>
       item.id === (context.draft.socialSetId ?? data.sets.find((entry) => entry.isDefault)?.id)
+  )
+  const followUps = context.items.flatMap(({ account, publication }) =>
+    followUpLines(
+      publication.target.autoActions,
+      publication.target.options?.firstComment,
+      CHANNEL_META[account.channel].label
+    )
   )
   const publish = async () => {
     setBusy(true)
@@ -671,6 +700,16 @@ export function PublishReview({
             )
           })}
         </ul>
+        {context.items.some((item) => item.account.channel === 'x') ? (
+          <AutomationControls
+            automation={context.automation}
+            onChange={(next) => context.onAutomation?.(next)}
+            publishAt={new Date()}
+            readOnly={!context.onAutomation}
+            setId={set?.id ?? null}
+            timeZone={context.setTimeZone ?? 'UTC'}
+          />
+        ) : null}
         {followUps.length > 0 ? (
           <div className="text-xs text-neutral-400">
             <p className="text-neutral-300">After it is live</p>

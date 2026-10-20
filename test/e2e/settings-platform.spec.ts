@@ -229,7 +229,8 @@ test('a public profile is served only while it is turned on', async ({
       await expect(
         anonymous.getByRole('heading', { level: 1, name: identity.workspaceName })
       ).toBeVisible()
-      await expect(anonymous.getByRole('listitem').filter({ hasText: 'linkedin' })).toBeVisible()
+      // Handles come from the social API the first time the set is listed.
+      await expect(anonymous.getByText('@shots_x')).toBeVisible()
 
       await toggle.click()
       await expect(toggle).not.toBeChecked()

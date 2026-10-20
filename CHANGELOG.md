@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.26.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.25.0...v2.26.0) (2026-10-20)
+
+
+### Features
+
+* **canvas:** add the infinite Canvas workspace ([#225](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/225)) ([5f65fc6](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/5f65fc66f1c79176bc250269ae7ac775da40f6a0))
+
 ## [2.25.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.5...v2.25.0) (2026-10-20)
 
 

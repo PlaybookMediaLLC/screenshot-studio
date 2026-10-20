@@ -32,8 +32,11 @@ Test evidence used below:
 - **Repository checks**: `build:sdk`, `format:check`, `lint --max-warnings=0`,
   `typecheck`, `verify:rfcs` (17/17) and `build` pass.
 - **Browser**: `test/e2e/settings-platform.spec.ts` (four flows, Playwright,
-  Chromium) passes on the local stack. Screenshots at 1440 px and 390 px are in
-  the PR description.
+  Chromium) passes on the local stack, as do the existing draft, settings,
+  role, API key, agent and shell specs. The notification spec needs its
+  provider fixture and was not run; the notification changes are covered by
+  Go tests. Every settings page was captured and reviewed at 1440 px and
+  390 px; the PR description lists what each shows.
 
 ## 1. Settings architecture
 
@@ -362,23 +365,23 @@ Test evidence used below:
 
 ## 10. Acceptance checks
 
-| #   | Check                                                   | Test                                                                                                                       | Result |
-| --- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------ |
-| 1   | Display time zone does not change set time zone         | Go `TestSocialSetsPlatform/the_display_time_zone_is_not_the_set's_time_zone`                                               | Passed |
-| 2   | Editing slots keeps scheduled instants                  | Go `…/a_queued_natural_time_is_stored,_replayed_and_kept_when_the_template_changes`                                        | Passed |
-| 3   | Two rows Monday to Friday count 10                      | Go `…/weekdays_at_two_times_are_ten_slots`; E2E `social sets keep their own names, schedules…`                             | Passed |
-| 4   | New drafts get ordered defaults                         | Go `…/a_new_draft_copies_the_set's_ordered_defaults,_and_later_defaults_leave_it_alone`                                    | Passed |
-| 5   | Changing defaults leaves drafts                         | Same as 4                                                                                                                  | Passed |
-| 6   | Natural offset stable across reload and retry           | Go `TestNaturalOffsetIsBoundedAndStable`, `…/a_queued_natural_time_is_stored,_replayed…`                                   | Passed |
-| 7   | Settings navigation keeps editor content                | E2E `social sets keep their own names, schedules and settings beside the composer`                                         | Passed |
-| 8   | Same-name sets addressable                              | Go `…/two_sets_with_the_same_name_stay_separate`; E2E as 7                                                                 | Passed |
-| 9   | Disconnected accounts guide recovery and cannot publish | Go `…/a_removed_account_cancels_its_queue_and_cannot_publish`, `TestAccountHealth`; attention screenshot                   | Passed |
-| 10  | Private-to-team sharing needs authorization             | Go `…/a_private_set_is_its_owner's_until_they_share_it`, `…/deleting_a_set_needs_authority…`                               | Passed |
-| 11  | Public profile enforced server-side, including cache    | E2E `a public profile is served only while it is turned on`                                                                | Passed |
+| #   | Check                                                   | Test                                                                                                                      | Result |
+| --- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------ |
+| 1   | Display time zone does not change set time zone         | Go `TestSocialSetsPlatform/the_display_time_zone_is_not_the_set's_time_zone`                                              | Passed |
+| 2   | Editing slots keeps scheduled instants                  | Go `…/a_queued_natural_time_is_stored,_replayed_and_kept_when_the_template_changes`                                       | Passed |
+| 3   | Two rows Monday to Friday count 10                      | Go `…/weekdays_at_two_times_are_ten_slots`; E2E `social sets keep their own names, schedules…`                            | Passed |
+| 4   | New drafts get ordered defaults                         | Go `…/a_new_draft_copies_the_set's_ordered_defaults,_and_later_defaults_leave_it_alone`                                   | Passed |
+| 5   | Changing defaults leaves drafts                         | Same as 4                                                                                                                 | Passed |
+| 6   | Natural offset stable across reload and retry           | Go `TestNaturalOffsetIsBoundedAndStable`, `…/a_queued_natural_time_is_stored,_replayed…`                                  | Passed |
+| 7   | Settings navigation keeps editor content                | E2E `social sets keep their own names, schedules and settings beside the composer`                                        | Passed |
+| 8   | Same-name sets addressable                              | Go `…/two_sets_with_the_same_name_stay_separate`; E2E as 7                                                                | Passed |
+| 9   | Disconnected accounts guide recovery and cannot publish | Go `…/a_removed_account_cancels_its_queue_and_cannot_publish`, `TestAccountHealth`; attention screenshot                  | Passed |
+| 10  | Private-to-team sharing needs authorization             | Go `…/a_private_set_is_its_owner's_until_they_share_it`, `…/deleting_a_set_needs_authority…`                              | Passed |
+| 11  | Public profile enforced server-side, including cache    | E2E `a public profile is served only while it is turned on`                                                               | Passed |
 | 12  | Webhook validation, signing, retry, deduplication       | Go `TestOutboundWebhookDelivery`, `TestValidateEndpointRefusesUnsafeDestinations`, `TestSignatureAndSealing`; E2E refusal | Passed |
-| 13  | API credentials stay secret                             | E2E `a webhook secret shows once, and private addresses are refused`; existing `api-key-releases.spec.ts`                  | Passed |
-| 14  | Failed saves do not show as saved                       | E2E `personal settings are addressable…` (refused PATCH); Go version conflicts                                             | Passed |
-| 15  | Theme, week start and direction change the UI           | E2E `personal settings…` (theme, week start), `social sets…` (`dir="rtl"`)                                                 | Passed |
+| 13  | API credentials stay secret                             | E2E `a webhook secret shows once, and private addresses are refused`; existing `api-key-releases.spec.ts`                 | Passed |
+| 14  | Failed saves do not show as saved                       | E2E `personal settings are addressable…` (refused PATCH); Go version conflicts                                            | Passed |
+| 15  | Theme, week start and direction change the UI           | E2E `personal settings…` (theme, week start), `social sets…` (`dir="rtl"`)                                                | Passed |
 
 ## 11. Coverage limits and blockers
 

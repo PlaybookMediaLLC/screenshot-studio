@@ -15,12 +15,12 @@ Expand the existing route-based settings into the settings platform the
 describes. Every setting belongs to exactly one owner, and that owner decides
 where it is stored, who may change it, and what it changes:
 
-| Owner | Record | Examples |
-| --- | --- | --- |
-| User | `user_preference` | Display time zone, theme, navigation layout, week start, editor direction, scrollbars, help tips, development mode, email master switch, experiment opt-ins |
-| Workspace | The organization and its existing rows | Plan and billing, members and roles, API keys, notification policy, integrations, audit, security, deletion, review policy, experiments an admin turns off |
-| Social set | `social_set` and `social_set_writing_sample` | Name, colour, accounts, scheduling time zone, weekly slots, natural posting times, new-draft defaults, engagement defaults, public profile, Writing Assistant |
-| Connected account | `channel_connection` (unchanged as the publishing destination) | Provider, external account, identity, health, capabilities |
+| Owner             | Record                                                         | Examples                                                                                                                                                      |
+| ----------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User              | `user_preference`                                              | Display time zone, theme, navigation layout, week start, editor direction, scrollbars, help tips, development mode, email master switch, experiment opt-ins   |
+| Workspace         | The organization and its existing rows                         | Plan and billing, members and roles, API keys, notification policy, integrations, audit, security, deletion, review policy, experiments an admin turns off    |
+| Social set        | `social_set` and `social_set_writing_sample`                   | Name, colour, accounts, scheduling time zone, weekly slots, natural posting times, new-draft defaults, engagement defaults, public profile, Writing Assistant |
+| Connected account | `channel_connection` (unchanged as the publishing destination) | Provider, external account, identity, health, capabilities                                                                                                    |
 
 A team is a workspace. The organization, membership, invitation and role model
 already is the access and ownership boundary, so this RFC adds no second team
@@ -66,16 +66,16 @@ one workspace.
 
 ### Permissions inside a set
 
-| Action | Requirement |
-| --- | --- |
-| View a set, its drafts and its schedule | `artifact:read` and visibility |
-| Write drafts | `artifact:edit` and visibility |
-| Change scheduling, defaults, public profile, name, colour | `publish:manage` and visibility |
-| Change the Writing Assistant | `artifact:edit` and visibility |
-| Add, reconnect or remove accounts | `publish:manage` and visibility |
-| Schedule and publish | `publish:manage`, a signed-in person, and visibility |
-| Share a private set | Its owner, holding `publish:manage` |
-| Delete a set | `workspace:update`, or the owner of a private set |
+| Action                                                    | Requirement                                          |
+| --------------------------------------------------------- | ---------------------------------------------------- |
+| View a set, its drafts and its schedule                   | `artifact:read` and visibility                       |
+| Write drafts                                              | `artifact:edit` and visibility                       |
+| Change scheduling, defaults, public profile, name, colour | `publish:manage` and visibility                      |
+| Change the Writing Assistant                              | `artifact:edit` and visibility                       |
+| Add, reconnect or remove accounts                         | `publish:manage` and visibility                      |
+| Schedule and publish                                      | `publish:manage`, a signed-in person, and visibility |
+| Share a private set                                       | Its owner, holding `publish:manage`                  |
+| Delete a set                                              | `workspace:update`, or the owner of a private set    |
 
 Go checks every row. The browser hides controls only as a courtesy.
 
@@ -182,15 +182,15 @@ the log is bounded, and it is downloaded as a file rather than uploaded.
 This closes the outbound gap RFC 005 records. A workspace (owner or admin)
 subscribes HTTPS endpoints to versioned draft events:
 
-| Event | Emitted when |
-| --- | --- |
-| `draft.created` | A draft is created |
-| `draft.scheduled` | A draft is scheduled, rescheduled, or one of its posts moves |
-| `draft.planned` | A draft is placed on the calendar without scheduling |
-| `draft.status_changed` | A draft's status changes |
-| `draft.tags_changed` | A draft's tags change |
-| `draft.published` | One of a draft's posts goes live |
-| `draft.deleted` | A draft is deleted |
+| Event                  | Emitted when                                                 |
+| ---------------------- | ------------------------------------------------------------ |
+| `draft.created`        | A draft is created                                           |
+| `draft.scheduled`      | A draft is scheduled, rescheduled, or one of its posts moves |
+| `draft.planned`        | A draft is placed on the calendar without scheduling         |
+| `draft.status_changed` | A draft's status changes                                     |
+| `draft.tags_changed`   | A draft's tags change                                        |
+| `draft.published`      | One of a draft's posts goes live                             |
+| `draft.deleted`        | A draft is deleted                                           |
 
 - **Envelope.** `id`, `type`, `schemaVersion`, `occurredAt`, `workspaceId`,
   `socialSetId`, `resource`, and a redacted `data` object (IDs, title, status,

@@ -69,7 +69,7 @@ export const contentDraftSchema = z
      */
     engagement: draftEngagementSchema,
     naturalPostingTime: z.boolean().default(false),
-    /** A calendar placement without scheduling, as an ISO 8601 instant (an experiment). */
+    /** A calendar placement without scheduling, as an ISO 8601 instant. */
     plannedFor: timestampSchema.nullable().default(null),
     primaryPlatform: z.string().nullable().default(null),
     socialSetId: z.string().nullable().default(null),
@@ -111,7 +111,7 @@ export const contentDraftUpdateSchema = contentDraftFieldsSchema.extend({
   /** The draft's own choices, which start as copies of its set's defaults. */
   naturalPostingTime: z.boolean().optional(),
   primaryPlatform: z.union([platformSchema, z.literal('')]).optional(),
-  /** An ISO 8601 instant, or an empty string to clear it (an experiment). */
+  /** An ISO 8601 instant, or an empty string to clear it. */
   plannedFor: z.union([z.iso.datetime({ offset: true }), z.literal('')]).optional(),
 })
 

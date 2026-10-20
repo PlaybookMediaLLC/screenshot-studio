@@ -166,8 +166,9 @@ model is left.
    RFC 043's string tags into them and drops `content_draft.tags`. The
    `draft-tags` experiment gate stays on every tag change, and
    `draft.tags_changed` carries tag ids and names.
-4. **Planning** is behind RFC 043's `draft-planning` experiment. Promoting it
-   is a product decision.
+4. **Planning** is promoted: RFC 043's `draft-planning` experiment is on for
+   every workspace with drafts, with no opt-in and no switch to turn it off
+   (`TestWriteWorkspace/planning is promoted…`).
 5. **Follow-ups.** A draft's X follow-ups default to the engagement it copied
    from its set (repost and plug at a like count). A plug saves back as the
    set's engagement default; timed reposts stay the draft's own.

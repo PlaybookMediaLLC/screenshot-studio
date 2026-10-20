@@ -3,7 +3,7 @@ import {
   createDraftWorkspace,
   type DraftWorkspace,
   draftEditor,
-  enableDraftExperiments,
+  enableDraftTags,
   expectSaved,
 } from './framework/content-drafts'
 import { configureE2EFlow, test } from './framework/flow'
@@ -83,7 +83,6 @@ test('a thread is written once, adapted per platform, planned, scheduled, backed
   let workspace: DraftWorkspace | null = null
   try {
     workspace = await createDraftWorkspace(identity, page)
-    await enableDraftExperiments(page)
     const draftId = await newDraft(page)
 
     // The composer says who it publishes as, and every post shows its account.
@@ -390,7 +389,7 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
   }
   try {
     workspace = await createDraftWorkspace(identity, page)
-    await enableDraftExperiments(page)
+    await enableDraftTags(page)
     const first = await newDraft(page)
     await draftEditor(page).click()
     await settle(page)

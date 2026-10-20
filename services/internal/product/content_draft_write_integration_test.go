@@ -25,7 +25,7 @@ func TestWriteWorkspace(t *testing.T) {
 	w.addMember(t, "writer", "creator")
 	writer := w.actor("writer")
 	if _, err := repo.UpdateUserPreferences(ctx, owner, UserPreferencesUpdate{Experiments: map[string]bool{
-		ExperimentDraftTags: true, ExperimentDraftPlanning: true}}); err != nil {
+		ExperimentDraftTags: true}}); err != nil {
 		t.Fatal(err)
 	}
 	sets, err := repo.ListSocialSets(ctx, owner)
@@ -209,6 +209,35 @@ func TestWriteWorkspace(t *testing.T) {
 		}
 		if _, err := repo.ListContentDrafts(ctx, owner, ContentDraftListQuery{Sort: "random"}); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("an unknown sort was accepted: %v", err)
+		}
+	})
+
+	t.Run("planning is promoted: no opt-in, and no switch turns it off", func(t *testing.T) {
+		// A workspace that turned the experiment off before it was promoted.
+		w.exec(t, `INSERT INTO workspace_settings ("organizationId","updatedAt","disabledExperiments") VALUES ($1, now(), $2)
+			ON CONFLICT ("organizationId") DO UPDATE SET "disabledExperiments" = EXCLUDED."disabledExperiments"`, w.org, `["draft-planning"]`)
+		draft, err := repo.CreateContentDraft(ctx, writer, ContentDraftInput{Body: text("the writer plans")})
+		if err != nil {
+			t.Fatal(err)
+		}
+		at := time.Now().Add(24 * time.Hour).Truncate(time.Minute)
+		if _, err := repo.PlanContentDraft(ctx, writer, draft.ID, ContentDraftPlanInput{PlannedFor: &at, TimeZone: "UTC"}); err != nil {
+			t.Fatalf("someone who never opted in could not plan: %v", err)
+		}
+		states, err := repo.ListExperiments(ctx, writer)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, state := range states {
+			if state.ID == ExperimentDraftPlanning && (!state.Enabled || state.DisabledByAdmin || state.UserEditable) {
+				t.Fatalf("planning reads as optional: %+v", state)
+			}
+		}
+		if _, err := repo.UpdateUserPreferences(ctx, writer, UserPreferencesUpdate{Experiments: map[string]bool{ExperimentDraftPlanning: false}}); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("a person turned planning off: %v", err)
+		}
+		if _, err := repo.SetWorkspaceExperiment(ctx, owner, ExperimentDraftPlanning, true); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("an owner turned planning off for the workspace: %v", err)
 		}
 	})
 

@@ -174,7 +174,7 @@ type ContentDraftUpdate struct {
 	// The draft's own choices, which start as copies of its set's defaults.
 	NaturalPostingTime *bool   `json:"naturalPostingTime"`
 	PrimaryPlatform    *string `json:"primaryPlatform"`
-	// PlannedFor is an experiment; RFC 3339, or empty to clear.
+	// PlannedFor is RFC 3339, or empty to clear.
 	PlannedFor *string `json:"plannedFor"`
 	// Write (RFC 042): content that bumps the version like the body.
 	Article          *draftdoc.Article          `json:"article"`
@@ -866,9 +866,6 @@ func decodeTimeCursor(raw string) (time.Time, string, error) {
 func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx, actor Actor, current *ent.ContentDraft,
 	update *ent.ContentDraftUpdate, input ContentDraftUpdate) error {
 	if input.PlannedFor != nil {
-		if err := c.requireExperiment(ctx, actor, ExperimentDraftPlanning); err != nil {
-			return err
-		}
 		if *input.PlannedFor == "" {
 			update.ClearPlannedFor()
 		} else {

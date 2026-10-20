@@ -157,7 +157,7 @@ Three operations, with different backend semantics:
 | Operation | Effect |
 | --- | --- |
 | Save | Persists content. |
-| Plan | Sets `plannedFor` and its time zone. No scheduled post exists, so nothing can publish. Behind RFC 043's `draft-planning` experiment. |
+| Plan | Sets `plannedFor` and its time zone. No scheduled post exists, so nothing can publish. RFC 043's `draft-planning` experiment is promoted: planning is on for every workspace with drafts. |
 | Schedule | Creates the canonical scheduled posts (RFC 037), at an instant resolved in Go. |
 
 Publishing now is a schedule at the current instant, reached only from a final

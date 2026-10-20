@@ -12,7 +12,7 @@ person writing the receiver.
 | `draft.created`        | A draft is created.                                                                              |
 | `draft.published`      | One of a draft's posts goes live (once per post).                                                |
 | `draft.scheduled`      | A draft is scheduled, rescheduled or moved on the calendar.                                      |
-| `draft.planned`        | A draft's planned date is set or changed (an experiment).                                        |
+| `draft.planned`        | A draft's planned date is set or changed.                                                        |
 | `draft.status_changed` | A draft's status changes: scheduled, archived (also when its social set is deleted) or restored. |
 | `draft.tags_changed`   | A draft's tags change (an experiment).                                                           |
 | `draft.deleted`        | A draft is deleted.                                                                              |

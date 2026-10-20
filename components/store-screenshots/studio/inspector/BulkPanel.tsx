@@ -2,9 +2,9 @@
 
 import * as React from 'react'
 import { DEVICE_MODELS, DEVICE_STYLE_LABELS, getDeviceModel } from '@/lib/store-screenshots/devices'
-import { deviceStyleSchema, type DeviceStyle, type Background } from '@/lib/store-screenshots/document/schema'
+import { deviceStyleSchema, type DeviceStyle } from '@/lib/store-screenshots/document/schema'
 import { LAYOUT_PRESETS } from '@/lib/store-screenshots/engine/presets'
-import { BUNDLED_FONTS } from '@/lib/store-screenshots/fonts'
+import { resolveTextStyle } from '@/lib/store-screenshots/engine/text'
 import { useStudioActions } from '../actions'
 import { ColorField, Section, SelectField } from '../controls'
 import { useEditor, useEditorApi } from '../editor-store'
@@ -24,14 +24,20 @@ export function BulkPanel(): React.JSX.Element {
   const selected = useEditor((state) => state.selectedSlideIds)
   const theme = useEditor((state) => state.document.theme)
   const firstSlide = useEditor((state) => state.document.slides.find((slide) => slide.id === state.selectedSlideIds[0]))
+  const locale = useEditor((state) => state.locale)
   const count = selected.length
-  const [background, setBackground] = React.useState<Background>(firstSlide?.background ?? theme.background)
-  const [modelId, setModelId] = React.useState(theme.deviceFrame.modelId)
+  const background = firstSlide?.background ?? theme.background
+  const firstDevice = firstSlide?.layers.find((layer) => layer.type === 'device')
+  const modelId = firstDevice?.frame.modelId ?? theme.deviceFrame.modelId
   const model = getDeviceModel(modelId)
+  const heading = firstSlide?.layers.find((layer) => layer.type === 'text' && layer.role === 'heading')
+  const subheading = firstSlide?.layers.find((layer) => layer.type === 'text' && layer.role === 'subheading')
+  const headingStyle = heading?.type === 'text' ? resolveTextStyle(heading, theme, locale) : theme.textStyles.heading
+  const subheadingStyle = subheading?.type === 'text' ? resolveTextStyle(subheading, theme, locale) : theme.textStyles.subheading
 
   return (
     <>
-      <Section title={`${count} slides selected`} description="Changes here apply to the selected slides only and undo as one step.">
+      <Section title={`${count} slides selected`} description="Controls show the first selected slide. Changes apply to every selected slide and undo as one step.">
         <Button variant="custom" size={null} type="button" onClick={() => actions.openDialog('applyStyle')} className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
           Copy style from the active slide…
         </Button>
@@ -48,7 +54,6 @@ export function BulkPanel(): React.JSX.Element {
               api.getState().dispatch({ type: 'slides.patch', slideIds: selected, patch: { background: null } })
               return
             }
-            setBackground(next)
             api.getState().dispatchMany(
               [...(asset ? [{ type: 'assets.add' as const, assets: [asset] }] : []), { type: 'slides.patch', slideIds: selected, patch: { background: next } }],
               `Background on ${count} slides`,
@@ -72,18 +77,18 @@ export function BulkPanel(): React.JSX.Element {
       <Section title="Text">
         <FontPicker
           label="Font for all text"
-          value={BUNDLED_FONTS[0].value}
+          value={headingStyle.fontFamily}
           onChange={(fontFamily) => api.getState().dispatch({ type: 'slides.patchText', slideIds: selected, roles: ['heading', 'subheading', 'body'], style: { fontFamily } })}
         />
         <SelectField
           label="Heading weight"
-          value=""
+          value={String(headingStyle.fontWeight)}
           options={[{ value: '', label: 'Choose…' }, ...WEIGHT_OPTIONS]}
           onChange={(value) => value && api.getState().dispatch({ type: 'slides.patchText', slideIds: selected, roles: ['heading'], style: { fontWeight: Number(value) } })}
         />
         <ColorField
           label="Heading color"
-          value={null}
+          value={headingStyle.color}
           allowAuto
           resolved="#111111"
           palette={theme.palette}
@@ -91,7 +96,7 @@ export function BulkPanel(): React.JSX.Element {
         />
         <ColorField
           label="Subheading color"
-          value={null}
+          value={subheadingStyle.color}
           allowAuto
           resolved="#3F3F46"
           palette={theme.palette}
@@ -104,19 +109,18 @@ export function BulkPanel(): React.JSX.Element {
           value={modelId}
           options={DEVICE_MODELS.map((item) => ({ value: item.id, label: item.name }))}
           onChange={(value) => {
-            setModelId(value)
             api.getState().dispatch({ type: 'slides.patchDevices', slideIds: selected, frame: { modelId: value, finishId: getDeviceModel(value).finishes[0].id } })
           }}
         />
         <SelectField
           label="Finish"
-          value=""
+          value={firstDevice?.frame.finishId ?? theme.deviceFrame.finishId}
           options={[{ value: '', label: 'Choose…' }, ...model.finishes.map((finish) => ({ value: finish.id, label: finish.name }))]}
           onChange={(finishId) => finishId && api.getState().dispatch({ type: 'slides.patchDevices', slideIds: selected, frame: { modelId, finishId } })}
         />
         <SelectField<DeviceStyle | ''>
           label="Style"
-          value=""
+          value={firstDevice?.frame.style ?? theme.deviceFrame.style}
           options={[{ value: '', label: 'Choose…' }, ...deviceStyleSchema.options.map((style) => ({ value: style, label: DEVICE_STYLE_LABELS[style] }))]}
           onChange={(style) => style && api.getState().dispatch({ type: 'slides.patchDevices', slideIds: selected, frame: { style } })}
         />

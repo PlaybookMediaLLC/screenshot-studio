@@ -3,21 +3,14 @@
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { runChecks, type ComplianceIssue, type ExportSelection } from '@/lib/store-screenshots/compliance'
+import { runChecks, type ComplianceIssue } from '@/lib/store-screenshots/compliance'
+import { loadExportSettings } from '@/lib/store-screenshots/export/settings'
 import { evaluateSlide } from '@/lib/store-screenshots/engine/scene'
 import { localeName } from '@/lib/store-screenshots/locales'
 import { getStoreTarget, STORE_TARGET_CATALOG_VERSION, targetPixelSize } from '@/lib/store-screenshots/targets'
 import { useRenderServices } from '../../render/RenderProvider'
 import { useEditor, useEditorApi } from '../editor-store'
 import type { DialogProps } from './BasicDialogs'
-
-function storedSelection(projectId: string): Partial<ExportSelection> | null {
-  try {
-    return JSON.parse(localStorage.getItem(`shots-store-export:${projectId}`) ?? 'null')
-  } catch {
-    return null
-  }
-}
 
 /**
  * Store requirements and design suggestions for the planned export, each
@@ -26,26 +19,16 @@ function storedSelection(projectId: string): Partial<ExportSelection> | null {
 export function ChecksDialog({ open, onOpenChange, onExport }: DialogProps & { onExport: () => void }): React.JSX.Element {
   const api = useEditorApi()
   const document = useEditor((state) => state.document)
-  const { measurer } = useRenderServices()
-  const selection = React.useMemo<ExportSelection>(() => {
-    const stored = storedSelection(document.id)
-    const slideIds = (stored?.slideIds ?? []).filter((id) => document.slides.some((slide) => slide.id === id))
-    return {
-      targets: stored?.targets?.length ? stored.targets : [
-        { targetId: 'ios-iphone-6.9', sizeIndex: 0, orientation: 'portrait' },
-        { targetId: 'ios-iphone-6.3', sizeIndex: 0, orientation: 'portrait' },
-      ],
-      format: stored?.format ?? 'png',
-      locales: [document.localization.sourceLocale, ...document.localization.locales],
-      slideIds: slideIds.length ? slideIds : document.slides.map((slide) => slide.id),
-    }
-  }, [document])
+  const { measurer, fontsVersion } = useRenderServices()
+  const selection = React.useMemo(() => loadExportSettings(document), [document])
   const issues = React.useMemo(
     () =>
       runChecks(document, selection, (index, target, sizeIndex, orientation, locale) =>
         evaluateSlide(document, index, { size: targetPixelSize(target, sizeIndex, orientation), targetId: target.id, locale, measurer })
       ),
-    [document, selection, measurer]
+    // Font readiness changes geometry without changing the measurer function.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [document, selection, measurer, fontsVersion]
   )
 
   const go = (issue: ComplianceIssue) => {
@@ -68,7 +51,7 @@ export function ChecksDialog({ open, onOpenChange, onExport }: DialogProps & { o
         <DialogHeader>
           <DialogTitle>Checks</DialogTitle>
           <DialogDescription>
-            Checked for {selection.targets.map((choice) => getStoreTarget(choice.targetId)?.shortName).join(', ')} in {selection.locales.map(localeName).join(', ')}. Store rules as of {STORE_TARGET_CATALOG_VERSION}. Passing these checks does not guarantee approval.
+            Checking the planned export: {selection.slideIds.length} {selection.slideIds.length === 1 ? 'slide' : 'slides'} for {selection.targets.map((choice) => getStoreTarget(choice.targetId)?.shortName).join(', ')} in {selection.locales.map(localeName).join(', ')}. Change sizes, languages, or slides in Export settings. Store rules as of {STORE_TARGET_CATALOG_VERSION}. Passing these checks does not guarantee approval.
           </DialogDescription>
         </DialogHeader>
         {groups.map((group) => {

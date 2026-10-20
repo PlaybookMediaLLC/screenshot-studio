@@ -241,6 +241,15 @@ export function Filmstrip(): React.JSX.Element {
         </Button>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1 text-[10px] text-muted-foreground">
+        <Button variant="outline" size="sm"
+          type="button"
+          disabled={slides.length + selectedSlideIds.length > MAX_PROJECT_SLIDES}
+          onClick={() => api.getState().dispatch({ type: 'slides.duplicate', slideIds: selectedSlideIds })}
+          aria-label={selectedSlideIds.length > 1 ? `Duplicate ${selectedSlideIds.length} slides` : 'Duplicate slide'}
+          className="h-7 px-2 text-[11px]"
+        >
+          Duplicate
+        </Button>
         <span className="tabular-nums">
           {selectedSlideIds.length > 1 ? `${selectedSlideIds.length} of ` : ''}
           {slides.length} slides

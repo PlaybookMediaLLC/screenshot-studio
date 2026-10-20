@@ -22,6 +22,7 @@ import {
 import type { StoreDocument, TextLayer } from '../lib/store-screenshots/document/schema'
 import { ExportCancelledError, runExportJob, zipOutputs } from '../lib/store-screenshots/export/job'
 import { planExport, type ExportSettings } from '../lib/store-screenshots/export/plan'
+import { resolveExportSettings } from '../lib/store-screenshots/export/settings'
 import { encodeRgbPng, readPngHeader } from '../lib/store-screenshots/export/png'
 import {
   decodeSpans,
@@ -49,6 +50,37 @@ const settings = (
 
 const headingOf = (document: StoreDocument, index = 0) =>
   document.slides[index].layers.find((layer): layer is TextLayer => layer.type === 'text')!
+
+test('checks and exports restore the same valid sizes, languages, and slides', () => {
+  const document = createStarterDocument()
+  document.localization.locales = ['fr-FR']
+  const saved = settings(document, {
+    targets: [
+      { targetId: 'play-phone', sizeIndex: 0, orientation: 'landscape' },
+      { targetId: 'missing-target', sizeIndex: 0, orientation: 'portrait' },
+      { targetId: 'mac', sizeIndex: 999, orientation: 'landscape' },
+      { targetId: 'apple-watch-ultra', sizeIndex: 0, orientation: 'landscape' },
+    ],
+    locales: ['fr-FR', 'deleted-locale'],
+    slideIds: [document.slides[1].id, 'deleted-slide'],
+  })
+  const restored = resolveExportSettings(document, saved)
+  assert.deepEqual(restored.targets, [saved.targets[0]])
+  assert.deepEqual(restored.locales, ['fr-FR'])
+  assert.deepEqual(restored.slideIds, [document.slides[1].id])
+  const defaults = resolveExportSettings(document, null)
+  for (const invalid of [null, {}, { targets: 'broken' }, { locales: [] }, { quality: 5 }]) {
+    assert.deepEqual(resolveExportSettings(document, invalid), defaults)
+  }
+  assert.deepEqual(
+    resolveExportSettings(document, {
+      targets: [{ targetId: 'deleted', sizeIndex: 0, orientation: 'portrait' }],
+      locales: ['deleted'],
+      slideIds: ['deleted'],
+    }),
+    defaults
+  )
+})
 
 test('export plan: one file per target × locale × slide, numbered in project order with exact sizes', () => {
   const document = createStarterDocument()

@@ -121,11 +121,17 @@ export function NumberField({
 }): React.JSX.Element {
   const id = React.useId()
   const [draft, setDraft] = React.useState<string | null>(null)
+  const cancelRef = React.useRef(false)
   const commit = (raw: string) => {
-    const parsed = Number(raw)
     setDraft(null)
+    if (cancelRef.current) {
+      cancelRef.current = false
+      return
+    }
+    const parsed = Number(raw)
     if (!raw.trim() || !Number.isFinite(parsed)) return
-    onChange(Math.min(max, Math.max(min, parsed)))
+    const next = Math.min(max, Math.max(min, parsed))
+    if (next !== value) onChange(next)
   }
   const input = (
     <div className={cn('flex h-8 min-w-0 items-center rounded-md border border-foreground/10 bg-foreground/[0.035] focus-within:border-foreground/30', disabled && 'opacity-50')}>
@@ -140,9 +146,10 @@ export function NumberField({
         onChange={(event) => setDraft(event.target.value)}
         onBlur={(event) => commit(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') commit(event.currentTarget.value)
+          if (event.key === 'Enter') event.currentTarget.blur()
           else if (event.key === 'Escape') {
-            setDraft(null)
+            event.stopPropagation()
+            cancelRef.current = true
             event.currentTarget.blur()
           } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
             event.preventDefault()

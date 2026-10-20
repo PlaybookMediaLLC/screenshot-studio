@@ -174,7 +174,10 @@ export function StorePreviewDialog({ open, onOpenChange }: DialogProps): React.J
           </div>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          Search results show the first three portrait screenshots side by side, so slides 1 to 3 carry most of the first impression. Ratings and reviews are left out on purpose: they come from the store, not from your screenshots.
+          {surface === 'app-store-search'
+            ? 'This search preview shows the first three screenshots side by side. Check that their headlines are readable together.'
+            : 'This listing preview shows the screenshots in a horizontal gallery. Check the first slide and the visible edge of the next one.'}
+          {' '}Ratings and reviews come from the store and are omitted from this simulation.
         </p>
       </DialogContent>
     </Dialog>

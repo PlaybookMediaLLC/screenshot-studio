@@ -61,6 +61,7 @@ import { hasVisibleMockups, shouldRenderSourceImage } from '@/lib/device-mockups
 import { removeScreenshot } from '@/lib/editor/remove-screenshot'
 import { validateImageFile } from '@/lib/editor/import-images'
 import { hasMotionContent } from '@/lib/animation/motion-schema'
+import { hasCanvasContent } from '@/lib/editor/canvas-content'
 import {
   Select,
   SelectTrigger,
@@ -118,7 +119,6 @@ export function EditorHeader() {
     customDimensions,
     slides,
     uploadedImageUrl,
-    textOverlays,
     editorMode,
     mockups,
     timeline,
@@ -146,7 +146,7 @@ export function EditorHeader() {
     (!!screenshot.src && shouldRenderSourceImage(editorMode, mockups)) ||
     (editorMode === 'device' && hasVisibleMockups(mockups))
 
-  const hasContent = hasImage || textOverlays.length > 0
+  const hasContent = useImageStore(hasCanvasContent)
 
   // Undo/redo state
   const [canUndo, setCanUndo] = React.useState(false)
@@ -360,7 +360,7 @@ export function EditorHeader() {
 
         <div className="flex items-center gap-1 justify-self-end">
           {hasContent && !isMobile ? (
-            <ToolButton className="hover:text-destructive" label="Remove" onClick={removeScreenshot}>
+            <ToolButton className="hover:text-destructive" label="Remove" disabled={!uploadedImageUrl} onClick={removeScreenshot}>
               <Delete02Icon size={15} />
             </ToolButton>
           ) : null}
@@ -440,6 +440,12 @@ export function EditorHeader() {
               />
             </PopoverContent>
           </Popover>
+
+          {!isMobile ? (
+            <ToolButton label="Keyboard shortcuts" onClick={() => setShortcutsOpen(true)}>
+              <KeyboardIcon size={15} />
+            </ToolButton>
+          ) : null}
 
           <DropdownMenu>
             <Tooltip>

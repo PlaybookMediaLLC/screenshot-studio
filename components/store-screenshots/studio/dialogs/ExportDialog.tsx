@@ -14,6 +14,7 @@ import { countIssues, runChecks } from '@/lib/store-screenshots/compliance'
 import { evaluateSlide } from '@/lib/store-screenshots/engine/scene'
 import { ExportCancelledError, runExportJob, zipOutputs, type ExportFailure, type ExportOutput, type ExportProgress } from '@/lib/store-screenshots/export/job'
 import { planExport, slugify, type ExportSettings, type FolderLayout } from '@/lib/store-screenshots/export/plan'
+import { loadExportSettings } from '@/lib/store-screenshots/export/settings'
 import { localeName } from '@/lib/store-screenshots/locales'
 import { getStoreTarget, sizeLabel, STORE_TARGETS, targetPixelSize, type ExportOrientation } from '@/lib/store-screenshots/targets'
 import { cn } from '@/lib/utils'
@@ -51,22 +52,6 @@ const REQUIREMENT_BADGE = {
   optional: 'Optional',
 } as const
 
-function defaults(slideIds: string[], sourceLocale: string): ExportSettings {
-  return {
-    targets: [
-      { targetId: 'ios-iphone-6.9', sizeIndex: 0, orientation: 'portrait' },
-      { targetId: 'ios-iphone-6.3', sizeIndex: 0, orientation: 'portrait' },
-    ],
-    format: 'png',
-    quality: 0.92,
-    locales: [sourceLocale],
-    slideIds,
-    folderLayout: 'store-locale-device',
-    packaging: 'zip',
-    prefix: '',
-  }
-}
-
 /** The export dialog. */
 export function ExportDialog({ open, onOpenChange, strict = false, beforeExport, onExport }: DialogProps & {
   strict?: boolean
@@ -77,18 +62,7 @@ export function ExportDialog({ open, onOpenChange, strict = false, beforeExport,
   const document = useEditor((state) => state.document)
   const { measurer, resolveAsset, whenAssetsReady, fontsVersion } = useRenderServices()
   const allSlideIds = document.slides.map((slide) => slide.id)
-  const [settings, setSettings] = React.useState<ExportSettings>(() => {
-    const base = defaults(allSlideIds, document.localization.sourceLocale)
-    try {
-      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY(document.id)) ?? 'null') as Partial<ExportSettings> | null
-      if (!saved) return base
-      const locales = (saved.locales ?? base.locales).filter((code) => code === document.localization.sourceLocale || document.localization.locales.includes(code))
-      const slideIds = (saved.slideIds ?? base.slideIds).filter((id) => allSlideIds.includes(id))
-      return { ...base, ...saved, locales: locales.length ? locales : base.locales, slideIds: slideIds.length ? slideIds : base.slideIds }
-    } catch {
-      return base
-    }
-  })
+  const [settings, setSettings] = React.useState<ExportSettings>(() => loadExportSettings(document))
   const [progress, setProgress] = React.useState<ExportProgress | null>(null)
   const [result, setResult] = React.useState<{ outputs: ExportOutput[]; failures: ExportFailure[] } | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)

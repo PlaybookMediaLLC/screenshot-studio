@@ -43,6 +43,7 @@ import {
 import { removeScreenshot } from '@/lib/editor/remove-screenshot'
 import { useMainChromeFrame } from "@/components/frames/use-main-chrome";
 import { useFrameToneSync } from "@/lib/frames/use-frame-tone";
+import { hasCanvasContent } from "@/lib/editor/canvas-content";
 
 // Reference to the HTML canvas container for export
 let globalCanvasContainer: HTMLDivElement | null = null;
@@ -716,8 +717,7 @@ export default function ClientCanvas({
   const uploadedImageUrl = useImageStore((state) => state.uploadedImageUrl);
   const editorMode = useImageStore((state) => state.editorMode);
   const mockups = useImageStore((state) => state.mockups);
-  const hasText = useImageStore((state) => state.textOverlays.length > 0);
-  const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
+  const hasContent = useImageStore(hasCanvasContent);
   const hasSourceImage = !!uploadedImageUrl
     && shouldRenderSourceImage(editorMode, mockups);
 
@@ -725,7 +725,7 @@ export default function ClientCanvas({
   useEffect(() => {
     setLoadError(false);
 
-    if (!hasSourceImage && !hasDeviceScene && !hasText) {
+    if (!hasContent) {
       setImage(null);
       return;
     }
@@ -764,7 +764,7 @@ export default function ClientCanvas({
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasDeviceScene, hasSourceImage, hasText, uploadedImageUrl]);
+  }, [hasContent, hasSourceImage, uploadedImageUrl]);
 
   useEffect(() => {
     if (image) {
@@ -772,7 +772,7 @@ export default function ClientCanvas({
     }
   }, [image, onReady]);
 
-  if (loadError || (!hasSourceImage && !hasDeviceScene && !hasText)) {
+  if (loadError || !hasContent) {
     return null;
   }
 

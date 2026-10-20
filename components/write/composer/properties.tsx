@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
 import { LocalTime } from '@/components/drafts/local-time'
-import type { DraftWire } from '@/lib/content-drafts/client'
+import { call, type DraftWire } from '@/lib/content-drafts/client'
 import { type DraftActivityWire, writeApi } from '@/lib/write/client'
 import type { Publication } from '@/lib/write/publication'
 import { cn } from '@/lib/utils'
@@ -77,6 +77,7 @@ function detail(item: DraftActivityWire): string {
  * the plain counts, so an over-limit X post is never hidden by a green one.
  */
 export function PropertiesPanel({
+  aiEnabled = false,
   canEdit,
   draft,
   plainText,
@@ -84,6 +85,8 @@ export function PropertiesPanel({
   title,
   onTitle,
 }: {
+  /** Offer a title written by AI, from the draft's text. */
+  aiEnabled?: boolean
   canEdit: boolean
   draft: DraftWire
   plainText: string
@@ -98,6 +101,7 @@ export function PropertiesPanel({
   const [managing, setManaging] = React.useState(false)
   const [activity, setActivity] = React.useState<DraftActivityWire[] | null>(null)
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [naming, setNaming] = React.useState(false)
   const setId = draft.socialSetId ?? data.sets.find((set) => set.isDefault)?.id
   const tags = data.sets.find((set) => set.id === setId)?.id === data.activeSet?.id ? data.tags : []
   React.useEffect(() => {
@@ -144,8 +148,40 @@ export function PropertiesPanel({
           onChange={(event) => onTitle(event.target.value)}
           value={title}
         />
-        <span className="text-[11px] text-neutral-600">
+        <span className="flex items-center justify-between text-[11px] text-neutral-600">
           Only you and your team see it; it is never posted.
+          {aiEnabled && canEdit ? (
+            <Button
+              className="text-sky-300 hover:text-sky-200"
+              disabled={naming || !plainText.trim()}
+              onClick={async () => {
+                setNaming(true)
+                try {
+                  const answer = await call<{ texts: string[] }>('/api/v1/content-drafts/refine', {
+                    body: {
+                      action: 'title',
+                      channel: draft.primaryChannel,
+                      limit: 80,
+                      scope: 'draft',
+                      socialSetId: setId,
+                      texts: [plainText.slice(0, 20_000)],
+                    },
+                    method: 'POST',
+                  })
+                  onTitle(answer.texts[0])
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : 'The AI could not answer.')
+                } finally {
+                  setNaming(false)
+                }
+              }}
+              size={null}
+              type="button"
+              variant="custom"
+            >
+              {naming ? 'Writing…' : 'Generate title'}
+            </Button>
+          ) : null}
         </span>
       </Label>
       <div className="grid gap-1.5">

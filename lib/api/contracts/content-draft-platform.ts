@@ -178,24 +178,6 @@ export const getContentDraftRevisionContract = defineContract({
   summary: 'Read one revision of a draft, with its body',
 })
 
-/** What the AI can do to a draft's text. */
-export const draftAssistActionSchema = z.enum(['rewrite', 'thread', 'shorten'])
-
-/** `POST /api/v1/content-drafts/assist` */
-export const draftAssistContract = defineContract({
-  body: z.object({
-    action: draftAssistActionSchema,
-    channel: z.enum(['x', 'linkedin', 'instagram', 'threads', 'bluesky', 'mastodon']),
-    /** The draft's posts as plain text. */
-    posts: z.array(z.string().max(10_000)).min(1).max(25),
-  }),
-  method: 'POST',
-  name: 'content-drafts.assist',
-  output: z.object({ posts: z.array(z.string()).min(1) }),
-  path: '/api/v1/content-drafts/assist',
-  summary: 'Rewrite, thread or shorten a draft for a channel',
-})
-
 /** A link's card: what a channel shows for it. */
 export const linkCardSchema = z.object({
   description: z.string().nullable(),

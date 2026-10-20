@@ -61,7 +61,9 @@ import { PreviewPanel, type PreviewItem } from './preview'
 import { PropertiesPanel } from './properties'
 import { PublishReview, ScheduleDialog, type ScheduleContext } from './schedule'
 import { BackupsBrowser, ShareDialog } from './share-backups'
+import { AssistantPanel } from './assistant'
 import { DescribeImages } from './describe-images'
+import { RefineButton } from './refine'
 import { MentionPicker, SocialMentionPlugin } from './social-mention'
 import { type SaveState, useDraftDocument } from './useDraftDocument'
 import { VersionOptionsBar } from './version-options'
@@ -428,7 +430,6 @@ export function WriteComposer({
     )
   }
   const editorProps = {
-    assistChannel: active,
     extraPlugins: WRITE_PLUGINS,
     handles: vocabulary.handles,
     hashtags: vocabulary.hashtags,
@@ -450,6 +451,7 @@ export function WriteComposer({
   const panelContent =
     panel === 'properties' ? (
       <PropertiesPanel
+        aiEnabled={aiEnabled}
         canEdit={canEdit}
         draft={server}
         onTitle={(title) => update({ title })}
@@ -471,7 +473,18 @@ export function WriteComposer({
         versions={document.versions}
       />
     ) : panel === 'assistant' ? (
-      <AssistantPlaceholder />
+      <AssistantPanel
+        channel={active}
+        onInsert={
+          canEdit && active === primary
+            ? (text) => {
+                if (editor.current) appendPost(editor.current, text)
+              }
+            : undefined
+        }
+        posts={activePublication.serialized.posts.map((post) => post.caption)}
+        set={set}
+      />
     ) : null
   const status =
     server.status === 'archived'
@@ -719,6 +732,9 @@ export function WriteComposer({
               }}
               toolbarExtras={
                 <ToolbarExtras
+                  aiEnabled={aiEnabled}
+                  channel={active}
+                  limit={activePublication.serialized.limit}
                   channels={items.map((item) => item.account.channel)}
                   editor={editor}
                   setId={server.socialSetId ?? set?.id ?? null}
@@ -755,6 +771,9 @@ export function WriteComposer({
                 }}
                 toolbarExtras={
                   <ToolbarExtras
+                    aiEnabled={aiEnabled}
+                    channel={active}
+                    limit={activePublication.serialized.limit}
                     channels={[active]}
                     editor={editor}
                     setId={server.socialSetId ?? set?.id ?? null}
@@ -1015,12 +1034,19 @@ function TargetBanner({ draft }: { draft: DraftWire }) {
 
 /** The bottom toolbar's Write tools: mentions looked up on the platform, and emoji. */
 function ToolbarExtras({
+  aiEnabled,
+  channel,
   channels,
   editor,
+  limit,
   setId,
 }: {
+  aiEnabled: boolean
+  /** The version being edited, which Refine writes for. */
+  channel: DraftChannel
   channels: DraftChannel[]
   editor: React.MutableRefObject<PlateEditor | null>
+  limit: number
   setId: string | null
 }) {
   const { mod } = useKeys()
@@ -1032,6 +1058,9 @@ function ToolbarExtras({
   ])
   return (
     <>
+      {aiEnabled ? (
+        <RefineButton channel={channel} editor={editor} limit={limit} setId={setId} />
+      ) : null}
       <MentionPicker channels={channels} editor={editor} setId={setId} />
       <Button
         aria-label="Describe images"
@@ -1089,9 +1118,4 @@ function ToolbarExtras({
       </Popover>
     </>
   )
-}
-
-/** Shown until the assistant panel loads its conversation. */
-function AssistantPlaceholder() {
-  return <p className="p-4 text-sm text-neutral-500">The writing assistant is loading.</p>
 }

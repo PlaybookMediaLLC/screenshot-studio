@@ -41,14 +41,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { DraftDiscussions } from '@/lib/content-drafts/discussions'
-import { draftsApi } from '@/lib/content-drafts/client'
-import { type DraftChannel, POST_BREAK, serializeDraft } from '@/lib/content-drafts/serialize'
 import { cn } from '@/lib/utils'
-import { CHANNEL_META } from './channel-meta'
 import { POST_COLUMN } from './layout'
-
-/** What the AI can do to a draft (the assist contract's actions). */
-type DraftAssistAction = 'rewrite' | 'thread' | 'shorten'
 import {
   insertPostBreak,
   PostBreakPlugin,
@@ -102,8 +96,6 @@ function HashtagChips({ hashtags }: { hashtags: string[] }) {
 }
 
 export type DraftEditorProps = {
-  /** The channel the AI writes for: the first selected thread channel. */
-  assistChannel: DraftChannel
   collaboration: DraftCollaboration | null
   /** The editor, once made: the host restores revisions through it. */
   onEditor?: (editor: PlateEditor) => void
@@ -327,64 +319,6 @@ function InsertButton({
   )
 }
 
-/** What each AI action is called in the menu. */
-const ASSIST_LABELS: Record<DraftAssistAction, (channel: string) => string> = {
-  rewrite: (channel) => `Rewrite for ${channel}`,
-  shorten: (channel) => `Shorten to fit ${channel}`,
-  thread: () => 'Turn into a thread',
-}
-
-/**
- * AI help on the whole draft: rewrite it for a channel, turn it into a
- * thread, or shorten it to fit. The answer replaces the text in one step,
- * so undo brings the writer's own back; images stay with the first post.
- */
-function AssistMenu({ channel, editor }: { channel: DraftChannel; editor: PlateEditor }) {
-  const [busy, setBusy] = React.useState(false)
-  const label = CHANNEL_META[channel].label
-  const run = async (action: DraftAssistAction) => {
-    const posts = serializeDraft(editor.children, channel).posts.map((post) => post.caption)
-    if (posts.every((post) => !post.trim())) {
-      toast.info('Write something first.')
-      return
-    }
-    setBusy(true)
-    try {
-      const answer = await draftsApi.assist({ action, channel, posts })
-      const media = editor.children.filter((node) => node.type === 'img' || node.type === 'video')
-      const value = answer.posts.flatMap((post, index) => [
-        ...(index > 0 ? [{ children: [{ text: '' }], type: POST_BREAK }] : []),
-        ...post
-          .split(/\n{2,}/)
-          .map((paragraph) => ({ children: [{ text: paragraph }], type: 'p' })),
-        ...(index === 0 ? media : []),
-      ])
-      editor.tf.withoutNormalizing(() => editor.tf.setValue(value as Value))
-      toast.success('Done. Undo brings your version back.')
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'The AI could not answer.')
-    } finally {
-      setBusy(false)
-    }
-  }
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <ToolbarButton aria-label="AI help" disabled={busy} tooltip="AI help">
-          {busy ? 'Writing…' : 'AI'}
-        </ToolbarButton>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" side="top">
-        {(Object.keys(ASSIST_LABELS) as DraftAssistAction[]).map((action) => (
-          <DropdownMenuItem key={action} onSelect={() => void run(action)}>
-            {ASSIST_LABELS[action](label)}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 /** Import and export, out of the writing toolbar's way behind one button. */
 function DocumentMenu({
   exports,
@@ -437,14 +371,12 @@ function DocumentMenu({
 }
 
 function DraftToolbar({
-  assistChannel,
   editor,
   imageInput,
   services,
   title,
   extras,
 }: {
-  assistChannel: DraftChannel
   editor: PlateEditor
   imageInput: React.RefObject<HTMLInputElement | null>
   services: EditorServices
@@ -540,11 +472,6 @@ function DraftToolbar({
         </FileButton>
       </ToolbarGroup>
       {extras ? <ToolbarGroup>{extras}</ToolbarGroup> : null}
-      {services.ai ? (
-        <ToolbarGroup>
-          <AssistMenu channel={assistChannel} editor={editor} />
-        </ToolbarGroup>
-      ) : null}
       <ToolbarGroup>
         <DocumentMenu
           files={[
@@ -567,7 +494,6 @@ function DraftToolbar({
 }
 
 export default function DraftEditor({
-  assistChannel,
   collaboration,
   onEditor,
   handles,
@@ -706,7 +632,6 @@ export default function DraftEditor({
               <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center">
                 <div className="pointer-events-auto">
                   <DraftToolbar
-                    assistChannel={assistChannel}
                     editor={editor}
                     extras={toolbarExtras}
                     imageInput={imageInput}

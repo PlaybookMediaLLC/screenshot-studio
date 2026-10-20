@@ -3,7 +3,6 @@ import type {
   calendarPostSchema,
   contentDraftRevisionSchema,
   contentDraftSettingsSchema,
-  draftAssistContract,
   linkCardSchema,
 } from '@/lib/api/contracts/content-draft-platform'
 import type {
@@ -101,8 +100,6 @@ export const draftsApi = {
   revisions: (id: string) => call<{ items: RevisionWire[] }>(`${one(id)}/revisions`),
   revision: (id: string, revisionId: string) =>
     call<RevisionWire>(`${one(id)}/revisions/${encodeURIComponent(revisionId)}`),
-  assist: (input: z.input<typeof draftAssistContract.body>) =>
-    call<{ posts: string[] }>(`${base}/assist`, { body: input, method: 'POST' }),
   linkCard: (url: string) =>
     call<z.output<typeof linkCardSchema>>(`${base}/link-card?${new URLSearchParams({ url })}`),
   settings: () => call<SettingsWire>('/api/v1/content-draft-settings'),

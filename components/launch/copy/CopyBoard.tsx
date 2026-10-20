@@ -151,7 +151,7 @@ function ReviewActions({ permissions, post }: { permissions: Permissions; post: 
   }
 
   const alert = error ? (
-    <div className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300" role="alert">
+    <div className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300" role="alert">
       {error}
     </div>
   ) : null
@@ -167,16 +167,16 @@ function ReviewActions({ permissions, post }: { permissions: Permissions; post: 
           }}
         >
           <div className="flex items-baseline justify-between gap-3">
-            <Label className="text-xs font-medium text-neutral-400" htmlFor={noteId}>
+            <Label className="text-xs font-medium text-foreground/65" htmlFor={noteId}>
               Review note
             </Label>
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted-foreground">
               {noting === 'reject' ? 'Rejecting this post' : 'Requesting changes'}
             </span>
           </div>
           <Textarea
             autoFocus
-            className="min-h-20 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-white/20"
+            className="min-h-20 w-full rounded-lg border border-foreground/[0.08] bg-foreground/[0.03] px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/75 focus:border-foreground/20"
             id={noteId}
             maxLength={1_000}
             onChange={(event) => setNote(event.target.value)}
@@ -368,7 +368,7 @@ function ScheduleActions({
     DEAD_DELIVERY.includes(post.scheduledPostStatus)
   if (post.status !== 'APPROVED' && !reschedule) return null
   if (connectionsForChannel(post.channel, []) === null) {
-    return <span className="text-xs text-neutral-500">Can&apos;t be scheduled yet</span>
+    return <span className="text-xs text-muted-foreground">Can&apos;t be scheduled yet</span>
   }
   return (
     <ScheduleDialog
@@ -404,7 +404,7 @@ function PostCard({
     : null
   const selectable = permissions.canApprove && post.status === 'READY_FOR_REVIEW'
   return (
-    <article className="flex flex-col rounded-2xl bg-white/[0.015] ring-1 ring-white/[0.08]">
+    <article className="flex flex-col rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]">
       <div className="flex flex-col gap-4 p-5">
         <div className="flex flex-wrap items-center gap-1.5">
           {selectable ? (
@@ -432,15 +432,15 @@ function PostCard({
         ) : (
           <>
             {post.title ? (
-              <h3 className="text-base font-medium text-balance text-white">{post.title}</h3>
+              <h3 className="text-base font-medium text-balance text-foreground">{post.title}</h3>
             ) : null}
-            <p className="text-sm leading-6 whitespace-pre-wrap text-neutral-200">{post.copy}</p>
+            <p className="text-sm leading-6 whitespace-pre-wrap text-foreground">{post.copy}</p>
             <PostLinkCheck text={post.copy} />
             {post.callToAction || limit ? (
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 {post.callToAction ? (
-                  <p className="text-sm text-neutral-200">
-                    <span className="mr-2 text-xs font-medium text-neutral-500">
+                  <p className="text-sm text-foreground">
+                    <span className="mr-2 text-xs font-medium text-muted-foreground">
                       Call to action
                     </span>
                     {post.callToAction}
@@ -454,7 +454,7 @@ function PostCard({
           </>
         )}
         {post.approval || post.scheduledAt ? (
-          <div className="flex flex-col gap-1 text-xs text-neutral-500">
+          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
             {post.approval ? (
               <p>
                 Approved{post.approval.by ? ` by ${post.approval.by}` : ''} ·{' '}
@@ -471,26 +471,26 @@ function PostCard({
         ) : null}
         {post.reviewNote ? (
           <div className="rounded-xl bg-amber-500/[0.06] px-4 py-3 ring-1 ring-amber-500/20">
-            <p className="text-xs font-medium text-amber-300">Reviewer note</p>
-            <p className="mt-1 text-sm whitespace-pre-wrap text-neutral-200">{post.reviewNote}</p>
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-300">Reviewer note</p>
+            <p className="mt-1 text-sm whitespace-pre-wrap text-foreground">{post.reviewNote}</p>
           </div>
         ) : null}
         {post.claims.length > 0 ? (
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-neutral-500">Based on</p>
+            <p className="text-xs font-medium text-muted-foreground">Based on</p>
             <ul className="flex flex-wrap gap-1.5">
               {post.claims.map((claim, index) => (
                 <li
                   className={cn(
                     'flex max-w-full flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg px-2.5 py-1.5 text-xs ring-1',
                     claim.current
-                      ? 'bg-white/[0.03] ring-white/[0.06]'
+                      ? 'bg-foreground/[0.03] ring-foreground/[0.06]'
                       : 'bg-amber-500/[0.04] ring-amber-500/20'
                   )}
                   key={`${claim.ref}-${index}`}
                 >
-                  <code className="font-mono text-neutral-400">{claim.ref}</code>
-                  <span className="text-neutral-300">{claim.text}</span>
+                  <code className="font-mono text-foreground/65">{claim.ref}</code>
+                  <span className="text-foreground/80">{claim.text}</span>
                   {claim.current ? null : <Pill tone="yellow">Changed in the current spec</Pill>}
                 </li>
               ))}
@@ -499,12 +499,12 @@ function PostCard({
         ) : null}
       </div>
       {/* Open forms and panels are divs and forms, and take the full row. */}
-      <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] px-5 py-3 [&>div]:basis-full [&>form]:basis-full">
+      <div className="flex flex-wrap items-center gap-2 border-t border-foreground/[0.06] px-5 py-3 [&>div]:basis-full [&>form]:basis-full">
         <ReviewActions permissions={permissions} post={post} />
         <ScheduleActions channelLabel={channelLabel} permissions={permissions} post={post} />
         {permissions.canEdit && !editing ? (
           editBlock ? (
-            <span className="text-xs text-neutral-500">{editBlock}</span>
+            <span className="text-xs text-muted-foreground">{editBlock}</span>
           ) : (
             <Button
               className="h-8 gap-1.5 rounded-lg text-xs"
@@ -556,16 +556,16 @@ export function CopyBoard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs.List
           aria-label="Channels"
-          className="flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-lg bg-white/[0.03] p-0.5 ring-1 ring-white/[0.08]"
+          className="flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-lg bg-foreground/[0.03] p-0.5 ring-1 ring-foreground/[0.08]"
         >
           {channels.map((channel) => (
             <Tabs.Trigger
-              className="flex shrink-0 items-center gap-2 rounded-md px-3 py-1 text-sm font-medium text-neutral-500 transition-colors outline-none hover:text-neutral-200 focus-visible:ring-2 focus-visible:ring-white/30 data-[state=active]:bg-white/[0.08] data-[state=active]:text-white"
+              className="flex shrink-0 items-center gap-2 rounded-md px-3 py-1 text-sm font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/30 data-[state=active]:bg-foreground/[0.08] data-[state=active]:text-foreground"
               key={channel.value}
               value={channel.value}
             >
               {channel.label}{' '}
-              <span className="text-xs text-neutral-500 tabular-nums">
+              <span className="text-xs text-muted-foreground tabular-nums">
                 {posts.filter((post) => post.channel === channel.value).length}
               </span>
             </Tabs.Trigger>
@@ -598,9 +598,9 @@ export function CopyBoard({
             key={channel.value}
             value={channel.value}
           >
-            {channel.role ? <p className="text-sm text-neutral-500">{channel.role}</p> : null}
+            {channel.role ? <p className="text-sm text-muted-foreground">{channel.role}</p> : null}
             {channelPosts.length === 0 ? (
-              <p className="rounded-2xl bg-white/[0.015] px-6 py-10 text-center text-sm text-neutral-500 ring-1 ring-white/[0.06]">
+              <p className="rounded-2xl bg-foreground/[0.015] px-6 py-10 text-center text-sm text-muted-foreground ring-1 ring-foreground/[0.06]">
                 No {channel.label} posts yet.
               </p>
             ) : (

@@ -32,8 +32,8 @@ export function Page({
     >
       <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-medium tracking-tight text-white">{title}</h1>
-          {description ? <p className="mt-1 text-sm text-neutral-500">{description}</p> : null}
+          <h1 className="text-2xl font-medium tracking-tight text-foreground">{title}</h1>
+          {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
         </div>
         {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
       </header>
@@ -59,9 +59,9 @@ export function Section({
     <section className="flex flex-col gap-4" id={id}>
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-lg font-medium text-white">{title}</h2>
+          <h2 className="text-lg font-medium text-foreground">{title}</h2>
           {description ? (
-            <p className="mt-1 text-sm text-balance text-neutral-500">{description}</p>
+            <p className="mt-1 text-sm text-balance text-muted-foreground">{description}</p>
           ) : null}
         </div>
         {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
@@ -76,7 +76,7 @@ export function Group({ children, className }: { children: ReactNode; className?
   return (
     <div
       className={cn(
-        'flex w-full flex-col divide-y divide-white/[0.07] overflow-hidden rounded-2xl bg-white/[0.015] ring-1 ring-white/[0.08]',
+        'flex w-full flex-col divide-y divide-foreground/[0.07] overflow-hidden rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]',
         className
       )}
     >
@@ -111,8 +111,8 @@ export function Row({
       )}
     >
       <div className={cn('min-w-0', layout === 'split' && 'md:max-w-[50%]')}>
-        <h3 className="text-sm font-medium text-white">{label}</h3>
-        {description ? <p className="mt-0.5 text-xs text-neutral-500">{description}</p> : null}
+        <h3 className="text-sm font-medium text-foreground">{label}</h3>
+        {description ? <p className="mt-0.5 text-xs text-muted-foreground">{description}</p> : null}
       </div>
       {children ? (
         <div
@@ -130,12 +130,12 @@ export function Row({
 }
 
 const PILL_TONES = {
-  blue: 'bg-blue-500/10 text-blue-300 ring-blue-500/20',
-  gray: 'bg-white/[0.06] text-neutral-300 ring-white/10',
-  green: 'bg-emerald-500/10 text-emerald-300 ring-emerald-500/20',
-  purple: 'bg-violet-500/10 text-violet-300 ring-violet-500/20',
-  red: 'bg-red-500/10 text-red-300 ring-red-500/20',
-  yellow: 'bg-amber-500/10 text-amber-300 ring-amber-500/20',
+  blue: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 ring-blue-500/20',
+  gray: 'bg-foreground/[0.06] text-foreground/80 ring-foreground/10',
+  green: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-emerald-500/20',
+  purple: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-violet-500/20',
+  red: 'bg-red-500/10 text-red-700 dark:text-red-300 ring-red-500/20',
+  yellow: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-amber-500/20',
 } as const
 
 export type PillTone = keyof typeof PILL_TONES
@@ -165,11 +165,11 @@ export function EmptyState({
   title: string
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-5 rounded-2xl bg-white/[0.02] px-6 py-24 text-center ring-1 ring-white/[0.06] md:py-32">
-      <Icon className="text-neutral-600" size={44} strokeWidth={1.4} />
+    <div className="flex flex-col items-center justify-center gap-5 rounded-2xl bg-foreground/[0.02] px-6 py-24 text-center ring-1 ring-foreground/[0.06] md:py-32">
+      <Icon className="text-muted-foreground/75" size={44} strokeWidth={1.4} />
       <div>
-        <h3 className="text-lg font-medium text-white">{title}</h3>
-        <p className="mt-1 max-w-md text-sm text-neutral-500">{description}</p>
+        <h3 className="text-lg font-medium text-foreground">{title}</h3>
+        <p className="mt-1 max-w-md text-sm text-muted-foreground">{description}</p>
       </div>
       {action}
     </div>

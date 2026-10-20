@@ -550,3 +550,15 @@
     font-size: 16px;
   }
 }
+
+/* Settings → Appearance → Show scrollbars off (RFC 043). Scrolling still works
+   by wheel, touch and keyboard; only the bars are hidden. Safari applies the
+   ::-webkit-scrollbar rule to already-rendered containers after a reload. */
+html.hide-scrollbars,
+html.hide-scrollbars * {
+  scrollbar-width: none;
+}
+html.hide-scrollbars::-webkit-scrollbar,
+html.hide-scrollbars ::-webkit-scrollbar {
+  display: none;
+}

@@ -31,7 +31,7 @@ export function VersionStatus({ status }: { status: VersionOption['status'] }) {
   if (status === 'APPROVED') return <Pill tone="green">Approved</Pill>
   if (status === 'DRAFT') return <Pill>Draft</Pill>
   return (
-    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-neutral-500 ring-1 ring-white/[0.08] ring-inset">
+    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-foreground/[0.08] ring-inset">
       Superseded
     </span>
   )
@@ -58,7 +58,7 @@ export function VersionSelect({
       >
         <SelectTrigger
           aria-label="Version"
-          className="h-8 rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none hover:bg-white/[0.05] focus-visible:ring-white/25"
+          className="h-8 rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none hover:bg-foreground/[0.05] focus-visible:ring-foreground/25"
         >
           <SelectValue />
         </SelectTrigger>

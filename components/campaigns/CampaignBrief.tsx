@@ -79,8 +79,8 @@ function Field({
 function DetailRow({ children, label }: { children: ReactNode; label: string }) {
   return (
     <div className="flex flex-col gap-1 px-5 py-4 md:flex-row md:gap-6">
-      <dt className="text-sm text-neutral-500 md:w-40 md:shrink-0">{label}</dt>
-      <dd className="min-w-0 text-sm text-white">{children}</dd>
+      <dt className="text-sm text-muted-foreground md:w-40 md:shrink-0">{label}</dt>
+      <dd className="min-w-0 text-sm text-foreground">{children}</dd>
     </div>
   )
 }
@@ -170,7 +170,9 @@ export function CampaignBrief({
         {!release ? (
           <Group>
             <Row>
-              <p className="text-sm text-neutral-500">No release is linked to this campaign.</p>
+              <p className="text-sm text-muted-foreground">
+                No release is linked to this campaign.
+              </p>
             </Row>
           </Group>
         ) : isEditing ? (
@@ -196,7 +198,7 @@ export function CampaignBrief({
                     maxLength={500}
                     name="benefitStatement"
                   />
-                  <p className="text-xs text-neutral-500" id="brief-benefit-hint">
+                  <p className="text-xs text-muted-foreground" id="brief-benefit-hint">
                     Can be left empty while the release has a source link; the spec drafts it.
                   </p>
                 </Field>
@@ -246,11 +248,11 @@ export function CampaignBrief({
           </form>
         ) : (
           <Group>
-            <dl className="divide-y divide-white/[0.07]">
+            <dl className="divide-y divide-foreground/[0.07]">
               <DetailRow label="Release">{release.title}</DetailRow>
               <DetailRow label="Why it matters">
                 {release.benefitStatement || (
-                  <span className="text-neutral-500">
+                  <span className="text-muted-foreground">
                     Not set; the spec drafts it from the sources.
                   </span>
                 )}
@@ -291,7 +293,7 @@ export function CampaignBrief({
           </Alert>
         ) : null}
         {message ? (
-          <Alert className="rounded-xl border-0 bg-white/[0.02] ring-1 ring-white/[0.08]">
+          <Alert className="rounded-xl border-0 bg-foreground/[0.02] ring-1 ring-foreground/[0.08]">
             <AlertDescription>{message}</AlertDescription>
           </Alert>
         ) : null}
@@ -304,7 +306,7 @@ export function CampaignBrief({
               <DetailRow label="Product surface">
                 {productSurface.name} · {productSurface.environment} ·{' '}
                 <a
-                  className="text-neutral-400 hover:underline"
+                  className="text-foreground/65 hover:underline"
                   href={productSurface.url}
                   rel="noreferrer"
                   target="_blank"

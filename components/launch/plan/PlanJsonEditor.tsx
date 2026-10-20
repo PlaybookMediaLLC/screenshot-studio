@@ -73,32 +73,37 @@ export function PlanJsonEditor({
     <Accordion type="single" collapsible>
       <AccordionItem
         value="details"
-        className="group rounded-2xl bg-white/[0.015] ring-1 ring-white/[0.08]"
+        className="group rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]"
       >
         <AccordionTrigger className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 select-none [&::-webkit-details-marker]:hidden">
-          <span className="text-sm font-medium text-white">Edit plan as JSON</span>
-          <span className="text-xs text-neutral-500 group-data-[state=open]:hidden">Advanced</span>
+          <span className="text-sm font-medium text-foreground">Edit plan as JSON</span>
+          <span className="text-xs text-muted-foreground group-data-[state=open]:hidden">
+            Advanced
+          </span>
         </AccordionTrigger>
         <AccordionContent className="p-0">
-          <div className="flex flex-col gap-3 border-t border-white/[0.07] p-5">
-            <Label className="text-sm font-medium text-white" htmlFor={id}>
+          <div className="flex flex-col gap-3 border-t border-foreground/[0.07] p-5">
+            <Label className="text-sm font-medium text-foreground" htmlFor={id}>
               Plan JSON
             </Label>
-            <p className="text-xs leading-5 text-neutral-500" id={`${id}-help`}>
+            <p className="text-xs leading-5 text-muted-foreground" id={`${id}-help`}>
               Saving creates a new version. Angles must cite claims in the spec, and assets and
               timeline items must use the plan’s own angle and asset keys.
             </p>
             <Textarea
               aria-describedby={`${id}-help`}
               aria-invalid={errors.length > 0 || undefined}
-              className="h-[28rem] w-full resize-y rounded-lg bg-black/20 px-3 py-2 font-mono text-xs leading-5 text-neutral-200 ring-1 ring-white/[0.08] outline-none focus:ring-white/25 aria-invalid:ring-red-500/40"
+              className="h-[28rem] w-full resize-y rounded-lg bg-black/20 px-3 py-2 font-mono text-xs leading-5 text-foreground ring-1 ring-foreground/[0.08] outline-none focus:ring-foreground/25 aria-invalid:ring-red-500/40"
               id={id}
               onChange={(event) => setText(event.target.value)}
               spellCheck={false}
               value={text}
             />
             {errors.length > 0 ? (
-              <div className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300" role="alert">
+              <div
+                className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+                role="alert"
+              >
                 <ul className="list-disc space-y-0.5 pl-4">
                   {errors.map((error) => (
                     <li key={error}>{error}</li>

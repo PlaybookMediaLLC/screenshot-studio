@@ -127,7 +127,7 @@ function CritiqueSummary({ critique }: { critique: Critique }) {
       {critique.issues.length > 0 ? (
         <Accordion type="single" collapsible>
           <AccordionItem value="details" className="group/issues text-xs">
-            <AccordionTrigger className="[&>svg:last-child]:hidden flex w-fit cursor-pointer list-none items-center gap-1 text-neutral-400 transition-colors hover:text-white [&::-webkit-details-marker]:hidden">
+            <AccordionTrigger className="[&>svg:last-child]:hidden flex w-fit cursor-pointer list-none items-center gap-1 text-foreground/65 transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
               {critique.issues.length} {critique.issues.length === 1 ? 'issue' : 'issues'} from
               review
               <ArrowDown01Icon
@@ -136,7 +136,7 @@ function CritiqueSummary({ critique }: { critique: Critique }) {
               />
             </AccordionTrigger>
             <AccordionContent className="p-0">
-              <ul className="mt-2 list-disc space-y-1.5 pl-4 leading-5 text-neutral-400">
+              <ul className="mt-2 list-disc space-y-1.5 pl-4 leading-5 text-foreground/65">
                 {critique.issues.map((issue, index) => (
                   <li key={index}>{issue}</li>
                 ))}
@@ -164,7 +164,7 @@ function VisualCard({
   const approved = visual.approvedVariant !== null
   const changed = approved && visual.approvedVariant?.sourceAssetId !== visual.renderedAssetId
   return (
-    <li className="flex flex-col overflow-hidden rounded-xl bg-white/[0.02] ring-1 ring-white/[0.08]">
+    <li className="flex flex-col overflow-hidden rounded-xl bg-foreground/[0.02] ring-1 ring-foreground/[0.08]">
       <div className="grid place-items-center bg-[radial-gradient(circle_at_center,#1a1a1a,#0c0c0c)] p-3">
         {visual.image?.url ? (
           // Signed, short-lived tenant URLs: next/image would cache them past expiry.
@@ -178,19 +178,19 @@ function VisualCard({
           />
         ) : (
           <div
-            className="grid max-h-96 w-full place-items-center rounded-md border border-dashed border-white/10 text-xs text-neutral-500"
+            className="grid max-h-96 w-full place-items-center rounded-md border border-dashed border-foreground/10 text-xs text-muted-foreground"
             style={{ aspectRatio: (format ?? '16:9').replace(':', ' / ') }}
           >
             {visual.image ? 'Preview unavailable' : 'Not rendered yet'}
           </div>
         )}
       </div>
-      <div className="flex flex-1 flex-col gap-3 border-t border-white/[0.06] p-4">
+      <div className="flex flex-1 flex-col gap-3 border-t border-foreground/[0.06] p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-medium text-white">{visual.name}</p>
+            <p className="text-sm font-medium text-foreground">{visual.name}</p>
             {visual.caption ? (
-              <p className="mt-0.5 line-clamp-2 text-xs text-neutral-500">{visual.caption}</p>
+              <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{visual.caption}</p>
             ) : null}
           </div>
           <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
@@ -206,7 +206,7 @@ function VisualCard({
         {visual.critique ? (
           <CritiqueSummary critique={visual.critique} />
         ) : visual.designId ? (
-          <p className="text-xs text-neutral-500">Not reviewed yet.</p>
+          <p className="text-xs text-muted-foreground">Not reviewed yet.</p>
         ) : null}
         {/* An open revise panel is a div and takes the full row. */}
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1 [&>div]:basis-full">
@@ -295,7 +295,7 @@ function PlanAssetVisuals({
 }) {
   if (visuals.length === 0) {
     return (
-      <p className="rounded-xl bg-white/[0.015] px-5 py-6 text-center text-sm text-neutral-500 ring-1 ring-white/[0.06]">
+      <p className="rounded-xl bg-foreground/[0.015] px-5 py-6 text-center text-sm text-muted-foreground ring-1 ring-foreground/[0.06]">
         Nothing made for this asset yet.
       </p>
     )
@@ -312,7 +312,7 @@ function PlanAssetVisuals({
       {earlier.length > 0 ? (
         <Accordion type="single" collapsible>
           <AccordionItem value="details" className="group/earlier">
-            <AccordionTrigger className="[&>svg:last-child]:hidden flex w-fit cursor-pointer list-none items-center gap-1 text-xs font-medium text-neutral-400 transition-colors hover:text-white [&::-webkit-details-marker]:hidden">
+            <AccordionTrigger className="[&>svg:last-child]:hidden flex w-fit cursor-pointer list-none items-center gap-1 text-xs font-medium text-foreground/65 transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">
               {earlier.length} earlier {earlier.length === 1 ? 'version' : 'versions'}
               <ArrowDown01Icon
                 className="transition-transform group-data-[state=open]/earlier:rotate-180"
@@ -349,8 +349,8 @@ function PlanAssetGroup({
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <h3 className="text-base font-medium text-balance text-white" id={headingId}>
-          <span className="mr-1 font-mono text-sm text-neutral-500">{asset.key}</span>{' '}
+        <h3 className="text-base font-medium text-balance text-foreground" id={headingId}>
+          <span className="mr-1 font-mono text-sm text-muted-foreground">{asset.key}</span>{' '}
           {asset.headline}
         </h3>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -362,8 +362,8 @@ function PlanAssetGroup({
             {angle ? ` · ${angle}` : ''}
           </Pill>
         </div>
-        <p className="text-xs text-neutral-500">
-          <span className="text-neutral-600">Shows</span> {asset.capability}
+        <p className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground/75">Shows</span> {asset.capability}
         </p>
       </div>
       {children}
@@ -376,47 +376,47 @@ function Captures({ captures }: { captures: BoardCapture[] }) {
     <Accordion type="single" collapsible>
       <AccordionItem
         value="details"
-        className="group/captures rounded-2xl bg-white/[0.015] ring-1 ring-white/[0.08]"
+        className="group/captures rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]"
       >
         <AccordionTrigger className="[&>svg:last-child]:hidden flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
           <span className="min-w-0">
-            <span className="block text-sm font-medium text-white">Captures</span>
-            <span className="mt-0.5 block text-xs text-neutral-500">
+            <span className="block text-sm font-medium text-foreground">Captures</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
               {captures.length} live {captures.length === 1 ? 'capture' : 'captures'} of the product
               the visuals were built from.
             </span>
           </span>
           <ArrowDown01Icon
-            className="shrink-0 text-neutral-500 transition-transform group-data-[state=open]/captures:rotate-180"
+            className="shrink-0 text-muted-foreground transition-transform group-data-[state=open]/captures:rotate-180"
             size={16}
           />
         </AccordionTrigger>
         <AccordionContent className="p-0">
-          <ul className="grid gap-4 border-t border-white/[0.06] p-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid gap-4 border-t border-foreground/[0.06] p-5 sm:grid-cols-2 lg:grid-cols-3">
             {captures.map((capture) => (
               <li className="flex min-w-0 flex-col gap-2" key={capture.id}>
                 {capture.url ? (
                   <a
-                    className="block overflow-hidden rounded-lg ring-1 ring-white/[0.08] transition hover:ring-white/[0.2]"
+                    className="block overflow-hidden rounded-lg ring-1 ring-foreground/[0.08] transition hover:ring-foreground/[0.2]"
                     href={capture.url}
                     rel="noreferrer"
                     target="_blank"
                   >
                     <img
                       alt={`${capture.device} capture of ${capture.caption ?? 'the product'}`}
-                      className="aspect-[4/3] w-full bg-neutral-900 object-cover object-top"
+                      className="aspect-[4/3] w-full bg-card object-cover object-top"
                       loading="lazy"
                       src={capture.url}
                     />
                   </a>
                 ) : (
-                  <div className="grid aspect-[4/3] place-items-center rounded-lg text-xs text-neutral-500 ring-1 ring-white/[0.08]">
+                  <div className="grid aspect-[4/3] place-items-center rounded-lg text-xs text-muted-foreground ring-1 ring-foreground/[0.08]">
                     Preview unavailable
                   </div>
                 )}
                 <p className="flex min-w-0 items-center gap-2 text-xs">
                   <Pill>{capture.device}</Pill>
-                  <span className="truncate text-neutral-500">{capture.caption}</span>
+                  <span className="truncate text-muted-foreground">{capture.caption}</span>
                 </p>
               </li>
             ))}

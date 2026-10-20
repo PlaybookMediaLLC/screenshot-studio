@@ -34,14 +34,14 @@ function Item({ children }: { children: ReactNode }) {
 
 function Tag({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex rounded-md bg-white/[0.04] px-2 py-1 text-xs text-neutral-300 ring-1 ring-white/[0.08] ring-inset">
+    <span className="inline-flex rounded-md bg-foreground/[0.04] px-2 py-1 text-xs text-foreground/80 ring-1 ring-foreground/[0.08] ring-inset">
       {children}
     </span>
   )
 }
 
-const claimText = 'text-sm leading-6 text-neutral-200'
-const detailText = 'mt-1 text-sm leading-6 text-neutral-400'
+const claimText = 'text-sm leading-6 text-foreground'
+const detailText = 'mt-1 text-sm leading-6 text-foreground/65'
 
 /** A section's content as readable rows, each claim followed by its citations. */
 function SectionBody({
@@ -57,7 +57,7 @@ function SectionBody({
     refs.length > 0 ? <Citations index={index} refs={refs} /> : null
   const empty = (
     <Item>
-      <p className="text-sm text-neutral-500">Nothing here yet.</p>
+      <p className="text-sm text-muted-foreground">Nothing here yet.</p>
     </Item>
   )
   switch (section) {
@@ -87,7 +87,7 @@ function SectionBody({
       if (content.audience.length === 0) return empty
       return content.audience.map((item, position) => (
         <Item key={position}>
-          <h3 className="text-sm font-medium text-white">{item.segment}</h3>
+          <h3 className="text-sm font-medium text-foreground">{item.segment}</h3>
           <p className={detailText}>
             {item.need}
             {cite(item.sources)}
@@ -98,7 +98,7 @@ function SectionBody({
       if (content.capabilities.length === 0) return empty
       return content.capabilities.map((item, position) => (
         <Item key={position}>
-          <h3 className="text-sm font-medium text-white">{item.name}</h3>
+          <h3 className="text-sm font-medium text-foreground">{item.name}</h3>
           <p className={detailText}>
             {item.description}
             {cite(item.sources)}
@@ -111,17 +111,17 @@ function SectionBody({
         <Item key={position}>
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-4">
             <div>
-              <p className="text-xs text-neutral-600">Before</p>
+              <p className="text-xs text-muted-foreground/75">Before</p>
               <p className={detailText}>{item.before}</p>
             </div>
             <ArrowRight
               aria-hidden
-              className="hidden text-neutral-600 sm:mt-7 sm:block"
+              className="hidden text-muted-foreground/75 sm:mt-7 sm:block"
               size={16}
             />
             <div>
-              <p className="text-xs text-neutral-600">After</p>
-              <p className="mt-1 text-sm leading-6 text-neutral-200">
+              <p className="text-xs text-muted-foreground/75">After</p>
+              <p className="mt-1 text-sm leading-6 text-foreground">
                 {item.after}
                 {cite(item.sources)}
               </p>
@@ -133,7 +133,7 @@ function SectionBody({
       if (content.faqs.length === 0) return empty
       return content.faqs.map((item, position) => (
         <Item key={position}>
-          <h3 className="text-sm font-medium text-white">{item.question}</h3>
+          <h3 className="text-sm font-medium text-foreground">{item.question}</h3>
           <p className={detailText}>
             {item.answer}
             {cite(item.sources)}
@@ -146,8 +146,8 @@ function SectionBody({
         <>
           {pillars.map((pillar, position) => (
             <Item key={position}>
-              <p className="text-xs text-neutral-500">Pillar {position + 1}</p>
-              <h3 className="mt-1 text-sm font-medium text-white">{pillar.title}</h3>
+              <p className="text-xs text-muted-foreground">Pillar {position + 1}</p>
+              <h3 className="mt-1 text-sm font-medium text-foreground">{pillar.title}</h3>
               <p className={detailText}>
                 {pillar.message}
                 {cite(pillar.sources)}
@@ -155,18 +155,18 @@ function SectionBody({
             </Item>
           ))}
           <Item>
-            <p className="text-xs text-neutral-500">Positioning</p>
+            <p className="text-xs text-muted-foreground">Positioning</p>
             {positioning.statement ? (
-              <p className="mt-1 text-sm leading-6 text-neutral-200">
+              <p className="mt-1 text-sm leading-6 text-foreground">
                 {positioning.statement}
                 {cite(positioning.sources)}
               </p>
             ) : (
-              <p className="mt-1 text-sm text-neutral-500">No positioning statement yet.</p>
+              <p className="mt-1 text-sm text-muted-foreground">No positioning statement yet.</p>
             )}
             {positioning.alternatives.length > 0 ? (
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="mr-1 text-xs text-neutral-500">Instead of</span>
+                <span className="mr-1 text-xs text-muted-foreground">Instead of</span>
                 {positioning.alternatives.map((alternative) => (
                   <Tag key={alternative}>{alternative}</Tag>
                 ))}
@@ -174,7 +174,7 @@ function SectionBody({
             ) : null}
           </Item>
           <Item>
-            <p className="text-xs text-neutral-500">Calls to action</p>
+            <p className="text-xs text-muted-foreground">Calls to action</p>
             {ctas.length > 0 ? (
               <ul className="mt-2 flex flex-wrap gap-1.5">
                 {ctas.map((cta) => (
@@ -184,7 +184,7 @@ function SectionBody({
                 ))}
               </ul>
             ) : (
-              <p className="mt-1 text-sm text-neutral-500">None yet.</p>
+              <p className="mt-1 text-sm text-muted-foreground">None yet.</p>
             )}
           </Item>
         </>
@@ -321,21 +321,21 @@ function SectionEditor({
 
   return (
     <form
-      className="flex flex-col gap-5 rounded-2xl bg-white/[0.015] p-5 ring-1 ring-white/[0.08]"
+      className="flex flex-col gap-5 rounded-2xl bg-foreground/[0.015] p-5 ring-1 ring-foreground/[0.08]"
       onSubmit={submit}
     >
       {fields.map((field) => (
         <div className="flex flex-col gap-1.5" key={field.key}>
-          <Label className="text-sm font-medium text-white" htmlFor={`${id}-${field.key}`}>
+          <Label className="text-sm font-medium text-foreground" htmlFor={`${id}-${field.key}`}>
             {field.label}
           </Label>
-          <p className="text-xs text-neutral-500" id={`${id}-${field.key}-help`}>
+          <p className="text-xs text-muted-foreground" id={`${id}-${field.key}-help`}>
             {field.help}
           </p>
           <Textarea
             aria-describedby={`${id}-${field.key}-help${errors.length > 0 ? ` ${id}-errors` : ''}`}
             aria-invalid={errors.length > 0 || undefined}
-            className="mt-1 min-h-24 w-full rounded-lg bg-white/[0.03] px-3 py-2 font-mono text-[13px] leading-6 text-neutral-100 ring-1 ring-white/[0.08] outline-none [field-sizing:content] focus:ring-white/25 aria-invalid:ring-red-500/40"
+            className="mt-1 min-h-24 w-full rounded-lg bg-foreground/[0.03] px-3 py-2 font-mono text-[13px] leading-6 text-foreground ring-1 ring-foreground/[0.08] outline-none [field-sizing:content] focus:ring-foreground/25 aria-invalid:ring-red-500/40"
             id={`${id}-${field.key}`}
             onChange={(event) => setValues({ ...values, [field.key]: event.target.value })}
             value={values[field.key] ?? ''}
@@ -344,7 +344,7 @@ function SectionEditor({
       ))}
       {errors.length > 0 ? (
         <div
-          className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300"
+          className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
           id={`${id}-errors`}
           role="alert"
         >

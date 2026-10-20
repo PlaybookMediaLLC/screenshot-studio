@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input'
 export type ScheduleVisual = { id: string; label: string }
 
 const fieldClass =
-  'h-10 w-full rounded-lg border border-white/10 bg-transparent px-3 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-white/20'
+  'h-10 w-full rounded-lg border border-foreground/10 bg-transparent px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-foreground/20'
 
 /** The link check's refusal; the user can schedule anyway on purpose. */
 const LINK_CHECK_PREFIX = 'Not scheduled: a link'
@@ -169,14 +169,14 @@ export function ScheduleDialog({
           </DialogHeader>
           <form className="flex flex-col gap-4" onSubmit={submit}>
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-medium text-neutral-400" htmlFor={ids.visual}>
+              <Label className="text-xs font-medium text-foreground/65" htmlFor={ids.visual}>
                 Visual
               </Label>
               {post.visuals.length === 0 && !post.creativeVariantId ? (
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted-foreground">
                   No approved visuals yet.{' '}
                   <Link
-                    className="font-medium text-white underline-offset-4 hover:underline"
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
                     href={`/campaigns/${campaignId}/assets`}
                   >
                     Approve one on the asset board
@@ -207,16 +207,16 @@ export function ScheduleDialog({
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-medium text-neutral-400" htmlFor={ids.channel}>
+              <Label className="text-xs font-medium text-foreground/65" htmlFor={ids.channel}>
                 Account
               </Label>
               {usable === null ? (
-                <p className="text-sm text-neutral-500">Loading connected accounts…</p>
+                <p className="text-sm text-muted-foreground">Loading connected accounts…</p>
               ) : usable.length === 0 ? (
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted-foreground">
                   No {channelLabel} account is connected.{' '}
                   <Link
-                    className="font-medium text-white underline-offset-4 hover:underline"
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
                     href="/workspace/channels"
                   >
                     Connect one in Channels
@@ -241,7 +241,7 @@ export function ScheduleDialog({
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-medium text-neutral-400" htmlFor={ids.time}>
+              <Label className="text-xs font-medium text-foreground/65" htmlFor={ids.time}>
                 Publish at
               </Label>
               <Input
@@ -251,13 +251,13 @@ export function ScheduleDialog({
                 type="datetime-local"
                 value={time}
               />
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-muted-foreground">
                 Leave empty to publish at the workspace&apos;s next default publish time.
               </p>
             </div>
             {error ? (
               <div
-                className="flex flex-col gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300"
+                className="flex flex-col gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
                 role="alert"
               >
                 {error}

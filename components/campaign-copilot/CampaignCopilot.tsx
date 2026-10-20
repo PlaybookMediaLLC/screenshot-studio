@@ -63,10 +63,10 @@ function StepRow({
   return (
     <li className="flex flex-col gap-1 py-2">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-neutral-200">{step.label}</span>
+        <span className="text-sm text-foreground">{step.label}</span>
         <Pill tone={status.tone}>{status.label}</Pill>
       </div>
-      {step.reason ? <p className="text-xs text-neutral-500">{step.reason}</p> : null}
+      {step.reason ? <p className="text-xs text-muted-foreground">{step.reason}</p> : null}
       {step.action === 'retry' ? (
         <Button
           className="self-start rounded-lg"
@@ -88,9 +88,9 @@ function StepRow({
           Add your product
         </ButtonLink>
       ) : step.action === 'ask_admin' ? (
-        <p className="text-xs text-neutral-400">Ask an owner, admin, or creator to do this.</p>
+        <p className="text-xs text-foreground/65">Ask an owner, admin, or creator to do this.</p>
       ) : step.action === 'new_turn' ? (
-        <p className="text-xs text-neutral-400">Send another message to try a different way.</p>
+        <p className="text-xs text-foreground/65">Send another message to try a different way.</p>
       ) : null}
     </li>
   )
@@ -111,19 +111,21 @@ function RunTrace({
   return (
     <section
       aria-label="Agent steps"
-      className="rounded-xl bg-white/[0.02] px-3 py-2 ring-1 ring-white/[0.06]"
+      className="rounded-xl bg-foreground/[0.02] px-3 py-2 ring-1 ring-foreground/[0.06]"
     >
       <div className="flex items-center justify-between gap-3 py-1">
-        <span className="text-xs font-medium tracking-wide text-neutral-500 uppercase">Steps</span>
+        <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Steps
+        </span>
         <Pill tone={status.tone}>{status.label}</Pill>
       </div>
       {run.steps.length === 0 && run.status === 'RUNNING' ? (
-        <p className="flex items-center gap-2 py-2 text-sm text-neutral-400">
+        <p className="flex items-center gap-2 py-2 text-sm text-foreground/65">
           <LoaderCircle aria-hidden className="size-4 animate-spin" />
           Thinking it through
         </p>
       ) : null}
-      <ol className="divide-y divide-white/[0.05]">
+      <ol className="divide-y divide-foreground/[0.05]">
         {run.steps.map((step) => (
           <StepRow
             key={step.id}
@@ -134,7 +136,7 @@ function RunTrace({
         ))}
       </ol>
       {run.error && run.status !== 'RUNNING' && run.status !== 'SUCCEEDED' ? (
-        <p className="py-1 text-xs text-neutral-500">{run.error}</p>
+        <p className="py-1 text-xs text-muted-foreground">{run.error}</p>
       ) : null}
     </section>
   )
@@ -152,14 +154,14 @@ function MessageBubble({
   return (
     <div className={cn('flex flex-col gap-1.5', user ? 'items-end' : 'items-start')}>
       {message.kind === 'clarification' ? (
-        <span className="text-xs text-neutral-500">One question</span>
+        <span className="text-xs text-muted-foreground">One question</span>
       ) : null}
       <p
         className={cn(
           'max-w-[90%] rounded-xl px-3 py-2 text-sm break-words whitespace-pre-wrap',
           user
-            ? 'bg-white/[0.08] text-white'
-            : 'bg-white/[0.02] text-neutral-200 ring-1 ring-white/[0.06]'
+            ? 'bg-foreground/[0.08] text-foreground'
+            : 'bg-foreground/[0.02] text-foreground ring-1 ring-foreground/[0.06]'
         )}
       >
         {message.content}
@@ -288,18 +290,18 @@ export function CampaignCopilot({
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent className="w-full gap-0 border-white/[0.08] bg-neutral-950 p-0 sm:max-w-lg">
-        <SheetHeader className="border-b border-white/[0.07] pr-12">
-          <SheetTitle className="truncate text-white">
+      <SheetContent className="w-full gap-0 border-foreground/[0.08] bg-background p-0 sm:max-w-lg">
+        <SheetHeader className="border-b border-foreground/[0.07] pr-12">
+          <SheetTitle className="truncate text-foreground">
             {view?.conversation.title ?? 'Ask Shots'}
           </SheetTitle>
-          <SheetDescription className="text-neutral-500">
+          <SheetDescription className="text-muted-foreground">
             Tell Shots what you shipped. The campaign it drafts opens on the campaign pages for you
             to review and approve.
           </SheetDescription>
           {campaignId ? (
             <Link
-              className="self-start text-sm font-medium text-white underline-offset-4 hover:underline"
+              className="self-start text-sm font-medium text-foreground underline-offset-4 hover:underline"
               href={`/campaigns/${campaignId}`}
             >
               Open campaign
@@ -308,7 +310,7 @@ export function CampaignCopilot({
         </SheetHeader>
         <div aria-live="polite" className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
           {view === null && conversationId ? (
-            <p className="text-sm text-neutral-500">Loading…</p>
+            <p className="text-sm text-muted-foreground">Loading…</p>
           ) : null}
           {messages.map((message, index) =>
             message.role === 'tool' ? (
@@ -338,9 +340,12 @@ export function CampaignCopilot({
             )
           )}
         </div>
-        <div className="flex flex-col gap-2 border-t border-white/[0.07] p-4">
+        <div className="flex flex-col gap-2 border-t border-foreground/[0.07] p-4">
           {error ? (
-            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300" role="alert">
+            <p
+              className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+              role="alert"
+            >
               {error}
             </p>
           ) : null}
@@ -350,7 +355,7 @@ export function CampaignCopilot({
                 Message
               </Label>
               <Textarea
-                className="min-h-20 w-full resize-none rounded-lg bg-white/[0.03] px-3 py-2 text-sm text-white ring-1 ring-white/[0.08] outline-none placeholder:text-neutral-600 focus:ring-white/20"
+                className="min-h-20 w-full resize-none rounded-lg bg-foreground/[0.03] px-3 py-2 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none placeholder:text-muted-foreground/75 focus:ring-foreground/20"
                 disabled={busy || running}
                 id="campaign-copilot-message"
                 maxLength={4_000}
@@ -388,7 +393,7 @@ export function CampaignCopilot({
               </div>
             </form>
           ) : (
-            <p className="text-sm text-neutral-500">AI is turned off for this workspace.</p>
+            <p className="text-sm text-muted-foreground">AI is turned off for this workspace.</p>
           )}
         </div>
       </SheetContent>

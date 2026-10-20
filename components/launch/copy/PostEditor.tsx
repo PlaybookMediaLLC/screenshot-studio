@@ -40,7 +40,7 @@ export function LengthCounter({
     <p
       className={cn(
         'ml-auto text-xs tabular-nums',
-        length > limit ? 'text-red-300' : 'text-neutral-500'
+        length > limit ? 'text-red-700 dark:text-red-300' : 'text-muted-foreground'
       )}
     >
       {length} / {limit} characters
@@ -51,7 +51,7 @@ export function LengthCounter({
 function SaveIndicator({ state }: { state: SaveState }) {
   const label = state.kind === 'saving' ? 'Saving…' : state.kind === 'saved' ? 'Saved' : ''
   return (
-    <span aria-live="polite" className="text-xs text-neutral-500" role="status">
+    <span aria-live="polite" className="text-xs text-muted-foreground" role="status">
       {label}
     </span>
   )
@@ -178,17 +178,20 @@ export function PostEditor({
   }
 
   const fieldClassName =
-    'rounded-lg border-white/[0.08] bg-white/[0.03] text-sm text-white focus-visible:border-white/20'
+    'rounded-lg border-foreground/[0.08] bg-foreground/[0.03] text-sm text-foreground focus-visible:border-foreground/20'
 
   return (
     <div className="flex flex-col gap-3">
       {editResetsApproval(post.status) ? (
-        <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-300" role="note">
+        <p
+          className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300"
+          role="note"
+        >
           Editing sends this post back to draft. It needs approval again before it publishes.
         </p>
       ) : null}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-title`}>
+        <Label className="text-xs font-medium text-foreground/65" htmlFor={`${id}-title`}>
           Title
         </Label>
         <Input
@@ -201,7 +204,7 @@ export function PostEditor({
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-copy`}>
+        <Label className="text-xs font-medium text-foreground/65" htmlFor={`${id}-copy`}>
           Copy
         </Label>
         <Textarea
@@ -215,7 +218,7 @@ export function PostEditor({
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-cta`}>
+        <Label className="text-xs font-medium text-foreground/65" htmlFor={`${id}-cta`}>
           Call to action
         </Label>
         <Input
@@ -233,20 +236,22 @@ export function PostEditor({
           role="alert"
         >
           <div>
-            <p className="text-sm font-medium text-amber-300">This post changed elsewhere</p>
-            <p className="mt-0.5 text-xs text-neutral-400">
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+              This post changed elsewhere
+            </p>
+            <p className="mt-0.5 text-xs text-foreground/65">
               Your text is not saved yet. Keep yours to replace theirs, or reload theirs and drop
               your edit.
             </p>
           </div>
-          <div className="rounded-lg bg-white/[0.03] px-3 py-2 ring-1 ring-white/[0.06]">
-            <p className="text-xs font-medium text-neutral-500">Their version</p>
+          <div className="rounded-lg bg-foreground/[0.03] px-3 py-2 ring-1 ring-foreground/[0.06]">
+            <p className="text-xs font-medium text-muted-foreground">Their version</p>
             {state.theirs.title ? (
-              <p className="mt-1 text-sm font-medium text-white">{state.theirs.title}</p>
+              <p className="mt-1 text-sm font-medium text-foreground">{state.theirs.title}</p>
             ) : null}
-            <p className="mt-1 text-sm whitespace-pre-wrap text-neutral-200">{state.theirs.copy}</p>
+            <p className="mt-1 text-sm whitespace-pre-wrap text-foreground">{state.theirs.copy}</p>
             {state.theirs.callToAction ? (
-              <p className="mt-1 text-sm text-neutral-300">{state.theirs.callToAction}</p>
+              <p className="mt-1 text-sm text-foreground/80">{state.theirs.callToAction}</p>
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -272,15 +277,17 @@ export function PostEditor({
       ) : null}
       {state.kind === 'prohibited' ? (
         <div className="rounded-xl bg-red-500/[0.06] px-4 py-3 ring-1 ring-red-500/20" role="alert">
-          <p className="text-sm font-medium text-red-300">
+          <p className="text-sm font-medium text-red-700 dark:text-red-300">
             Not saved: this post uses {state.matches.length === 1 ? 'a term' : 'terms'} your brand
             never uses
           </p>
-          <ul className="mt-2 flex flex-col gap-1 text-sm text-neutral-200">
+          <ul className="mt-2 flex flex-col gap-1 text-sm text-foreground">
             {state.matches.map((match) => (
               <li key={`${match.matchMode}:${match.term}`}>
-                <span className="font-medium text-white">“{match.term}”</span>
-                {match.reason ? <span className="text-neutral-400"> · {match.reason}</span> : null}
+                <span className="font-medium text-foreground">“{match.term}”</span>
+                {match.reason ? (
+                  <span className="text-foreground/65"> · {match.reason}</span>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -288,7 +295,7 @@ export function PostEditor({
       ) : null}
       {state.kind === 'failed' ? (
         <div
-          className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
           role="alert"
         >
           <span>Not saved: {state.message} Your text is kept.</span>

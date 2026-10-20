@@ -316,7 +316,7 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
         <button
           type="button"
           aria-label={`Notifications${n ? `, ${n} unseen` : ''}`}
-          className={`relative flex h-8 items-center gap-2.5 rounded-lg px-2 text-sm text-neutral-500 hover:text-neutral-200 ${collapsed ? 'w-8 justify-center' : 'w-full'}`}
+          className={`relative flex h-8 items-center gap-2.5 rounded-lg px-2 text-sm text-muted-foreground hover:text-foreground ${collapsed ? 'w-8 justify-center' : 'w-full'}`}
         >
           <svg
             aria-hidden="true"

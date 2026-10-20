@@ -51,30 +51,30 @@ export function RevisionHistory({
   return (
     <Section description="What reviewers asked the AI to change." title="AI revisions">
       {revisions.length === 0 ? (
-        <p className="rounded-2xl bg-white/[0.015] px-5 py-6 text-sm text-neutral-500 ring-1 ring-white/[0.06]">
+        <p className="rounded-2xl bg-foreground/[0.015] px-5 py-6 text-sm text-muted-foreground ring-1 ring-foreground/[0.06]">
           None yet. Use Revise with AI on a spec section, the plan, a post, or a design.
         </p>
       ) : (
         <Group>
-          <ul className="divide-y divide-white/[0.07]">
+          <ul className="divide-y divide-foreground/[0.07]">
             {revisions.map((item) => {
               const link = target(campaignId, item)
               return (
                 <li className="flex flex-col gap-1.5 px-5 py-4" key={item.id}>
                   <div className="flex items-center justify-between gap-3">
                     <Link
-                      className="block h-5 truncate text-xs leading-5 font-medium text-neutral-400 hover:text-white"
+                      className="block h-5 truncate text-xs leading-5 font-medium text-foreground/65 hover:text-foreground"
                       href={link.href}
                     >
                       {link.label}
                     </Link>
                     <Pill tone={STATUS[item.status].tone}>{STATUS[item.status].label}</Pill>
                   </div>
-                  <p className="text-sm text-white">“{item.comment}”</p>
+                  <p className="text-sm text-foreground">“{item.comment}”</p>
                   {item.summary ? (
-                    <p className="text-xs leading-5 text-neutral-500">{item.summary}</p>
+                    <p className="text-xs leading-5 text-muted-foreground">{item.summary}</p>
                   ) : null}
-                  <p className="text-xs text-neutral-600">
+                  <p className="text-xs text-muted-foreground/75">
                     <time dateTime={item.createdAt.toISOString()}>{ago(item.createdAt)}</time>
                   </p>
                 </li>

@@ -150,7 +150,7 @@ export function CampaignSetupForm({
 
   if (!canCreate) {
     return (
-      <p className="text-sm text-neutral-500">
+      <p className="text-sm text-muted-foreground">
         Your role cannot create campaigns. Ask a workspace admin for creator access.
       </p>
     )
@@ -259,7 +259,7 @@ export function CampaignSetupForm({
                 name="benefitStatement"
                 placeholder="One sentence on what this changes for your users"
               />
-              <p className="text-xs text-neutral-500" id="campaign-benefit-hint">
+              <p className="text-xs text-muted-foreground" id="campaign-benefit-hint">
                 Can be left empty when you add a source link; the AI drafts it from your sources.
               </p>
             </Field>

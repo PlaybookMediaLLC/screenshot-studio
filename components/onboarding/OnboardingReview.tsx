@@ -31,7 +31,7 @@ const lines = (value: string) =>
 
 /** Where a value came from and how sure its source was. */
 export function SourceBadge({ entry }: { entry: Provenance | undefined }) {
-  if (!entry) return <span className="text-xs text-neutral-500">Not filled in</span>
+  if (!entry) return <span className="text-xs text-muted-foreground">Not filled in</span>
   const sure = entry.confidence ? ` · ${Math.round(entry.confidence * 100)}% sure` : ''
   const label =
     entry.editedByUser && entry.source === 'manual'
@@ -46,10 +46,10 @@ export function SourceBadge({ entry }: { entry: Provenance | undefined }) {
       className={cn(
         'inline-flex items-center rounded-full border px-2 py-0.5 text-xs',
         entry.editedByUser
-          ? 'border-emerald-400/30 text-emerald-300'
+          ? 'border-emerald-400/30 text-emerald-700 dark:text-emerald-300'
           : entry.source === 'enrichment'
-            ? 'border-amber-400/30 text-amber-200'
-            : 'border-white/[0.12] text-neutral-300'
+            ? 'border-amber-400/30 text-amber-700 dark:text-amber-200'
+            : 'border-foreground/[0.12] text-foreground/80'
       )}
       data-source={entry.source}
       title={entry.url}
@@ -81,10 +81,10 @@ function RunProgress({
   return (
     <section
       aria-label="Background read"
-      className="flex flex-col gap-3 rounded-xl border border-white/[0.08] p-4"
+      className="flex flex-col gap-3 rounded-xl border border-foreground/[0.08] p-4"
     >
       <div className="flex items-center justify-between gap-3">
-        <p aria-live="polite" className="text-sm text-neutral-300" role="status">
+        <p aria-live="polite" className="text-sm text-foreground/80" role="status">
           {summary}
         </p>
         {running ? (
@@ -102,17 +102,17 @@ function RunProgress({
         aria-valuemax={100}
         aria-valuemin={0}
         aria-valuenow={run.progress}
-        className="h-1.5 overflow-hidden rounded-full bg-white/[0.08]"
+        className="h-1.5 overflow-hidden rounded-full bg-foreground/[0.08]"
         role="progressbar"
       >
-        <div className="h-full bg-white transition-all" style={{ width: `${run.progress}%` }} />
+        <div className="h-full bg-foreground transition-all" style={{ width: `${run.progress}%` }} />
       </div>
       <ol className="grid gap-2 sm:grid-cols-2">
         {ONBOARDING_STAGES.map((stage) => {
           const value = stagePercent(run, stage)
           return (
             <li className="flex flex-col gap-1" key={stage.key}>
-              <span className="flex items-center gap-1.5 text-xs text-neutral-400">
+              <span className="flex items-center gap-1.5 text-xs text-foreground/65">
                 {value === 100 ? (
                   <Check aria-hidden className="size-3" />
                 ) : running && value > 0 ? (
@@ -125,7 +125,7 @@ function RunProgress({
                 aria-valuemax={100}
                 aria-valuemin={0}
                 aria-valuenow={value}
-                className="h-1 overflow-hidden rounded-full bg-white/[0.06]"
+                className="h-1 overflow-hidden rounded-full bg-foreground/[0.06]"
                 role="progressbar"
               >
                 <div className="h-full bg-neutral-300" style={{ width: `${value}%` }} />
@@ -210,10 +210,10 @@ function ReviewField({
     }
   }
   return (
-    <li className="flex flex-col gap-2 border-b border-white/[0.06] py-3 last:border-b-0">
+    <li className="flex flex-col gap-2 border-b border-foreground/[0.06] py-3 last:border-b-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Label
-          className="text-sm font-medium text-neutral-200"
+          className="text-sm font-medium text-foreground"
           htmlFor={editing ? id : undefined}
           id={labelId}
         >
@@ -230,7 +230,7 @@ function ReviewField({
           value={draft}
         />
       ) : (
-        <p aria-labelledby={labelId} className="text-sm whitespace-pre-line text-neutral-400">
+        <p aria-labelledby={labelId} className="text-sm whitespace-pre-line text-foreground/65">
           {value || 'Nothing yet.'}
         </p>
       )}
@@ -322,12 +322,12 @@ function EnrichmentFacts({ findings }: { findings: StoredEnrichment[] }) {
   if (facts.length === 0) return null
   return (
     <section aria-label="Found elsewhere" className="flex flex-col gap-2">
-      <h2 className="text-base font-medium text-white">Found elsewhere</h2>
-      <ul className="flex flex-col gap-1 text-sm text-neutral-400">
+      <h2 className="text-base font-medium text-foreground">Found elsewhere</h2>
+      <ul className="flex flex-col gap-1 text-sm text-foreground/65">
         {facts.map((fact) => (
           <li key={`${fact.finding.id}-${fact.label}`}>
-            <span className="text-neutral-200">{fact.label}</span>: {fact.text}{' '}
-            <span className="text-xs text-neutral-500">
+            <span className="text-foreground">{fact.label}</span>: {fact.text}{' '}
+            <span className="text-xs text-muted-foreground">
               ({fact.finding.provider}, {Math.round(fact.finding.confidence * 100)}% sure)
             </span>
           </li>
@@ -442,7 +442,7 @@ export function OnboardingReview({
         </Alert>
       ) : null}
       <section aria-label="Your product" className="flex flex-col">
-        <h2 className="text-base font-medium text-white">Your product</h2>
+        <h2 className="text-base font-medium text-foreground">Your product</h2>
         <ul>
           {PRODUCT_FIELDS.map((spec) => (
             <ReviewField
@@ -458,7 +458,7 @@ export function OnboardingReview({
         </ul>
       </section>
       <section aria-label="Your ideal customer" className="flex flex-col">
-        <h2 className="text-base font-medium text-white">Your ideal customer</h2>
+        <h2 className="text-base font-medium text-foreground">Your ideal customer</h2>
         <ul>
           {ICP_FIELDS.map((spec) => (
             <ReviewField
@@ -476,7 +476,7 @@ export function OnboardingReview({
       <EnrichmentFacts findings={findings} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="custom" size={null}
-          className="text-sm text-neutral-400 underline underline-offset-4 hover:text-white"
+          className="text-sm text-foreground/65 underline underline-offset-4 hover:text-foreground"
           onClick={onManual}
           type="button"
         >

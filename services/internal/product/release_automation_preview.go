@@ -59,7 +59,7 @@ type AutomationOverview struct {
 func (c *Configuration) automationActions(ctx context.Context, org string, executor AutomationExecutor) ([]AutomationActionAvailability, error) {
 	result := []AutomationActionAvailability{}
 	for _, action := range []struct{ kind, feature string }{{"create_release", "release:create"}, {"create_campaign", "campaign:workflow"}, {"generate_copy", "campaign:workflow"},
-		{"render_creatives", "campaign:workflow"}, {"submit_review", "release:create"}, {"classify", "release:create"}} {
+		{"render_creatives", "campaign:workflow"}, {"create_canvas", "workspace:use"}, {"submit_review", "release:create"}, {"classify", "release:create"}} {
 		item := AutomationActionAvailability{Type: action.kind, Available: true}
 		err := c.requireWorkspaceFeature(ctx, org, action.feature)
 		var entitlement *FeatureNotEntitledError
@@ -70,12 +70,14 @@ func (c *Configuration) automationActions(ctx context.Context, org string, execu
 			return nil, err
 		case !executor.Available:
 			item.Reason = "No workflow worker is running. You can save and test drafts; activation waits for a worker."
-		case (action.kind == "generate_copy" || action.kind == "classify" || action.kind == "render_creatives") && executor.SchemaVersion < 2:
+		case (action.kind == "generate_copy" || action.kind == "classify" || action.kind == "render_creatives" || action.kind == "create_canvas") && executor.SchemaVersion < 2:
 			item.Reason = "Running workers predate workflow language version 2. Deploy the current product worker."
 		case (action.kind == "generate_copy" || action.kind == "classify") && !slices.Contains(executor.Capabilities, automation.CapabilityAI):
 			item.Reason = "No worker has an AI model provider and credit meter configured (OPENROUTER_API_KEY, REDIS_URL)."
 		case action.kind == "render_creatives" && !slices.Contains(executor.Capabilities, automation.CapabilityRender):
 			item.Reason = "No worker can reach the design renderer (PLATFORM_WORKFLOW_RENDER_URL, PLATFORM_WORKFLOW_RENDER_KEY)."
+		case action.kind == "create_canvas" && !slices.Contains(executor.Capabilities, automation.CapabilityCanvas):
+			item.Reason = "No worker can reach the canvas builder (PLATFORM_WORKFLOW_RENDER_URL, PLATFORM_WORKFLOW_RENDER_KEY)."
 		}
 		item.Available = item.Reason == ""
 		result = append(result, item)

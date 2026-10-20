@@ -44,6 +44,9 @@ func (c *Configuration) AutomationCapabilities() []string {
 	if c.automationRenderer != nil {
 		capabilities = append(capabilities, automation.CapabilityRender)
 	}
+	if c.automationCanvases != nil {
+		capabilities = append(capabilities, automation.CapabilityCanvas)
+	}
 	return capabilities
 }
 

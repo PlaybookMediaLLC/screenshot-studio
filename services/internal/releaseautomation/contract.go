@@ -27,8 +27,15 @@ const MaxClassifyCredits = 50
 // MaxRenderTemplates bounds creatives one render node produces.
 const MaxRenderTemplates = 3
 
+// MaxCanvasRecipes bounds the canvas templates one canvas node lays out.
+const MaxCanvasRecipes = 3
+
 // CapabilityRender is advertised by a worker that can reach the web renderer.
 const CapabilityRender = "render"
+
+// CapabilityCanvas is advertised by a worker that can reach the web's canvas
+// builder. Building a canvas composes documents only; it needs no browser.
+const CapabilityCanvas = "canvas"
 
 // CapabilityAI is advertised by a worker that has a model provider and the
 // credit meter that bills it; AI checks and copy generation both need it.
@@ -46,6 +53,8 @@ type Outputs struct {
 	// DesignIDs and RenderedAssetIDs are campaign designs and their images.
 	DesignIDs        []string `json:"designIds,omitempty"`
 	RenderedAssetIDs []string `json:"renderedAssetIds,omitempty"`
+	// CanvasID is the canvas create_canvas laid out from the release.
+	CanvasID string `json:"canvasId,omitempty"`
 }
 
 // Generation is model output persisted before it is applied, so a retried
@@ -151,6 +160,10 @@ type Action struct {
 	// current capture they show (empty: the most recently captured surface).
 	TemplateIDs []string `json:"templateIds,omitempty"`
 	SurfaceID   string   `json:"surfaceId,omitempty"`
+	// RecipeIDs are the canvas templates create_canvas lays out from the
+	// release, in order; SurfaceID supplies the capture when the release has
+	// no screenshots.
+	RecipeIDs []string `json:"recipeIds,omitempty"`
 }
 
 type Node struct {

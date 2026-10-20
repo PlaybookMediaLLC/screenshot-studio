@@ -45,6 +45,7 @@ export function WorkflowTemplates() {
   const [aiRelevance, setAIRelevance] = useState(false)
   const [majorMinorOnly, setMajorMinorOnly] = useState(true)
   const [renderTemplateIds, setRenderTemplateIds] = useState<string[]>([])
+  const [canvas, setCanvas] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -80,6 +81,7 @@ export function WorkflowTemplates() {
   const generation = actionAvailability(overview, 'generate_copy')
   const relevance = actionAvailability(overview, 'classify')
   const rendering = actionAvailability(overview, 'render_creatives')
+  const canvases = actionAvailability(overview, 'create_canvas')
 
   async function create() {
     if (!template) return
@@ -94,6 +96,7 @@ export function WorkflowTemplates() {
         aiRelevance,
         majorMinorOnly: template.versioned && majorMinorOnly,
         renderTemplateIds: rendering.available ? renderTemplateIds : [],
+        canvas: canvases.available && canvas,
       })
       const saved = await client.releaseAutomation.save.mutate({
         id: '',
@@ -366,6 +369,23 @@ export function WorkflowTemplates() {
                     </Label>
                   ))}
                 </div>
+              </Row>
+              <Row
+                description={
+                  canvases.available
+                    ? 'Lays out a feature announcement and social formats from the release on a new canvas, quoting only the release record. Your team refines and exports it.'
+                    : `Unavailable: ${canvases.reason}`
+                }
+                label="Canvas"
+              >
+                <Label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={canvas}
+                    disabled={!canvases.available}
+                    onCheckedChange={(checked) => setCanvas(checked === true)}
+                  />
+                  Lay out a canvas from the release
+                </Label>
               </Row>
               <Row>
                 <div className="flex flex-wrap items-center gap-3">

@@ -75,7 +75,7 @@ func Validate(graph Graph) []Issue {
 		return issues
 	}
 	nodes, outgoing, incoming := map[string]Node{}, map[string][]Edge{}, map[string][]string{}
-	trigger, generations, classifiers, renders := "", 0, 0, 0
+	trigger, generations, classifiers, renders, canvases := "", 0, 0, 0, 0
 	for _, n := range graph.Nodes {
 		if _, ok := nodes[n.ID]; ok || !nodeID.MatchString(n.ID) {
 			add(n.ID, "node_id", "Node IDs must be unique letters, numbers, underscores, or hyphens.")
@@ -108,6 +108,11 @@ func Validate(graph Graph) []Issue {
 			if n.Action != nil && n.Action.Type == "render_creatives" {
 				if renders++; renders > 1 {
 					add(n.ID, "render_limit", "A workflow can render creatives once per run.")
+				}
+			}
+			if n.Action != nil && n.Action.Type == "create_canvas" {
+				if canvases++; canvases > 1 {
+					add(n.ID, "canvas_limit", "A workflow can create a canvas once per run.")
 				}
 			}
 		case "classify":
@@ -236,6 +241,8 @@ func outputOf(action string) string {
 		return "campaignId"
 	case "submit_review":
 		return "reviewIds"
+	case "create_canvas":
+		return "canvasId"
 	}
 	return ""
 }
@@ -253,8 +260,14 @@ func validateAction(action *Action, version int) string {
 	if action.Include != "" && (action.Type != "create_release" || action.Include != "unreleased" || version < 2) {
 		return "Release contents apply to create release in language version 2."
 	}
-	if (len(action.TemplateIDs) > 0 || action.SurfaceID != "") && action.Type != "render_creatives" {
+	if len(action.TemplateIDs) > 0 && action.Type != "render_creatives" {
 		return "Templates and surfaces belong to render creatives."
+	}
+	if action.SurfaceID != "" && action.Type != "render_creatives" && action.Type != "create_canvas" {
+		return "Templates and surfaces belong to render creatives."
+	}
+	if len(action.RecipeIDs) > 0 && action.Type != "create_canvas" {
+		return "Canvas templates belong to create canvas."
 	}
 	switch action.Type {
 	case "create_release":
@@ -307,6 +320,26 @@ func validateAction(action *Action, version int) string {
 		}
 		if len(action.SurfaceID) > 64 || action.BrandKitID != "" || len(action.DestinationIDs) > 0 || action.Audience != "" || action.CallToAction != "" {
 			return "Render creatives uses the campaign's brand and a product surface."
+		}
+	case "create_canvas":
+		if version < 2 {
+			return "Creating a canvas requires workflow language version 2."
+		}
+		if action.Input == nil || (action.Input.Output != "releaseId" && action.Input.Output != "campaignId") {
+			return "Create canvas requires a release or campaign output."
+		}
+		if len(action.RecipeIDs) == 0 || len(action.RecipeIDs) > MaxCanvasRecipes {
+			return fmt.Sprintf("Choose 1–%d canvas templates.", MaxCanvasRecipes)
+		}
+		seen := map[string]bool{}
+		for _, id := range action.RecipeIDs {
+			if !templateID.MatchString(id) || seen[id] {
+				return "Canvas template IDs must be unique catalog identifiers."
+			}
+			seen[id] = true
+		}
+		if len(action.SurfaceID) > 64 || action.BrandKitID != "" || len(action.DestinationIDs) > 0 || action.Audience != "" || action.CallToAction != "" {
+			return "Create canvas uses the release and a product surface."
 		}
 	case "submit_review":
 		if action.Input == nil || action.Input.Output != "campaignId" {
@@ -442,6 +475,9 @@ func DryRunAssuming(graph Graph, event Event, relevant bool) Preview {
 			}
 			if n.Action.Type == "render_creatives" {
 				step.Outcome = fmt.Sprintf("Predicted render of %d creatives from the latest product capture; preview renders nothing.", len(n.Action.TemplateIDs))
+			}
+			if n.Action.Type == "create_canvas" {
+				step.Outcome = fmt.Sprintf("Predicted canvas laid out from the release with %d templates; preview creates nothing.", len(n.Action.RecipeIDs))
 			}
 		case "end":
 			step.Outcome = n.Outcome

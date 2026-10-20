@@ -1,3 +1,4 @@
+import { createHash, createHmac } from 'node:crypto'
 import { mkdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import JSZip from 'jszip'
@@ -8,6 +9,7 @@ import { getActiveOrganizationId, getE2EUrl, signUpViaApi } from './framework/au
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
 import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
 import { trpcMutation, trpcQuery } from './framework/trpc'
+import { requestJson, uploadSignedAsset } from './framework/browser'
 
 configureE2EFlow()
 test.setTimeout(600_000)
@@ -378,4 +380,99 @@ test('H: App Store screenshot groups sit on the canvas, edit in the store editor
   await expect(page.locator(`[data-store-group-id="${item.group.id}"] .bg-white`)).toHaveCount(2, {
     timeout: 120_000,
   })
+})
+
+/** Upload an image to the workspace the way the browser does. */
+async function uploadImage(page: Page, file: string) {
+  const bytes = await readFile(file)
+  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  const signed = await requestJson(page, '/api/tenant/assets/upload-url', {
+    bytes: bytes.byteLength,
+    classification: 'input',
+    contentType: 'image/png',
+    fileName: path.basename(file),
+    sha256,
+  })
+  expect(signed.status).toBe(201)
+  const body = signed.body as { asset: { id: string }; uploadUrl: string }
+  expect(await uploadSignedAsset(page, body.uploadUrl, [...bytes], 'image/png')).toBe(200)
+  expect(
+    (await requestJson(page, `/api/tenant/assets/${body.asset.id}/complete`, { sha256 })).status
+  ).toBe(200)
+  return body.asset.id
+}
+
+test('I: release automation lays out a canvas from a release on the server', async ({
+  identity,
+  page,
+}) => {
+  const key = process.env.E2E_WORKFLOW_RENDER_KEY ?? ''
+  test.skip(key.length < 32, 'Needs the workflow key bin/studio generates.')
+  const organizationId = await setUp(identity, page)
+  const captureAssetId = await uploadImage(page, 'public/demo/demo-1.png')
+  const created = await trpcMutation(page, 'release.create', {
+    title: 'Bulk approvals',
+    benefitStatement: 'Approve ten launches at once.',
+  })
+  expect(created.status, JSON.stringify(created.body)).toBe(200)
+  const releaseId = (created.body as { release: { id: string } }).release.id
+  const url = getE2EUrl('/api/internal/workflow-canvases')
+  // What the Go worker sends: the run's node, its release, a capture and the templates.
+  const send = (payload: Record<string, unknown>, signed = true) => {
+    const body = JSON.stringify(payload)
+    const stamp = Math.floor(Date.now() / 1000)
+    const signature = signed
+      ? `t=${stamp},v1=${createHmac('sha256', key).update(`${stamp}.${body}`).digest('hex')}`
+      : `t=${stamp},v1=${'0'.repeat(64)}`
+    return page.request.post(url, {
+      data: body,
+      headers: { 'content-type': 'application/json', 'x-shots-signature': signature },
+    })
+  }
+  const request = {
+    organizationId,
+    runId: `run-${identity.email.split('@')[0]}`,
+    nodeId: 'board',
+    releaseId,
+    captureAssetId,
+    recipeIds: ['feature-announcement', 'social-pack'],
+  }
+  expect((await send(request, false)).status()).toBe(401)
+  expect((await send({ ...request, releaseId: 'not-a-release' })).status()).toBe(422)
+
+  const made = await send(request)
+  expect(made.status(), await made.text()).toBe(200)
+  const { canvasId } = (await made.json()) as { canvasId: string }
+  expect(canvasId).toMatch(/^c[a-z0-9]{24}$/)
+  // A retried activity gets the same canvas back.
+  const again = await send(request)
+  expect(((await again.json()) as { canvasId: string }).canvasId).toBe(canvasId)
+
+  const result = await trpcQuery(page, 'canvas.get', { canvasId })
+  expect(result.status).toBe(200)
+  const canvas = (result.body as { document: CanvasDocument }).document
+  expect(canvas.context.releaseId).toBe(releaseId)
+  expect(canvas.artboards.length).toBeGreaterThanOrEqual(2)
+  const json = JSON.stringify(canvas)
+  expect(json).toContain(`asset:${captureAssetId}`)
+  expect(json).not.toMatch(/"data:|"blob:/)
+  const words = canvas.artboards.flatMap((artboard) =>
+    artboard.document.texts.map((text) => text.text)
+  )
+  expect(words).toContain('Bulk approvals')
+  // The headline quotes the release record, so it arrives verified with its source.
+  expect(
+    canvas.artboards
+      .flatMap((artboard) => artboard.provenance)
+      .some((claim) => claim.status === 'verified' && claim.reference?.id === releaseId)
+  ).toBe(true)
+
+  await page.goto(getE2EUrl(`/canvas/${canvasId}`))
+  await expect(page.locator('[data-artboard-id]')).toHaveCount(canvas.artboards.length, {
+    timeout: 120_000,
+  })
+  await expect(page.locator('[data-artboard-id] img').first()).toBeVisible({ timeout: 120_000 })
+  await page.keyboard.press('Shift+Digit1')
+  await page.waitForTimeout(1500)
+  await page.screenshot({ path: path.join(out, 'i-automation-canvas.png') })
 })

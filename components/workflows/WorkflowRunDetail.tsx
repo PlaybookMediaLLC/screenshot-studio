@@ -257,6 +257,17 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
               </ButtonLink>
             </Row>
           ) : null}
+          {run.outputs.canvasId ? (
+            <Row
+              description="Laid out from the release record. Refine it, then export or hand it to a campaign."
+              label="Canvas · laid out"
+              layout="inline"
+            >
+              <ButtonLink href={`/canvas/${run.outputs.canvasId}`} size="sm" variant="outline">
+                Open canvas
+              </ButtonLink>
+            </Row>
+          ) : null}
           {run.outputs.creditsCharged ? (
             <Row
               description="Charged once for this run, within the node's limit."

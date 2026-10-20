@@ -11453,15 +11453,22 @@
             "type": "boolean"
           },
           "primaryPlatform": {
-            "type": "string",
-            "enum": [
-              "x",
-              "linkedin",
-              "instagram",
-              "threads",
-              "bluesky",
-              "mastodon",
-              ""
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "x",
+                  "linkedin",
+                  "instagram",
+                  "threads",
+                  "bluesky",
+                  "mastodon"
+                ]
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
             ]
           },
           "plannedFor": {

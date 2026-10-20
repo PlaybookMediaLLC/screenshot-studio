@@ -1845,9 +1845,10 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
-  async beginSocialOAuth(provider: OAuthProvider) {
+  /** Begins a provider connection; with a set, the account joins that set (RFC 043). */
+  async beginSocialOAuth(provider: OAuthProvider, socialSetId?: string) {
     return this.request<{ url: string }>('v1/social-oauth/begin', {
-      body: { provider },
+      body: socialSetId ? { provider, socialSetId } : { provider },
       method: 'POST',
     })
   }

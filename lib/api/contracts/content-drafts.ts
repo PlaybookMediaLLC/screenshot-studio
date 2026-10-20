@@ -16,6 +16,18 @@ export const contentDraftIdSchema = z
 /** Plate JSON: the editor's value, a list of block nodes. */
 export const plateValueSchema = z.array(z.record(z.string(), z.unknown())).max(5_000)
 
+/** A platform a draft posts to. */
+const platformSchema = z.enum(['x', 'linkedin', 'instagram', 'threads', 'bluesky', 'mastodon'])
+
+/** One X follow-up a draft runs once its post reaches a number of likes. */
+const draftEngagementRuleSchema = z.object({
+  atLikes: z.number().int(),
+  enabled: z.boolean(),
+  text: z.string().optional(),
+})
+
+const NO_RULE = { atLikes: 0, enabled: false }
+
 /** A draft as the API returns it. */
 export const contentDraftSchema = z.object({
   assetIds: z.array(z.string()),
@@ -52,11 +64,8 @@ export const contentDraftSchema = z.object({
    * was created (RFC 043). Defaults keep an older backend's answer readable.
    */
   engagement: z
-    .object({
-      autoPlug: z.object({ atLikes: z.number().int(), enabled: z.boolean(), text: z.string().optional() }),
-      autoRepost: z.object({ atLikes: z.number().int(), enabled: z.boolean(), text: z.string().optional() }),
-    })
-    .default({ autoPlug: { atLikes: 0, enabled: false }, autoRepost: { atLikes: 0, enabled: false } }),
+    .object({ autoPlug: draftEngagementRuleSchema, autoRepost: draftEngagementRuleSchema })
+    .default({ autoPlug: NO_RULE, autoRepost: NO_RULE }),
   naturalPostingTime: z.boolean().default(false),
   /** A calendar placement without scheduling, as an ISO 8601 instant (an experiment). */
   plannedFor: z.string().nullable().default(null),
@@ -72,12 +81,7 @@ export const contentDraftFieldsSchema = z.object({
   body: plateValueSchema.optional(),
   channelConnectionIds: z.array(contentDraftIdSchema).max(10).optional(),
   /** Text a channel posts instead of the body's, by channel. */
-  channelText: z
-    .partialRecord(
-      z.enum(['x', 'linkedin', 'instagram', 'threads', 'bluesky', 'mastodon']),
-      z.string().max(100_000)
-    )
-    .optional(),
+  channelText: z.partialRecord(platformSchema, z.string().max(100_000)).optional(),
   /** Comment threads on the body and their authors' names. */
   discussions: z.record(z.string(), z.unknown()).optional(),
   plainText: z.string().max(100_000).optional(),
@@ -98,7 +102,7 @@ export const contentDraftUpdateSchema = contentDraftFieldsSchema.extend({
   status: contentDraftEditableStatusSchema.optional(),
   /** The draft's own choices, which start as copies of its set's defaults. */
   naturalPostingTime: z.boolean().optional(),
-  primaryPlatform: z.enum(['x', 'linkedin', 'instagram', 'threads', 'bluesky', 'mastodon', '']).optional(),
+  primaryPlatform: z.union([platformSchema, z.literal('')]).optional(),
   /** An ISO 8601 instant, or an empty string to clear it (an experiment). */
   plannedFor: z.union([z.iso.datetime({ offset: true }), z.literal('')]).optional(),
   /** Labels (an experiment): at most ten of 32 characters. */

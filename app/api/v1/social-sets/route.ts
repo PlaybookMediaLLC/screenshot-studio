@@ -1,7 +1,4 @@
-import {
-  createSocialSetContract,
-  listSocialSetsContract,
-} from '@/lib/api/contracts/settings-platform'
+import { createSocialSetContract, listSocialSetsContract } from '@/lib/api/contracts/social-sets'
 import { errorResponse, route } from '@/lib/api/route'
 import { organizationAccess } from '@/lib/api/route-auth'
 import { backendSDK } from '@/lib/backend/sdk'

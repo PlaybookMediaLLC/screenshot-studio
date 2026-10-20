@@ -1,4 +1,4 @@
-import { listWebhookDeliveriesContract } from '@/lib/api/contracts/settings-platform'
+import { listWebhookDeliveriesContract } from '@/lib/api/contracts/outbound-webhooks'
 import { route } from '@/lib/api/route'
 import { organizationAccess } from '@/lib/api/route-auth'
 import { backendSDK } from '@/lib/backend/sdk'

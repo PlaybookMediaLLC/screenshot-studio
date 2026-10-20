@@ -257,6 +257,7 @@ schedule.
 31. Workspaces and content drafts ([037](docs/rfcs/037-workspaces-and-content-drafts.md)): npm workspaces, the vendored Plate.js editor, manual drafts scheduled to several channels, and real-time co-editing.
 32. MCP server and agent integrations ([038](docs/rfcs/038-mcp-and-agent-integrations.md)): Shots tools on the Go MCP server with workspace API keys and OAuth, schemas from `/openapi.json`, and setup guides for Claude, ChatGPT, and coding agents.
 33. Scheduling feature priorities ([039](docs/rfcs/039-scheduling-feature-priorities.md)): more channels with their per-channel options, bulk scheduling into the queue, an analytics dashboard, review and failure mail, and a month calendar, in that order.
+34. The Write workspace ([042](docs/rfcs/042-write-workspace.md)): social sets, platform versions, thread numbering and finishers, per-platform post settings, planning and DST-safe scheduling, receipted follow-ups (Auto-RT, Auto-Plug; Auto-DM shown off), mentions and alt text, AI Refine and the writing assistant. Coverage per requirement is in the [matrix](docs/scheduling/typefully/write/implementation-matrix.md); live X and LinkedIn runs await test accounts.
 
 ## Where this goes
 

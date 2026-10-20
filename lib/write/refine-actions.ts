@@ -86,3 +86,15 @@ export const assistantInputSchema = z.strictObject({
 
 /** One of {@link assistantInputSchema}. */
 export type AssistantInput = z.infer<typeof assistantInputSchema>
+
+/** The tags this module fences content with. */
+const FENCE_TAGS = /<\/?\s*(?:text|sample|voice|audience|instruction|draft|post|platform)\b[^>]*>/gi
+
+/**
+ * Content for a fence: any of the fence tags inside it are removed, so text
+ * the writer or a sample supplies cannot close its fence and pose as
+ * instructions.
+ */
+export function fenced(content: string): string {
+  return content.replace(FENCE_TAGS, '')
+}

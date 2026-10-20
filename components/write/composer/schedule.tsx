@@ -166,7 +166,7 @@ export function ScheduleDialog({
       const first = result.posts[0]
       toast.success(
         result.created
-          ? `Scheduled ${result.posts.length} post${result.posts.length === 1 ? '' : 's'}${first ? ` for ${new Date(first.scheduledFor).toLocaleString()}` : ''}.`
+          ? `Scheduled ${result.posts.length} post${result.posts.length === 1 ? '' : 's'}${first ? ` for ${new Date(first.scheduledFor).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: zone })} (${zone})` : ''}.`
           : 'Already scheduled: nothing new was queued.'
       )
       onClose()

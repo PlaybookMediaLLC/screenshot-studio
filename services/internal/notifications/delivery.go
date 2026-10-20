@@ -122,8 +122,15 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 			if e2 != nil {
 				return false, e2
 			}
+			if !pref.socialSetAllows(socialSetOf(row), e.kind) {
+				continue
+			}
+			wantsEmail, e2 := emailWanted(ctx, tx, user)
+			if e2 != nil {
+				return false, e2
+			}
 			for _, channel := range []string{"in_app", "email"} {
-				if !enabled(pol, pref, def, channel) {
+				if !enabled(pol, pref, def, channel) || channel == "email" && !wantsEmail {
 					continue
 				}
 				id := cuid.New()
@@ -150,8 +157,13 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 				}
 			}
 		}
-		// Shared channels receive only catalogue metadata, never restricted event content.
-		if enabled(pol, defaultPreferences(), def, "slack") && pol.SlackConnectionID != "" && pol.SlackChannelID != "" {
+		// Shared channels receive only catalogue metadata, never restricted event
+		// content, and nothing about a private social set (RFC 043).
+		private, err := s.privateEvent(ctx, e)
+		if err != nil {
+			return false, err
+		}
+		if !private && enabled(pol, defaultPreferences(), def, "slack") && pol.SlackConnectionID != "" && pol.SlackChannelID != "" {
 			_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_delivery(id,"organizationId",event_id,kind,channel,destination,policy_generation,connection_id) VALUES($1,$2,$3,$4,'slack',$5,$6,$7) ON CONFLICT DO NOTHING`, cuid.New(), e.org, e.id, e.kind, pol.SlackChannelID, pol.Generation, pol.SlackConnectionID)
 			if err != nil {
 				return false, err
@@ -266,6 +278,14 @@ func (s *Service) recipients(ctx context.Context, e occurrence, d activity.Defin
 			if owner.Valid {
 				wanted[owner.String] = true
 			}
+		}
+	}
+	// A reply goes to the thread's participants alone; the draft's author
+	// hears about it as comment.on_your_draft (RFC 043).
+	if d.Audience == "participants" {
+		wanted = map[string]bool{}
+		for _, id := range stringsFrom(e.payload["participantUserIds"]) {
+			wanted[id] = true
 		}
 	}
 	// Mention events target only the members explicitly validated at the write boundary.
@@ -421,12 +441,20 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 		if pref.Generation != d.preferenceGeneration || !test && !enabled(pol, pref, def, d.Channel) {
 			return skip("PREFERENCES_CHANGED")
 		}
+		if wants, e := emailWanted(ctx, s.DB, d.Destination); e != nil {
+			return env, Outcome{}, e
+		} else if !wants && !test {
+			return skip("EMAIL_TURNED_OFF")
+		}
 		allowed, row, e := s.resource(ctx, d.OrganizationID, d.Destination, resourceType, resourceID)
 		if e != nil {
 			return env, Outcome{}, e
 		}
 		if !allowed && !test {
 			return skip("ACCESS_REMOVED")
+		}
+		if !test && !pref.socialSetAllows(socialSetOf(row), d.Kind) {
+			return skip("PREFERENCES_CHANGED")
 		}
 		if !emailConfigured() {
 			return env, Outcome{Status: "SKIPPED", Code: "EMAIL_NOT_CONFIGURED"}, nil
@@ -603,4 +631,22 @@ func availableChannel(p Policy, ch string) bool {
 		return p.Availability.Slack
 	}
 	return false
+}
+
+// privateEvent reports whether an event concerns a private social set.
+func (s *Service) privateEvent(ctx context.Context, e occurrence) (bool, error) {
+	table, ok := resourceTables[e.resourceType]
+	if !ok || (table != "content_draft" && table != "scheduled_post") {
+		return false, nil
+	}
+	var setID sql.NullString
+	err := s.DB.QueryRowContext(ctx, `SELECT "socialSetId" FROM `+table+` WHERE id=$1 AND "organizationId"=$2`, e.resourceID, e.org).Scan(&setID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	private, _, err := privateSocialSet(ctx, s.DB, e.org, setID.String)
+	return private, err
 }

@@ -7,8 +7,10 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhooksubscription"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 )
@@ -116,4 +118,42 @@ func emitDraftPublished(ctx context.Context, tx *ent.Tx, post *ent.ScheduledPost
 	}
 	return webhooks.Emit(ctx, tx, webhooks.NewEnvelope(post.OrganizationID, webhooks.DraftPublished, draft.SocialSetID,
 		webhooks.Resource{ID: draft.ID, Type: "draft"}, data))
+}
+
+// PostConnectionActive reports whether the account a post went out on is
+// still active; a removed or revoked account takes no further action.
+func (r *Repository) PostConnectionActive(ctx context.Context, postID string) (bool, error) {
+	post, err := r.client.ScheduledPost.Query().Where(scheduledpost.ID(postID)).WithChannelConnection().Only(ctx)
+	if ent.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return post.Edges.ChannelConnection != nil && post.Edges.ChannelConnection.Status == channelconnection.StatusACTIVE, nil
+}
+
+// RecordAutoAction records a live post's follow-up that went out, once per
+// post and kind, as activity for notifications.
+func (r *Repository) RecordAutoAction(ctx context.Context, postID, kind string) error {
+	post, err := r.client.ScheduledPost.Get(ctx, postID)
+	if ent.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	payload := map[string]any{}
+	if post.ContentDraftID != nil {
+		payload["contentDraftId"] = *post.ContentDraftID
+	}
+	if err := activity.Emit(ctx, tx, post.OrganizationID, kind, "scheduled_post", post.ID, "", kind+":"+post.ID, payload); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

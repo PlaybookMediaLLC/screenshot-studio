@@ -17,6 +17,15 @@ In-app defaults on for every entry. Email defaults on only for the two existing
 campaign review categories (marked *); other email and Slack require workspace
 configuration. Personal opt-outs and global channel availability take precedence.
 
+Social sets (RFC 043) add three gates. Activity on a private set's drafts and
+posts reaches only the set's owner and never a shared Slack channel. A person
+can turn a publishing kind off for one set, stored in
+`platform_notification_preference.social_sets`. A person's email switch
+(`user_preference.emailNotifications`) turns off activity email in every
+workspace; authentication and security email is unaffected. A reply reaches
+the thread's participants; the draft's author hears about new comments as
+`comment.on_your_draft`.
+
 | Canonical event                   | Committed emitter                                                           | Recipients      | Sensitivity / permitted channels | Summary                         | Destination                           |
 | --------------------------------- | --------------------------------------------------------------------------- | --------------- | -------------------------------- | ------------------------------- | ------------------------------------- |
 | `release.created`                 | `CreateRelease`                                                             | creators        | coarse; in-app, email, Slack     | Release created                 | release intake or associated campaign |
@@ -41,13 +50,16 @@ configuration. Personal opt-outs and global channel availability take precedence
 | `draft.review_requested`          | `ReviewContentDraft`                                                        | draft_reviewers | restricted; in-app, email        | Draft needs review              | campaign step or draft editor         |
 | `draft.approved`                  | `ReviewContentDraft`                                                        | owner           | restricted; in-app, email        | Draft approved                  | campaign step or draft editor         |
 | `draft.changes_requested`         | `ReviewContentDraft`                                                        | owner           | restricted; in-app, email        | Draft changes requested         | campaign step or draft editor         |
-| `comment.created`                 | `recordDiscussionActivity / AddGuestComment / AddStoreReviewComment`        | participants    | restricted; in-app, email        | New comment                     | resource discussion                   |
+| `comment.created`                 | `recordDiscussionActivity / AddGuestComment / AddStoreReviewComment`        | participants    | restricted; in-app, email        | Reply to your comment           | resource discussion                   |
+| `comment.on_your_draft`           | `recordDiscussionActivity`                                                  | owner           | restricted; in-app, email        | New comment on your draft       | resource discussion                   |
 | `comment.resolved`                | `recordDiscussionActivity / ResolveStoreReviewComment`                      | participants    | restricted; in-app, email        | Comment resolved                | resource discussion                   |
 | `member.mentioned`                | `recordDiscussionActivity`                                                  | mentioned       | restricted; in-app, email        | You were mentioned              | resource discussion                   |
 | `post.scheduled`                  | `ScheduleContentDraft / publishing.Repository.Schedule`                     | publishers      | coarse; in-app, email, Slack     | Post scheduled                  | draft calendar or campaign            |
 | `post.moved`                      | `MoveContentDraft / publishing.Repository.Schedule`                         | publishers      | coarse; in-app, email, Slack     | Post rescheduled                | draft calendar or campaign            |
 | `post.cancelled`                  | `CancelContentDraftSchedule / publishing.Repository.Cancel`                 | publishers      | coarse; in-app, email, Slack     | Post cancelled                  | draft calendar or campaign            |
 | `post.published`                  | `publishing.Repository.Complete`                                            | publishers      | coarse; in-app, email, Slack     | Post published                  | draft calendar or campaign            |
+| `post.auto_repost_published`      | `publishing.Repository.RecordAutoAction`                                    | publishers      | coarse; in-app, email, Slack     | Auto-retweet published          | draft calendar or campaign            |
+| `post.auto_plug_published`        | `publishing.Repository.RecordAutoAction`                                    | publishers      | coarse; in-app, email, Slack     | Auto-plug published             | draft calendar or campaign            |
 | `post.publish_failed`             | `publishing.Repository.Fail`                                                | operators       | restricted; in-app, email        | Publishing needs attention      | draft calendar or campaign            |
 | `post.publish_recovery_required`  | `publishing.Repository.MarkUnknown`                                         | operators       | restricted; in-app, email        | Publishing result needs review  | draft calendar or campaign            |
 | `integration.connected`           | `SaveIntegration / FinishOAuth / Slack callback / provider health recovery` | admins          | coarse; in-app, email, Slack     | Integration connected           | integration or source settings        |

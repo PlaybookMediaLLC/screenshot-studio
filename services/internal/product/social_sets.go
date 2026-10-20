@@ -259,9 +259,29 @@ func (c *Configuration) defaultSocialSet(ctx context.Context, organizationID str
 	if err != nil {
 		return nil, err
 	}
-	if _, err := tx.ChannelConnection.Update().Where(channelconnection.OrganizationID(organizationID),
-		channelconnection.SocialSetIDIsNil()).SetSocialSetID(created.ID).Save(ctx); err != nil && !ent.IsConstraintError(err) {
+	// Adopt the accounts that belong to no set yet: the oldest of each
+	// platform, which also become the set's defaults for new drafts, in order.
+	orphans, err := tx.ChannelConnection.Query().Where(channelconnection.OrganizationID(organizationID),
+		channelconnection.SocialSetIDIsNil(), channelconnection.StatusEQ(channelconnection.StatusACTIVE)).
+		Order(ent.Asc(channelconnection.FieldCreatedAt), ent.Asc(channelconnection.FieldID)).All(ctx)
+	if err != nil {
 		return nil, err
+	}
+	platforms := []string{}
+	for _, connection := range orphans {
+		if oneOf(connection.Platform, platforms...) {
+			continue
+		}
+		if _, err := tx.ChannelConnection.UpdateOneID(connection.ID).SetSocialSetID(created.ID).Save(ctx); err != nil {
+			return nil, err
+		}
+		platforms = append(platforms, connection.Platform)
+	}
+	if len(platforms) > 0 {
+		if created, err = tx.SocialSet.UpdateOneID(created.ID).SetDefaultPlatforms(platforms).
+			SetPrimaryPlatform(platforms[0]).Save(ctx); err != nil {
+			return nil, err
+		}
 	}
 	return created.Unwrap(), tx.Commit()
 }

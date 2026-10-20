@@ -120,7 +120,9 @@ func TestOutboundWebhookDelivery(t *testing.T) {
 	dispatcher := webhooks.NewDispatcher(db.SQL, key)
 	dispatcher.HTTP = &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{
 		// hooks.example.com "resolves" to the test server.
-		DialContext:     func(ctx context.Context, network, _ string) (net.Conn, error) { return (&net.Dialer{}).DialContext(ctx, network, target) },
+		DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, network, target)
+		},
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // a local test server's certificate
 	}}
 	recorder := server.Config.Handler.(*receiver)

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -43,7 +44,20 @@ type Policy struct {
 type Preferences struct {
 	Events     map[string]Channels `json:"events"`
 	Generation int                 `json:"generation"`
+	// SocialSets turns activity kinds off for one social set (RFC 043): set
+	// ID, then kind, false for off. A kind not listed follows Events.
+	SocialSets map[string]map[string]bool `json:"socialSets"`
 }
+
+// socialSetAllows reports whether the person wants kind for the set.
+func (p Preferences) socialSetAllows(setID, kind string) bool {
+	if setID == "" {
+		return true
+	}
+	on, listed := p.SocialSets[setID][kind]
+	return !listed || on
+}
+
 type Settings struct {
 	Effective      map[string]map[string]ChannelDecision `json:"effective"`
 	Catalogue      []activity.Definition                 `json:"catalogue"`
@@ -108,7 +122,7 @@ func defaultPolicy() Policy {
 	return p
 }
 func defaultPreferences() Preferences {
-	p := Preferences{Events: map[string]Channels{}, Generation: 1}
+	p := Preferences{Events: map[string]Channels{}, Generation: 1, SocialSets: map[string]map[string]bool{}}
 	for _, d := range activity.Catalogue {
 		p.Events[d.ID] = Channels{InApp: true, Email: true}
 	}
@@ -144,8 +158,8 @@ func policy(ctx context.Context, db queryer, org string) (Policy, error) {
 }
 func preferences(ctx context.Context, db queryer, org, user string) (Preferences, error) {
 	p := defaultPreferences()
-	var raw []byte
-	err := db.QueryRowContext(ctx, `SELECT events,generation FROM platform_notification_preference WHERE "organizationId"=$1 AND "userId"=$2`, org, user).Scan(&raw, &p.Generation)
+	var raw, sets []byte
+	err := db.QueryRowContext(ctx, `SELECT events,generation,social_sets FROM platform_notification_preference WHERE "organizationId"=$1 AND "userId"=$2`, org, user).Scan(&raw, &p.Generation, &sets)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, nil
 	}
@@ -159,7 +173,42 @@ func preferences(ctx context.Context, db queryer, org, user string) (Preferences
 	for k, v := range overrides {
 		p.Events[k] = v
 	}
+	if len(sets) > 0 {
+		if err = json.Unmarshal(sets, &p.SocialSets); err != nil {
+			return p, err
+		}
+	}
 	return p, nil
+}
+
+// emailWanted reads the person's email master switch (RFC 043); off, no
+// notification email reaches them in any workspace.
+func emailWanted(ctx context.Context, db queryer, user string) (bool, error) {
+	var on bool
+	err := db.QueryRowContext(ctx, `SELECT "emailNotifications" FROM user_preference WHERE "userId"=$1`, user).Scan(&on)
+	if errors.Is(err, sql.ErrNoRows) {
+		return true, nil
+	}
+	return on, err
+}
+
+// socialSetOf names the social set a resource row belongs to, if any.
+func socialSetOf(row map[string]any) string {
+	return textValue(row, "socialSetId")
+}
+
+// privateSocialSet reports whether a set is private, and to whom.
+func privateSocialSet(ctx context.Context, db queryer, org, setID string) (bool, string, error) {
+	if setID == "" {
+		return false, "", nil
+	}
+	var visibility string
+	var owner sql.NullString
+	err := db.QueryRowContext(ctx, `SELECT visibility,"ownerUserId" FROM social_set WHERE id=$1 AND "organizationId"=$2`, setID, org).Scan(&visibility, &owner)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, "", nil
+	}
+	return visibility == "PRIVATE", owner.String, err
 }
 func (s *Service) Settings(ctx context.Context, p Principal) (*Settings, error) {
 	if err := s.Authorize(ctx, p, false); err != nil {
@@ -239,7 +288,7 @@ func (s *Service) SavePreferences(ctx context.Context, p Principal, input Prefer
 	if err := s.Authorize(ctx, p, false); err != nil {
 		return nil, err
 	}
-	if !validEvents(input.Events, true) {
+	if !validEvents(input.Events, true) || !validSocialSetPreferences(input.SocialSets) {
 		return nil, ErrInvalid
 	}
 	tx, err := s.DB.BeginTx(ctx, nil)
@@ -251,8 +300,12 @@ func (s *Service) SavePreferences(ctx context.Context, p Principal, input Prefer
 		return nil, err
 	}
 	raw, _ := json.Marshal(input.Events)
-	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_preference(id,"organizationId","userId",events,generation) VALUES($1,$2,$3,$4,2)
-	ON CONFLICT("organizationId","userId") DO UPDATE SET events=EXCLUDED.events,generation=platform_notification_preference.generation+1,updated_at=now()`, cuid.New(), p.OrganizationID, p.UserID, raw)
+	if input.SocialSets == nil {
+		input.SocialSets = map[string]map[string]bool{}
+	}
+	sets, _ := json.Marshal(input.SocialSets)
+	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_preference(id,"organizationId","userId",events,generation,social_sets) VALUES($1,$2,$3,$4,2,$5)
+	ON CONFLICT("organizationId","userId") DO UPDATE SET events=EXCLUDED.events,social_sets=EXCLUDED.social_sets,generation=platform_notification_preference.generation+1,updated_at=now()`, cuid.New(), p.OrganizationID, p.UserID, raw, sets)
 	if err != nil {
 		return nil, err
 	}
@@ -482,6 +535,12 @@ func (s *Service) resource(ctx context.Context, org, user, kind, id string) (boo
 	if row["deletedAt"] != nil || row["status"] == "DELETED" {
 		return false, row, nil
 	}
+	// A private social set's drafts and posts are its owner's alone (RFC 043).
+	if private, owner, err := privateSocialSet(ctx, s.DB, org, socialSetOf(row)); err != nil {
+		return false, nil, err
+	} else if private && owner != user {
+		return false, row, nil
+	}
 	if kind == "release_spec" {
 		var campaignID string
 		err = s.DB.QueryRowContext(ctx, `SELECT id FROM campaign WHERE "organizationId"=$1 AND "releaseId"=$2 ORDER BY "createdAt" DESC,id DESC LIMIT 1`, org, textValue(row, "releaseId")).Scan(&campaignID)
@@ -547,3 +606,24 @@ func appURL(path string) string {
 }
 func textValue(m map[string]any, k string) string { s, _ := m[k].(string); return s }
 func invalid(message string) error                { return fmt.Errorf("%w: %s", ErrInvalid, message) }
+
+// socialSetIDPattern is a social set's ID.
+var socialSetIDPattern = regexp.MustCompile(`^[a-z0-9]{10,32}$`)
+
+// validSocialSetPreferences checks per-set choices: set IDs and catalogue kinds.
+func validSocialSetPreferences(sets map[string]map[string]bool) bool {
+	if len(sets) > 200 {
+		return false
+	}
+	for id, kinds := range sets {
+		if !socialSetIDPattern.MatchString(id) {
+			return false
+		}
+		for kind := range kinds {
+			if _, ok := activity.Lookup(kind); !ok {
+				return false
+			}
+		}
+	}
+	return true
+}

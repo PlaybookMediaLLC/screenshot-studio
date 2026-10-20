@@ -1,14 +1,13 @@
 'use client'
 
 import type { TRPCClient } from '@trpc/client'
-import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { beginHistoryStep, endHistoryStep, useImageStore } from '@/lib/store'
 import type { AppRouter } from '@/lib/trpc/router'
 import {
   applyDesignDocument,
   applyDesignLayout,
   type DesignHistoryMode,
-  waitForSettledCanvas,
+  layoutCanvasSize,
 } from './apply'
 import { type DesignDocument, getDesignAssetIds } from './document'
 
@@ -83,8 +82,7 @@ async function applyNow(
   const step = history === 'step' ? beginHistoryStep() : null
   if (replace && !document.image.src) useImageStore.getState().clearImage()
   applyDesignDocument(document, resolve, history)
-  const preset = getAspectRatioPreset(useImageStore.getState().selectedAspectRatio)
-  const canvas = await waitForSettledCanvas(preset ? preset.width / preset.height : null)
+  const canvas = await layoutCanvasSize()
   signal?.throwIfAborted()
   applyDesignLayout(document, resolve, canvas, history)
   if (step) endHistoryStep(step)

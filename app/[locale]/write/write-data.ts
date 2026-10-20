@@ -39,11 +39,11 @@ export const writeQuerySchema = z.object({
 export type WriteQuery = z.infer<typeof writeQuerySchema>
 
 /**
- * The settings platform's experiments Write follows (RFC 043): tags on drafts
- * and planning drafts on the calendar. The backend refuses both unless the
- * person turned them on and the workspace allows them.
+ * The settings platform's experiments Write follows (RFC 043): tags on drafts.
+ * The backend refuses them unless the person turned them on and the workspace
+ * allows them. Planning was promoted and is always on.
  */
-export const writeExperimentSchema = z.enum(['draft-tags', 'draft-planning'])
+export const writeExperimentSchema = z.enum(['draft-tags'])
 
 /** Load the library for a Write page. */
 export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<string, unknown>) {
@@ -54,7 +54,7 @@ export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<str
   ])
   const enabled = (id: z.infer<typeof writeExperimentSchema>) =>
     experimentList?.items.some((item) => item.id === id && item.enabled) ?? false
-  const experiments = { planning: enabled('draft-planning'), tags: enabled('draft-tags') }
+  const experiments = { tags: enabled('draft-tags') }
   const remembered = (await cookies()).get(SOCIAL_SET_COOKIE)?.value
   const activeSet =
     sets.find((set) => set.id === query.set) ??
@@ -75,9 +75,7 @@ export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<str
       view: tab === 'queue' ? 'drafts' : tab,
     }),
     listContentDraftPostsBetween(tenant, now, horizon, activeSet?.id),
-    experiments.planning
-      ? listPlannedContentDrafts(tenant, now, horizon, activeSet?.id)
-      : Promise.resolve([]),
+    listPlannedContentDrafts(tenant, now, horizon, activeSet?.id),
     activeSet && experiments.tags ? listDraftTags(tenant, activeSet.id) : Promise.resolve([]),
   ])
   const library = [...page.pinned, ...page.items].map((draft) => ({

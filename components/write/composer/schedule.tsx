@@ -430,7 +430,7 @@ export function ScheduleDialog({
         {past && !queue ? <p className="text-xs text-red-300">That time has passed.</p> : null}
         <Problems problems={problems} />
         <DialogFooter className="flex-wrap gap-2">
-          {data.experiments.planning && context.draft.plannedFor ? (
+          {context.draft.plannedFor ? (
             <Button
               className="mr-auto"
               disabled={busy}
@@ -441,17 +441,14 @@ export function ScheduleDialog({
               Clear planned time
             </Button>
           ) : null}
-          {/* Planning is an experiment (RFC 043): shown only when it is on. */}
-          {data.experiments.planning ? (
-            <Button
-              disabled={busy || queue || !instant || past}
-              onClick={() => void plan()}
-              type="button"
-              variant="outline"
-            >
-              Save as planned
-            </Button>
-          ) : null}
+          <Button
+            disabled={busy || queue || !instant || past}
+            onClick={() => void plan()}
+            type="button"
+            variant="outline"
+          >
+            Save as planned
+          </Button>
           <Button
             disabled={busy || problems.length > 0 || (!queue && (!instant || past))}
             onClick={() => void schedule()}

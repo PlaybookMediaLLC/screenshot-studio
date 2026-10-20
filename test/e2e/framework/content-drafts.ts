@@ -69,12 +69,12 @@ export async function createDraftWorkspace(
 }
 
 /**
- * Turn on tags and calendar planning for the signed-in person: both are
- * settings platform experiments (RFC 043) the backend enforces.
+ * Turn on draft tags for the signed-in person: a settings platform
+ * experiment (RFC 043) the backend enforces. Planning was promoted.
  */
-export async function enableDraftExperiments(page: Page): Promise<void> {
+export async function enableDraftTags(page: Page): Promise<void> {
   const response = await apiRequest(page, '/api/v1/me/preferences', {
-    body: { experiments: { 'draft-planning': true, 'draft-tags': true } },
+    body: { experiments: { 'draft-tags': true } },
     method: 'PATCH',
   })
   expect(response.status, JSON.stringify(response.body)).toBe(200)

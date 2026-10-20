@@ -71,7 +71,7 @@ export type DraftSave = {
   channelText?: Partial<Record<DraftChannel, string>>
   discussions?: DraftDiscussions
   plainText?: string
-  /** An ISO instant, or an empty string to clear it (an experiment). */
+  /** An ISO instant, or an empty string to clear it. */
   plannedFor?: string
   status?: 'draft' | 'archived'
   /** Labels (an experiment). */

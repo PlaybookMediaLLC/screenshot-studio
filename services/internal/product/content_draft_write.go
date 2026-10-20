@@ -150,10 +150,6 @@ func (c *Configuration) PlanContentDraft(ctx context.Context, actor Actor, id st
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
 		return nil, err
 	}
-	// Planning is the draft-planning experiment, the same on every path.
-	if err := c.requireExperiment(ctx, actor, ExperimentDraftPlanning); err != nil {
-		return nil, err
-	}
 	draft, err := c.loadDraft(ctx, actor, id)
 	if err != nil {
 		return nil, err

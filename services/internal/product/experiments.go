@@ -44,8 +44,8 @@ var experimentRegistry = []Experiment{
 		Enforcement: "Screenshot Studio has no Substack channel, so drafts cannot be sent there."},
 	{ID: ExperimentDraftPlanning, Name: "Plan drafts on the calendar",
 		Description: "Put a draft on a day of the calendar without scheduling it.",
-		Status:      "experimental", Entitlement: contentDraftFeature, MinAppVersion: "2.25.0", UserEditable: true,
-		Enforcement: "The backend refuses a planned date unless you opted in and your workspace allows it."},
+		Status:      "promoted", Entitlement: contentDraftFeature, MinAppVersion: "2.25.0",
+		Enforcement: "Part of Write for every workspace with drafts; a planned draft never publishes by itself."},
 	{ID: ExperimentDraftTags, Name: "Draft tags",
 		Description: "Label drafts so you can find them again.",
 		Status:      "experimental", Entitlement: contentDraftFeature, MinAppVersion: "2.25.0", UserEditable: true,
@@ -106,7 +106,12 @@ func (c *Configuration) experimentStates(ctx context.Context, actor Actor, optIn
 			Entitled: experiment.Entitlement == "" || features[experiment.Entitlement], OptedIn: optIns[experiment.ID]}
 		state.Dependencies = nonNilStrings(experiment.Dependencies)
 		switch experiment.Status {
-		case "promoted", "available":
+		case "promoted":
+			// Part of the product: an admin's switch from before it was
+			// promoted no longer applies, and none can be set since.
+			state.DisabledByAdmin = false
+			state.Enabled = state.Entitled
+		case "available":
 			state.Enabled = state.Entitled && !state.DisabledByAdmin
 		case "experimental":
 			state.Enabled = state.Entitled && !state.DisabledByAdmin && state.OptedIn

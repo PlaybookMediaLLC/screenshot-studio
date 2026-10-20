@@ -216,7 +216,9 @@ subscribes HTTPS endpoints to versioned draft events:
 
 Draft tags and calendar planning did not exist. This RFC adds the minimum
 durable behaviour so those two events can be emitted: a draft's `tags` and
-`plannedFor`. Both are behind experiments (below).
+`plannedFor`. Both started behind experiments (below); calendar planning has
+since been promoted with Write (RFC 042), so it is on for every workspace with
+drafts.
 
 ## Experiments
 

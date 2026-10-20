@@ -38,7 +38,7 @@ export function DraftCalendar({
   weekStart,
 }: {
   canMove: boolean
-  /** Drafts placed on a day without scheduling (an experiment). */
+  /** Drafts placed on a day without scheduling. */
   planned?: PlannedDraft[]
   posts: CalendarPostWire[]
   /** The set the calendar shows, kept when moving between weeks. */

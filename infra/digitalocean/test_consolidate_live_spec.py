@@ -87,7 +87,8 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
     def test_notifications_configuration_stays_backend_owned(self):
         backend = self.base["spec"]["services"][-1]
         keys = ("PLATFORM_NOTIFICATION_ENCRYPTION_KEY", "SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET",
-                "PLATFORM_SLACK_CALLBACK_URL", "INTEGRATION_ENCRYPTION_KEY")
+                "PLATFORM_SLACK_CALLBACK_URL", "INTEGRATION_ENCRYPTION_KEY",
+                "PLATFORM_WEBHOOK_ENCRYPTION_KEY")
         secrets = {key: "fixture-" + key for key in keys}
         secrets.update({key: "fixture" for key in ("R2_ENDPOINT", "R2_BUCKET_NAME", "R2_ACCESS_KEY_ID",
                                                   "R2_SECRET_ACCESS_KEY", "REDIS_URL")})

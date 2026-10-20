@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { useDeviceUIStore } from './device-ui'
 import type { CanvasElement } from '@/lib/editor/elements/schema'
 
 /** Where a layer moves in the stacking order. */
@@ -58,11 +59,22 @@ function moved(elements: CanvasElement[], index: number, direction: LayerOrder) 
 
 /** The elements slice, spread into the editor store. */
 export function createElementsSlice(set: SetState, get: () => ElementsSlice): ElementsSlice {
+  const select = (id: string) => {
+    useDeviceUIStore.getState().setSelectedDeviceId(null)
+    return {
+      isMainImageSelected: false,
+      selectedAnnotationId: null,
+      selectedBlurId: null,
+      selectedElementId: id,
+      selectedOverlayId: null,
+      selectedTextId: null,
+    }
+  }
   return {
     elements: [],
     selectedElementId: null,
     addElement: (element) =>
-      set((state) => ({ elements: [...state.elements, element], selectedElementId: element.id })),
+      set((state) => ({ elements: [...state.elements, element], ...select(element.id) })),
     updateElement: (id, changes) =>
       set((state) => ({
         elements: state.elements.map((element) =>
@@ -89,7 +101,7 @@ export function createElementsSlice(set: SetState, get: () => ElementsSlice): El
         x: Math.min(1.4, source.x + 0.03),
         y: Math.min(1.4, source.y + 0.03),
       }
-      set((state) => ({ elements: [...state.elements, copy], selectedElementId: copy.id }))
+      set((state) => ({ elements: [...state.elements, copy], ...select(copy.id) }))
       return copy.id
     },
     reorderElement: (id, direction) =>
@@ -97,18 +109,6 @@ export function createElementsSlice(set: SetState, get: () => ElementsSlice): El
         const index = state.elements.findIndex((element) => element.id === id)
         return index === -1 ? {} : { elements: moved(state.elements, index, direction) }
       }),
-    setSelectedElementId: (id) =>
-      set(
-        id
-          ? {
-              isMainImageSelected: false,
-              selectedAnnotationId: null,
-              selectedBlurId: null,
-              selectedElementId: id,
-              selectedOverlayId: null,
-              selectedTextId: null,
-            }
-          : { selectedElementId: null }
-      ),
+    setSelectedElementId: (id) => set(id ? select(id) : { selectedElementId: null }),
   }
 }

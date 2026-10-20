@@ -133,10 +133,8 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   const setEditingScreenDeviceId = useDeviceUIStore((state) => state.setEditingScreenDeviceId);
   const responsiveDimensions = useResponsiveCanvasDimensions();
 
-  const [viewportSize, setViewportSize] = useState({
-    width: 1920,
-    height: 1080,
-  });
+  // Keep pixel-based layers in the draft's coordinate system; only the preview scales.
+  const [referenceWidth] = useState(() => useImageStore.getState().canvasDimensions?.canvasW ?? 960);
 
   const [patternImage, setPatternImage] = useState<HTMLCanvasElement | null>(
     null
@@ -219,8 +217,9 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     };
   }, [is3DPointerDown]);
 
-  const containerWidth = responsiveDimensions.width;
-  const containerHeight = responsiveDimensions.height;
+  const containerWidth = referenceWidth;
+  const containerHeight = referenceWidth * responsiveDimensions.originalHeight / responsiveDimensions.originalWidth;
+  const previewScale = responsiveDimensions.width / referenceWidth;
 
   const loadedOverlayImages = useOverlayImages(imageOverlays);
 
@@ -272,6 +271,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedTextId(null);
     setSelectedBlurId(null);
     setSelectedAnnotationId(null);
+    useImageStore.getState().setSelectedElementId(null);
   }, [selectedDeviceId, setSelectedAnnotationId, setSelectedOverlayId, setIsMainImageSelected, setSelectedBlurId, setSelectedTextId]);
 
   // Panel selection must clear the same competing selections as a canvas click.
@@ -362,19 +362,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
   }, [backgroundNoise]);
 
   useEffect(() => {
-    const updateViewportSize = () => {
-      setViewportSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
-
-    updateViewportSize();
-    window.addEventListener("resize", updateViewportSize);
-    return () => window.removeEventListener("resize", updateViewportSize);
-  }, []);
-
-  useEffect(() => {
     if (!patternStyle.enabled) {
       setPatternImage(null);
       return;
@@ -403,7 +390,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     layoutImage,
     containerWidth,
     containerHeight,
-    viewportSize,
+    { width: 1920, height: 1080 },
     { padding: canvasPadding },
     screenshot,
     frame,
@@ -507,6 +494,10 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
       className="relative h-full w-full"
       style={{
         lineHeight: 0,
+        width: containerWidth,
+        height: containerHeight,
+        transform: `scale(${previewScale})`,
+        transformOrigin: "top left",
         ...(showRulers ? { marginTop: 20, marginLeft: 20 } : {}),
       }}
     >

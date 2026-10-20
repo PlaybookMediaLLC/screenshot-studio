@@ -20,7 +20,7 @@ function getThumbSrc(overlay: { src: string; isCustom?: boolean }) {
 }
 
 export function ImageOverlaySection() {
-  const { uploadedImageUrl, imageOverlays, textOverlays, annotations, blurRegions, addImageOverlay } =
+  const { imageOverlays, textOverlays, elements, annotations, blurRegions, addImageOverlay } =
     useImageStore();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -45,7 +45,7 @@ export function ImageOverlaySection() {
   }, [addImageOverlay]);
 
   const totalLayers =
-    (uploadedImageUrl ? 1 : 0) + imageOverlays.length + textOverlays.length + annotations.length + blurRegions.length;
+    imageOverlays.length + textOverlays.length + elements.length + annotations.length + blurRegions.length;
 
   // Show up to 4 thumbnails from image overlays for the stacked preview
   const previewOverlays = imageOverlays.slice(-4);
@@ -106,7 +106,7 @@ export function ImageOverlaySection() {
 
         <div className="flex-1 text-left min-w-0">
           <p className="text-xs font-medium text-foreground">
-            {totalLayers > 0 ? `${totalLayers} layer${totalLayers !== 1 ? 's' : ''}` : 'No layers'}
+            {totalLayers > 0 ? `${totalLayers} overlay${totalLayers !== 1 ? 's' : ''}` : 'No overlays'}
           </p>
           <p className="text-[10px] text-muted-foreground">
             {totalLayers > 0 ? 'Manage depth & assets' : 'Add stickers, overlays & more'}

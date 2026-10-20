@@ -115,6 +115,7 @@ export function EditorHeader() {
   const screenshot = useImageStore(useShallow(selectScreenshot))
   const {
     selectedAspectRatio,
+    customDimensions,
     slides,
     uploadedImageUrl,
     textOverlays,
@@ -199,8 +200,8 @@ export function EditorHeader() {
     <>
       <header
         className={cn(
-          'grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-foreground/[0.06] bg-background',
-          isMobile ? 'px-2' : 'px-3'
+          'grid shrink-0 items-center gap-2 border-b border-foreground/[0.06] bg-background',
+          isMobile ? 'grid-cols-[1fr_auto] px-2 py-2' : 'h-12 grid-cols-[1fr_auto_1fr] px-3'
         )}
       >
         <div className="flex min-w-0 items-center gap-1 justify-self-start">
@@ -242,7 +243,10 @@ export function EditorHeader() {
         </div>
 
         {/* One floating toolbar: history, guides, and canvas size. */}
-        <div className="flex items-center justify-self-center rounded-xl border border-foreground/[0.06] bg-foreground/[0.03] p-0.5">
+        <div className={cn(
+          'flex items-center justify-self-center rounded-xl border border-foreground/[0.06] bg-foreground/[0.03] p-0.5',
+          isMobile && 'order-3 col-span-2'
+        )}>
           {showHistoryControls ? (
             <>
               <ToolButton disabled={!canUndo} label="Undo (⌘Z)" onClick={handleUndo}>
@@ -309,15 +313,17 @@ export function EditorHeader() {
               >
                 <AspectRatioIcon size={15} />
                 <span className="font-mono text-xs leading-none tabular-nums">
-                  {currentAspectRatio
-                    ? `${currentAspectRatio.width}:${currentAspectRatio.height}`
-                    : 'Auto'}
+                  {selectedAspectRatio === 'custom' && customDimensions
+                    ? `${customDimensions.width} × ${customDimensions.height}`
+                    : currentAspectRatio
+                      ? `${currentAspectRatio.width}:${currentAspectRatio.height}`
+                      : 'Auto'}
                 </span>
               </Button>
             </PopoverTrigger>
             <PopoverContent
               align="center"
-              className="w-[420px] p-0"
+              className="w-[420px] max-w-[calc(100vw-2rem)] p-0"
               collisionPadding={16}
               sideOffset={10}
             >

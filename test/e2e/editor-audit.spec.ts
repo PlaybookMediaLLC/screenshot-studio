@@ -372,7 +372,8 @@ test('App Store transforms, device frames, visibility and backgrounds persist', 
   await page.getByRole('button', { name: 'Redo', exact: true }).click()
 
   await page.getByRole('option', { name: /^Device/ }).click()
-  await page.getByLabel('Model', { exact: true }).selectOption('iphone-17')
+  await page.getByRole('combobox', { name: 'Model', exact: true }).click()
+  await page.getByRole('option', { name: 'Phones · iPhone 17', exact: true }).click()
   await page.getByLabel('Scale', { exact: true }).fill('80')
   await page.getByLabel('Scale', { exact: true }).press('Enter')
   const rotation = page.getByLabel('Rotation', { exact: true })
@@ -400,7 +401,9 @@ test('App Store transforms, device frames, visibility and backgrounds persist', 
   await page.reload()
   await expect(background).toHaveAttribute('style', savedBackground!)
   await page.getByRole('option', { name: /^Device/ }).click()
-  await expect(page.getByLabel('Model', { exact: true })).toHaveValue('iphone-17')
+  await expect(page.getByRole('combobox', { name: 'Model', exact: true })).toHaveText(
+    'Phones · iPhone 17'
+  )
   await expect(page.getByLabel('Scale', { exact: true })).toHaveValue('80')
   await expect(page.getByLabel('Rotation', { exact: true })).toHaveValue('15')
 })

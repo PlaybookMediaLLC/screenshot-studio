@@ -83,7 +83,7 @@ export async function captureStageSvg(
 
   // Let a pending state change paint, as the raster export does.
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-  const rect = container.getBoundingClientRect()
+  const rect = { width: parseFloat(container.style.width), height: parseFloat(container.style.height) }
   const svg = await domToForeignObjectSvg(container, {
     backgroundColor: null,
     filter: shouldIncludeInExport,

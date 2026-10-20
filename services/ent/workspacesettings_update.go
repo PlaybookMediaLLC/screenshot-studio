@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
@@ -104,6 +105,18 @@ func (_u *WorkspaceSettingsUpdate) SetNillableAiAgentEnabled(v *bool) *Workspace
 	return _u
 }
 
+// SetDisabledExperiments sets the "disabled_experiments" field.
+func (_u *WorkspaceSettingsUpdate) SetDisabledExperiments(v []string) *WorkspaceSettingsUpdate {
+	_u.mutation.SetDisabledExperiments(v)
+	return _u
+}
+
+// AppendDisabledExperiments appends value to the "disabled_experiments" field.
+func (_u *WorkspaceSettingsUpdate) AppendDisabledExperiments(v []string) *WorkspaceSettingsUpdate {
+	_u.mutation.AppendDisabledExperiments(v)
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *WorkspaceSettingsUpdate) SetUpdatedAt(v time.Time) *WorkspaceSettingsUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -177,6 +190,14 @@ func (_u *WorkspaceSettingsUpdate) sqlSave(ctx context.Context) (_node int, err 
 	}
 	if value, ok := _u.mutation.AiAgentEnabled(); ok {
 		_spec.SetField(workspacesettings.FieldAiAgentEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DisabledExperiments(); ok {
+		_spec.SetField(workspacesettings.FieldDisabledExperiments, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedDisabledExperiments(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, workspacesettings.FieldDisabledExperiments, value)
+		})
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(workspacesettings.FieldUpdatedAt, field.TypeTime, value)
@@ -274,6 +295,18 @@ func (_u *WorkspaceSettingsUpdateOne) SetNillableAiAgentEnabled(v *bool) *Worksp
 	if v != nil {
 		_u.SetAiAgentEnabled(*v)
 	}
+	return _u
+}
+
+// SetDisabledExperiments sets the "disabled_experiments" field.
+func (_u *WorkspaceSettingsUpdateOne) SetDisabledExperiments(v []string) *WorkspaceSettingsUpdateOne {
+	_u.mutation.SetDisabledExperiments(v)
+	return _u
+}
+
+// AppendDisabledExperiments appends value to the "disabled_experiments" field.
+func (_u *WorkspaceSettingsUpdateOne) AppendDisabledExperiments(v []string) *WorkspaceSettingsUpdateOne {
+	_u.mutation.AppendDisabledExperiments(v)
 	return _u
 }
 
@@ -380,6 +413,14 @@ func (_u *WorkspaceSettingsUpdateOne) sqlSave(ctx context.Context) (_node *Works
 	}
 	if value, ok := _u.mutation.AiAgentEnabled(); ok {
 		_spec.SetField(workspacesettings.FieldAiAgentEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DisabledExperiments(); ok {
+		_spec.SetField(workspacesettings.FieldDisabledExperiments, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedDisabledExperiments(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, workspacesettings.FieldDisabledExperiments, value)
+		})
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(workspacesettings.FieldUpdatedAt, field.TypeTime, value)

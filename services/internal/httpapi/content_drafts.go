@@ -67,7 +67,7 @@ func (s *Server) listContentDrafts(w http.ResponseWriter, r *http.Request) {
 	}
 	query := r.URL.Query()
 	page, err := s.configuration.ListContentDrafts(r.Context(), workspaceActor(r), product.ContentDraftListQuery{
-		Cursor: query.Get("cursor"), Limit: limit, Status: query.Get("status"),
+		Cursor: query.Get("cursor"), Limit: limit, SocialSetID: query.Get("socialSetId"), Status: query.Get("status"),
 	})
 	if err != nil {
 		writeStoreError(w, err)

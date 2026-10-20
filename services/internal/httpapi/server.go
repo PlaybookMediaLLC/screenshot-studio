@@ -30,7 +30,7 @@ type Store interface {
 	AuthorizePublishing(context.Context, string, string, string) error
 	AuthorizeAPIKeyScope(context.Context, string, string, string) error
 	Binding(context.Context, string) (*ent.SocialTenantBinding, error)
-	StartOAuth(context.Context, publishing.Actor, string, string, string, string) error
+	StartOAuth(context.Context, publishing.Actor, string, string, string, string, *string) error
 	OAuthStart(context.Context, publishing.Actor, string, string, string, *string) (*ent.SocialOAuthStart, error)
 	RememberInstagramIntegration(context.Context, publishing.Actor, string, string, string) error
 	FinishOAuth(context.Context, publishing.Actor, string, string, string, string) (*ent.ChannelConnection, error)
@@ -58,6 +58,7 @@ type ConfigurationStore interface {
 	CreativeSetStore
 	ContentDraftStore
 	ContentDraftPlatformStore
+	SettingsPlatformStore
 	LibraryStore
 	SharingStore
 	GetCampaignAsset(context.Context, product.Actor, string, string) (*product.CampaignAssetLink, error)
@@ -286,6 +287,7 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 		s.registerProjects(mux)
 		s.registerCreativeSets(mux)
 		s.registerContentDrafts(mux)
+		s.registerSettingsPlatform(mux)
 		s.registerLibrary(mux)
 		s.registerSharing(mux)
 		s.registerNotifications(mux)
@@ -735,6 +737,8 @@ func writeStoreError(w http.ResponseWriter, err error) {
 			"code": "plan_limit_reached", "currentPlan": atLimit.Plan, "error": err.Error(),
 			"limit": atLimit.Limit, "name": atLimit.Name,
 		})
+	case errors.Is(err, publishing.ErrSocialSetSlotTaken), errors.Is(err, publishing.ErrAccountInAnotherSet):
+		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, publishing.ErrUnauthorized):
 		writeError(w, http.StatusUnauthorized, err.Error())
 	case errors.Is(err, publishing.ErrForbidden):

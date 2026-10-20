@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 )
 
 // ContentDraftUpdate is the builder for updating ContentDraft entities.
@@ -253,6 +254,106 @@ func (_u *ContentDraftUpdate) AddVersion(v int) *ContentDraftUpdate {
 	return _u
 }
 
+// SetSocialSetID sets the "social_set_id" field.
+func (_u *ContentDraftUpdate) SetSocialSetID(v string) *ContentDraftUpdate {
+	_u.mutation.SetSocialSetID(v)
+	return _u
+}
+
+// SetNillableSocialSetID sets the "social_set_id" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableSocialSetID(v *string) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetSocialSetID(*v)
+	}
+	return _u
+}
+
+// ClearSocialSetID clears the value of the "social_set_id" field.
+func (_u *ContentDraftUpdate) ClearSocialSetID() *ContentDraftUpdate {
+	_u.mutation.ClearSocialSetID()
+	return _u
+}
+
+// SetPrimaryPlatform sets the "primary_platform" field.
+func (_u *ContentDraftUpdate) SetPrimaryPlatform(v string) *ContentDraftUpdate {
+	_u.mutation.SetPrimaryPlatform(v)
+	return _u
+}
+
+// SetNillablePrimaryPlatform sets the "primary_platform" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillablePrimaryPlatform(v *string) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetPrimaryPlatform(*v)
+	}
+	return _u
+}
+
+// ClearPrimaryPlatform clears the value of the "primary_platform" field.
+func (_u *ContentDraftUpdate) ClearPrimaryPlatform() *ContentDraftUpdate {
+	_u.mutation.ClearPrimaryPlatform()
+	return _u
+}
+
+// SetNaturalPostingTime sets the "natural_posting_time" field.
+func (_u *ContentDraftUpdate) SetNaturalPostingTime(v bool) *ContentDraftUpdate {
+	_u.mutation.SetNaturalPostingTime(v)
+	return _u
+}
+
+// SetNillableNaturalPostingTime sets the "natural_posting_time" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableNaturalPostingTime(v *bool) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetNaturalPostingTime(*v)
+	}
+	return _u
+}
+
+// SetEngagement sets the "engagement" field.
+func (_u *ContentDraftUpdate) SetEngagement(v schema.Engagement) *ContentDraftUpdate {
+	_u.mutation.SetEngagement(v)
+	return _u
+}
+
+// SetNillableEngagement sets the "engagement" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableEngagement(v *schema.Engagement) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetEngagement(*v)
+	}
+	return _u
+}
+
+// SetTags sets the "tags" field.
+func (_u *ContentDraftUpdate) SetTags(v []string) *ContentDraftUpdate {
+	_u.mutation.SetTags(v)
+	return _u
+}
+
+// AppendTags appends value to the "tags" field.
+func (_u *ContentDraftUpdate) AppendTags(v []string) *ContentDraftUpdate {
+	_u.mutation.AppendTags(v)
+	return _u
+}
+
+// SetPlannedFor sets the "planned_for" field.
+func (_u *ContentDraftUpdate) SetPlannedFor(v time.Time) *ContentDraftUpdate {
+	_u.mutation.SetPlannedFor(v)
+	return _u
+}
+
+// SetNillablePlannedFor sets the "planned_for" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillablePlannedFor(v *time.Time) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetPlannedFor(*v)
+	}
+	return _u
+}
+
+// ClearPlannedFor clears the value of the "planned_for" field.
+func (_u *ContentDraftUpdate) ClearPlannedFor() *ContentDraftUpdate {
+	_u.mutation.ClearPlannedFor()
+	return _u
+}
+
 // SetCollabState sets the "collab_state" field.
 func (_u *ContentDraftUpdate) SetCollabState(v []byte) *ContentDraftUpdate {
 	_u.mutation.SetCollabState(v)
@@ -461,6 +562,38 @@ func (_u *ContentDraftUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.AddedVersion(); ok {
 		_spec.AddField(contentdraft.FieldVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.SocialSetID(); ok {
+		_spec.SetField(contentdraft.FieldSocialSetID, field.TypeString, value)
+	}
+	if _u.mutation.SocialSetIDCleared() {
+		_spec.ClearField(contentdraft.FieldSocialSetID, field.TypeString)
+	}
+	if value, ok := _u.mutation.PrimaryPlatform(); ok {
+		_spec.SetField(contentdraft.FieldPrimaryPlatform, field.TypeString, value)
+	}
+	if _u.mutation.PrimaryPlatformCleared() {
+		_spec.ClearField(contentdraft.FieldPrimaryPlatform, field.TypeString)
+	}
+	if value, ok := _u.mutation.NaturalPostingTime(); ok {
+		_spec.SetField(contentdraft.FieldNaturalPostingTime, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Engagement(); ok {
+		_spec.SetField(contentdraft.FieldEngagement, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.Tags(); ok {
+		_spec.SetField(contentdraft.FieldTags, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedTags(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, contentdraft.FieldTags, value)
+		})
+	}
+	if value, ok := _u.mutation.PlannedFor(); ok {
+		_spec.SetField(contentdraft.FieldPlannedFor, field.TypeTime, value)
+	}
+	if _u.mutation.PlannedForCleared() {
+		_spec.ClearField(contentdraft.FieldPlannedFor, field.TypeTime)
 	}
 	if value, ok := _u.mutation.CollabState(); ok {
 		_spec.SetField(contentdraft.FieldCollabState, field.TypeBytes, value)
@@ -727,6 +860,106 @@ func (_u *ContentDraftUpdateOne) AddVersion(v int) *ContentDraftUpdateOne {
 	return _u
 }
 
+// SetSocialSetID sets the "social_set_id" field.
+func (_u *ContentDraftUpdateOne) SetSocialSetID(v string) *ContentDraftUpdateOne {
+	_u.mutation.SetSocialSetID(v)
+	return _u
+}
+
+// SetNillableSocialSetID sets the "social_set_id" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableSocialSetID(v *string) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetSocialSetID(*v)
+	}
+	return _u
+}
+
+// ClearSocialSetID clears the value of the "social_set_id" field.
+func (_u *ContentDraftUpdateOne) ClearSocialSetID() *ContentDraftUpdateOne {
+	_u.mutation.ClearSocialSetID()
+	return _u
+}
+
+// SetPrimaryPlatform sets the "primary_platform" field.
+func (_u *ContentDraftUpdateOne) SetPrimaryPlatform(v string) *ContentDraftUpdateOne {
+	_u.mutation.SetPrimaryPlatform(v)
+	return _u
+}
+
+// SetNillablePrimaryPlatform sets the "primary_platform" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillablePrimaryPlatform(v *string) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetPrimaryPlatform(*v)
+	}
+	return _u
+}
+
+// ClearPrimaryPlatform clears the value of the "primary_platform" field.
+func (_u *ContentDraftUpdateOne) ClearPrimaryPlatform() *ContentDraftUpdateOne {
+	_u.mutation.ClearPrimaryPlatform()
+	return _u
+}
+
+// SetNaturalPostingTime sets the "natural_posting_time" field.
+func (_u *ContentDraftUpdateOne) SetNaturalPostingTime(v bool) *ContentDraftUpdateOne {
+	_u.mutation.SetNaturalPostingTime(v)
+	return _u
+}
+
+// SetNillableNaturalPostingTime sets the "natural_posting_time" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableNaturalPostingTime(v *bool) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetNaturalPostingTime(*v)
+	}
+	return _u
+}
+
+// SetEngagement sets the "engagement" field.
+func (_u *ContentDraftUpdateOne) SetEngagement(v schema.Engagement) *ContentDraftUpdateOne {
+	_u.mutation.SetEngagement(v)
+	return _u
+}
+
+// SetNillableEngagement sets the "engagement" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableEngagement(v *schema.Engagement) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetEngagement(*v)
+	}
+	return _u
+}
+
+// SetTags sets the "tags" field.
+func (_u *ContentDraftUpdateOne) SetTags(v []string) *ContentDraftUpdateOne {
+	_u.mutation.SetTags(v)
+	return _u
+}
+
+// AppendTags appends value to the "tags" field.
+func (_u *ContentDraftUpdateOne) AppendTags(v []string) *ContentDraftUpdateOne {
+	_u.mutation.AppendTags(v)
+	return _u
+}
+
+// SetPlannedFor sets the "planned_for" field.
+func (_u *ContentDraftUpdateOne) SetPlannedFor(v time.Time) *ContentDraftUpdateOne {
+	_u.mutation.SetPlannedFor(v)
+	return _u
+}
+
+// SetNillablePlannedFor sets the "planned_for" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillablePlannedFor(v *time.Time) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetPlannedFor(*v)
+	}
+	return _u
+}
+
+// ClearPlannedFor clears the value of the "planned_for" field.
+func (_u *ContentDraftUpdateOne) ClearPlannedFor() *ContentDraftUpdateOne {
+	_u.mutation.ClearPlannedFor()
+	return _u
+}
+
 // SetCollabState sets the "collab_state" field.
 func (_u *ContentDraftUpdateOne) SetCollabState(v []byte) *ContentDraftUpdateOne {
 	_u.mutation.SetCollabState(v)
@@ -965,6 +1198,38 @@ func (_u *ContentDraftUpdateOne) sqlSave(ctx context.Context) (_node *ContentDra
 	}
 	if value, ok := _u.mutation.AddedVersion(); ok {
 		_spec.AddField(contentdraft.FieldVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.SocialSetID(); ok {
+		_spec.SetField(contentdraft.FieldSocialSetID, field.TypeString, value)
+	}
+	if _u.mutation.SocialSetIDCleared() {
+		_spec.ClearField(contentdraft.FieldSocialSetID, field.TypeString)
+	}
+	if value, ok := _u.mutation.PrimaryPlatform(); ok {
+		_spec.SetField(contentdraft.FieldPrimaryPlatform, field.TypeString, value)
+	}
+	if _u.mutation.PrimaryPlatformCleared() {
+		_spec.ClearField(contentdraft.FieldPrimaryPlatform, field.TypeString)
+	}
+	if value, ok := _u.mutation.NaturalPostingTime(); ok {
+		_spec.SetField(contentdraft.FieldNaturalPostingTime, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Engagement(); ok {
+		_spec.SetField(contentdraft.FieldEngagement, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.Tags(); ok {
+		_spec.SetField(contentdraft.FieldTags, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedTags(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, contentdraft.FieldTags, value)
+		})
+	}
+	if value, ok := _u.mutation.PlannedFor(); ok {
+		_spec.SetField(contentdraft.FieldPlannedFor, field.TypeTime, value)
+	}
+	if _u.mutation.PlannedForCleared() {
+		_spec.ClearField(contentdraft.FieldPlannedFor, field.TypeTime)
 	}
 	if value, ok := _u.mutation.CollabState(); ok {
 		_spec.SetField(contentdraft.FieldCollabState, field.TypeBytes, value)

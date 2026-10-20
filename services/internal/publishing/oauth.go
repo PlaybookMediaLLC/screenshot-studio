@@ -14,7 +14,10 @@ import (
 
 const oauthLifetime = time.Hour
 
-func (r *Repository) StartOAuth(ctx context.Context, actor Actor, sessionID, state, provider, secretReference string) error {
+// StartOAuth records a single-use grant for a provider connection, bound to
+// the set the account will join (nil for the default set), so the callback
+// cannot attach it to whichever set happens to be selected later.
+func (r *Repository) StartOAuth(ctx context.Context, actor Actor, sessionID, state, provider, secretReference string, socialSetID *string) error {
 	_, err := r.client.SocialOAuthStart.Create().
 		SetID(state).
 		SetOrganizationID(actor.Organization).
@@ -22,6 +25,7 @@ func (r *Repository) StartOAuth(ctx context.Context, actor Actor, sessionID, sta
 		SetSessionID(sessionID).
 		SetProvider(provider).
 		SetSecretReference(secretReference).
+		SetNillableSocialSetID(socialSetID).
 		SetExpiresAt(time.Now().UTC().Add(oauthLifetime)).
 		Save(ctx)
 	if ent.IsConstraintError(err) {
@@ -100,6 +104,10 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 		channelconnection.ExternalAccountID(integrationID),
 	).Only(ctx)
 	if ent.IsNotFound(err) {
+		setID, err := targetSocialSet(ctx, tx, actor.Organization, provider, start.SocialSetID)
+		if err != nil {
+			return nil, err
+		}
 		connection, err = tx.ChannelConnection.Create().
 			SetID(cuid.New()).
 			SetOrganizationID(actor.Organization).
@@ -109,12 +117,16 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 			SetProviderSettings(map[string]any{}).
 			SetSecretReference(start.SecretReference).
 			SetStatus(channelconnection.StatusACTIVE).
+			SetNillableSocialSetID(setID).
 			SetCreatedByUserID(actor.UserID).
 			Save(ctx)
 		if ent.IsConstraintError(err) {
 			return nil, ErrConflict
 		}
 		if err != nil {
+			return nil, err
+		}
+		if err := enableDefaultPlatform(ctx, tx, setID, provider); err != nil {
 			return nil, err
 		}
 		if err := activity.Emit(ctx, tx, actor.Organization, "integration.connected", "channel_connection", connection.ID, actor.UserID, "connected:"+connection.ID, map[string]any{"ownerUserId": actor.UserID}); err != nil {
@@ -130,6 +142,8 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 		return nil, err
 	} else if connection.Platform != provider || connection.SecretReference != start.SecretReference {
 		return nil, ErrConflict
+	} else if connection, err = reconnect(ctx, tx, actor, connection, start.SocialSetID); err != nil {
+		return nil, err
 	}
 	if err := tx.SocialOAuthStart.DeleteOneID(state).Exec(ctx); err != nil {
 		return nil, err
@@ -138,4 +152,44 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 		return nil, err
 	}
 	return connection.Unwrap(), nil
+}
+
+// reconnect renews an account the workspace already holds. An active account
+// stays in its set, and asking to add it to a different set is refused rather
+// than silently moving it. A removed account comes back in the set the
+// connection started from (or the default set), as the same connection.
+func reconnect(ctx context.Context, tx *ent.Tx, actor Actor, connection *ent.ChannelConnection, requested *string) (*ent.ChannelConnection, error) {
+	if connection.Status == channelconnection.StatusACTIVE {
+		if requested != nil && (connection.SocialSetID == nil || *connection.SocialSetID != *requested) {
+			return nil, ErrAccountInAnotherSet
+		}
+		return connection, nil
+	}
+	setID, err := targetSocialSet(ctx, tx, actor.Organization, connection.Platform, requested)
+	if err != nil {
+		return nil, err
+	}
+	update := tx.ChannelConnection.UpdateOneID(connection.ID).SetStatus(channelconnection.StatusACTIVE)
+	if setID == nil {
+		update.ClearSocialSetID()
+	} else {
+		update.SetSocialSetID(*setID)
+	}
+	restored, err := update.Save(ctx)
+	if err != nil {
+		if ent.IsConstraintError(err) {
+			return nil, ErrSocialSetSlotTaken
+		}
+		return nil, err
+	}
+	if err := enableDefaultPlatform(ctx, tx, setID, connection.Platform); err != nil {
+		return nil, err
+	}
+	if err := appendAudit(ctx, tx, auditInput{
+		Action: "post.connection_restored", Actor: actor, EntityID: connection.ID,
+		EntityType: "channel_connection", Organization: actor.Organization, Outcome: auditlog.OutcomeSUCCEEDED,
+	}); err != nil {
+		return nil, err
+	}
+	return restored, nil
 }

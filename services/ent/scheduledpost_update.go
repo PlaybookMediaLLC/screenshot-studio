@@ -335,6 +335,21 @@ func (_u *ScheduledPostUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.TriggerRunIDCleared() {
 		_spec.ClearField(scheduledpost.FieldTriggerRunID, field.TypeString)
 	}
+	if _u.mutation.SocialSetIDCleared() {
+		_spec.ClearField(scheduledpost.FieldSocialSetID, field.TypeString)
+	}
+	if _u.mutation.ScheduleModeCleared() {
+		_spec.ClearField(scheduledpost.FieldScheduleMode, field.TypeEnum)
+	}
+	if _u.mutation.SlotAtCleared() {
+		_spec.ClearField(scheduledpost.FieldSlotAt, field.TypeTime)
+	}
+	if _u.mutation.NaturalOffsetSecondsCleared() {
+		_spec.ClearField(scheduledpost.FieldNaturalOffsetSeconds, field.TypeInt)
+	}
+	if _u.mutation.ScheduleTimeZoneCleared() {
+		_spec.ClearField(scheduledpost.FieldScheduleTimeZone, field.TypeString)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(scheduledpost.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -737,6 +752,21 @@ func (_u *ScheduledPostUpdateOne) sqlSave(ctx context.Context) (_node *Scheduled
 	}
 	if _u.mutation.TriggerRunIDCleared() {
 		_spec.ClearField(scheduledpost.FieldTriggerRunID, field.TypeString)
+	}
+	if _u.mutation.SocialSetIDCleared() {
+		_spec.ClearField(scheduledpost.FieldSocialSetID, field.TypeString)
+	}
+	if _u.mutation.ScheduleModeCleared() {
+		_spec.ClearField(scheduledpost.FieldScheduleMode, field.TypeEnum)
+	}
+	if _u.mutation.SlotAtCleared() {
+		_spec.ClearField(scheduledpost.FieldSlotAt, field.TypeTime)
+	}
+	if _u.mutation.NaturalOffsetSecondsCleared() {
+		_spec.ClearField(scheduledpost.FieldNaturalOffsetSeconds, field.TypeInt)
+	}
+	if _u.mutation.ScheduleTimeZoneCleared() {
+		_spec.ClearField(scheduledpost.FieldScheduleTimeZone, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(scheduledpost.FieldUpdatedAt, field.TypeTime, value)

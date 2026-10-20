@@ -61,7 +61,7 @@ func TestOAuthGrantAndConnectionUseEntInOnePublicSchema(t *testing.T) {
 	if _, err := db.SQL.ExecContext(ctx, `UPDATE member SET role='publisher' WHERE id=$1`, "member_"+id); err != nil {
 		t.Fatal(err)
 	}
-	if err := repo.StartOAuth(ctx, actor, "session-1", state, "instagram", "SOCIAL_API_KEY_TEST"); err != nil {
+	if err := repo.StartOAuth(ctx, actor, "session-1", state, "instagram", "SOCIAL_API_KEY_TEST", nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := repo.OAuthStart(ctx, actor, "session-2", state, "instagram", nil); !errors.Is(err, ErrNotFound) {

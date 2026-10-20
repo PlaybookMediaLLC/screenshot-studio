@@ -58,16 +58,24 @@ func (c *Configuration) workspaceZone(ctx context.Context, organizationID string
 	return zone, name
 }
 
+// draftSettings is the workspace's review policy with the default social
+// set's schedule: since RFC 043 a set owns its slots and time zone, and this
+// older settings shape reads and writes the workspace's first set.
 func (c *Configuration) draftSettings(ctx context.Context, organizationID string) (ContentDraftSettings, error) {
-	_, zoneName := c.workspaceZone(ctx, organizationID)
+	set, err := c.defaultSocialSet(ctx, organizationID)
+	if err != nil {
+		return ContentDraftSettings{}, err
+	}
+	settings := ContentDraftSettings{PostingSlots: nonNilSlots(set.PostingSlots), TimeZone: set.TimeZone}
 	row, err := c.client.ContentDraftSettings.Get(ctx, organizationID)
 	if ent.IsNotFound(err) {
-		return ContentDraftSettings{PostingSlots: defaultQueueSlots, TimeZone: zoneName}, nil
+		return settings, nil
 	}
 	if err != nil {
 		return ContentDraftSettings{}, err
 	}
-	return ContentDraftSettings{PostingSlots: row.PostingSlots, RequireApproval: row.RequireApproval, TimeZone: zoneName}, nil
+	settings.RequireApproval = row.RequireApproval
+	return settings, nil
 }
 
 // GetContentDraftSettings returns the workspace's drafts settings, with the
@@ -98,6 +106,13 @@ func (c *Configuration) UpdateContentDraftSettings(ctx context.Context, actor Ac
 			return nil, err
 		}
 		current.PostingSlots = slots
+		set, err := c.defaultSocialSet(ctx, actor.OrganizationID)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := c.client.SocialSet.UpdateOneID(set.ID).SetPostingSlots(slots).AddVersion(1).Save(ctx); err != nil {
+			return nil, err
+		}
 	}
 	if input.RequireApproval != nil {
 		current.RequireApproval = *input.RequireApproval
@@ -137,18 +152,42 @@ func queueSlots(slots []schema.QueueSlot) ([]schema.QueueSlot, error) {
 	return out, nil
 }
 
+// resolveWallTime is the instant a local wall time names in zone (RFC 043).
+// When the clock repeats it (autumn), it is the first occurrence. When the
+// clock skips it (spring), it is the same number of minutes after the
+// transition: 02:30 on a day that jumps from 02:00 to 03:00 is 03:30.
+func resolveWallTime(year int, month time.Month, day, hour, minute int, zone *time.Location) time.Time {
+	wall := time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
+	var best time.Time
+	found := false
+	for _, probe := range []time.Duration{-36 * time.Hour, -12 * time.Hour, 12 * time.Hour, 36 * time.Hour} {
+		_, offset := wall.Add(probe).In(zone).Zone()
+		candidate := wall.Add(-time.Duration(offset) * time.Second)
+		local := candidate.In(zone)
+		if local.Year() == year && local.Month() == month && local.Day() == day && local.Hour() == hour && local.Minute() == minute &&
+			(!found || candidate.Before(best)) {
+			best, found = candidate, true
+		}
+	}
+	if found {
+		return best
+	}
+	_, before := wall.Add(-36 * time.Hour).In(zone).Zone()
+	return wall.Add(-time.Duration(before) * time.Second)
+}
+
 // slotTimes lists the slots' occurrences after `from`, in order, up to `limit`.
 func slotTimes(slots []schema.QueueSlot, zone *time.Location, from time.Time, limit int) []time.Time {
 	var times []time.Time
 	local := from.In(zone)
 	for day := 0; day < 7*12 && len(times) < limit; day++ {
-		date := time.Date(local.Year(), local.Month(), local.Day()+day, 0, 0, 0, 0, zone)
+		date := time.Date(local.Year(), local.Month(), local.Day()+day, 12, 0, 0, 0, zone)
 		for _, slot := range slots {
 			if int(date.Weekday()) != slot.Weekday {
 				continue
 			}
 			clock, _ := time.Parse("15:04", slot.Time)
-			at := time.Date(date.Year(), date.Month(), date.Day(), clock.Hour(), clock.Minute(), 0, 0, zone)
+			at := resolveWallTime(date.Year(), date.Month(), date.Day(), clock.Hour(), clock.Minute(), zone)
 			if at.After(from) {
 				times = append(times, at.UTC())
 			}
@@ -161,36 +200,36 @@ func slotTimes(slots []schema.QueueSlot, zone *time.Location, from time.Time, li
 	return times
 }
 
-// NextQueueSlot is the workspace's next posting slot that no draft post
-// already takes.
-func (c *Configuration) NextQueueSlot(ctx context.Context, actor Actor) (time.Time, error) {
-	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
-		return time.Time{}, err
-	}
-	settings, err := c.draftSettings(ctx, actor.OrganizationID)
+// setZone loads a set's scheduling time zone, falling back to UTC.
+func setZone(set *ent.SocialSet) *time.Location {
+	zone, err := time.LoadLocation(set.TimeZone)
 	if err != nil {
-		return time.Time{}, err
+		return time.UTC
 	}
-	if len(settings.PostingSlots) == 0 {
-		return time.Time{}, conflict("Add a posting slot to the queue first.")
+	return zone
+}
+
+// nextFreeSlot is the set's next slot after now that no queued, publishing or
+// unresolved post of the set takes. Inside ScheduleContentDraft it runs under
+// the set's advisory lock, so two requests cannot take the same slot.
+func nextFreeSlot(ctx context.Context, client *ent.Client, set *ent.SocialSet, now time.Time) (time.Time, error) {
+	if len(set.PostingSlots) == 0 {
+		return time.Time{}, conflict("Add a posting time to this social set's schedule first.")
 	}
-	zone, _ := c.workspaceZone(ctx, actor.OrganizationID)
-	now := time.Now()
-	candidates := slotTimes(settings.PostingSlots, zone, now.Add(time.Minute), 200)
+	candidates := slotTimes(set.PostingSlots, setZone(set), now.Add(time.Minute), 200)
 	if len(candidates) == 0 {
 		return time.Time{}, conflict("The queue has no open slot in the next twelve weeks.")
 	}
-	taken, err := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID),
-		scheduledpost.ContentDraftIDNotNil(),
-		scheduledpost.StatusIn(scheduledpost.StatusSCHEDULED, scheduledpost.StatusPROCESSING),
-		scheduledpost.ScheduledForGTE(candidates[0]), scheduledpost.ScheduledForLTE(candidates[len(candidates)-1])).
-		All(ctx)
+	taken, err := client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(set.OrganizationID),
+		scheduledpost.SocialSetID(set.ID), scheduledpost.StatusIn(scheduledpost.StatusSCHEDULED,
+			scheduledpost.StatusPROCESSING, scheduledpost.StatusUNKNOWN_DELIVERY),
+		scheduledpost.SlotAtGTE(candidates[0]), scheduledpost.SlotAtLTE(candidates[len(candidates)-1])).All(ctx)
 	if err != nil {
 		return time.Time{}, err
 	}
 	busy := map[int64]bool{}
 	for _, post := range taken {
-		busy[post.ScheduledFor.Truncate(time.Minute).Unix()] = true
+		busy[post.SlotAt.Truncate(time.Minute).Unix()] = true
 	}
 	for _, at := range candidates {
 		if !busy[at.Unix()] {
@@ -198,6 +237,34 @@ func (c *Configuration) NextQueueSlot(ctx context.Context, actor Actor) (time.Ti
 		}
 	}
 	return time.Time{}, conflict("Every queue slot in the next twelve weeks is taken.")
+}
+
+// NextQueueSlot is the next free slot of a set the actor may see; an empty
+// set ID is the workspace's default set. It suggests; scheduling reserves.
+func (c *Configuration) NextQueueSlot(ctx context.Context, actor Actor, socialSetID string) (time.Time, error) {
+	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
+		return time.Time{}, err
+	}
+	set, err := c.resolveSocialSet(ctx, actor, socialSetID)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return nextFreeSlot(ctx, c.client, set, time.Now())
+}
+
+// resolveSocialSet is the set actor names, or the workspace's default set.
+func (c *Configuration) resolveSocialSet(ctx context.Context, actor Actor, socialSetID string) (*ent.SocialSet, error) {
+	if socialSetID != "" {
+		return visibleSocialSet(ctx, c.client, actor, socialSetID)
+	}
+	set, err := c.defaultSocialSet(ctx, actor.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+	if !socialSetVisible(set, actor) {
+		return nil, notFound("Social set not found.")
+	}
+	return set, nil
 }
 
 // BestTime is a suggested posting time and why.
@@ -225,14 +292,22 @@ func postScore(metrics postoptions.Metrics) float64 {
 // BestPostingTimes suggests the next times to post: the weekday hours the
 // workspace's live posts did best at, from their engagement; with too
 // little history, the hours social posts do well at generally.
-func (c *Configuration) BestPostingTimes(ctx context.Context, actor Actor) ([]BestTime, error) {
+func (c *Configuration) BestPostingTimes(ctx context.Context, actor Actor, socialSetID string) ([]BestTime, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
-	zone, _ := c.workspaceZone(ctx, actor.OrganizationID)
-	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID),
+	set, err := c.resolveSocialSet(ctx, actor, socialSetID)
+	if err != nil {
+		return nil, err
+	}
+	zone := setZone(set)
+	query := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID),
 		scheduledpost.StatusEQ(scheduledpost.StatusPUBLISHED), scheduledpost.MetricsAtNotNil(),
-		scheduledpost.ScheduledForGTE(time.Now().AddDate(0, 0, -120))).All(ctx)
+		scheduledpost.ScheduledForGTE(time.Now().AddDate(0, 0, -120)))
+	if socialSetID != "" {
+		query.Where(scheduledpost.SocialSetID(set.ID))
+	}
+	posts, err := query.All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -306,6 +381,9 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 	if err != nil {
 		return nil, err
 	}
+	if err := requireVisibleDraftPost(ctx, tx.Client(), actor, post); err != nil {
+		return nil, err
+	}
 	if post.Status != scheduledpost.StatusSCHEDULED {
 		return nil, conflict("Only a queued post can move; this one is " + strings.ToLower(string(post.Status)) + ".")
 	}
@@ -316,6 +394,8 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 		SetNillableContentDraftID(post.ContentDraftID).SetNillableAssetID(post.AssetID).
 		SetChannelConnectionID(post.ChannelConnectionID).SetScheduledFor(at.UTC()).
 		SetStatus(scheduledpost.StatusSCHEDULED).SetCaption(post.Caption).
+		SetNillableSocialSetID(post.SocialSetID).SetScheduleMode(scheduledpost.ScheduleModeExplicit).SetSlotAt(at.UTC()).
+		SetNaturalOffsetSeconds(0).SetNillableScheduleTimeZone(post.ScheduleTimeZone).
 		SetIdempotencyKey(fmt.Sprintf("%s:moved:%d", post.IdempotencyKey, at.Unix()))
 	if len(post.AssetIds) > 0 {
 		create.SetAssetIds(post.AssetIds)
@@ -343,6 +423,15 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 	return &MovedDraftPost{Cancelled: post.ID, Post: contentDraftPost(moved, post.Edges.ChannelConnection.Platform), Scheduled: moved}, nil
 }
 
+// requireVisibleDraftPost refuses a draft post whose draft the actor cannot see.
+func requireVisibleDraftPost(ctx context.Context, client *ent.Client, actor Actor, post *ent.ScheduledPost) error {
+	if post.ContentDraftID == nil {
+		return nil
+	}
+	_, err := visibleContentDraft(ctx, client, actor, *post.ContentDraftID)
+	return err
+}
+
 // CalendarPost is a draft post on the calendar, with its draft's title.
 type CalendarPost struct {
 	ContentDraftPost
@@ -352,14 +441,28 @@ type CalendarPost struct {
 
 // ListContentDraftPostsBetween lists the workspace's draft posts due in
 // [from, to): queued, publishing and live, for the calendar and the queue.
-func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor Actor, from, to time.Time) ([]CalendarPost, error) {
+func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor Actor, from, to time.Time, socialSetID string) ([]CalendarPost, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
 	if !to.After(from) || to.Sub(from) > 100*24*time.Hour {
 		return nil, invalid("Ask for at most 100 days at a time.")
 	}
-	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID),
+	visible, err := c.visibleSocialSetIDs(ctx, actor)
+	if err != nil {
+		return nil, err
+	}
+	if socialSetID != "" {
+		if !oneOf(socialSetID, visible...) {
+			return nil, notFound("Social set not found.")
+		}
+		visible = []string{socialSetID}
+	}
+	inSets := scheduledpost.SocialSetIDIn(visible...)
+	if socialSetID == "" {
+		inSets = scheduledpost.Or(scheduledpost.SocialSetIDIsNil(), inSets)
+	}
+	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID), inSets,
 		scheduledpost.ContentDraftIDNotNil(), scheduledpost.ScheduledForGTE(from), scheduledpost.ScheduledForLT(to),
 		scheduledpost.StatusIn(scheduledpost.StatusSCHEDULED, scheduledpost.StatusPROCESSING,
 			scheduledpost.StatusPUBLISHED, scheduledpost.StatusFAILED, scheduledpost.StatusUNKNOWN_DELIVERY)).
@@ -426,10 +529,7 @@ func (c *Configuration) ReviewContentDraft(ctx context.Context, actor Actor, id 
 		return nil, err
 	}
 
-	draft, err := tx.ContentDraft.Query().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID)).Only(ctx)
-	if ent.IsNotFound(err) {
-		return nil, publishing.ErrNotFound
-	}
+	draft, err := visibleContentDraft(ctx, tx.Client(), actor, id)
 	if err != nil {
 		return nil, err
 	}
@@ -491,6 +591,9 @@ func (c *Configuration) requireDraftApproval(ctx context.Context, draft *ent.Con
 // token) or off.
 func (c *Configuration) ShareContentDraft(ctx context.Context, actor Actor, id string, on bool) (*ContentDraftRecord, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
+		return nil, err
+	}
+	if _, err := visibleContentDraft(ctx, c.client, actor, id); err != nil {
 		return nil, err
 	}
 	update := c.client.ContentDraft.Update().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID))
@@ -639,6 +742,9 @@ func (c *Configuration) ListContentDraftRevisions(ctx context.Context, actor Act
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
+	if _, err := visibleContentDraft(ctx, c.client, actor, draftID); err != nil {
+		return nil, err
+	}
 	rows, err := c.client.ContentDraftRevision.Query().Where(contentdraftrevision.ContentDraftID(draftID),
 		contentdraftrevision.OrganizationID(actor.OrganizationID)).
 		Order(ent.Desc(contentdraftrevision.FieldCreatedAt)).Limit(100).All(ctx)
@@ -660,6 +766,9 @@ func (c *Configuration) ListContentDraftRevisions(ctx context.Context, actor Act
 // GetContentDraftRevision reads one revision with its body, to restore it.
 func (c *Configuration) GetContentDraftRevision(ctx context.Context, actor Actor, draftID, revisionID string) (*ContentDraftRevisionRecord, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
+		return nil, err
+	}
+	if _, err := visibleContentDraft(ctx, c.client, actor, draftID); err != nil {
 		return nil, err
 	}
 	row, err := c.client.ContentDraftRevision.Query().Where(contentdraftrevision.ID(revisionID),
@@ -694,6 +803,9 @@ func (c *Configuration) ResumeContentDraftThread(ctx context.Context, actor Acto
 	if err != nil {
 		return nil, err
 	}
+	if err := requireVisibleDraftPost(ctx, tx.Client(), actor, post); err != nil {
+		return nil, err
+	}
 	progress := post.ThreadProgress
 	if post.Status != scheduledpost.StatusPUBLISHED || progress.Total == 0 || progress.Posted >= progress.Total {
 		return nil, conflict("This post's thread went out in full; there is nothing to resume.")
@@ -709,6 +821,8 @@ func (c *Configuration) ResumeContentDraftThread(ctx context.Context, actor Acto
 	create := tx.ScheduledPost.Create().SetID(cuid.New()).SetOrganizationID(post.OrganizationID).
 		SetNillableContentDraftID(post.ContentDraftID).SetChannelConnectionID(post.ChannelConnectionID).
 		SetScheduledFor(time.Now().UTC()).SetStatus(scheduledpost.StatusSCHEDULED).SetCaption(rest[0].Caption).
+		SetNillableSocialSetID(post.SocialSetID).SetScheduleMode(scheduledpost.ScheduleModeExplicit).
+		SetSlotAt(time.Now().UTC()).SetNaturalOffsetSeconds(0).SetNillableScheduleTimeZone(post.ScheduleTimeZone).
 		SetReplyTo(answer).SetIdempotencyKey(fmt.Sprintf("%s:resume:%d", post.IdempotencyKey, progress.Posted))
 	if len(rest[0].AssetIDs) > 0 {
 		create.SetAssetID(rest[0].AssetIDs[0]).SetAssetIds(rest[0].AssetIDs)
@@ -783,6 +897,9 @@ func (c *Configuration) LiveDraftPost(ctx context.Context, actor Actor, postID s
 		return nil, publishing.ErrNotFound
 	}
 	if err != nil {
+		return nil, err
+	}
+	if err := requireVisibleDraftPost(ctx, c.client, actor, post); err != nil {
 		return nil, err
 	}
 	if post.Status != scheduledpost.StatusPUBLISHED || post.RemotePostID == nil {

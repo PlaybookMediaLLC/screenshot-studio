@@ -59,6 +59,16 @@ type ScheduledPost struct {
 	IdempotencyKey string `json:"idempotency_key,omitempty"`
 	// TriggerRunID holds the value of the "trigger_run_id" field.
 	TriggerRunID *string `json:"trigger_run_id,omitempty"`
+	// SocialSetID holds the value of the "social_set_id" field.
+	SocialSetID *string `json:"social_set_id,omitempty"`
+	// ScheduleMode holds the value of the "schedule_mode" field.
+	ScheduleMode *scheduledpost.ScheduleMode `json:"schedule_mode,omitempty"`
+	// SlotAt holds the value of the "slot_at" field.
+	SlotAt *time.Time `json:"slot_at,omitempty"`
+	// NaturalOffsetSeconds holds the value of the "natural_offset_seconds" field.
+	NaturalOffsetSeconds *int `json:"natural_offset_seconds,omitempty"`
+	// ScheduleTimeZone holds the value of the "schedule_time_zone" field.
+	ScheduleTimeZone *string `json:"schedule_time_zone,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -107,9 +117,11 @@ func (*ScheduledPost) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case scheduledpost.FieldAssetIds, scheduledpost.FieldReplies, scheduledpost.FieldThreadProgress, scheduledpost.FieldMetrics, scheduledpost.FieldAutoActions, scheduledpost.FieldPoll:
 			values[i] = new([]byte)
-		case scheduledpost.FieldID, scheduledpost.FieldOrganizationID, scheduledpost.FieldVariantID, scheduledpost.FieldContentDraftID, scheduledpost.FieldAssetID, scheduledpost.FieldReplyTo, scheduledpost.FieldRemotePostID, scheduledpost.FieldChannelConnectionID, scheduledpost.FieldStatus, scheduledpost.FieldCaption, scheduledpost.FieldIdempotencyKey, scheduledpost.FieldTriggerRunID:
+		case scheduledpost.FieldNaturalOffsetSeconds:
+			values[i] = new(sql.NullInt64)
+		case scheduledpost.FieldID, scheduledpost.FieldOrganizationID, scheduledpost.FieldVariantID, scheduledpost.FieldContentDraftID, scheduledpost.FieldAssetID, scheduledpost.FieldReplyTo, scheduledpost.FieldRemotePostID, scheduledpost.FieldChannelConnectionID, scheduledpost.FieldStatus, scheduledpost.FieldCaption, scheduledpost.FieldIdempotencyKey, scheduledpost.FieldTriggerRunID, scheduledpost.FieldSocialSetID, scheduledpost.FieldScheduleMode, scheduledpost.FieldScheduleTimeZone:
 			values[i] = new(sql.NullString)
-		case scheduledpost.FieldMetricsAt, scheduledpost.FieldScheduledFor, scheduledpost.FieldCreatedAt, scheduledpost.FieldUpdatedAt:
+		case scheduledpost.FieldMetricsAt, scheduledpost.FieldScheduledFor, scheduledpost.FieldSlotAt, scheduledpost.FieldCreatedAt, scheduledpost.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -265,6 +277,41 @@ func (_m *ScheduledPost) assignValues(columns []string, values []any) error {
 				_m.TriggerRunID = new(string)
 				*_m.TriggerRunID = value.String
 			}
+		case scheduledpost.FieldSocialSetID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field social_set_id", values[i])
+			} else if value.Valid {
+				_m.SocialSetID = new(string)
+				*_m.SocialSetID = value.String
+			}
+		case scheduledpost.FieldScheduleMode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field schedule_mode", values[i])
+			} else if value.Valid {
+				_m.ScheduleMode = new(scheduledpost.ScheduleMode)
+				*_m.ScheduleMode = scheduledpost.ScheduleMode(value.String)
+			}
+		case scheduledpost.FieldSlotAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field slot_at", values[i])
+			} else if value.Valid {
+				_m.SlotAt = new(time.Time)
+				*_m.SlotAt = value.Time
+			}
+		case scheduledpost.FieldNaturalOffsetSeconds:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field natural_offset_seconds", values[i])
+			} else if value.Valid {
+				_m.NaturalOffsetSeconds = new(int)
+				*_m.NaturalOffsetSeconds = int(value.Int64)
+			}
+		case scheduledpost.FieldScheduleTimeZone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field schedule_time_zone", values[i])
+			} else if value.Valid {
+				_m.ScheduleTimeZone = new(string)
+				*_m.ScheduleTimeZone = value.String
+			}
 		case scheduledpost.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -391,6 +438,31 @@ func (_m *ScheduledPost) String() string {
 	builder.WriteString(", ")
 	if v := _m.TriggerRunID; v != nil {
 		builder.WriteString("trigger_run_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SocialSetID; v != nil {
+		builder.WriteString("social_set_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ScheduleMode; v != nil {
+		builder.WriteString("schedule_mode=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.SlotAt; v != nil {
+		builder.WriteString("slot_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.NaturalOffsetSeconds; v != nil {
+		builder.WriteString("natural_offset_seconds=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.ScheduleTimeZone; v != nil {
+		builder.WriteString("schedule_time_zone=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

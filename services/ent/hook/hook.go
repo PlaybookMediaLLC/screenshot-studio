@@ -9,6 +9,18 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 )
 
+// The AccountDeletionRequestFunc type is an adapter to allow the use of ordinary
+// function as AccountDeletionRequest mutator.
+type AccountDeletionRequestFunc func(context.Context, *ent.AccountDeletionRequestMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AccountDeletionRequestFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AccountDeletionRequestMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AccountDeletionRequestMutation", m)
+}
+
 // The AgentAuthorizationFunc type is an adapter to allow the use of ordinary
 // function as AgentAuthorization mutator.
 type AgentAuthorizationFunc func(context.Context, *ent.AgentAuthorizationMutation) (ent.Value, error)
@@ -909,6 +921,30 @@ func (f SocialOAuthStartFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SocialOAuthStartMutation", m)
 }
 
+// The SocialSetFunc type is an adapter to allow the use of ordinary
+// function as SocialSet mutator.
+type SocialSetFunc func(context.Context, *ent.SocialSetMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SocialSetFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SocialSetMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SocialSetMutation", m)
+}
+
+// The SocialSetWritingSampleFunc type is an adapter to allow the use of ordinary
+// function as SocialSetWritingSample mutator.
+type SocialSetWritingSampleFunc func(context.Context, *ent.SocialSetWritingSampleMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SocialSetWritingSampleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SocialSetWritingSampleMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SocialSetWritingSampleMutation", m)
+}
+
 // The SocialTenantBindingFunc type is an adapter to allow the use of ordinary
 // function as SocialTenantBinding mutator.
 type SocialTenantBindingFunc func(context.Context, *ent.SocialTenantBindingMutation) (ent.Value, error)
@@ -1015,6 +1051,54 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
+}
+
+// The UserPreferenceFunc type is an adapter to allow the use of ordinary
+// function as UserPreference mutator.
+type UserPreferenceFunc func(context.Context, *ent.UserPreferenceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f UserPreferenceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.UserPreferenceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserPreferenceMutation", m)
+}
+
+// The WebhookDeliveryFunc type is an adapter to allow the use of ordinary
+// function as WebhookDelivery mutator.
+type WebhookDeliveryFunc func(context.Context, *ent.WebhookDeliveryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WebhookDeliveryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WebhookDeliveryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WebhookDeliveryMutation", m)
+}
+
+// The WebhookDeliveryAttemptFunc type is an adapter to allow the use of ordinary
+// function as WebhookDeliveryAttempt mutator.
+type WebhookDeliveryAttemptFunc func(context.Context, *ent.WebhookDeliveryAttemptMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WebhookDeliveryAttemptFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WebhookDeliveryAttemptMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WebhookDeliveryAttemptMutation", m)
+}
+
+// The WebhookSubscriptionFunc type is an adapter to allow the use of ordinary
+// function as WebhookSubscription mutator.
+type WebhookSubscriptionFunc func(context.Context, *ent.WebhookSubscriptionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WebhookSubscriptionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WebhookSubscriptionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WebhookSubscriptionMutation", m)
 }
 
 // The WorkspaceCreditGrantFunc type is an adapter to allow the use of ordinary

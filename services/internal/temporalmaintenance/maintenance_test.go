@@ -107,6 +107,11 @@ func TestScheduleReconciliationPreservesPauseAndCadence(t *testing.T) {
 			if o.Spec.TimeZoneName != "UTC" || o.Spec.CronExpressions[0] != "5 3 * * *" {
 				t.Fatal(o.Spec)
 			}
+		} else if id == "platform-maintenance-account-deletions" {
+			// Deletions wait out a 14-day grace period; hourly is prompt enough.
+			if len(o.Spec.Intervals) != 1 || o.Spec.Intervals[0].Every != time.Hour {
+				t.Fatal(o.Spec)
+			}
 		} else if len(o.Spec.Intervals) != 1 || o.Spec.Intervals[0].Every != time.Minute {
 			t.Fatal(o.Spec)
 		}

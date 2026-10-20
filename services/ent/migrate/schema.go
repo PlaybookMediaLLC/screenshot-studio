@@ -9,6 +9,22 @@ import (
 )
 
 var (
+	// AccountDeletionRequestColumns holds the columns for the "account_deletion_request" table.
+	AccountDeletionRequestColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"REQUESTED", "CANCELLED", "COMPLETED"}, Default: "REQUESTED"},
+		{Name: "requestedAt", Type: field.TypeTime},
+		{Name: "executeAfter", Type: field.TypeTime},
+		{Name: "cancelledAt", Type: field.TypeTime, Nullable: true},
+		{Name: "completedAt", Type: field.TypeTime, Nullable: true},
+	}
+	// AccountDeletionRequestTable holds the schema information for the "account_deletion_request" table.
+	AccountDeletionRequestTable = &schema.Table{
+		Name:       "account_deletion_request",
+		Columns:    AccountDeletionRequestColumns,
+		PrimaryKey: []*schema.Column{AccountDeletionRequestColumns[0]},
+	}
 	// AgentAuthorizationColumns holds the columns for the "agent_authorization" table.
 	AgentAuthorizationColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -586,6 +602,7 @@ var (
 		{Name: "displayName", Type: field.TypeString, Nullable: true},
 		{Name: "handle", Type: field.TypeString, Nullable: true},
 		{Name: "avatarUrl", Type: field.TypeString, Nullable: true},
+		{Name: "socialSetId", Type: field.TypeString, Nullable: true},
 		{Name: "createdByUserId", Type: field.TypeString},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
@@ -604,7 +621,7 @@ var (
 			{
 				Name:    "channelconnection_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{ChannelConnectionColumns[1], ChannelConnectionColumns[12]},
+				Columns: []*schema.Column{ChannelConnectionColumns[1], ChannelConnectionColumns[13]},
 			},
 		},
 	}
@@ -716,6 +733,12 @@ var (
 		{Name: "shareToken", Type: field.TypeString, Nullable: true},
 		{Name: "guestComments", Type: field.TypeJSON},
 		{Name: "version", Type: field.TypeInt, Default: 1},
+		{Name: "socialSetId", Type: field.TypeString, Nullable: true},
+		{Name: "primaryPlatform", Type: field.TypeString, Nullable: true},
+		{Name: "naturalPostingTime", Type: field.TypeBool, Default: false},
+		{Name: "engagement", Type: field.TypeJSON},
+		{Name: "tags", Type: field.TypeJSON},
+		{Name: "plannedFor", Type: field.TypeTime, Nullable: true},
 		{Name: "collabState", Type: field.TypeBytes, Nullable: true},
 		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
 		{Name: "updatedByUserId", Type: field.TypeString, Nullable: true},
@@ -731,7 +754,12 @@ var (
 			{
 				Name:    "contentdraft_organizationId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[21]},
+				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[27]},
+			},
+			{
+				Name:    "contentdraft_socialSetId_updatedAt",
+				Unique:  false,
+				Columns: []*schema.Column{ContentDraftColumns[17], ContentDraftColumns[27]},
 			},
 		},
 	}
@@ -1585,6 +1613,7 @@ var (
 		{Name: "organizationId", Type: field.TypeString},
 		{Name: "userId", Type: field.TypeString},
 		{Name: "events", Type: field.TypeJSON},
+		{Name: "social_sets", Type: field.TypeJSON},
 		{Name: "generation", Type: field.TypeInt, Default: 1},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
@@ -2162,6 +2191,11 @@ var (
 		{Name: "caption", Type: field.TypeString},
 		{Name: "idempotencyKey", Type: field.TypeString},
 		{Name: "triggerRunId", Type: field.TypeString, Nullable: true},
+		{Name: "socialSetId", Type: field.TypeString, Nullable: true},
+		{Name: "scheduleMode", Type: field.TypeEnum, Nullable: true, Enums: []string{"queue", "explicit"}},
+		{Name: "slotAt", Type: field.TypeTime, Nullable: true},
+		{Name: "naturalOffsetSeconds", Type: field.TypeInt, Nullable: true},
+		{Name: "scheduleTimeZone", Type: field.TypeString, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
 		{Name: "channelConnectionId", Type: field.TypeString},
@@ -2174,7 +2208,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "scheduled_post_channel_connection_scheduled_posts",
-				Columns:    []*schema.Column{ScheduledPostColumns[21]},
+				Columns:    []*schema.Column{ScheduledPostColumns[26]},
 				RefColumns: []*schema.Column{ChannelConnectionColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2183,7 +2217,7 @@ var (
 			{
 				Name:    "scheduledpost_channelConnectionId_idempotencyKey",
 				Unique:  true,
-				Columns: []*schema.Column{ScheduledPostColumns[21], ScheduledPostColumns[17]},
+				Columns: []*schema.Column{ScheduledPostColumns[26], ScheduledPostColumns[17]},
 			},
 			{
 				Name:    "scheduledpost_organizationId_status_scheduledFor",
@@ -2193,7 +2227,7 @@ var (
 			{
 				Name:    "scheduledpost_status_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[15], ScheduledPostColumns[20]},
+				Columns: []*schema.Column{ScheduledPostColumns[15], ScheduledPostColumns[25]},
 			},
 			{
 				Name:    "scheduledpost_contentDraftId",
@@ -2298,6 +2332,7 @@ var (
 		{Name: "provider", Type: field.TypeString},
 		{Name: "secretReference", Type: field.TypeString},
 		{Name: "integrationId", Type: field.TypeString, Nullable: true},
+		{Name: "socialSetId", Type: field.TypeString, Nullable: true},
 		{Name: "expiresAt", Type: field.TypeTime},
 		{Name: "createdAt", Type: field.TypeTime},
 	}
@@ -2310,7 +2345,72 @@ var (
 			{
 				Name:    "socialoauthstart_expiresAt",
 				Unique:  false,
-				Columns: []*schema.Column{SocialOauthStartColumns[7]},
+				Columns: []*schema.Column{SocialOauthStartColumns[8]},
+			},
+		},
+	}
+	// SocialSetColumns holds the columns for the "social_set" table.
+	SocialSetColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "color", Type: field.TypeString, Default: "#3b82f6"},
+		{Name: "visibility", Type: field.TypeEnum, Enums: []string{"WORKSPACE", "PRIVATE"}, Default: "WORKSPACE"},
+		{Name: "ownerUserId", Type: field.TypeString, Nullable: true},
+		{Name: "timeZone", Type: field.TypeString, Default: "UTC"},
+		{Name: "postingSlots", Type: field.TypeJSON},
+		{Name: "naturalPostingTimes", Type: field.TypeBool, Default: false},
+		{Name: "defaultPlatforms", Type: field.TypeJSON},
+		{Name: "primaryPlatform", Type: field.TypeString, Nullable: true},
+		{Name: "engagementDefaults", Type: field.TypeJSON},
+		{Name: "publicProfile", Type: field.TypeBool, Default: false},
+		{Name: "publicSlug", Type: field.TypeString},
+		{Name: "writingAssistant", Type: field.TypeJSON},
+		{Name: "version", Type: field.TypeInt, Default: 1},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+		{Name: "deletedAt", Type: field.TypeTime, Nullable: true},
+	}
+	// SocialSetTable holds the schema information for the "social_set" table.
+	SocialSetTable = &schema.Table{
+		Name:       "social_set",
+		Columns:    SocialSetColumns,
+		PrimaryKey: []*schema.Column{SocialSetColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "socialset_publicSlug",
+				Unique:  true,
+				Columns: []*schema.Column{SocialSetColumns[13]},
+			},
+			{
+				Name:    "socialset_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{SocialSetColumns[1], SocialSetColumns[17]},
+			},
+		},
+	}
+	// SocialSetWritingSampleColumns holds the columns for the "social_set_writing_sample" table.
+	SocialSetWritingSampleColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "socialSetId", Type: field.TypeString},
+		{Name: "text", Type: field.TypeString},
+		{Name: "source", Type: field.TypeEnum, Enums: []string{"manual", "draft"}},
+		{Name: "sourceDraftId", Type: field.TypeString, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// SocialSetWritingSampleTable holds the schema information for the "social_set_writing_sample" table.
+	SocialSetWritingSampleTable = &schema.Table{
+		Name:       "social_set_writing_sample",
+		Columns:    SocialSetWritingSampleColumns,
+		PrimaryKey: []*schema.Column{SocialSetWritingSampleColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "socialsetwritingsample_socialSetId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{SocialSetWritingSampleColumns[2], SocialSetWritingSampleColumns[7]},
 			},
 		},
 	}
@@ -2591,6 +2691,125 @@ var (
 			},
 		},
 	}
+	// UserPreferenceColumns holds the columns for the "user_preference" table.
+	UserPreferenceColumns = []*schema.Column{
+		{Name: "userId", Type: field.TypeString},
+		{Name: "timeZone", Type: field.TypeString, Nullable: true},
+		{Name: "theme", Type: field.TypeEnum, Enums: []string{"light", "dark", "system"}, Default: "dark"},
+		{Name: "navigation", Type: field.TypeEnum, Enums: []string{"compact", "dynamic", "expanded"}, Default: "compact"},
+		{Name: "weekStart", Type: field.TypeEnum, Enums: []string{"monday", "sunday"}, Default: "monday"},
+		{Name: "textDirection", Type: field.TypeEnum, Enums: []string{"ltr", "rtl"}, Default: "ltr"},
+		{Name: "showScrollbars", Type: field.TypeBool, Default: true},
+		{Name: "developerMode", Type: field.TypeBool, Default: false},
+		{Name: "emailNotifications", Type: field.TypeBool, Default: true},
+		{Name: "dismissedTips", Type: field.TypeJSON},
+		{Name: "experiments", Type: field.TypeJSON},
+		{Name: "version", Type: field.TypeInt, Default: 1},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// UserPreferenceTable holds the schema information for the "user_preference" table.
+	UserPreferenceTable = &schema.Table{
+		Name:       "user_preference",
+		Columns:    UserPreferenceColumns,
+		PrimaryKey: []*schema.Column{UserPreferenceColumns[0]},
+	}
+	// WebhookDeliveryColumns holds the columns for the "webhook_delivery" table.
+	WebhookDeliveryColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "subscriptionId", Type: field.TypeString},
+		{Name: "eventId", Type: field.TypeString},
+		{Name: "eventType", Type: field.TypeString},
+		{Name: "body", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"PENDING", "SENDING", "SUCCEEDED", "DEAD"}, Default: "PENDING"},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+		{Name: "nextAttemptAt", Type: field.TypeTime},
+		{Name: "leaseUntil", Type: field.TypeTime, Nullable: true},
+		{Name: "lastAttemptAt", Type: field.TypeTime, Nullable: true},
+		{Name: "responseStatus", Type: field.TypeInt, Nullable: true},
+		{Name: "errorClass", Type: field.TypeString, Nullable: true},
+		{Name: "manual", Type: field.TypeBool, Default: false},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// WebhookDeliveryTable holds the schema information for the "webhook_delivery" table.
+	WebhookDeliveryTable = &schema.Table{
+		Name:       "webhook_delivery",
+		Columns:    WebhookDeliveryColumns,
+		PrimaryKey: []*schema.Column{WebhookDeliveryColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "webhookdelivery_subscriptionId_eventId",
+				Unique:  true,
+				Columns: []*schema.Column{WebhookDeliveryColumns[2], WebhookDeliveryColumns[3]},
+			},
+			{
+				Name:    "webhookdelivery_status_nextAttemptAt",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookDeliveryColumns[6], WebhookDeliveryColumns[8]},
+			},
+			{
+				Name:    "webhookdelivery_subscriptionId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookDeliveryColumns[2], WebhookDeliveryColumns[14]},
+			},
+		},
+	}
+	// WebhookDeliveryAttemptColumns holds the columns for the "webhook_delivery_attempt" table.
+	WebhookDeliveryAttemptColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "deliveryId", Type: field.TypeString},
+		{Name: "attemptNumber", Type: field.TypeInt},
+		{Name: "startedAt", Type: field.TypeTime},
+		{Name: "durationMs", Type: field.TypeInt},
+		{Name: "outcome", Type: field.TypeEnum, Enums: []string{"SUCCEEDED", "FAILED"}},
+		{Name: "responseStatus", Type: field.TypeInt, Nullable: true},
+		{Name: "errorClass", Type: field.TypeString, Nullable: true},
+	}
+	// WebhookDeliveryAttemptTable holds the schema information for the "webhook_delivery_attempt" table.
+	WebhookDeliveryAttemptTable = &schema.Table{
+		Name:       "webhook_delivery_attempt",
+		Columns:    WebhookDeliveryAttemptColumns,
+		PrimaryKey: []*schema.Column{WebhookDeliveryAttemptColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "webhookdeliveryattempt_deliveryId_attemptNumber",
+				Unique:  true,
+				Columns: []*schema.Column{WebhookDeliveryAttemptColumns[2], WebhookDeliveryAttemptColumns[3]},
+			},
+		},
+	}
+	// WebhookSubscriptionColumns holds the columns for the "webhook_subscription" table.
+	WebhookSubscriptionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "url", Type: field.TypeString},
+		{Name: "events", Type: field.TypeJSON},
+		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "encryptedSecret", Type: field.TypeString},
+		{Name: "previousEncryptedSecret", Type: field.TypeString, Nullable: true},
+		{Name: "previousSecretExpiresAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+		{Name: "lastSuccessAt", Type: field.TypeTime, Nullable: true},
+		{Name: "lastFailureAt", Type: field.TypeTime, Nullable: true},
+	}
+	// WebhookSubscriptionTable holds the schema information for the "webhook_subscription" table.
+	WebhookSubscriptionTable = &schema.Table{
+		Name:       "webhook_subscription",
+		Columns:    WebhookSubscriptionColumns,
+		PrimaryKey: []*schema.Column{WebhookSubscriptionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "webhooksubscription_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{WebhookSubscriptionColumns[1], WebhookSubscriptionColumns[10]},
+			},
+		},
+	}
 	// WorkspaceCreditGrantColumns holds the columns for the "workspace_credit_grant" table.
 	WorkspaceCreditGrantColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -2697,6 +2916,7 @@ var (
 		{Name: "timeZone", Type: field.TypeString, Default: "UTC"},
 		{Name: "defaultPublishTime", Type: field.TypeString, Default: "09:00"},
 		{Name: "aiAgentEnabled", Type: field.TypeBool, Default: true},
+		{Name: "disabledExperiments", Type: field.TypeJSON},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
 	}
@@ -2708,6 +2928,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AccountDeletionRequestTable,
 		AgentAuthorizationTable,
 		ApikeyTable,
 		ApprovalTable,
@@ -2783,6 +3004,8 @@ var (
 		SessionTable,
 		ShareLinkTable,
 		SocialOauthStartTable,
+		SocialSetTable,
+		SocialSetWritingSampleTable,
 		SocialTenantBindingTable,
 		SourceAppTable,
 		SourceChangeTable,
@@ -2792,6 +3015,10 @@ var (
 		SupportAccessGrantTable,
 		SurfaceCaptureTable,
 		UserTable,
+		UserPreferenceTable,
+		WebhookDeliveryTable,
+		WebhookDeliveryAttemptTable,
+		WebhookSubscriptionTable,
 		WorkspaceCreditGrantTable,
 		WorkspaceDeletionTable,
 		WorkspaceEntitlementTable,
@@ -2801,6 +3028,9 @@ var (
 )
 
 func init() {
+	AccountDeletionRequestTable.Annotation = &entsql.Annotation{
+		Table: "account_deletion_request",
+	}
 	AgentAuthorizationTable.Annotation = &entsql.Annotation{
 		Table: "agent_authorization",
 	}
@@ -3030,6 +3260,12 @@ func init() {
 	SocialOauthStartTable.Annotation = &entsql.Annotation{
 		Table: "social_oauth_start",
 	}
+	SocialSetTable.Annotation = &entsql.Annotation{
+		Table: "social_set",
+	}
+	SocialSetWritingSampleTable.Annotation = &entsql.Annotation{
+		Table: "social_set_writing_sample",
+	}
 	SocialTenantBindingTable.Annotation = &entsql.Annotation{
 		Table: "social_tenant_binding",
 	}
@@ -3056,6 +3292,18 @@ func init() {
 	}
 	UserTable.Annotation = &entsql.Annotation{
 		Table: "user",
+	}
+	UserPreferenceTable.Annotation = &entsql.Annotation{
+		Table: "user_preference",
+	}
+	WebhookDeliveryTable.Annotation = &entsql.Annotation{
+		Table: "webhook_delivery",
+	}
+	WebhookDeliveryAttemptTable.Annotation = &entsql.Annotation{
+		Table: "webhook_delivery_attempt",
+	}
+	WebhookSubscriptionTable.Annotation = &entsql.Annotation{
+		Table: "webhook_subscription",
 	}
 	WorkspaceCreditGrantTable.Annotation = &entsql.Annotation{
 		Table: "workspace_credit_grant",

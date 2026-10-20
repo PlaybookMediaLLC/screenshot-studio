@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 )
 
 // ContentDraft is the model entity for the ContentDraft schema.
@@ -50,6 +51,18 @@ type ContentDraft struct {
 	GuestComments []map[string]string `json:"guest_comments,omitempty"`
 	// Version holds the value of the "version" field.
 	Version int `json:"version,omitempty"`
+	// SocialSetID holds the value of the "social_set_id" field.
+	SocialSetID *string `json:"social_set_id,omitempty"`
+	// PrimaryPlatform holds the value of the "primary_platform" field.
+	PrimaryPlatform *string `json:"primary_platform,omitempty"`
+	// NaturalPostingTime holds the value of the "natural_posting_time" field.
+	NaturalPostingTime bool `json:"natural_posting_time,omitempty"`
+	// Engagement holds the value of the "engagement" field.
+	Engagement schema.Engagement `json:"engagement,omitempty"`
+	// Tags holds the value of the "tags" field.
+	Tags []string `json:"tags,omitempty"`
+	// PlannedFor holds the value of the "planned_for" field.
+	PlannedFor *time.Time `json:"planned_for,omitempty"`
 	// CollabState holds the value of the "collab_state" field.
 	CollabState *[]byte `json:"collab_state,omitempty"`
 	// CreatedByUserID holds the value of the "created_by_user_id" field.
@@ -68,13 +81,15 @@ func (*ContentDraft) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case contentdraft.FieldBody, contentdraft.FieldAssetIds, contentdraft.FieldChannelConnectionIds, contentdraft.FieldDiscussions, contentdraft.FieldChannelText, contentdraft.FieldGuestComments, contentdraft.FieldCollabState:
+		case contentdraft.FieldBody, contentdraft.FieldAssetIds, contentdraft.FieldChannelConnectionIds, contentdraft.FieldDiscussions, contentdraft.FieldChannelText, contentdraft.FieldGuestComments, contentdraft.FieldEngagement, contentdraft.FieldTags, contentdraft.FieldCollabState:
 			values[i] = new([]byte)
+		case contentdraft.FieldNaturalPostingTime:
+			values[i] = new(sql.NullBool)
 		case contentdraft.FieldApprovedVersion, contentdraft.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case contentdraft.FieldID, contentdraft.FieldOrganizationID, contentdraft.FieldTitle, contentdraft.FieldPlainText, contentdraft.FieldStatus, contentdraft.FieldReviewStatus, contentdraft.FieldReviewedByUserID, contentdraft.FieldReviewNote, contentdraft.FieldShareToken, contentdraft.FieldCreatedByUserID, contentdraft.FieldUpdatedByUserID:
+		case contentdraft.FieldID, contentdraft.FieldOrganizationID, contentdraft.FieldTitle, contentdraft.FieldPlainText, contentdraft.FieldStatus, contentdraft.FieldReviewStatus, contentdraft.FieldReviewedByUserID, contentdraft.FieldReviewNote, contentdraft.FieldShareToken, contentdraft.FieldSocialSetID, contentdraft.FieldPrimaryPlatform, contentdraft.FieldCreatedByUserID, contentdraft.FieldUpdatedByUserID:
 			values[i] = new(sql.NullString)
-		case contentdraft.FieldCreatedAt, contentdraft.FieldUpdatedAt:
+		case contentdraft.FieldPlannedFor, contentdraft.FieldCreatedAt, contentdraft.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -209,6 +224,49 @@ func (_m *ContentDraft) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Version = int(value.Int64)
 			}
+		case contentdraft.FieldSocialSetID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field social_set_id", values[i])
+			} else if value.Valid {
+				_m.SocialSetID = new(string)
+				*_m.SocialSetID = value.String
+			}
+		case contentdraft.FieldPrimaryPlatform:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field primary_platform", values[i])
+			} else if value.Valid {
+				_m.PrimaryPlatform = new(string)
+				*_m.PrimaryPlatform = value.String
+			}
+		case contentdraft.FieldNaturalPostingTime:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field natural_posting_time", values[i])
+			} else if value.Valid {
+				_m.NaturalPostingTime = value.Bool
+			}
+		case contentdraft.FieldEngagement:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field engagement", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Engagement); err != nil {
+					return fmt.Errorf("unmarshal field engagement: %w", err)
+				}
+			}
+		case contentdraft.FieldTags:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field tags", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Tags); err != nil {
+					return fmt.Errorf("unmarshal field tags: %w", err)
+				}
+			}
+		case contentdraft.FieldPlannedFor:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field planned_for", values[i])
+			} else if value.Valid {
+				_m.PlannedFor = new(time.Time)
+				*_m.PlannedFor = value.Time
+			}
 		case contentdraft.FieldCollabState:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field collab_state", values[i])
@@ -332,6 +390,30 @@ func (_m *ContentDraft) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("version=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Version))
+	builder.WriteString(", ")
+	if v := _m.SocialSetID; v != nil {
+		builder.WriteString("social_set_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.PrimaryPlatform; v != nil {
+		builder.WriteString("primary_platform=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("natural_posting_time=")
+	builder.WriteString(fmt.Sprintf("%v", _m.NaturalPostingTime))
+	builder.WriteString(", ")
+	builder.WriteString("engagement=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Engagement))
+	builder.WriteString(", ")
+	builder.WriteString("tags=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Tags))
+	builder.WriteString(", ")
+	if v := _m.PlannedFor; v != nil {
+		builder.WriteString("planned_for=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	if v := _m.CollabState; v != nil {
 		builder.WriteString("collab_state=")

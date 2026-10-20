@@ -46,6 +46,16 @@ func (ContentDraft) Fields() []ent.Field {
 		// Comments left through that link: name, text and when.
 		field.JSON("guest_comments", []map[string]string{}).StorageKey("guestComments").Default([]map[string]string{}),
 		field.Int("version").StorageKey("version").Default(1),
+		// The set the draft belongs to (RFC 043), and what it copied from the
+		// set when it was created: copies, so changing the set's defaults
+		// never changes an existing draft.
+		field.String("social_set_id").StorageKey("socialSetId").Optional().Nillable(),
+		field.String("primary_platform").StorageKey("primaryPlatform").Optional().Nillable(),
+		field.Bool("natural_posting_time").StorageKey("naturalPostingTime").Default(false),
+		field.JSON("engagement", Engagement{}).StorageKey("engagement").Default(Engagement{}),
+		// Labels and a calendar placement without scheduling (experiments).
+		field.JSON("tags", []string{}).StorageKey("tags").Default([]string{}),
+		field.Time("planned_for").StorageKey("plannedFor").Optional().Nillable(),
 		// Yjs document state, written only by the collaboration service.
 		field.Bytes("collab_state").StorageKey("collabState").Optional().Nillable(),
 		field.String("created_by_user_id").StorageKey("createdByUserId").Optional().Nillable(),
@@ -56,5 +66,5 @@ func (ContentDraft) Fields() []ent.Field {
 }
 
 func (ContentDraft) Indexes() []ent.Index {
-	return []ent.Index{index.Fields("organization_id", "updated_at")}
+	return []ent.Index{index.Fields("organization_id", "updated_at"), index.Fields("social_set_id", "updated_at")}
 }

@@ -25,6 +25,8 @@ const (
 	FieldSecretReference = "secretReference"
 	// FieldIntegrationID holds the string denoting the integration_id field in the database.
 	FieldIntegrationID = "integrationId"
+	// FieldSocialSetID holds the string denoting the social_set_id field in the database.
+	FieldSocialSetID = "socialSetId"
 	// FieldExpiresAt holds the string denoting the expires_at field in the database.
 	FieldExpiresAt = "expiresAt"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -42,6 +44,7 @@ var Columns = []string{
 	FieldProvider,
 	FieldSecretReference,
 	FieldIntegrationID,
+	FieldSocialSetID,
 	FieldExpiresAt,
 	FieldCreatedAt,
 }
@@ -97,6 +100,11 @@ func BySecretReference(opts ...sql.OrderTermOption) OrderOption {
 // ByIntegrationID orders the results by the integration_id field.
 func ByIntegrationID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIntegrationID, opts...).ToFunc()
+}
+
+// BySocialSetID orders the results by the social_set_id field.
+func BySocialSetID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSocialSetID, opts...).ToFunc()
 }
 
 // ByExpiresAt orders the results by the expires_at field.

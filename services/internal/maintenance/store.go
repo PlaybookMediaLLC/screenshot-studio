@@ -48,8 +48,9 @@ func (s *Store) Run(ctx context.Context, job string) (int, error) {
 	handlers := map[string]func(context.Context) (int, error){
 		"tenant-outbox": s.Outbox, "audit-drains": s.AuditDrains,
 		"communications": s.Communications, "workspace-cleanup": s.WorkspaceCleanup,
-		"audit-retention": s.AuditRetention,
-		"notifications":   s.Notifications,
+		"audit-retention":   s.AuditRetention,
+		"notifications":     s.Notifications,
+		"account-deletions": s.AccountDeletions,
 	}
 	handler, ok := handlers[job]
 	if !ok {

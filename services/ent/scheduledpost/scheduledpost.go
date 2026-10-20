@@ -53,6 +53,16 @@ const (
 	FieldIdempotencyKey = "idempotencyKey"
 	// FieldTriggerRunID holds the string denoting the trigger_run_id field in the database.
 	FieldTriggerRunID = "triggerRunId"
+	// FieldSocialSetID holds the string denoting the social_set_id field in the database.
+	FieldSocialSetID = "socialSetId"
+	// FieldScheduleMode holds the string denoting the schedule_mode field in the database.
+	FieldScheduleMode = "scheduleMode"
+	// FieldSlotAt holds the string denoting the slot_at field in the database.
+	FieldSlotAt = "slotAt"
+	// FieldNaturalOffsetSeconds holds the string denoting the natural_offset_seconds field in the database.
+	FieldNaturalOffsetSeconds = "naturalOffsetSeconds"
+	// FieldScheduleTimeZone holds the string denoting the schedule_time_zone field in the database.
+	FieldScheduleTimeZone = "scheduleTimeZone"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "createdAt"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -101,6 +111,11 @@ var Columns = []string{
 	FieldCaption,
 	FieldIdempotencyKey,
 	FieldTriggerRunID,
+	FieldSocialSetID,
+	FieldScheduleMode,
+	FieldSlotAt,
+	FieldNaturalOffsetSeconds,
+	FieldScheduleTimeZone,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -154,6 +169,29 @@ func StatusValidator(s Status) error {
 		return nil
 	default:
 		return fmt.Errorf("scheduledpost: invalid enum value for status field: %q", s)
+	}
+}
+
+// ScheduleMode defines the type for the "schedule_mode" enum field.
+type ScheduleMode string
+
+// ScheduleMode values.
+const (
+	ScheduleModeQueue    ScheduleMode = "queue"
+	ScheduleModeExplicit ScheduleMode = "explicit"
+)
+
+func (sm ScheduleMode) String() string {
+	return string(sm)
+}
+
+// ScheduleModeValidator is a validator for the "schedule_mode" field enum values. It is called by the builders before save.
+func ScheduleModeValidator(sm ScheduleMode) error {
+	switch sm {
+	case ScheduleModeQueue, ScheduleModeExplicit:
+		return nil
+	default:
+		return fmt.Errorf("scheduledpost: invalid enum value for schedule_mode field: %q", sm)
 	}
 }
 
@@ -228,6 +266,31 @@ func ByIdempotencyKey(opts ...sql.OrderTermOption) OrderOption {
 // ByTriggerRunID orders the results by the trigger_run_id field.
 func ByTriggerRunID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTriggerRunID, opts...).ToFunc()
+}
+
+// BySocialSetID orders the results by the social_set_id field.
+func BySocialSetID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSocialSetID, opts...).ToFunc()
+}
+
+// ByScheduleMode orders the results by the schedule_mode field.
+func ByScheduleMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldScheduleMode, opts...).ToFunc()
+}
+
+// BySlotAt orders the results by the slot_at field.
+func BySlotAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSlotAt, opts...).ToFunc()
+}
+
+// ByNaturalOffsetSeconds orders the results by the natural_offset_seconds field.
+func ByNaturalOffsetSeconds(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNaturalOffsetSeconds, opts...).ToFunc()
+}
+
+// ByScheduleTimeZone orders the results by the schedule_time_zone field.
+func ByScheduleTimeZone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldScheduleTimeZone, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

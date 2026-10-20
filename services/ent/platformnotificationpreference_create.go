@@ -38,6 +38,12 @@ func (_c *PlatformNotificationPreferenceCreate) SetEvents(v map[string]interface
 	return _c
 }
 
+// SetSocialSets sets the "social_sets" field.
+func (_c *PlatformNotificationPreferenceCreate) SetSocialSets(v map[string]map[string]bool) *PlatformNotificationPreferenceCreate {
+	_c.mutation.SetSocialSets(v)
+	return _c
+}
+
 // SetGeneration sets the "generation" field.
 func (_c *PlatformNotificationPreferenceCreate) SetGeneration(v int) *PlatformNotificationPreferenceCreate {
 	_c.mutation.SetGeneration(v)
@@ -111,6 +117,10 @@ func (_c *PlatformNotificationPreferenceCreate) defaults() {
 		v := platformnotificationpreference.DefaultEvents
 		_c.mutation.SetEvents(v)
 	}
+	if _, ok := _c.mutation.SocialSets(); !ok {
+		v := platformnotificationpreference.DefaultSocialSets
+		_c.mutation.SetSocialSets(v)
+	}
 	if _, ok := _c.mutation.Generation(); !ok {
 		v := platformnotificationpreference.DefaultGeneration
 		_c.mutation.SetGeneration(v)
@@ -131,6 +141,9 @@ func (_c *PlatformNotificationPreferenceCreate) check() error {
 	}
 	if _, ok := _c.mutation.Events(); !ok {
 		return &ValidationError{Name: "events", err: errors.New(`ent: missing required field "PlatformNotificationPreference.events"`)}
+	}
+	if _, ok := _c.mutation.SocialSets(); !ok {
+		return &ValidationError{Name: "social_sets", err: errors.New(`ent: missing required field "PlatformNotificationPreference.social_sets"`)}
 	}
 	if _, ok := _c.mutation.Generation(); !ok {
 		return &ValidationError{Name: "generation", err: errors.New(`ent: missing required field "PlatformNotificationPreference.generation"`)}
@@ -184,6 +197,10 @@ func (_c *PlatformNotificationPreferenceCreate) createSpec() (*PlatformNotificat
 	if value, ok := _c.mutation.Events(); ok {
 		_spec.SetField(platformnotificationpreference.FieldEvents, field.TypeJSON, value)
 		_node.Events = value
+	}
+	if value, ok := _c.mutation.SocialSets(); ok {
+		_spec.SetField(platformnotificationpreference.FieldSocialSets, field.TypeJSON, value)
+		_node.SocialSets = value
 	}
 	if value, ok := _c.mutation.Generation(); ok {
 		_spec.SetField(platformnotificationpreference.FieldGeneration, field.TypeInt, value)

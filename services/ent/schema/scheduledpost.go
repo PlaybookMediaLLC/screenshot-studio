@@ -54,6 +54,14 @@ func (ScheduledPost) Fields() []ent.Field {
 		field.String("caption").StorageKey("caption"),
 		field.String("idempotency_key").StorageKey("idempotencyKey").NotEmpty().Immutable(),
 		field.String("trigger_run_id").StorageKey("triggerRunId").Optional().Nillable(),
+		// How a draft post's instant was chosen (RFC 043): its set, queue or an
+		// explicit time, the instant before any natural offset, the offset, and
+		// the time zone it was read in.
+		field.String("social_set_id").StorageKey("socialSetId").Optional().Nillable().Immutable(),
+		field.Enum("schedule_mode").StorageKey("scheduleMode").Values("queue", "explicit").Optional().Nillable().Immutable(),
+		field.Time("slot_at").StorageKey("slotAt").Optional().Nillable().Immutable(),
+		field.Int("natural_offset_seconds").StorageKey("naturalOffsetSeconds").Optional().Nillable().Immutable(),
+		field.String("schedule_time_zone").StorageKey("scheduleTimeZone").Optional().Nillable().Immutable(),
 		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
 		field.Time("updated_at").StorageKey("updatedAt").Default(time.Now).UpdateDefault(time.Now),
 	}

@@ -30,6 +30,8 @@ type CreateConnectionInput struct {
 	Platform          string
 	ProviderSettings  map[string]any
 	SecretReference   string
+	// SocialSetID is the set the account joins; nil is the default set.
+	SocialSetID *string
 }
 
 type CreateScheduledPostInput struct {

@@ -23,6 +23,8 @@ const (
 	FieldDefaultPublishTime = "defaultPublishTime"
 	// FieldAiAgentEnabled holds the string denoting the ai_agent_enabled field in the database.
 	FieldAiAgentEnabled = "aiAgentEnabled"
+	// FieldDisabledExperiments holds the string denoting the disabled_experiments field in the database.
+	FieldDisabledExperiments = "disabledExperiments"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "createdAt"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -39,6 +41,7 @@ var Columns = []string{
 	FieldTimeZone,
 	FieldDefaultPublishTime,
 	FieldAiAgentEnabled,
+	FieldDisabledExperiments,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -62,6 +65,8 @@ var (
 	DefaultDefaultPublishTime string
 	// DefaultAiAgentEnabled holds the default value on creation for the "ai_agent_enabled" field.
 	DefaultAiAgentEnabled bool
+	// DefaultDisabledExperiments holds the default value on creation for the "disabled_experiments" field.
+	DefaultDisabledExperiments []string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.

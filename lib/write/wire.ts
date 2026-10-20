@@ -72,3 +72,20 @@ export const contentDraftViewSchema = z.enum(['drafts', 'posted', 'archived'])
 
 /** One of {@link contentDraftViewSchema}. */
 export type ContentDraftView = z.infer<typeof contentDraftViewSchema>
+
+/**
+ * When a schedule goes out, beside `scheduledFor`: now (`publishNow`), or a
+ * local time in a zone that the backend resolves, refusing a skipped time
+ * and asking which repeated time is meant. `naturalTiming` shifts it by a
+ * stable few minutes.
+ */
+export const scheduleTimingSchema = z.object({
+  disambiguation: z.enum(['earlier', 'later']).optional(),
+  localTime: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
+    .optional(),
+  naturalTiming: z.boolean().optional(),
+  publishNow: z.boolean().optional(),
+  timeZone: z.string().max(80).optional(),
+})

@@ -3,6 +3,7 @@ import { defineContract, timestampSchema } from '@/lib/api/contract'
 import {
   contentDraftIdSchema,
   contentDraftParamsSchema,
+  contentDraftPostSchema,
   contentDraftSchema,
 } from '@/lib/api/contracts/content-drafts'
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
@@ -206,4 +207,35 @@ export const listPlannedContentDraftsContract = defineContract({
     to: z.iso.datetime({ offset: true }),
   }),
   summary: 'List drafts planned between two times',
+})
+
+/** `POST /api/v1/content-draft-posts/{id}/retry` */
+export const retryDraftPostContract = defineContract({
+  method: 'POST',
+  name: 'content-draft-posts.retry',
+  output: z.object({ post: contentDraftPostSchema }),
+  params: z.object({ id: contentDraftIdSchema }),
+  path: '/api/v1/content-draft-posts/{id}/retry',
+  status: 201,
+  summary: 'Publish one failed destination again, once',
+})
+
+/** What a person found on the platform for a post of unknown outcome. */
+export const reconcileInputSchema = z.strictObject({
+  live: z.boolean(),
+  url: z
+    .url({ protocol: /^https$/ })
+    .max(2_048)
+    .optional(),
+})
+
+/** `POST /api/v1/content-draft-posts/{id}/reconcile` */
+export const reconcileDraftPostContract = defineContract({
+  body: reconcileInputSchema,
+  method: 'POST',
+  name: 'content-draft-posts.reconcile',
+  output: z.object({ post: contentDraftPostSchema }),
+  params: z.object({ id: contentDraftIdSchema }),
+  path: '/api/v1/content-draft-posts/{id}/reconcile',
+  summary: 'Settle a post whose outcome is unknown, without contacting the platform',
 })

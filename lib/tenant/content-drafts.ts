@@ -12,9 +12,11 @@ import type {
 } from 'screenshot-studio-backend-sdk'
 import type { OrganizationAccess, TenantContext } from '@/lib/auth/access'
 import { backendSDK, orNull, serviceBackend, withDates } from '@/lib/backend/sdk'
-import { channelForPlatform, serializeDraft } from '@/lib/content-drafts/serialize'
+import { channelForPlatform, type DraftChannel } from '@/lib/content-drafts/serialize'
 import { revisionReasonSchema } from '@/lib/api/contracts/content-draft-platform'
 import { listBackendConnections } from '@/lib/tenant/publishing-backend'
+import { buildPublication } from '@/lib/write/publication'
+import { readVersions } from '@/lib/write/versions'
 import {
   articleSchema,
   draftChannelSchema,
@@ -103,11 +105,12 @@ export async function listContentDraftPosts(context: TenantContext, id: string) 
 }
 
 /**
- * Schedule the draft to channels. Each caption is serialized here from the
- * stored draft, with the same function the composer previews with, and a
- * caption a channel cannot take is refused before anything is queued. Each
- * post's images are the draft's, in body order, with rendered table and math
- * blocks among them; the backend checks they are the workspace's.
+ * Schedule the draft to channels, or publish it now. Each destination's
+ * payload is built here from the stored draft (its primary body, platform
+ * versions, kind and target) with the same function the composer previews
+ * with, for the account's own standing; anything that blocks it is refused
+ * before anything is queued. Go resolves the time and checks every payload
+ * again.
  */
 export async function scheduleContentDraft(
   context: OrganizationAccess,
@@ -115,56 +118,71 @@ export async function scheduleContentDraft(
   input: {
     blockImages?: (string | null)[]
     channelConnectionIds: string[]
-    /** Per channel: X follow-ups and a poll. */
+    disambiguation?: 'earlier' | 'later'
+    localTime?: string
+    naturalTiming?: boolean
+    /** Per channel connection: X follow-ups, and a poll from older composers. */
     options?: Record<string, { autoActions?: BackendAutoActions; poll?: BackendPoll }>
-    /** When set, the queue's next free slot instead of `scheduledFor`. */
+    publishNow?: boolean
+    /** When set, the set's next free queue slot, reserved by the backend. */
     queue?: boolean
     scheduledFor?: Date
+    timeZone?: string
     version: number
   }
 ) {
   const draft = await getContentDraft(context, id)
   if (!draft) return null
-  const scheduledFor = input.queue
-    ? new Date((await backendSDK(context).nextContentDraftQueueSlot()).scheduledFor)
-    : input.scheduledFor
-  if (!scheduledFor)
-    throw new ScheduledPostError('Pick a time, or add the draft to the queue.', 400)
-  const platforms = new Map(
-    (await listBackendConnections(context)).map((connection) => [
-      connection.id,
-      connection.platform,
-    ])
+  if (!input.publishNow && !input.queue && !input.localTime && !input.scheduledFor) {
+    throw new ScheduledPostError('Pick a time, add the draft to the queue, or publish it now.', 400)
+  }
+  const [connections, sets] = await Promise.all([
+    listBackendConnections(context),
+    backendSDK(context).listSocialSets(),
+  ])
+  const platforms = new Map(connections.map((connection) => [connection.id, connection.platform]))
+  const premium = new Set(
+    sets.items.flatMap((set) =>
+      set.connections.filter((item) => item.premium).map((item) => item.id)
+    )
+  )
+  const versions = readVersions(
+    draft.platformVersions,
+    draft.channelText as Partial<Record<DraftChannel, string>>,
+    draft.body
   )
   const targets = input.channelConnectionIds.map((channelConnectionId) => {
     const platform = platforms.get(channelConnectionId)
     const channel = platform ? channelForPlatform(platform) : null
     if (!channel) throw new ScheduledPostError('A selected channel cannot take this draft.', 404)
-    const serialized = serializeDraft(
-      draft.body,
-      channel,
-      input.blockImages,
-      draft.channelText[channel]
+    const { problems, target } = buildPublication(
+      { ...draft, platformVersions: versions },
+      {
+        channel,
+        connectionId: channelConnectionId,
+        standing: { premium: premium.has(channelConnectionId) },
+      },
+      input.blockImages
     )
-    if (serialized.errors.length > 0) {
-      throw new ScheduledPostError(`${channel}: ${serialized.errors.join(' ')}`, 409)
+    if (problems.length > 0) {
+      throw new ScheduledPostError(`${channel}: ${problems.join(' ')}`, 409)
     }
-    // A thread channel posts the first post, then the rest as replies; every
-    // other channel gets the whole draft as its one post.
-    const [first, ...replies] = serialized.posts
+    const legacy = input.options?.[channelConnectionId]
     return {
-      assetIds: first?.assetIds ?? [],
-      caption: first?.caption ?? '',
-      channelConnectionId,
-      ...(replies.length > 0
-        ? { replies: replies.map(({ assetIds, caption }) => ({ assetIds, caption })) }
-        : {}),
-      ...input.options?.[channelConnectionId],
+      ...target,
+      ...(legacy?.autoActions ? { autoActions: legacy.autoActions } : {}),
+      ...(!target.poll && legacy?.poll ? { poll: legacy.poll } : {}),
     }
   })
   const result = await backendSDK(context).scheduleContentDraft(id, {
-    scheduledFor,
+    disambiguation: input.disambiguation,
+    localTime: input.localTime,
+    naturalTiming: input.naturalTiming,
+    publishNow: input.publishNow,
+    queue: input.queue,
+    scheduledFor: input.scheduledFor,
     targets,
+    timeZone: input.timeZone,
     version: input.version,
   })
   return {
@@ -172,6 +190,22 @@ export async function scheduleContentDraft(
     draft: readDraft(result.draft),
     posts: result.posts.map(readPost),
   }
+}
+
+/** Retry one failed destination; null when it is not visible. */
+export async function retryContentDraftPost(context: TenantContext, id: string) {
+  const result = await orNull(backendSDK(context).retryContentDraftPost(id))
+  return result ? readPost(result.post) : null
+}
+
+/** Settle a post of unknown outcome; null when it is not visible. */
+export async function reconcileContentDraftPost(
+  context: TenantContext,
+  id: string,
+  input: { live: boolean; url?: string }
+) {
+  const result = await orNull(backendSDK(context).reconcileContentDraftPost(id, input))
+  return result ? readPost(result.post) : null
 }
 
 /** A collaboration token for the draft; null when it is not in this workspace. */

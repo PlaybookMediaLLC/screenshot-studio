@@ -50,7 +50,9 @@ type SocialSetConnection struct {
 	DisplayName *string `json:"displayName"`
 	Handle      *string `json:"handle"`
 	// Health is healthy, reconnect (credentials lapsed or were refused), or disabled.
-	Health   string `json:"health"`
+	Health string `json:"health"`
+	// Premium is the account's X Premium, as X reports it; never the plan's.
+	Premium  bool   `json:"premium"`
 	ID       string `json:"id"`
 	Platform string `json:"platform"`
 }
@@ -310,9 +312,10 @@ func (c *Configuration) withConnections(ctx context.Context, organizationID stri
 			if connection == nil {
 				continue
 			}
+			premium := connection.Platform == "x" && health[id] == "healthy" && c.accountStanding(ctx, connection).Premium
 			record.Connections = append(record.Connections, SocialSetConnection{AvatarURL: connection.AvatarURL,
 				Channel: draftPlatformChannels[connection.Platform], DisplayName: connection.DisplayName,
-				Handle: connection.Handle, Health: health[id], ID: id, Platform: connection.Platform})
+				Handle: connection.Handle, Health: health[id], ID: id, Platform: connection.Platform, Premium: premium})
 		}
 		records = append(records, record)
 	}

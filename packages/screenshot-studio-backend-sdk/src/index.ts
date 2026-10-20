@@ -906,6 +906,8 @@ export type BackendSocialSet = {
     health: 'healthy' | 'reconnect' | 'disabled'
     id: string
     platform: string
+    /** X Premium as X reports it for the account; never the workspace plan. */
+    premium: boolean
   }[]
   createdAt: string
   defaultChannels: string[]
@@ -1069,10 +1071,43 @@ export type BackendContentDraftScheduleTarget = {
   assetIds?: string[]
   caption: string
   channelConnectionId: string
-  /** A thread's later posts, posted as replies to the first. */
-  replies?: { assetIds: string[]; caption: string }[]
+  /** A thread's later posts, posted as replies to the first, each with its settings. */
+  replies?: { assetIds: string[]; caption: string; options?: BackendPublishOptions }[]
   autoActions?: BackendAutoActions
   poll?: BackendPoll
+  /** The first post's settings beyond its text (RFC 041). */
+  options?: BackendPublishOptions
+  /** The live X post a reply draft answers. */
+  replyTo?: string
+}
+
+/** A post's settings beyond its text, as a scheduled post keeps them (RFC 041). */
+export type BackendPublishOptions = {
+  articleCoverAssetId?: string
+  articleTitle?: string
+  communityId?: string
+  documentAssetId?: string
+  documentTitle?: string
+  firstComment?: string
+  madeWithAi?: boolean
+  paidPartnership?: boolean
+  pollQuestion?: string
+  quoteFirstPost?: boolean
+  quoteRemoteId?: string
+  replySettings?: 'following' | 'mentionedUsers' | 'subscribers' | 'verified'
+  shareWithFollowers?: boolean
+  visibility?: 'PUBLIC' | 'CONNECTIONS'
+}
+
+/** When a schedule goes out (RFC 041); the backend resolves local times. */
+export type BackendScheduleTiming = {
+  disambiguation?: 'earlier' | 'later'
+  localTime?: string
+  naturalTiming?: boolean
+  publishNow?: boolean
+  queue?: boolean
+  scheduledFor?: Date
+  timeZone?: string
 }
 
 export type BackendContentDraftListQuery = {
@@ -2461,7 +2496,7 @@ export class ScreenshotStudioBackendSDK {
    */
   async scheduleContentDraft(
     id: string,
-    input: { scheduledFor: Date; targets: BackendContentDraftScheduleTarget[]; version: number }
+    input: BackendScheduleTiming & { targets: BackendContentDraftScheduleTarget[]; version: number }
   ) {
     return this.request<{
       created: boolean
@@ -2674,6 +2709,22 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ post: BackendContentDraftPost }>(
       `v1/content-draft-posts/${encodeURIComponent(id)}/move`,
       { body: { scheduledFor }, method: 'POST' }
+    )
+  }
+
+  /** Publish one failed destination again, now; once. */
+  async retryContentDraftPost(id: string) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/retry`,
+      { body: {}, method: 'POST' }
+    )
+  }
+
+  /** Settle a post whose outcome was unknown: live (with its URL) or not live. */
+  async reconcileContentDraftPost(id: string, input: { live: boolean; url?: string }) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/reconcile`,
+      { body: input, method: 'POST' }
     )
   }
 

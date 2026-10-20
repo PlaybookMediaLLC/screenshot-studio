@@ -7,6 +7,7 @@ import {
   contentDraftViewSchema,
   draftWriteFieldsSchema,
   draftWriteInputSchema,
+  scheduleTimingSchema,
 } from '@/lib/write/wire'
 
 /** Where a draft is in its life. Scheduling sets `scheduled`. */
@@ -289,7 +290,7 @@ export const pollSchema = z.object({
  * A schedule request. The server serializes the draft for each channel, so
  * the posted captions are the ones the composer previewed.
  */
-export const contentDraftScheduleSchema = z.object({
+export const contentDraftScheduleSchema = scheduleTimingSchema.extend({
   /**
    * The draft's table and math blocks rendered as uploaded images, in body
    * order; null for a block posted as text.

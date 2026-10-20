@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 )
 
 // ContentDraftCreate is the builder for creating a ContentDraft entity.
@@ -172,6 +173,82 @@ func (_c *ContentDraftCreate) SetNillableVersion(v *int) *ContentDraftCreate {
 	return _c
 }
 
+// SetSocialSetID sets the "social_set_id" field.
+func (_c *ContentDraftCreate) SetSocialSetID(v string) *ContentDraftCreate {
+	_c.mutation.SetSocialSetID(v)
+	return _c
+}
+
+// SetNillableSocialSetID sets the "social_set_id" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableSocialSetID(v *string) *ContentDraftCreate {
+	if v != nil {
+		_c.SetSocialSetID(*v)
+	}
+	return _c
+}
+
+// SetPrimaryPlatform sets the "primary_platform" field.
+func (_c *ContentDraftCreate) SetPrimaryPlatform(v string) *ContentDraftCreate {
+	_c.mutation.SetPrimaryPlatform(v)
+	return _c
+}
+
+// SetNillablePrimaryPlatform sets the "primary_platform" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillablePrimaryPlatform(v *string) *ContentDraftCreate {
+	if v != nil {
+		_c.SetPrimaryPlatform(*v)
+	}
+	return _c
+}
+
+// SetNaturalPostingTime sets the "natural_posting_time" field.
+func (_c *ContentDraftCreate) SetNaturalPostingTime(v bool) *ContentDraftCreate {
+	_c.mutation.SetNaturalPostingTime(v)
+	return _c
+}
+
+// SetNillableNaturalPostingTime sets the "natural_posting_time" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableNaturalPostingTime(v *bool) *ContentDraftCreate {
+	if v != nil {
+		_c.SetNaturalPostingTime(*v)
+	}
+	return _c
+}
+
+// SetEngagement sets the "engagement" field.
+func (_c *ContentDraftCreate) SetEngagement(v schema.Engagement) *ContentDraftCreate {
+	_c.mutation.SetEngagement(v)
+	return _c
+}
+
+// SetNillableEngagement sets the "engagement" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableEngagement(v *schema.Engagement) *ContentDraftCreate {
+	if v != nil {
+		_c.SetEngagement(*v)
+	}
+	return _c
+}
+
+// SetTags sets the "tags" field.
+func (_c *ContentDraftCreate) SetTags(v []string) *ContentDraftCreate {
+	_c.mutation.SetTags(v)
+	return _c
+}
+
+// SetPlannedFor sets the "planned_for" field.
+func (_c *ContentDraftCreate) SetPlannedFor(v time.Time) *ContentDraftCreate {
+	_c.mutation.SetPlannedFor(v)
+	return _c
+}
+
+// SetNillablePlannedFor sets the "planned_for" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillablePlannedFor(v *time.Time) *ContentDraftCreate {
+	if v != nil {
+		_c.SetPlannedFor(*v)
+	}
+	return _c
+}
+
 // SetCollabState sets the "collab_state" field.
 func (_c *ContentDraftCreate) SetCollabState(v []byte) *ContentDraftCreate {
 	_c.mutation.SetCollabState(v)
@@ -299,6 +376,18 @@ func (_c *ContentDraftCreate) defaults() {
 		v := contentdraft.DefaultVersion
 		_c.mutation.SetVersion(v)
 	}
+	if _, ok := _c.mutation.NaturalPostingTime(); !ok {
+		v := contentdraft.DefaultNaturalPostingTime
+		_c.mutation.SetNaturalPostingTime(v)
+	}
+	if _, ok := _c.mutation.Engagement(); !ok {
+		v := contentdraft.DefaultEngagement
+		_c.mutation.SetEngagement(v)
+	}
+	if _, ok := _c.mutation.Tags(); !ok {
+		v := contentdraft.DefaultTags
+		_c.mutation.SetTags(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := contentdraft.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -356,6 +445,15 @@ func (_c *ContentDraftCreate) check() error {
 	}
 	if _, ok := _c.mutation.Version(); !ok {
 		return &ValidationError{Name: "version", err: errors.New(`ent: missing required field "ContentDraft.version"`)}
+	}
+	if _, ok := _c.mutation.NaturalPostingTime(); !ok {
+		return &ValidationError{Name: "natural_posting_time", err: errors.New(`ent: missing required field "ContentDraft.natural_posting_time"`)}
+	}
+	if _, ok := _c.mutation.Engagement(); !ok {
+		return &ValidationError{Name: "engagement", err: errors.New(`ent: missing required field "ContentDraft.engagement"`)}
+	}
+	if _, ok := _c.mutation.Tags(); !ok {
+		return &ValidationError{Name: "tags", err: errors.New(`ent: missing required field "ContentDraft.tags"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ContentDraft.created_at"`)}
@@ -461,6 +559,30 @@ func (_c *ContentDraftCreate) createSpec() (*ContentDraft, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Version(); ok {
 		_spec.SetField(contentdraft.FieldVersion, field.TypeInt, value)
 		_node.Version = value
+	}
+	if value, ok := _c.mutation.SocialSetID(); ok {
+		_spec.SetField(contentdraft.FieldSocialSetID, field.TypeString, value)
+		_node.SocialSetID = &value
+	}
+	if value, ok := _c.mutation.PrimaryPlatform(); ok {
+		_spec.SetField(contentdraft.FieldPrimaryPlatform, field.TypeString, value)
+		_node.PrimaryPlatform = &value
+	}
+	if value, ok := _c.mutation.NaturalPostingTime(); ok {
+		_spec.SetField(contentdraft.FieldNaturalPostingTime, field.TypeBool, value)
+		_node.NaturalPostingTime = value
+	}
+	if value, ok := _c.mutation.Engagement(); ok {
+		_spec.SetField(contentdraft.FieldEngagement, field.TypeJSON, value)
+		_node.Engagement = value
+	}
+	if value, ok := _c.mutation.Tags(); ok {
+		_spec.SetField(contentdraft.FieldTags, field.TypeJSON, value)
+		_node.Tags = value
+	}
+	if value, ok := _c.mutation.PlannedFor(); ok {
+		_spec.SetField(contentdraft.FieldPlannedFor, field.TypeTime, value)
+		_node.PlannedFor = &value
 	}
 	if value, ok := _c.mutation.CollabState(); ok {
 		_spec.SetField(contentdraft.FieldCollabState, field.TypeBytes, value)

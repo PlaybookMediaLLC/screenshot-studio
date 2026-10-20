@@ -62,6 +62,12 @@ func (_u *PlatformNotificationPreferenceUpdate) SetEvents(v map[string]interface
 	return _u
 }
 
+// SetSocialSets sets the "social_sets" field.
+func (_u *PlatformNotificationPreferenceUpdate) SetSocialSets(v map[string]map[string]bool) *PlatformNotificationPreferenceUpdate {
+	_u.mutation.SetSocialSets(v)
+	return _u
+}
+
 // SetGeneration sets the "generation" field.
 func (_u *PlatformNotificationPreferenceUpdate) SetGeneration(v int) *PlatformNotificationPreferenceUpdate {
 	_u.mutation.ResetGeneration()
@@ -147,6 +153,9 @@ func (_u *PlatformNotificationPreferenceUpdate) sqlSave(ctx context.Context) (_n
 	if value, ok := _u.mutation.Events(); ok {
 		_spec.SetField(platformnotificationpreference.FieldEvents, field.TypeJSON, value)
 	}
+	if value, ok := _u.mutation.SocialSets(); ok {
+		_spec.SetField(platformnotificationpreference.FieldSocialSets, field.TypeJSON, value)
+	}
 	if value, ok := _u.mutation.Generation(); ok {
 		_spec.SetField(platformnotificationpreference.FieldGeneration, field.TypeInt, value)
 	}
@@ -207,6 +216,12 @@ func (_u *PlatformNotificationPreferenceUpdateOne) SetNillableUserID(v *string) 
 // SetEvents sets the "events" field.
 func (_u *PlatformNotificationPreferenceUpdateOne) SetEvents(v map[string]interface{}) *PlatformNotificationPreferenceUpdateOne {
 	_u.mutation.SetEvents(v)
+	return _u
+}
+
+// SetSocialSets sets the "social_sets" field.
+func (_u *PlatformNotificationPreferenceUpdateOne) SetSocialSets(v map[string]map[string]bool) *PlatformNotificationPreferenceUpdateOne {
+	_u.mutation.SetSocialSets(v)
 	return _u
 }
 
@@ -324,6 +339,9 @@ func (_u *PlatformNotificationPreferenceUpdateOne) sqlSave(ctx context.Context) 
 	}
 	if value, ok := _u.mutation.Events(); ok {
 		_spec.SetField(platformnotificationpreference.FieldEvents, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.SocialSets(); ok {
+		_spec.SetField(platformnotificationpreference.FieldSocialSets, field.TypeJSON, value)
 	}
 	if value, ok := _u.mutation.Generation(); ok {
 		_spec.SetField(platformnotificationpreference.FieldGeneration, field.TypeInt, value)

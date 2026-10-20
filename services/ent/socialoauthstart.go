@@ -29,6 +29,8 @@ type SocialOAuthStart struct {
 	SecretReference string `json:"-"`
 	// IntegrationID holds the value of the "integration_id" field.
 	IntegrationID *string `json:"integration_id,omitempty"`
+	// SocialSetID holds the value of the "social_set_id" field.
+	SocialSetID *string `json:"social_set_id,omitempty"`
 	// ExpiresAt holds the value of the "expires_at" field.
 	ExpiresAt time.Time `json:"expires_at,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -41,7 +43,7 @@ func (*SocialOAuthStart) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case socialoauthstart.FieldID, socialoauthstart.FieldOrganizationID, socialoauthstart.FieldUserID, socialoauthstart.FieldSessionID, socialoauthstart.FieldProvider, socialoauthstart.FieldSecretReference, socialoauthstart.FieldIntegrationID:
+		case socialoauthstart.FieldID, socialoauthstart.FieldOrganizationID, socialoauthstart.FieldUserID, socialoauthstart.FieldSessionID, socialoauthstart.FieldProvider, socialoauthstart.FieldSecretReference, socialoauthstart.FieldIntegrationID, socialoauthstart.FieldSocialSetID:
 			values[i] = new(sql.NullString)
 		case socialoauthstart.FieldExpiresAt, socialoauthstart.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -102,6 +104,13 @@ func (_m *SocialOAuthStart) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.IntegrationID = new(string)
 				*_m.IntegrationID = value.String
+			}
+		case socialoauthstart.FieldSocialSetID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field social_set_id", values[i])
+			} else if value.Valid {
+				_m.SocialSetID = new(string)
+				*_m.SocialSetID = value.String
 			}
 		case socialoauthstart.FieldExpiresAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -167,6 +176,11 @@ func (_m *SocialOAuthStart) String() string {
 	builder.WriteString(", ")
 	if v := _m.IntegrationID; v != nil {
 		builder.WriteString("integration_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SocialSetID; v != nil {
+		builder.WriteString("social_set_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

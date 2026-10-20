@@ -27,6 +27,8 @@ func (SocialOAuthStart) Fields() []ent.Field {
 		field.String("provider").StorageKey("provider").Immutable(),
 		field.String("secret_reference").StorageKey("secretReference").Immutable().Sensitive(),
 		field.String("integration_id").StorageKey("integrationId").Optional().Nillable(),
+		// The social set the account joins when the callback completes (RFC 043).
+		field.String("social_set_id").StorageKey("socialSetId").Optional().Nillable().Immutable(),
 		field.Time("expires_at").StorageKey("expiresAt").Immutable(),
 		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
 	}

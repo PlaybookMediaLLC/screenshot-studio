@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 )
 
 const (
@@ -46,6 +47,18 @@ const (
 	FieldGuestComments = "guestComments"
 	// FieldVersion holds the string denoting the version field in the database.
 	FieldVersion = "version"
+	// FieldSocialSetID holds the string denoting the social_set_id field in the database.
+	FieldSocialSetID = "socialSetId"
+	// FieldPrimaryPlatform holds the string denoting the primary_platform field in the database.
+	FieldPrimaryPlatform = "primaryPlatform"
+	// FieldNaturalPostingTime holds the string denoting the natural_posting_time field in the database.
+	FieldNaturalPostingTime = "naturalPostingTime"
+	// FieldEngagement holds the string denoting the engagement field in the database.
+	FieldEngagement = "engagement"
+	// FieldTags holds the string denoting the tags field in the database.
+	FieldTags = "tags"
+	// FieldPlannedFor holds the string denoting the planned_for field in the database.
+	FieldPlannedFor = "plannedFor"
 	// FieldCollabState holds the string denoting the collab_state field in the database.
 	FieldCollabState = "collabState"
 	// FieldCreatedByUserID holds the string denoting the created_by_user_id field in the database.
@@ -79,6 +92,12 @@ var Columns = []string{
 	FieldShareToken,
 	FieldGuestComments,
 	FieldVersion,
+	FieldSocialSetID,
+	FieldPrimaryPlatform,
+	FieldNaturalPostingTime,
+	FieldEngagement,
+	FieldTags,
+	FieldPlannedFor,
 	FieldCollabState,
 	FieldCreatedByUserID,
 	FieldUpdatedByUserID,
@@ -105,6 +124,12 @@ var (
 	DefaultGuestComments []map[string]string
 	// DefaultVersion holds the default value on creation for the "version" field.
 	DefaultVersion int
+	// DefaultNaturalPostingTime holds the default value on creation for the "natural_posting_time" field.
+	DefaultNaturalPostingTime bool
+	// DefaultEngagement holds the default value on creation for the "engagement" field.
+	DefaultEngagement schema.Engagement
+	// DefaultTags holds the default value on creation for the "tags" field.
+	DefaultTags []string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -224,6 +249,26 @@ func ByShareToken(opts ...sql.OrderTermOption) OrderOption {
 // ByVersion orders the results by the version field.
 func ByVersion(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVersion, opts...).ToFunc()
+}
+
+// BySocialSetID orders the results by the social_set_id field.
+func BySocialSetID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSocialSetID, opts...).ToFunc()
+}
+
+// ByPrimaryPlatform orders the results by the primary_platform field.
+func ByPrimaryPlatform(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPrimaryPlatform, opts...).ToFunc()
+}
+
+// ByNaturalPostingTime orders the results by the natural_posting_time field.
+func ByNaturalPostingTime(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNaturalPostingTime, opts...).ToFunc()
+}
+
+// ByPlannedFor orders the results by the planned_for field.
+func ByPlannedFor(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlannedFor, opts...).ToFunc()
 }
 
 // ByCreatedByUserID orders the results by the created_by_user_id field.

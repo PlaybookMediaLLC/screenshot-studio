@@ -15,6 +15,8 @@ type oauthRequest struct {
 	Provider      string `json:"provider"`
 	State         string `json:"state"`
 	IntegrationID string `json:"integrationId"`
+	// SocialSetID is the set the account joins (RFC 043); empty is the default set.
+	SocialSetID string `json:"socialSetId"`
 }
 
 func oauthIdentity(w http.ResponseWriter, r *http.Request) (publishing.Actor, string, bool) {
@@ -155,6 +157,18 @@ func (s *Server) beginSocialOAuth(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	var socialSetID *string
+	if input.SocialSetID != "" {
+		if s.configuration == nil {
+			writeError(w, http.StatusServiceUnavailable, "social sets are unavailable")
+			return
+		}
+		if err := s.configuration.AuthorizeSocialSetConnection(r.Context(), workspaceActor(r), input.SocialSetID); err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		socialSetID = &input.SocialSetID
+	}
 	binding, err := s.store.Binding(r.Context(), actor.Organization)
 	if err != nil {
 		writeStoreError(w, err)
@@ -177,7 +191,7 @@ func (s *Server) beginSocialOAuth(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, "social provider returned an invalid authorization URL")
 		return
 	}
-	if err := s.store.StartOAuth(r.Context(), actor, sessionID, state, input.Provider, binding.SecretReference); err != nil {
+	if err := s.store.StartOAuth(r.Context(), actor, sessionID, state, input.Provider, binding.SecretReference, socialSetID); err != nil {
 		writeStoreError(w, err)
 		return
 	}

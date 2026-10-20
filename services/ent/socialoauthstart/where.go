@@ -94,6 +94,11 @@ func IntegrationID(v string) predicate.SocialOAuthStart {
 	return predicate.SocialOAuthStart(sql.FieldEQ(FieldIntegrationID, v))
 }
 
+// SocialSetID applies equality check predicate on the "social_set_id" field. It's identical to SocialSetIDEQ.
+func SocialSetID(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldSocialSetID, v))
+}
+
 // ExpiresAt applies equality check predicate on the "expires_at" field. It's identical to ExpiresAtEQ.
 func ExpiresAt(v time.Time) predicate.SocialOAuthStart {
 	return predicate.SocialOAuthStart(sql.FieldEQ(FieldExpiresAt, v))
@@ -502,6 +507,81 @@ func IntegrationIDEqualFold(v string) predicate.SocialOAuthStart {
 // IntegrationIDContainsFold applies the ContainsFold predicate on the "integration_id" field.
 func IntegrationIDContainsFold(v string) predicate.SocialOAuthStart {
 	return predicate.SocialOAuthStart(sql.FieldContainsFold(FieldIntegrationID, v))
+}
+
+// SocialSetIDEQ applies the EQ predicate on the "social_set_id" field.
+func SocialSetIDEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldSocialSetID, v))
+}
+
+// SocialSetIDNEQ applies the NEQ predicate on the "social_set_id" field.
+func SocialSetIDNEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNEQ(FieldSocialSetID, v))
+}
+
+// SocialSetIDIn applies the In predicate on the "social_set_id" field.
+func SocialSetIDIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIn(FieldSocialSetID, vs...))
+}
+
+// SocialSetIDNotIn applies the NotIn predicate on the "social_set_id" field.
+func SocialSetIDNotIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotIn(FieldSocialSetID, vs...))
+}
+
+// SocialSetIDGT applies the GT predicate on the "social_set_id" field.
+func SocialSetIDGT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGT(FieldSocialSetID, v))
+}
+
+// SocialSetIDGTE applies the GTE predicate on the "social_set_id" field.
+func SocialSetIDGTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGTE(FieldSocialSetID, v))
+}
+
+// SocialSetIDLT applies the LT predicate on the "social_set_id" field.
+func SocialSetIDLT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLT(FieldSocialSetID, v))
+}
+
+// SocialSetIDLTE applies the LTE predicate on the "social_set_id" field.
+func SocialSetIDLTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLTE(FieldSocialSetID, v))
+}
+
+// SocialSetIDContains applies the Contains predicate on the "social_set_id" field.
+func SocialSetIDContains(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContains(FieldSocialSetID, v))
+}
+
+// SocialSetIDHasPrefix applies the HasPrefix predicate on the "social_set_id" field.
+func SocialSetIDHasPrefix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasPrefix(FieldSocialSetID, v))
+}
+
+// SocialSetIDHasSuffix applies the HasSuffix predicate on the "social_set_id" field.
+func SocialSetIDHasSuffix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasSuffix(FieldSocialSetID, v))
+}
+
+// SocialSetIDIsNil applies the IsNil predicate on the "social_set_id" field.
+func SocialSetIDIsNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIsNull(FieldSocialSetID))
+}
+
+// SocialSetIDNotNil applies the NotNil predicate on the "social_set_id" field.
+func SocialSetIDNotNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotNull(FieldSocialSetID))
+}
+
+// SocialSetIDEqualFold applies the EqualFold predicate on the "social_set_id" field.
+func SocialSetIDEqualFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEqualFold(FieldSocialSetID, v))
+}
+
+// SocialSetIDContainsFold applies the ContainsFold predicate on the "social_set_id" field.
+func SocialSetIDContainsFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContainsFold(FieldSocialSetID, v))
 }
 
 // ExpiresAtEQ applies the EQ predicate on the "expires_at" field.

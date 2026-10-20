@@ -90,6 +90,12 @@ func (_c *WorkspaceSettingsCreate) SetNillableAiAgentEnabled(v *bool) *Workspace
 	return _c
 }
 
+// SetDisabledExperiments sets the "disabled_experiments" field.
+func (_c *WorkspaceSettingsCreate) SetDisabledExperiments(v []string) *WorkspaceSettingsCreate {
+	_c.mutation.SetDisabledExperiments(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *WorkspaceSettingsCreate) SetCreatedAt(v time.Time) *WorkspaceSettingsCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -175,6 +181,10 @@ func (_c *WorkspaceSettingsCreate) defaults() {
 		v := workspacesettings.DefaultAiAgentEnabled
 		_c.mutation.SetAiAgentEnabled(v)
 	}
+	if _, ok := _c.mutation.DisabledExperiments(); !ok {
+		v := workspacesettings.DefaultDisabledExperiments
+		_c.mutation.SetDisabledExperiments(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := workspacesettings.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -198,6 +208,9 @@ func (_c *WorkspaceSettingsCreate) check() error {
 	}
 	if _, ok := _c.mutation.AiAgentEnabled(); !ok {
 		return &ValidationError{Name: "ai_agent_enabled", err: errors.New(`ent: missing required field "WorkspaceSettings.ai_agent_enabled"`)}
+	}
+	if _, ok := _c.mutation.DisabledExperiments(); !ok {
+		return &ValidationError{Name: "disabled_experiments", err: errors.New(`ent: missing required field "WorkspaceSettings.disabled_experiments"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "WorkspaceSettings.created_at"`)}
@@ -259,6 +272,10 @@ func (_c *WorkspaceSettingsCreate) createSpec() (*WorkspaceSettings, *sqlgraph.C
 	if value, ok := _c.mutation.AiAgentEnabled(); ok {
 		_spec.SetField(workspacesettings.FieldAiAgentEnabled, field.TypeBool, value)
 		_node.AiAgentEnabled = value
+	}
+	if value, ok := _c.mutation.DisabledExperiments(); ok {
+		_spec.SetField(workspacesettings.FieldDisabledExperiments, field.TypeJSON, value)
+		_node.DisabledExperiments = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(workspacesettings.FieldCreatedAt, field.TypeTime, value)

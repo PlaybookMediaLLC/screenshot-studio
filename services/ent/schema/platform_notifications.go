@@ -36,6 +36,8 @@ func (PlatformNotificationPreference) Fields() []ent.Field {
 		field.String("organization_id").StorageKey("organizationId"),
 		field.String("user_id").StorageKey("userId"),
 		field.JSON("events", map[string]any{}).Default(map[string]any{}),
+		// Per social set: activity kinds turned off for that set (RFC 043).
+		field.JSON("social_sets", map[string]map[string]bool{}).Default(map[string]map[string]bool{}),
 		field.Int("generation").Default(1),
 		field.Time("updated_at").Default(time.Now)}
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -129,6 +130,14 @@ func recordDiscussionActivity(ctx context.Context, tx *ent.Tx, actor Actor, draf
 			if !exists {
 				if err = activity.Emit(ctx, tx, actor.OrganizationID, "comment.created", "content_draft", draft.ID, actor.UserID, draft.ID+":"+comment.ID, payload); err != nil {
 					return err
+				}
+				// The draft's author hears about comments on it as their own kind
+				// (RFC 043), unless they are already in the thread.
+				if draft.CreatedByUserID != nil && *draft.CreatedByUserID != actor.UserID && !slices.Contains(participants, *draft.CreatedByUserID) {
+					if err = activity.Emit(ctx, tx, actor.OrganizationID, "comment.on_your_draft", "content_draft", draft.ID, actor.UserID,
+						draft.ID+":"+comment.ID, map[string]any{"commentId": comment.ID, "ownerUserId": *draft.CreatedByUserID, "threadId": thread.ID}); err != nil {
+						return err
+					}
 				}
 			}
 			oldMentions := map[string]bool{}

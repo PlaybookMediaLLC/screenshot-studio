@@ -129,6 +129,20 @@ func (_c *ChannelConnectionCreate) SetNillableAvatarURL(v *string) *ChannelConne
 	return _c
 }
 
+// SetSocialSetID sets the "social_set_id" field.
+func (_c *ChannelConnectionCreate) SetSocialSetID(v string) *ChannelConnectionCreate {
+	_c.mutation.SetSocialSetID(v)
+	return _c
+}
+
+// SetNillableSocialSetID sets the "social_set_id" field if the given value is not nil.
+func (_c *ChannelConnectionCreate) SetNillableSocialSetID(v *string) *ChannelConnectionCreate {
+	if v != nil {
+		_c.SetSocialSetID(*v)
+	}
+	return _c
+}
+
 // SetCreatedByUserID sets the "created_by_user_id" field.
 func (_c *ChannelConnectionCreate) SetCreatedByUserID(v string) *ChannelConnectionCreate {
 	_c.mutation.SetCreatedByUserID(v)
@@ -366,6 +380,10 @@ func (_c *ChannelConnectionCreate) createSpec() (*ChannelConnection, *sqlgraph.C
 	if value, ok := _c.mutation.AvatarURL(); ok {
 		_spec.SetField(channelconnection.FieldAvatarURL, field.TypeString, value)
 		_node.AvatarURL = &value
+	}
+	if value, ok := _c.mutation.SocialSetID(); ok {
+		_spec.SetField(channelconnection.FieldSocialSetID, field.TypeString, value)
+		_node.SocialSetID = &value
 	}
 	if value, ok := _c.mutation.CreatedByUserID(); ok {
 		_spec.SetField(channelconnection.FieldCreatedByUserID, field.TypeString, value)

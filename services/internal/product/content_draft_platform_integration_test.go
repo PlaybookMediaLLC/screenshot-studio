@@ -91,14 +91,14 @@ func TestContentDraftPlatform(t *testing.T) {
 		if _, err := repo.UpdateContentDraftSettings(ctx, owner, ContentDraftSettingsUpdate{PostingSlots: &bad}); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("bad slot err=%v", err)
 		}
-		first, err := repo.NextQueueSlot(ctx, owner)
+		first, err := repo.NextQueueSlot(ctx, owner, "")
 		if err != nil || first.Hour() != 7 || first.Minute() != 30 || !first.After(time.Now()) {
 			t.Fatalf("first=%v err=%v", first, err)
 		}
 		if _, err := schedule(newDraft("Queued one"), first); err != nil {
 			t.Fatal(err)
 		}
-		second, err := repo.NextQueueSlot(ctx, owner)
+		second, err := repo.NextQueueSlot(ctx, owner, "")
 		if err != nil || !second.Equal(first.Add(24*time.Hour)) {
 			t.Fatalf("second=%v first=%v err=%v", second, first, err)
 		}
@@ -124,7 +124,7 @@ func TestContentDraftPlatform(t *testing.T) {
 		if _, err := repo.MoveContentDraftPost(ctx, owner, result.Posts[0].ID, later); !errors.Is(err, publishing.ErrConflict) {
 			t.Fatalf("moving a cancelled post err=%v", err)
 		}
-		calendar, err := repo.ListContentDraftPostsBetween(ctx, owner, at, at.Add(24*time.Hour))
+		calendar, err := repo.ListContentDraftPostsBetween(ctx, owner, at, at.Add(24*time.Hour), "")
 		if err != nil || len(calendar) != 1 || calendar[0].DraftTitle != "Move me" {
 			t.Fatalf("calendar=%+v err=%v", calendar, err)
 		}
@@ -228,7 +228,7 @@ func TestContentDraftPlatform(t *testing.T) {
 		if err != nil || len(posts) != 2 || !strings.HasPrefix(*posts[1].URL, "https://x.com/i/status/remote-1") {
 			t.Fatalf("posts=%+v err=%v", posts, err)
 		}
-		best, err := repo.BestPostingTimes(ctx, owner)
+		best, err := repo.BestPostingTimes(ctx, owner, "")
 		if err != nil || len(best) != 3 || !best[0].At.After(time.Now()) {
 			t.Fatalf("best=%+v err=%v", best, err)
 		}

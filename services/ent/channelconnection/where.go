@@ -105,6 +105,11 @@ func AvatarURL(v string) predicate.ChannelConnection {
 	return predicate.ChannelConnection(sql.FieldEQ(FieldAvatarURL, v))
 }
 
+// SocialSetID applies equality check predicate on the "social_set_id" field. It's identical to SocialSetIDEQ.
+func SocialSetID(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEQ(FieldSocialSetID, v))
+}
+
 // CreatedByUserID applies equality check predicate on the "created_by_user_id" field. It's identical to CreatedByUserIDEQ.
 func CreatedByUserID(v string) predicate.ChannelConnection {
 	return predicate.ChannelConnection(sql.FieldEQ(FieldCreatedByUserID, v))
@@ -688,6 +693,81 @@ func AvatarURLEqualFold(v string) predicate.ChannelConnection {
 // AvatarURLContainsFold applies the ContainsFold predicate on the "avatar_url" field.
 func AvatarURLContainsFold(v string) predicate.ChannelConnection {
 	return predicate.ChannelConnection(sql.FieldContainsFold(FieldAvatarURL, v))
+}
+
+// SocialSetIDEQ applies the EQ predicate on the "social_set_id" field.
+func SocialSetIDEQ(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEQ(FieldSocialSetID, v))
+}
+
+// SocialSetIDNEQ applies the NEQ predicate on the "social_set_id" field.
+func SocialSetIDNEQ(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNEQ(FieldSocialSetID, v))
+}
+
+// SocialSetIDIn applies the In predicate on the "social_set_id" field.
+func SocialSetIDIn(vs ...string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldIn(FieldSocialSetID, vs...))
+}
+
+// SocialSetIDNotIn applies the NotIn predicate on the "social_set_id" field.
+func SocialSetIDNotIn(vs ...string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNotIn(FieldSocialSetID, vs...))
+}
+
+// SocialSetIDGT applies the GT predicate on the "social_set_id" field.
+func SocialSetIDGT(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldGT(FieldSocialSetID, v))
+}
+
+// SocialSetIDGTE applies the GTE predicate on the "social_set_id" field.
+func SocialSetIDGTE(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldGTE(FieldSocialSetID, v))
+}
+
+// SocialSetIDLT applies the LT predicate on the "social_set_id" field.
+func SocialSetIDLT(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldLT(FieldSocialSetID, v))
+}
+
+// SocialSetIDLTE applies the LTE predicate on the "social_set_id" field.
+func SocialSetIDLTE(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldLTE(FieldSocialSetID, v))
+}
+
+// SocialSetIDContains applies the Contains predicate on the "social_set_id" field.
+func SocialSetIDContains(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldContains(FieldSocialSetID, v))
+}
+
+// SocialSetIDHasPrefix applies the HasPrefix predicate on the "social_set_id" field.
+func SocialSetIDHasPrefix(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldHasPrefix(FieldSocialSetID, v))
+}
+
+// SocialSetIDHasSuffix applies the HasSuffix predicate on the "social_set_id" field.
+func SocialSetIDHasSuffix(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldHasSuffix(FieldSocialSetID, v))
+}
+
+// SocialSetIDIsNil applies the IsNil predicate on the "social_set_id" field.
+func SocialSetIDIsNil() predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldIsNull(FieldSocialSetID))
+}
+
+// SocialSetIDNotNil applies the NotNil predicate on the "social_set_id" field.
+func SocialSetIDNotNil() predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldNotNull(FieldSocialSetID))
+}
+
+// SocialSetIDEqualFold applies the EqualFold predicate on the "social_set_id" field.
+func SocialSetIDEqualFold(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldEqualFold(FieldSocialSetID, v))
+}
+
+// SocialSetIDContainsFold applies the ContainsFold predicate on the "social_set_id" field.
+func SocialSetIDContainsFold(v string) predicate.ChannelConnection {
+	return predicate.ChannelConnection(sql.FieldContainsFold(FieldSocialSetID, v))
 }
 
 // CreatedByUserIDEQ applies the EQ predicate on the "created_by_user_id" field.

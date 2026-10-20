@@ -2,6 +2,8 @@ package product
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
 	"strings"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
 )
 
@@ -64,11 +67,28 @@ var draftThreadChannels = map[string]bool{"x": true, "threads": true, "bluesky":
 // contentDraftReplyLimit caps a thread: the first post and this many replies.
 const contentDraftReplyLimit = 24
 
-// ScheduleContentDraftInput schedules the draft at Version to every target.
+// ScheduleContentDraftInput schedules the draft at Version to every target:
+// at ScheduledFor, or with Queue at the draft's set's next free slot, which
+// the backend reserves. NaturalPostingTime overrides the draft's own choice
+// for this schedule.
 type ScheduleContentDraftInput struct {
-	ScheduledFor time.Time                    `json:"scheduledFor"`
-	Targets      []ContentDraftScheduleTarget `json:"targets"`
-	Version      int                          `json:"version"`
+	NaturalPostingTime *bool                        `json:"naturalPostingTime"`
+	Queue              bool                         `json:"queue"`
+	ScheduledFor       time.Time                    `json:"scheduledFor"`
+	Targets            []ContentDraftScheduleTarget `json:"targets"`
+	Version            int                          `json:"version"`
+}
+
+// naturalOffsetLimit bounds a natural posting time's offset: four minutes.
+const naturalOffsetLimit = 240
+
+// naturalOffset is a natural posting time's offset in seconds, within four
+// minutes either side. It is derived from the draft, its version and the base
+// instant, and stored with each post, so the same scheduling intent always
+// lands on the same instant across reloads, retries and recoveries.
+func naturalOffset(draftID string, version int, base time.Time) int {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("natural-time:%s:%d:%d", draftID, version, base.Unix())))
+	return int(binary.BigEndian.Uint32(sum[:4])%(2*naturalOffsetLimit+1)) - naturalOffsetLimit
 }
 
 // ContentDraftPost is a scheduled post made from a draft, with its status.
@@ -80,6 +100,13 @@ type ContentDraftPost struct {
 	Platform            string    `json:"platform"`
 	ScheduledFor        time.Time `json:"scheduledFor"`
 	Status              string    `json:"status"`
+	// How the instant was chosen (RFC 043): queue or explicit, the instant
+	// before any natural offset, the offset, and the time zone it was read in.
+	NaturalOffsetSeconds *int       `json:"naturalOffsetSeconds"`
+	ScheduleMode         *string    `json:"scheduleMode"`
+	ScheduleTimeZone     *string    `json:"scheduleTimeZone"`
+	SlotAt               *time.Time `json:"slotAt"`
+	SocialSetID          *string    `json:"socialSetId"`
 	// Once live: the post on its platform, and its engagement as last read.
 	Metrics   postoptions.Metrics `json:"metrics"`
 	MetricsAt *time.Time          `json:"metricsAt"`
@@ -92,25 +119,7 @@ type ContentDraftPost struct {
 // livePostURL is a live post's address on its platform, where one can be
 // built from its id.
 func livePostURL(platform string, remoteID *string) *string {
-	if remoteID == nil || *remoteID == "" {
-		return nil
-	}
-	var url string
-	switch platform {
-	case "x":
-		url = "https://x.com/i/status/" + *remoteID
-	case "linkedin":
-		url = "https://www.linkedin.com/feed/update/" + *remoteID
-	case "threads", "bluesky", "mastodon":
-		// These providers report a post's address as its id.
-		if strings.HasPrefix(*remoteID, "https://") {
-			url = *remoteID
-		}
-	}
-	if url == "" {
-		return nil
-	}
-	return &url
+	return postoptions.LivePostURL(platform, remoteID)
 }
 
 // ScheduleContentDraftResult is the draft after scheduling and its new posts.
@@ -132,10 +141,17 @@ func contentDraftPostKey(draftID, connectionID string, version int) string {
 }
 
 func contentDraftPost(post *ent.ScheduledPost, platform string) ContentDraftPost {
+	var mode *string
+	if post.ScheduleMode != nil {
+		value := string(*post.ScheduleMode)
+		mode = &value
+	}
 	return ContentDraftPost{Caption: post.Caption, ChannelConnectionID: post.ChannelConnectionID,
 		CreatedAt: post.CreatedAt, ID: post.ID, Platform: platform, ScheduledFor: post.ScheduledFor,
 		Status: string(post.Status), Metrics: post.Metrics, MetricsAt: post.MetricsAt,
-		URL: livePostURL(platform, post.RemotePostID), Replies: len(post.Replies), ThreadProgress: post.ThreadProgress}
+		URL: livePostURL(platform, post.RemotePostID), Replies: len(post.Replies), ThreadProgress: post.ThreadProgress,
+		NaturalOffsetSeconds: post.NaturalOffsetSeconds, ScheduleMode: mode, ScheduleTimeZone: post.ScheduleTimeZone,
+		SlotAt: post.SlotAt, SocialSetID: post.SocialSetID}
 }
 
 // validateDraftTargets checks the shape of a schedule before any lookup.
@@ -146,7 +162,7 @@ func validateDraftTargets(input ScheduleContentDraftInput) error {
 	if len(input.Targets) == 0 || len(input.Targets) > contentDraftChannelLimit {
 		return invalid(fmt.Sprintf("Pick 1 to %d channels.", contentDraftChannelLimit))
 	}
-	if !input.ScheduledFor.After(time.Now()) {
+	if !input.Queue && !input.ScheduledFor.After(time.Now()) {
 		return invalid("Pick a time in the future.")
 	}
 	seen := map[string]bool{}
@@ -166,10 +182,11 @@ func validateDraftTargets(input ScheduleContentDraftInput) error {
 // workspace's, active, on a platform that takes drafts, and within that
 // channel's caption limit. It also returns each target's images, up to the
 // channel's limit and all the workspace's uploads. Instagram posts need one.
-func draftTargetConnections(ctx context.Context, tx *ent.Tx, organizationID string, targets []ContentDraftScheduleTarget,
+func draftTargetConnections(ctx context.Context, tx *ent.Tx, organizationID string, socialSetID *string, targets []ContentDraftScheduleTarget,
 	draftImages []string) (map[string]*ent.ChannelConnection, map[string][]string, error) {
 	connections := make(map[string]*ent.ChannelConnection, len(targets))
 	images := make(map[string][]string, len(targets))
+	loaded := make([]*ent.ChannelConnection, 0, len(targets))
 	for _, target := range targets {
 		connection, err := tx.ChannelConnection.Query().Where(channelconnection.ID(target.ChannelConnectionID),
 			channelconnection.OrganizationID(organizationID)).Only(ctx)
@@ -179,9 +196,13 @@ func draftTargetConnections(ctx context.Context, tx *ent.Tx, organizationID stri
 		if err != nil {
 			return nil, nil, err
 		}
-		if connection.Status != channelconnection.StatusACTIVE || connection.Provider != "social" {
-			return nil, nil, publishing.ErrNotEligible
+		if socialSetID != nil && (connection.SocialSetID == nil || *connection.SocialSetID != *socialSetID) {
+			return nil, nil, conflict("A selected account is not in this draft's social set.")
 		}
+		if connection.Status != channelconnection.StatusACTIVE || connection.Provider != "social" {
+			return nil, nil, conflict("A selected account was removed from its social set. Pick another, or reconnect it.")
+		}
+		loaded = append(loaded, connection)
 		channel, ok := draftPlatformChannels[connection.Platform]
 		if !ok {
 			return nil, nil, conflict("A " + connection.Platform + " channel cannot publish a draft.")
@@ -210,6 +231,20 @@ func draftTargetConnections(ctx context.Context, tx *ent.Tx, organizationID stri
 		}
 		connections[target.ChannelConnectionID] = connection
 		images[target.ChannelConnectionID] = ids
+	}
+	health, err := connectionHealth(ctx, tx.Client(), organizationID, loaded)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, connection := range loaded {
+		if health[connection.ID] != AccountConnected {
+			name := connection.Platform
+			if connection.Handle != nil {
+				name = *connection.Handle
+			}
+			return nil, nil, conflict(name + " needs attention before it can publish: " + strings.ReplaceAll(health[connection.ID], "_", " ") +
+				". Reconnect it from the social set's settings.")
+		}
 	}
 	return connections, images, nil
 }
@@ -355,10 +390,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		return nil, err
 	}
 	defer tx.Rollback()
-	draft, err := tx.ContentDraft.Query().Where(contentdraft.ID(draftID), contentdraft.OrganizationID(actor.OrganizationID)).Only(ctx)
-	if ent.IsNotFound(err) {
-		return nil, publishing.ErrNotFound
-	}
+	draft, err := visibleContentDraft(ctx, tx.Client(), actor, draftID)
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +419,11 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if err := recordContentDraftRevision(ctx, tx, actor, draft, true); err != nil {
 		return nil, err
 	}
-	connections, images, err := draftTargetConnections(ctx, tx, actor.OrganizationID, input.Targets, draft.AssetIds)
+	set, err := c.draftSocialSet(ctx, tx, draft)
+	if err != nil {
+		return nil, err
+	}
+	connections, images, err := draftTargetConnections(ctx, tx, actor.OrganizationID, draft.SocialSetID, input.Targets, draft.AssetIds)
 	if err != nil {
 		return nil, err
 	}
@@ -402,6 +438,10 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		return nil, err
 	}
 	cancelled, err := cancelLiveDraftPosts(ctx, tx, actor, draft.ID)
+	if err != nil {
+		return nil, err
+	}
+	placement, err := placeDraftSchedule(ctx, tx, set, draft, input, time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -433,7 +473,9 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		}
 		post, err := create.SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 			SetContentDraftID(draft.ID).SetChannelConnectionID(target.ChannelConnectionID).
-			SetScheduledFor(input.ScheduledFor.UTC()).SetStatus(scheduledpost.StatusSCHEDULED).
+			SetSocialSetID(set.ID).SetScheduleMode(placement.mode).SetSlotAt(placement.base).
+			SetNaturalOffsetSeconds(placement.offset).SetScheduleTimeZone(set.TimeZone).
+			SetScheduledFor(placement.at).SetStatus(scheduledpost.StatusSCHEDULED).
 			SetCaption(strings.TrimSpace(target.Caption)).
 			SetIdempotencyKey(contentDraftPostKey(draft.ID, target.ChannelConnectionID, input.Version)).Save(ctx)
 		if err != nil {
@@ -471,6 +513,13 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if err != nil {
 		return nil, err
 	}
+	if err := emitDraftEvent(ctx, tx, updated, webhooks.DraftScheduled,
+		map[string]any{"posts": scheduledPostsData(result.Posts), "scheduleMode": string(placement.mode)}); err != nil {
+		return nil, err
+	}
+	if err := emitDraftChanges(ctx, tx, draft, updated); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -479,17 +528,62 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	return result, nil
 }
 
+// draftSocialSet is the draft's set, or for a draft written before RFC 043,
+// the workspace's default set.
+func (c *Configuration) draftSocialSet(ctx context.Context, tx *ent.Tx, draft *ent.ContentDraft) (*ent.SocialSet, error) {
+	if draft.SocialSetID == nil {
+		return c.defaultSocialSet(ctx, draft.OrganizationID)
+	}
+	return tx.SocialSet.Get(ctx, *draft.SocialSetID)
+}
+
+// draftPlacement is where a schedule lands and why.
+type draftPlacement struct {
+	at, base time.Time
+	mode     scheduledpost.ScheduleMode
+	offset   int
+}
+
+// placeDraftSchedule picks a schedule's instant. A queued draft takes the
+// set's next free slot under the set's advisory lock, held until the
+// transaction ends, so a concurrent request waits and then sees this one's
+// posts. A natural posting time adds the draft's stored offset; an offset
+// that would land in the past is mirrored forward.
+func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, draft *ent.ContentDraft,
+	input ScheduleContentDraftInput, now time.Time) (draftPlacement, error) {
+	placement := draftPlacement{base: input.ScheduledFor.UTC(), mode: scheduledpost.ScheduleModeExplicit}
+	if input.Queue {
+		if _, err := tx.PlatformExec(ctx, `SELECT pg_advisory_xact_lock(hashtext('social-set-queue:' || $1))`, set.ID); err != nil {
+			return placement, err
+		}
+		slot, err := nextFreeSlot(ctx, tx.Client(), set, now)
+		if err != nil {
+			return placement, err
+		}
+		placement.base, placement.mode = slot, scheduledpost.ScheduleModeQueue
+	}
+	natural := draft.NaturalPostingTime
+	if input.NaturalPostingTime != nil {
+		natural = *input.NaturalPostingTime
+	}
+	if natural {
+		placement.offset = naturalOffset(draft.ID, input.Version, placement.base)
+	}
+	placement.at = placement.base.Add(time.Duration(placement.offset) * time.Second)
+	if !placement.at.After(now.Add(30 * time.Second)) {
+		placement.offset = max(placement.offset, -placement.offset)
+		placement.at = placement.base.Add(time.Duration(placement.offset) * time.Second)
+	}
+	return placement, nil
+}
+
 // ListContentDraftPosts lists every post scheduled from a draft, newest first.
 func (c *Configuration) ListContentDraftPosts(ctx context.Context, actor Actor, draftID string) ([]ContentDraftPost, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
-	owned, err := c.client.ContentDraft.Query().Where(contentdraft.ID(draftID), contentdraft.OrganizationID(actor.OrganizationID)).Exist(ctx)
-	if err != nil {
+	if _, err := visibleContentDraft(ctx, c.client, actor, draftID); err != nil {
 		return nil, err
-	}
-	if !owned {
-		return nil, publishing.ErrNotFound
 	}
 	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(draftID),
 		scheduledpost.OrganizationID(actor.OrganizationID)).WithChannelConnection().

@@ -35,6 +35,8 @@ const (
 	FieldHandle = "handle"
 	// FieldAvatarURL holds the string denoting the avatar_url field in the database.
 	FieldAvatarURL = "avatarUrl"
+	// FieldSocialSetID holds the string denoting the social_set_id field in the database.
+	FieldSocialSetID = "socialSetId"
 	// FieldCreatedByUserID holds the string denoting the created_by_user_id field in the database.
 	FieldCreatedByUserID = "createdByUserId"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -67,6 +69,7 @@ var Columns = []string{
 	FieldDisplayName,
 	FieldHandle,
 	FieldAvatarURL,
+	FieldSocialSetID,
 	FieldCreatedByUserID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -179,6 +182,11 @@ func ByHandle(opts ...sql.OrderTermOption) OrderOption {
 // ByAvatarURL orders the results by the avatar_url field.
 func ByAvatarURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAvatarURL, opts...).ToFunc()
+}
+
+// BySocialSetID orders the results by the social_set_id field.
+func BySocialSetID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSocialSetID, opts...).ToFunc()
 }
 
 // ByCreatedByUserID orders the results by the created_by_user_id field.

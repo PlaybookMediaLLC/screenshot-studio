@@ -1343,6 +1343,40 @@ export interface components {
                     text: string;
                 }[];
                 publishedPosts: number;
+                /**
+                 * @default {
+                 *       "autoPlug": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       },
+                 *       "autoRepost": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       }
+                 *     }
+                 */
+                engagement: {
+                    autoPlug: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                    autoRepost: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                };
+                /** @default false */
+                naturalPostingTime: boolean;
+                /** @default null */
+                plannedFor: string | null;
+                /** @default null */
+                primaryPlatform: string | null;
+                /** @default null */
+                socialSetId: string | null;
+                /** @default [] */
+                tags: string[];
             }[];
             nextCursor: string | null;
         };
@@ -1360,6 +1394,7 @@ export interface components {
             };
             plainText?: string;
             title?: string;
+            socialSetId?: string;
         };
         ContentDraft: {
             assetIds: string[];
@@ -1396,6 +1431,40 @@ export interface components {
                 text: string;
             }[];
             publishedPosts: number;
+            /**
+             * @default {
+             *       "autoPlug": {
+             *         "atLikes": 0,
+             *         "enabled": false
+             *       },
+             *       "autoRepost": {
+             *         "atLikes": 0,
+             *         "enabled": false
+             *       }
+             *     }
+             */
+            engagement: {
+                autoPlug: {
+                    atLikes: number;
+                    enabled: boolean;
+                    text?: string;
+                };
+                autoRepost: {
+                    atLikes: number;
+                    enabled: boolean;
+                    text?: string;
+                };
+            };
+            /** @default false */
+            naturalPostingTime: boolean;
+            /** @default null */
+            plannedFor: string | null;
+            /** @default null */
+            primaryPlatform: string | null;
+            /** @default null */
+            socialSetId: string | null;
+            /** @default [] */
+            tags: string[];
         };
         ContentDraftUpdateRequest: {
             assetIds?: string[];
@@ -1414,6 +1483,10 @@ export interface components {
             baseVersion: number;
             /** @enum {string} */
             status?: "draft" | "archived";
+            naturalPostingTime?: boolean;
+            primaryPlatform?: ("x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon") | "";
+            plannedFor?: string | "";
+            tags?: string[];
         };
         ContentDraftPostList: {
             posts: {
@@ -1436,6 +1509,16 @@ export interface components {
                     posted: number;
                     total: number;
                 };
+                /** @default null */
+                naturalOffsetSeconds: number | null;
+                /** @default null */
+                scheduleMode: ("queue" | "explicit") | null;
+                /** @default null */
+                scheduleTimeZone: string | null;
+                /** @default null */
+                slotAt: string | null;
+                /** @default null */
+                socialSetId: string | null;
             }[];
         };
         OnboardingRunCreateRequest: {
@@ -3874,6 +3957,7 @@ export interface operations {
             query?: {
                 cursor?: string;
                 limit?: number;
+                socialSetId?: string;
                 status?: "draft" | "scheduled" | "archived";
             };
             header?: never;

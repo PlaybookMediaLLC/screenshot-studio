@@ -82,7 +82,7 @@ func (f *fakeStore) AuthorizeAPIKeyScope(_ context.Context, _, _, scope string) 
 func (f *fakeStore) Binding(context.Context, string) (*ent.SocialTenantBinding, error) {
 	return &ent.SocialTenantBinding{GoOrganizationID: "go-org-1", SecretReference: "SOCIAL_API_KEY"}, nil
 }
-func (f *fakeStore) StartOAuth(_ context.Context, _ publishing.Actor, session, state, provider, _ string) error {
+func (f *fakeStore) StartOAuth(_ context.Context, _ publishing.Actor, session, state, provider, _ string, _ *string) error {
 	f.oauthState = state
 	f.oauthSession = session
 	f.oauthProvider = provider

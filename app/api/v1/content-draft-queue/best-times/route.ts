@@ -7,8 +7,8 @@ import { bestPostingTimes } from '@/lib/tenant/content-drafts'
 /** The next good times to post, from the workspace's engagement. */
 export const GET = route(bestPostingTimesContract, {
   auth: organizationAccess('artifact:read'),
-  handler: async ({ access }) => {
+  handler: async ({ access, query }) => {
     if (!contentDraftsEnabled()) return errorResponse(404, 'Content drafts are not available.')
-    return { items: await bestPostingTimes(access) }
+    return { items: await bestPostingTimes(access, query.socialSetId) }
   },
 })

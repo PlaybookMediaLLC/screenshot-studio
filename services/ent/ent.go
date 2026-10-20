@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/accountdeletionrequest"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/agentauthorization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
@@ -88,6 +89,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialsetwritingsample"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
@@ -97,6 +100,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/userpreference"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhookdelivery"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhookdeliveryattempt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhooksubscription"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
@@ -162,6 +169,7 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			accountdeletionrequest.Table:         accountdeletionrequest.ValidColumn,
 			agentauthorization.Table:             agentauthorization.ValidColumn,
 			apikey.Table:                         apikey.ValidColumn,
 			approval.Table:                       approval.ValidColumn,
@@ -237,6 +245,8 @@ func checkColumn(t, c string) error {
 			session.Table:                        session.ValidColumn,
 			sharelink.Table:                      sharelink.ValidColumn,
 			socialoauthstart.Table:               socialoauthstart.ValidColumn,
+			socialset.Table:                      socialset.ValidColumn,
+			socialsetwritingsample.Table:         socialsetwritingsample.ValidColumn,
 			socialtenantbinding.Table:            socialtenantbinding.ValidColumn,
 			sourceapp.Table:                      sourceapp.ValidColumn,
 			sourcechange.Table:                   sourcechange.ValidColumn,
@@ -246,6 +256,10 @@ func checkColumn(t, c string) error {
 			supportaccessgrant.Table:             supportaccessgrant.ValidColumn,
 			surfacecapture.Table:                 surfacecapture.ValidColumn,
 			user.Table:                           user.ValidColumn,
+			userpreference.Table:                 userpreference.ValidColumn,
+			webhookdelivery.Table:                webhookdelivery.ValidColumn,
+			webhookdeliveryattempt.Table:         webhookdeliveryattempt.ValidColumn,
+			webhooksubscription.Table:            webhooksubscription.ValidColumn,
 			workspacecreditgrant.Table:           workspacecreditgrant.ValidColumn,
 			workspacedeletion.Table:              workspacedeletion.ValidColumn,
 			workspaceentitlement.Table:           workspaceentitlement.ValidColumn,

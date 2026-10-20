@@ -94,6 +94,9 @@ func (_u *SocialOAuthStartUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.IntegrationIDCleared() {
 		_spec.ClearField(socialoauthstart.FieldIntegrationID, field.TypeString)
 	}
+	if _u.mutation.SocialSetIDCleared() {
+		_spec.ClearField(socialoauthstart.FieldSocialSetID, field.TypeString)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{socialoauthstart.Label}
@@ -210,6 +213,9 @@ func (_u *SocialOAuthStartUpdateOne) sqlSave(ctx context.Context) (_node *Social
 	}
 	if _u.mutation.IntegrationIDCleared() {
 		_spec.ClearField(socialoauthstart.FieldIntegrationID, field.TypeString)
+	}
+	if _u.mutation.SocialSetIDCleared() {
+		_spec.ClearField(socialoauthstart.FieldSocialSetID, field.TypeString)
 	}
 	_node = &SocialOAuthStart{config: _u.config}
 	_spec.Assign = _node.assignValues

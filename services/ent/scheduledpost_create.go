@@ -226,6 +226,76 @@ func (_c *ScheduledPostCreate) SetNillableTriggerRunID(v *string) *ScheduledPost
 	return _c
 }
 
+// SetSocialSetID sets the "social_set_id" field.
+func (_c *ScheduledPostCreate) SetSocialSetID(v string) *ScheduledPostCreate {
+	_c.mutation.SetSocialSetID(v)
+	return _c
+}
+
+// SetNillableSocialSetID sets the "social_set_id" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableSocialSetID(v *string) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetSocialSetID(*v)
+	}
+	return _c
+}
+
+// SetScheduleMode sets the "schedule_mode" field.
+func (_c *ScheduledPostCreate) SetScheduleMode(v scheduledpost.ScheduleMode) *ScheduledPostCreate {
+	_c.mutation.SetScheduleMode(v)
+	return _c
+}
+
+// SetNillableScheduleMode sets the "schedule_mode" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableScheduleMode(v *scheduledpost.ScheduleMode) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetScheduleMode(*v)
+	}
+	return _c
+}
+
+// SetSlotAt sets the "slot_at" field.
+func (_c *ScheduledPostCreate) SetSlotAt(v time.Time) *ScheduledPostCreate {
+	_c.mutation.SetSlotAt(v)
+	return _c
+}
+
+// SetNillableSlotAt sets the "slot_at" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableSlotAt(v *time.Time) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetSlotAt(*v)
+	}
+	return _c
+}
+
+// SetNaturalOffsetSeconds sets the "natural_offset_seconds" field.
+func (_c *ScheduledPostCreate) SetNaturalOffsetSeconds(v int) *ScheduledPostCreate {
+	_c.mutation.SetNaturalOffsetSeconds(v)
+	return _c
+}
+
+// SetNillableNaturalOffsetSeconds sets the "natural_offset_seconds" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableNaturalOffsetSeconds(v *int) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetNaturalOffsetSeconds(*v)
+	}
+	return _c
+}
+
+// SetScheduleTimeZone sets the "schedule_time_zone" field.
+func (_c *ScheduledPostCreate) SetScheduleTimeZone(v string) *ScheduledPostCreate {
+	_c.mutation.SetScheduleTimeZone(v)
+	return _c
+}
+
+// SetNillableScheduleTimeZone sets the "schedule_time_zone" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableScheduleTimeZone(v *string) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetScheduleTimeZone(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *ScheduledPostCreate) SetCreatedAt(v time.Time) *ScheduledPostCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -359,6 +429,11 @@ func (_c *ScheduledPostCreate) check() error {
 			return &ValidationError{Name: "idempotency_key", err: fmt.Errorf(`ent: validator failed for field "ScheduledPost.idempotency_key": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.ScheduleMode(); ok {
+		if err := scheduledpost.ScheduleModeValidator(v); err != nil {
+			return &ValidationError{Name: "schedule_mode", err: fmt.Errorf(`ent: validator failed for field "ScheduledPost.schedule_mode": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ScheduledPost.created_at"`)}
 	}
@@ -474,6 +549,26 @@ func (_c *ScheduledPostCreate) createSpec() (*ScheduledPost, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.TriggerRunID(); ok {
 		_spec.SetField(scheduledpost.FieldTriggerRunID, field.TypeString, value)
 		_node.TriggerRunID = &value
+	}
+	if value, ok := _c.mutation.SocialSetID(); ok {
+		_spec.SetField(scheduledpost.FieldSocialSetID, field.TypeString, value)
+		_node.SocialSetID = &value
+	}
+	if value, ok := _c.mutation.ScheduleMode(); ok {
+		_spec.SetField(scheduledpost.FieldScheduleMode, field.TypeEnum, value)
+		_node.ScheduleMode = &value
+	}
+	if value, ok := _c.mutation.SlotAt(); ok {
+		_spec.SetField(scheduledpost.FieldSlotAt, field.TypeTime, value)
+		_node.SlotAt = &value
+	}
+	if value, ok := _c.mutation.NaturalOffsetSeconds(); ok {
+		_spec.SetField(scheduledpost.FieldNaturalOffsetSeconds, field.TypeInt, value)
+		_node.NaturalOffsetSeconds = &value
+	}
+	if value, ok := _c.mutation.ScheduleTimeZone(); ok {
+		_spec.SetField(scheduledpost.FieldScheduleTimeZone, field.TypeString, value)
+		_node.ScheduleTimeZone = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(scheduledpost.FieldCreatedAt, field.TypeTime, value)

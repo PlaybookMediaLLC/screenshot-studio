@@ -105,7 +105,12 @@ async function exportFiles(page: Page, options: { format?: string; only?: string
   if (options.format) await dialog.getByLabel('Export format').selectOption(options.format)
   await dialog.getByRole('button', { name: /^Render \d+/ }).click()
   const download = dialog.getByRole('button', { name: /^Download/ })
-  await expect(download).toBeEnabled({ timeout: 180_000 })
+  const refused = dialog.getByRole('alert')
+  // Stop at the first refusal and report why, rather than waiting out the timeout.
+  await expect(download.and(page.locator(':enabled')).or(refused).first()).toBeVisible({
+    timeout: 180_000,
+  })
+  expect(await refused.allTextContents()).toEqual([])
   const pending = page.waitForEvent('download')
   await download.click()
   const file = path.join(out, (await pending).suggestedFilename())

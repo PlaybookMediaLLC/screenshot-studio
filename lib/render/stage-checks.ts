@@ -28,8 +28,12 @@ export async function assertStageReady(): Promise<void> {
     const content = (text.textContent ?? '').trim()
     if (!content) continue
     const label = `“${content.length > 48 ? `${content.slice(0, 48)}…` : content}”`
-    const font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
-    await document.fonts.load(font, text.textContent ?? '')
+    // Only the chosen family must be present. A fallback face that cannot
+    // load (next/font's "Inter Fallback" is local Arial, absent on Linux)
+    // would otherwise refuse every export.
+    const family = style.fontFamily.split(',')[0]!.trim()
+    const font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${family}`
+    await document.fonts.load(font, text.textContent ?? '').catch(() => undefined)
     if (!document.fonts.check(font, text.textContent ?? ''))
       throw new Error(`The font for ${label} is unavailable. Choose another font.`)
     const rect = text.getBoundingClientRect()

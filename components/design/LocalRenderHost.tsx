@@ -17,10 +17,11 @@ function post(message: RenderResponse) {
  * sends one at a time. Its stores are separate from the editor's, so
  * previews and batch renders never touch the design being edited.
  */
-export function LocalRenderHost() {
+export function LocalRenderHost({ print = false }: { print?: boolean } = {}) {
   const queue = useRef<RenderJob[]>([])
   const current = useRef<RenderJob | null>(null)
   const [job, setJob] = useState<RenderJob | null>(null)
+  const [flattened, setFlattened] = useState<string | null>(null)
 
   // Queue work happens outside state updaters: React may run an updater
   // twice, which would take two jobs off the queue and drop one.
@@ -51,6 +52,16 @@ export function LocalRenderHost() {
     if (!job) return
     try {
       if (job.output.strict) await assertStageReady()
+      // A print frame keeps one document on screen for the page it fills.
+      if (print && job.hold) {
+        if (job.raster) {
+          const capture = await captureStage({ ...job.output, format: 'png', scale: 2 })
+          setFlattened(URL.createObjectURL(capture.blob))
+          setJob(null)
+        }
+        post({ type: 'drawn', id: job.id })
+        return
+      }
       const capture = await captureStage(job.output)
       post({ type: 'result', id: job.id, ...capture })
     } catch (error) {
@@ -58,7 +69,24 @@ export function LocalRenderHost() {
     }
     current.current = null
     pump()
-  }, [job, pump])
+  }, [job, pump, print])
+
+  if (print)
+    return (
+      <main
+        data-canvas-viewport
+        data-print-frame
+        className="flex h-screen w-screen items-center justify-center overflow-hidden"
+      >
+        {/* The whole frame is printed: nothing but the stage may draw (consent banner, toasts). */}
+        <style>{`body *:not(:has([data-print-frame])):not([data-print-frame]):not([data-print-frame] *) { display: none !important; }`}</style>
+        {flattened ? (
+          <img alt="" src={flattened} className="h-screen w-screen" />
+        ) : job ? (
+          <StageRenderer key={job.id} document={job.document} onReady={handleReady} time={job.time} />
+        ) : null}
+      </main>
+    )
 
   return (
     <main data-canvas-viewport className="ph-no-capture mx-auto flex h-[1048px] max-h-screen max-w-[1072px] items-center justify-center overflow-hidden bg-transparent p-6">

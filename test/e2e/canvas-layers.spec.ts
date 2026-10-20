@@ -476,3 +476,70 @@ test('I: release automation lays out a canvas from a release on the server', asy
   await page.waitForTimeout(1500)
   await page.screenshot({ path: path.join(out, 'i-automation-canvas.png') })
 })
+
+test('J: a canvas exports a PDF whose pages keep real text and vector shapes', async ({
+  identity,
+  page,
+}) => {
+  await setUp(identity, page)
+  await page.goto(getE2EUrl('/canvas/new?blank=1'))
+  await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
+  await saved(page)
+  await page.getByRole('button', { name: '1:1 · 1080 × 1080' }).click()
+  await saved(page)
+  await openArtboard(page, '1:1')
+  await page.getByRole('button', { name: 'Rounded rectangle', exact: true }).click()
+  await page.keyboard.press('t')
+  const stage = (await page.locator('#image-render-card').boundingBox())!
+  await page.mouse.click(stage.x + stage.width * 0.5, stage.y + stage.height * 0.2)
+  await page.keyboard.press('ControlOrMeta+a')
+  await page.keyboard.type('Selectable launch copy')
+  await page.keyboard.press('ControlOrMeta+Enter')
+  await saved(page)
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+
+  await page.getByRole('button', { name: 'Export', exact: true }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Export artboards' })
+  await dialog.getByRole('checkbox', { name: /^All/ }).check()
+  await dialog.getByLabel('Export format').selectOption('pdf-text')
+  await dialog.getByRole('button', { name: /^Render \d+/ }).click()
+  const download = dialog.getByRole('button', { name: 'Download PDF' })
+  const refused = dialog.getByRole('alert')
+  await expect(download.and(page.locator(':enabled')).or(refused).first()).toBeVisible({
+    timeout: 180_000,
+  })
+  if (process.env.E2E_DESIGN_RENDERER !== '1') {
+    // The e2e stack runs without the server renderer: the export says so instead of failing silently.
+    await expect(refused).toContainText('server renderer')
+    return
+  }
+  expect(await refused.allTextContents()).toEqual([])
+  const pending = page.waitForEvent('download')
+  await download.click()
+  const file = path.join(out, (await pending).suggestedFilename())
+  await (await pending).saveAs(file)
+  const pdf = (await readFile(file)).toString('latin1')
+  expect(pdf.startsWith('%PDF-')).toBe(true)
+  // One page per artboard, each at its own size (Chromium writes 0.75 pt per CSS pixel).
+  const boxes = [...pdf.matchAll(/\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/g)].map((match) => [
+    Math.round(Number(match[1]) / 0.75),
+    Math.round(Number(match[2]) / 0.75),
+  ])
+  expect(boxes).toEqual(
+    expect.arrayContaining([
+      [1600, 900],
+      [1080, 1080],
+    ])
+  )
+  expect(boxes).toHaveLength(2)
+  // Real text: fonts with a Unicode map, so the words can be selected and searched.
+  expect(pdf).toMatch(/\/Subtype \/(Type3|TrueType|Type0)/)
+  expect(pdf).toContain('/ToUnicode')
+  // Not pictures of the pages: these artboards hold only text and shapes, so the file has no
+  // colour image at all (greyscale images are the soft masks of shadows).
+  const colourImages = [...pdf.matchAll(/<<([^>]*?\/Subtype \/Image[^>]*?)>>/g)].filter((match) =>
+    /\/ColorSpace \/DeviceRGB|\/ColorSpace \/ICCBased|\/ColorSpace \[/.test(match[1]!)
+  )
+  expect(colourImages).toHaveLength(0)
+})

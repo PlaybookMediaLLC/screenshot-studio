@@ -43,7 +43,7 @@ function onFrameMessage(event: MessageEvent<RenderResponse>) {
   clearTimeout(job.timer)
   if (message.type === 'result') {
     job.resolve({ blob: message.blob, height: message.height, width: message.width })
-  } else {
+  } else if (message.type === 'error') {
     job.reject(new Error(message.message))
   }
 }

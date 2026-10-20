@@ -259,6 +259,8 @@ func requiredCapabilities(graph automation.Graph) []string {
 			capability = automation.CapabilityAI
 		case n.Action != nil && n.Action.Type == "render_creatives":
 			capability = automation.CapabilityRender
+		case n.Action != nil && n.Action.Type == "create_canvas":
+			capability = automation.CapabilityCanvas
 		}
 		if capability != "" && !slices.Contains(required, capability) {
 			required = append(required, capability)

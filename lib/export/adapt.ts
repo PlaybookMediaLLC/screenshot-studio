@@ -5,7 +5,14 @@ import {
 import { calculateFitDimensions, getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { getMockupDefinition } from '@/lib/constants/mockups'
 import { type DesignDocument, designDocumentSchema } from '@/lib/design/document'
-import { DEFAULT_CANVAS_PADDING } from '@/lib/store'
+
+/**
+ * The editor's default padding around the screenshot, as in lib/store. Kept
+ * here because the store is a client module: server code that lays
+ * documents out (workflow canvases) must read a number, not a client
+ * reference. test/canvas-plan.test.ts keeps the two equal.
+ */
+export const DEFAULT_CANVAS_PADDING = 40
 
 /**
  * Lay a design out again for another canvas size (or another screenshot),

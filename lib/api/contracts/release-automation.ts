@@ -26,6 +26,7 @@ export const automationActionTypeSchema = z.enum([
   'create_campaign',
   'generate_copy',
   'render_creatives',
+  'create_canvas',
   'submit_review',
 ])
 
@@ -63,6 +64,12 @@ export const automationActionSchema = z.discriminatedUnion('type', [
     type: z.literal('render_creatives'),
     input: automationReferenceSchema.optional(),
     templateIds: z.array(z.string().max(64)).max(3).optional(),
+    surfaceId: z.string().max(64).optional(),
+  }),
+  z.object({
+    type: z.literal('create_canvas'),
+    input: automationReferenceSchema.optional(),
+    recipeIds: z.array(z.string().max(64)).max(3).optional(),
     surfaceId: z.string().max(64).optional(),
   }),
   z.object({
@@ -104,10 +111,7 @@ export const automationGraphSchema = z.object({
 /** Canvas positions are saved separately and never interpreted by the worker. */
 export const automationLayoutSchema = z.record(
   z.string().max(64),
-  z.object({
-    x: z.number().min(-100000).max(100000),
-    y: z.number().min(-100000).max(100000),
-  })
+  z.object({ x: z.number().min(-100000).max(100000), y: z.number().min(-100000).max(100000) })
 )
 
 /** Validation errors link to a node, or the definition when nodeId is empty. */
@@ -274,6 +278,7 @@ export const automationOutputsSchema = z.object({
   creditsCharged: z.number().int().optional(),
   designIds: z.array(z.string()).optional(),
   renderedAssetIds: z.array(z.string()).optional(),
+  canvasId: z.string().optional(),
 })
 
 /** Persisted event/run history remains readable during a Temporal outage. */

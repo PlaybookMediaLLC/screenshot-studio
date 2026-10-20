@@ -276,6 +276,8 @@ test('canvas documents are versioned and reject what this app cannot read', () =
     artboards: [],
     context: {},
     deliveries: [],
+    components: [],
+    storeGroups: [],
   })
   assert.equal(readCanvasDocument({ version: 2, kind: 'canvas', artboards: [] }), null)
   assert.equal(readCanvasDocument({ version: 1, kind: 'story-set', artboards: [] }), null)

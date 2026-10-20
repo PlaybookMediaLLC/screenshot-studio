@@ -533,3 +533,66 @@ func TestAutomationRenderCreativesUsesTheCurrentCapture(t *testing.T) {
 		t.Fatalf("run outputs=%+v", run.Outputs)
 	}
 }
+
+// recordingCanvases stands in for the web canvas builder and records requests.
+type recordingCanvases struct{ requests []AutomationCanvasRequest }
+
+func (r *recordingCanvases) BuildCanvas(_ context.Context, request AutomationCanvasRequest) (string, error) {
+	r.requests = append(r.requests, request)
+	return "c" + strings.Repeat("a", 24), nil
+}
+
+func TestAutomationCreateCanvasLaysOutTheRelease(t *testing.T) {
+	f := newAutomationFixture(t)
+	f.graph.SchemaVersion = 2
+	f.graph.Nodes = append(f.graph.Nodes, automation.Node{ID: "board", Type: "action", Action: &automation.Action{Type: "create_canvas", Input: &automation.Reference{NodeID: "campaign", Output: "campaignId"}, RecipeIDs: []string{"feature-announcement", "social-pack"}}})
+	f.graph.Nodes[4].Action.Input.NodeID = "campaign"
+	f.graph.Edges[4].To = "board"
+	f.graph.Edges = append(f.graph.Edges, automation.Edge{From: "board", To: "review", Branch: "next"})
+	if slices.Contains(requiredCapabilities(f.graph), automation.CapabilityCanvas) == false {
+		t.Fatal("a canvas node does not require the canvas capability")
+	}
+	canvases := &recordingCanvases{}
+	f.repo.WithAutomationCanvases(canvases)
+	if !slices.Contains(f.repo.AutomationCapabilities(), automation.CapabilityCanvas) {
+		t.Fatal("a worker with a canvas builder does not advertise it")
+	}
+	if err := f.repo.AdvertiseReleaseAutomationExecutor(f.ctx, "canvas-"+f.id, f.repo.AutomationCapabilities()...); err != nil {
+		t.Fatal(err)
+	}
+	active := f.activate(t)
+	runID, err := f.runUntil(t, active, "canvas-run", 52, "release", "campaign")
+	if err != nil {
+		t.Fatal(err)
+	}
+	outputs, err := f.repo.AutomationNode(f.ctx, f.org, runID, "board", nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := canvases.requests[0]
+	if request.OrganizationID != f.org || request.NodeID != "board" || request.RunID != runID || request.ReleaseID == "" ||
+		request.CampaignID != outputs.CampaignID || !slices.Equal(request.RecipeIDs, []string{"feature-announcement", "social-pack"}) || request.CaptureAssetID != "" {
+		t.Fatalf("request=%+v", request)
+	}
+	if outputs.CanvasID != "c"+strings.Repeat("a", 24) {
+		t.Fatalf("outputs=%+v", outputs)
+	}
+	if _, err := f.repo.AutomationNode(f.ctx, f.org, runID, "board", nil, 0); err != nil || len(canvases.requests) != 1 {
+		t.Fatalf("completed canvas repeated: %v %d", err, len(canvases.requests))
+	}
+	run := f.db.Client.ReleaseAutomationRun.GetX(f.ctx, runID)
+	if run.Outputs.CanvasID != outputs.CanvasID {
+		t.Fatalf("run outputs=%+v", run.Outputs)
+	}
+}
+
+func TestAutomationCreateCanvasNeedsABuilder(t *testing.T) {
+	f := newAutomationFixture(t)
+	if _, err := f.repo.automationCreateCanvas(f.ctx, f.org, "run", "board", automation.Outputs{ReleaseID: "r"}, &automation.Action{Type: "create_canvas", RecipeIDs: []string{"social-pack"}}); !errors.Is(err, ErrAutomationCanvasesUnavailable) {
+		t.Fatalf("built without a builder: %v", err)
+	}
+	f.repo.WithAutomationCanvases(&recordingCanvases{})
+	if _, err := f.repo.automationCreateCanvas(f.ctx, f.org, "run", "board", automation.Outputs{}, &automation.Action{Type: "create_canvas", RecipeIDs: []string{"social-pack"}}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("built without a release: %v", err)
+	}
+}

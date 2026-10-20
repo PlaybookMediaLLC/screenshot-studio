@@ -22,6 +22,8 @@ export default async function CanvasWorkspacePage({
         workspaceId={access.organization!.id}
         canEdit={hasPermission(access.role, 'artifact:edit')}
         canHandOff={access.campaignWorkflowEnabled && hasPermission(access.role, 'release:create')}
+        collabUrl={process.env.PLATFORM_COLLAB_URL || null}
+        user={{ id: access.session.user.id, name: access.session.user.name }}
       />
     </PlatformShell>
   )

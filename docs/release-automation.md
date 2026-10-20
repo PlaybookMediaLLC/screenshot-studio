@@ -33,6 +33,7 @@ string, and GitHub connection callbacks return to `/workflows`.
 | Campaign context              | Folded into generation: brand profile voice, audience, CTA conventions, prohibited terms, product text.                       |
 | Product screenshots           | Production deployments keep the existing capture pipeline in automation mode. Not a graph node.                               |
 | Render creatives              | Executable (v2): fills 1–3 design templates with the latest product capture through the web renderer.                         |
+| Create a canvas               | Executable (v2): lays out a canvas from the release with 1–3 canvas templates through the web's canvas builder.               |
 | Hand off approved content     | Not exposed: no trigger exists for "approved", and scheduling stays in the human flow.                                        |
 | Manual campaign               | Linked: `/campaigns/new` builds a campaign by hand under the same review rules.                                               |
 | Recurring campaigns (RFC 029) | Planned, shown disabled. Nothing in RFC 029 is built.                                                                         |
@@ -396,12 +397,14 @@ introduced. Existing installations may need an owner to approve permission chang
    `PLATFORM_WORKFLOW_RENDER_URL` (the web's base URL as the worker reaches it)
    and `PLATFORM_WORKFLOW_RENDER_KEY` (at least 32 characters); the web needs the
    same `PLATFORM_WORKFLOW_RENDER_KEY` and its existing renderer configuration
-   (`PLATFORM_DESIGN_RENDERER=enabled` and the CDP or Chromium settings).
+   (`PLATFORM_DESIGN_RENDERER=enabled` and the CDP or Chromium settings). The
+   same URL and key let the worker create canvases (`create_canvas`); that needs
+   no renderer on the web.
 3. Verify Temporal polling and a fresh executor capability lease. It expires after
    one minute without renewal; the production worker advertises only when GitHub
    and maintenance dispatch are configured. A lease records the newest graph
-   language (2), `ai` when the model and meter are present, and `render` when the
-   render URL and key are present. The web additionally marks rendering
+   language (2), `ai` when the model and meter are present, and `render` and
+   `canvas` when the render URL and key are present. The web additionally marks rendering
    unavailable while its own renderer is off. Activation
    needs one live lease covering the graph's version and actions, and fails
    closed without it.

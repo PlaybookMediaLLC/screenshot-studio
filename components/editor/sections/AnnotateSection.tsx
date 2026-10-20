@@ -254,6 +254,19 @@ export function AnnotateSection() {
                 valueDisplay={`${currentWidth}px`}
               />
             </div>
+            {selectedAnnotation?.type === 'rectangle' && (
+              <div className="space-y-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Corner radius</span>
+                <Slider
+                  value={[Math.round((selectedAnnotation.radius ?? 0) * 100)]}
+                  onValueChange={(v) => updateAnnotation(selectedAnnotation.id, { radius: v[0] / 100 })}
+                  min={0}
+                  max={50}
+                  step={1}
+                  valueDisplay={`${Math.round((selectedAnnotation.radius ?? 0) * 100)}%`}
+                />
+              </div>
+            )}
           </div>
         )}
 

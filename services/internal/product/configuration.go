@@ -64,6 +64,8 @@ type Configuration struct {
 	// disables both. automationRenderer renders campaign creatives.
 	automationModel    AutomationModel
 	automationRenderer AutomationRenderer
+	// automationCanvases lays out canvases from releases.
+	automationCanvases AutomationCanvasBuilder
 	capture            Capturer
 	// collabKey signs content draft collaboration tokens (RFC 037).
 	collabKey []byte

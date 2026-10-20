@@ -9,6 +9,8 @@ import {
   type CanvasDocument,
 } from '@/lib/canvas/document'
 import type { CanvasHandoffInput, CanvasListInput } from '@/lib/canvas/schema'
+import { componentDocument } from '@/lib/canvas/components'
+import { storeGroupStored } from '@/lib/creative-sets/store-schema'
 import { getLocalDesignSources } from '@/lib/design/document'
 import { DesignError } from './designs'
 
@@ -23,8 +25,14 @@ import { DesignError } from './designs'
 /** A document ready to store: valid, and every image uploaded to the workspace. */
 function storableDocument(raw: unknown): CanvasDocument {
   const document = canvasDocumentSchema.parse(raw)
-  if (document.artboards.some((artboard) => getLocalDesignSources(artboard.document).length > 0))
+  const natives = [
+    ...document.artboards.map((artboard) => artboard.document),
+    ...document.components.map(componentDocument),
+  ]
+  if (natives.some((native) => getLocalDesignSources(native).length > 0))
     throw new DesignError('Upload local images before saving the canvas.', 400)
+  if (!document.storeGroups.every((item) => storeGroupStored(item.group)))
+    throw new DesignError('Copy every store asset to workspace storage before saving.', 400)
   return document
 }
 
@@ -36,6 +44,12 @@ function readCanvas(record: BackendCreativeSet) {
 async function canvasRow(context: TenantContext, canvasId: string) {
   const record = await orNull(backendSDK(context).getCreativeSet(canvasId))
   return record?.kind === 'canvas' ? record : null
+}
+
+/** A workspace-scoped presence credential for a canvas; null for anything that is not one. */
+export async function createCanvasCollabToken(context: TenantContext, canvasId: string) {
+  if (!(await canvasRow(context, canvasId))) return null
+  return backendSDK(context).createCreativeSetCollabToken(canvasId)
 }
 
 /** One page of the workspace's canvases. A canvas a newer app wrote lists without a preview. */

@@ -27,6 +27,7 @@ import {
   renameCanvas,
   restoreCanvasVersion,
   updateCanvasDocument,
+  createCanvasCollabToken,
 } from '@/lib/tenant/canvases'
 import { router } from '../init'
 import { organizationProcedure, tenantProcedure } from '../procedures'
@@ -51,6 +52,12 @@ export const canvasRouter = router({
   get: tenantProcedure(READ)
     .input(canvasRefInputSchema)
     .query(async ({ ctx, input }) => found(await getCanvas(ctx.tenant, input.canvasId))),
+  /** A presence credential for the signed-in member; presence never carries canvas content. */
+  collabToken: organizationProcedure('artifact:read')
+    .input(canvasRefInputSchema)
+    .mutation(async ({ ctx, input }) =>
+      found(await createCanvasCollabToken(ctx.access, input.canvasId))
+    ),
   create: tenantProcedure(EDIT)
     .input(canvasCreateInputSchema)
     .mutation(({ ctx, input }) => createCanvas(ctx.tenant, input)),

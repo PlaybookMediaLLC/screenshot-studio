@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { useTRPCClient } from '@/lib/trpc/react'
 import type { TRPCClient } from '@trpc/client'
 import type { AppRouter } from '@/lib/trpc/router'
-import { ARTBOARD_GAP } from '@/lib/canvas/layout'
 import {
   blankArtboard,
   buildRecipe,
@@ -29,7 +28,8 @@ import {
   screenshotFromFile,
   type CanvasIntent,
 } from '@/lib/canvas/create'
-import { artboardRect, boundsOf, type Artboard } from '@/lib/canvas/document'
+import { type Artboard } from '@/lib/canvas/document'
+import { releaseCanvas, stacked } from '@/lib/canvas/plan'
 import { usePrivateCreativeSurface } from '@/components/creative-sets/use-private-surface'
 import {
   CampaignDesignPicker,
@@ -90,16 +90,6 @@ async function planFromSource(
 }
 
 /** Stack groups of artboards in rows, one row per group, so several starts never overlap. */
-function stacked(...groups: Artboard[][]): Artboard[] {
-  const placed: Artboard[] = []
-  for (const group of groups) {
-    const bounds = boundsOf(placed.map(artboardRect))
-    const shift = bounds ? bounds.y + bounds.height + ARTBOARD_GAP : 0
-    placed.push(...group.map((artboard) => ({ ...artboard, y: artboard.y + shift })))
-  }
-  return placed
-}
-
 export function NewCanvas({
   canEdit,
   campaignsEnabled,
@@ -387,10 +377,7 @@ async function featurePlan(client: TRPCClient<AppRouter>, choice: ReleaseChoice)
       : undefined
   return {
     name: feature ?? choice.release.title,
-    artboards: stacked(
-      buildRecipe('feature-announcement', input),
-      buildRecipe('social-pack', input)
-    ),
+    artboards: releaseCanvas(['feature-announcement', 'social-pack'], input),
   }
 }
 

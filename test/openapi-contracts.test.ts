@@ -10,6 +10,7 @@ import * as assets from '@/lib/api/contracts/assets'
 import * as audit from '@/lib/api/contracts/audit'
 import * as billing from '@/lib/api/contracts/billing'
 import * as campaigns from '@/lib/api/contracts/campaigns'
+import * as canvases from '@/lib/api/contracts/canvases'
 import * as contentDrafts from '@/lib/api/contracts/content-drafts'
 import * as contentDraftPlatform from '@/lib/api/contracts/content-draft-platform'
 import * as writeAi from '@/lib/api/contracts/write-ai'
@@ -46,6 +47,7 @@ const contracts = new Map<string, RouteContract>(
     audit,
     billing,
     campaigns,
+    canvases,
     contentDraftPlatform,
     writeAi,
     contentDrafts,

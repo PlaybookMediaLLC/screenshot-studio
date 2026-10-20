@@ -179,7 +179,7 @@ redacted output, and editor-versus-export pixel differences for frames.
 ## Known limits
 
 - **Integrations**: Slack, Notion, and Figma need provider apps and credentials before they connect ([integrations.md](integrations.md)). Figma's API comments; it cannot place images, so the design is pasted from the clipboard.
-- **SVG and PDF**: SVG opens in browsers, not in design tools. PDF pages are images, so their text cannot be selected.
+- **SVG and PDF**: SVG opens in browsers, not in design tools. Editor PDF pages are images, so their text cannot be selected; Canvas can print PDFs with selectable text and vector shapes through the server renderer ([RFC 044](rfcs/044-canvas-layers-and-automation.md)).
 - **GIF**: GIF has no audio. GIF, and MP4 without WebCodecs, load FFmpeg from a CDN.
 - **Render frame load**: the render frame shares the main thread with the editor, so a large batch has long tasks while it renders.
 - **Detection**: redaction can miss content. The review step and manual regions exist for that.

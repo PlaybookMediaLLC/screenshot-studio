@@ -26,6 +26,7 @@ export function ZoomBar({ actions }: { actions: CanvasActions }) {
   const zoom = useCanvasViewport((state) => state.viewport.zoom)
   const tool = useCanvasUi((state) => state.tool)
   const setTool = useCanvasUi((state) => state.setTool)
+  const editing = useCanvasUi((state) => Boolean(state.activeId))
   const grid = useCanvasUi((state) => state.grid)
   const setGrid = useCanvasUi((state) => state.setGrid)
   return (
@@ -51,6 +52,16 @@ export function ZoomBar({ actions }: { actions: CanvasActions }) {
         onClick={() => setTool('hand')}
       >
         Hand
+      </Button>
+      <Button
+        size="sm"
+        variant={tool === 'text' ? 'secondary' : 'ghost'}
+        aria-pressed={tool === 'text'}
+        disabled={!editing}
+        title={editing ? 'Text (T): click the artboard to type' : 'Edit an artboard to add text'}
+        onClick={() => setTool('text')}
+      >
+        Text
       </Button>
       <span className="mx-1 h-5 w-px bg-border" />
       <Button size="sm" variant="ghost" aria-label="Zoom out" onClick={() => actions.zoomStep(-1)}>

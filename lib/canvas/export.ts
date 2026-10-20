@@ -77,6 +77,11 @@ const EXTENSIONS: Record<CanvasExportFormat, string> = {
   pdf: 'png',
 }
 
+/** The file name of a canvas PDF at a revision. */
+export function canvasPdfFileName(canvasName: string, revision: number) {
+  return `${slug(canvasName, 'canvas')}-r${revision}.pdf`
+}
+
 /** `<canvas>-<nn>-<artboard>-<w>x<h>-r<revision>.<ext>`: sortable and unique within one export. */
 export function artboardFileName(
   canvasName: string,
@@ -211,7 +216,7 @@ export async function packageArtboards(
     const bytes = writePdf(pages, { title: canvasName })
     return {
       blob: new Blob([bytes.slice().buffer], { type: 'application/pdf' }),
-      fileName: `${slug(canvasName, 'canvas')}-r${revision}.pdf`,
+      fileName: canvasPdfFileName(canvasName, revision),
     }
   }
   if (rendered.length === 1)

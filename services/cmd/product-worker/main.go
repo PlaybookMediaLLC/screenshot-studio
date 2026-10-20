@@ -173,7 +173,8 @@ func main() {
 		automationStore.WithAutomationModel(model)
 	}
 	if renderer := product.AutomationRendererFromEnvironment(); renderer != nil {
-		automationStore.WithAutomationRenderer(renderer)
+		// One signed web client renders creatives and lays out canvases.
+		automationStore.WithAutomationRenderer(renderer).WithAutomationCanvases(renderer)
 	}
 	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
 		counter, err := quota.NewRedisCounter(redisURL)

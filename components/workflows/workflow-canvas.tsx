@@ -72,6 +72,8 @@ export function nodeDetail(node: AutomationNode, sourceName?: string) {
       return `AI copy · up to ${node.action.creditLimit ?? 0} credits`
     case 'render_creatives':
       return `${node.action.templateIds?.length ?? 0} templates from the latest capture`
+    case 'create_canvas':
+      return `${node.action.recipeIds?.length ?? 0} canvas templates from the release`
     case 'submit_review':
       return 'A person approves before publishing'
     case 'create_release':

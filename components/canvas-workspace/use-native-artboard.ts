@@ -20,6 +20,7 @@ export function useNativeArtboard(
 ) {
   const bridge = useRef<NativeDocumentBridge | null>(null)
   const loaded = useRef<string | null>(null)
+  const pending = useRef<Promise<void>>(Promise.resolve())
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
@@ -29,11 +30,21 @@ export function useNativeArtboard(
     return artboard ? JSON.stringify(artboard.document) : null
   }, [session, activeId])
 
-  // A load epoch means the document changed outside the editor; reload only if this artboard did.
+  /** Load the artboard into the open editor in place if it changed outside the editor. */
+  const sync = useCallback(() => {
+    const instance = bridge.current
+    if (!instance) return pending.current
+    const json = activeJson()
+    if (json === loaded.current) return pending.current
+    loaded.current = json
+    pending.current = instance.replace().catch(() => setReload((value) => value + 1))
+    return pending.current
+  }, [activeJson])
+
+  // A load epoch means the document changed outside the editor.
   useEffect(() => {
-    if (!bridge.current) return
-    if (activeJson() !== loaded.current) setReload((value) => value + 1)
-  }, [loadEpoch, activeJson])
+    void sync()
+  }, [loadEpoch, sync])
 
   useEffect(() => {
     if (!enabled || !activeId) {
@@ -70,5 +81,5 @@ export function useNativeArtboard(
     bridge.current?.flush()
   }, [])
 
-  return { ready: ready && Boolean(activeId), error, flush }
+  return { ready: ready && Boolean(activeId), error, flush, sync }
 }

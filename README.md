@@ -88,7 +88,7 @@ See [docs/editor-platform.md](docs/editor-platform.md).
 - **Share**: publish a design at a link with Open Graph previews, embeds, access control, and expiry; deliver it to Slack, Notion, or Figma
 - **AI**: a copilot that edits the canvas, side-by-side versions of a design, generated backgrounds, and platform captions with alt text
 - **Projects**: cloud projects with autosave, named versions, comparison, restore, and recovery after a reload
-- **Canvas**: an infinite board of artboards for a whole launch: pan and zoom, marquee selection, snapping, alignment, multi-format adaptation, edit-in-place with the editor, outcome-first templates and developer blocks, release-grounded copy, version history, and exact-size exports to ZIP or PDF ([RFC 041](docs/rfcs/041-creative-canvas.md))
+- **Canvas**: an infinite board of artboards for a whole launch: pan and zoom, marquee selection, snapping, alignment, multi-format adaptation, edit-in-place with the editor, outcome-first templates and developer blocks, release-grounded copy, version history, and exact-size exports to ZIP or PDF ([RFC 041](docs/rfcs/041-creative-canvas.md)); layer groups, typing on the stage, rounded shapes, components with overrides, live presence, App Store screenshot groups, canvases laid out by release automation, and PDFs with selectable text ([RFC 044](docs/rfcs/044-canvas-layers-and-automation.md))
 - **Image tools**: crop, resize, rotate, compress, format conversion, and background removal; a standalone code image editor at `/code`
 - **App Store screenshots**: layered slides, multi-device and panoramic layouts, localization, store compliance checks, every-size export, review links, and App Store Connect and Google Play uploads ([guide](docs/store-screenshots.md))
 
@@ -139,7 +139,9 @@ gates are described in [RFC 040](docs/rfcs/040-story-sets.md).
 Canvas puts every format of a launch on one infinite board of native
 artboards, stored as creative sets of kind `canvas`, with copies of projects,
 Story Sets and campaign designs pinned to their sources. The audit, the
-architecture and its limits are in [RFC 041](docs/rfcs/041-creative-canvas.md).
+architecture and its limits are in [RFC 041](docs/rfcs/041-creative-canvas.md); layers, components,
+presence, store groups, automation and vector PDF are in
+[RFC 044](docs/rfcs/044-canvas-layers-and-automation.md).
 
 Each step builds only on the steps before it.
 

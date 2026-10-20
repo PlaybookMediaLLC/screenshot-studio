@@ -24,6 +24,7 @@ import {
   WORKFLOW_ACTIONS,
 } from '@/lib/workflows/actions'
 import { automationSelectClass } from './ConditionEditor'
+import { CANVAS_RECIPES, canvasRecipeSchema } from '@/lib/canvas/recipes'
 
 const EMPTY = '__empty_option__'
 
@@ -31,6 +32,7 @@ const EMPTY = '__empty_option__'
 function blankAction(type: AutomationActionType): AutomationAction {
   if (type === 'generate_copy') return { type, creditLimit: 25 }
   if (type === 'render_creatives') return { type, templateIds: ['layout-browser-launch'] }
+  if (type === 'create_canvas') return { type, recipeIds: ['feature-announcement', 'social-pack'] }
   return { type }
 }
 
@@ -249,6 +251,58 @@ export function ActionEditor({
           <p className="text-xs leading-5 text-muted-foreground">
             Creatives are drafts on the campaign. A reviewer approves a design before it can be
             scheduled with a post.
+          </p>
+        </>
+      ) : null}
+      {action.type === 'create_canvas' ? (
+        <>
+          <fieldset className="space-y-2">
+            <legend className="text-sm">Canvas templates (1–3)</legend>
+            {canvasRecipeSchema.options.map((recipe) => (
+              <Label key={recipe} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={action.recipeIds?.includes(recipe) ?? false}
+                  disabled={
+                    !action.recipeIds?.includes(recipe) && (action.recipeIds?.length ?? 0) >= 3
+                  }
+                  onCheckedChange={(checked) =>
+                    onChange({
+                      ...action,
+                      recipeIds:
+                        checked === true
+                          ? [...(action.recipeIds ?? []), recipe]
+                          : action.recipeIds?.filter((id) => id !== recipe),
+                    })
+                  }
+                />
+                {CANVAS_RECIPES[recipe].name} · {CANVAS_RECIPES[recipe].artboards}
+              </Label>
+            ))}
+          </fieldset>
+          <Label className="grid gap-1 text-sm">
+            Screenshot when the release has none
+            <Select
+              value={action.surfaceId || EMPTY}
+              onValueChange={(nextValue) =>
+                onChange({ ...action, surfaceId: nextValue === EMPTY ? undefined : nextValue })
+              }
+            >
+              <SelectTrigger className={automationSelectClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={EMPTY}>Latest capture of any product page</SelectItem>
+                {(overview.surfaces ?? []).map((surface) => (
+                  <SelectItem key={surface.id} value={surface.id}>
+                    {surface.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Label>
+          <p className="text-xs leading-5 text-muted-foreground">
+            The canvas is a draft in Canvas. Nothing from it is published until someone exports or
+            hands it to a campaign.
           </p>
         </>
       ) : null}

@@ -29,6 +29,12 @@ export type AutomationAction =
       templateIds?: string[]
       surfaceId?: string
     }
+  | {
+      type: 'create_canvas'
+      input?: { nodeId: string; output: string }
+      recipeIds?: string[]
+      surfaceId?: string
+    }
   | { type: 'submit_review'; input?: { nodeId: string; output: string } }
 export type AutomationClassify = { criteria: string; threshold: number; creditLimit: number }
 export type AutomationNode = {
@@ -139,6 +145,7 @@ export type AutomationOutputs = {
   creditsCharged?: number
   designIds?: string[]
   renderedAssetIds?: string[]
+  canvasId?: string
 }
 export type AutomationHistoryItem = {
   event: {

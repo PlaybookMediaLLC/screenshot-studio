@@ -3,12 +3,14 @@ package tenantpublishing
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"maps"
 	"strings"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
@@ -121,6 +123,42 @@ func (p *Publisher) AccountStanding(ctx context.Context, organizationID, destina
 		return product.AccountStanding{}, err
 	}
 	return product.AccountStanding{Premium: premium(account.AdditionalSettings)}, nil
+}
+
+// Mentions looks a mention up with the account (RFC 041): an X user by
+// username, a LinkedIn organization by vanity name. A lookup that finds
+// nothing returns none; a platform without a lookup returns none too.
+func (p *Publisher) Mentions(ctx context.Context, organizationID, destinationID, platform, secretReference, query string) ([]product.Mention, error) {
+	account, provider, _, err := p.account(ctx, organizationID, destinationID, platform, secretReference, nil)
+	if err != nil {
+		return nil, err
+	}
+	finder, ok := provider.(interface {
+		Mention(context.Context, string, string, string, *socialent.Integration) ([]integrations.MentionResult, bool, error)
+	})
+	if !ok {
+		return []product.Mention{}, nil
+	}
+	found, _, err := finder.Mention(ctx, account.Token, query, account.InternalID, account)
+	if err != nil {
+		// LinkedIn answers an unknown vanity name with an error, not an empty list.
+		slog.InfoContext(ctx, "mention lookup found nothing", "platform", platform, "error", err)
+		return []product.Mention{}, nil
+	}
+	mentions := make([]product.Mention, 0, len(found))
+	for _, item := range found {
+		mention := product.Mention{Image: item.Image, Label: item.Label}
+		switch platform {
+		case "x":
+			mention.Kind, mention.Handle, mention.ProviderID = "person", item.ID, item.ID
+		case "linkedin":
+			mention.Kind, mention.ProviderID = "organization", "urn:li:organization:"+item.ID
+		default:
+			continue
+		}
+		mentions = append(mentions, mention)
+	}
+	return mentions, nil
 }
 
 // premium reads the "Verified" additional setting the X adapter stores.

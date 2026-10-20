@@ -61,6 +61,7 @@ import { PreviewPanel, type PreviewItem } from './preview'
 import { PropertiesPanel } from './properties'
 import { PublishReview, ScheduleDialog, type ScheduleContext } from './schedule'
 import { BackupsBrowser, ShareDialog } from './share-backups'
+import { MentionPicker, SocialMentionPlugin } from './social-mention'
 import { type SaveState, useDraftDocument } from './useDraftDocument'
 import { VersionOptionsBar } from './version-options'
 
@@ -103,6 +104,9 @@ const EMOJI = [
   '💬',
   '👋',
 ]
+
+/** Plugins Write adds to the editor; stable, so the editor is built once. */
+const WRITE_PLUGINS = [SocialMentionPlugin]
 
 /** What the save state reads as. */
 const SAVE_LABELS: Record<SaveState, string> = {
@@ -424,6 +428,7 @@ export function WriteComposer({
   }
   const editorProps = {
     assistChannel: active,
+    extraPlugins: WRITE_PLUGINS,
     handles: vocabulary.handles,
     hashtags: vocabulary.hashtags,
     postHeader,
@@ -711,7 +716,13 @@ export function WriteComposer({
                 editor.current = next
                 setEditorInstance(next)
               }}
-              toolbarExtras={<ToolbarExtras editor={editor} />}
+              toolbarExtras={
+                <ToolbarExtras
+                  channels={items.map((item) => item.account.channel)}
+                  editor={editor}
+                  setId={server.socialSetId ?? set?.id ?? null}
+                />
+              }
             />
           ) : versionOfTab.mode === 'manual' ? (
             <>
@@ -738,6 +749,16 @@ export function WriteComposer({
                   }))
                 }
                 onDiscussionsChange={() => undefined}
+                onEditor={(next) => {
+                  editor.current = next
+                }}
+                toolbarExtras={
+                  <ToolbarExtras
+                    channels={[active]}
+                    editor={editor}
+                    setId={server.socialSetId ?? set?.id ?? null}
+                  />
+                }
               />
             </>
           ) : (
@@ -991,8 +1012,16 @@ function TargetBanner({ draft }: { draft: DraftWire }) {
   )
 }
 
-/** The bottom toolbar's Write tools: emoji. */
-function ToolbarExtras({ editor }: { editor: React.MutableRefObject<PlateEditor | null> }) {
+/** The bottom toolbar's Write tools: mentions looked up on the platform, and emoji. */
+function ToolbarExtras({
+  channels,
+  editor,
+  setId,
+}: {
+  channels: DraftChannel[]
+  editor: React.MutableRefObject<PlateEditor | null>
+  setId: string | null
+}) {
   const { mod } = useKeys()
   const [open, setOpen] = React.useState(false)
   useShortcuts([
@@ -1000,44 +1029,49 @@ function ToolbarExtras({ editor }: { editor: React.MutableRefObject<PlateEditor 
     { key: '.', label: 'Emoji', mod: true, shift: true, run: () => setOpen(true), inEditor: true },
   ])
   return (
-    <Popover onOpenChange={setOpen} open={open}>
-      <PopoverTrigger asChild>
-        <Button
-          aria-label="Emoji"
-          className="h-7 rounded-md px-2 text-sm"
-          size={null}
-          title={`Emoji (${mod}⇧.)`}
-          type="button"
-          variant="ghost"
-        >
-          ☺
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="grid w-64 grid-cols-8 gap-1 p-2" side="top">
-        {EMOJI.map((emoji) => (
+    <>
+      <MentionPicker channels={channels} editor={editor} setId={setId} />
+      <Popover onOpenChange={setOpen} open={open}>
+        <PopoverTrigger asChild>
           <Button
-            aria-label={`Insert ${emoji}`}
-            className="h-7 text-lg"
-            key={emoji}
-            onClick={() => {
-              const current = editor.current
-              if (!current) return
-              if (!current.selection) current.tf.select(current.api.end([]))
-              current.tf.insertText(emoji)
-              current.tf.focus()
-              setOpen(false)
-            }}
-            onMouseDown={(event) => event.preventDefault()}
+            aria-label="Emoji"
+            className="h-7 rounded-md px-2 text-sm"
             size={null}
+            title={`Emoji (${mod}⇧.)`}
             type="button"
             variant="ghost"
           >
-            {emoji}
+            ☺
           </Button>
-        ))}
-        <p className="col-span-8 text-[10px] text-neutral-500">More: your system’s emoji picker.</p>
-      </PopoverContent>
-    </Popover>
+        </PopoverTrigger>
+        <PopoverContent className="grid w-64 grid-cols-8 gap-1 p-2" side="top">
+          {EMOJI.map((emoji) => (
+            <Button
+              aria-label={`Insert ${emoji}`}
+              className="h-7 text-lg"
+              key={emoji}
+              onClick={() => {
+                const current = editor.current
+                if (!current) return
+                if (!current.selection) current.tf.select(current.api.end([]))
+                current.tf.insertText(emoji)
+                current.tf.focus()
+                setOpen(false)
+              }}
+              onMouseDown={(event) => event.preventDefault()}
+              size={null}
+              type="button"
+              variant="ghost"
+            >
+              {emoji}
+            </Button>
+          ))}
+          <p className="col-span-8 text-[10px] text-neutral-500">
+            More: your system’s emoji picker.
+          </p>
+        </PopoverContent>
+      </Popover>
+    </>
   )
 }
 

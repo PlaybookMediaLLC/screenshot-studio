@@ -1042,6 +1042,16 @@ export type BackendRetweetRule = {
   timeZone?: string
 }
 
+/** An account a post can tag: an X user or a LinkedIn organization (RFC 041). */
+export type BackendSocialMention = {
+  handle?: string
+  image?: string
+  kind: 'person' | 'organization'
+  label: string
+  /** The X username, or a LinkedIn organization URN. */
+  providerId: string
+}
+
 /** A live post's follow-up and its receipt (RFC 041). */
 export type BackendPostAutomation = {
   attempts: number
@@ -2612,6 +2622,13 @@ export class ScreenshotStudioBackendSDK {
 
   async getSocialSet(id: string) {
     return this.request<BackendSocialSet>(`v1/social-sets/${encodeURIComponent(id)}`)
+  }
+
+  /** What the set's account for a channel can mention (RFC 041). */
+  async lookupSocialSetMentions(id: string, channel: 'x' | 'linkedin', query: string) {
+    return this.request<{ items: BackendSocialMention[] }>(
+      `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query })}`
+    )
   }
 
   async createSocialSet(input: BackendSocialSetInput & { name: string }) {

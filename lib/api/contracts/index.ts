@@ -62,6 +62,7 @@ import {
   deleteSocialSetContract,
   getSocialSetContract,
   listSocialSetsContract,
+  lookupMentionsContract,
   updateSocialSetContract,
 } from '@/lib/api/contracts/social-sets'
 import {
@@ -112,6 +113,7 @@ export const documentedContracts = [
   getSocialSetContract,
   updateSocialSetContract,
   deleteSocialSetContract,
+  lookupMentionsContract,
   listDraftTagsContract,
   createDraftTagContract,
   updateDraftTagContract,

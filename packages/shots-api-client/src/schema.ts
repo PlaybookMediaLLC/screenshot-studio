@@ -688,6 +688,26 @@ export interface paths {
         patch: operations["updateSocialSet"];
         trace?: never;
     };
+    "/api/v1/social-sets/{id}/mentions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Look up a mention for a social set
+         * @description Looks a mention up with the set's own account: an X user by exact username, or a LinkedIn company page by the name in its address. LinkedIn people are not looked up.
+         */
+        get: operations["lookupSocialSetMentions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/social-sets/{id}/tags": {
         parameters: {
             query?: never;
@@ -2344,6 +2364,16 @@ export interface components {
             updatedAt: string;
             /** @enum {string} */
             visibility: "workspace" | "restricted";
+        };
+        SocialMentionList: {
+            items: {
+                handle?: string;
+                image?: string;
+                /** @enum {string} */
+                kind: "person" | "organization";
+                label: string;
+                providerId: string;
+            }[];
         };
         DraftTagList: {
             items: {
@@ -5967,6 +5997,76 @@ export interface operations {
             };
             /** @description The set was not found. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    lookupSocialSetMentions: {
+        parameters: {
+            query: {
+                channel: "x" | "linkedin";
+                q: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description What the account can mention; empty when nothing matches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialMentionList"];
+                };
+            };
+            /** @description The query is not a username or company page name. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The set has no connected account for that platform. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

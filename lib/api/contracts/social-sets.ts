@@ -210,3 +210,44 @@ export const deleteSocialSetContract = defineContract({
   path: '/api/v1/social-sets/{id}',
   summary: 'Delete a social set',
 })
+
+/** What a looked-up mention is: an X user or a LinkedIn organization. */
+export const mentionKindSchema = z.enum(['person', 'organization'])
+
+/** An account a post can tag, as its platform writes it in a post. */
+export const socialMentionSchema = z.object({
+  handle: z.string().optional(),
+  image: z.string().optional(),
+  kind: mentionKindSchema,
+  label: z.string(),
+  /** The X username, or a LinkedIn organization URN. */
+  providerId: z.string(),
+})
+
+/** `GET /api/v1/social-sets/{id}/mentions` */
+export const lookupMentionsContract = defineContract({
+  access: { feature: 'content:drafts', permission: 'artifact:edit' },
+  docs: memberDocs({
+    description:
+      "Looks a mention up with the set's own account: an X user by exact username, or a LinkedIn company page by the name in its address. LinkedIn people are not looked up.",
+    extensions: entitlement,
+    operationId: 'lookupSocialSetMentions',
+    outputName: 'SocialMentionList',
+    responses: {
+      '200': 'What the account can mention; empty when nothing matches.',
+      '400': 'The query is not a username or company page name.',
+      '409': 'The set has no connected account for that platform.',
+    },
+    tag: 'Workspace',
+  }),
+  method: 'GET',
+  name: 'social-sets.mentions',
+  output: z.object({ items: z.array(socialMentionSchema) }),
+  params: socialSetParamsSchema,
+  path: '/api/v1/social-sets/{id}/mentions',
+  query: z.object({
+    channel: z.enum(['x', 'linkedin']),
+    q: z.string().trim().min(1).max(200),
+  }),
+  summary: 'Look up a mention for a social set',
+})

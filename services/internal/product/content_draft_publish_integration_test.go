@@ -23,6 +23,11 @@ func (s standings) AccountStanding(_ context.Context, _, destinationID, _, _ str
 	return AccountStanding{Premium: s[destinationID]}, nil
 }
 
+// Mentions answers with the account and query it was asked with.
+func (s standings) Mentions(_ context.Context, _, destinationID, platform, _, query string) ([]Mention, error) {
+	return []Mention{{Kind: "person", Label: destinationID, ProviderID: platform + ":" + query}}, nil
+}
+
 // Planning, scheduling and publishing (RFC 041): the time is resolved in Go,
 // queue slots are reserved under a lock, each platform's settings are checked
 // against its own rules, an account is Premium only when its platform says
@@ -317,6 +322,23 @@ func TestWritePublishing(t *testing.T) {
 		}
 		if n, err := w.db.Client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(d.ID)).Count(ctx); err != nil || n != 3 {
 			t.Fatalf("the draft has %d posts, want the two and one retry: %v", n, err)
+		}
+	})
+
+	t.Run("mentions are looked up with the set's own account", func(t *testing.T) {
+		sets, err := repo.ListSocialSets(ctx, owner)
+		if err != nil {
+			t.Fatal(err)
+		}
+		found, err := repo.LookupMentions(ctx, owner, sets[0].ID, "x", "@someone")
+		if err != nil || len(found) != 1 || found[0].ProviderID != "x:someone" || !strings.HasPrefix(found[0].Label, "x-") {
+			t.Fatalf("found=%+v err=%v", found, err)
+		}
+		if _, err := repo.LookupMentions(ctx, owner, sets[0].ID, "linkedin", "Jane Doe"); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("a person's name on LinkedIn: %v", err)
+		}
+		if _, err := repo.LookupMentions(ctx, w.actor("viewer"), sets[0].ID, "x", "someone"); err == nil {
+			t.Fatal("a viewer looked up mentions")
 		}
 	})
 

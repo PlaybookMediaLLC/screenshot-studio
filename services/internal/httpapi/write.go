@@ -14,6 +14,7 @@ import (
 type WriteStore interface {
 	ListSocialSets(context.Context, product.Actor) ([]product.SocialSetRecord, error)
 	GetSocialSet(context.Context, product.Actor, string) (*product.SocialSetRecord, error)
+	LookupMentions(ctx context.Context, actor product.Actor, setID, channel, query string) ([]product.Mention, error)
 	CreateSocialSet(context.Context, product.Actor, product.SocialSetInput) (*product.SocialSetRecord, error)
 	UpdateSocialSet(context.Context, product.Actor, string, product.SocialSetInput) (*product.SocialSetRecord, error)
 	DeleteSocialSet(context.Context, product.Actor, string) error
@@ -41,6 +42,7 @@ func (s *Server) registerWrite(mux *http.ServeMux) {
 	mux.Handle("GET /v1/social-sets", s.authenticateProduct(http.HandlerFunc(s.listSocialSets)))
 	mux.Handle("POST /v1/social-sets", s.authenticateProduct(http.HandlerFunc(s.createSocialSet)))
 	mux.Handle("GET /v1/social-sets/{id}", s.authenticateProduct(http.HandlerFunc(s.getSocialSet)))
+	mux.Handle("GET /v1/social-sets/{id}/mentions", s.authenticateProduct(http.HandlerFunc(s.lookupMentions)))
 	mux.Handle("PATCH /v1/social-sets/{id}", s.authenticateProduct(http.HandlerFunc(s.updateSocialSet)))
 	mux.Handle("DELETE /v1/social-sets/{id}", s.authenticateProduct(http.HandlerFunc(s.deleteSocialSet)))
 	mux.Handle("GET /v1/social-sets/{id}/tags", s.authenticateProduct(http.HandlerFunc(s.listDraftTags)))
@@ -351,4 +353,15 @@ func (s *Server) cancelContentDraftPostAutomations(w http.ResponseWriter, r *htt
 	}
 	post, err := s.configuration.CancelContentDraftPostAutomations(r.Context(), workspaceActor(r), ids[0])
 	respond(w, http.StatusOK, map[string]any{"post": post}, err)
+}
+
+// lookupMentions finds what the set's account for a channel can mention.
+func (s *Server) lookupMentions(w http.ResponseWriter, r *http.Request) {
+	ids, ok := pathIDs(w, r, "id")
+	if !ok {
+		return
+	}
+	query := r.URL.Query()
+	items, err := s.configuration.LookupMentions(r.Context(), workspaceActor(r), ids[0], query.Get("channel"), query.Get("q"))
+	respond(w, http.StatusOK, map[string]any{"items": items}, err)
 }

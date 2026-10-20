@@ -42,6 +42,17 @@ function readSet(set: BackendSocialSet) {
   }
 }
 
+/** What a set's account for a channel can mention; null when the set is not visible. */
+export async function lookupSocialSetMentions(
+  context: TenantContext,
+  id: string,
+  channel: 'x' | 'linkedin',
+  query: string
+) {
+  const result = await orNull(backendSDK(context).lookupSocialSetMentions(id, channel, query))
+  return result ? result.items : null
+}
+
 /** The social sets the caller may see, the default first. */
 export async function listSocialSets(context: TenantContext) {
   return (await backendSDK(context).listSocialSets()).items.map(readSet)

@@ -27,6 +27,8 @@ import {
 import type { Mockup } from "../types/mockup";
 import { DEFAULT_FRAME_CHROME } from "../lib/frames/schema";
 import { useDeviceUIStore } from "../lib/store/device-ui";
+import { useImageStore } from "../lib/store";
+import { hasCanvasContent } from "../lib/editor/canvas-content";
 
 test("autosave never replaces the saved canvas background", async () => {
   const source = await readFile(
@@ -154,12 +156,18 @@ test("a device scene is renderable only when a supported device is visible", asy
   assert.equal(shouldRenderSourceImage("device", [mockup]), false);
   assert.equal(shouldRenderSourceImage("device", [{ ...mockup, isVisible: false }]), false);
   assert.equal(shouldRenderSourceImage("screenshot", [mockup]), true);
+  const empty = useImageStore.getInitialState();
+  assert.equal(hasCanvasContent(empty), false);
+  assert.equal(hasCanvasContent({ ...empty, editorMode: "device", mockups: [mockup] }), true);
+  assert.equal(hasCanvasContent({ ...empty, editorMode: "device", mockups: [{ ...mockup, isVisible: false }] }), false);
+  assert.equal(hasCanvasContent({ ...empty, uploadedImageUrl: "data:image/png;base64,screen" }), true);
 
   const [editorCanvas, clientCanvas] = await Promise.all([
     readFile(new URL("../components/canvas/EditorCanvas.tsx", import.meta.url), "utf8"),
     readFile(new URL("../components/canvas/ClientCanvas.tsx", import.meta.url), "utf8"),
   ]);
-  assert.match(editorCanvas, /hasVisibleMockups\(mockups\)/);
+  assert.match(editorCanvas, /useImageStore\(hasCanvasContent\)/);
+  assert.match(clientCanvas, /useImageStore\(hasCanvasContent\)/);
   assert.match(clientCanvas, /hasVisibleMockups\(mockups\)/);
   assert.doesNotMatch(editorCanvas, /mockups\.length > 0/);
   assert.doesNotMatch(clientCanvas, /mockups\.length > 0/);

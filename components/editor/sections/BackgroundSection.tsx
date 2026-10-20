@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useImageStore } from '@/lib/store';
+import { useImageStore, withHistoryStep } from '@/lib/store';
 import { useDropzone } from 'react-dropzone';
 import { useResponsiveCanvasDimensions } from '@/hooks/useAspectRatioDimensions';
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants';
@@ -69,16 +69,17 @@ function HexColorField({
   onChange: (value: string) => void;
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [draft, setDraft] = React.useState(value);
+  const [draft, setDraft] = React.useState<string | null>(null);
+  const cancelRef = React.useRef(false);
 
-  React.useEffect(() => {
-    if (document.activeElement !== inputRef.current) setDraft(value);
-  }, [value]);
-
-  const commit = () => {
-    const normalized = normalizeHexColor(draft);
-    if (normalized) onChange(normalized);
-    else setDraft(value);
+  const commit = (raw: string) => {
+    setDraft(null);
+    if (cancelRef.current) {
+      cancelRef.current = false;
+      return;
+    }
+    const normalized = normalizeHexColor(raw);
+    if (normalized && normalized !== value) onChange(normalized);
   };
 
   return (
@@ -95,13 +96,14 @@ function HexColorField({
         <Input
           ref={inputRef}
           aria-label={`${label} gradient hex code`}
-          value={draft}
+          value={draft ?? value}
           onChange={(event) => setDraft(event.target.value)}
-          onBlur={commit}
+          onBlur={(event) => commit(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') event.currentTarget.blur();
             if (event.key === 'Escape') {
-              setDraft(value);
+              event.stopPropagation();
+              cancelRef.current = true;
               event.currentTarget.blur();
             }
           }}
@@ -117,8 +119,7 @@ export function BackgroundSection() {
   const {
     backgroundConfig,
     imageOverlays,
-    setBackgroundType,
-    setBackgroundValue,
+    setBackgroundConfig,
     addImageOverlay,
     removeImageOverlay,
   } = useImageStore();
@@ -126,28 +127,19 @@ export function BackgroundSection() {
   const responsiveDimensions = useResponsiveCanvasDimensions();
   const [bgUploadError, setBgUploadError] = React.useState<string | null>(null);
   const [customColor, setCustomColor] = React.useState('#7dd4ad');
-  const [customGradient, setCustomGradient] = React.useState({
-    from: '#090A0C',
-    to: '#F43F5E',
-    angle: 145,
-  });
-
-  React.useEffect(() => {
-    if (backgroundConfig.type !== 'gradient') return;
+  const customGradient = React.useMemo(() => {
+    const fallback = { from: '#090A0C', to: '#F43F5E', angle: 145 };
+    if (backgroundConfig.type !== 'gradient') return fallback;
     const value = backgroundConfig.value;
     const gradient = typeof value === 'string' && value.startsWith('linear-gradient(')
       ? value
       : gradientColors[value as GradientKey];
-    if (!gradient) return;
-    const parsed = parseLinearGradient(gradient);
-    if (parsed) setCustomGradient(parsed);
+    return gradient ? parseLinearGradient(gradient) ?? fallback : fallback;
   }, [backgroundConfig.type, backgroundConfig.value]);
 
   const updateCustomGradient = (updates: Partial<typeof customGradient>) => {
     const next = { ...customGradient, ...updates };
-    setCustomGradient(next);
-    setBackgroundType('gradient');
-    setBackgroundValue(`linear-gradient(${next.angle}deg, ${next.from}, ${next.to})`);
+    setBackgroundConfig({ ...backgroundConfig, type: 'gradient', value: `linear-gradient(${next.angle}deg, ${next.from}, ${next.to})` });
   };
 
   // Track which custom bg option is active
@@ -188,11 +180,10 @@ export function BackgroundSection() {
         }
         setBgUploadError(null);
         const blobUrl = URL.createObjectURL(file);
-        setBackgroundValue(blobUrl);
-        setBackgroundType('image');
+        setBackgroundConfig({ ...useImageStore.getState().backgroundConfig, type: 'image', value: blobUrl });
       }
     },
-    [setBackgroundValue, setBackgroundType]
+    [setBackgroundConfig]
   );
 
   const {
@@ -216,7 +207,7 @@ export function BackgroundSection() {
     };
   };
 
-  const handleAddShadow = (shadowUrl: string) => {
+  const handleAddShadow = (shadowUrl: string) => withHistoryStep(() => {
     // Remove any existing shadows first (only one shadow at a time)
     imageOverlays.forEach((overlay) => {
       if (typeof overlay.src === 'string' && overlay.src.includes('overlay-shadow')) {
@@ -236,15 +227,15 @@ export function BackgroundSection() {
       flipY: false,
       isVisible: true,
     });
-  };
+  });
 
-  const handleRemoveShadows = () => {
+  const handleRemoveShadows = () => withHistoryStep(() => {
     imageOverlays.forEach((overlay) => {
       if (typeof overlay.src === 'string' && overlay.src.includes('overlay-shadow')) {
         removeImageOverlay(overlay.id);
       }
     });
-  };
+  });
 
   // Get current active shadow
   const currentShadow = imageOverlays.find(
@@ -254,8 +245,7 @@ export function BackgroundSection() {
   const shuffleMagicGradient = () => {
     const keys = Object.keys(magicGradients) as MagicGradientKey[];
     const randomKey = keys[Math.floor(Math.random() * keys.length)];
-    setBackgroundType('gradient');
-    setBackgroundValue(`magic:${randomKey}`);
+    setBackgroundConfig({ ...backgroundConfig, type: 'gradient', value: `magic:${randomKey}` });
   };
 
   const availableCategories = BACKGROUND_CATEGORY_ORDER.filter(
@@ -326,8 +316,7 @@ export function BackgroundSection() {
             color={customColor}
             onChange={(newColor) => {
               setCustomColor(newColor);
-              setBackgroundType('solid');
-              setBackgroundValue(newColor);
+              setBackgroundConfig({ ...backgroundConfig, type: 'solid', value: newColor });
             }}
             className={cn(
               'flex flex-col items-center justify-center gap-1.5 py-2.5 h-auto rounded-md',
@@ -339,8 +328,7 @@ export function BackgroundSection() {
 
           <Button variant="custom" size={null}
             onClick={() => {
-              setBackgroundType('solid');
-              setBackgroundValue('transparent');
+              setBackgroundConfig({ ...backgroundConfig, type: 'solid', value: 'transparent' });
             }}
             className={cn(
               'flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-md border transition-all',
@@ -376,9 +364,8 @@ export function BackgroundSection() {
               aria-label="Remove background image"
               className="absolute top-2 right-2 p-1 rounded-md bg-background/80 text-foreground hover:bg-foreground/10 transition-colors"
               onClick={() => {
-                setBackgroundType('gradient');
-                setBackgroundValue('vibrant_orange_pink');
-                URL.revokeObjectURL(backgroundConfig.value);
+                // Undo still needs the previous image URL.
+                setBackgroundConfig({ ...backgroundConfig, type: 'gradient', value: 'vibrant_orange_pink' });
               }}
             >
               <Cancel01Icon size={14} />
@@ -398,8 +385,7 @@ export function BackgroundSection() {
               <Button variant="custom" size={null}
                 key={`${category}-${idx}`}
                 onClick={() => {
-                  setBackgroundValue(imagePath);
-                  setBackgroundType('image');
+                  setBackgroundConfig({ ...backgroundConfig, type: 'image', value: imagePath });
                 }}
                 className={cn(
                   'aspect-square rounded-md overflow-hidden border transition-all hover:scale-105 relative',
@@ -446,8 +432,7 @@ export function BackgroundSection() {
                 aria-label={`Magic gradient ${key.replace(/[_-]/g, ' ')}`}
                 aria-pressed={backgroundConfig.value === `magic:${key}`}
                 onClick={() => {
-                  setBackgroundType('gradient');
-                  setBackgroundValue(`magic:${key}`);
+                  setBackgroundConfig({ ...backgroundConfig, type: 'gradient', value: `magic:${key}` });
                 }}
                 className={cn(
                   'block h-8 w-8 shrink-0 cursor-pointer transition-all duration-200 border border-foreground/10 hover:scale-105',
@@ -489,8 +474,7 @@ export function BackgroundSection() {
                 aria-label={`Gradient ${key.replace(/[_-]/g, ' ')}`}
                 aria-pressed={backgroundConfig.value === key}
                 onClick={() => {
-                  setBackgroundType('gradient');
-                  setBackgroundValue(key);
+                  setBackgroundConfig({ ...backgroundConfig, type: 'gradient', value: key });
                 }}
                 className={cn(
                   'block h-8 w-8 shrink-0 cursor-pointer transition-all duration-200 border border-foreground/10 hover:scale-105',
@@ -513,8 +497,7 @@ export function BackgroundSection() {
                   aria-label={`Mesh gradient ${key.replace(/[_-]/g, ' ')}`}
                   aria-pressed={backgroundConfig.value === `mesh:${key}`}
                   onClick={() => {
-                    setBackgroundType('gradient');
-                    setBackgroundValue(`mesh:${key}`);
+                    setBackgroundConfig({ ...backgroundConfig, type: 'gradient', value: `mesh:${key}` });
                   }}
                   className={cn(
                     'block h-8 w-8 shrink-0 cursor-pointer transition-all duration-200 border border-foreground/10 hover:scale-105',

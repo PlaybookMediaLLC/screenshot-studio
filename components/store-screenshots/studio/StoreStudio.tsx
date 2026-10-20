@@ -19,7 +19,8 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { MobileBanner } from '@/components/editor/MobileBanner'
-import { countIssues, runChecks, type ExportSelection } from '@/lib/store-screenshots/compliance'
+import { countIssues, runChecks } from '@/lib/store-screenshots/compliance'
+import { loadExportSettings } from '@/lib/store-screenshots/export/settings'
 import { createImageLayer } from '@/lib/store-screenshots/document/elements'
 import { createScratchDocument, createStarterDocument } from '@/lib/store-screenshots/document/factory'
 import type { StoreDocument } from '@/lib/store-screenshots/document/schema'
@@ -73,20 +74,13 @@ function RenderBridge({ store, children }: { store: StoreApi<EditorState>; child
   return <RenderProvider document={document}>{children}</RenderProvider>
 }
 
-function useHeaderIssues(store: StoreApi<EditorState>) {
+function useHeaderIssues(store: StoreApi<EditorState>, dialog: StudioDialog | null) {
   const document = useStore(store, (state) => state.document)
-  const targetId = useStore(store, (state) => state.targetId)
-  const locale = useStore(store, (state) => state.locale)
   const { measurer, fontsVersion } = useRenderServices()
   const [counts, setCounts] = React.useState({ requirements: 0, recommendations: 0 })
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      const selection: ExportSelection = {
-        targets: [{ targetId, sizeIndex: 0, orientation: getStoreTargetOrDefault(targetId).orientations[0] }],
-        format: 'png',
-        locales: [locale],
-        slideIds: document.slides.map((slide) => slide.id),
-      }
+      const selection = loadExportSettings(document)
       void fontsVersion
       const issues = runChecks(document, selection, (index, target, sizeIndex, orientation, checkLocale) =>
         evaluateSlide(document, index, { size: targetPixelSize(target, sizeIndex, orientation), targetId: target.id, locale: checkLocale, measurer })
@@ -94,7 +88,7 @@ function useHeaderIssues(store: StoreApi<EditorState>) {
       setCounts(countIssues(issues))
     }, 400)
     return () => clearTimeout(timer)
-  }, [document, targetId, locale, measurer, fontsVersion])
+  }, [document, dialog, measurer, fontsVersion])
   return counts
 }
 
@@ -119,7 +113,7 @@ function EditorLayout({
   const imageInputRef = React.useRef<HTMLInputElement>(null)
   const backgroundInputRef = React.useRef<HTMLInputElement>(null)
   const deviceTargetRef = React.useRef<{ slideId: string; layerId: string } | null>(null)
-  const issueCount = useHeaderIssues(store)
+  const issueCount = useHeaderIssues(store, dialog)
   const documentId = useStore(store, (state) => state.document.id)
   const isMobile = useIsMobile()
   const [mobilePanel, setMobilePanel] = React.useState<'tools' | 'inspector'>('tools')

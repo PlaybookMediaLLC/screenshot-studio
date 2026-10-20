@@ -10,10 +10,7 @@ import { CanvasStageLoadingOverlay } from "@/components/canvas/CanvasStageLoadin
 import ClientCanvas from "@/components/canvas/ClientCanvas";
 import { cn } from "@/lib/utils";
 import { Cancel01Icon } from "hugeicons-react";
-import {
-  hasVisibleMockups,
-  shouldRenderSourceImage,
-} from "@/lib/device-mockups/layouts";
+import { hasCanvasContent } from "@/lib/editor/canvas-content";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StoreScreenshotsShortcut } from "@/components/store-screenshots/StoreScreenshotsFeatureCard";
 import { STORE_SHORTCUT_GAP } from "@/lib/store-screenshots/config";
@@ -34,17 +31,11 @@ export function EditorCanvas() {
     uploadedImageUrl,
     imageName,
     showTimeline,
-    editorMode,
-    mockups,
     backgroundConfig,
-    textOverlays,
   } = useImageStore();
   const backgroundReady = useBackgroundImageReady(backgroundConfig);
 
-  const hasImage = !!uploadedImageUrl
-    && shouldRenderSourceImage(editorMode, mockups);
-  const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
-  const hasRenderableContent = hasImage || hasDeviceScene || textOverlays.length > 0;
+  const hasRenderableContent = useImageStore(hasCanvasContent);
   const [exportOpen, setExportOpen] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
   const loadStartedAtRef = React.useRef<number | null>(null);

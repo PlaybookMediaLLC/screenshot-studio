@@ -4,6 +4,7 @@ import * as React from 'react';
 import { aspectRatios } from '@/lib/constants/aspect-ratios';
 import { useImageStore } from '@/lib/store';
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils';
+import { exportTargetSchema, TARGET_SIDE_LIMITS } from '@/lib/export/sizes';
 import { cn } from '@/lib/utils';
 import {
   InstagramIcon,
@@ -140,12 +141,14 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
   const isCustomChanged =
     customW !== currentDimensions.width.toString() ||
     customH !== currentDimensions.height.toString();
+  const width = exportTargetSchema.shape.width.safeParse(Number(customW));
+  const height = exportTargetSchema.shape.height.safeParse(Number(customH));
+  const valid = width.success && height.success;
+  const errorId = React.useId();
 
   const handleSetCustom = () => {
-    const w = parseInt(customW);
-    const h = parseInt(customH);
-    if (isNaN(w) || isNaN(h) || w <= 0 || h <= 0) return;
-    setCustomDimensions(w, h);
+    if (!width.success || !height.success || !isCustomChanged) return;
+    setCustomDimensions(width.data, height.data);
     onSelect?.();
   };
 
@@ -157,10 +160,15 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
           <Input
             aria-label="Canvas width"
             inputMode="numeric"
-            min={1}
+            min={TARGET_SIDE_LIMITS.min}
+            max={TARGET_SIDE_LIMITS.max}
+            step={1}
+            aria-invalid={!width.success}
+            aria-describedby={!valid ? errorId : undefined}
             type="number"
             value={customW}
             onChange={(e) => setCustomW(e.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Enter') handleSetCustom(); }}
             className="w-full h-8 bg-foreground/[0.04] border border-foreground/10 rounded-md px-2 text-xs text-foreground focus:outline-none focus:border-foreground/25 focus:ring-1 focus:ring-foreground/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </Label>
@@ -170,19 +178,24 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
           <Input
             aria-label="Canvas height"
             inputMode="numeric"
-            min={1}
+            min={TARGET_SIDE_LIMITS.min}
+            max={TARGET_SIDE_LIMITS.max}
+            step={1}
+            aria-invalid={!height.success}
+            aria-describedby={!valid ? errorId : undefined}
             type="number"
             value={customH}
             onChange={(e) => setCustomH(e.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Enter') handleSetCustom(); }}
             className="w-full h-8 bg-foreground/[0.04] border border-foreground/10 rounded-md px-2 text-xs text-foreground focus:outline-none focus:border-foreground/25 focus:ring-1 focus:ring-foreground/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </Label>
         <Button variant="custom" size={null}
           onClick={handleSetCustom}
-          disabled={!isCustomChanged}
+          disabled={!isCustomChanged || !valid}
           className={cn(
             'h-8 px-3 rounded-md text-xs font-medium transition-colors shrink-0',
-            isCustomChanged
+            isCustomChanged && valid
               ? 'bg-primary text-primary-foreground hover:bg-foreground/90'
               : 'bg-foreground/[0.04] text-muted-foreground border border-foreground/10 cursor-not-allowed'
           )}
@@ -190,6 +203,11 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
           Set
         </Button>
       </div>
+      {!valid ? (
+        <p id={errorId} role="alert" className="mb-4 text-xs text-destructive">
+          Use whole pixels from {TARGET_SIDE_LIMITS.min} to {TARGET_SIDE_LIMITS.max} for width and height.
+        </p>
+      ) : null}
 
       <div className="mb-3">
         <h4 className="text-xs font-medium text-muted-foreground mb-2">Standard</h4>

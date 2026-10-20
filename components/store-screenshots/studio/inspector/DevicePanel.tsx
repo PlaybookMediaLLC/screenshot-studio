@@ -63,6 +63,13 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
                 patch([layer.id], { image: { mode, scale: 1, offsetX: 0, offsetY: 0 } })
               }}
             />
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              {layer.image.mode === 'fill'
+                ? 'Fills the device screen. Image edges may be cropped.'
+                : layer.image.mode === 'fit'
+                  ? 'Shows the whole screenshot. Empty space may appear around it.'
+                  : 'Custom crop. Move or zoom the screenshot on the canvas; Cancel restores the previous framing.'}
+            </p>
             <div className="flex gap-2">
               <Button variant="custom" size={null}
                 type="button"

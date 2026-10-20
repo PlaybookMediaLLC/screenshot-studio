@@ -203,7 +203,7 @@ export function StudioHeader({
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
-        <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => actions.openDialog('checks')} title="Store requirements and design checks">
+        <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => actions.openDialog('checks')} title="Store requirements and design checks for the planned export">
           Checks
           {issueCount.requirements + issueCount.recommendations > 0 ? (
             <span className={cn('rounded-full px-1.5 text-[10px] tabular-nums', issueCount.requirements ? 'bg-destructive/15 text-destructive' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300')}>

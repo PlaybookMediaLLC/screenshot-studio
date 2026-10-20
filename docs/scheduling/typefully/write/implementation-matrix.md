@@ -32,7 +32,7 @@ are TypeScript unit tests; `write.spec.ts` is the Playwright journey).
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | Draft → platform version → posts; same-name sets stay distinct | Drafts with per-channel text (RFC 037) | Stable set ids across create/list/copy; versions carry their own body | — | `lib/write/document.ts`, `lib/write/versions.ts` | `internal/draftdoc`, `product/social_sets.go` | `20261030090000_write_workspace` | — | `TestWriteWorkspace/sets_with_the_same_name…`, `write-versions.test.ts` | Done |
 | 2 | Write and Plan as navigation surfaces; library left, composer, right panels; `/drafts` keeps working | Drafts pages | Sidebar shows Write; `/drafts*` redirect; panels are UI state | Analyze is the existing analytics, not part of Write | `app/[locale]/write/**`, `components/write/WriteFrame.tsx` | — | — | — | `write.spec.ts` | Done |
-| 3 | Draft list: preview, platforms, row menu (delete, duplicate, copy to set, pin, tag, select multiple, backups, internal link, public link), search, four sorts, tag filter | List and delete | Row menu and bulk bar; public link asks first | Deleted-draft recovery (no trash; delete is confirmed) | `components/write/library.tsx`, `tags.tsx` | `product/content_drafts.go` (list filters, cursor, pins) | write workspace | — | `TestWriteWorkspace/organizing…`, `…/duplicates and copies…`, `write.spec.ts` | Done |
+| 3 | Draft list: preview, platforms, row menu (delete, duplicate, copy to set, pin, tag, select multiple, backups, internal link, public link), search, four sorts, tag filter | List and delete | Row menu and bulk bar; public link asks first | Deleted-draft recovery (no trash; delete is confirmed) | `components/write/library.tsx`, `tags.tsx` | `product/content_drafts.go` (list filters, cursor, pins) | write workspace | — | `TestWriteWorkspace/organizing…`, `…/duplicates and copies…`, `write.spec.ts` (the library organizes drafts…) | Done |
 | 4 | Creation kinds: post, X Article, quote, reply, repurpose; set-dependent menu | Standard only | Kinds are immutable on the draft with explicit targets | — | `library.tsx` (`NewDraftMenu`, `TargetDialog`) | `content_draft_documents.go` (`draftTarget`, `draftKindChannel`) | write workspace | X Premium for articles | `TestWriteWorkspace/kinds carry explicit targets…`, `TestWritePublishing/kinds publish only as they can` | Done |
 | 5 | Structured posts with stable identity; preview and publication from one normalized model; undo | Thread breaks without ids | Leading `post_break` per post with a stable id; `buildPublication` feeds preview, review and Go | — | `components/drafts/thread.tsx`, `lib/write/publication.ts` | `content_draft_schedule.go` re-checks | — | — | `write-versions.test.ts`, `write-publication.test.ts` | Done |
 | 6 | X threads: add below, move up/down (⌥↑/↓), delete, split (⌘↵), weighted counting, Premium from the account, 25 posts | Splitting, counting | Per-post tools; ⌥↑/↓; Premium read from the X account, not our plan | 50-post threads (we cap at 25, X API reply chains) | `thread.tsx`, `post-tools.tsx`, `lib/write/capabilities.ts` | `tenantpublishing/options.go` (`AccountStanding`) | — | — | `TestWritePublishing/Premium is the account's…`, `write-publication.test.ts` | Done (fixture for Premium) |
@@ -76,8 +76,8 @@ the picker says so and offers no guess; a person typed as text stays plain text.
 | 6 | Undo/redo split, mention, poll, template | Single editor history; inserts are one batch | Refine undo in `write.spec.ts`; split, mention, poll and template undo have no automated test | Partial |
 | 7 | Emoji, combining characters, URLs, multiline counts | X weighted counting (`lib/content-drafts/x-length.ts`) | Emoji and URL in `write.spec.ts`; combining characters are not tested | Partial |
 | 8 | Recover a backup makes a new draft | `RecoverContentDraftRevision` | `TestWriteWorkspace/recovering a backup…`, `write.spec.ts` | Done |
-| 9 | Duplicate/copy: no published ids or jobs | Copy leaves posts, share and automation receipts behind | `TestWriteWorkspace/duplicates and copies…` | Done |
-| 10 | Same-name sets distinct | Ids, not names | `TestWriteWorkspace/sets with the same name…` | Done |
+| 9 | Duplicate/copy: no published ids or jobs | Copy leaves posts, share and automation receipts behind | `TestWriteWorkspace/duplicates and copies…`, `write.spec.ts` (copy to a same-named set) | Done |
+| 10 | Same-name sets distinct | Ids, not names | `TestWriteWorkspace/sets with the same name…`, `write.spec.ts` (copy to a same-named set) | Done |
 | 11 | Editing focus ≠ publishing enablement | Tab is UI state; switches are destinations | `write.spec.ts` | Done |
 | 12 | X thread synced to LinkedIn: order and separators | Joined in order | `write-versions.test.ts`, `write.spec.ts` | Done |
 | 13 | Manual LinkedIn version follows explicit policy | Manual body kept; divergence noticed; re-sync explicit | `write-versions.test.ts`, `write.spec.ts` | Done |
@@ -143,3 +143,30 @@ the picker says so and offers no guess; a person typed as text stays plain text.
 
 A fixture passing is not a live claim: every row above stays Blocked until it is run
 against a real account.
+
+## Integration with the settings platform (#228)
+
+PR #228 (RFC 043, settings platform) also adds a `social_set` table and the
+`content_draft` columns `socialSetId` and `plannedFor`, with different
+shapes. The two cannot both merge as they are; whichever lands second
+adapts. The agreed proposal, pending the product owner's call on merge order:
+
+1. #228 merges first. Write rebases onto it and adopts its `social_set`
+   model as the only one: accounts attached through
+   `channel_connection.socialSetId` (one active account per platform),
+   `WORKSPACE`/`PRIVATE` with an owner, references through
+   `(organizationId, socialSetId)`, and its `socialSetId`, `plannedFor` and
+   `primaryPlatform` draft columns. Write's own set columns, member lists and
+   preferences go; its follow-up defaults map onto #228's engagement defaults.
+2. Write keeps what #228 does not have: draft kinds and targets, platform
+   versions, articles, scratchpad, pins, finishers, follow-up receipts,
+   backups with reasons, mentions and alt text.
+3. Tags: #228 stores them as strings on the draft (behind an experiment, with
+   a `draft.tags_changed` webhook); Write stores set-scoped records with
+   colours, as the reconstruction recommends. The product owner chooses; if
+   records win, the webhook and the experiment gate move with them.
+4. Refine and the assistant take #228's writing context (the set overrides
+   tone and audience; prohibited terms add up) and keep its prompt fencing.
+
+Until then this branch is self-consistent and fully tested on its own.
+

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.3...v2.24.4) (2026-10-20)
+
+
+### Bug Fixes
+
+* **editor:** resolve live audit save and responsive editing bugs ([#220](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/220)) ([bdf0e72](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/bdf0e721f7645b823d8286d3bf1dbd2a266cdfde))
+
 ## [2.24.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.2...v2.24.3) (2026-10-20)
 
 

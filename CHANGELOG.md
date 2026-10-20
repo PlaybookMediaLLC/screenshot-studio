@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.29.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.28.0...v2.29.0) (2026-10-20)
+
+
+### Features
+
+* **write:** the Write workspace (RFC 042) on the settings platform's social sets ([#234](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/234)) ([1536b13](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1536b13645b4e71c4031d6ec8cb1f74281e0db02))
+
 ## [2.28.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.27.1...v2.28.0) (2026-10-20)
 
 

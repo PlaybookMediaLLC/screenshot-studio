@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
 	"strings"
 
@@ -165,4 +166,78 @@ func recordDiscussionActivity(ctx context.Context, tx *ent.Tx, actor Actor, draf
 	}
 	next["users"] = users
 	return nil
+}
+
+// keepOthersComments restores comments and threads a save dropped when the
+// writer may not delete them: a member deletes their own comments, and the
+// threads they started; owners and admins delete any. A save from an editor
+// whose copy lacked someone's reply therefore never erases that reply.
+func keepOthersComments(ctx context.Context, tx *ent.Tx, actor Actor, before, next map[string]any) (map[string]any, error) {
+	if next == nil {
+		return next, nil
+	}
+	next = maps.Clone(next)
+	if actor.IsSession() {
+		role, err := memberRole(ctx, tx.Client(), actor.OrganizationID, actor.UserID)
+		if err != nil {
+			return nil, err
+		}
+		if role == "owner" || role == "admin" {
+			return next, nil
+		}
+	}
+	oldThreads, _ := before["threads"].([]any)
+	newThreads, ok := next["threads"].([]any)
+	if !ok {
+		// Not a thread list: leave it for the shape checks to refuse.
+		return next, nil
+	}
+	byID := map[string]map[string]any{}
+	for _, raw := range newThreads {
+		if thread, ok := raw.(map[string]any); ok {
+			if id, _ := thread["id"].(string); id != "" {
+				byID[id] = thread
+			}
+		}
+	}
+	restored := append([]any{}, newThreads...)
+	for _, raw := range oldThreads {
+		old, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		id, _ := old["id"].(string)
+		author, _ := old["userId"].(string)
+		current, kept := byID[id]
+		if !kept {
+			if author != actor.UserID {
+				restored = append(restored, old)
+			}
+			continue
+		}
+		oldComments, _ := old["comments"].([]any)
+		newComments, _ := current["comments"].([]any)
+		present := map[string]bool{}
+		for _, item := range newComments {
+			if comment, ok := item.(map[string]any); ok {
+				commentID, _ := comment["id"].(string)
+				present[commentID] = true
+			}
+		}
+		comments := append([]any{}, newComments...)
+		for _, item := range oldComments {
+			comment, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			commentID, _ := comment["id"].(string)
+			commenter, _ := comment["userId"].(string)
+			if !present[commentID] && commenter != actor.UserID && author != actor.UserID {
+				comments = append(comments, comment)
+			}
+		}
+		current["comments"] = comments
+	}
+	next["threads"] = restored
+	return next, nil
 }

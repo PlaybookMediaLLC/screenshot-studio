@@ -19,7 +19,7 @@ type ContentDraftPlatformStore interface {
 	BestPostingTimes(context.Context, product.Actor) ([]product.BestTime, error)
 	MoveContentDraftPost(context.Context, product.Actor, string, time.Time) (*product.MovedDraftPost, error)
 	ResumeContentDraftThread(context.Context, product.Actor, string) (*product.MovedDraftPost, error)
-	ListContentDraftPostsBetween(context.Context, product.Actor, time.Time, time.Time) ([]product.CalendarPost, error)
+	ListContentDraftPostsBetween(context.Context, product.Actor, time.Time, time.Time, string) ([]product.CalendarPost, error)
 	ReviewContentDraft(context.Context, product.Actor, string, product.ContentDraftReviewInput) (*product.ContentDraftRecord, error)
 	ShareContentDraft(context.Context, product.Actor, string, bool) (*product.ContentDraftRecord, error)
 	GetSharedContentDraft(context.Context, string) (*product.SharedContentDraft, error)
@@ -95,7 +95,12 @@ func (s *Server) listContentDraftPostsBetween(w http.ResponseWriter, r *http.Req
 		writeError(w, http.StatusBadRequest, "from and to are RFC 3339 times")
 		return
 	}
-	posts, err := s.configuration.ListContentDraftPostsBetween(r.Context(), workspaceActor(r), from, to)
+	setID := r.URL.Query().Get("socialSetId")
+	if setID != "" && !resourceIDPattern.MatchString(setID) {
+		writeError(w, http.StatusBadRequest, "invalid social set ID")
+		return
+	}
+	posts, err := s.configuration.ListContentDraftPostsBetween(r.Context(), workspaceActor(r), from, to, setID)
 	if err != nil {
 		writeStoreError(w, err)
 		return

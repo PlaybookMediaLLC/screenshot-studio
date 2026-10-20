@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
 // ContentDraft is a post a user writes by hand in the document editor, keeps
@@ -46,6 +47,27 @@ func (ContentDraft) Fields() []ent.Field {
 		// Comments left through that link: name, text and when.
 		field.JSON("guest_comments", []map[string]string{}).StorageKey("guestComments").Default([]map[string]string{}),
 		field.Int("version").StorageKey("version").Default(1),
+		// Write (RFC 041). The social set the draft belongs to; none is the
+		// workspace's default set.
+		field.String("social_set_id").StorageKey("socialSetId").Optional().Nillable(),
+		// standard (a post or thread), reply, quote, repurpose or article.
+		field.Enum("kind").StorageKey("kind").Values("standard", "reply", "quote", "repurpose", "article").Default("standard").Immutable(),
+		// The post a reply answers or a quote embeds, or a repurposed draft's source.
+		field.JSON("target", &draftdoc.Target{}).StorageKey("target").Optional(),
+		// The channel the body is written for; the other versions sync from it.
+		field.String("primary_channel").StorageKey("primaryChannel").Default("x"),
+		field.JSON("platform_versions", draftdoc.PlatformVersions{}).StorageKey("platformVersions").
+			Default(draftdoc.PlatformVersions{SchemaVersion: draftdoc.SchemaVersion, Versions: []draftdoc.PlatformVersion{}}),
+		field.JSON("article", &draftdoc.Article{}).StorageKey("article").Optional(),
+		// Internal: never part of a post.
+		field.String("scratchpad").StorageKey("scratchpad").Default(""),
+		field.JSON("tag_ids", []string{}).StorageKey("tagIds").Default([]string{}),
+		field.Time("pinned_at").StorageKey("pinnedAt").Optional().Nillable(),
+		// A planned time puts the draft on the calendar; nothing publishes from it.
+		field.Time("planned_for").StorageKey("plannedFor").Optional().Nillable(),
+		field.String("plan_time_zone").StorageKey("planTimeZone").Optional().Nillable(),
+		// The draft this one was duplicated, copied or recovered from.
+		field.String("source_draft_id").StorageKey("sourceDraftId").Optional().Nillable().Immutable(),
 		// Yjs document state, written only by the collaboration service.
 		field.Bytes("collab_state").StorageKey("collabState").Optional().Nillable(),
 		field.String("created_by_user_id").StorageKey("createdByUserId").Optional().Nillable(),
@@ -56,5 +78,5 @@ func (ContentDraft) Fields() []ent.Field {
 }
 
 func (ContentDraft) Indexes() []ent.Index {
-	return []ent.Index{index.Fields("organization_id", "updated_at")}
+	return []ent.Index{index.Fields("organization_id", "updated_at"), index.Fields("organization_id", "social_set_id", "updated_at")}
 }

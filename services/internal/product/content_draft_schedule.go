@@ -350,6 +350,9 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if err := validateDraftTargets(input); err != nil {
 		return nil, err
 	}
+	if _, err := c.loadDraft(ctx, actor, draftID); err != nil {
+		return nil, err
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
@@ -384,7 +387,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if err := c.requireDraftApproval(ctx, draft); err != nil {
 		return nil, err
 	}
-	if err := recordContentDraftRevision(ctx, tx, actor, draft, true); err != nil {
+	if err := recordContentDraftRevision(ctx, tx, actor, draft, true, "schedule"); err != nil {
 		return nil, err
 	}
 	connections, images, err := draftTargetConnections(ctx, tx, actor.OrganizationID, input.Targets, draft.AssetIds)
@@ -484,12 +487,8 @@ func (c *Configuration) ListContentDraftPosts(ctx context.Context, actor Actor, 
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
-	owned, err := c.client.ContentDraft.Query().Where(contentdraft.ID(draftID), contentdraft.OrganizationID(actor.OrganizationID)).Exist(ctx)
-	if err != nil {
+	if _, err := c.loadDraft(ctx, actor, draftID); err != nil {
 		return nil, err
-	}
-	if !owned {
-		return nil, publishing.ErrNotFound
 	}
 	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(draftID),
 		scheduledpost.OrganizationID(actor.OrganizationID)).WithChannelConnection().

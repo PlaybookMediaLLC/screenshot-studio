@@ -25,6 +25,12 @@ const (
 	FieldBody = "body"
 	// FieldPlainText holds the string denoting the plain_text field in the database.
 	FieldPlainText = "plainText"
+	// FieldPlatformVersions holds the string denoting the platform_versions field in the database.
+	FieldPlatformVersions = "platformVersions"
+	// FieldArticle holds the string denoting the article field in the database.
+	FieldArticle = "article"
+	// FieldReason holds the string denoting the reason field in the database.
+	FieldReason = "reason"
 	// FieldCreatedByUserID holds the string denoting the created_by_user_id field in the database.
 	FieldCreatedByUserID = "createdByUserId"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -42,6 +48,9 @@ var Columns = []string{
 	FieldTitle,
 	FieldBody,
 	FieldPlainText,
+	FieldPlatformVersions,
+	FieldArticle,
+	FieldReason,
 	FieldCreatedByUserID,
 	FieldCreatedAt,
 }
@@ -57,6 +66,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultReason holds the default value on creation for the "reason" field.
+	DefaultReason string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 )
@@ -92,6 +103,11 @@ func ByTitle(opts ...sql.OrderTermOption) OrderOption {
 // ByPlainText orders the results by the plain_text field.
 func ByPlainText(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPlainText, opts...).ToFunc()
+}
+
+// ByReason orders the results by the reason field.
+func ByReason(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReason, opts...).ToFunc()
 }
 
 // ByCreatedByUserID orders the results by the created_by_user_id field.

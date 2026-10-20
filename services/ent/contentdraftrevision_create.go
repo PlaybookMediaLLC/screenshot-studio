@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
 // ContentDraftRevisionCreate is the builder for creating a ContentDraftRevision entity.
@@ -53,6 +54,40 @@ func (_c *ContentDraftRevisionCreate) SetBody(v []interface{}) *ContentDraftRevi
 // SetPlainText sets the "plain_text" field.
 func (_c *ContentDraftRevisionCreate) SetPlainText(v string) *ContentDraftRevisionCreate {
 	_c.mutation.SetPlainText(v)
+	return _c
+}
+
+// SetPlatformVersions sets the "platform_versions" field.
+func (_c *ContentDraftRevisionCreate) SetPlatformVersions(v draftdoc.PlatformVersions) *ContentDraftRevisionCreate {
+	_c.mutation.SetPlatformVersions(v)
+	return _c
+}
+
+// SetNillablePlatformVersions sets the "platform_versions" field if the given value is not nil.
+func (_c *ContentDraftRevisionCreate) SetNillablePlatformVersions(v *draftdoc.PlatformVersions) *ContentDraftRevisionCreate {
+	if v != nil {
+		_c.SetPlatformVersions(*v)
+	}
+	return _c
+}
+
+// SetArticle sets the "article" field.
+func (_c *ContentDraftRevisionCreate) SetArticle(v *draftdoc.Article) *ContentDraftRevisionCreate {
+	_c.mutation.SetArticle(v)
+	return _c
+}
+
+// SetReason sets the "reason" field.
+func (_c *ContentDraftRevisionCreate) SetReason(v string) *ContentDraftRevisionCreate {
+	_c.mutation.SetReason(v)
+	return _c
+}
+
+// SetNillableReason sets the "reason" field if the given value is not nil.
+func (_c *ContentDraftRevisionCreate) SetNillableReason(v *string) *ContentDraftRevisionCreate {
+	if v != nil {
+		_c.SetReason(*v)
+	}
 	return _c
 }
 
@@ -125,6 +160,10 @@ func (_c *ContentDraftRevisionCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *ContentDraftRevisionCreate) defaults() {
+	if _, ok := _c.mutation.Reason(); !ok {
+		v := contentdraftrevision.DefaultReason
+		_c.mutation.SetReason(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := contentdraftrevision.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -150,6 +189,9 @@ func (_c *ContentDraftRevisionCreate) check() error {
 	}
 	if _, ok := _c.mutation.PlainText(); !ok {
 		return &ValidationError{Name: "plain_text", err: errors.New(`ent: missing required field "ContentDraftRevision.plain_text"`)}
+	}
+	if _, ok := _c.mutation.Reason(); !ok {
+		return &ValidationError{Name: "reason", err: errors.New(`ent: missing required field "ContentDraftRevision.reason"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ContentDraftRevision.created_at"`)}
@@ -212,6 +254,18 @@ func (_c *ContentDraftRevisionCreate) createSpec() (*ContentDraftRevision, *sqlg
 	if value, ok := _c.mutation.PlainText(); ok {
 		_spec.SetField(contentdraftrevision.FieldPlainText, field.TypeString, value)
 		_node.PlainText = value
+	}
+	if value, ok := _c.mutation.PlatformVersions(); ok {
+		_spec.SetField(contentdraftrevision.FieldPlatformVersions, field.TypeJSON, value)
+		_node.PlatformVersions = value
+	}
+	if value, ok := _c.mutation.Article(); ok {
+		_spec.SetField(contentdraftrevision.FieldArticle, field.TypeJSON, value)
+		_node.Article = value
+	}
+	if value, ok := _c.mutation.Reason(); ok {
+		_spec.SetField(contentdraftrevision.FieldReason, field.TypeString, value)
+		_node.Reason = value
 	}
 	if value, ok := _c.mutation.CreatedByUserID(); ok {
 		_spec.SetField(contentdraftrevision.FieldCreatedByUserID, field.TypeString, value)

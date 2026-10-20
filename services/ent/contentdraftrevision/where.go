@@ -89,6 +89,11 @@ func PlainText(v string) predicate.ContentDraftRevision {
 	return predicate.ContentDraftRevision(sql.FieldEQ(FieldPlainText, v))
 }
 
+// Reason applies equality check predicate on the "reason" field. It's identical to ReasonEQ.
+func Reason(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldEQ(FieldReason, v))
+}
+
 // CreatedByUserID applies equality check predicate on the "created_by_user_id" field. It's identical to CreatedByUserIDEQ.
 func CreatedByUserID(v string) predicate.ContentDraftRevision {
 	return predicate.ContentDraftRevision(sql.FieldEQ(FieldCreatedByUserID, v))
@@ -397,6 +402,91 @@ func PlainTextEqualFold(v string) predicate.ContentDraftRevision {
 // PlainTextContainsFold applies the ContainsFold predicate on the "plain_text" field.
 func PlainTextContainsFold(v string) predicate.ContentDraftRevision {
 	return predicate.ContentDraftRevision(sql.FieldContainsFold(FieldPlainText, v))
+}
+
+// PlatformVersionsIsNil applies the IsNil predicate on the "platform_versions" field.
+func PlatformVersionsIsNil() predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldIsNull(FieldPlatformVersions))
+}
+
+// PlatformVersionsNotNil applies the NotNil predicate on the "platform_versions" field.
+func PlatformVersionsNotNil() predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldNotNull(FieldPlatformVersions))
+}
+
+// ArticleIsNil applies the IsNil predicate on the "article" field.
+func ArticleIsNil() predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldIsNull(FieldArticle))
+}
+
+// ArticleNotNil applies the NotNil predicate on the "article" field.
+func ArticleNotNil() predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldNotNull(FieldArticle))
+}
+
+// ReasonEQ applies the EQ predicate on the "reason" field.
+func ReasonEQ(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldEQ(FieldReason, v))
+}
+
+// ReasonNEQ applies the NEQ predicate on the "reason" field.
+func ReasonNEQ(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldNEQ(FieldReason, v))
+}
+
+// ReasonIn applies the In predicate on the "reason" field.
+func ReasonIn(vs ...string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldIn(FieldReason, vs...))
+}
+
+// ReasonNotIn applies the NotIn predicate on the "reason" field.
+func ReasonNotIn(vs ...string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldNotIn(FieldReason, vs...))
+}
+
+// ReasonGT applies the GT predicate on the "reason" field.
+func ReasonGT(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldGT(FieldReason, v))
+}
+
+// ReasonGTE applies the GTE predicate on the "reason" field.
+func ReasonGTE(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldGTE(FieldReason, v))
+}
+
+// ReasonLT applies the LT predicate on the "reason" field.
+func ReasonLT(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldLT(FieldReason, v))
+}
+
+// ReasonLTE applies the LTE predicate on the "reason" field.
+func ReasonLTE(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldLTE(FieldReason, v))
+}
+
+// ReasonContains applies the Contains predicate on the "reason" field.
+func ReasonContains(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldContains(FieldReason, v))
+}
+
+// ReasonHasPrefix applies the HasPrefix predicate on the "reason" field.
+func ReasonHasPrefix(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldHasPrefix(FieldReason, v))
+}
+
+// ReasonHasSuffix applies the HasSuffix predicate on the "reason" field.
+func ReasonHasSuffix(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldHasSuffix(FieldReason, v))
+}
+
+// ReasonEqualFold applies the EqualFold predicate on the "reason" field.
+func ReasonEqualFold(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldEqualFold(FieldReason, v))
+}
+
+// ReasonContainsFold applies the ContainsFold predicate on the "reason" field.
+func ReasonContainsFold(v string) predicate.ContentDraftRevision {
+	return predicate.ContentDraftRevision(sql.FieldContainsFold(FieldReason, v))
 }
 
 // CreatedByUserIDEQ applies the EQ predicate on the "created_by_user_id" field.

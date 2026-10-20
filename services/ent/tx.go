@@ -58,10 +58,14 @@ type Tx struct {
 	ContentAngle *ContentAngleClient
 	// ContentDraft is the client for interacting with the ContentDraft builders.
 	ContentDraft *ContentDraftClient
+	// ContentDraftFinisher is the client for interacting with the ContentDraftFinisher builders.
+	ContentDraftFinisher *ContentDraftFinisherClient
 	// ContentDraftRevision is the client for interacting with the ContentDraftRevision builders.
 	ContentDraftRevision *ContentDraftRevisionClient
 	// ContentDraftSettings is the client for interacting with the ContentDraftSettings builders.
 	ContentDraftSettings *ContentDraftSettingsClient
+	// ContentDraftTag is the client for interacting with the ContentDraftTag builders.
+	ContentDraftTag *ContentDraftTagClient
 	// Conversation is the client for interacting with the Conversation builders.
 	Conversation *ConversationClient
 	// ConversationMessage is the client for interacting with the ConversationMessage builders.
@@ -162,6 +166,8 @@ type Tx struct {
 	ShareLink *ShareLinkClient
 	// SocialOAuthStart is the client for interacting with the SocialOAuthStart builders.
 	SocialOAuthStart *SocialOAuthStartClient
+	// SocialSet is the client for interacting with the SocialSet builders.
+	SocialSet *SocialSetClient
 	// SocialTenantBinding is the client for interacting with the SocialTenantBinding builders.
 	SocialTenantBinding *SocialTenantBindingClient
 	// SourceApp is the client for interacting with the SourceApp builders.
@@ -344,8 +350,10 @@ func (tx *Tx) init() {
 	tx.CommunicationRecipient = NewCommunicationRecipientClient(tx.config)
 	tx.ContentAngle = NewContentAngleClient(tx.config)
 	tx.ContentDraft = NewContentDraftClient(tx.config)
+	tx.ContentDraftFinisher = NewContentDraftFinisherClient(tx.config)
 	tx.ContentDraftRevision = NewContentDraftRevisionClient(tx.config)
 	tx.ContentDraftSettings = NewContentDraftSettingsClient(tx.config)
+	tx.ContentDraftTag = NewContentDraftTagClient(tx.config)
 	tx.Conversation = NewConversationClient(tx.config)
 	tx.ConversationMessage = NewConversationMessageClient(tx.config)
 	tx.CreativeTemplate = NewCreativeTemplateClient(tx.config)
@@ -396,6 +404,7 @@ func (tx *Tx) init() {
 	tx.Session = NewSessionClient(tx.config)
 	tx.ShareLink = NewShareLinkClient(tx.config)
 	tx.SocialOAuthStart = NewSocialOAuthStartClient(tx.config)
+	tx.SocialSet = NewSocialSetClient(tx.config)
 	tx.SocialTenantBinding = NewSocialTenantBindingClient(tx.config)
 	tx.SourceApp = NewSourceAppClient(tx.config)
 	tx.SourceChange = NewSourceChangeClient(tx.config)

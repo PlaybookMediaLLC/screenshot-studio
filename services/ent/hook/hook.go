@@ -285,6 +285,18 @@ func (f ContentDraftFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftMutation", m)
 }
 
+// The ContentDraftFinisherFunc type is an adapter to allow the use of ordinary
+// function as ContentDraftFinisher mutator.
+type ContentDraftFinisherFunc func(context.Context, *ent.ContentDraftFinisherMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentDraftFinisherFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentDraftFinisherMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftFinisherMutation", m)
+}
+
 // The ContentDraftRevisionFunc type is an adapter to allow the use of ordinary
 // function as ContentDraftRevision mutator.
 type ContentDraftRevisionFunc func(context.Context, *ent.ContentDraftRevisionMutation) (ent.Value, error)
@@ -307,6 +319,18 @@ func (f ContentDraftSettingsFunc) Mutate(ctx context.Context, m ent.Mutation) (e
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftSettingsMutation", m)
+}
+
+// The ContentDraftTagFunc type is an adapter to allow the use of ordinary
+// function as ContentDraftTag mutator.
+type ContentDraftTagFunc func(context.Context, *ent.ContentDraftTagMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentDraftTagFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentDraftTagMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentDraftTagMutation", m)
 }
 
 // The ConversationFunc type is an adapter to allow the use of ordinary
@@ -907,6 +931,18 @@ func (f SocialOAuthStartFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SocialOAuthStartMutation", m)
+}
+
+// The SocialSetFunc type is an adapter to allow the use of ordinary
+// function as SocialSet mutator.
+type SocialSetFunc func(context.Context, *ent.SocialSetMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SocialSetFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SocialSetMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SocialSetMutation", m)
 }
 
 // The SocialTenantBindingFunc type is an adapter to allow the use of ordinary

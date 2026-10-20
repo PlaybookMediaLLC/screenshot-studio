@@ -124,7 +124,7 @@ func TestContentDraftPlatform(t *testing.T) {
 		if _, err := repo.MoveContentDraftPost(ctx, owner, result.Posts[0].ID, later); !errors.Is(err, publishing.ErrConflict) {
 			t.Fatalf("moving a cancelled post err=%v", err)
 		}
-		calendar, err := repo.ListContentDraftPostsBetween(ctx, owner, at, at.Add(24*time.Hour))
+		calendar, err := repo.ListContentDraftPostsBetween(ctx, owner, at, at.Add(24*time.Hour), "")
 		if err != nil || len(calendar) != 1 || calendar[0].DraftTitle != "Move me" {
 			t.Fatalf("calendar=%+v err=%v", calendar, err)
 		}

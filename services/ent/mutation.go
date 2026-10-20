@@ -35,8 +35,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftfinisher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftsettings"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdrafttag"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversationmessage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
@@ -89,6 +91,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
@@ -104,6 +107,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/profile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
@@ -143,8 +147,10 @@ const (
 	TypeCommunicationRecipient         = "CommunicationRecipient"
 	TypeContentAngle                   = "ContentAngle"
 	TypeContentDraft                   = "ContentDraft"
+	TypeContentDraftFinisher           = "ContentDraftFinisher"
 	TypeContentDraftRevision           = "ContentDraftRevision"
 	TypeContentDraftSettings           = "ContentDraftSettings"
+	TypeContentDraftTag                = "ContentDraftTag"
 	TypeConversation                   = "Conversation"
 	TypeConversationMessage            = "ConversationMessage"
 	TypeCreativeTemplate               = "CreativeTemplate"
@@ -195,6 +201,7 @@ const (
 	TypeSession                        = "Session"
 	TypeShareLink                      = "ShareLink"
 	TypeSocialOAuthStart               = "SocialOAuthStart"
+	TypeSocialSet                      = "SocialSet"
 	TypeSocialTenantBinding            = "SocialTenantBinding"
 	TypeSourceApp                      = "SourceApp"
 	TypeSourceChange                   = "SourceChange"
@@ -20618,6 +20625,19 @@ type ContentDraftMutation struct {
 	appendguest_comments         []map[string]string
 	version                      *int
 	addversion                   *int
+	social_set_id                *string
+	kind                         *contentdraft.Kind
+	target                       **draftdoc.Target
+	primary_channel              *string
+	platform_versions            *draftdoc.PlatformVersions
+	article                      **draftdoc.Article
+	scratchpad                   *string
+	tag_ids                      *[]string
+	appendtag_ids                []string
+	pinned_at                    *time.Time
+	planned_for                  *time.Time
+	plan_time_zone               *string
+	source_draft_id              *string
 	collab_state                 *[]byte
 	created_by_user_id           *string
 	updated_by_user_id           *string
@@ -21462,6 +21482,544 @@ func (m *ContentDraftMutation) ResetVersion() {
 	m.addversion = nil
 }
 
+// SetSocialSetID sets the "social_set_id" field.
+func (m *ContentDraftMutation) SetSocialSetID(s string) {
+	m.social_set_id = &s
+}
+
+// SocialSetID returns the value of the "social_set_id" field in the mutation.
+func (m *ContentDraftMutation) SocialSetID() (r string, exists bool) {
+	v := m.social_set_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSocialSetID returns the old "social_set_id" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldSocialSetID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSocialSetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSocialSetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSocialSetID: %w", err)
+	}
+	return oldValue.SocialSetID, nil
+}
+
+// ClearSocialSetID clears the value of the "social_set_id" field.
+func (m *ContentDraftMutation) ClearSocialSetID() {
+	m.social_set_id = nil
+	m.clearedFields[contentdraft.FieldSocialSetID] = struct{}{}
+}
+
+// SocialSetIDCleared returns if the "social_set_id" field was cleared in this mutation.
+func (m *ContentDraftMutation) SocialSetIDCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldSocialSetID]
+	return ok
+}
+
+// ResetSocialSetID resets all changes to the "social_set_id" field.
+func (m *ContentDraftMutation) ResetSocialSetID() {
+	m.social_set_id = nil
+	delete(m.clearedFields, contentdraft.FieldSocialSetID)
+}
+
+// SetKind sets the "kind" field.
+func (m *ContentDraftMutation) SetKind(c contentdraft.Kind) {
+	m.kind = &c
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *ContentDraftMutation) Kind() (r contentdraft.Kind, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldKind(ctx context.Context) (v contentdraft.Kind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *ContentDraftMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetTarget sets the "target" field.
+func (m *ContentDraftMutation) SetTarget(d *draftdoc.Target) {
+	m.target = &d
+}
+
+// Target returns the value of the "target" field in the mutation.
+func (m *ContentDraftMutation) Target() (r *draftdoc.Target, exists bool) {
+	v := m.target
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTarget returns the old "target" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldTarget(ctx context.Context) (v *draftdoc.Target, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTarget is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTarget requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTarget: %w", err)
+	}
+	return oldValue.Target, nil
+}
+
+// ClearTarget clears the value of the "target" field.
+func (m *ContentDraftMutation) ClearTarget() {
+	m.target = nil
+	m.clearedFields[contentdraft.FieldTarget] = struct{}{}
+}
+
+// TargetCleared returns if the "target" field was cleared in this mutation.
+func (m *ContentDraftMutation) TargetCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldTarget]
+	return ok
+}
+
+// ResetTarget resets all changes to the "target" field.
+func (m *ContentDraftMutation) ResetTarget() {
+	m.target = nil
+	delete(m.clearedFields, contentdraft.FieldTarget)
+}
+
+// SetPrimaryChannel sets the "primary_channel" field.
+func (m *ContentDraftMutation) SetPrimaryChannel(s string) {
+	m.primary_channel = &s
+}
+
+// PrimaryChannel returns the value of the "primary_channel" field in the mutation.
+func (m *ContentDraftMutation) PrimaryChannel() (r string, exists bool) {
+	v := m.primary_channel
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrimaryChannel returns the old "primary_channel" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldPrimaryChannel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrimaryChannel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrimaryChannel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrimaryChannel: %w", err)
+	}
+	return oldValue.PrimaryChannel, nil
+}
+
+// ResetPrimaryChannel resets all changes to the "primary_channel" field.
+func (m *ContentDraftMutation) ResetPrimaryChannel() {
+	m.primary_channel = nil
+}
+
+// SetPlatformVersions sets the "platform_versions" field.
+func (m *ContentDraftMutation) SetPlatformVersions(dv draftdoc.PlatformVersions) {
+	m.platform_versions = &dv
+}
+
+// PlatformVersions returns the value of the "platform_versions" field in the mutation.
+func (m *ContentDraftMutation) PlatformVersions() (r draftdoc.PlatformVersions, exists bool) {
+	v := m.platform_versions
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlatformVersions returns the old "platform_versions" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldPlatformVersions(ctx context.Context) (v draftdoc.PlatformVersions, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlatformVersions is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlatformVersions requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlatformVersions: %w", err)
+	}
+	return oldValue.PlatformVersions, nil
+}
+
+// ResetPlatformVersions resets all changes to the "platform_versions" field.
+func (m *ContentDraftMutation) ResetPlatformVersions() {
+	m.platform_versions = nil
+}
+
+// SetArticle sets the "article" field.
+func (m *ContentDraftMutation) SetArticle(d *draftdoc.Article) {
+	m.article = &d
+}
+
+// Article returns the value of the "article" field in the mutation.
+func (m *ContentDraftMutation) Article() (r *draftdoc.Article, exists bool) {
+	v := m.article
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticle returns the old "article" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldArticle(ctx context.Context) (v *draftdoc.Article, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticle: %w", err)
+	}
+	return oldValue.Article, nil
+}
+
+// ClearArticle clears the value of the "article" field.
+func (m *ContentDraftMutation) ClearArticle() {
+	m.article = nil
+	m.clearedFields[contentdraft.FieldArticle] = struct{}{}
+}
+
+// ArticleCleared returns if the "article" field was cleared in this mutation.
+func (m *ContentDraftMutation) ArticleCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldArticle]
+	return ok
+}
+
+// ResetArticle resets all changes to the "article" field.
+func (m *ContentDraftMutation) ResetArticle() {
+	m.article = nil
+	delete(m.clearedFields, contentdraft.FieldArticle)
+}
+
+// SetScratchpad sets the "scratchpad" field.
+func (m *ContentDraftMutation) SetScratchpad(s string) {
+	m.scratchpad = &s
+}
+
+// Scratchpad returns the value of the "scratchpad" field in the mutation.
+func (m *ContentDraftMutation) Scratchpad() (r string, exists bool) {
+	v := m.scratchpad
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScratchpad returns the old "scratchpad" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldScratchpad(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScratchpad is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScratchpad requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScratchpad: %w", err)
+	}
+	return oldValue.Scratchpad, nil
+}
+
+// ResetScratchpad resets all changes to the "scratchpad" field.
+func (m *ContentDraftMutation) ResetScratchpad() {
+	m.scratchpad = nil
+}
+
+// SetTagIds sets the "tag_ids" field.
+func (m *ContentDraftMutation) SetTagIds(s []string) {
+	m.tag_ids = &s
+	m.appendtag_ids = nil
+}
+
+// TagIds returns the value of the "tag_ids" field in the mutation.
+func (m *ContentDraftMutation) TagIds() (r []string, exists bool) {
+	v := m.tag_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTagIds returns the old "tag_ids" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldTagIds(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTagIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTagIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTagIds: %w", err)
+	}
+	return oldValue.TagIds, nil
+}
+
+// AppendTagIds adds s to the "tag_ids" field.
+func (m *ContentDraftMutation) AppendTagIds(s []string) {
+	m.appendtag_ids = append(m.appendtag_ids, s...)
+}
+
+// AppendedTagIds returns the list of values that were appended to the "tag_ids" field in this mutation.
+func (m *ContentDraftMutation) AppendedTagIds() ([]string, bool) {
+	if len(m.appendtag_ids) == 0 {
+		return nil, false
+	}
+	return m.appendtag_ids, true
+}
+
+// ResetTagIds resets all changes to the "tag_ids" field.
+func (m *ContentDraftMutation) ResetTagIds() {
+	m.tag_ids = nil
+	m.appendtag_ids = nil
+}
+
+// SetPinnedAt sets the "pinned_at" field.
+func (m *ContentDraftMutation) SetPinnedAt(t time.Time) {
+	m.pinned_at = &t
+}
+
+// PinnedAt returns the value of the "pinned_at" field in the mutation.
+func (m *ContentDraftMutation) PinnedAt() (r time.Time, exists bool) {
+	v := m.pinned_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPinnedAt returns the old "pinned_at" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldPinnedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPinnedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPinnedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPinnedAt: %w", err)
+	}
+	return oldValue.PinnedAt, nil
+}
+
+// ClearPinnedAt clears the value of the "pinned_at" field.
+func (m *ContentDraftMutation) ClearPinnedAt() {
+	m.pinned_at = nil
+	m.clearedFields[contentdraft.FieldPinnedAt] = struct{}{}
+}
+
+// PinnedAtCleared returns if the "pinned_at" field was cleared in this mutation.
+func (m *ContentDraftMutation) PinnedAtCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldPinnedAt]
+	return ok
+}
+
+// ResetPinnedAt resets all changes to the "pinned_at" field.
+func (m *ContentDraftMutation) ResetPinnedAt() {
+	m.pinned_at = nil
+	delete(m.clearedFields, contentdraft.FieldPinnedAt)
+}
+
+// SetPlannedFor sets the "planned_for" field.
+func (m *ContentDraftMutation) SetPlannedFor(t time.Time) {
+	m.planned_for = &t
+}
+
+// PlannedFor returns the value of the "planned_for" field in the mutation.
+func (m *ContentDraftMutation) PlannedFor() (r time.Time, exists bool) {
+	v := m.planned_for
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlannedFor returns the old "planned_for" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldPlannedFor(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlannedFor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlannedFor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlannedFor: %w", err)
+	}
+	return oldValue.PlannedFor, nil
+}
+
+// ClearPlannedFor clears the value of the "planned_for" field.
+func (m *ContentDraftMutation) ClearPlannedFor() {
+	m.planned_for = nil
+	m.clearedFields[contentdraft.FieldPlannedFor] = struct{}{}
+}
+
+// PlannedForCleared returns if the "planned_for" field was cleared in this mutation.
+func (m *ContentDraftMutation) PlannedForCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldPlannedFor]
+	return ok
+}
+
+// ResetPlannedFor resets all changes to the "planned_for" field.
+func (m *ContentDraftMutation) ResetPlannedFor() {
+	m.planned_for = nil
+	delete(m.clearedFields, contentdraft.FieldPlannedFor)
+}
+
+// SetPlanTimeZone sets the "plan_time_zone" field.
+func (m *ContentDraftMutation) SetPlanTimeZone(s string) {
+	m.plan_time_zone = &s
+}
+
+// PlanTimeZone returns the value of the "plan_time_zone" field in the mutation.
+func (m *ContentDraftMutation) PlanTimeZone() (r string, exists bool) {
+	v := m.plan_time_zone
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlanTimeZone returns the old "plan_time_zone" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldPlanTimeZone(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlanTimeZone is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlanTimeZone requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlanTimeZone: %w", err)
+	}
+	return oldValue.PlanTimeZone, nil
+}
+
+// ClearPlanTimeZone clears the value of the "plan_time_zone" field.
+func (m *ContentDraftMutation) ClearPlanTimeZone() {
+	m.plan_time_zone = nil
+	m.clearedFields[contentdraft.FieldPlanTimeZone] = struct{}{}
+}
+
+// PlanTimeZoneCleared returns if the "plan_time_zone" field was cleared in this mutation.
+func (m *ContentDraftMutation) PlanTimeZoneCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldPlanTimeZone]
+	return ok
+}
+
+// ResetPlanTimeZone resets all changes to the "plan_time_zone" field.
+func (m *ContentDraftMutation) ResetPlanTimeZone() {
+	m.plan_time_zone = nil
+	delete(m.clearedFields, contentdraft.FieldPlanTimeZone)
+}
+
+// SetSourceDraftID sets the "source_draft_id" field.
+func (m *ContentDraftMutation) SetSourceDraftID(s string) {
+	m.source_draft_id = &s
+}
+
+// SourceDraftID returns the value of the "source_draft_id" field in the mutation.
+func (m *ContentDraftMutation) SourceDraftID() (r string, exists bool) {
+	v := m.source_draft_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceDraftID returns the old "source_draft_id" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldSourceDraftID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceDraftID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceDraftID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceDraftID: %w", err)
+	}
+	return oldValue.SourceDraftID, nil
+}
+
+// ClearSourceDraftID clears the value of the "source_draft_id" field.
+func (m *ContentDraftMutation) ClearSourceDraftID() {
+	m.source_draft_id = nil
+	m.clearedFields[contentdraft.FieldSourceDraftID] = struct{}{}
+}
+
+// SourceDraftIDCleared returns if the "source_draft_id" field was cleared in this mutation.
+func (m *ContentDraftMutation) SourceDraftIDCleared() bool {
+	_, ok := m.clearedFields[contentdraft.FieldSourceDraftID]
+	return ok
+}
+
+// ResetSourceDraftID resets all changes to the "source_draft_id" field.
+func (m *ContentDraftMutation) ResetSourceDraftID() {
+	m.source_draft_id = nil
+	delete(m.clearedFields, contentdraft.FieldSourceDraftID)
+}
+
 // SetCollabState sets the "collab_state" field.
 func (m *ContentDraftMutation) SetCollabState(b []byte) {
 	m.collab_state = &b
@@ -21715,7 +22273,7 @@ func (m *ContentDraftMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ContentDraftMutation) Fields() []string {
-	fields := make([]string, 0, 21)
+	fields := make([]string, 0, 33)
 	if m.organization_id != nil {
 		fields = append(fields, contentdraft.FieldOrganizationID)
 	}
@@ -21763,6 +22321,42 @@ func (m *ContentDraftMutation) Fields() []string {
 	}
 	if m.version != nil {
 		fields = append(fields, contentdraft.FieldVersion)
+	}
+	if m.social_set_id != nil {
+		fields = append(fields, contentdraft.FieldSocialSetID)
+	}
+	if m.kind != nil {
+		fields = append(fields, contentdraft.FieldKind)
+	}
+	if m.target != nil {
+		fields = append(fields, contentdraft.FieldTarget)
+	}
+	if m.primary_channel != nil {
+		fields = append(fields, contentdraft.FieldPrimaryChannel)
+	}
+	if m.platform_versions != nil {
+		fields = append(fields, contentdraft.FieldPlatformVersions)
+	}
+	if m.article != nil {
+		fields = append(fields, contentdraft.FieldArticle)
+	}
+	if m.scratchpad != nil {
+		fields = append(fields, contentdraft.FieldScratchpad)
+	}
+	if m.tag_ids != nil {
+		fields = append(fields, contentdraft.FieldTagIds)
+	}
+	if m.pinned_at != nil {
+		fields = append(fields, contentdraft.FieldPinnedAt)
+	}
+	if m.planned_for != nil {
+		fields = append(fields, contentdraft.FieldPlannedFor)
+	}
+	if m.plan_time_zone != nil {
+		fields = append(fields, contentdraft.FieldPlanTimeZone)
+	}
+	if m.source_draft_id != nil {
+		fields = append(fields, contentdraft.FieldSourceDraftID)
 	}
 	if m.collab_state != nil {
 		fields = append(fields, contentdraft.FieldCollabState)
@@ -21819,6 +22413,30 @@ func (m *ContentDraftMutation) Field(name string) (ent.Value, bool) {
 		return m.GuestComments()
 	case contentdraft.FieldVersion:
 		return m.Version()
+	case contentdraft.FieldSocialSetID:
+		return m.SocialSetID()
+	case contentdraft.FieldKind:
+		return m.Kind()
+	case contentdraft.FieldTarget:
+		return m.Target()
+	case contentdraft.FieldPrimaryChannel:
+		return m.PrimaryChannel()
+	case contentdraft.FieldPlatformVersions:
+		return m.PlatformVersions()
+	case contentdraft.FieldArticle:
+		return m.Article()
+	case contentdraft.FieldScratchpad:
+		return m.Scratchpad()
+	case contentdraft.FieldTagIds:
+		return m.TagIds()
+	case contentdraft.FieldPinnedAt:
+		return m.PinnedAt()
+	case contentdraft.FieldPlannedFor:
+		return m.PlannedFor()
+	case contentdraft.FieldPlanTimeZone:
+		return m.PlanTimeZone()
+	case contentdraft.FieldSourceDraftID:
+		return m.SourceDraftID()
 	case contentdraft.FieldCollabState:
 		return m.CollabState()
 	case contentdraft.FieldCreatedByUserID:
@@ -21870,6 +22488,30 @@ func (m *ContentDraftMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldGuestComments(ctx)
 	case contentdraft.FieldVersion:
 		return m.OldVersion(ctx)
+	case contentdraft.FieldSocialSetID:
+		return m.OldSocialSetID(ctx)
+	case contentdraft.FieldKind:
+		return m.OldKind(ctx)
+	case contentdraft.FieldTarget:
+		return m.OldTarget(ctx)
+	case contentdraft.FieldPrimaryChannel:
+		return m.OldPrimaryChannel(ctx)
+	case contentdraft.FieldPlatformVersions:
+		return m.OldPlatformVersions(ctx)
+	case contentdraft.FieldArticle:
+		return m.OldArticle(ctx)
+	case contentdraft.FieldScratchpad:
+		return m.OldScratchpad(ctx)
+	case contentdraft.FieldTagIds:
+		return m.OldTagIds(ctx)
+	case contentdraft.FieldPinnedAt:
+		return m.OldPinnedAt(ctx)
+	case contentdraft.FieldPlannedFor:
+		return m.OldPlannedFor(ctx)
+	case contentdraft.FieldPlanTimeZone:
+		return m.OldPlanTimeZone(ctx)
+	case contentdraft.FieldSourceDraftID:
+		return m.OldSourceDraftID(ctx)
 	case contentdraft.FieldCollabState:
 		return m.OldCollabState(ctx)
 	case contentdraft.FieldCreatedByUserID:
@@ -22001,6 +22643,90 @@ func (m *ContentDraftMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetVersion(v)
 		return nil
+	case contentdraft.FieldSocialSetID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSocialSetID(v)
+		return nil
+	case contentdraft.FieldKind:
+		v, ok := value.(contentdraft.Kind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case contentdraft.FieldTarget:
+		v, ok := value.(*draftdoc.Target)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTarget(v)
+		return nil
+	case contentdraft.FieldPrimaryChannel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrimaryChannel(v)
+		return nil
+	case contentdraft.FieldPlatformVersions:
+		v, ok := value.(draftdoc.PlatformVersions)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlatformVersions(v)
+		return nil
+	case contentdraft.FieldArticle:
+		v, ok := value.(*draftdoc.Article)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticle(v)
+		return nil
+	case contentdraft.FieldScratchpad:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScratchpad(v)
+		return nil
+	case contentdraft.FieldTagIds:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTagIds(v)
+		return nil
+	case contentdraft.FieldPinnedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPinnedAt(v)
+		return nil
+	case contentdraft.FieldPlannedFor:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlannedFor(v)
+		return nil
+	case contentdraft.FieldPlanTimeZone:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlanTimeZone(v)
+		return nil
+	case contentdraft.FieldSourceDraftID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceDraftID(v)
+		return nil
 	case contentdraft.FieldCollabState:
 		v, ok := value.([]byte)
 		if !ok {
@@ -22105,6 +22831,27 @@ func (m *ContentDraftMutation) ClearedFields() []string {
 	if m.FieldCleared(contentdraft.FieldShareToken) {
 		fields = append(fields, contentdraft.FieldShareToken)
 	}
+	if m.FieldCleared(contentdraft.FieldSocialSetID) {
+		fields = append(fields, contentdraft.FieldSocialSetID)
+	}
+	if m.FieldCleared(contentdraft.FieldTarget) {
+		fields = append(fields, contentdraft.FieldTarget)
+	}
+	if m.FieldCleared(contentdraft.FieldArticle) {
+		fields = append(fields, contentdraft.FieldArticle)
+	}
+	if m.FieldCleared(contentdraft.FieldPinnedAt) {
+		fields = append(fields, contentdraft.FieldPinnedAt)
+	}
+	if m.FieldCleared(contentdraft.FieldPlannedFor) {
+		fields = append(fields, contentdraft.FieldPlannedFor)
+	}
+	if m.FieldCleared(contentdraft.FieldPlanTimeZone) {
+		fields = append(fields, contentdraft.FieldPlanTimeZone)
+	}
+	if m.FieldCleared(contentdraft.FieldSourceDraftID) {
+		fields = append(fields, contentdraft.FieldSourceDraftID)
+	}
 	if m.FieldCleared(contentdraft.FieldCollabState) {
 		fields = append(fields, contentdraft.FieldCollabState)
 	}
@@ -22139,6 +22886,27 @@ func (m *ContentDraftMutation) ClearField(name string) error {
 		return nil
 	case contentdraft.FieldShareToken:
 		m.ClearShareToken()
+		return nil
+	case contentdraft.FieldSocialSetID:
+		m.ClearSocialSetID()
+		return nil
+	case contentdraft.FieldTarget:
+		m.ClearTarget()
+		return nil
+	case contentdraft.FieldArticle:
+		m.ClearArticle()
+		return nil
+	case contentdraft.FieldPinnedAt:
+		m.ClearPinnedAt()
+		return nil
+	case contentdraft.FieldPlannedFor:
+		m.ClearPlannedFor()
+		return nil
+	case contentdraft.FieldPlanTimeZone:
+		m.ClearPlanTimeZone()
+		return nil
+	case contentdraft.FieldSourceDraftID:
+		m.ClearSourceDraftID()
 		return nil
 	case contentdraft.FieldCollabState:
 		m.ClearCollabState()
@@ -22204,6 +22972,42 @@ func (m *ContentDraftMutation) ResetField(name string) error {
 		return nil
 	case contentdraft.FieldVersion:
 		m.ResetVersion()
+		return nil
+	case contentdraft.FieldSocialSetID:
+		m.ResetSocialSetID()
+		return nil
+	case contentdraft.FieldKind:
+		m.ResetKind()
+		return nil
+	case contentdraft.FieldTarget:
+		m.ResetTarget()
+		return nil
+	case contentdraft.FieldPrimaryChannel:
+		m.ResetPrimaryChannel()
+		return nil
+	case contentdraft.FieldPlatformVersions:
+		m.ResetPlatformVersions()
+		return nil
+	case contentdraft.FieldArticle:
+		m.ResetArticle()
+		return nil
+	case contentdraft.FieldScratchpad:
+		m.ResetScratchpad()
+		return nil
+	case contentdraft.FieldTagIds:
+		m.ResetTagIds()
+		return nil
+	case contentdraft.FieldPinnedAt:
+		m.ResetPinnedAt()
+		return nil
+	case contentdraft.FieldPlannedFor:
+		m.ResetPlannedFor()
+		return nil
+	case contentdraft.FieldPlanTimeZone:
+		m.ResetPlanTimeZone()
+		return nil
+	case contentdraft.FieldSourceDraftID:
+		m.ResetSourceDraftID()
 		return nil
 	case contentdraft.FieldCollabState:
 		m.ResetCollabState()
@@ -22272,6 +23076,662 @@ func (m *ContentDraftMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ContentDraft edge %s", name)
 }
 
+// ContentDraftFinisherMutation represents an operation that mutates the ContentDraftFinisher nodes in the graph.
+type ContentDraftFinisherMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *string
+	organization_id  *string
+	social_set_id    *string
+	name             *string
+	text             *string
+	quote_first_post *bool
+	created_at       *time.Time
+	updated_at       *time.Time
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*ContentDraftFinisher, error)
+	predicates       []predicate.ContentDraftFinisher
+}
+
+var _ ent.Mutation = (*ContentDraftFinisherMutation)(nil)
+
+// contentdraftfinisherOption allows management of the mutation configuration using functional options.
+type contentdraftfinisherOption func(*ContentDraftFinisherMutation)
+
+// newContentDraftFinisherMutation creates new mutation for the ContentDraftFinisher entity.
+func newContentDraftFinisherMutation(c config, op Op, opts ...contentdraftfinisherOption) *ContentDraftFinisherMutation {
+	m := &ContentDraftFinisherMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeContentDraftFinisher,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withContentDraftFinisherID sets the ID field of the mutation.
+func withContentDraftFinisherID(id string) contentdraftfinisherOption {
+	return func(m *ContentDraftFinisherMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ContentDraftFinisher
+		)
+		m.oldValue = func(ctx context.Context) (*ContentDraftFinisher, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ContentDraftFinisher.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withContentDraftFinisher sets the old ContentDraftFinisher of the mutation.
+func withContentDraftFinisher(node *ContentDraftFinisher) contentdraftfinisherOption {
+	return func(m *ContentDraftFinisherMutation) {
+		m.oldValue = func(context.Context) (*ContentDraftFinisher, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ContentDraftFinisherMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ContentDraftFinisherMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ContentDraftFinisher entities.
+func (m *ContentDraftFinisherMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ContentDraftFinisherMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ContentDraftFinisherMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ContentDraftFinisher.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *ContentDraftFinisherMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *ContentDraftFinisherMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the ContentDraftFinisher entity.
+// If the ContentDraftFinisher object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftFinisherMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *ContentDraftFinisherMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetSocialSetID sets the "social_set_id" field.
+func (m *ContentDraftFinisherMutation) SetSocialSetID(s string) {
+	m.social_set_id = &s
+}
+
+// SocialSetID returns the value of the "social_set_id" field in the mutation.
+func (m *ContentDraftFinisherMutation) SocialSetID() (r string, exists bool) {
+	v := m.social_set_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSocialSetID returns the old "social_set_id" field's value of the ContentDraftFinisher entity.
+// If the ContentDraftFinisher object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftFinisherMutation) OldSocialSetID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSocialSetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSocialSetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSocialSetID: %w", err)
+	}
+	return oldValue.SocialSetID, nil
+}
+
+// ResetSocialSetID resets all changes to the "social_set_id" field.
+func (m *ContentDraftFinisherMutation) ResetSocialSetID() {
+	m.social_set_id = nil
+}
+
+// SetName sets the "name" field.
+func (m *ContentDraftFinisherMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ContentDraftFinisherMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the ContentDraftFinisher entity.
+// If the ContentDraftFinisher object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftFinisherMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ContentDraftFinisherMutation) ResetName() {
+	m.name = nil
+}
+
+// SetText sets the "text" field.
+func (m *ContentDraftFinisherMutation) SetText(s string) {
+	m.text = &s
+}
+
+// Text returns the value of the "text" field in the mutation.
+func (m *ContentDraftFinisherMutation) Text() (r string, exists bool) {
+	v := m.text
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldText returns the old "text" field's value of the ContentDraftFinisher entity.
+// If the ContentDraftFinisher object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftFinisherMutation) OldText(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldText is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldText requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldText: %w", err)
+	}
+	return oldValue.Text, nil
+}
+
+// ResetText resets all changes to the "text" field.
+func (m *ContentDraftFinisherMutation) ResetText() {
+	m.text = nil
+}
+
+// SetQuoteFirstPost sets the "quote_first_post" field.
+func (m *ContentDraftFinisherMutation) SetQuoteFirstPost(b bool) {
+	m.quote_first_post = &b
+}
+
+// QuoteFirstPost returns the value of the "quote_first_post" field in the mutation.
+func (m *ContentDraftFinisherMutation) QuoteFirstPost() (r bool, exists bool) {
+	v := m.quote_first_post
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuoteFirstPost returns the old "quote_first_post" field's value of the ContentDraftFinisher entity.
+// If the ContentDraftFinisher object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftFinisherMutation) OldQuoteFirstPost(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuoteFirstPost is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuoteFirstPost requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuoteFirstPost: %w", err)
+	}
+	return oldValue.QuoteFirstPost, nil
+}
+
+// ResetQuoteFirstPost resets all changes to the "quote_first_post" field.
+func (m *ContentDraftFinisherMutation) ResetQuoteFirstPost() {
+	m.quote_first_post = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ContentDraftFinisherMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ContentDraftFinisherMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ContentDraftFinisher entity.
+// If the ContentDraftFinisher object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftFinisherMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ContentDraftFinisherMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ContentDraftFinisherMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ContentDraftFinisherMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ContentDraftFinisher entity.
+// If the ContentDraftFinisher object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftFinisherMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ContentDraftFinisherMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the ContentDraftFinisherMutation builder.
+func (m *ContentDraftFinisherMutation) Where(ps ...predicate.ContentDraftFinisher) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ContentDraftFinisherMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ContentDraftFinisherMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ContentDraftFinisher, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ContentDraftFinisherMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ContentDraftFinisherMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ContentDraftFinisher).
+func (m *ContentDraftFinisherMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ContentDraftFinisherMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.organization_id != nil {
+		fields = append(fields, contentdraftfinisher.FieldOrganizationID)
+	}
+	if m.social_set_id != nil {
+		fields = append(fields, contentdraftfinisher.FieldSocialSetID)
+	}
+	if m.name != nil {
+		fields = append(fields, contentdraftfinisher.FieldName)
+	}
+	if m.text != nil {
+		fields = append(fields, contentdraftfinisher.FieldText)
+	}
+	if m.quote_first_post != nil {
+		fields = append(fields, contentdraftfinisher.FieldQuoteFirstPost)
+	}
+	if m.created_at != nil {
+		fields = append(fields, contentdraftfinisher.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, contentdraftfinisher.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ContentDraftFinisherMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case contentdraftfinisher.FieldOrganizationID:
+		return m.OrganizationID()
+	case contentdraftfinisher.FieldSocialSetID:
+		return m.SocialSetID()
+	case contentdraftfinisher.FieldName:
+		return m.Name()
+	case contentdraftfinisher.FieldText:
+		return m.Text()
+	case contentdraftfinisher.FieldQuoteFirstPost:
+		return m.QuoteFirstPost()
+	case contentdraftfinisher.FieldCreatedAt:
+		return m.CreatedAt()
+	case contentdraftfinisher.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ContentDraftFinisherMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case contentdraftfinisher.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case contentdraftfinisher.FieldSocialSetID:
+		return m.OldSocialSetID(ctx)
+	case contentdraftfinisher.FieldName:
+		return m.OldName(ctx)
+	case contentdraftfinisher.FieldText:
+		return m.OldText(ctx)
+	case contentdraftfinisher.FieldQuoteFirstPost:
+		return m.OldQuoteFirstPost(ctx)
+	case contentdraftfinisher.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case contentdraftfinisher.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ContentDraftFinisher field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ContentDraftFinisherMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case contentdraftfinisher.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case contentdraftfinisher.FieldSocialSetID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSocialSetID(v)
+		return nil
+	case contentdraftfinisher.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case contentdraftfinisher.FieldText:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetText(v)
+		return nil
+	case contentdraftfinisher.FieldQuoteFirstPost:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuoteFirstPost(v)
+		return nil
+	case contentdraftfinisher.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case contentdraftfinisher.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraftFinisher field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ContentDraftFinisherMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ContentDraftFinisherMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ContentDraftFinisherMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ContentDraftFinisher numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ContentDraftFinisherMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ContentDraftFinisherMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ContentDraftFinisherMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ContentDraftFinisher nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ContentDraftFinisherMutation) ResetField(name string) error {
+	switch name {
+	case contentdraftfinisher.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case contentdraftfinisher.FieldSocialSetID:
+		m.ResetSocialSetID()
+		return nil
+	case contentdraftfinisher.FieldName:
+		m.ResetName()
+		return nil
+	case contentdraftfinisher.FieldText:
+		m.ResetText()
+		return nil
+	case contentdraftfinisher.FieldQuoteFirstPost:
+		m.ResetQuoteFirstPost()
+		return nil
+	case contentdraftfinisher.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case contentdraftfinisher.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraftFinisher field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ContentDraftFinisherMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ContentDraftFinisherMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ContentDraftFinisherMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ContentDraftFinisherMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ContentDraftFinisherMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ContentDraftFinisherMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ContentDraftFinisherMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ContentDraftFinisher unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ContentDraftFinisherMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ContentDraftFinisher edge %s", name)
+}
+
 // ContentDraftRevisionMutation represents an operation that mutates the ContentDraftRevision nodes in the graph.
 type ContentDraftRevisionMutation struct {
 	config
@@ -22286,6 +23746,9 @@ type ContentDraftRevisionMutation struct {
 	body               *[]interface{}
 	appendbody         []interface{}
 	plain_text         *string
+	platform_versions  *draftdoc.PlatformVersions
+	article            **draftdoc.Article
+	reason             *string
 	created_by_user_id *string
 	created_at         *time.Time
 	clearedFields      map[string]struct{}
@@ -22649,6 +24112,140 @@ func (m *ContentDraftRevisionMutation) ResetPlainText() {
 	m.plain_text = nil
 }
 
+// SetPlatformVersions sets the "platform_versions" field.
+func (m *ContentDraftRevisionMutation) SetPlatformVersions(dv draftdoc.PlatformVersions) {
+	m.platform_versions = &dv
+}
+
+// PlatformVersions returns the value of the "platform_versions" field in the mutation.
+func (m *ContentDraftRevisionMutation) PlatformVersions() (r draftdoc.PlatformVersions, exists bool) {
+	v := m.platform_versions
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPlatformVersions returns the old "platform_versions" field's value of the ContentDraftRevision entity.
+// If the ContentDraftRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftRevisionMutation) OldPlatformVersions(ctx context.Context) (v draftdoc.PlatformVersions, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPlatformVersions is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPlatformVersions requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPlatformVersions: %w", err)
+	}
+	return oldValue.PlatformVersions, nil
+}
+
+// ClearPlatformVersions clears the value of the "platform_versions" field.
+func (m *ContentDraftRevisionMutation) ClearPlatformVersions() {
+	m.platform_versions = nil
+	m.clearedFields[contentdraftrevision.FieldPlatformVersions] = struct{}{}
+}
+
+// PlatformVersionsCleared returns if the "platform_versions" field was cleared in this mutation.
+func (m *ContentDraftRevisionMutation) PlatformVersionsCleared() bool {
+	_, ok := m.clearedFields[contentdraftrevision.FieldPlatformVersions]
+	return ok
+}
+
+// ResetPlatformVersions resets all changes to the "platform_versions" field.
+func (m *ContentDraftRevisionMutation) ResetPlatformVersions() {
+	m.platform_versions = nil
+	delete(m.clearedFields, contentdraftrevision.FieldPlatformVersions)
+}
+
+// SetArticle sets the "article" field.
+func (m *ContentDraftRevisionMutation) SetArticle(d *draftdoc.Article) {
+	m.article = &d
+}
+
+// Article returns the value of the "article" field in the mutation.
+func (m *ContentDraftRevisionMutation) Article() (r *draftdoc.Article, exists bool) {
+	v := m.article
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArticle returns the old "article" field's value of the ContentDraftRevision entity.
+// If the ContentDraftRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftRevisionMutation) OldArticle(ctx context.Context) (v *draftdoc.Article, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArticle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArticle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArticle: %w", err)
+	}
+	return oldValue.Article, nil
+}
+
+// ClearArticle clears the value of the "article" field.
+func (m *ContentDraftRevisionMutation) ClearArticle() {
+	m.article = nil
+	m.clearedFields[contentdraftrevision.FieldArticle] = struct{}{}
+}
+
+// ArticleCleared returns if the "article" field was cleared in this mutation.
+func (m *ContentDraftRevisionMutation) ArticleCleared() bool {
+	_, ok := m.clearedFields[contentdraftrevision.FieldArticle]
+	return ok
+}
+
+// ResetArticle resets all changes to the "article" field.
+func (m *ContentDraftRevisionMutation) ResetArticle() {
+	m.article = nil
+	delete(m.clearedFields, contentdraftrevision.FieldArticle)
+}
+
+// SetReason sets the "reason" field.
+func (m *ContentDraftRevisionMutation) SetReason(s string) {
+	m.reason = &s
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *ContentDraftRevisionMutation) Reason() (r string, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the ContentDraftRevision entity.
+// If the ContentDraftRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftRevisionMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *ContentDraftRevisionMutation) ResetReason() {
+	m.reason = nil
+}
+
 // SetCreatedByUserID sets the "created_by_user_id" field.
 func (m *ContentDraftRevisionMutation) SetCreatedByUserID(s string) {
 	m.created_by_user_id = &s
@@ -22768,7 +24365,7 @@ func (m *ContentDraftRevisionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ContentDraftRevisionMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 11)
 	if m.organization_id != nil {
 		fields = append(fields, contentdraftrevision.FieldOrganizationID)
 	}
@@ -22786,6 +24383,15 @@ func (m *ContentDraftRevisionMutation) Fields() []string {
 	}
 	if m.plain_text != nil {
 		fields = append(fields, contentdraftrevision.FieldPlainText)
+	}
+	if m.platform_versions != nil {
+		fields = append(fields, contentdraftrevision.FieldPlatformVersions)
+	}
+	if m.article != nil {
+		fields = append(fields, contentdraftrevision.FieldArticle)
+	}
+	if m.reason != nil {
+		fields = append(fields, contentdraftrevision.FieldReason)
 	}
 	if m.created_by_user_id != nil {
 		fields = append(fields, contentdraftrevision.FieldCreatedByUserID)
@@ -22813,6 +24419,12 @@ func (m *ContentDraftRevisionMutation) Field(name string) (ent.Value, bool) {
 		return m.Body()
 	case contentdraftrevision.FieldPlainText:
 		return m.PlainText()
+	case contentdraftrevision.FieldPlatformVersions:
+		return m.PlatformVersions()
+	case contentdraftrevision.FieldArticle:
+		return m.Article()
+	case contentdraftrevision.FieldReason:
+		return m.Reason()
 	case contentdraftrevision.FieldCreatedByUserID:
 		return m.CreatedByUserID()
 	case contentdraftrevision.FieldCreatedAt:
@@ -22838,6 +24450,12 @@ func (m *ContentDraftRevisionMutation) OldField(ctx context.Context, name string
 		return m.OldBody(ctx)
 	case contentdraftrevision.FieldPlainText:
 		return m.OldPlainText(ctx)
+	case contentdraftrevision.FieldPlatformVersions:
+		return m.OldPlatformVersions(ctx)
+	case contentdraftrevision.FieldArticle:
+		return m.OldArticle(ctx)
+	case contentdraftrevision.FieldReason:
+		return m.OldReason(ctx)
 	case contentdraftrevision.FieldCreatedByUserID:
 		return m.OldCreatedByUserID(ctx)
 	case contentdraftrevision.FieldCreatedAt:
@@ -22892,6 +24510,27 @@ func (m *ContentDraftRevisionMutation) SetField(name string, value ent.Value) er
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPlainText(v)
+		return nil
+	case contentdraftrevision.FieldPlatformVersions:
+		v, ok := value.(draftdoc.PlatformVersions)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPlatformVersions(v)
+		return nil
+	case contentdraftrevision.FieldArticle:
+		v, ok := value.(*draftdoc.Article)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArticle(v)
+		return nil
+	case contentdraftrevision.FieldReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
 		return nil
 	case contentdraftrevision.FieldCreatedByUserID:
 		v, ok := value.(string)
@@ -22952,6 +24591,12 @@ func (m *ContentDraftRevisionMutation) AddField(name string, value ent.Value) er
 // mutation.
 func (m *ContentDraftRevisionMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(contentdraftrevision.FieldPlatformVersions) {
+		fields = append(fields, contentdraftrevision.FieldPlatformVersions)
+	}
+	if m.FieldCleared(contentdraftrevision.FieldArticle) {
+		fields = append(fields, contentdraftrevision.FieldArticle)
+	}
 	if m.FieldCleared(contentdraftrevision.FieldCreatedByUserID) {
 		fields = append(fields, contentdraftrevision.FieldCreatedByUserID)
 	}
@@ -22969,6 +24614,12 @@ func (m *ContentDraftRevisionMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ContentDraftRevisionMutation) ClearField(name string) error {
 	switch name {
+	case contentdraftrevision.FieldPlatformVersions:
+		m.ClearPlatformVersions()
+		return nil
+	case contentdraftrevision.FieldArticle:
+		m.ClearArticle()
+		return nil
 	case contentdraftrevision.FieldCreatedByUserID:
 		m.ClearCreatedByUserID()
 		return nil
@@ -22997,6 +24648,15 @@ func (m *ContentDraftRevisionMutation) ResetField(name string) error {
 		return nil
 	case contentdraftrevision.FieldPlainText:
 		m.ResetPlainText()
+		return nil
+	case contentdraftrevision.FieldPlatformVersions:
+		m.ResetPlatformVersions()
+		return nil
+	case contentdraftrevision.FieldArticle:
+		m.ResetArticle()
+		return nil
+	case contentdraftrevision.FieldReason:
+		m.ResetReason()
 		return nil
 	case contentdraftrevision.FieldCreatedByUserID:
 		m.ResetCreatedByUserID()
@@ -23510,6 +25170,554 @@ func (m *ContentDraftSettingsMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ContentDraftSettingsMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ContentDraftSettings edge %s", name)
+}
+
+// ContentDraftTagMutation represents an operation that mutates the ContentDraftTag nodes in the graph.
+type ContentDraftTagMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	social_set_id   *string
+	name            *string
+	color           *string
+	created_at      *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*ContentDraftTag, error)
+	predicates      []predicate.ContentDraftTag
+}
+
+var _ ent.Mutation = (*ContentDraftTagMutation)(nil)
+
+// contentdrafttagOption allows management of the mutation configuration using functional options.
+type contentdrafttagOption func(*ContentDraftTagMutation)
+
+// newContentDraftTagMutation creates new mutation for the ContentDraftTag entity.
+func newContentDraftTagMutation(c config, op Op, opts ...contentdrafttagOption) *ContentDraftTagMutation {
+	m := &ContentDraftTagMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeContentDraftTag,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withContentDraftTagID sets the ID field of the mutation.
+func withContentDraftTagID(id string) contentdrafttagOption {
+	return func(m *ContentDraftTagMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ContentDraftTag
+		)
+		m.oldValue = func(ctx context.Context) (*ContentDraftTag, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ContentDraftTag.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withContentDraftTag sets the old ContentDraftTag of the mutation.
+func withContentDraftTag(node *ContentDraftTag) contentdrafttagOption {
+	return func(m *ContentDraftTagMutation) {
+		m.oldValue = func(context.Context) (*ContentDraftTag, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ContentDraftTagMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ContentDraftTagMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ContentDraftTag entities.
+func (m *ContentDraftTagMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ContentDraftTagMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ContentDraftTagMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ContentDraftTag.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *ContentDraftTagMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *ContentDraftTagMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the ContentDraftTag entity.
+// If the ContentDraftTag object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftTagMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *ContentDraftTagMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetSocialSetID sets the "social_set_id" field.
+func (m *ContentDraftTagMutation) SetSocialSetID(s string) {
+	m.social_set_id = &s
+}
+
+// SocialSetID returns the value of the "social_set_id" field in the mutation.
+func (m *ContentDraftTagMutation) SocialSetID() (r string, exists bool) {
+	v := m.social_set_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSocialSetID returns the old "social_set_id" field's value of the ContentDraftTag entity.
+// If the ContentDraftTag object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftTagMutation) OldSocialSetID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSocialSetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSocialSetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSocialSetID: %w", err)
+	}
+	return oldValue.SocialSetID, nil
+}
+
+// ResetSocialSetID resets all changes to the "social_set_id" field.
+func (m *ContentDraftTagMutation) ResetSocialSetID() {
+	m.social_set_id = nil
+}
+
+// SetName sets the "name" field.
+func (m *ContentDraftTagMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ContentDraftTagMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the ContentDraftTag entity.
+// If the ContentDraftTag object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftTagMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ContentDraftTagMutation) ResetName() {
+	m.name = nil
+}
+
+// SetColor sets the "color" field.
+func (m *ContentDraftTagMutation) SetColor(s string) {
+	m.color = &s
+}
+
+// Color returns the value of the "color" field in the mutation.
+func (m *ContentDraftTagMutation) Color() (r string, exists bool) {
+	v := m.color
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldColor returns the old "color" field's value of the ContentDraftTag entity.
+// If the ContentDraftTag object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftTagMutation) OldColor(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldColor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldColor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldColor: %w", err)
+	}
+	return oldValue.Color, nil
+}
+
+// ResetColor resets all changes to the "color" field.
+func (m *ContentDraftTagMutation) ResetColor() {
+	m.color = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ContentDraftTagMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ContentDraftTagMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ContentDraftTag entity.
+// If the ContentDraftTag object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftTagMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ContentDraftTagMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the ContentDraftTagMutation builder.
+func (m *ContentDraftTagMutation) Where(ps ...predicate.ContentDraftTag) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ContentDraftTagMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ContentDraftTagMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ContentDraftTag, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ContentDraftTagMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ContentDraftTagMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ContentDraftTag).
+func (m *ContentDraftTagMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ContentDraftTagMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.organization_id != nil {
+		fields = append(fields, contentdrafttag.FieldOrganizationID)
+	}
+	if m.social_set_id != nil {
+		fields = append(fields, contentdrafttag.FieldSocialSetID)
+	}
+	if m.name != nil {
+		fields = append(fields, contentdrafttag.FieldName)
+	}
+	if m.color != nil {
+		fields = append(fields, contentdrafttag.FieldColor)
+	}
+	if m.created_at != nil {
+		fields = append(fields, contentdrafttag.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ContentDraftTagMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case contentdrafttag.FieldOrganizationID:
+		return m.OrganizationID()
+	case contentdrafttag.FieldSocialSetID:
+		return m.SocialSetID()
+	case contentdrafttag.FieldName:
+		return m.Name()
+	case contentdrafttag.FieldColor:
+		return m.Color()
+	case contentdrafttag.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ContentDraftTagMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case contentdrafttag.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case contentdrafttag.FieldSocialSetID:
+		return m.OldSocialSetID(ctx)
+	case contentdrafttag.FieldName:
+		return m.OldName(ctx)
+	case contentdrafttag.FieldColor:
+		return m.OldColor(ctx)
+	case contentdrafttag.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ContentDraftTag field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ContentDraftTagMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case contentdrafttag.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case contentdrafttag.FieldSocialSetID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSocialSetID(v)
+		return nil
+	case contentdrafttag.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case contentdrafttag.FieldColor:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetColor(v)
+		return nil
+	case contentdrafttag.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraftTag field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ContentDraftTagMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ContentDraftTagMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ContentDraftTagMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ContentDraftTag numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ContentDraftTagMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ContentDraftTagMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ContentDraftTagMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ContentDraftTag nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ContentDraftTagMutation) ResetField(name string) error {
+	switch name {
+	case contentdrafttag.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case contentdrafttag.FieldSocialSetID:
+		m.ResetSocialSetID()
+		return nil
+	case contentdrafttag.FieldName:
+		m.ResetName()
+		return nil
+	case contentdrafttag.FieldColor:
+		m.ResetColor()
+		return nil
+	case contentdrafttag.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ContentDraftTag field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ContentDraftTagMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ContentDraftTagMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ContentDraftTagMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ContentDraftTagMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ContentDraftTagMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ContentDraftTagMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ContentDraftTagMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ContentDraftTag unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ContentDraftTagMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ContentDraftTag edge %s", name)
 }
 
 // ConversationMutation represents an operation that mutates the Conversation nodes in the graph.
@@ -70177,6 +72385,1075 @@ func (m *SocialOAuthStartMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *SocialOAuthStartMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown SocialOAuthStart edge %s", name)
+}
+
+// SocialSetMutation represents an operation that mutates the SocialSet nodes in the graph.
+type SocialSetMutation struct {
+	config
+	op                           Op
+	typ                          string
+	id                           *string
+	organization_id              *string
+	name                         *string
+	color                        *string
+	is_default                   *bool
+	channel_connection_ids       *[]string
+	appendchannel_connection_ids []string
+	default_channels             *[]string
+	appenddefault_channels       []string
+	time_zone                    *string
+	visibility                   *socialset.Visibility
+	member_user_ids              *[]string
+	appendmember_user_ids        []string
+	preferences                  *schema.SocialSetPreferences
+	created_by_user_id           *string
+	created_at                   *time.Time
+	updated_at                   *time.Time
+	clearedFields                map[string]struct{}
+	done                         bool
+	oldValue                     func(context.Context) (*SocialSet, error)
+	predicates                   []predicate.SocialSet
+}
+
+var _ ent.Mutation = (*SocialSetMutation)(nil)
+
+// socialsetOption allows management of the mutation configuration using functional options.
+type socialsetOption func(*SocialSetMutation)
+
+// newSocialSetMutation creates new mutation for the SocialSet entity.
+func newSocialSetMutation(c config, op Op, opts ...socialsetOption) *SocialSetMutation {
+	m := &SocialSetMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSocialSet,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSocialSetID sets the ID field of the mutation.
+func withSocialSetID(id string) socialsetOption {
+	return func(m *SocialSetMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *SocialSet
+		)
+		m.oldValue = func(ctx context.Context) (*SocialSet, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().SocialSet.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSocialSet sets the old SocialSet of the mutation.
+func withSocialSet(node *SocialSet) socialsetOption {
+	return func(m *SocialSetMutation) {
+		m.oldValue = func(context.Context) (*SocialSet, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SocialSetMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SocialSetMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of SocialSet entities.
+func (m *SocialSetMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *SocialSetMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *SocialSetMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().SocialSet.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *SocialSetMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *SocialSetMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *SocialSetMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetName sets the "name" field.
+func (m *SocialSetMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *SocialSetMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *SocialSetMutation) ResetName() {
+	m.name = nil
+}
+
+// SetColor sets the "color" field.
+func (m *SocialSetMutation) SetColor(s string) {
+	m.color = &s
+}
+
+// Color returns the value of the "color" field in the mutation.
+func (m *SocialSetMutation) Color() (r string, exists bool) {
+	v := m.color
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldColor returns the old "color" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldColor(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldColor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldColor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldColor: %w", err)
+	}
+	return oldValue.Color, nil
+}
+
+// ResetColor resets all changes to the "color" field.
+func (m *SocialSetMutation) ResetColor() {
+	m.color = nil
+}
+
+// SetIsDefault sets the "is_default" field.
+func (m *SocialSetMutation) SetIsDefault(b bool) {
+	m.is_default = &b
+}
+
+// IsDefault returns the value of the "is_default" field in the mutation.
+func (m *SocialSetMutation) IsDefault() (r bool, exists bool) {
+	v := m.is_default
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsDefault returns the old "is_default" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldIsDefault(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsDefault is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsDefault requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsDefault: %w", err)
+	}
+	return oldValue.IsDefault, nil
+}
+
+// ResetIsDefault resets all changes to the "is_default" field.
+func (m *SocialSetMutation) ResetIsDefault() {
+	m.is_default = nil
+}
+
+// SetChannelConnectionIds sets the "channel_connection_ids" field.
+func (m *SocialSetMutation) SetChannelConnectionIds(s []string) {
+	m.channel_connection_ids = &s
+	m.appendchannel_connection_ids = nil
+}
+
+// ChannelConnectionIds returns the value of the "channel_connection_ids" field in the mutation.
+func (m *SocialSetMutation) ChannelConnectionIds() (r []string, exists bool) {
+	v := m.channel_connection_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChannelConnectionIds returns the old "channel_connection_ids" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldChannelConnectionIds(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChannelConnectionIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChannelConnectionIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelConnectionIds: %w", err)
+	}
+	return oldValue.ChannelConnectionIds, nil
+}
+
+// AppendChannelConnectionIds adds s to the "channel_connection_ids" field.
+func (m *SocialSetMutation) AppendChannelConnectionIds(s []string) {
+	m.appendchannel_connection_ids = append(m.appendchannel_connection_ids, s...)
+}
+
+// AppendedChannelConnectionIds returns the list of values that were appended to the "channel_connection_ids" field in this mutation.
+func (m *SocialSetMutation) AppendedChannelConnectionIds() ([]string, bool) {
+	if len(m.appendchannel_connection_ids) == 0 {
+		return nil, false
+	}
+	return m.appendchannel_connection_ids, true
+}
+
+// ResetChannelConnectionIds resets all changes to the "channel_connection_ids" field.
+func (m *SocialSetMutation) ResetChannelConnectionIds() {
+	m.channel_connection_ids = nil
+	m.appendchannel_connection_ids = nil
+}
+
+// SetDefaultChannels sets the "default_channels" field.
+func (m *SocialSetMutation) SetDefaultChannels(s []string) {
+	m.default_channels = &s
+	m.appenddefault_channels = nil
+}
+
+// DefaultChannels returns the value of the "default_channels" field in the mutation.
+func (m *SocialSetMutation) DefaultChannels() (r []string, exists bool) {
+	v := m.default_channels
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDefaultChannels returns the old "default_channels" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldDefaultChannels(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDefaultChannels is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDefaultChannels requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDefaultChannels: %w", err)
+	}
+	return oldValue.DefaultChannels, nil
+}
+
+// AppendDefaultChannels adds s to the "default_channels" field.
+func (m *SocialSetMutation) AppendDefaultChannels(s []string) {
+	m.appenddefault_channels = append(m.appenddefault_channels, s...)
+}
+
+// AppendedDefaultChannels returns the list of values that were appended to the "default_channels" field in this mutation.
+func (m *SocialSetMutation) AppendedDefaultChannels() ([]string, bool) {
+	if len(m.appenddefault_channels) == 0 {
+		return nil, false
+	}
+	return m.appenddefault_channels, true
+}
+
+// ResetDefaultChannels resets all changes to the "default_channels" field.
+func (m *SocialSetMutation) ResetDefaultChannels() {
+	m.default_channels = nil
+	m.appenddefault_channels = nil
+}
+
+// SetTimeZone sets the "time_zone" field.
+func (m *SocialSetMutation) SetTimeZone(s string) {
+	m.time_zone = &s
+}
+
+// TimeZone returns the value of the "time_zone" field in the mutation.
+func (m *SocialSetMutation) TimeZone() (r string, exists bool) {
+	v := m.time_zone
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTimeZone returns the old "time_zone" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldTimeZone(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTimeZone is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTimeZone requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTimeZone: %w", err)
+	}
+	return oldValue.TimeZone, nil
+}
+
+// ClearTimeZone clears the value of the "time_zone" field.
+func (m *SocialSetMutation) ClearTimeZone() {
+	m.time_zone = nil
+	m.clearedFields[socialset.FieldTimeZone] = struct{}{}
+}
+
+// TimeZoneCleared returns if the "time_zone" field was cleared in this mutation.
+func (m *SocialSetMutation) TimeZoneCleared() bool {
+	_, ok := m.clearedFields[socialset.FieldTimeZone]
+	return ok
+}
+
+// ResetTimeZone resets all changes to the "time_zone" field.
+func (m *SocialSetMutation) ResetTimeZone() {
+	m.time_zone = nil
+	delete(m.clearedFields, socialset.FieldTimeZone)
+}
+
+// SetVisibility sets the "visibility" field.
+func (m *SocialSetMutation) SetVisibility(s socialset.Visibility) {
+	m.visibility = &s
+}
+
+// Visibility returns the value of the "visibility" field in the mutation.
+func (m *SocialSetMutation) Visibility() (r socialset.Visibility, exists bool) {
+	v := m.visibility
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVisibility returns the old "visibility" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldVisibility(ctx context.Context) (v socialset.Visibility, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVisibility is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVisibility requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVisibility: %w", err)
+	}
+	return oldValue.Visibility, nil
+}
+
+// ResetVisibility resets all changes to the "visibility" field.
+func (m *SocialSetMutation) ResetVisibility() {
+	m.visibility = nil
+}
+
+// SetMemberUserIds sets the "member_user_ids" field.
+func (m *SocialSetMutation) SetMemberUserIds(s []string) {
+	m.member_user_ids = &s
+	m.appendmember_user_ids = nil
+}
+
+// MemberUserIds returns the value of the "member_user_ids" field in the mutation.
+func (m *SocialSetMutation) MemberUserIds() (r []string, exists bool) {
+	v := m.member_user_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMemberUserIds returns the old "member_user_ids" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldMemberUserIds(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMemberUserIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMemberUserIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMemberUserIds: %w", err)
+	}
+	return oldValue.MemberUserIds, nil
+}
+
+// AppendMemberUserIds adds s to the "member_user_ids" field.
+func (m *SocialSetMutation) AppendMemberUserIds(s []string) {
+	m.appendmember_user_ids = append(m.appendmember_user_ids, s...)
+}
+
+// AppendedMemberUserIds returns the list of values that were appended to the "member_user_ids" field in this mutation.
+func (m *SocialSetMutation) AppendedMemberUserIds() ([]string, bool) {
+	if len(m.appendmember_user_ids) == 0 {
+		return nil, false
+	}
+	return m.appendmember_user_ids, true
+}
+
+// ResetMemberUserIds resets all changes to the "member_user_ids" field.
+func (m *SocialSetMutation) ResetMemberUserIds() {
+	m.member_user_ids = nil
+	m.appendmember_user_ids = nil
+}
+
+// SetPreferences sets the "preferences" field.
+func (m *SocialSetMutation) SetPreferences(ssp schema.SocialSetPreferences) {
+	m.preferences = &ssp
+}
+
+// Preferences returns the value of the "preferences" field in the mutation.
+func (m *SocialSetMutation) Preferences() (r schema.SocialSetPreferences, exists bool) {
+	v := m.preferences
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPreferences returns the old "preferences" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldPreferences(ctx context.Context) (v schema.SocialSetPreferences, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPreferences is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPreferences requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPreferences: %w", err)
+	}
+	return oldValue.Preferences, nil
+}
+
+// ResetPreferences resets all changes to the "preferences" field.
+func (m *SocialSetMutation) ResetPreferences() {
+	m.preferences = nil
+}
+
+// SetCreatedByUserID sets the "created_by_user_id" field.
+func (m *SocialSetMutation) SetCreatedByUserID(s string) {
+	m.created_by_user_id = &s
+}
+
+// CreatedByUserID returns the value of the "created_by_user_id" field in the mutation.
+func (m *SocialSetMutation) CreatedByUserID() (r string, exists bool) {
+	v := m.created_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedByUserID returns the old "created_by_user_id" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldCreatedByUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedByUserID: %w", err)
+	}
+	return oldValue.CreatedByUserID, nil
+}
+
+// ClearCreatedByUserID clears the value of the "created_by_user_id" field.
+func (m *SocialSetMutation) ClearCreatedByUserID() {
+	m.created_by_user_id = nil
+	m.clearedFields[socialset.FieldCreatedByUserID] = struct{}{}
+}
+
+// CreatedByUserIDCleared returns if the "created_by_user_id" field was cleared in this mutation.
+func (m *SocialSetMutation) CreatedByUserIDCleared() bool {
+	_, ok := m.clearedFields[socialset.FieldCreatedByUserID]
+	return ok
+}
+
+// ResetCreatedByUserID resets all changes to the "created_by_user_id" field.
+func (m *SocialSetMutation) ResetCreatedByUserID() {
+	m.created_by_user_id = nil
+	delete(m.clearedFields, socialset.FieldCreatedByUserID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *SocialSetMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *SocialSetMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *SocialSetMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *SocialSetMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *SocialSetMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the SocialSet entity.
+// If the SocialSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialSetMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *SocialSetMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the SocialSetMutation builder.
+func (m *SocialSetMutation) Where(ps ...predicate.SocialSet) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the SocialSetMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *SocialSetMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.SocialSet, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *SocialSetMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *SocialSetMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (SocialSet).
+func (m *SocialSetMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SocialSetMutation) Fields() []string {
+	fields := make([]string, 0, 13)
+	if m.organization_id != nil {
+		fields = append(fields, socialset.FieldOrganizationID)
+	}
+	if m.name != nil {
+		fields = append(fields, socialset.FieldName)
+	}
+	if m.color != nil {
+		fields = append(fields, socialset.FieldColor)
+	}
+	if m.is_default != nil {
+		fields = append(fields, socialset.FieldIsDefault)
+	}
+	if m.channel_connection_ids != nil {
+		fields = append(fields, socialset.FieldChannelConnectionIds)
+	}
+	if m.default_channels != nil {
+		fields = append(fields, socialset.FieldDefaultChannels)
+	}
+	if m.time_zone != nil {
+		fields = append(fields, socialset.FieldTimeZone)
+	}
+	if m.visibility != nil {
+		fields = append(fields, socialset.FieldVisibility)
+	}
+	if m.member_user_ids != nil {
+		fields = append(fields, socialset.FieldMemberUserIds)
+	}
+	if m.preferences != nil {
+		fields = append(fields, socialset.FieldPreferences)
+	}
+	if m.created_by_user_id != nil {
+		fields = append(fields, socialset.FieldCreatedByUserID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, socialset.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, socialset.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SocialSetMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case socialset.FieldOrganizationID:
+		return m.OrganizationID()
+	case socialset.FieldName:
+		return m.Name()
+	case socialset.FieldColor:
+		return m.Color()
+	case socialset.FieldIsDefault:
+		return m.IsDefault()
+	case socialset.FieldChannelConnectionIds:
+		return m.ChannelConnectionIds()
+	case socialset.FieldDefaultChannels:
+		return m.DefaultChannels()
+	case socialset.FieldTimeZone:
+		return m.TimeZone()
+	case socialset.FieldVisibility:
+		return m.Visibility()
+	case socialset.FieldMemberUserIds:
+		return m.MemberUserIds()
+	case socialset.FieldPreferences:
+		return m.Preferences()
+	case socialset.FieldCreatedByUserID:
+		return m.CreatedByUserID()
+	case socialset.FieldCreatedAt:
+		return m.CreatedAt()
+	case socialset.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SocialSetMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case socialset.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case socialset.FieldName:
+		return m.OldName(ctx)
+	case socialset.FieldColor:
+		return m.OldColor(ctx)
+	case socialset.FieldIsDefault:
+		return m.OldIsDefault(ctx)
+	case socialset.FieldChannelConnectionIds:
+		return m.OldChannelConnectionIds(ctx)
+	case socialset.FieldDefaultChannels:
+		return m.OldDefaultChannels(ctx)
+	case socialset.FieldTimeZone:
+		return m.OldTimeZone(ctx)
+	case socialset.FieldVisibility:
+		return m.OldVisibility(ctx)
+	case socialset.FieldMemberUserIds:
+		return m.OldMemberUserIds(ctx)
+	case socialset.FieldPreferences:
+		return m.OldPreferences(ctx)
+	case socialset.FieldCreatedByUserID:
+		return m.OldCreatedByUserID(ctx)
+	case socialset.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case socialset.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown SocialSet field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SocialSetMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case socialset.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case socialset.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case socialset.FieldColor:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetColor(v)
+		return nil
+	case socialset.FieldIsDefault:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsDefault(v)
+		return nil
+	case socialset.FieldChannelConnectionIds:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChannelConnectionIds(v)
+		return nil
+	case socialset.FieldDefaultChannels:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDefaultChannels(v)
+		return nil
+	case socialset.FieldTimeZone:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTimeZone(v)
+		return nil
+	case socialset.FieldVisibility:
+		v, ok := value.(socialset.Visibility)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVisibility(v)
+		return nil
+	case socialset.FieldMemberUserIds:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMemberUserIds(v)
+		return nil
+	case socialset.FieldPreferences:
+		v, ok := value.(schema.SocialSetPreferences)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPreferences(v)
+		return nil
+	case socialset.FieldCreatedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedByUserID(v)
+		return nil
+	case socialset.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case socialset.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown SocialSet field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SocialSetMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SocialSetMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SocialSetMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown SocialSet numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SocialSetMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(socialset.FieldTimeZone) {
+		fields = append(fields, socialset.FieldTimeZone)
+	}
+	if m.FieldCleared(socialset.FieldCreatedByUserID) {
+		fields = append(fields, socialset.FieldCreatedByUserID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SocialSetMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SocialSetMutation) ClearField(name string) error {
+	switch name {
+	case socialset.FieldTimeZone:
+		m.ClearTimeZone()
+		return nil
+	case socialset.FieldCreatedByUserID:
+		m.ClearCreatedByUserID()
+		return nil
+	}
+	return fmt.Errorf("unknown SocialSet nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SocialSetMutation) ResetField(name string) error {
+	switch name {
+	case socialset.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case socialset.FieldName:
+		m.ResetName()
+		return nil
+	case socialset.FieldColor:
+		m.ResetColor()
+		return nil
+	case socialset.FieldIsDefault:
+		m.ResetIsDefault()
+		return nil
+	case socialset.FieldChannelConnectionIds:
+		m.ResetChannelConnectionIds()
+		return nil
+	case socialset.FieldDefaultChannels:
+		m.ResetDefaultChannels()
+		return nil
+	case socialset.FieldTimeZone:
+		m.ResetTimeZone()
+		return nil
+	case socialset.FieldVisibility:
+		m.ResetVisibility()
+		return nil
+	case socialset.FieldMemberUserIds:
+		m.ResetMemberUserIds()
+		return nil
+	case socialset.FieldPreferences:
+		m.ResetPreferences()
+		return nil
+	case socialset.FieldCreatedByUserID:
+		m.ResetCreatedByUserID()
+		return nil
+	case socialset.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case socialset.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown SocialSet field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SocialSetMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SocialSetMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SocialSetMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SocialSetMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SocialSetMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SocialSetMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SocialSetMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown SocialSet unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SocialSetMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown SocialSet edge %s", name)
 }
 
 // SocialTenantBindingMutation represents an operation that mutates the SocialTenantBinding nodes in the graph.

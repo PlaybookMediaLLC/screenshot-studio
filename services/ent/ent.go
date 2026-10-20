@@ -35,8 +35,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftfinisher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftsettings"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdrafttag"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/conversationmessage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativetemplate"
@@ -88,6 +90,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
@@ -185,8 +188,10 @@ func checkColumn(t, c string) error {
 			communicationrecipient.Table:         communicationrecipient.ValidColumn,
 			contentangle.Table:                   contentangle.ValidColumn,
 			contentdraft.Table:                   contentdraft.ValidColumn,
+			contentdraftfinisher.Table:           contentdraftfinisher.ValidColumn,
 			contentdraftrevision.Table:           contentdraftrevision.ValidColumn,
 			contentdraftsettings.Table:           contentdraftsettings.ValidColumn,
+			contentdrafttag.Table:                contentdrafttag.ValidColumn,
 			conversation.Table:                   conversation.ValidColumn,
 			conversationmessage.Table:            conversationmessage.ValidColumn,
 			creativetemplate.Table:               creativetemplate.ValidColumn,
@@ -237,6 +242,7 @@ func checkColumn(t, c string) error {
 			session.Table:                        session.ValidColumn,
 			sharelink.Table:                      sharelink.ValidColumn,
 			socialoauthstart.Table:               socialoauthstart.ValidColumn,
+			socialset.Table:                      socialset.ValidColumn,
 			socialtenantbinding.Table:            socialtenantbinding.ValidColumn,
 			sourceapp.Table:                      sourceapp.ValidColumn,
 			sourcechange.Table:                   sourcechange.ValidColumn,

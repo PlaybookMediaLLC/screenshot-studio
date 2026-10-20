@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
 // ContentDraftUpdate is the builder for updating ContentDraft entities.
@@ -253,6 +254,164 @@ func (_u *ContentDraftUpdate) AddVersion(v int) *ContentDraftUpdate {
 	return _u
 }
 
+// SetSocialSetID sets the "social_set_id" field.
+func (_u *ContentDraftUpdate) SetSocialSetID(v string) *ContentDraftUpdate {
+	_u.mutation.SetSocialSetID(v)
+	return _u
+}
+
+// SetNillableSocialSetID sets the "social_set_id" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableSocialSetID(v *string) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetSocialSetID(*v)
+	}
+	return _u
+}
+
+// ClearSocialSetID clears the value of the "social_set_id" field.
+func (_u *ContentDraftUpdate) ClearSocialSetID() *ContentDraftUpdate {
+	_u.mutation.ClearSocialSetID()
+	return _u
+}
+
+// SetTarget sets the "target" field.
+func (_u *ContentDraftUpdate) SetTarget(v *draftdoc.Target) *ContentDraftUpdate {
+	_u.mutation.SetTarget(v)
+	return _u
+}
+
+// ClearTarget clears the value of the "target" field.
+func (_u *ContentDraftUpdate) ClearTarget() *ContentDraftUpdate {
+	_u.mutation.ClearTarget()
+	return _u
+}
+
+// SetPrimaryChannel sets the "primary_channel" field.
+func (_u *ContentDraftUpdate) SetPrimaryChannel(v string) *ContentDraftUpdate {
+	_u.mutation.SetPrimaryChannel(v)
+	return _u
+}
+
+// SetNillablePrimaryChannel sets the "primary_channel" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillablePrimaryChannel(v *string) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetPrimaryChannel(*v)
+	}
+	return _u
+}
+
+// SetPlatformVersions sets the "platform_versions" field.
+func (_u *ContentDraftUpdate) SetPlatformVersions(v draftdoc.PlatformVersions) *ContentDraftUpdate {
+	_u.mutation.SetPlatformVersions(v)
+	return _u
+}
+
+// SetNillablePlatformVersions sets the "platform_versions" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillablePlatformVersions(v *draftdoc.PlatformVersions) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetPlatformVersions(*v)
+	}
+	return _u
+}
+
+// SetArticle sets the "article" field.
+func (_u *ContentDraftUpdate) SetArticle(v *draftdoc.Article) *ContentDraftUpdate {
+	_u.mutation.SetArticle(v)
+	return _u
+}
+
+// ClearArticle clears the value of the "article" field.
+func (_u *ContentDraftUpdate) ClearArticle() *ContentDraftUpdate {
+	_u.mutation.ClearArticle()
+	return _u
+}
+
+// SetScratchpad sets the "scratchpad" field.
+func (_u *ContentDraftUpdate) SetScratchpad(v string) *ContentDraftUpdate {
+	_u.mutation.SetScratchpad(v)
+	return _u
+}
+
+// SetNillableScratchpad sets the "scratchpad" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableScratchpad(v *string) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetScratchpad(*v)
+	}
+	return _u
+}
+
+// SetTagIds sets the "tag_ids" field.
+func (_u *ContentDraftUpdate) SetTagIds(v []string) *ContentDraftUpdate {
+	_u.mutation.SetTagIds(v)
+	return _u
+}
+
+// AppendTagIds appends value to the "tag_ids" field.
+func (_u *ContentDraftUpdate) AppendTagIds(v []string) *ContentDraftUpdate {
+	_u.mutation.AppendTagIds(v)
+	return _u
+}
+
+// SetPinnedAt sets the "pinned_at" field.
+func (_u *ContentDraftUpdate) SetPinnedAt(v time.Time) *ContentDraftUpdate {
+	_u.mutation.SetPinnedAt(v)
+	return _u
+}
+
+// SetNillablePinnedAt sets the "pinned_at" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillablePinnedAt(v *time.Time) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetPinnedAt(*v)
+	}
+	return _u
+}
+
+// ClearPinnedAt clears the value of the "pinned_at" field.
+func (_u *ContentDraftUpdate) ClearPinnedAt() *ContentDraftUpdate {
+	_u.mutation.ClearPinnedAt()
+	return _u
+}
+
+// SetPlannedFor sets the "planned_for" field.
+func (_u *ContentDraftUpdate) SetPlannedFor(v time.Time) *ContentDraftUpdate {
+	_u.mutation.SetPlannedFor(v)
+	return _u
+}
+
+// SetNillablePlannedFor sets the "planned_for" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillablePlannedFor(v *time.Time) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetPlannedFor(*v)
+	}
+	return _u
+}
+
+// ClearPlannedFor clears the value of the "planned_for" field.
+func (_u *ContentDraftUpdate) ClearPlannedFor() *ContentDraftUpdate {
+	_u.mutation.ClearPlannedFor()
+	return _u
+}
+
+// SetPlanTimeZone sets the "plan_time_zone" field.
+func (_u *ContentDraftUpdate) SetPlanTimeZone(v string) *ContentDraftUpdate {
+	_u.mutation.SetPlanTimeZone(v)
+	return _u
+}
+
+// SetNillablePlanTimeZone sets the "plan_time_zone" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillablePlanTimeZone(v *string) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetPlanTimeZone(*v)
+	}
+	return _u
+}
+
+// ClearPlanTimeZone clears the value of the "plan_time_zone" field.
+func (_u *ContentDraftUpdate) ClearPlanTimeZone() *ContentDraftUpdate {
+	_u.mutation.ClearPlanTimeZone()
+	return _u
+}
+
 // SetCollabState sets the "collab_state" field.
 func (_u *ContentDraftUpdate) SetCollabState(v []byte) *ContentDraftUpdate {
 	_u.mutation.SetCollabState(v)
@@ -461,6 +620,62 @@ func (_u *ContentDraftUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.AddedVersion(); ok {
 		_spec.AddField(contentdraft.FieldVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.SocialSetID(); ok {
+		_spec.SetField(contentdraft.FieldSocialSetID, field.TypeString, value)
+	}
+	if _u.mutation.SocialSetIDCleared() {
+		_spec.ClearField(contentdraft.FieldSocialSetID, field.TypeString)
+	}
+	if value, ok := _u.mutation.Target(); ok {
+		_spec.SetField(contentdraft.FieldTarget, field.TypeJSON, value)
+	}
+	if _u.mutation.TargetCleared() {
+		_spec.ClearField(contentdraft.FieldTarget, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.PrimaryChannel(); ok {
+		_spec.SetField(contentdraft.FieldPrimaryChannel, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.PlatformVersions(); ok {
+		_spec.SetField(contentdraft.FieldPlatformVersions, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.Article(); ok {
+		_spec.SetField(contentdraft.FieldArticle, field.TypeJSON, value)
+	}
+	if _u.mutation.ArticleCleared() {
+		_spec.ClearField(contentdraft.FieldArticle, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Scratchpad(); ok {
+		_spec.SetField(contentdraft.FieldScratchpad, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.TagIds(); ok {
+		_spec.SetField(contentdraft.FieldTagIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedTagIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, contentdraft.FieldTagIds, value)
+		})
+	}
+	if value, ok := _u.mutation.PinnedAt(); ok {
+		_spec.SetField(contentdraft.FieldPinnedAt, field.TypeTime, value)
+	}
+	if _u.mutation.PinnedAtCleared() {
+		_spec.ClearField(contentdraft.FieldPinnedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PlannedFor(); ok {
+		_spec.SetField(contentdraft.FieldPlannedFor, field.TypeTime, value)
+	}
+	if _u.mutation.PlannedForCleared() {
+		_spec.ClearField(contentdraft.FieldPlannedFor, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PlanTimeZone(); ok {
+		_spec.SetField(contentdraft.FieldPlanTimeZone, field.TypeString, value)
+	}
+	if _u.mutation.PlanTimeZoneCleared() {
+		_spec.ClearField(contentdraft.FieldPlanTimeZone, field.TypeString)
+	}
+	if _u.mutation.SourceDraftIDCleared() {
+		_spec.ClearField(contentdraft.FieldSourceDraftID, field.TypeString)
 	}
 	if value, ok := _u.mutation.CollabState(); ok {
 		_spec.SetField(contentdraft.FieldCollabState, field.TypeBytes, value)
@@ -727,6 +942,164 @@ func (_u *ContentDraftUpdateOne) AddVersion(v int) *ContentDraftUpdateOne {
 	return _u
 }
 
+// SetSocialSetID sets the "social_set_id" field.
+func (_u *ContentDraftUpdateOne) SetSocialSetID(v string) *ContentDraftUpdateOne {
+	_u.mutation.SetSocialSetID(v)
+	return _u
+}
+
+// SetNillableSocialSetID sets the "social_set_id" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableSocialSetID(v *string) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetSocialSetID(*v)
+	}
+	return _u
+}
+
+// ClearSocialSetID clears the value of the "social_set_id" field.
+func (_u *ContentDraftUpdateOne) ClearSocialSetID() *ContentDraftUpdateOne {
+	_u.mutation.ClearSocialSetID()
+	return _u
+}
+
+// SetTarget sets the "target" field.
+func (_u *ContentDraftUpdateOne) SetTarget(v *draftdoc.Target) *ContentDraftUpdateOne {
+	_u.mutation.SetTarget(v)
+	return _u
+}
+
+// ClearTarget clears the value of the "target" field.
+func (_u *ContentDraftUpdateOne) ClearTarget() *ContentDraftUpdateOne {
+	_u.mutation.ClearTarget()
+	return _u
+}
+
+// SetPrimaryChannel sets the "primary_channel" field.
+func (_u *ContentDraftUpdateOne) SetPrimaryChannel(v string) *ContentDraftUpdateOne {
+	_u.mutation.SetPrimaryChannel(v)
+	return _u
+}
+
+// SetNillablePrimaryChannel sets the "primary_channel" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillablePrimaryChannel(v *string) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetPrimaryChannel(*v)
+	}
+	return _u
+}
+
+// SetPlatformVersions sets the "platform_versions" field.
+func (_u *ContentDraftUpdateOne) SetPlatformVersions(v draftdoc.PlatformVersions) *ContentDraftUpdateOne {
+	_u.mutation.SetPlatformVersions(v)
+	return _u
+}
+
+// SetNillablePlatformVersions sets the "platform_versions" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillablePlatformVersions(v *draftdoc.PlatformVersions) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetPlatformVersions(*v)
+	}
+	return _u
+}
+
+// SetArticle sets the "article" field.
+func (_u *ContentDraftUpdateOne) SetArticle(v *draftdoc.Article) *ContentDraftUpdateOne {
+	_u.mutation.SetArticle(v)
+	return _u
+}
+
+// ClearArticle clears the value of the "article" field.
+func (_u *ContentDraftUpdateOne) ClearArticle() *ContentDraftUpdateOne {
+	_u.mutation.ClearArticle()
+	return _u
+}
+
+// SetScratchpad sets the "scratchpad" field.
+func (_u *ContentDraftUpdateOne) SetScratchpad(v string) *ContentDraftUpdateOne {
+	_u.mutation.SetScratchpad(v)
+	return _u
+}
+
+// SetNillableScratchpad sets the "scratchpad" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableScratchpad(v *string) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetScratchpad(*v)
+	}
+	return _u
+}
+
+// SetTagIds sets the "tag_ids" field.
+func (_u *ContentDraftUpdateOne) SetTagIds(v []string) *ContentDraftUpdateOne {
+	_u.mutation.SetTagIds(v)
+	return _u
+}
+
+// AppendTagIds appends value to the "tag_ids" field.
+func (_u *ContentDraftUpdateOne) AppendTagIds(v []string) *ContentDraftUpdateOne {
+	_u.mutation.AppendTagIds(v)
+	return _u
+}
+
+// SetPinnedAt sets the "pinned_at" field.
+func (_u *ContentDraftUpdateOne) SetPinnedAt(v time.Time) *ContentDraftUpdateOne {
+	_u.mutation.SetPinnedAt(v)
+	return _u
+}
+
+// SetNillablePinnedAt sets the "pinned_at" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillablePinnedAt(v *time.Time) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetPinnedAt(*v)
+	}
+	return _u
+}
+
+// ClearPinnedAt clears the value of the "pinned_at" field.
+func (_u *ContentDraftUpdateOne) ClearPinnedAt() *ContentDraftUpdateOne {
+	_u.mutation.ClearPinnedAt()
+	return _u
+}
+
+// SetPlannedFor sets the "planned_for" field.
+func (_u *ContentDraftUpdateOne) SetPlannedFor(v time.Time) *ContentDraftUpdateOne {
+	_u.mutation.SetPlannedFor(v)
+	return _u
+}
+
+// SetNillablePlannedFor sets the "planned_for" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillablePlannedFor(v *time.Time) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetPlannedFor(*v)
+	}
+	return _u
+}
+
+// ClearPlannedFor clears the value of the "planned_for" field.
+func (_u *ContentDraftUpdateOne) ClearPlannedFor() *ContentDraftUpdateOne {
+	_u.mutation.ClearPlannedFor()
+	return _u
+}
+
+// SetPlanTimeZone sets the "plan_time_zone" field.
+func (_u *ContentDraftUpdateOne) SetPlanTimeZone(v string) *ContentDraftUpdateOne {
+	_u.mutation.SetPlanTimeZone(v)
+	return _u
+}
+
+// SetNillablePlanTimeZone sets the "plan_time_zone" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillablePlanTimeZone(v *string) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetPlanTimeZone(*v)
+	}
+	return _u
+}
+
+// ClearPlanTimeZone clears the value of the "plan_time_zone" field.
+func (_u *ContentDraftUpdateOne) ClearPlanTimeZone() *ContentDraftUpdateOne {
+	_u.mutation.ClearPlanTimeZone()
+	return _u
+}
+
 // SetCollabState sets the "collab_state" field.
 func (_u *ContentDraftUpdateOne) SetCollabState(v []byte) *ContentDraftUpdateOne {
 	_u.mutation.SetCollabState(v)
@@ -965,6 +1338,62 @@ func (_u *ContentDraftUpdateOne) sqlSave(ctx context.Context) (_node *ContentDra
 	}
 	if value, ok := _u.mutation.AddedVersion(); ok {
 		_spec.AddField(contentdraft.FieldVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.SocialSetID(); ok {
+		_spec.SetField(contentdraft.FieldSocialSetID, field.TypeString, value)
+	}
+	if _u.mutation.SocialSetIDCleared() {
+		_spec.ClearField(contentdraft.FieldSocialSetID, field.TypeString)
+	}
+	if value, ok := _u.mutation.Target(); ok {
+		_spec.SetField(contentdraft.FieldTarget, field.TypeJSON, value)
+	}
+	if _u.mutation.TargetCleared() {
+		_spec.ClearField(contentdraft.FieldTarget, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.PrimaryChannel(); ok {
+		_spec.SetField(contentdraft.FieldPrimaryChannel, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.PlatformVersions(); ok {
+		_spec.SetField(contentdraft.FieldPlatformVersions, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.Article(); ok {
+		_spec.SetField(contentdraft.FieldArticle, field.TypeJSON, value)
+	}
+	if _u.mutation.ArticleCleared() {
+		_spec.ClearField(contentdraft.FieldArticle, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Scratchpad(); ok {
+		_spec.SetField(contentdraft.FieldScratchpad, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.TagIds(); ok {
+		_spec.SetField(contentdraft.FieldTagIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedTagIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, contentdraft.FieldTagIds, value)
+		})
+	}
+	if value, ok := _u.mutation.PinnedAt(); ok {
+		_spec.SetField(contentdraft.FieldPinnedAt, field.TypeTime, value)
+	}
+	if _u.mutation.PinnedAtCleared() {
+		_spec.ClearField(contentdraft.FieldPinnedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PlannedFor(); ok {
+		_spec.SetField(contentdraft.FieldPlannedFor, field.TypeTime, value)
+	}
+	if _u.mutation.PlannedForCleared() {
+		_spec.ClearField(contentdraft.FieldPlannedFor, field.TypeTime)
+	}
+	if value, ok := _u.mutation.PlanTimeZone(); ok {
+		_spec.SetField(contentdraft.FieldPlanTimeZone, field.TypeString, value)
+	}
+	if _u.mutation.PlanTimeZoneCleared() {
+		_spec.ClearField(contentdraft.FieldPlanTimeZone, field.TypeString)
+	}
+	if _u.mutation.SourceDraftIDCleared() {
+		_spec.ClearField(contentdraft.FieldSourceDraftID, field.TypeString)
 	}
 	if value, ok := _u.mutation.CollabState(); ok {
 		_spec.SetField(contentdraft.FieldCollabState, field.TypeBytes, value)

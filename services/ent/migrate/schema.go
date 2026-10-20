@@ -716,6 +716,18 @@ var (
 		{Name: "shareToken", Type: field.TypeString, Nullable: true},
 		{Name: "guestComments", Type: field.TypeJSON},
 		{Name: "version", Type: field.TypeInt, Default: 1},
+		{Name: "socialSetId", Type: field.TypeString, Nullable: true},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"standard", "reply", "quote", "repurpose", "article"}, Default: "standard"},
+		{Name: "target", Type: field.TypeJSON, Nullable: true},
+		{Name: "primaryChannel", Type: field.TypeString, Default: "x"},
+		{Name: "platformVersions", Type: field.TypeJSON},
+		{Name: "article", Type: field.TypeJSON, Nullable: true},
+		{Name: "scratchpad", Type: field.TypeString, Default: ""},
+		{Name: "tagIds", Type: field.TypeJSON},
+		{Name: "pinnedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "plannedFor", Type: field.TypeTime, Nullable: true},
+		{Name: "planTimeZone", Type: field.TypeString, Nullable: true},
+		{Name: "sourceDraftId", Type: field.TypeString, Nullable: true},
 		{Name: "collabState", Type: field.TypeBytes, Nullable: true},
 		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
 		{Name: "updatedByUserId", Type: field.TypeString, Nullable: true},
@@ -731,7 +743,36 @@ var (
 			{
 				Name:    "contentdraft_organizationId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[21]},
+				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[33]},
+			},
+			{
+				Name:    "contentdraft_organizationId_socialSetId_updatedAt",
+				Unique:  false,
+				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[17], ContentDraftColumns[33]},
+			},
+		},
+	}
+	// ContentDraftFinisherColumns holds the columns for the "content_draft_finisher" table.
+	ContentDraftFinisherColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "socialSetId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "text", Type: field.TypeString},
+		{Name: "quoteFirstPost", Type: field.TypeBool, Default: false},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ContentDraftFinisherTable holds the schema information for the "content_draft_finisher" table.
+	ContentDraftFinisherTable = &schema.Table{
+		Name:       "content_draft_finisher",
+		Columns:    ContentDraftFinisherColumns,
+		PrimaryKey: []*schema.Column{ContentDraftFinisherColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "contentdraftfinisher_socialSetId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ContentDraftFinisherColumns[2], ContentDraftFinisherColumns[6]},
 			},
 		},
 	}
@@ -744,6 +785,9 @@ var (
 		{Name: "title", Type: field.TypeString},
 		{Name: "body", Type: field.TypeJSON},
 		{Name: "plainText", Type: field.TypeString},
+		{Name: "platformVersions", Type: field.TypeJSON, Nullable: true},
+		{Name: "article", Type: field.TypeJSON, Nullable: true},
+		{Name: "reason", Type: field.TypeString, Default: "edit"},
 		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
 	}
@@ -756,7 +800,7 @@ var (
 			{
 				Name:    "contentdraftrevision_contentDraftId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftRevisionColumns[2], ContentDraftRevisionColumns[8]},
+				Columns: []*schema.Column{ContentDraftRevisionColumns[2], ContentDraftRevisionColumns[11]},
 			},
 		},
 	}
@@ -772,6 +816,28 @@ var (
 		Name:       "content_draft_settings",
 		Columns:    ContentDraftSettingsColumns,
 		PrimaryKey: []*schema.Column{ContentDraftSettingsColumns[0]},
+	}
+	// ContentDraftTagColumns holds the columns for the "content_draft_tag" table.
+	ContentDraftTagColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "socialSetId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "color", Type: field.TypeString, Default: "gray"},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// ContentDraftTagTable holds the schema information for the "content_draft_tag" table.
+	ContentDraftTagTable = &schema.Table{
+		Name:       "content_draft_tag",
+		Columns:    ContentDraftTagColumns,
+		PrimaryKey: []*schema.Column{ContentDraftTagColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "contentdrafttag_socialSetId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ContentDraftTagColumns[2], ContentDraftTagColumns[5]},
+			},
+		},
 	}
 	// ConversationColumns holds the columns for the "conversation" table.
 	ConversationColumns = []*schema.Column{
@@ -2314,6 +2380,36 @@ var (
 			},
 		},
 	}
+	// SocialSetColumns holds the columns for the "social_set" table.
+	SocialSetColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "color", Type: field.TypeString, Default: "sky"},
+		{Name: "isDefault", Type: field.TypeBool, Default: false},
+		{Name: "channelConnectionIds", Type: field.TypeJSON},
+		{Name: "defaultChannels", Type: field.TypeJSON},
+		{Name: "timeZone", Type: field.TypeString, Nullable: true},
+		{Name: "visibility", Type: field.TypeEnum, Enums: []string{"workspace", "restricted"}, Default: "workspace"},
+		{Name: "memberUserIds", Type: field.TypeJSON},
+		{Name: "preferences", Type: field.TypeJSON},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// SocialSetTable holds the schema information for the "social_set" table.
+	SocialSetTable = &schema.Table{
+		Name:       "social_set",
+		Columns:    SocialSetColumns,
+		PrimaryKey: []*schema.Column{SocialSetColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "socialset_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{SocialSetColumns[1], SocialSetColumns[12]},
+			},
+		},
+	}
 	// SocialTenantBindingColumns holds the columns for the "social_tenant_binding" table.
 	SocialTenantBindingColumns = []*schema.Column{
 		{Name: "organizationId", Type: field.TypeString},
@@ -2731,8 +2827,10 @@ var (
 		CommunicationRecipientTable,
 		ContentAngleTable,
 		ContentDraftTable,
+		ContentDraftFinisherTable,
 		ContentDraftRevisionTable,
 		ContentDraftSettingsTable,
+		ContentDraftTagTable,
 		ConversationTable,
 		ConversationMessageTable,
 		CreativeTemplateTable,
@@ -2783,6 +2881,7 @@ var (
 		SessionTable,
 		ShareLinkTable,
 		SocialOauthStartTable,
+		SocialSetTable,
 		SocialTenantBindingTable,
 		SourceAppTable,
 		SourceChangeTable,
@@ -2871,11 +2970,17 @@ func init() {
 	ContentDraftTable.Annotation = &entsql.Annotation{
 		Table: "content_draft",
 	}
+	ContentDraftFinisherTable.Annotation = &entsql.Annotation{
+		Table: "content_draft_finisher",
+	}
 	ContentDraftRevisionTable.Annotation = &entsql.Annotation{
 		Table: "content_draft_revision",
 	}
 	ContentDraftSettingsTable.Annotation = &entsql.Annotation{
 		Table: "content_draft_settings",
+	}
+	ContentDraftTagTable.Annotation = &entsql.Annotation{
+		Table: "content_draft_tag",
 	}
 	ConversationTable.Annotation = &entsql.Annotation{
 		Table: "conversation",
@@ -3029,6 +3134,9 @@ func init() {
 	}
 	SocialOauthStartTable.Annotation = &entsql.Annotation{
 		Table: "social_oauth_start",
+	}
+	SocialSetTable.Annotation = &entsql.Annotation{
+		Table: "social_set",
 	}
 	SocialTenantBindingTable.Annotation = &entsql.Annotation{
 		Table: "social_tenant_binding",

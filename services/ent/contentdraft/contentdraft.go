@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
 const (
@@ -46,6 +47,30 @@ const (
 	FieldGuestComments = "guestComments"
 	// FieldVersion holds the string denoting the version field in the database.
 	FieldVersion = "version"
+	// FieldSocialSetID holds the string denoting the social_set_id field in the database.
+	FieldSocialSetID = "socialSetId"
+	// FieldKind holds the string denoting the kind field in the database.
+	FieldKind = "kind"
+	// FieldTarget holds the string denoting the target field in the database.
+	FieldTarget = "target"
+	// FieldPrimaryChannel holds the string denoting the primary_channel field in the database.
+	FieldPrimaryChannel = "primaryChannel"
+	// FieldPlatformVersions holds the string denoting the platform_versions field in the database.
+	FieldPlatformVersions = "platformVersions"
+	// FieldArticle holds the string denoting the article field in the database.
+	FieldArticle = "article"
+	// FieldScratchpad holds the string denoting the scratchpad field in the database.
+	FieldScratchpad = "scratchpad"
+	// FieldTagIds holds the string denoting the tag_ids field in the database.
+	FieldTagIds = "tagIds"
+	// FieldPinnedAt holds the string denoting the pinned_at field in the database.
+	FieldPinnedAt = "pinnedAt"
+	// FieldPlannedFor holds the string denoting the planned_for field in the database.
+	FieldPlannedFor = "plannedFor"
+	// FieldPlanTimeZone holds the string denoting the plan_time_zone field in the database.
+	FieldPlanTimeZone = "planTimeZone"
+	// FieldSourceDraftID holds the string denoting the source_draft_id field in the database.
+	FieldSourceDraftID = "sourceDraftId"
 	// FieldCollabState holds the string denoting the collab_state field in the database.
 	FieldCollabState = "collabState"
 	// FieldCreatedByUserID holds the string denoting the created_by_user_id field in the database.
@@ -79,6 +104,18 @@ var Columns = []string{
 	FieldShareToken,
 	FieldGuestComments,
 	FieldVersion,
+	FieldSocialSetID,
+	FieldKind,
+	FieldTarget,
+	FieldPrimaryChannel,
+	FieldPlatformVersions,
+	FieldArticle,
+	FieldScratchpad,
+	FieldTagIds,
+	FieldPinnedAt,
+	FieldPlannedFor,
+	FieldPlanTimeZone,
+	FieldSourceDraftID,
 	FieldCollabState,
 	FieldCreatedByUserID,
 	FieldUpdatedByUserID,
@@ -105,6 +142,14 @@ var (
 	DefaultGuestComments []map[string]string
 	// DefaultVersion holds the default value on creation for the "version" field.
 	DefaultVersion int
+	// DefaultPrimaryChannel holds the default value on creation for the "primary_channel" field.
+	DefaultPrimaryChannel string
+	// DefaultPlatformVersions holds the default value on creation for the "platform_versions" field.
+	DefaultPlatformVersions draftdoc.PlatformVersions
+	// DefaultScratchpad holds the default value on creation for the "scratchpad" field.
+	DefaultScratchpad string
+	// DefaultTagIds holds the default value on creation for the "tag_ids" field.
+	DefaultTagIds []string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -168,6 +213,35 @@ func ReviewStatusValidator(rs ReviewStatus) error {
 	}
 }
 
+// Kind defines the type for the "kind" enum field.
+type Kind string
+
+// KindStandard is the default value of the Kind enum.
+const DefaultKind = KindStandard
+
+// Kind values.
+const (
+	KindStandard  Kind = "standard"
+	KindReply     Kind = "reply"
+	KindQuote     Kind = "quote"
+	KindRepurpose Kind = "repurpose"
+	KindArticle   Kind = "article"
+)
+
+func (k Kind) String() string {
+	return string(k)
+}
+
+// KindValidator is a validator for the "kind" field enum values. It is called by the builders before save.
+func KindValidator(k Kind) error {
+	switch k {
+	case KindStandard, KindReply, KindQuote, KindRepurpose, KindArticle:
+		return nil
+	default:
+		return fmt.Errorf("contentdraft: invalid enum value for kind field: %q", k)
+	}
+}
+
 // OrderOption defines the ordering options for the ContentDraft queries.
 type OrderOption func(*sql.Selector)
 
@@ -224,6 +298,46 @@ func ByShareToken(opts ...sql.OrderTermOption) OrderOption {
 // ByVersion orders the results by the version field.
 func ByVersion(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVersion, opts...).ToFunc()
+}
+
+// BySocialSetID orders the results by the social_set_id field.
+func BySocialSetID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSocialSetID, opts...).ToFunc()
+}
+
+// ByKind orders the results by the kind field.
+func ByKind(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldKind, opts...).ToFunc()
+}
+
+// ByPrimaryChannel orders the results by the primary_channel field.
+func ByPrimaryChannel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPrimaryChannel, opts...).ToFunc()
+}
+
+// ByScratchpad orders the results by the scratchpad field.
+func ByScratchpad(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldScratchpad, opts...).ToFunc()
+}
+
+// ByPinnedAt orders the results by the pinned_at field.
+func ByPinnedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPinnedAt, opts...).ToFunc()
+}
+
+// ByPlannedFor orders the results by the planned_for field.
+func ByPlannedFor(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlannedFor, opts...).ToFunc()
+}
+
+// ByPlanTimeZone orders the results by the plan_time_zone field.
+func ByPlanTimeZone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlanTimeZone, opts...).ToFunc()
+}
+
+// BySourceDraftID orders the results by the source_draft_id field.
+func BySourceDraftID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceDraftID, opts...).ToFunc()
 }
 
 // ByCreatedByUserID orders the results by the created_by_user_id field.

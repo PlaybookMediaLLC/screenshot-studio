@@ -82,12 +82,8 @@ func (c *Configuration) IssueContentDraftCollabToken(ctx context.Context, actor 
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
-	owned, err := c.client.ContentDraft.Query().Where(contentdraft.ID(draftID), contentdraft.OrganizationID(actor.OrganizationID)).Exist(ctx)
-	if err != nil {
+	if _, err := c.loadDraft(ctx, actor, draftID); err != nil {
 		return nil, err
-	}
-	if !owned {
-		return nil, publishing.ErrNotFound
 	}
 	access, err := memberAccess(ctx, c.client, actor.OrganizationID, actor.UserID)
 	if err != nil {
@@ -126,6 +122,17 @@ func (c *Configuration) collabClaims(ctx context.Context, token, documentName, d
 	}
 	if !owned {
 		return collab.Claims{}, publishing.ErrNotFound
+	}
+	if claims.Kind != "creative-set" {
+		// A member moved out of a restricted set loses the draft on the next
+		// load or store, even with a token that has not expired.
+		draft, err := c.client.ContentDraft.Get(ctx, claims.DraftID)
+		if err != nil {
+			return collab.Claims{}, err
+		}
+		if err := c.authorizeDraftSet(ctx, Actor{OrganizationID: claims.OrganizationID, UserID: claims.UserID}, draft); err != nil {
+			return collab.Claims{}, err
+		}
 	}
 	current, err := memberAccess(ctx, c.client, claims.OrganizationID, claims.UserID)
 	if err != nil {

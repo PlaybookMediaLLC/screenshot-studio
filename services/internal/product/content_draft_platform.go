@@ -14,9 +14,11 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftsettings"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
@@ -290,6 +292,9 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 	if err := c.authorizeScheduling(ctx, actor); err != nil {
 		return nil, err
 	}
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, contentDraftFeature); err != nil {
+		return nil, err
+	}
 	if !at.After(time.Now().Add(time.Minute)) {
 		return nil, invalid("Pick a time in the future.")
 	}
@@ -304,6 +309,9 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 		return nil, publishing.ErrNotFound
 	}
 	if err != nil {
+		return nil, err
+	}
+	if _, err := c.loadDraft(ctx, actor, *post.ContentDraftID); err != nil {
 		return nil, err
 	}
 	if post.Status != scheduledpost.StatusSCHEDULED {
@@ -329,6 +337,9 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 	if len(post.Poll.Options) > 0 {
 		create.SetPoll(post.Poll)
 	}
+	if post.ReplyTo != nil {
+		create.SetReplyTo(*post.ReplyTo)
+	}
 	moved, err := create.Save(ctx)
 	if err != nil {
 		return nil, err
@@ -352,7 +363,9 @@ type CalendarPost struct {
 
 // ListContentDraftPostsBetween lists the workspace's draft posts due in
 // [from, to): queued, publishing and live, for the calendar and the queue.
-func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor Actor, from, to time.Time) ([]CalendarPost, error) {
+// Only posts of drafts in sets the actor may see are listed; setID, when
+// set, narrows them to one set.
+func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor Actor, from, to time.Time, setID string) ([]CalendarPost, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
@@ -375,8 +388,17 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 	for id := range ids {
 		keys = append(keys, id)
 	}
+	var sets predicate.ContentDraft
+	if setID != "" {
+		sets, err = c.draftSetFilter(ctx, actor, setID)
+	} else {
+		sets, err = c.visibleSetFilter(ctx, actor)
+	}
+	if err != nil {
+		return nil, err
+	}
 	drafts, err := c.client.ContentDraft.Query().Where(contentdraft.IDIn(keys...),
-		contentdraft.OrganizationID(actor.OrganizationID)).All(ctx)
+		contentdraft.OrganizationID(actor.OrganizationID), sets).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -386,8 +408,44 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 	}
 	items := make([]CalendarPost, 0, len(posts))
 	for _, post := range posts {
+		title, visible := titles[*post.ContentDraftID]
+		if !visible {
+			continue
+		}
 		items = append(items, CalendarPost{ContentDraftPost: contentDraftPost(post, post.Edges.ChannelConnection.Platform),
-			DraftID: *post.ContentDraftID, DraftTitle: titles[*post.ContentDraftID]})
+			DraftID: *post.ContentDraftID, DraftTitle: title})
+	}
+	return items, nil
+}
+
+// ListPlannedContentDrafts lists drafts planned in [from, to) in the sets the
+// actor may see, soonest first: the calendar's planned entries.
+func (c *Configuration) ListPlannedContentDrafts(ctx context.Context, actor Actor, from, to time.Time, setID string) ([]ContentDraftRecord, error) {
+	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
+		return nil, err
+	}
+	if !to.After(from) || to.Sub(from) > 100*24*time.Hour {
+		return nil, invalid("Ask for at most 100 days at a time.")
+	}
+	var sets predicate.ContentDraft
+	var err error
+	if setID != "" {
+		sets, err = c.draftSetFilter(ctx, actor, setID)
+	} else {
+		sets, err = c.visibleSetFilter(ctx, actor)
+	}
+	if err != nil {
+		return nil, err
+	}
+	rows, err := c.client.ContentDraft.Query().Where(contentdraft.OrganizationID(actor.OrganizationID), sets,
+		contentdraft.StatusNEQ(contentdraft.StatusArchived), contentdraft.PlannedForGTE(from), contentdraft.PlannedForLT(to)).
+		Order(ent.Asc(contentdraft.FieldPlannedFor), ent.Asc(contentdraft.FieldID)).Limit(500).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]ContentDraftRecord, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, contentDraftRecord(row))
 	}
 	return items, nil
 }
@@ -411,6 +469,9 @@ func (c *Configuration) ReviewContentDraft(ctx context.Context, actor Actor, id 
 		err = c.authorizeScheduling(ctx, actor)
 	}
 	if err != nil {
+		return nil, err
+	}
+	if _, err := c.loadDraft(ctx, actor, id); err != nil {
 		return nil, err
 	}
 	note := strings.TrimSpace(input.Note)
@@ -493,7 +554,22 @@ func (c *Configuration) ShareContentDraft(ctx context.Context, actor Actor, id s
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
 		return nil, err
 	}
-	update := c.client.ContentDraft.Update().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID))
+	current, err := c.loadDraft(ctx, actor, id)
+	if err != nil {
+		return nil, err
+	}
+	if on == (current.ShareToken != nil) {
+		result := contentDraftRecord(current)
+		return &result, nil
+	}
+	tx, err := c.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	// Sharing is not content: the version and the list order stay.
+	update := tx.ContentDraft.Update().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID)).
+		SetUpdatedAt(current.UpdatedAt)
 	if on {
 		token := make([]byte, 24)
 		if _, err := rand.Read(token); err != nil {
@@ -510,8 +586,15 @@ func (c *Configuration) ShareContentDraft(ctx context.Context, actor Actor, id s
 	if count == 0 {
 		return nil, publishing.ErrNotFound
 	}
-	row, err := c.client.ContentDraft.Get(ctx, id)
+	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_shared", "content_draft", id,
+		map[string]any{"enabled": on}); err != nil {
+		return nil, err
+	}
+	row, err := tx.ContentDraft.Get(ctx, id)
 	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	result := contentDraftRecord(row)
@@ -609,7 +692,8 @@ const contentDraftRevisionEvery = 10 * time.Minute
 
 // recordContentDraftRevision keeps the draft as it is now when the last
 // revision is older than contentDraftRevisionEvery, or always when forced.
-func recordContentDraftRevision(ctx context.Context, tx *ent.Tx, actor Actor, draft *ent.ContentDraft, force bool) error {
+// The reason says why: edit, schedule, plan, publish or recovery.
+func recordContentDraftRevision(ctx context.Context, tx *ent.Tx, actor Actor, draft *ent.ContentDraft, force bool, reason string) error {
 	if !force {
 		recent, err := tx.ContentDraftRevision.Query().Where(contentdraftrevision.ContentDraftID(draft.ID),
 			contentdraftrevision.CreatedAtGT(time.Now().Add(-contentDraftRevisionEvery))).Exist(ctx)
@@ -617,9 +701,14 @@ func recordContentDraftRevision(ctx context.Context, tx *ent.Tx, actor Actor, dr
 			return err
 		}
 	}
-	return tx.ContentDraftRevision.Create().SetID(cuid.New()).SetOrganizationID(draft.OrganizationID).
+	create := tx.ContentDraftRevision.Create().SetID(cuid.New()).SetOrganizationID(draft.OrganizationID).
 		SetContentDraftID(draft.ID).SetVersion(draft.Version).SetTitle(draft.Title).SetBody(nonNilBody(draft.Body)).
-		SetPlainText(draft.PlainText).SetNillableCreatedByUserID(projectActor(actor)).Exec(ctx)
+		SetPlainText(draft.PlainText).SetPlatformVersions(nonNilVersions(draft.PlatformVersions)).
+		SetReason(reason).SetNillableCreatedByUserID(projectActor(actor))
+	if draft.Article != nil {
+		create.SetArticle(draft.Article)
+	}
+	return create.Exec(ctx)
 }
 
 // ContentDraftRevisionRecord is a revision as the API returns it. The body is
@@ -632,6 +721,11 @@ type ContentDraftRevisionRecord struct {
 	PlainText       string    `json:"plainText"`
 	Title           string    `json:"title"`
 	Version         int       `json:"version"`
+	// Write (RFC 041): why the backup was kept, and, in a single read, the
+	// platform versions and article as they were.
+	Article          *draftdoc.Article          `json:"article,omitempty"`
+	PlatformVersions *draftdoc.PlatformVersions `json:"platformVersions,omitempty"`
+	Reason           string                     `json:"reason"`
 }
 
 // ListContentDraftRevisions lists a draft's revisions, newest first.
@@ -639,9 +733,12 @@ func (c *Configuration) ListContentDraftRevisions(ctx context.Context, actor Act
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
+	if _, err := c.loadDraft(ctx, actor, draftID); err != nil {
+		return nil, err
+	}
 	rows, err := c.client.ContentDraftRevision.Query().Where(contentdraftrevision.ContentDraftID(draftID),
 		contentdraftrevision.OrganizationID(actor.OrganizationID)).
-		Order(ent.Desc(contentdraftrevision.FieldCreatedAt)).Limit(100).All(ctx)
+		Order(ent.Desc(contentdraftrevision.FieldCreatedAt), ent.Desc(contentdraftrevision.FieldID)).Limit(200).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -652,7 +749,7 @@ func (c *Configuration) ListContentDraftRevisions(ctx context.Context, actor Act
 			text = string([]rune(text)[:280])
 		}
 		items = append(items, ContentDraftRevisionRecord{CreatedAt: row.CreatedAt, CreatedByUserID: row.CreatedByUserID,
-			ID: row.ID, PlainText: text, Title: row.Title, Version: row.Version})
+			ID: row.ID, PlainText: text, Reason: row.Reason, Title: row.Title, Version: row.Version})
 	}
 	return items, nil
 }
@@ -660,6 +757,9 @@ func (c *Configuration) ListContentDraftRevisions(ctx context.Context, actor Act
 // GetContentDraftRevision reads one revision with its body, to restore it.
 func (c *Configuration) GetContentDraftRevision(ctx context.Context, actor Actor, draftID, revisionID string) (*ContentDraftRevisionRecord, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
+		return nil, err
+	}
+	if _, err := c.loadDraft(ctx, actor, draftID); err != nil {
 		return nil, err
 	}
 	row, err := c.client.ContentDraftRevision.Query().Where(contentdraftrevision.ID(revisionID),
@@ -670,8 +770,13 @@ func (c *Configuration) GetContentDraftRevision(ctx context.Context, actor Actor
 	if err != nil {
 		return nil, err
 	}
-	return &ContentDraftRevisionRecord{Body: nonNilBody(row.Body), CreatedAt: row.CreatedAt,
-		CreatedByUserID: row.CreatedByUserID, ID: row.ID, PlainText: row.PlainText, Title: row.Title, Version: row.Version}, nil
+	record := &ContentDraftRevisionRecord{Body: nonNilBody(row.Body), CreatedAt: row.CreatedAt, Article: row.Article,
+		CreatedByUserID: row.CreatedByUserID, ID: row.ID, PlainText: row.PlainText, Reason: row.Reason, Title: row.Title, Version: row.Version}
+	if row.PlatformVersions.SchemaVersion != 0 {
+		versions := nonNilVersions(row.PlatformVersions)
+		record.PlatformVersions = &versions
+	}
+	return record, nil
 }
 
 // ResumeContentDraftThread posts the rest of a thread that stopped partway:
@@ -679,6 +784,9 @@ func (c *Configuration) GetContentDraftRevision(ctx context.Context, actor Actor
 // go out. It goes out now.
 func (c *Configuration) ResumeContentDraftThread(ctx context.Context, actor Actor, postID string) (*MovedDraftPost, error) {
 	if err := c.authorizeScheduling(ctx, actor); err != nil {
+		return nil, err
+	}
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, contentDraftFeature); err != nil {
 		return nil, err
 	}
 	tx, err := c.client.Tx(ctx)
@@ -692,6 +800,9 @@ func (c *Configuration) ResumeContentDraftThread(ctx context.Context, actor Acto
 		return nil, publishing.ErrNotFound
 	}
 	if err != nil {
+		return nil, err
+	}
+	if _, err := c.loadDraft(ctx, actor, *post.ContentDraftID); err != nil {
 		return nil, err
 	}
 	progress := post.ThreadProgress
@@ -783,6 +894,9 @@ func (c *Configuration) LiveDraftPost(ctx context.Context, actor Actor, postID s
 		return nil, publishing.ErrNotFound
 	}
 	if err != nil {
+		return nil, err
+	}
+	if _, err := c.loadDraft(ctx, actor, *post.ContentDraftID); err != nil {
 		return nil, err
 	}
 	if post.Status != scheduledpost.StatusPUBLISHED || post.RemotePostID == nil {

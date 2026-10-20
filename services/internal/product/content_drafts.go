@@ -83,7 +83,7 @@ type ContentDraftRecord struct {
 	GuestComments    []map[string]string `json:"guestComments"`
 	// PublishedPosts counts the draft's live posts (lists only).
 	PublishedPosts int `json:"publishedPosts"`
-	// Write (RFC 041). SocialSetID is null for the workspace's default set.
+	// Write (RFC 042). SocialSetID is null for the workspace's default set.
 	Article          *draftdoc.Article         `json:"article"`
 	Kind             string                    `json:"kind"`
 	PinnedAt         *time.Time                `json:"pinnedAt"`
@@ -136,7 +136,7 @@ type ContentDraftInput struct {
 	Discussions          map[string]any    `json:"discussions"`
 	PlainText            string            `json:"plainText"`
 	Title                string            `json:"title"`
-	// Write (RFC 041). Without a set, the draft goes to the default set;
+	// Write (RFC 042). Without a set, the draft goes to the default set;
 	// without channels, it takes the set's default platforms.
 	Article          *draftdoc.Article          `json:"article"`
 	Kind             string                     `json:"kind"`
@@ -160,7 +160,7 @@ type ContentDraftUpdate struct {
 	PlainText            *string            `json:"plainText"`
 	Status               *string            `json:"status"`
 	Title                *string            `json:"title"`
-	// Write (RFC 041): content that bumps the version like the body.
+	// Write (RFC 042): content that bumps the version like the body.
 	Article          *draftdoc.Article          `json:"article"`
 	PlatformVersions *draftdoc.PlatformVersions `json:"platformVersions"`
 	PrimaryChannel   *string                    `json:"primaryChannel"`

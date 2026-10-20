@@ -74,7 +74,7 @@ type Configuration struct {
 	web *http.Client
 	// postMetrics reads a live post's engagement from its platform (RFC 037).
 	postMetrics PostMetricsReader
-	// accounts reads an account's standing on its platform, such as X Premium (RFC 041).
+	// accounts reads an account's standing on its platform, such as X Premium (RFC 042).
 	accounts AccountStandingReader
 }
 

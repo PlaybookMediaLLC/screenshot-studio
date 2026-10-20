@@ -157,7 +157,7 @@ func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishIn
 		return socialapi.Receipt{}, err
 	}
 	// A content draft post without an image publishes as text (RFC 037); a
-	// LinkedIn document goes out as the post's one media (RFC 041).
+	// LinkedIn document goes out as the post's one media (RFC 042).
 	assets := input.Media()
 	if input.Document != nil {
 		assets = []publishing.MediaAsset{*input.Document}

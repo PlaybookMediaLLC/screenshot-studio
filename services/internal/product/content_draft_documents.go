@@ -13,7 +13,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
-// Checks for the structured parts of a draft (RFC 041): its platform
+// Checks for the structured parts of a draft (RFC 042): its platform
 // versions and their options, its target, its article. Pure functions, so
 // the rules are tested without a database.
 
@@ -286,7 +286,7 @@ func draftScratchpad(text string) (string, error) {
 }
 
 // withDefaultAutomation gives a new draft's X version the set's follow-ups
-// (RFC 041) unless the draft brings its own.
+// (RFC 042) unless the draft brings its own.
 func withDefaultAutomation(versions draftdoc.PlatformVersions, automation *postoptions.AutoActions) draftdoc.PlatformVersions {
 	if automation == nil || automation.Empty() {
 		return versions

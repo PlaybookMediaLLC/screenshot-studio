@@ -1,4 +1,4 @@
--- Write (RFC 041): social sets, set-scoped tags and thread finishers, and the
+-- Write (RFC 042): social sets, set-scoped tags and thread finishers, and the
 -- draft's kind, target, platform versions, internal notes, pin and plan.
 -- Additive only: a draft without a set belongs to the workspace's default set.
 CREATE TABLE "social_set" (

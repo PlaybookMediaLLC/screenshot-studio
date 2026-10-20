@@ -80,7 +80,7 @@ func main() {
 	} else {
 		slog.Warn("post engagement unavailable", "error", err)
 	}
-	// End-to-end runs publish drafts through the local provider fixture (RFC 041).
+	// End-to-end runs publish drafts through the local provider fixture (RFC 042).
 	if os.Getenv("PLATFORM_E2E_DRAFT_PLATFORM") == "enabled" {
 		product.EnableE2EDraftPlatform()
 	}

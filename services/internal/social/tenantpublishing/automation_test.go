@@ -60,7 +60,9 @@ func TestAutomateRunsEachFollowUpOnTheProvider(t *testing.T) {
 	run(func(in *socialapi.AutomationInput) { in.Kind = "retweet" })
 	run(func(in *socialapi.AutomationInput) { in.Kind = "unretweet" })
 	// 4 reposts is under 5; 120 likes is over 100.
-	if result := run(func(in *socialapi.AutomationInput) { in.Kind, in.Metric, in.Threshold, in.Text = "plug", "reposts", 5, "Guide" }); result.Done {
+	if result := run(func(in *socialapi.AutomationInput) {
+		in.Kind, in.Metric, in.Threshold, in.Text = "plug", "reposts", 5, "Guide"
+	}); result.Done {
 		t.Fatal("a plug went out under its repost threshold")
 	}
 	if result := run(func(in *socialapi.AutomationInput) { in.Kind, in.Threshold, in.Text = "plug", 100, "Guide" }); !result.Done || result.RemoteID != "plug-reply-1" {

@@ -22,7 +22,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Social sets (RFC 041): a workspace's publishing identities. A set groups
+// Social sets (RFC 042): a workspace's publishing identities. A set groups
 // channel connections, at most one per platform, and a draft belongs to one
 // set. The workspace's roles stay the authority; a restricted set narrows who
 // sees its drafts to owners, admins, and the members it lists. Drafts with no

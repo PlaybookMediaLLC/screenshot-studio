@@ -22,7 +22,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Write (RFC 041): a draft's organizing properties, its plan, duplicating
+// Write (RFC 042): a draft's organizing properties, its plan, duplicating
 // and copying it, recovering a backup as a new draft, its activity, and the
 // tags and thread finishers of a social set.
 

@@ -229,7 +229,7 @@ func waitForCancelAndDrainPoke(ctx workflow.Context, cancelSignal, pokeSignal wo
 // after it goes out: like counts take hours to build.
 var autoActionChecks = []time.Duration{6 * time.Hour, 12 * time.Hour, 18 * time.Hour}
 
-// runAutoActions runs a live post's follow-ups. Version 2 (RFC 041) runs
+// runAutoActions runs a live post's follow-ups. Version 2 (RFC 042) runs
 // them as receipted steps (runAutomations); version 1 (RFC 037) is kept for
 // workflows that started under it: a repost and a plug reply once it has
 // enough likes, tried at autoActionChecks, and a quote after

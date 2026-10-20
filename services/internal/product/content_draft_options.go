@@ -10,7 +10,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 )
 
-// Per-platform publishing rules (RFC 041), checked on every schedule. The web
+// Per-platform publishing rules (RFC 042), checked on every schedule. The web
 // checks the same (lib/write/capabilities.ts); Go is the authority. Sources:
 // X API v2 POST /2/tweets (reply_settings, community_id, made_with_ai,
 // paid_partnership, quote_tweet_id, poll), the LinkedIn Posts, Poll and

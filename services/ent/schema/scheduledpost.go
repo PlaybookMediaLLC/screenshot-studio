@@ -48,7 +48,7 @@ func (ScheduledPost) Fields() []ent.Field {
 		field.JSON("auto_actions", postoptions.AutoActions{}).StorageKey("autoActions").Optional().Immutable(),
 		// A poll on the post (X, LinkedIn).
 		field.JSON("poll", postoptions.Poll{}).StorageKey("poll").Optional().Immutable(),
-		// The post's settings beyond its text (RFC 041), as scheduled.
+		// The post's settings beyond its text (RFC 042), as scheduled.
 		field.JSON("publish_options", postoptions.PublishOptions{}).StorageKey("publishOptions").Optional().Immutable(),
 		field.String("channel_connection_id").StorageKey("channelConnectionId").Immutable(),
 		field.Time("scheduled_for").StorageKey("scheduledFor"),

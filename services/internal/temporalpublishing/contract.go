@@ -78,7 +78,7 @@ type PreparedPublication struct {
 	ReplyTo     string                    `json:",omitempty"`
 	AutoActions *postoptions.AutoActions  `json:",omitempty"`
 	Poll        *postoptions.Poll         `json:",omitempty"`
-	// Write (RFC 041): the post's settings, a LinkedIn document and an
+	// Write (RFC 042): the post's settings, a LinkedIn document and an
 	// article cover. Jobs recorded before them have none.
 	Options          *postoptions.PublishOptions `json:",omitempty"`
 	Document         *publishing.MediaAsset      `json:",omitempty"`

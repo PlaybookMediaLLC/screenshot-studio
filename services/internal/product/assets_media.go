@@ -88,7 +88,7 @@ func validAssetSegment(value string) bool {
 func validAssetUpload(input AssetUploadInput) bool {
 	limit := 50 << 20
 	if input.ContentType == "application/pdf" {
-		// LinkedIn documents (RFC 041): up to 100 MB, named .pdf so the
+		// LinkedIn documents (RFC 042): up to 100 MB, named .pdf so the
 		// publisher sends them as documents.
 		limit = pdfByteLimit
 		if !strings.HasSuffix(strings.ToLower(input.FileName), ".pdf") {
@@ -250,7 +250,7 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 }
 
 // checkUploadedBytes reads an upload back from storage and fails it when its
-// bytes are not its declared type (RFC 041). A store that cannot stream
+// bytes are not its declared type (RFC 042). A store that cannot stream
 // objects skips the check.
 func (c *Configuration) checkUploadedBytes(ctx context.Context, actor Actor, row *ent.Asset) error {
 	opener, ok := c.objects.(objectOpener)

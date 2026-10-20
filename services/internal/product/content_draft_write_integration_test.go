@@ -14,7 +14,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
-// The Write workspace (RFC 041): social sets are separate identities with
+// The Write workspace (RFC 042): social sets are separate identities with
 // their own access; organizing a draft never touches its content or version;
 // copies, duplicates and recovered backups are new drafts without the
 // source's publication, sharing, review or discussion state.

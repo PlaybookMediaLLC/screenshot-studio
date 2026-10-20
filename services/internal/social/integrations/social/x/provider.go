@@ -293,7 +293,7 @@ func (p *Provider) AutoPlugPost(ctx context.Context, integration *ent.Integratio
 	return err == nil, err
 }
 
-// RetweetPost reposts a post from the account (RFC 041 Auto-RT).
+// RetweetPost reposts a post from the account (RFC 042 Auto-RT).
 func (p *Provider) RetweetPost(ctx context.Context, integration *ent.Integration, id string) error {
 	return newClient(integration.Token).retweet(ctx, integration.InternalID, id)
 }
@@ -308,7 +308,7 @@ func (p *Provider) PostEngagement(ctx context.Context, integration *ent.Integrat
 	return newClient(integration.Token).tweetEngagement(ctx, id)
 }
 
-// ReplyTo posts text as a reply to a post (RFC 041 Auto-Plug) and returns
+// ReplyTo posts text as a reply to a post (RFC 042 Auto-Plug) and returns
 // the reply's id, which the plug's receipt keeps.
 func (p *Provider) ReplyTo(ctx context.Context, integration *ent.Integration, id, text string) (string, error) {
 	text = helpers.StripHTMLValidation("normal", text, helpers.StripOptions{ReplaceBold: true})

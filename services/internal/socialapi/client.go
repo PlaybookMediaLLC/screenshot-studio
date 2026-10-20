@@ -41,7 +41,7 @@ type PublishInput struct {
 	// ReplyTo is the live post a resumed thread answers.
 	ReplyTo string
 	Poll    *postoptions.Poll
-	// Options are the post's settings beyond its text (RFC 041); Document is
+	// Options are the post's settings beyond its text (RFC 042); Document is
 	// a LinkedIn PDF and Cover an X article's cover.
 	Options          *postoptions.PublishOptions
 	Document         *publishing.MediaAsset
@@ -86,7 +86,7 @@ type AutoActionResult struct {
 	Reposted bool
 }
 
-// AutomationInput is one follow-up of a live post (RFC 041). Kind is a
+// AutomationInput is one follow-up of a live post (RFC 042). Kind is a
 // temporalpublishing step kind; Threshold and Metric gate a plug or a
 // like-gated repost; Text is a first comment, plug or quote.
 type AutomationInput struct {

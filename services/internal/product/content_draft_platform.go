@@ -717,7 +717,7 @@ func recordContentDraftRevision(ctx context.Context, tx *ent.Tx, actor Actor, dr
 	return pruneContentDraftRevisions(ctx, tx, draft.ID)
 }
 
-// pruneContentDraftRevisions applies the backup retention (RFC 041): every
+// pruneContentDraftRevisions applies the backup retention (RFC 042): every
 // backup from the last 30 days, then the last one of each day for a year,
 // then none. It runs as a draft gains a backup, so a draft nobody edits
 // keeps what it had.
@@ -744,7 +744,7 @@ type ContentDraftRevisionRecord struct {
 	PlainText       string    `json:"plainText"`
 	Title           string    `json:"title"`
 	Version         int       `json:"version"`
-	// Write (RFC 041): why the backup was kept, and, in a single read, the
+	// Write (RFC 042): why the backup was kept, and, in a single read, the
 	// platform versions and article as they were.
 	Article          *draftdoc.Article          `json:"article,omitempty"`
 	PlatformVersions *draftdoc.PlatformVersions `json:"platformVersions,omitempty"`

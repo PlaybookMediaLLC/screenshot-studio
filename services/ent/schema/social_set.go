@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
-// SocialSet is a publishing identity inside a workspace (RFC 041): the
+// SocialSet is a publishing identity inside a workspace (RFC 042): the
 // connected accounts it posts as, at most one per platform, the platforms a
 // new draft starts with, and who may write in it. Names need not be unique;
 // the id is the identity.
@@ -27,7 +27,7 @@ type SocialSetPreferences struct {
 	Samples []string `json:"samples,omitempty"`
 	// NaturalTiming offsets scheduled posts by a stable few minutes.
 	NaturalTiming bool `json:"naturalTiming,omitempty"`
-	// Automation is the X follow-ups new drafts start with (RFC 041).
+	// Automation is the X follow-ups new drafts start with (RFC 042).
 	Automation *postoptions.AutoActions `json:"automation,omitempty"`
 }
 
@@ -61,7 +61,7 @@ func (SocialSet) Indexes() []ent.Index {
 	return []ent.Index{index.Fields("organization_id", "created_at")}
 }
 
-// ContentDraftTag labels drafts within one social set (RFC 041).
+// ContentDraftTag labels drafts within one social set (RFC 042).
 type ContentDraftTag struct{ ent.Schema }
 
 func (ContentDraftTag) Annotations() []schema.Annotation {
@@ -83,7 +83,7 @@ func (ContentDraftTag) Indexes() []ent.Index {
 	return []ent.Index{index.Fields("social_set_id", "created_at")}
 }
 
-// ContentDraftFinisher is a reusable closing post for a thread (RFC 041). With
+// ContentDraftFinisher is a reusable closing post for a thread (RFC 042). With
 // QuoteFirstPost, publishing quotes the thread's first post once it is live.
 type ContentDraftFinisher struct{ ent.Schema }
 

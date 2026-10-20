@@ -22,7 +22,7 @@ type AutoActions struct {
 	// after it went out, which X shows as a quote.
 	QuoteAfterHours int    `json:"quoteAfterHours,omitempty"`
 	QuoteText       string `json:"quoteText,omitempty"`
-	// Retweets repost the post at each rule's time (RFC 041), and
+	// Retweets repost the post at each rule's time (RFC 042), and
 	// UnretweetAfterMinutes removes each of those reposts this long after
 	// it went up; 0 keeps them.
 	Retweets              []RetweetRule `json:"retweets,omitempty"`
@@ -85,7 +85,7 @@ type ThreadProgress struct {
 // replies, impressions, …), as its platform reports them.
 type Metrics map[string]float64
 
-// PublishOptions are a draft post's settings beyond its text (RFC 041):
+// PublishOptions are a draft post's settings beyond its text (RFC 042):
 // who can reply, its labels, where it goes, and what it quotes. Each field
 // belongs to the platforms whose adapter sends it; scheduling refuses it
 // anywhere else. Zero values are off.

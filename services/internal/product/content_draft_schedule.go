@@ -63,7 +63,7 @@ type ContentDraftScheduleTarget struct {
 	AutoActions *postoptions.AutoActions `json:"autoActions"`
 	// Poll asks a question with the post (X, LinkedIn).
 	Poll *postoptions.Poll `json:"poll"`
-	// Options are the first post's settings beyond its text (RFC 041).
+	// Options are the first post's settings beyond its text (RFC 042).
 	Options *postoptions.PublishOptions `json:"options"`
 	// ReplyTo is the live X post a reply draft answers.
 	ReplyTo string `json:"replyTo"`
@@ -83,7 +83,7 @@ type ScheduleContentDraftInput struct {
 	ScheduledFor time.Time                    `json:"scheduledFor"`
 	Targets      []ContentDraftScheduleTarget `json:"targets"`
 	Version      int                          `json:"version"`
-	// Write (RFC 041).
+	// Write (RFC 042).
 	Disambiguation string `json:"disambiguation"`
 	LocalTime      string `json:"localTime"`
 	NaturalTiming  bool   `json:"naturalTiming"`
@@ -179,7 +179,7 @@ type ContentDraftPost struct {
 	// A thread: how many replies it has and how many went out.
 	Replies        int                        `json:"replies"`
 	ThreadProgress postoptions.ThreadProgress `json:"threadProgress"`
-	// Its follow-ups once live (RFC 041), each with its receipt.
+	// Its follow-ups once live (RFC 042), each with its receipt.
 	Automations []PostAutomation `json:"automations"`
 }
 
@@ -370,7 +370,7 @@ func checkDraftExtras(channel string, target ContentDraftScheduleTarget) error {
 	return nil
 }
 
-// checkRetweetRules checks automatic reposts (RFC 041): at most five, each
+// checkRetweetRules checks automatic reposts (RFC 042): at most five, each
 // a duration after publishing (up to 30 days) or a wall-clock time up to 30
 // days later in a real time zone, and a removal delay of up to a week.
 func checkRetweetRules(actions postoptions.AutoActions) error {

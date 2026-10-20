@@ -5,7 +5,7 @@ package thread
 import "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 
 // Reply is one post after the first: its text and its images, in order, and
-// its own settings (RFC 041), such as who can reply or a quote of the first
+// its own settings (RFC 042), such as who can reply or a quote of the first
 // post. Replies stored before settings existed have none.
 type Reply struct {
 	AssetIDs []string                    `json:"assetIds"`

@@ -50,7 +50,7 @@ type pendingData struct {
 	// again (LinkedIn has no idempotency key).
 	Attempting bool `json:"attempting,omitempty"`
 	Confirmed  bool `json:"confirmed,omitempty"`
-	// Write (RFC 041): who sees the post, a poll, and a reshared post.
+	// Write (RFC 042): who sees the post, a poll, and a reshared post.
 	Visibility    string                    `json:"visibility,omitempty"`
 	Question      *integrations.PollDetails `json:"linkedinPoll,omitempty"`
 	ReshareParent string                    `json:"reshareParent,omitempty"`

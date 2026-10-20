@@ -94,7 +94,7 @@ func (Asset) Fields() []ent.Field {
 		field.Int("width").StorageKey("width").Optional().Nillable(),
 		field.Int("height").StorageKey("height").Optional().Nillable(),
 		field.Enum("status").StorageKey("status").Values("PENDING", "UPLOADED", "FAILED", "DELETED").Default("PENDING"),
-		// AltText describes an image for people who cannot see it (RFC 041);
+		// AltText describes an image for people who cannot see it (RFC 042);
 		// it goes out with the image wherever it is posted.
 		field.String("alt_text").StorageKey("altText").Optional().Nillable(),
 		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),

@@ -47,7 +47,7 @@ func (ContentDraft) Fields() []ent.Field {
 		// Comments left through that link: name, text and when.
 		field.JSON("guest_comments", []map[string]string{}).StorageKey("guestComments").Default([]map[string]string{}),
 		field.Int("version").StorageKey("version").Default(1),
-		// Write (RFC 041). The social set the draft belongs to; none is the
+		// Write (RFC 042). The social set the draft belongs to; none is the
 		// workspace's default set.
 		field.String("social_set_id").StorageKey("socialSetId").Optional().Nillable(),
 		// standard (a post or thread), reply, quote, repurpose or article.

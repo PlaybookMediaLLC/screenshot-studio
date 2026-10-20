@@ -100,7 +100,7 @@ func (p *Provider) Post(ctx context.Context, id, accessToken string, posts []int
 	}}, nil
 }
 
-// action asks the fake to record a follow-up (RFC 041) and returns the id it
+// action asks the fake to record a follow-up (RFC 042) and returns the id it
 // gives the result, if any.
 func (p *Provider) action(ctx context.Context, kind, postID, text string) (string, error) {
 	body, err := json.Marshal(map[string]string{"kind": kind, "postId": postID, "text": text})

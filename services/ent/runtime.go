@@ -782,19 +782,19 @@ func init() {
 	platformcreativesetFields := schema.PlatformCreativeSet{}.Fields()
 	_ = platformcreativesetFields
 	// platformcreativesetDescRevision is the schema descriptor for revision field.
-	platformcreativesetDescRevision := platformcreativesetFields[5].Descriptor()
+	platformcreativesetDescRevision := platformcreativesetFields[6].Descriptor()
 	// platformcreativeset.DefaultRevision holds the default value on creation for the revision field.
 	platformcreativeset.DefaultRevision = platformcreativesetDescRevision.Default.(int)
 	// platformcreativesetDescArchived is the schema descriptor for archived field.
-	platformcreativesetDescArchived := platformcreativesetFields[6].Descriptor()
+	platformcreativesetDescArchived := platformcreativesetFields[7].Descriptor()
 	// platformcreativeset.DefaultArchived holds the default value on creation for the archived field.
 	platformcreativeset.DefaultArchived = platformcreativesetDescArchived.Default.(bool)
 	// platformcreativesetDescCreatedAt is the schema descriptor for created_at field.
-	platformcreativesetDescCreatedAt := platformcreativesetFields[9].Descriptor()
+	platformcreativesetDescCreatedAt := platformcreativesetFields[10].Descriptor()
 	// platformcreativeset.DefaultCreatedAt holds the default value on creation for the created_at field.
 	platformcreativeset.DefaultCreatedAt = platformcreativesetDescCreatedAt.Default.(func() time.Time)
 	// platformcreativesetDescUpdatedAt is the schema descriptor for updated_at field.
-	platformcreativesetDescUpdatedAt := platformcreativesetFields[10].Descriptor()
+	platformcreativesetDescUpdatedAt := platformcreativesetFields[11].Descriptor()
 	// platformcreativeset.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	platformcreativeset.DefaultUpdatedAt = platformcreativesetDescUpdatedAt.Default.(func() time.Time)
 	// platformcreativeset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

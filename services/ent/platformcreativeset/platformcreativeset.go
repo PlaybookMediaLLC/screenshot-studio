@@ -3,6 +3,7 @@
 package platformcreativeset
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -17,6 +18,8 @@ const (
 	FieldOrganizationID = "organizationId"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldKind holds the string denoting the kind field in the database.
+	FieldKind = "kind"
 	// FieldDocument holds the string denoting the document field in the database.
 	FieldDocument = "document"
 	// FieldDocumentVersion holds the string denoting the document_version field in the database.
@@ -42,6 +45,7 @@ var Columns = []string{
 	FieldID,
 	FieldOrganizationID,
 	FieldName,
+	FieldKind,
 	FieldDocument,
 	FieldDocumentVersion,
 	FieldRevision,
@@ -75,6 +79,32 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 )
 
+// Kind defines the type for the "kind" enum field.
+type Kind string
+
+// KindStorySet is the default value of the Kind enum.
+const DefaultKind = KindStorySet
+
+// Kind values.
+const (
+	KindStorySet Kind = "story-set"
+	KindCanvas   Kind = "canvas"
+)
+
+func (k Kind) String() string {
+	return string(k)
+}
+
+// KindValidator is a validator for the "kind" field enum values. It is called by the builders before save.
+func KindValidator(k Kind) error {
+	switch k {
+	case KindStorySet, KindCanvas:
+		return nil
+	default:
+		return fmt.Errorf("platformcreativeset: invalid enum value for kind field: %q", k)
+	}
+}
+
 // OrderOption defines the ordering options for the PlatformCreativeSet queries.
 type OrderOption func(*sql.Selector)
 
@@ -91,6 +121,11 @@ func ByOrganizationID(opts ...sql.OrderTermOption) OrderOption {
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByKind orders the results by the kind field.
+func ByKind(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldKind, opts...).ToFunc()
 }
 
 // ByDocumentVersion orders the results by the document_version field.

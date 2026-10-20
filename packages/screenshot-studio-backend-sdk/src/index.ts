@@ -959,6 +959,9 @@ export type BackendProjectListQuery = {
   sort?: 'updated' | 'name'
 }
 
+/** What a creativeSet row holds: a Story Set, or a canvas workspace of artboards. Fixed at creation. */
+export type BackendCreativeSetKind = 'story-set' | 'canvas'
+
 /** A cloud creativeSet: an editor composition with revision-checked writes. */
 export type BackendCreativeSet = {
   archived: boolean
@@ -967,6 +970,8 @@ export type BackendCreativeSet = {
   document: Record<string, unknown>
   documentVersion: number
   id: string
+  /** A canvas document names itself (`kind: 'canvas'`); every other document is a Story Set. */
+  kind: BackendCreativeSetKind
   name: string
   organizationId: string
   /** Every document write is based on this; a stale one is refused with 409. */
@@ -991,9 +996,10 @@ export type BackendCreativeSetVersion = {
   revision: number
 }
 
-/** Filters for a creativeSet list; `cursor` comes from the previous page. */
+/** Filters for a creativeSet list; `cursor` comes from the previous page. `kind` defaults to Story Sets. */
 export type BackendCreativeSetListQuery = {
   cursor?: string
+  kind?: BackendCreativeSetKind
   limit?: number
   search?: string
   sort?: 'updated' | 'name'

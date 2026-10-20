@@ -32,6 +32,20 @@ func (_c *PlatformCreativeSetCreate) SetName(v string) *PlatformCreativeSetCreat
 	return _c
 }
 
+// SetKind sets the "kind" field.
+func (_c *PlatformCreativeSetCreate) SetKind(v platformcreativeset.Kind) *PlatformCreativeSetCreate {
+	_c.mutation.SetKind(v)
+	return _c
+}
+
+// SetNillableKind sets the "kind" field if the given value is not nil.
+func (_c *PlatformCreativeSetCreate) SetNillableKind(v *platformcreativeset.Kind) *PlatformCreativeSetCreate {
+	if v != nil {
+		_c.SetKind(*v)
+	}
+	return _c
+}
+
 // SetDocument sets the "document" field.
 func (_c *PlatformCreativeSetCreate) SetDocument(v map[string]interface{}) *PlatformCreativeSetCreate {
 	_c.mutation.SetDocument(v)
@@ -169,6 +183,10 @@ func (_c *PlatformCreativeSetCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *PlatformCreativeSetCreate) defaults() {
+	if _, ok := _c.mutation.Kind(); !ok {
+		v := platformcreativeset.DefaultKind
+		_c.mutation.SetKind(v)
+	}
 	if _, ok := _c.mutation.Revision(); !ok {
 		v := platformcreativeset.DefaultRevision
 		_c.mutation.SetRevision(v)
@@ -194,6 +212,14 @@ func (_c *PlatformCreativeSetCreate) check() error {
 	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "PlatformCreativeSet.name"`)}
+	}
+	if _, ok := _c.mutation.Kind(); !ok {
+		return &ValidationError{Name: "kind", err: errors.New(`ent: missing required field "PlatformCreativeSet.kind"`)}
+	}
+	if v, ok := _c.mutation.Kind(); ok {
+		if err := platformcreativeset.KindValidator(v); err != nil {
+			return &ValidationError{Name: "kind", err: fmt.Errorf(`ent: validator failed for field "PlatformCreativeSet.kind": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.Document(); !ok {
 		return &ValidationError{Name: "document", err: errors.New(`ent: missing required field "PlatformCreativeSet.document"`)}
@@ -255,6 +281,10 @@ func (_c *PlatformCreativeSetCreate) createSpec() (*PlatformCreativeSet, *sqlgra
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(platformcreativeset.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if value, ok := _c.mutation.Kind(); ok {
+		_spec.SetField(platformcreativeset.FieldKind, field.TypeEnum, value)
+		_node.Kind = value
 	}
 	if value, ok := _c.mutation.Document(); ok {
 		_spec.SetField(platformcreativeset.FieldDocument, field.TypeJSON, value)

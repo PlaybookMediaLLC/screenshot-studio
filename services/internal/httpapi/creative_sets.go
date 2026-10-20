@@ -90,7 +90,7 @@ func (s *Server) listCreativeSets(w http.ResponseWriter, r *http.Request) {
 	}
 	query := r.URL.Query()
 	page, err := s.configuration.ListCreativeSets(r.Context(), workspaceActor(r), product.CreativeSetListQuery{
-		Cursor: query.Get("cursor"), Limit: limit, Search: query.Get("search"), Sort: query.Get("sort"),
+		Cursor: query.Get("cursor"), Kind: query.Get("kind"), Limit: limit, Search: query.Get("search"), Sort: query.Get("sort"),
 	})
 	if err != nil {
 		writeStoreError(w, err)

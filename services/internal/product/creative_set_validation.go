@@ -3,7 +3,9 @@ package product
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -25,6 +27,18 @@ func (c *Configuration) requireCreativeSetCreation(ctx context.Context, actor Ac
 	return c.requireWorkspaceFeature(ctx, actor.OrganizationID, CreativeSetsFeature)
 }
 
+// requireCreativeCreation gates new rows. Story Sets stay behind their rollout
+// feature; a canvas is part of the paid workspace (RFC 041).
+func (c *Configuration) requireCreativeCreation(ctx context.Context, actor Actor, kind platformcreativeset.Kind) error {
+	if kind != platformcreativeset.KindCanvas {
+		return c.requireCreativeSetCreation(ctx, actor)
+	}
+	if err := c.AuthorizeRead(ctx, actor); err != nil {
+		return err
+	}
+	return c.requireWorkspaceFeature(ctx, actor.OrganizationID, "workspace:use")
+}
+
 func number(value any) float64 {
 	switch n := value.(type) {
 	case float64:
@@ -33,6 +47,70 @@ func number(value any) float64 {
 		return float64(n)
 	}
 	return -1
+}
+
+// creativeSetKind is the row kind a document belongs to: a canvas names itself,
+// and every earlier document is a Story Set.
+func creativeSetKind(document map[string]any) platformcreativeset.Kind {
+	if document["kind"] == string(platformcreativeset.KindCanvas) {
+		return platformcreativeset.KindCanvas
+	}
+	return platformcreativeset.KindStorySet
+}
+
+// creativeDocumentAssetIDs validates a document of either kind and lists its assets.
+func creativeDocumentAssetIDs(document map[string]any) ([]string, error) {
+	if creativeSetKind(document) == platformcreativeset.KindCanvas {
+		return canvasAssetIDs(document)
+	}
+	return creativeSetAssetIDs(document)
+}
+
+// Canvas workspaces hold positioned artboards, each a complete native design document.
+func canvasAssetIDs(document map[string]any) ([]string, error) {
+	encoded, err := json.Marshal(document)
+	if err != nil || len(encoded) > 8<<20 || number(document["version"]) != 1 {
+		return nil, invalid("Use a supported canvas document under 8 MB.")
+	}
+	artboards, ok := document["artboards"].([]any)
+	if !ok || len(artboards) > 200 {
+		return nil, ErrInvalidInput
+	}
+	seen, ids := map[string]bool{}, map[string]bool{}
+	for _, value := range artboards {
+		artboard, ok := value.(map[string]any)
+		if !ok {
+			return nil, ErrInvalidInput
+		}
+		id, _ := artboard["id"].(string)
+		name, _ := artboard["name"].(string)
+		x, xOK := artboard["x"].(float64)
+		y, yOK := artboard["y"].(float64)
+		if id == "" || len(id) > 80 || seen[id] || strings.TrimSpace(name) == "" || utf8.RuneCountInString(name) > 120 ||
+			!xOK || !yOK || math.Abs(x) > 1e6 || math.Abs(y) > 1e6 {
+			return nil, ErrInvalidInput
+		}
+		seen[id] = true
+		native, ok := artboard["document"].(map[string]any)
+		if !ok {
+			return nil, ErrInvalidInput
+		}
+		nativeIDs, err := designAssetIDs(native)
+		if err != nil {
+			return nil, err
+		}
+		for _, id := range nativeIDs {
+			ids[id] = true
+		}
+	}
+	if !collectDesignAssetIDs(document, ids) {
+		return nil, ErrInvalidInput
+	}
+	result := make([]string, 0, len(ids))
+	for id := range ids {
+		result = append(result, id)
+	}
+	return result, nil
 }
 
 // Validate the relationship envelope independently of the web, including nested native assets.
@@ -211,7 +289,7 @@ func validCreativeStory(story map[string]any) bool {
 }
 
 func requireCreativeSetAssets(ctx context.Context, tx *ent.Tx, organizationID string, document map[string]any) error {
-	ids, err := creativeSetAssetIDs(document)
+	ids, err := creativeDocumentAssetIDs(document)
 	if err != nil {
 		return err
 	}

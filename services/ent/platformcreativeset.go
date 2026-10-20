@@ -22,6 +22,8 @@ type PlatformCreativeSet struct {
 	OrganizationID string `json:"organization_id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// Kind holds the value of the "kind" field.
+	Kind platformcreativeset.Kind `json:"kind,omitempty"`
 	// Document holds the value of the "document" field.
 	Document map[string]interface{} `json:"document,omitempty"`
 	// DocumentVersion holds the value of the "document_version" field.
@@ -52,7 +54,7 @@ func (*PlatformCreativeSet) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case platformcreativeset.FieldDocumentVersion, platformcreativeset.FieldRevision:
 			values[i] = new(sql.NullInt64)
-		case platformcreativeset.FieldID, platformcreativeset.FieldOrganizationID, platformcreativeset.FieldName, platformcreativeset.FieldCreatedByUserID, platformcreativeset.FieldUpdatedByUserID:
+		case platformcreativeset.FieldID, platformcreativeset.FieldOrganizationID, platformcreativeset.FieldName, platformcreativeset.FieldKind, platformcreativeset.FieldCreatedByUserID, platformcreativeset.FieldUpdatedByUserID:
 			values[i] = new(sql.NullString)
 		case platformcreativeset.FieldCreatedAt, platformcreativeset.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -88,6 +90,12 @@ func (_m *PlatformCreativeSet) assignValues(columns []string, values []any) erro
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				_m.Name = value.String
+			}
+		case platformcreativeset.FieldKind:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field kind", values[i])
+			} else if value.Valid {
+				_m.Kind = platformcreativeset.Kind(value.String)
 			}
 		case platformcreativeset.FieldDocument:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -182,6 +190,9 @@ func (_m *PlatformCreativeSet) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("kind=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Kind))
 	builder.WriteString(", ")
 	builder.WriteString("document=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Document))

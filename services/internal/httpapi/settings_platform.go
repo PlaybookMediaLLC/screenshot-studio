@@ -129,7 +129,18 @@ func (s *Server) setWorkspaceExperiment(w http.ResponseWriter, r *http.Request) 
 	respond(w, http.StatusOK, map[string]any{"items": items}, err)
 }
 
+// nameAccounts stores the names, handles and avatars of accounts that have
+// none yet, as listing connections does, so a set shows its accounts as their
+// platforms do. Best effort: a failure leaves the accounts as they are.
+func (s *Server) nameAccounts(r *http.Request) {
+	organizationID := r.Header.Get("X-Organization-ID")
+	if connections, err := s.store.ListConnections(r.Context(), organizationID); err == nil {
+		s.fillProfiles(r.Context(), organizationID, connections)
+	}
+}
+
 func (s *Server) listSocialSets(w http.ResponseWriter, r *http.Request) {
+	s.nameAccounts(r)
 	list, err := s.configuration.ListSocialSets(r.Context(), workspaceActor(r))
 	respond(w, http.StatusOK, list, err)
 }
@@ -139,6 +150,7 @@ func (s *Server) getSocialSet(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	s.nameAccounts(r)
 	set, err := s.configuration.GetSocialSet(r.Context(), workspaceActor(r), id)
 	respond(w, http.StatusOK, set, err)
 }

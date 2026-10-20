@@ -146,6 +146,8 @@ export interface AnnotationShape {
   fillColor: string
   opacity: number
   isVisible: boolean
+  /** Rectangle corner radius as a fraction of the shorter side. */
+  radius?: number
 }
 
 export type ImageStylePreset =

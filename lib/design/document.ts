@@ -381,6 +381,8 @@ export const designDocumentSchema = z.object({
         end: z.object({ x: unit, y: unit }),
         fillColor: z.string().max(40).default('transparent'),
         opacity: z.number().min(0).max(1).default(1),
+        /** Rounded corners of a rectangle, as a fraction of its shorter side. */
+        radius: z.number().min(0).max(0.5).optional(),
         start: z.object({ x: unit, y: unit }),
         strokeColor: color.default('#ef4444'),
         strokeWidth: z.number().min(1).max(40).default(4),

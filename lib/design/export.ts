@@ -117,6 +117,10 @@ export function documentFromState(
           fillColor: annotation.fillColor,
           id: annotation.id,
           opacity: annotation.opacity,
+          radius:
+            annotation.type === 'rectangle' && annotation.radius
+              ? clamp(annotation.radius, 0, 0.5)
+              : undefined,
           start: { x: clamp(annotation.x1 / canvasW, 0, 1), y: clamp(annotation.y1 / canvasH, 0, 1) },
           strokeColor: annotation.strokeColor,
           strokeWidth: clamp(annotation.strokeWidth, 1, 40),

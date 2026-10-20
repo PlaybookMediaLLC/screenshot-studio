@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"strconv"
 	"strings"
@@ -14,15 +15,22 @@ import (
 
 var ErrPayload = errors.New("invalid supported GitHub event")
 
-// NormalizeGitHub accepts only the three shipped business operations. Ignored
-// actions need no full payload; malformed supported actions must fail visibly.
-// Delivery IDs never contribute to semantic identity.
+// NormalizeGitHub accepts only the supported business operations: published
+// releases, merged pull requests, successful deployments, new tag pushes, and
+// closed milestones. Ignored actions need no full payload; malformed supported
+// actions must fail visibly. Delivery IDs never contribute to semantic identity.
 func NormalizeGitHub(eventName string, body json.RawMessage) (int64, *Event, error) {
-	if eventName != "release" && eventName != "pull_request" && eventName != "deployment_status" {
-		return 0, nil, nil
-	}
 	if len(body) > 1<<20 {
 		return 0, nil, ErrPayload
+	}
+	switch eventName {
+	case "push":
+		return normalizeTagPush(body)
+	case "milestone":
+		return normalizeMilestone(body)
+	case "release", "pull_request", "deployment_status":
+	default:
+		return 0, nil, nil
 	}
 	var header struct {
 		Action string `json:"action"`
@@ -87,6 +95,13 @@ func NormalizeGitHub(eventName string, body json.RawMessage) (int64, *Event, err
 			Labels []struct {
 				Name string `json:"name"`
 			} `json:"labels"`
+			Head struct {
+				Ref string `json:"ref"`
+			} `json:"head"`
+			Additions    *int `json:"additions"`
+			Deletions    *int `json:"deletions"`
+			ChangedFiles *int `json:"changed_files"`
+			Commits      *int `json:"commits"`
 		} `json:"pull_request"`
 		Deployment struct {
 			ID          int64  `json:"id"`
@@ -127,6 +142,7 @@ func NormalizeGitHub(eventName string, body json.RawMessage) (int64, *Event, err
 		e.Notes = releasenotes.Clean(r.Body, 50000)
 		e.SemanticKey = "release:" + e.RepositoryID + ":" + e.ObjectID
 		e.Fields["release.tag"], e.Fields["release.title"] = StringValue(r.Tag), StringValue(e.Title)
+		maps.Copy(e.Fields, versionFields(r.Tag))
 		if r.Prerelease != nil {
 			e.Fields["release.prerelease"] = BoolValue(*r.Prerelease)
 		}
@@ -156,6 +172,14 @@ func NormalizeGitHub(eventName string, body json.RawMessage) (int64, *Event, err
 		if pr.User.Type != "" {
 			e.Fields["pr.bot"] = BoolValue(pr.User.Type == "Bot" || strings.HasSuffix(strings.ToLower(pr.User.Login), "[bot]"))
 		}
+		if pr.Head.Ref != "" {
+			e.Fields["pr.head"] = StringValue(pr.Head.Ref)
+		}
+		for field, count := range map[string]*int{"pr.additions": pr.Additions, "pr.deletions": pr.Deletions, "pr.changed_files": pr.ChangedFiles, "pr.commits": pr.Commits} {
+			if count != nil && *count >= 0 {
+				e.Fields[field] = StringValue(strconv.Itoa(*count))
+			}
+		}
 	case "deployment_status":
 		d, s := payload.Deployment, payload.Status
 		if d.ID <= 0 || s.State != "success" || s.CreatedAt.IsZero() {
@@ -183,16 +207,151 @@ func NormalizeGitHub(eventName string, body json.RawMessage) (int64, *Event, err
 			e.Fields["deployment.production"] = BoolValue(*d.Production)
 		}
 	}
-	e.Fields["event.family"] = StringValue(string(e.Family))
 	action := header.Action
 	if action == "" && e.Family == Deployed {
 		action = "success"
 	}
+	return finish(payload.Installation.ID, e, action)
+}
+
+// finish adds the family-independent fields and validates the snapshot.
+func finish(installation int64, e *Event, action string) (int64, *Event, error) {
+	e.Fields["event.family"] = StringValue(string(e.Family))
 	e.Fields["event.action"] = StringValue(action)
 	if err := ValidateEvent(*e); err != nil {
 		return 0, nil, err
 	}
-	return payload.Installation.ID, e, nil
+	return installation, e, nil
+}
+
+// githubRepository is the repository and installation part every event shares.
+type githubRepository struct {
+	Installation struct {
+		ID int64 `json:"id"`
+	} `json:"installation"`
+	Repository struct {
+		ID            int64           `json:"id"`
+		FullName      string          `json:"full_name"`
+		DefaultBranch string          `json:"default_branch"`
+		HTMLURL       string          `json:"html_url"`
+		PushedAt      json.RawMessage `json:"pushed_at"`
+	} `json:"repository"`
+	Sender struct {
+		Login string `json:"login"`
+	} `json:"sender"`
+}
+
+func (r githubRepository) event() (*Event, error) {
+	if r.Installation.ID <= 0 || r.Repository.ID <= 0 {
+		return nil, ErrPayload
+	}
+	e := &Event{RepositoryID: strconv.FormatInt(r.Repository.ID, 10), RepositoryName: r.Repository.FullName, DefaultBranch: r.Repository.DefaultBranch, Origin: "live", Fields: map[string]Value{}}
+	e.Fields["repository.id"] = StringValue(e.RepositoryID)
+	if e.RepositoryName != "" {
+		e.Fields["repository.name"] = StringValue(e.RepositoryName)
+	}
+	if r.Sender.Login != "" {
+		e.Fields["actor.login"] = StringValue(r.Sender.Login)
+	}
+	return e, nil
+}
+
+// pushedAt reads GitHub's push time, an epoch number in push payloads.
+func (r githubRepository) pushedAt() time.Time {
+	var seconds int64
+	if json.Unmarshal(r.Repository.PushedAt, &seconds) == nil && seconds > 0 {
+		return time.Unix(seconds, 0).UTC()
+	}
+	var text time.Time
+	if json.Unmarshal(r.Repository.PushedAt, &text) == nil {
+		return text
+	}
+	return time.Time{}
+}
+
+// normalizeTagPush accepts only a newly created tag. Branch pushes, deleted
+// tags, and forced moves of an existing tag never trigger: a tag name is one
+// release, so its identity is the name.
+func normalizeTagPush(body json.RawMessage) (int64, *Event, error) {
+	var payload struct {
+		githubRepository
+		Ref        string `json:"ref"`
+		After      string `json:"after"`
+		Created    bool   `json:"created"`
+		Deleted    bool   `json:"deleted"`
+		HeadCommit *struct {
+			Message   string    `json:"message"`
+			Timestamp time.Time `json:"timestamp"`
+		} `json:"head_commit"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return 0, nil, ErrPayload
+	}
+	tag, isTag := strings.CutPrefix(payload.Ref, "refs/tags/")
+	if !isTag || !payload.Created || payload.Deleted {
+		return 0, nil, nil
+	}
+	e, err := payload.event()
+	if err != nil || tag == "" || len(tag) > 255 || len(payload.After) < 7 || len(payload.After) > 64 {
+		return 0, nil, ErrPayload
+	}
+	e.Family, e.ObjectID, e.OccurredAt = TagPushed, payload.After, payload.pushedAt()
+	if payload.HeadCommit != nil {
+		e.Notes = releasenotes.Clean(payload.HeadCommit.Message, 10000)
+		if e.OccurredAt.IsZero() {
+			e.OccurredAt = payload.HeadCommit.Timestamp
+		}
+	}
+	e.Title = releasenotes.Clean(tag, 160)
+	e.SemanticKey = "tag:" + e.RepositoryID + ":" + tag
+	if strings.HasPrefix(payload.Repository.HTMLURL, "https://") {
+		e.URL = strings.TrimSuffix(payload.Repository.HTMLURL, "/") + "/releases/tag/" + url.PathEscape(tag)
+	}
+	e.Fields["tag.name"] = StringValue(tag)
+	maps.Copy(e.Fields, versionFields(tag))
+	return finish(payload.Installation.ID, e, "created")
+}
+
+// normalizeMilestone accepts closed milestones: a milestone is one release
+// made of the pull requests assigned to it.
+func normalizeMilestone(body json.RawMessage) (int64, *Event, error) {
+	var payload struct {
+		githubRepository
+		Action    string `json:"action"`
+		Milestone struct {
+			ID           int64     `json:"id"`
+			Number       int       `json:"number"`
+			Title        string    `json:"title"`
+			Description  string    `json:"description"`
+			OpenIssues   *int      `json:"open_issues"`
+			ClosedIssues *int      `json:"closed_issues"`
+			ClosedAt     time.Time `json:"closed_at"`
+			HTMLURL      string    `json:"html_url"`
+		} `json:"milestone"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil || payload.Action == "" {
+		return 0, nil, ErrPayload
+	}
+	if payload.Action != "closed" {
+		return 0, nil, nil
+	}
+	m := payload.Milestone
+	e, err := payload.event()
+	if err != nil || m.ID <= 0 || m.Number <= 0 || strings.TrimSpace(m.Title) == "" || m.ClosedAt.IsZero() {
+		return 0, nil, ErrPayload
+	}
+	e.Family, e.ObjectID, e.Number, e.OccurredAt, e.URL = MilestoneClosed, strconv.FormatInt(m.ID, 10), m.Number, m.ClosedAt, m.HTMLURL
+	e.Title, e.Notes = releasenotes.Clean(m.Title, 160), releasenotes.Clean(m.Description, 10000)
+	e.SemanticKey = "milestone:" + e.RepositoryID + ":" + e.ObjectID
+	e.Fields["milestone.title"] = StringValue(e.Title)
+	if m.OpenIssues != nil && *m.OpenIssues >= 0 {
+		e.Fields["milestone.open_items"] = StringValue(strconv.Itoa(*m.OpenIssues))
+	}
+	if m.ClosedIssues != nil && *m.ClosedIssues >= 0 {
+		e.Fields["milestone.closed_items"] = StringValue(strconv.Itoa(*m.ClosedIssues))
+	}
+	maps.Copy(e.Fields, versionFields(strings.TrimSpace(m.Title)))
+	return finish(payload.Installation.ID, e, "closed")
 }
 
 // ValidateEvent also validates administrator-supplied dry-run examples.
@@ -219,7 +378,7 @@ func ValidateEvent(e Event) error {
 		if !ok || !slicesContainsState(value.State) || len(value.Values) > 3000 {
 			return ErrPayload
 		}
-		if value.State == "available" && ((kind == "boolean" && (value.Boolean == nil || len(value.Values) > 0)) || (kind != "boolean" && (value.Boolean != nil || kind == "string" && len(value.Values) != 1))) {
+		if value.State == "available" && !valueFits(kind, value) {
 			return ErrPayload
 		}
 		for _, item := range value.Values {

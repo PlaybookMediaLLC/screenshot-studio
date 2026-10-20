@@ -34,12 +34,49 @@ func (c *Configuration) WithAutomationModel(model AutomationModel) *Configuratio
 }
 
 // AutomationCapabilities is what this process can execute beyond the base
-// actions. Paid copy needs a model and the credit meter that bills it.
+// actions. AI checks and paid copy need a model and the credit meter that
+// bills it; rendering needs the web renderer's internal endpoint.
 func (c *Configuration) AutomationCapabilities() []string {
+	capabilities := []string{}
 	if c.automationModel != nil && c.meter != nil {
-		return []string{automation.CapabilityAICopy}
+		capabilities = append(capabilities, automation.CapabilityAI)
 	}
-	return []string{}
+	if c.automationRenderer != nil {
+		capabilities = append(capabilities, automation.CapabilityRender)
+	}
+	return capabilities
+}
+
+// chargeReceiptOnce sets the receipt's charged flag before drawing credits,
+// so a retried activity never bills the same model call twice.
+func (c *Configuration) chargeReceiptOnce(ctx context.Context, org, receiptID string, credits int) error {
+	charged, err := c.client.ReleaseAutomationNode.Update().Where(releaseautomationnode.ID(receiptID), releaseautomationnode.Charged(false)).SetCharged(true).Save(ctx)
+	if err != nil || charged == 0 {
+		return err
+	}
+	// The work is done; a charge that crosses the allowance is still
+	// recorded by the meter, which then refuses the next paid call.
+	if _, err := c.chargeAutomationCredits(ctx, org, credits); err != nil && !errors.Is(err, ErrQuotaExceeded) {
+		slog.ErrorContext(ctx, "release_automation_charge", "organization_id", org, "node", receiptID, "error", err)
+	}
+	return nil
+}
+
+// requireCredits refuses paid work the workspace cannot cover in full.
+func (c *Configuration) requireCredits(ctx context.Context, org string, limit int) error {
+	remaining, err := c.chargeAutomationCredits(ctx, org, 0)
+	if err != nil {
+		return err
+	}
+	if remaining < limit {
+		return &QuotaExceededError{Limit: limit, Quota: QuotaAICredits, ResetAt: nextMonthStart(time.Now())}
+	}
+	return nil
+}
+
+// creditsFor is a call's cost in credits, at least 1 and at most the limit.
+func creditsFor(usage platformai.Usage, limit int) int {
+	return min(limit, max(1, int(math.Ceil(usage.CostUSD*100))))
 }
 
 // ErrAutomationModelUnavailable is retryable: another worker may have a model.
@@ -132,16 +169,8 @@ func (c *Configuration) automationGenerateCopy(ctx context.Context, actor Actor,
 			generation = receipt.Generation
 		}
 	}
-	charged, err := c.client.ReleaseAutomationNode.Update().Where(releaseautomationnode.ID(receipt.ID), releaseautomationnode.Charged(false)).SetCharged(true).Save(ctx)
-	if err != nil {
+	if err := c.chargeReceiptOnce(ctx, actor.OrganizationID, receipt.ID, generation.Credits); err != nil {
 		return automation.Outputs{}, err
-	}
-	if charged == 1 {
-		// The work is done; a charge that crosses the allowance is still
-		// recorded by the meter, which then refuses the next paid call.
-		if _, err := c.chargeAutomationCredits(ctx, actor.OrganizationID, generation.Credits); err != nil && !errors.Is(err, ErrQuotaExceeded) {
-			slog.ErrorContext(ctx, "release_automation_charge", "organization_id", actor.OrganizationID, "node", receipt.ID, "error", err)
-		}
 	}
 	byID := map[string]*ent.CampaignPost{}
 	for _, post := range posts {
@@ -174,12 +203,8 @@ func (c *Configuration) generateAutomationCopy(ctx context.Context, org string, 
 	if c.automationModel == nil {
 		return nil, ErrAutomationModelUnavailable
 	}
-	remaining, err := c.chargeAutomationCredits(ctx, org, 0)
-	if err != nil {
+	if err := c.requireCredits(ctx, org, limit); err != nil {
 		return nil, err
-	}
-	if remaining < limit {
-		return nil, &QuotaExceededError{Limit: limit, Quota: QuotaAICredits, ResetAt: nextMonthStart(time.Now())}
 	}
 	profile, err := c.client.BrandProfile.Query().Where(brandprofile.OrganizationID(org)).Only(ctx)
 	if err != nil && !ent.IsNotFound(err) {
@@ -213,7 +238,7 @@ func (c *Configuration) generateAutomationCopy(ctx context.Context, org string, 
 		}
 		return nil, err
 	}
-	generation := &automation.Generation{Posts: []automation.GeneratedPost{}, Credits: min(limit, max(1, int(math.Ceil(usage.CostUSD*100))))}
+	generation := &automation.Generation{Posts: []automation.GeneratedPost{}, Credits: creditsFor(usage, limit)}
 	for _, post := range posts {
 		for _, candidate := range reply.Posts {
 			if candidate.PostID == post.ID && fitsChannel(post.Channel, candidate.Copy) && !slices.ContainsFunc(generation.Posts, func(p automation.GeneratedPost) bool { return p.PostID == post.ID }) {

@@ -242,6 +242,21 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
               </ButtonLink>
             </Row>
           ) : null}
+          {run.outputs.renderedAssetIds?.length && run.outputs.campaignId ? (
+            <Row
+              description="Rendered from the latest product capture in the brand kit. A reviewer approves a design before it can be scheduled."
+              label={`Creatives · ${run.outputs.renderedAssetIds.length} rendered`}
+              layout="inline"
+            >
+              <ButtonLink
+                href={`/campaigns/${run.outputs.campaignId}/assets`}
+                size="sm"
+                variant="outline"
+              >
+                Open creatives
+              </ButtonLink>
+            </Row>
+          ) : null}
           {run.outputs.creditsCharged ? (
             <Row
               description="Charged once for this run, within the node's limit."
@@ -305,6 +320,14 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
                   </Field>
                   {node.condition ? (
                     <Field label="Condition">{conditionSummary(node.condition)}</Field>
+                  ) : null}
+                  {node.classify ? (
+                    <Field label="AI criteria">
+                      {node.classify.criteria} (threshold {node.classify.threshold})
+                    </Field>
+                  ) : null}
+                  {receipt?.decision.score !== undefined ? (
+                    <Field label="AI confidence">{receipt.decision.score.toFixed(2)}</Field>
                   ) : null}
                   {node.action?.type === 'generate_copy' ? (
                     <Field label="Credit limit">{node.action.creditLimit}</Field>

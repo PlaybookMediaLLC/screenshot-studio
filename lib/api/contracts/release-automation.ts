@@ -5,6 +5,8 @@ export const automationFamilySchema = z.enum([
   'release.published',
   'pull_request.merged',
   'deployment.succeeded',
+  'tag.pushed',
+  'milestone.closed',
 ])
 
 /** A bounded predicate or nested group; semantic validation belongs to Go. */
@@ -23,6 +25,7 @@ export const automationActionTypeSchema = z.enum([
   'create_release',
   'create_campaign',
   'generate_copy',
+  'render_creatives',
   'submit_review',
 ])
 
@@ -41,6 +44,7 @@ export const automationActionSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('create_release'),
     audience: z.string().max(1000).optional(),
+    include: z.enum(['unreleased']).optional(),
   }),
   z.object({
     type: z.literal('create_campaign'),
@@ -56,16 +60,30 @@ export const automationActionSchema = z.discriminatedUnion('type', [
     creditLimit: z.number().int().min(0).max(500).optional(),
   }),
   z.object({
+    type: z.literal('render_creatives'),
+    input: automationReferenceSchema.optional(),
+    templateIds: z.array(z.string().max(64)).max(3).optional(),
+    surfaceId: z.string().max(64).optional(),
+  }),
+  z.object({
     type: z.literal('submit_review'),
     input: automationReferenceSchema.optional(),
   }),
 ])
 
+/** An AI relevance check: the team's criteria, a confidence bar, and a budget. */
+export const automationClassifySchema = z.object({
+  criteria: z.string().max(1000),
+  threshold: z.number().min(0).max(1),
+  creditLimit: z.number().int().min(0).max(50),
+})
+
 /** Draft nodes may be incomplete; server activation requires valid configuration. */
 export const automationNodeSchema = z.object({
   id: z.string().max(64),
-  type: z.enum(['trigger', 'condition', 'action', 'end']),
+  type: z.enum(['trigger', 'condition', 'classify', 'action', 'end']),
   condition: automationConditionSchema.optional(),
+  classify: automationClassifySchema.optional(),
   action: automationActionSchema.optional(),
   outcome: z.string().max(40).optional(),
 })
@@ -168,6 +186,7 @@ export const automationPreviewInputSchema = z
     graph: automationGraphSchema,
     eventId: z.string().min(1).max(64).optional(),
     example: automationEventSchema.optional(),
+    assumeIrrelevant: z.boolean().optional(),
   })
   .refine(
     (value) => Boolean(value.eventId) !== Boolean(value.example),
@@ -179,6 +198,7 @@ export const automationDecisionSchema = z.object({
   status: z.string(),
   match: z.boolean(),
   reason: z.string(),
+  score: z.number().optional(),
 })
 
 /** A prediction lists actions without fabricating IDs or invoking their side effects. */
@@ -205,9 +225,9 @@ export const automationExecutorSchema = z.object({
   capabilities: z.array(z.string()),
 })
 
-/** Whether the backend can execute an action now, and what to configure if not. */
+/** Whether the backend can execute an action or AI check now, and what to configure if not. */
 export const automationActionAvailabilitySchema = z.object({
-  type: automationActionTypeSchema,
+  type: z.union([automationActionTypeSchema, z.literal('classify')]),
   available: z.boolean(),
   reason: z.string(),
 })
@@ -231,6 +251,11 @@ export const automationOverviewSchema = z.object({
   ),
   brands: z.array(z.object({ id: z.string(), name: z.string() })),
   destinations: z.array(z.object({ id: z.string(), name: z.string() })),
+  surfaces: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
+  /** Design templates a render node can fill, from the web's catalog. */
+  templates: z
+    .array(z.object({ id: z.string(), name: z.string(), aspectRatio: z.string() }))
+    .optional(),
   fields: z.record(automationFamilySchema, z.record(z.string(), z.string())),
   executorAvailable: z.boolean(),
   executor: automationExecutorSchema.optional(),
@@ -247,6 +272,8 @@ export const automationOutputsSchema = z.object({
   brandKitVersion: z.number().int().optional(),
   destinationIds: z.array(z.string()).optional(),
   creditsCharged: z.number().int().optional(),
+  designIds: z.array(z.string()).optional(),
+  renderedAssetIds: z.array(z.string()).optional(),
 })
 
 /** Persisted event/run history remains readable during a Temporal outage. */

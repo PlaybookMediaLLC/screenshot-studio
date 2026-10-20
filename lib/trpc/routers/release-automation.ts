@@ -18,14 +18,42 @@ import {
   automationVersionSchema,
 } from '@/lib/api/contracts/workflow-runs'
 import { backendSDK } from '@/lib/backend/sdk'
+import { isDesignRendererAvailable } from '@/lib/design/renderer'
+import { designTemplates } from '@/lib/design/templates'
+import type { AutomationOverview } from 'screenshot-studio-backend-sdk'
 import { router } from '../init'
 import { organizationProcedure } from '../procedures'
+
+/**
+ * Adds what only the web knows: the design templates a render node can fill,
+ * and whether this deployment's renderer is enabled. A worker that can reach
+ * the web is not enough when the web has rendering turned off.
+ */
+function withWebCapabilities(overview: AutomationOverview) {
+  const templates = designTemplates
+    .filter((template) => template.kind === 'layout' && template.usesCopy)
+    .map(({ aspectRatio, id, name }) => ({ aspectRatio, id, name }))
+  const actions = isDesignRendererAvailable()
+    ? overview.actions
+    : overview.actions?.map((action) =>
+        action.type === 'render_creatives'
+          ? {
+              ...action,
+              available: false,
+              reason: 'The design renderer is off on this deployment (PLATFORM_DESIGN_RENDERER).',
+            }
+          : action
+      )
+  return { ...overview, actions, templates }
+}
 
 /** Governance is session-admin only; members can read their workspace's history. */
 export const releaseAutomationRouter = router({
   overview: organizationProcedure('workspace:read')
     .output(automationOverviewSchema)
-    .query(({ ctx }) => backendSDK(ctx.access).releaseAutomationOverview()),
+    .query(async ({ ctx }) =>
+      withWebCapabilities(await backendSDK(ctx.access).releaseAutomationOverview())
+    ),
   save: organizationProcedure('workspace:update')
     .input(automationSaveSchema)
     .output(automationDefinitionSchema)

@@ -62,6 +62,8 @@ export function triggeringObject(item: AutomationHistoryItem) {
   const tag = snapshot.fields['release.tag']?.values?.[0]
   if (snapshot.family === 'pull_request.merged' && snapshot.number) return `PR #${snapshot.number}`
   if (snapshot.family === 'release.published' && tag) return tag
+  if (snapshot.family === 'tag.pushed') return snapshot.fields['tag.name']?.values?.[0] ?? 'tag'
+  if (snapshot.family === 'milestone.closed') return `Milestone ${snapshot.title}`
   if (snapshot.family === 'deployment.succeeded')
     return snapshot.fields['deployment.environment']?.values?.[0] ?? 'deployment'
   return snapshot.objectId
@@ -77,6 +79,8 @@ export const FAILURE_CODES: Record<string, string> = {
   not_entitled: 'The workspace plan does not include this action.',
   prohibited_terms: 'Copy used a term the brand prohibits.',
   model_unavailable: 'No worker had an AI model provider configured.',
+  renderer_unavailable: 'No worker could reach the design renderer.',
+  capture_missing: 'No product page has a current capture to put in the creatives.',
   action_failed: 'The action failed; see the node for details.',
   missing: 'Event evidence was missing, so no branch was chosen.',
   pending: 'Event enrichment was still pending, so no branch was chosen.',

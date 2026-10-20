@@ -270,3 +270,33 @@ func TestInterpreterRetriesGenerationWithinItsBudget(t *testing.T) {
 		})
 	}
 }
+
+// An AI relevance check picks the branch from the verdict its activity
+// recorded; the interpreter never re-asks on replay.
+func TestInterpreterBranchesOnTheRecordedAIVerdict(t *testing.T) {
+	graph := testGraph()
+	graph.SchemaVersion = 2
+	graph.Nodes[1] = automation.Node{ID: "stable", Type: "classify", Classify: &automation.Classify{Criteria: "Customer-visible features only.", Threshold: 0.7, CreditLimit: 5}}
+	if issues := automation.Validate(graph); len(issues) > 0 {
+		t.Fatal(issues)
+	}
+	for _, worthy := range []bool{true, false} {
+		f := fixture()
+		f.loaded.Plans = []product.AutomationPlan{{DefinitionID: "definition-1", VersionID: "version-1", Graph: graph}}
+		env := environment(t, f)
+		asked := 0
+		env.RegisterActivityWithOptions(func(_ context.Context, input NodeInput) (automation.Decision, error) {
+			asked++
+			f.nodes = append(f.nodes, input.NodeID)
+			return automation.Decision{Status: "evaluated", Match: worthy, Reason: "AI verdict"}, nil
+		}, activity.RegisterOptions{Name: ClassifyActivity})
+		env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+		want, status := []string{"start", "stable", "release", "end"}, "succeeded"
+		if !worthy {
+			want, status = []string{"start", "stable", "skip"}, "skipped"
+		}
+		if asked != 1 || !reflect.DeepEqual(f.nodes, want) || f.finish.Status != status {
+			t.Fatalf("worthy=%v asked=%d nodes=%v finish=%+v", worthy, asked, f.nodes, f.finish)
+		}
+	}
+}

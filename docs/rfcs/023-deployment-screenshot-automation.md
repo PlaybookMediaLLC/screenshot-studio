@@ -2,6 +2,7 @@
 
 **Status:** Partially implemented
 **Status note (2026-10-16):** The first deployment-capture slice shipped. Authenticated capture and the rest of this RFC are not built.
+**Implementation update (2026-10-20):** [Workflows](../release-automation.md) can render campaign creatives from a product page's current capture with the existing design renderer.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 010, RFC 013, and RFC 022

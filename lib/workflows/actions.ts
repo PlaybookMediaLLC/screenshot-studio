@@ -86,6 +86,22 @@ export const WORKFLOW_ACTIONS = {
     paid: true,
     humanApproval: false,
   },
+  render_creatives: {
+    type: 'render_creatives',
+    label: 'Render creatives',
+    description:
+      'Fills 1–3 design templates with your latest product capture and the release headline, styles them with the campaign brand kit, renders them, and attaches them to the campaign for review.',
+    input: 'campaignId',
+    output: 'campaignId',
+    minSchemaVersion: 2,
+    permission: ADMIN,
+    integrations: ['Product surface with a capture', 'Design renderer'],
+    entitlement: 'campaign:workflow',
+    retry:
+      'Up to 3 attempts, 5 minutes each. A retry reuses the designs and renders it already made.',
+    paid: false,
+    humanApproval: false,
+  },
   submit_review: {
     type: 'submit_review',
     label: 'Submit for human review',
@@ -112,25 +128,41 @@ export function producersOf(type: AutomationActionType): AutomationActionType[] 
   return workflowActionTypes.filter((candidate) => WORKFLOW_ACTIONS[candidate].output === input)
 }
 
-/** The backend's verdict for an action, defaulting to unavailable when unreported. */
-export function actionAvailability(overview: AutomationOverview, type: AutomationActionType) {
+/** Static facts about the AI relevance check node, shown beside its editor. */
+export const WORKFLOW_CLASSIFY = {
+  label: 'AI: worth marketing?',
+  description:
+    'Asks the AI whether this change is worth announcing under your criteria. The true branch needs a "worth marketing" verdict at or above your confidence threshold. Event text is evidence, never instructions.',
+  integrations: ['AI model provider on the worker', 'AI credits'],
+  entitlement: 'release:create',
+  retry:
+    'Up to 3 attempts, 5 minutes each. The verdict is recorded once; retries and replays reuse it and never charge twice.',
+} as const
+
+/**
+ * The language version the editor saves. Version 2 holds everything version
+ * 1 does with the same meaning, so a re-saved v1 draft behaves the same;
+ * it only needs a worker that runs v2, which activation checks.
+ */
+export const WORKFLOW_SCHEMA_VERSION = 2
+
+/** The backend's verdict for an action or AI check, unavailable when unreported. */
+export function actionAvailability(
+  overview: AutomationOverview,
+  type: AutomationActionType | 'classify'
+) {
   const reported = overview.actions?.find((action) => action.type === type)
   if (reported) return reported
   return {
     type,
-    available: overview.executorAvailable && WORKFLOW_ACTIONS[type].minSchemaVersion === 1,
+    available: false,
     reason: overview.executorAvailable
-      ? 'This backend does not report the action yet.'
+      ? 'This backend does not report the capability yet.'
       : 'No workflow worker is running.',
   }
 }
 
-/** The lowest language version that can hold every action in the graph. */
-export function requiredSchemaVersion(graph: AutomationGraph): number {
-  return Math.max(
-    1,
-    ...graph.nodes.map((node) =>
-      node.action ? WORKFLOW_ACTIONS[node.action.type].minSchemaVersion : 1
-    )
-  )
+/** The graph as the editor saves it. */
+export function savedGraph(graph: AutomationGraph): AutomationGraph {
+  return { ...graph, schemaVersion: WORKFLOW_SCHEMA_VERSION }
 }

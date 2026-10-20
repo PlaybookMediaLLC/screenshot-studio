@@ -3119,6 +3119,7 @@ export class ScreenshotStudioBackendSDK {
     graph: AutomationGraph
     eventId?: string
     example?: AutomationEventSnapshot
+    assumeIrrelevant?: boolean
   }) {
     return this.request<AutomationPreview>('v1/release-automation/preview', {
       method: 'POST',

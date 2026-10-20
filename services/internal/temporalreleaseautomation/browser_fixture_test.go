@@ -56,6 +56,9 @@ func TestBrowserFixtureWorker(t *testing.T) {
 	if model := platformai.FromEnvironment(); model != nil {
 		store.WithAutomationModel(model)
 	}
+	if renderer := product.AutomationRendererFromEnvironment(); renderer != nil {
+		store.WithAutomationRenderer(renderer)
+	}
 	counter, err := quota.NewRedisCounter(os.Getenv("REDIS_URL"))
 	if err != nil {
 		t.Fatal(err)

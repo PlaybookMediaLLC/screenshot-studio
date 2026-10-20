@@ -39,7 +39,29 @@ const server = createServer(async (request, response) => {
       if (body.length > 1 << 20) return json({ error: 'too_large' }, 413)
     }
     modelCalls++
-    const prompt = JSON.parse(body).messages?.at(-1)?.content ?? ''
+    const chat = JSON.parse(body)
+    const prompt = chat.messages?.at(-1)?.content ?? ''
+    // Relevance checks judge the fenced change: maintenance is not marketing.
+    if (chat.response_format?.json_schema?.name === 'workflow_relevance') {
+      const change = prompt.split('<change trust="untrusted">')[1] ?? ''
+      const worthy = !/\b(chore|bump)\b/i.test(change)
+      return json({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                marketingWorthy: worthy,
+                confidence: worthy ? 0.88 : 0.93,
+                rationale: worthy
+                  ? 'Customers get a visible improvement.'
+                  : 'Only maintenance changes.',
+              }),
+            },
+          },
+        ],
+        usage: { prompt_tokens: 400, completion_tokens: 30, cost: 0.004 },
+      })
+    }
     const posts = [...prompt.matchAll(/^- postId (\S+): (\S+),/gm)].map(([, postId, channel]) => ({
       postId,
       copy: `Fixture AI copy for ${channel}: exports now finish faster and more reliably.`,

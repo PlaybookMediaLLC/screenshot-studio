@@ -42,6 +42,9 @@ export function WorkflowTemplates() {
   const [branch, setBranch] = useState('main')
   const [generate, setGenerate] = useState(false)
   const [creditLimit, setCreditLimit] = useState(25)
+  const [aiRelevance, setAIRelevance] = useState(false)
+  const [majorMinorOnly, setMajorMinorOnly] = useState(true)
+  const [renderTemplateIds, setRenderTemplateIds] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -75,6 +78,8 @@ export function WorkflowTemplates() {
   const sources = overview.sources.filter((source) => source.connectionState === 'connected')
   const template = WORKFLOW_TEMPLATES.find((candidate) => candidate.id === templateId)
   const generation = actionAvailability(overview, 'generate_copy')
+  const relevance = actionAvailability(overview, 'classify')
+  const rendering = actionAvailability(overview, 'render_creatives')
 
   async function create() {
     if (!template) return
@@ -86,6 +91,9 @@ export function WorkflowTemplates() {
         destinationIds,
         creditLimit: generate ? creditLimit : 0,
         branch: branch.trim() || 'main',
+        aiRelevance,
+        majorMinorOnly: template.versioned && majorMinorOnly,
+        renderTemplateIds: rendering.available ? renderTemplateIds : [],
       })
       const saved = await client.releaseAutomation.save.mutate({
         id: '',
@@ -126,9 +134,6 @@ export function WorkflowTemplates() {
                 <span className="text-sm font-medium text-white">{candidate.name}</span>
                 <span className="text-sm font-normal text-neutral-400">
                   {candidate.description}
-                </span>
-                <span className="text-xs font-normal text-neutral-500">
-                  {candidate.steps.join(' → ')}
                 </span>
               </Button>
             </li>
@@ -296,6 +301,70 @@ export function WorkflowTemplates() {
                       />
                     </Label>
                   ) : null}
+                </div>
+              </Row>
+              {template.versioned ? (
+                <Row
+                  description="Patch releases (x.y.1) and prereleases are skipped. Tags that are not versions ask for attention."
+                  label="What counts as a release"
+                  layout="stacked"
+                >
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={majorMinorOnly}
+                      onCheckedChange={(checked) => setMajorMinorOnly(checked === true)}
+                    />
+                    Only major and minor versions
+                  </Label>
+                </Row>
+              ) : null}
+              <Row
+                description={
+                  relevance.available
+                    ? 'Replaces the rule-based check with an AI judgment of whether customers would care, under criteria you can edit. A few credits per event.'
+                    : `Unavailable: ${relevance.reason}`
+                }
+                label="AI relevance check"
+                layout="stacked"
+              >
+                <Label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={aiRelevance}
+                    disabled={!relevance.available}
+                    onCheckedChange={(checked) => setAIRelevance(checked === true)}
+                  />
+                  Let AI judge whether this is worth marketing
+                </Label>
+              </Row>
+              <Row
+                description={
+                  rendering.available
+                    ? 'Fills design templates with your latest product capture and the release headline, in your brand kit. Designs stay drafts until approved.'
+                    : `Unavailable: ${rendering.reason}`
+                }
+                label="Rendered creatives"
+                layout="stacked"
+              >
+                <div className="flex flex-wrap gap-4">
+                  {(overview.templates ?? []).map((design) => (
+                    <Label className="flex items-center gap-2 text-sm" key={design.id}>
+                      <Checkbox
+                        checked={renderTemplateIds.includes(design.id)}
+                        disabled={
+                          !rendering.available ||
+                          (!renderTemplateIds.includes(design.id) && renderTemplateIds.length >= 3)
+                        }
+                        onCheckedChange={(checked) =>
+                          setRenderTemplateIds(
+                            checked === true
+                              ? [...renderTemplateIds, design.id]
+                              : renderTemplateIds.filter((id) => id !== design.id)
+                          )
+                        }
+                      />
+                      {design.name} · {design.aspectRatio.replace('_', ':')}
+                    </Label>
+                  ))}
                 </div>
               </Row>
               <Row>

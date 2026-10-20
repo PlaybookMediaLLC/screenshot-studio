@@ -82,6 +82,9 @@ func (f fakeReader) PullRequest(_ context.Context, _ int64, _ string, number int
 func (f fakeReader) PullRequestFiles(context.Context, int64, string, int) ([]string, error) {
 	return []string{"app/billing/page.tsx", "README.md"}, nil
 }
+func (f fakeReader) MilestonePullRequests(context.Context, int64, string, int) ([]int, error) {
+	return []int{90, 91}, nil
+}
 func (f fakeReader) InstallationToken(context.Context, int64) (string, error) { return "token", nil }
 func (f fakeReader) ReleaseHTML(context.Context, int64, string, int64) (string, error) {
 	return `<img src="` + f.base + `/img/release.png"><img src="` + f.base + `/img/redirect"><img src="` + f.base + `/img/text">`, nil

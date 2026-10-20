@@ -1,5 +1,10 @@
 /** The v1/v2 execution language; the Go validator is the execution authority. */
-export type AutomationFamily = 'release.published' | 'pull_request.merged' | 'deployment.succeeded'
+export type AutomationFamily =
+  | 'release.published'
+  | 'pull_request.merged'
+  | 'deployment.succeeded'
+  | 'tag.pushed'
+  | 'milestone.closed'
 export type AutomationCondition = {
   group?: 'ALL' | 'ANY' | 'NOT'
   children?: AutomationCondition[]
@@ -8,7 +13,7 @@ export type AutomationCondition = {
   values?: string[]
 }
 export type AutomationAction =
-  | { type: 'create_release'; audience?: string }
+  | { type: 'create_release'; audience?: string; include?: 'unreleased' }
   | {
       type: 'create_campaign'
       input?: { nodeId: string; output: string }
@@ -18,11 +23,19 @@ export type AutomationAction =
       callToAction?: string
     }
   | { type: 'generate_copy'; input?: { nodeId: string; output: string }; creditLimit?: number }
+  | {
+      type: 'render_creatives'
+      input?: { nodeId: string; output: string }
+      templateIds?: string[]
+      surfaceId?: string
+    }
   | { type: 'submit_review'; input?: { nodeId: string; output: string } }
+export type AutomationClassify = { criteria: string; threshold: number; creditLimit: number }
 export type AutomationNode = {
   id: string
-  type: 'trigger' | 'condition' | 'action' | 'end'
+  type: 'trigger' | 'condition' | 'classify' | 'action' | 'end'
   condition?: AutomationCondition
+  classify?: AutomationClassify
   action?: AutomationAction
   outcome?: string
 }
@@ -79,7 +92,7 @@ export type AutomationEventSnapshot = {
   defaultBranch?: string
   fields: Record<string, AutomationValue>
 }
-export type AutomationDecision = { status: string; match: boolean; reason: string }
+export type AutomationDecision = { status: string; match: boolean; reason: string; score?: number }
 export type AutomationPreview = {
   issues: AutomationIssue[]
   qualification: AutomationDecision
@@ -109,10 +122,11 @@ export type AutomationOverview = {
   }[]
   brands: { id: string; name: string }[]
   destinations: { id: string; name: string }[]
+  surfaces?: { id: string; name: string }[]
   fields: Record<AutomationFamily, Record<string, string>>
   executorAvailable: boolean
   executor?: { available: boolean; schemaVersion: number; capabilities: string[] }
-  actions?: { type: AutomationAction['type']; available: boolean; reason: string }[]
+  actions?: { type: AutomationAction['type'] | 'classify'; available: boolean; reason: string }[]
   runCounts?: Record<string, number>
 }
 export type AutomationOutputs = {
@@ -123,6 +137,8 @@ export type AutomationOutputs = {
   brandKitVersion?: number
   destinationIds?: string[]
   creditsCharged?: number
+  designIds?: string[]
+  renderedAssetIds?: string[]
 }
 export type AutomationHistoryItem = {
   event: {

@@ -29,6 +29,10 @@ const operatorLabels: Record<string, string> = {
   not_exists: 'Does not exist',
   is_true: 'Is true',
   is_false: 'Is false',
+  gt: 'Greater than',
+  gte: 'At least',
+  lt: 'Less than',
+  lte: 'At most',
 }
 
 /** Only fields supplied by the backend's selected-event catalog are offered. */
@@ -49,18 +53,20 @@ export function ConditionEditor({
   const boolean = fields[field] === 'boolean'
   const operators = boolean
     ? ['is_true', 'is_false', 'exists', 'not_exists']
-    : [
-        'eq',
-        'ne',
-        'in',
-        'not_in',
-        'contains',
-        'not_contains',
-        'starts_with',
-        'glob',
-        'exists',
-        'not_exists',
-      ]
+    : fields[field] === 'number'
+      ? ['eq', 'ne', 'in', 'not_in', 'gt', 'gte', 'lt', 'lte', 'exists', 'not_exists']
+      : [
+          'eq',
+          'ne',
+          'in',
+          'not_in',
+          'contains',
+          'not_contains',
+          'starts_with',
+          'glob',
+          'exists',
+          'not_exists',
+        ]
   const predicate = (): AutomationCondition => ({
     field: Object.keys(fields)[0] ?? 'repository.id',
     operator: 'exists',

@@ -62,4 +62,5 @@ func Register(w worker.Worker, a *Activities) {
 	w.RegisterActivityWithOptions(a.Legacy, activity.RegisterOptions{Name: LegacyActivity})
 	w.RegisterActivityWithOptions(a.Collect, activity.RegisterOptions{Name: CollectActivity})
 	w.RegisterActivityWithOptions(a.Finish, activity.RegisterOptions{Name: FinishActivity})
+	w.RegisterActivityWithOptions(a.Classify, activity.RegisterOptions{Name: ClassifyActivity})
 }

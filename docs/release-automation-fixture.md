@@ -69,9 +69,13 @@ events, and checks actual Temporal-created releases, AI-written posts in review,
 and the run page. It checks signature and payload rejection, unsupported events,
 semantic redelivery with no second model call, a needs-attention run for missing
 evidence, deactivation, mobile navigation, and the old settings redirect. The
-fixture worker advertises `ai_copy` because the stack points
-`OPENROUTER_BASE_URL` at the GitHub fixture's fake chat endpoint; the web
-process gets no model key. Fixture workspaces share one installation, so the
+fixture worker advertises `ai` because the stack points
+`OPENROUTER_BASE_URL` at the GitHub fixture's fake chat endpoint, and `render`
+because it holds the render URL and key; the web process gets no model key and
+renders with a local headless Chromium (`PLATFORM_DESIGN_RENDERER=enabled`).
+The second test uploads a product image and records it as a capture. Shifted
+storage ports must allow the web origin in the bucket's CORS, as the local
+RustFS init script does for port 3000. Fixture workspaces share one installation, so the
 fake model counts calls per campaign post rather than globally.
 Screenshots are written under `.context/`; Playwright reports/traces use the
 existing ignored test-results directory. The normal E2E suite skips this test
@@ -80,6 +84,16 @@ unless `E2E_RELEASE_AUTOMATION=1` is explicitly set.
 Stop the fixture processes with Ctrl-C. Preserve reports as needed, then stop only
 the Compose project and database that you created for this fixture. No cleanup
 command in this guide targets another workspace's stack.
+
+## Verification recorded on 2026-10-20 (AI checks, tag releases, renders)
+
+Both browser journeys passed locally (2.8 minutes): the Workflows journey and
+the tag-release journey with an AI relevance check, AI copy, bundled unreleased
+PRs, and a real render. Screenshots `workflows-editor-ai.png`,
+`workflows-run-ai-render.png`, and `workflows-campaign-creatives.png` are local
+artifacts under `.context/`. Go unit, Temporal, and Postgres integration tests
+for the new features passed, as did the TypeScript contract tests. This is not
+live GitHub, model, renderer service, or deployed Temporal verification.
 
 ## Verification recorded on 2026-10-20
 

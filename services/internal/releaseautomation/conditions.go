@@ -1,10 +1,18 @@
 package releaseautomation
 
 import (
+	"math"
 	"path"
 	"slices"
+	"strconv"
 	"strings"
 )
+
+// number parses a number field's decimal string; NaN and infinities are not numbers.
+func number(text string) (float64, bool) {
+	value, err := strconv.ParseFloat(strings.TrimSpace(text), 64)
+	return value, err == nil && !math.IsNaN(value) && !math.IsInf(value, 0)
+}
 
 func ValidateCondition(c Condition, family Family) string {
 	count := 0
@@ -52,9 +60,16 @@ func ValidateCondition(c Condition, family Family) string {
 			if kind != "boolean" || len(c.Values) != 0 {
 				return "Boolean operators require a boolean field and no values."
 			}
+		case "gt", "gte", "lt", "lte":
+			if kind != "number" || len(c.Values) != 1 {
+				return "Comparisons require a number field and one value."
+			}
 		case "eq", "ne", "contains", "not_contains", "starts_with", "glob":
 			if kind == "boolean" || len(c.Values) != 1 {
 				return "This operator requires one string value."
+			}
+			if kind == "number" && c.Operator != "eq" && c.Operator != "ne" {
+				return "Number fields take equality, membership, and comparisons."
 			}
 			if c.Operator == "glob" {
 				if strings.Contains(c.Values[0], "**") {
@@ -70,6 +85,13 @@ func ValidateCondition(c Condition, family Family) string {
 			}
 		default:
 			return "Unknown condition operator."
+		}
+		if kind == "number" {
+			for _, value := range c.Values {
+				if _, ok := number(value); !ok {
+					return "Number fields compare against numbers."
+				}
+			}
 		}
 		return ""
 	}
@@ -124,7 +146,7 @@ func evaluate(c Condition, event Event) Decision {
 		return Decision{Status: state, Reason: c.Field + " is " + state + "; no branch selected."}
 	}
 	kind := FieldKinds(event.Family)[c.Field]
-	if (kind == "boolean" && (value.Boolean == nil || len(value.Values) > 0)) || (kind != "boolean" && (value.Boolean != nil || (kind == "string" && len(value.Values) != 1))) {
+	if !valueFits(kind, value) {
 		return Decision{Status: "invalid", Reason: "Recorded field has the wrong type."}
 	}
 	matched := false
@@ -138,6 +160,29 @@ func evaluate(c Condition, event Event) Decision {
 	case "is_false":
 		matched = !*value.Boolean
 	default:
+		if kind == "number" {
+			// Numbers compare by value, so "2" equals "2.0".
+			item, _ := number(value.Values[0])
+			for _, text := range c.Values {
+				want, _ := number(text)
+				switch c.Operator {
+				case "eq", "ne", "in", "not_in":
+					matched = matched || item == want
+				case "gt":
+					matched = item > want
+				case "gte":
+					matched = item >= want
+				case "lt":
+					matched = item < want
+				case "lte":
+					matched = item <= want
+				}
+			}
+			if c.Operator == "ne" || c.Operator == "not_in" {
+				matched = !matched
+			}
+			break
+		}
 		for _, item := range value.Values {
 			switch c.Operator {
 			case "eq", "ne":
@@ -162,4 +207,21 @@ func evaluate(c Condition, event Event) Decision {
 		}
 	}
 	return Decision{Status: "evaluated", Match: matched, Reason: c.Field + " " + c.Operator + " evaluated against recorded evidence."}
+}
+
+// valueFits reports whether an observed value has its field's shape.
+func valueFits(kind string, value Value) bool {
+	switch kind {
+	case "boolean":
+		return value.Boolean != nil && len(value.Values) == 0
+	case "string":
+		return value.Boolean == nil && len(value.Values) == 1
+	case "number":
+		if value.Boolean != nil || len(value.Values) != 1 {
+			return false
+		}
+		_, ok := number(value.Values[0])
+		return ok
+	}
+	return value.Boolean == nil
 }

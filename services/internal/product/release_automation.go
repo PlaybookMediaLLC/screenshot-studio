@@ -241,13 +241,30 @@ func (c *Configuration) automationExecutable(ctx context.Context, graph automati
 	if err != nil {
 		return false, err
 	}
-	needsAI := slices.ContainsFunc(graph.Nodes, func(n automation.Node) bool { return n.Action != nil && n.Action.Type == "generate_copy" })
 	for _, lease := range leases {
-		if !needsAI || slices.Contains(lease.Capabilities, automation.CapabilityAICopy) {
+		if !slices.ContainsFunc(requiredCapabilities(graph), func(capability string) bool { return !slices.Contains(lease.Capabilities, capability) }) {
 			return true, nil
 		}
 	}
 	return false, nil
+}
+
+// requiredCapabilities are the worker capabilities a graph's nodes need.
+func requiredCapabilities(graph automation.Graph) []string {
+	required := []string{}
+	for _, n := range graph.Nodes {
+		capability := ""
+		switch {
+		case n.Type == "classify", n.Action != nil && n.Action.Type == "generate_copy":
+			capability = automation.CapabilityAI
+		case n.Action != nil && n.Action.Type == "render_creatives":
+			capability = automation.CapabilityRender
+		}
+		if capability != "" && !slices.Contains(required, capability) {
+			required = append(required, capability)
+		}
+	}
+	return required
 }
 
 func (c *Configuration) ActivateReleaseAutomation(ctx context.Context, actor Actor, id string, revision int) (*AutomationDefinition, error) {

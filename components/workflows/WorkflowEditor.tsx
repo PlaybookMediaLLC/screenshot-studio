@@ -54,10 +54,11 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { useTRPCClient } from '@/lib/trpc/react'
-import { actionAvailability, requiredSchemaVersion } from '@/lib/workflows/actions'
+import { actionAvailability, savedGraph, WORKFLOW_SCHEMA_VERSION } from '@/lib/workflows/actions'
 import { releaseExample } from '@/lib/workflows/examples'
 import { getErrorMessage } from '@/components/workspace/settings-client'
 import { ActionEditor } from './ActionEditor'
+import { ClassifyEditor, DEFAULT_CLASSIFY } from './ClassifyEditor'
 import { automationSelectClass, ConditionEditor } from './ConditionEditor'
 import {
   canvasEdges,
@@ -70,11 +71,6 @@ import {
 type Snapshot = { graph: AutomationGraph; layout: AutomationLayout }
 
 const HISTORY_LIMIT = 50
-
-/** The graph sent to the backend, at the lowest language version that can hold it. */
-function normalized(graph: AutomationGraph): AutomationGraph {
-  return { ...graph, schemaVersion: requiredSchemaVersion(graph) }
-}
 
 /** The canvas authors a server-validated graph; it never executes actions. */
 export function WorkflowEditor({
@@ -106,6 +102,7 @@ export function WorkflowEditor({
   const [panel, setPanel] = useState('node')
   const [confirmClose, setConfirmClose] = useState(false)
   const [sample, setSample] = useState('example:match')
+  const [assumeIrrelevant, setAssumeIrrelevant] = useState(false)
   const [preview, setPreview] = useState<AutomationPreview | null>(null)
   const [versions, setVersions] = useState<AutomationVersion[] | null>(null)
   const [issues, setIssues] = useState(definition.issues)
@@ -120,11 +117,14 @@ export function WorkflowEditor({
     (item) =>
       item.event.snapshot.family === graph.family && item.event.sourceAppId === record.sourceAppId
   )
-  const unavailable = graph.nodes.flatMap((node) =>
-    node.action && !actionAvailability(overview, node.action.type).available
-      ? [actionAvailability(overview, node.action.type)]
-      : []
-  )
+  const capabilityOf = (node: AutomationNode) =>
+    node.type === 'classify' ? 'classify' : node.action ? node.action.type : null
+  const unavailable = graph.nodes.flatMap((node) => {
+    const capability = capabilityOf(node)
+    const availability = capability ? actionAvailability(overview, capability) : null
+    return availability && !availability.available ? [availability] : []
+  })
+  const usesAI = graph.nodes.some((node) => node.type === 'classify')
 
   useEffect(() => {
     if (!dirty) return
@@ -213,11 +213,12 @@ export function WorkflowEditor({
   }
   function addNode(type: AutomationNode['type']) {
     insertNode({
-      id: `${type}_${crypto.randomUUID().slice(0, 8)}`,
+      id: `${type === 'classify' ? 'ai' : type}_${crypto.randomUUID().slice(0, 8)}`,
       type,
       ...(type === 'condition'
         ? { condition: { field: 'event.family', operator: 'eq', values: [graph.family] } }
         : {}),
+      ...(type === 'classify' ? { classify: { ...DEFAULT_CLASSIFY } } : {}),
       ...(type === 'action' ? { action: { type: 'create_release' as const } } : {}),
       ...(type === 'end' ? { outcome: 'completed' } : {}),
     })
@@ -267,7 +268,7 @@ export function WorkflowEditor({
       description,
       priority,
       expectedRevision: record.id ? record.revision : 0,
-      graph: normalized(graph),
+      graph: savedGraph(graph),
       layout,
     })
     setRecord(saved)
@@ -298,10 +299,16 @@ export function WorkflowEditor({
       sample.startsWith('example:')
         ? {
             sourceAppId: record.sourceAppId,
-            graph: normalized(graph),
+            graph: savedGraph(graph),
             example: releaseExample(graph.family, source?.repositoryId ?? '1', sample.slice(8)),
+            assumeIrrelevant,
           }
-        : { sourceAppId: record.sourceAppId, graph: normalized(graph), eventId: sample }
+        : {
+            sourceAppId: record.sourceAppId,
+            graph: savedGraph(graph),
+            eventId: sample,
+            assumeIrrelevant,
+          }
     )
     setPreview(result)
     setIssues(result.issues)
@@ -462,24 +469,27 @@ export function WorkflowEditor({
                     >
                       <Redo2 className="size-3.5" aria-hidden="true" />
                     </Button>
-                    {(['trigger', 'condition', 'action', 'end'] as const).map((type) => (
-                      <Button
-                        key={type}
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 gap-1 px-2 text-xs"
-                        disabled={
-                          busy ||
-                          graph.nodes.length >= 64 ||
-                          (type === 'trigger' &&
-                            graph.nodes.some((node) => node.type === 'trigger'))
-                        }
-                        onClick={() => addNode(type)}
-                      >
-                        <Plus className="size-3" aria-hidden="true" /> Add {type}
-                      </Button>
-                    ))}
+                    {(['trigger', 'condition', 'classify', 'action', 'end'] as const).map(
+                      (type) => (
+                        <Button
+                          key={type}
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 gap-1 px-2 text-xs"
+                          disabled={
+                            busy ||
+                            graph.nodes.length >= 64 ||
+                            (type === 'trigger' &&
+                              graph.nodes.some((node) => node.type === 'trigger'))
+                          }
+                          onClick={() => addNode(type)}
+                        >
+                          <Plus className="size-3" aria-hidden="true" /> Add{' '}
+                          {type === 'classify' ? 'AI check' : type}
+                        </Button>
+                      )
+                    )}
                   </div>
                 )}
               </div>
@@ -605,6 +615,13 @@ export function WorkflowEditor({
                               onChange={(condition) => changeNode({ ...selectedNode, condition })}
                             />
                           ) : null}
+                          {selectedNode.type === 'classify' ? (
+                            <ClassifyEditor
+                              node={selectedNode}
+                              overview={overview}
+                              onChange={(classify) => changeNode({ ...selectedNode, classify })}
+                            />
+                          ) : null}
                           {selectedNode.type === 'action' ? (
                             <ActionEditor
                               node={selectedNode}
@@ -670,7 +687,7 @@ export function WorkflowEditor({
                               </UiSelect>
                             </Label>
                           ) : null}
-                          {(selectedNode.type === 'condition'
+                          {(selectedNode.type === 'condition' || selectedNode.type === 'classify'
                             ? ['true', 'false']
                             : selectedNode.type === 'end'
                               ? []
@@ -810,7 +827,7 @@ export function WorkflowEditor({
                       </div>
                       <p className="text-xs leading-5 text-muted-foreground">
                         Draft revision {record.revision || 'new'} · language v
-                        {requiredSchemaVersion(graph)}
+                        {WORKFLOW_SCHEMA_VERSION}
                         {record.updatedAt
                           ? ` · Saved ${new Date(record.updatedAt).toLocaleString()}`
                           : ''}
@@ -886,6 +903,34 @@ export function WorkflowEditor({
                         </UiSelect>
                       </Label>
 
+                      {usesAI ? (
+                        <Label className="grid gap-1 text-sm">
+                          AI checks in this preview
+                          <UiSelect
+                            value={assumeIrrelevant ? 'irrelevant' : 'relevant'}
+
+                            onValueChange={(nextValue) => {
+                              setAssumeIrrelevant(nextValue === 'irrelevant')
+
+                              setPreview(null)
+                            }}
+                          >
+                            <SelectTrigger className={automationSelectClass}>
+                              <SelectValue />
+                            </SelectTrigger>
+
+                            <SelectContent>
+                              <SelectItem value="relevant">Assume worth marketing</SelectItem>
+
+                              <SelectItem value="irrelevant">Assume not worth marketing</SelectItem>
+                            </SelectContent>
+                          </UiSelect>
+                          <span className="text-xs font-normal text-muted-foreground">
+                            Previews never call the model; runs record its real verdict.
+                          </span>
+                        </Label>
+                      ) : null}
+
                       {preview ? (
                         <div className="space-y-4" aria-live="polite">
                           <div
@@ -932,7 +977,7 @@ export function WorkflowEditor({
                                     </span>
                                     <span className="mt-1 block text-[11px] leading-4 text-muted-foreground">
                                       {step.decision
-                                        ? `${step.decision.status !== 'evaluated' ? 'No branch' : step.decision.match ? 'True' : 'False'} · ${step.decision.reason}`
+                                        ? `${step.decision.status !== 'evaluated' && step.decision.status !== 'assumed' ? 'No branch' : step.decision.match ? 'True' : 'False'}${step.decision.status === 'assumed' ? ' (assumed)' : ''} · ${step.decision.reason}`
                                         : (step.outcome ??
                                           (step.type === 'trigger'
                                             ? 'Event received'

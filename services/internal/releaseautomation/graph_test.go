@@ -154,8 +154,11 @@ func TestNormalizeIdentityAndIgnoredEvents(t *testing.T) {
 	if _, _, err := NormalizeGitHub("release", []byte(`{"action":"published"}`)); err == nil {
 		t.Fatal("malformed supported event accepted")
 	}
-	if _, e, err := NormalizeGitHub("push", []byte(`not json`)); e != nil || err != nil {
+	if _, e, err := NormalizeGitHub("issues", []byte(`not json`)); e != nil || err != nil {
 		t.Fatal("unsupported event parsed")
+	}
+	if _, _, err := NormalizeGitHub("push", []byte(`not json`)); err == nil {
+		t.Fatal("malformed supported push accepted")
 	}
 }
 
@@ -269,12 +272,185 @@ func TestWorkflowTemplatesFixtureValidates(t *testing.T) {
 	if err := json.Unmarshal(body, &templates); err != nil {
 		t.Fatal(err)
 	}
-	if len(templates) != 6 {
+	if len(templates) != 10 {
 		t.Fatalf("templates=%d", len(templates))
 	}
 	for name, graph := range templates {
 		if issues := Validate(graph); len(issues) > 0 {
 			t.Errorf("%s: %+v", name, issues)
 		}
+	}
+}
+
+func TestTagPushesAndMilestonesDefineReleases(t *testing.T) {
+	repo := `"installation":{"id":7},"repository":{"id":42,"full_name":"acme/app","html_url":"https://github.com/acme/app","pushed_at":1792491352},"sender":{"login":"dev"}`
+	_, event, err := NormalizeGitHub("push", []byte(`{"ref":"refs/tags/v2.3.0","after":"0123456789abcdef","created":true,"deleted":false,"head_commit":{"message":"Ship billing exports (#12)","timestamp":"2026-10-19T10:00:00Z"},`+repo+`}`))
+	if err != nil || event == nil || event.Family != TagPushed || event.SemanticKey != "tag:42:v2.3.0" || event.Title != "v2.3.0" {
+		t.Fatalf("%+v %v", event, err)
+	}
+	if event.OccurredAt.Unix() != 1792491352 || event.URL != "https://github.com/acme/app/releases/tag/v2.3.0" {
+		t.Fatalf("time=%s url=%s", event.OccurredAt, event.URL)
+	}
+	if got := event.Fields["version.level"].Values; len(got) != 1 || got[0] != "minor" {
+		t.Fatalf("level=%v", got)
+	}
+	for _, ignored := range []string{
+		`{"ref":"refs/heads/main","after":"0123456789abcdef","created":false,"deleted":false,` + repo + `}`,
+		`{"ref":"refs/tags/v2.3.0","after":"0000000000000000","created":false,"deleted":true,` + repo + `}`,
+		`{"ref":"refs/tags/v2.3.0","after":"0123456789abcdef","created":false,"deleted":false,` + repo + `}`,
+	} {
+		if _, e, err := NormalizeGitHub("push", []byte(ignored)); e != nil || err != nil {
+			t.Fatalf("non-release push triggered: %s %v", ignored, err)
+		}
+	}
+	_, milestone, err := NormalizeGitHub("milestone", []byte(`{"action":"closed","milestone":{"id":900,"number":3,"title":"v3","description":"Billing","open_issues":0,"closed_issues":12,"closed_at":"2026-10-19T10:00:00Z","html_url":"https://github.com/acme/app/milestone/3"},`+repo+`}`))
+	if err != nil || milestone.Family != MilestoneClosed || milestone.Number != 3 || milestone.SemanticKey != "milestone:42:900" {
+		t.Fatalf("%+v %v", milestone, err)
+	}
+	if !Evaluate(Condition{Field: "milestone.closed_items", Operator: "gte", Values: []string{"10"}}, *milestone).Match {
+		t.Fatal("closed items comparison failed")
+	}
+	if Evaluate(Condition{Field: "version.level", Operator: "eq", Values: []string{"major"}}, *milestone).Match != true {
+		t.Fatal("v3 is a major version")
+	}
+	if _, e, err := NormalizeGitHub("milestone", []byte(`{"action":"opened"}`)); e != nil || err != nil {
+		t.Fatal("open milestone triggered")
+	}
+}
+
+func TestVersionSemantics(t *testing.T) {
+	for name, want := range map[string]string{"v1": "major", "2.0.0": "major", "v2.4": "minor", "v2.4.1": "patch", "v3.0.0-rc.1": "prerelease", "1.2.3+build.7": "patch"} {
+		if got := versionFields(name)["version.level"]; got.State != "available" || got.Values[0] != want {
+			t.Errorf("%s: %+v", name, got)
+		}
+	}
+	for _, name := range []string{"release-2026", "latest", "v1.2.3.4"} {
+		if got := versionFields(name)["version.level"]; got.State != "not_applicable" {
+			t.Errorf("%s parsed as a version: %+v", name, got)
+		}
+	}
+	e := Event{Family: TagPushed, Fields: versionFields("latest")}
+	if decision := Evaluate(Condition{Field: "version.level", Operator: "in", Values: []string{"major", "minor"}}, e); decision.Status != "not_applicable" {
+		t.Fatalf("non-version decided a branch: %+v", decision)
+	}
+}
+
+func TestNumericOperatorsAndPullRequestSize(t *testing.T) {
+	body := []byte(`{"action":"closed","installation":{"id":7},"repository":{"id":9,"full_name":"acme/app"},
+		"pull_request":{"id":3,"number":42,"title":"feat: exports","merged":true,"merged_at":"2026-10-19T10:00:00Z","base":{"ref":"main"},"head":{"ref":"release/2.4"},"additions":420,"deletions":12,"changed_files":9,"commits":3,"user":{"login":"dev","type":"User"},"labels":[]}}`)
+	_, e, err := NormalizeGitHub("pull_request", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		condition Condition
+		want      bool
+	}{
+		{Condition{Field: "pr.additions", Operator: "gt", Values: []string{"200"}}, true},
+		{Condition{Field: "pr.additions", Operator: "lte", Values: []string{"420.0"}}, true},
+		{Condition{Field: "pr.changed_files", Operator: "lt", Values: []string{"5"}}, false},
+		{Condition{Field: "pr.commits", Operator: "in", Values: []string{"1", "3"}}, true},
+		{Condition{Field: "pr.head", Operator: "glob", Values: []string{"release/*"}}, true},
+	} {
+		if got := Evaluate(test.condition, *e); got.Status != "evaluated" || got.Match != test.want {
+			t.Errorf("%+v: %+v", test.condition, got)
+		}
+	}
+	for _, invalid := range []Condition{
+		{Field: "pr.additions", Operator: "gt", Values: []string{"many"}},
+		{Field: "pr.title", Operator: "gt", Values: []string{"1"}},
+		{Field: "pr.additions", Operator: "contains", Values: []string{"1"}},
+	} {
+		if ValidateCondition(invalid, Merged) == "" {
+			t.Errorf("invalid %+v accepted", invalid)
+		}
+	}
+	g := testGraph()
+	g.Family = Merged
+	g.Qualification = Condition{Field: "pr.additions", Operator: "gt", Values: []string{"10"}}
+	g.Nodes[1].Condition = &Condition{Field: "pr.bot", Operator: "is_false"}
+	if !slices.ContainsFunc(Validate(g), func(i Issue) bool { return i.Code == "schema_version" }) {
+		t.Fatal("v1 graph used a v2 operator")
+	}
+	g.SchemaVersion = 2
+	if issues := Validate(g); len(issues) > 0 {
+		t.Fatal(issues)
+	}
+}
+
+func TestClassifyNodesBranchOnAnAIVerdict(t *testing.T) {
+	g := testGraph()
+	g.SchemaVersion = 2
+	g.Nodes[1] = Node{ID: "stable", Type: "classify", Classify: &Classify{Criteria: "Customer-visible features only.", Threshold: 0.7, CreditLimit: 5}}
+	if issues := Validate(g); len(issues) > 0 {
+		t.Fatal(issues)
+	}
+	e := Event{Family: Published, Fields: map[string]Value{"release.tag": StringValue("v1")}}
+	if p := DryRunAssuming(g, e, true); p.Outcome != "completed" || p.Steps[1].Decision.Status != "assumed" {
+		t.Fatalf("%+v", p)
+	}
+	if p := DryRunAssuming(g, e, false); p.Outcome != "skipped" {
+		t.Fatalf("%+v", p)
+	}
+	for name, change := range map[string]func(*Graph){
+		"v1":           func(g *Graph) { g.SchemaVersion = 1 },
+		"no criteria":  func(g *Graph) { g.Nodes[1].Classify.Criteria = "" },
+		"low bar":      func(g *Graph) { g.Nodes[1].Classify.Threshold = 0.2 },
+		"over budget":  func(g *Graph) { g.Nodes[1].Classify.CreditLimit = MaxClassifyCredits + 1 },
+		"one branch":   func(g *Graph) { g.Edges = slices.Delete(g.Edges, 2, 3) },
+		"misplaced":    func(g *Graph) { g.Nodes[2].Classify = &Classify{} },
+		"render in v1": func(g *Graph) { g.SchemaVersion = 1; g.Nodes[1] = testGraph().Nodes[1] },
+	} {
+		t.Run(name, func(t *testing.T) {
+			g := testGraph()
+			g.SchemaVersion = 2
+			g.Nodes[1] = Node{ID: "stable", Type: "classify", Classify: &Classify{Criteria: "Customer-visible features only.", Threshold: 0.7, CreditLimit: 5}}
+			if name == "render in v1" {
+				g.Nodes = append(g.Nodes, Node{ID: "art", Type: "action", Action: &Action{Type: "render_creatives", Input: &Reference{NodeID: "campaign", Output: "campaignId"}, TemplateIDs: []string{"layout-browser-launch"}}})
+				g.Edges[4].To = "art"
+				g.Edges = append(g.Edges, Edge{"art", "review", "next"})
+				g.Nodes[4].Action.Input.NodeID = "art"
+			}
+			change(&g)
+			if len(Validate(g)) == 0 {
+				t.Fatal("invalid AI check accepted")
+			}
+		})
+	}
+}
+
+func TestRenderCreativesAndReleaseContents(t *testing.T) {
+	g := testGraph()
+	g.SchemaVersion = 2
+	g.Nodes[2].Action.Include = "unreleased"
+	g.Nodes = append(g.Nodes, Node{ID: "art", Type: "action", Action: &Action{Type: "render_creatives", Input: &Reference{NodeID: "campaign", Output: "campaignId"}, TemplateIDs: []string{"layout-browser-launch", "layout-phone-duo"}}})
+	g.Edges[4].To = "art"
+	g.Edges = append(g.Edges, Edge{"art", "review", "next"})
+	g.Nodes[4].Action.Input.NodeID = "art"
+	if issues := Validate(g); len(issues) > 0 {
+		t.Fatal(issues)
+	}
+	for name, change := range map[string]func(*Graph){
+		"bad include":    func(g *Graph) { g.Nodes[2].Action.Include = "everything" },
+		"include in v1":  func(g *Graph) { g.SchemaVersion = 1 },
+		"no templates":   func(g *Graph) { g.Nodes[7].Action.TemplateIDs = nil },
+		"many templates": func(g *Graph) { g.Nodes[7].Action.TemplateIDs = []string{"a", "b", "c", "d"} },
+		"bad template":   func(g *Graph) { g.Nodes[7].Action.TemplateIDs = []string{"../../etc"} },
+		"misplaced":      func(g *Graph) { g.Nodes[3].Action.TemplateIDs = []string{"layout-browser-launch"} },
+	} {
+		t.Run(name, func(t *testing.T) {
+			copy := g
+			copy.Nodes = slices.Clone(g.Nodes)
+			for i := range copy.Nodes {
+				if copy.Nodes[i].Action != nil {
+					action := *copy.Nodes[i].Action
+					copy.Nodes[i].Action = &action
+				}
+			}
+			change(&copy)
+			if len(Validate(copy)) == 0 {
+				t.Fatal("invalid configuration accepted")
+			}
+		})
 	}
 }

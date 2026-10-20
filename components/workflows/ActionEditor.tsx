@@ -29,7 +29,9 @@ const EMPTY = '__empty_option__'
 
 /** A fresh configuration for a newly chosen action type. */
 function blankAction(type: AutomationActionType): AutomationAction {
-  return type === 'generate_copy' ? { type, creditLimit: 25 } : { type }
+  if (type === 'generate_copy') return { type, creditLimit: 25 }
+  if (type === 'render_creatives') return { type, templateIds: ['layout-browser-launch'] }
+  return { type }
 }
 
 /** Action-specific inputs, driven by the registry and the backend's availability. */
@@ -166,6 +168,88 @@ export function ActionEditor({
               onChange={(event) => onChange({ ...action, callToAction: event.target.value })}
             />
           </Label>
+        </>
+      ) : null}
+      {action.type === 'create_release' ? (
+        <Label className="grid gap-1 text-sm">
+          Release contents
+          <Select
+            value={action.include ?? 'event'}
+            onValueChange={(nextValue) =>
+              onChange({
+                ...action,
+                include: nextValue === 'unreleased' ? 'unreleased' : undefined,
+              })
+            }
+          >
+            <SelectTrigger className={automationSelectClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="event">What this event references</SelectItem>
+              <SelectItem value="unreleased">
+                Plus every merged PR since the last release
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-xs leading-5 font-normal text-muted-foreground">
+            {action.include === 'unreleased'
+              ? 'Bundles every collected merged pull request not yet in a release that merged before this event. Keep the repository collecting unmatched merged PRs.'
+              : 'Takes the merged PR itself, PRs the notes or commit message reference, or a milestone’s assigned PRs.'}
+          </span>
+        </Label>
+      ) : null}
+      {action.type === 'render_creatives' ? (
+        <>
+          <fieldset className="space-y-2">
+            <legend className="text-sm">Design templates (1–3)</legend>
+            {(overview.templates ?? []).map((template) => (
+              <Label key={template.id} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={action.templateIds?.includes(template.id) ?? false}
+                  disabled={
+                    !action.templateIds?.includes(template.id) &&
+                    (action.templateIds?.length ?? 0) >= 3
+                  }
+                  onCheckedChange={(checked) =>
+                    onChange({
+                      ...action,
+                      templateIds:
+                        checked === true
+                          ? [...(action.templateIds ?? []), template.id]
+                          : action.templateIds?.filter((id) => id !== template.id),
+                    })
+                  }
+                />
+                {template.name} · {template.aspectRatio.replace('_', ':')}
+              </Label>
+            ))}
+          </fieldset>
+          <Label className="grid gap-1 text-sm">
+            Product capture
+            <Select
+              value={action.surfaceId || EMPTY}
+              onValueChange={(nextValue) =>
+                onChange({ ...action, surfaceId: nextValue === EMPTY ? undefined : nextValue })
+              }
+            >
+              <SelectTrigger className={automationSelectClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={EMPTY}>Latest capture of any product page</SelectItem>
+                {(overview.surfaces ?? []).map((surface) => (
+                  <SelectItem key={surface.id} value={surface.id}>
+                    {surface.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Label>
+          <p className="text-xs leading-5 text-muted-foreground">
+            Creatives are drafts on the campaign. A reviewer approves a design before it can be
+            scheduled with a post.
+          </p>
         </>
       ) : null}
       {action.type === 'create_campaign' || action.type === 'create_release' ? (

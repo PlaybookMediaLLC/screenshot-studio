@@ -6,10 +6,13 @@ import {
   type AutomationLayout,
   type AutomationNode,
 } from '@/lib/api/contracts/release-automation'
+import { WORKFLOW_SCHEMA_VERSION } from './actions'
 
 /** Templates that open as editable, executable definitions. */
 export const workflowTemplateIdSchema = z.enum([
   'release-launch',
+  'tag-launch',
+  'milestone-release',
   'feature-announcement',
   'deployment-marketing',
 ])
@@ -25,6 +28,12 @@ export const workflowTemplateInputSchema = z.strictObject({
   creditLimit: z.number().int().min(0).max(500),
   /** The pull-request base branch a feature announcement requires. */
   branch: z.string().max(255),
+  /** Replaces the rule-based gate with an AI "worth marketing?" check. */
+  aiRelevance: z.boolean(),
+  /** Version-based templates announce only major and minor versions. */
+  majorMinorOnly: z.boolean(),
+  /** Renders these design templates from the latest capture; empty leaves it out. */
+  renderTemplateIds: z.array(z.string().max(64)).max(3),
 })
 
 /** Template parameters chosen in the template picker. */
@@ -36,7 +45,8 @@ export const workflowTemplateSchema = z.strictObject({
   family: automationFamilySchema,
   name: z.string(),
   description: z.string(),
-  steps: z.array(z.string()),
+  /** Whether the version-level option applies. */
+  versioned: z.boolean(),
 })
 
 /** One template's display facts. */
@@ -49,47 +59,72 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     family: 'release.published',
     name: 'Product launch from a GitHub release',
     description:
-      'When a stable release is published, create a release and campaign drafts, optionally write channel copy with AI, and send them for review.',
-    steps: [
-      'Release published',
-      'Stable version tag',
-      'Create release',
-      'Campaign drafts',
-      'Review',
-    ],
+      'When a stable GitHub Release is published, create a release and campaign drafts and send them for review.',
+    versioned: true,
+  },
+  {
+    id: 'tag-launch',
+    family: 'tag.pushed',
+    name: 'Launch from a version tag',
+    description:
+      'For teams that tag without GitHub Releases: a new version tag becomes a release of every PR merged since the last one.',
+    versioned: true,
+  },
+  {
+    id: 'milestone-release',
+    family: 'milestone.closed',
+    name: 'Release a closed milestone',
+    description:
+      'When a milestone closes with nothing left open, its assigned pull requests become one release and campaign.',
+    versioned: false,
   },
   {
     id: 'feature-announcement',
     family: 'pull_request.merged',
     name: 'Feature announcement from a merged pull request',
     description:
-      'When a labeled, human-authored pull request merges into your branch, announce it. Qualification is rule-based (labels and paths), not AI relevance scoring.',
-    steps: [
-      'PR merged',
-      'Watched branch',
-      'Feature label',
-      'Create release',
-      'Campaign drafts',
-      'Review',
-    ],
+      'When a human-authored pull request merges into your branch and is worth announcing, by label rules or an AI check, announce it.',
+    versioned: false,
   },
   {
     id: 'deployment-marketing',
     family: 'deployment.succeeded',
     name: 'Deployment-driven marketing',
     description:
-      'When a production deployment succeeds, draft a campaign for review. Production capture of your product surfaces still runs for every production deployment.',
-    steps: ['Deployment succeeded', 'Production', 'Create release', 'Campaign drafts', 'Review'],
+      'When a production deployment succeeds, draft a campaign for review. Production capture of your product pages still runs for every production deployment.',
+    versioned: false,
   },
 ]
 
-function rules(id: WorkflowTemplateId, branch: string) {
+/** The criteria an AI relevance check starts with. */
+export const DEFAULT_RELEVANCE_CRITERIA =
+  'Customer-visible features, improvements, or fixes a user would notice. Not refactors, dependency bumps, tests, or CI.'
+
+const majorMinor: AutomationCondition = {
+  field: 'version.level',
+  operator: 'in',
+  values: ['major', 'minor'],
+}
+
+function gates(id: WorkflowTemplateId, input: WorkflowTemplateInput) {
   const qualification: Record<WorkflowTemplateId, AutomationCondition> = {
-    'release-launch': { field: 'release.tag', operator: 'glob', values: ['v*'] },
+    'release-launch': input.majorMinorOnly
+      ? {
+          group: 'ALL',
+          children: [{ field: 'release.tag', operator: 'glob', values: ['v*'] }, majorMinor],
+        }
+      : { field: 'release.tag', operator: 'glob', values: ['v*'] },
+    'tag-launch': input.majorMinorOnly
+      ? {
+          group: 'ALL',
+          children: [{ field: 'tag.name', operator: 'glob', values: ['v*'] }, majorMinor],
+        }
+      : { field: 'tag.name', operator: 'glob', values: ['v*'] },
+    'milestone-release': { field: 'milestone.closed_items', operator: 'gte', values: ['1'] },
     'feature-announcement': {
       group: 'ALL',
       children: [
-        { field: 'pr.base', operator: 'eq', values: [branch || 'main'] },
+        { field: 'pr.base', operator: 'eq', values: [input.branch || 'main'] },
         { field: 'pr.bot', operator: 'is_false' },
       ],
     },
@@ -101,6 +136,8 @@ function rules(id: WorkflowTemplateId, branch: string) {
   }
   const condition: Record<WorkflowTemplateId, AutomationCondition> = {
     'release-launch': { field: 'release.prerelease', operator: 'is_false' },
+    'tag-launch': { field: 'version.level', operator: 'ne', values: ['prerelease'] },
+    'milestone-release': { field: 'milestone.open_items', operator: 'eq', values: ['0'] },
     'feature-announcement': {
       group: 'ANY',
       children: [
@@ -124,13 +161,23 @@ export function buildWorkflowTemplate(
 ): { graph: AutomationGraph; layout: AutomationLayout } {
   const template = WORKFLOW_TEMPLATES.find((candidate) => candidate.id === id)
   if (!template) throw new Error(`Unknown workflow template ${id}`)
-  const { qualification, condition } = rules(id, input.branch)
-  const generate = input.creditLimit > 0
-  const reviewInput = generate ? 'copy' : 'campaign'
-  const nodes: AutomationNode[] = [
-    { id: 'trigger', type: 'trigger' },
-    { id: 'condition', type: 'condition', condition },
-    { id: 'release', type: 'action', action: { type: 'create_release' } },
+  const { qualification, condition } = gates(id, input)
+  const gate: AutomationNode = input.aiRelevance
+    ? {
+        id: 'condition',
+        type: 'classify',
+        classify: { criteria: DEFAULT_RELEVANCE_CRITERIA, threshold: 0.7, creditLimit: 5 },
+      }
+    : { id: 'condition', type: 'condition', condition }
+  const steps: AutomationNode[] = [
+    {
+      id: 'release',
+      type: 'action',
+      action: {
+        type: 'create_release',
+        ...(id === 'tag-launch' ? { include: 'unreleased' as const } : {}),
+      },
+    },
     {
       id: 'campaign',
       type: 'action',
@@ -141,50 +188,56 @@ export function buildWorkflowTemplate(
         destinationIds: input.destinationIds,
       },
     },
-    ...(generate
-      ? [
-          {
-            id: 'copy',
-            type: 'action' as const,
-            action: {
-              type: 'generate_copy' as const,
-              input: { nodeId: 'campaign', output: 'campaignId' },
-              creditLimit: input.creditLimit,
-            },
-          },
-        ]
-      : []),
-    {
-      id: 'review',
+  ]
+  const after = () => steps.at(-1)?.id ?? 'campaign'
+  if (input.creditLimit > 0) {
+    steps.push({
+      id: 'copy',
       type: 'action',
-      action: { type: 'submit_review', input: { nodeId: reviewInput, output: 'campaignId' } },
-    },
+      action: {
+        type: 'generate_copy',
+        input: { nodeId: after(), output: 'campaignId' },
+        creditLimit: input.creditLimit,
+      },
+    })
+  }
+  if (input.renderTemplateIds.length > 0) {
+    steps.push({
+      id: 'art',
+      type: 'action',
+      action: {
+        type: 'render_creatives',
+        input: { nodeId: after(), output: 'campaignId' },
+        templateIds: input.renderTemplateIds,
+      },
+    })
+  }
+  steps.push({
+    id: 'review',
+    type: 'action',
+    action: { type: 'submit_review', input: { nodeId: after(), output: 'campaignId' } },
+  })
+  const nodes: AutomationNode[] = [
+    { id: 'trigger', type: 'trigger' },
+    gate,
+    ...steps,
     { id: 'done', type: 'end', outcome: 'completed' },
     { id: 'skip', type: 'end', outcome: 'skipped' },
   ]
-  const edges = [
-    { from: 'trigger', to: 'condition', branch: 'next' },
-    { from: 'condition', to: 'release', branch: 'true' },
-    { from: 'condition', to: 'skip', branch: 'false' },
-    { from: 'release', to: 'campaign', branch: 'next' },
-    ...(generate
-      ? [
-          { from: 'campaign', to: 'copy', branch: 'next' },
-          { from: 'copy', to: 'review', branch: 'next' },
-        ]
-      : [{ from: 'campaign', to: 'review', branch: 'next' }]),
-    { from: 'review', to: 'done', branch: 'next' },
-  ]
+  const chain = ['trigger', 'condition', ...steps.map((step) => step.id), 'done']
+  const edges = chain.slice(1).map((to, index) => ({
+    from: chain[index] ?? 'trigger',
+    to,
+    branch: to === 'release' ? 'true' : 'next',
+  }))
+  edges.splice(2, 0, { from: 'condition', to: 'skip', branch: 'false' })
   const layout: AutomationLayout = { skip: { x: 340, y: 230 } }
-  let y = 0
-  for (const node of nodes) {
-    if (node.id === 'skip') continue
-    layout[node.id] = { x: 0, y }
-    y += node.type === 'condition' ? 130 : 110
-  }
+  chain.forEach((nodeId, index) => {
+    layout[nodeId] = { x: 0, y: index * 115 }
+  })
   return {
     graph: {
-      schemaVersion: generate ? 2 : 1,
+      schemaVersion: WORKFLOW_SCHEMA_VERSION,
       family: template.family,
       qualification,
       nodes,

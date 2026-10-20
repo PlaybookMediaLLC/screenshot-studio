@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, CircleStop, GitBranch, Workflow, X, Zap } from 'lucide-react'
+import { Check, CircleStop, GitBranch, Sparkles, Workflow, X, Zap } from 'lucide-react'
 import { Handle, MarkerType, Position, type Edge, type Node, type NodeProps } from '@xyflow/react'
 import type {
   AutomationCondition,
@@ -9,7 +9,7 @@ import type {
   AutomationLayout,
   AutomationNode,
 } from '@/lib/api/contracts/release-automation'
-import { WORKFLOW_ACTIONS } from '@/lib/workflows/actions'
+import { WORKFLOW_ACTIONS, WORKFLOW_CLASSIFY } from '@/lib/workflows/actions'
 import { cn } from '@/lib/utils'
 
 /** Event family names as customers read them. */
@@ -17,9 +17,17 @@ export const FAMILY_NAMES: Record<AutomationFamily, string> = {
   'release.published': 'Release published',
   'pull_request.merged': 'Pull request merged',
   'deployment.succeeded': 'Deployment succeeded',
+  'tag.pushed': 'Tag pushed',
+  'milestone.closed': 'Milestone closed',
 }
 
-const nodeIcons = { trigger: Zap, condition: GitBranch, action: Workflow, end: CircleStop }
+const nodeIcons = {
+  trigger: Zap,
+  condition: GitBranch,
+  classify: Sparkles,
+  action: Workflow,
+  end: CircleStop,
+}
 
 /** One canvas node's display state, shared by the editor and run inspection. */
 export type CanvasNode = Node<{
@@ -45,12 +53,15 @@ export function nodeLabel(node: AutomationNode, family: AutomationFamily) {
   if (node.type === 'trigger') return FAMILY_NAMES[family]
   if (node.type === 'end')
     return node.outcome === 'skipped' ? 'Skip this event' : 'Workflow complete'
+  if (node.type === 'classify') return WORKFLOW_CLASSIFY.label
   return 'If / then / else'
 }
 
 /** The node's one-line detail under its title. */
 export function nodeDetail(node: AutomationNode, sourceName?: string) {
   if (node.type === 'condition') return conditionSummary(node.condition)
+  if (node.type === 'classify')
+    return `Confidence ≥ ${node.classify?.threshold ?? 0} · up to ${node.classify?.creditLimit ?? 0} credits`
   if (node.type === 'trigger') return sourceName ?? 'Connected repository'
   if (node.type === 'end')
     return node.outcome === 'skipped' ? 'No further actions' : 'End of this path'
@@ -59,8 +70,14 @@ export function nodeDetail(node: AutomationNode, sourceName?: string) {
       return `${node.action.destinationIds?.length ?? 0} draft destinations`
     case 'generate_copy':
       return `AI copy · up to ${node.action.creditLimit ?? 0} credits`
+    case 'render_creatives':
+      return `${node.action.templateIds?.length ?? 0} templates from the latest capture`
     case 'submit_review':
       return 'A person approves before publishing'
+    case 'create_release':
+      return node.action.include === 'unreleased'
+        ? 'Event plus every unreleased merged PR'
+        : 'From the source event'
   }
   return 'From the source event'
 }
@@ -89,6 +106,7 @@ function WorkflowNode({ data, selected }: NodeProps<CanvasNode>) {
           className={cn(
             'flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted',
             data.kind === 'condition' && 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+            data.kind === 'classify' && 'bg-violet-500/10 text-violet-600 dark:text-violet-300',
             data.kind === 'trigger' && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
           )}
         >
@@ -106,7 +124,7 @@ function WorkflowNode({ data, selected }: NodeProps<CanvasNode>) {
           <Check className="size-3.5 shrink-0 text-emerald-500" aria-label="On preview path" />
         ) : null}
       </div>
-      {data.kind === 'condition' ? (
+      {data.kind === 'condition' || data.kind === 'classify' ? (
         <div className="relative grid grid-cols-2 border-t border-border text-center text-[10px] font-medium">
           <span className="border-r border-border py-1.5 text-emerald-600 dark:text-emerald-400">
             TRUE · Continue

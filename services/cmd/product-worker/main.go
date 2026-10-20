@@ -165,9 +165,12 @@ func main() {
 		automationStore.WithGitHubApp(github)
 	}
 	// Paid workflow copy needs a model and the credit meter that bills it;
-	// without both this worker never advertises the ai_copy capability.
+	// without both this worker never advertises the ai capability.
 	if model := platformai.FromEnvironment(); model != nil {
 		automationStore.WithAutomationModel(model)
+	}
+	if renderer := product.AutomationRendererFromEnvironment(); renderer != nil {
+		automationStore.WithAutomationRenderer(renderer)
 	}
 	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
 		counter, err := quota.NewRedisCounter(redisURL)

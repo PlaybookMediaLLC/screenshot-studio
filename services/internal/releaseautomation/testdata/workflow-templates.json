@@ -1,6 +1,6 @@
 {
   "release-launch": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "family": "release.published",
     "qualification": {
       "field": "release.tag",
@@ -99,14 +99,27 @@
       }
     ]
   },
-  "release-launch+copy": {
+  "release-launch+all": {
     "schemaVersion": 2,
     "family": "release.published",
     "qualification": {
-      "field": "release.tag",
-      "operator": "glob",
-      "values": [
-        "v*"
+      "group": "ALL",
+      "children": [
+        {
+          "field": "release.tag",
+          "operator": "glob",
+          "values": [
+            "v*"
+          ]
+        },
+        {
+          "field": "version.level",
+          "operator": "in",
+          "values": [
+            "major",
+            "minor"
+          ]
+        }
       ]
     },
     "nodes": [
@@ -116,10 +129,11 @@
       },
       {
         "id": "condition",
-        "type": "condition",
-        "condition": {
-          "field": "release.prerelease",
-          "operator": "is_false"
+        "type": "classify",
+        "classify": {
+          "criteria": "Customer-visible features, improvements, or fixes a user would notice. Not refactors, dependency bumps, tests, or CI.",
+          "threshold": 0.7,
+          "creditLimit": 5
         }
       },
       {
@@ -157,12 +171,27 @@
         }
       },
       {
+        "id": "art",
+        "type": "action",
+        "action": {
+          "type": "render_creatives",
+          "input": {
+            "nodeId": "copy",
+            "output": "campaignId"
+          },
+          "templateIds": [
+            "layout-browser-launch",
+            "layout-phone-duo"
+          ]
+        }
+      },
+      {
         "id": "review",
         "type": "action",
         "action": {
           "type": "submit_review",
           "input": {
-            "nodeId": "copy",
+            "nodeId": "art",
             "output": "campaignId"
           }
         }
@@ -206,6 +235,508 @@
       },
       {
         "from": "copy",
+        "to": "art",
+        "branch": "next"
+      },
+      {
+        "from": "art",
+        "to": "review",
+        "branch": "next"
+      },
+      {
+        "from": "review",
+        "to": "done",
+        "branch": "next"
+      }
+    ]
+  },
+  "tag-launch": {
+    "schemaVersion": 2,
+    "family": "tag.pushed",
+    "qualification": {
+      "field": "tag.name",
+      "operator": "glob",
+      "values": [
+        "v*"
+      ]
+    },
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "trigger"
+      },
+      {
+        "id": "condition",
+        "type": "condition",
+        "condition": {
+          "field": "version.level",
+          "operator": "ne",
+          "values": [
+            "prerelease"
+          ]
+        }
+      },
+      {
+        "id": "release",
+        "type": "action",
+        "action": {
+          "type": "create_release",
+          "include": "unreleased"
+        }
+      },
+      {
+        "id": "campaign",
+        "type": "action",
+        "action": {
+          "type": "create_campaign",
+          "input": {
+            "nodeId": "release",
+            "output": "releaseId"
+          },
+          "brandKitId": "brand-fixture",
+          "destinationIds": [
+            "destination-fixture"
+          ]
+        }
+      },
+      {
+        "id": "review",
+        "type": "action",
+        "action": {
+          "type": "submit_review",
+          "input": {
+            "nodeId": "campaign",
+            "output": "campaignId"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end",
+        "outcome": "completed"
+      },
+      {
+        "id": "skip",
+        "type": "end",
+        "outcome": "skipped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "trigger",
+        "to": "condition",
+        "branch": "next"
+      },
+      {
+        "from": "condition",
+        "to": "release",
+        "branch": "true"
+      },
+      {
+        "from": "condition",
+        "to": "skip",
+        "branch": "false"
+      },
+      {
+        "from": "release",
+        "to": "campaign",
+        "branch": "next"
+      },
+      {
+        "from": "campaign",
+        "to": "review",
+        "branch": "next"
+      },
+      {
+        "from": "review",
+        "to": "done",
+        "branch": "next"
+      }
+    ]
+  },
+  "tag-launch+all": {
+    "schemaVersion": 2,
+    "family": "tag.pushed",
+    "qualification": {
+      "group": "ALL",
+      "children": [
+        {
+          "field": "tag.name",
+          "operator": "glob",
+          "values": [
+            "v*"
+          ]
+        },
+        {
+          "field": "version.level",
+          "operator": "in",
+          "values": [
+            "major",
+            "minor"
+          ]
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "trigger"
+      },
+      {
+        "id": "condition",
+        "type": "classify",
+        "classify": {
+          "criteria": "Customer-visible features, improvements, or fixes a user would notice. Not refactors, dependency bumps, tests, or CI.",
+          "threshold": 0.7,
+          "creditLimit": 5
+        }
+      },
+      {
+        "id": "release",
+        "type": "action",
+        "action": {
+          "type": "create_release",
+          "include": "unreleased"
+        }
+      },
+      {
+        "id": "campaign",
+        "type": "action",
+        "action": {
+          "type": "create_campaign",
+          "input": {
+            "nodeId": "release",
+            "output": "releaseId"
+          },
+          "brandKitId": "brand-fixture",
+          "destinationIds": [
+            "destination-fixture"
+          ]
+        }
+      },
+      {
+        "id": "copy",
+        "type": "action",
+        "action": {
+          "type": "generate_copy",
+          "input": {
+            "nodeId": "campaign",
+            "output": "campaignId"
+          },
+          "creditLimit": 40
+        }
+      },
+      {
+        "id": "art",
+        "type": "action",
+        "action": {
+          "type": "render_creatives",
+          "input": {
+            "nodeId": "copy",
+            "output": "campaignId"
+          },
+          "templateIds": [
+            "layout-browser-launch",
+            "layout-phone-duo"
+          ]
+        }
+      },
+      {
+        "id": "review",
+        "type": "action",
+        "action": {
+          "type": "submit_review",
+          "input": {
+            "nodeId": "art",
+            "output": "campaignId"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end",
+        "outcome": "completed"
+      },
+      {
+        "id": "skip",
+        "type": "end",
+        "outcome": "skipped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "trigger",
+        "to": "condition",
+        "branch": "next"
+      },
+      {
+        "from": "condition",
+        "to": "release",
+        "branch": "true"
+      },
+      {
+        "from": "condition",
+        "to": "skip",
+        "branch": "false"
+      },
+      {
+        "from": "release",
+        "to": "campaign",
+        "branch": "next"
+      },
+      {
+        "from": "campaign",
+        "to": "copy",
+        "branch": "next"
+      },
+      {
+        "from": "copy",
+        "to": "art",
+        "branch": "next"
+      },
+      {
+        "from": "art",
+        "to": "review",
+        "branch": "next"
+      },
+      {
+        "from": "review",
+        "to": "done",
+        "branch": "next"
+      }
+    ]
+  },
+  "milestone-release": {
+    "schemaVersion": 2,
+    "family": "milestone.closed",
+    "qualification": {
+      "field": "milestone.closed_items",
+      "operator": "gte",
+      "values": [
+        "1"
+      ]
+    },
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "trigger"
+      },
+      {
+        "id": "condition",
+        "type": "condition",
+        "condition": {
+          "field": "milestone.open_items",
+          "operator": "eq",
+          "values": [
+            "0"
+          ]
+        }
+      },
+      {
+        "id": "release",
+        "type": "action",
+        "action": {
+          "type": "create_release"
+        }
+      },
+      {
+        "id": "campaign",
+        "type": "action",
+        "action": {
+          "type": "create_campaign",
+          "input": {
+            "nodeId": "release",
+            "output": "releaseId"
+          },
+          "brandKitId": "brand-fixture",
+          "destinationIds": [
+            "destination-fixture"
+          ]
+        }
+      },
+      {
+        "id": "review",
+        "type": "action",
+        "action": {
+          "type": "submit_review",
+          "input": {
+            "nodeId": "campaign",
+            "output": "campaignId"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end",
+        "outcome": "completed"
+      },
+      {
+        "id": "skip",
+        "type": "end",
+        "outcome": "skipped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "trigger",
+        "to": "condition",
+        "branch": "next"
+      },
+      {
+        "from": "condition",
+        "to": "release",
+        "branch": "true"
+      },
+      {
+        "from": "condition",
+        "to": "skip",
+        "branch": "false"
+      },
+      {
+        "from": "release",
+        "to": "campaign",
+        "branch": "next"
+      },
+      {
+        "from": "campaign",
+        "to": "review",
+        "branch": "next"
+      },
+      {
+        "from": "review",
+        "to": "done",
+        "branch": "next"
+      }
+    ]
+  },
+  "milestone-release+all": {
+    "schemaVersion": 2,
+    "family": "milestone.closed",
+    "qualification": {
+      "field": "milestone.closed_items",
+      "operator": "gte",
+      "values": [
+        "1"
+      ]
+    },
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "trigger"
+      },
+      {
+        "id": "condition",
+        "type": "classify",
+        "classify": {
+          "criteria": "Customer-visible features, improvements, or fixes a user would notice. Not refactors, dependency bumps, tests, or CI.",
+          "threshold": 0.7,
+          "creditLimit": 5
+        }
+      },
+      {
+        "id": "release",
+        "type": "action",
+        "action": {
+          "type": "create_release"
+        }
+      },
+      {
+        "id": "campaign",
+        "type": "action",
+        "action": {
+          "type": "create_campaign",
+          "input": {
+            "nodeId": "release",
+            "output": "releaseId"
+          },
+          "brandKitId": "brand-fixture",
+          "destinationIds": [
+            "destination-fixture"
+          ]
+        }
+      },
+      {
+        "id": "copy",
+        "type": "action",
+        "action": {
+          "type": "generate_copy",
+          "input": {
+            "nodeId": "campaign",
+            "output": "campaignId"
+          },
+          "creditLimit": 40
+        }
+      },
+      {
+        "id": "art",
+        "type": "action",
+        "action": {
+          "type": "render_creatives",
+          "input": {
+            "nodeId": "copy",
+            "output": "campaignId"
+          },
+          "templateIds": [
+            "layout-browser-launch",
+            "layout-phone-duo"
+          ]
+        }
+      },
+      {
+        "id": "review",
+        "type": "action",
+        "action": {
+          "type": "submit_review",
+          "input": {
+            "nodeId": "art",
+            "output": "campaignId"
+          }
+        }
+      },
+      {
+        "id": "done",
+        "type": "end",
+        "outcome": "completed"
+      },
+      {
+        "id": "skip",
+        "type": "end",
+        "outcome": "skipped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "trigger",
+        "to": "condition",
+        "branch": "next"
+      },
+      {
+        "from": "condition",
+        "to": "release",
+        "branch": "true"
+      },
+      {
+        "from": "condition",
+        "to": "skip",
+        "branch": "false"
+      },
+      {
+        "from": "release",
+        "to": "campaign",
+        "branch": "next"
+      },
+      {
+        "from": "campaign",
+        "to": "copy",
+        "branch": "next"
+      },
+      {
+        "from": "copy",
+        "to": "art",
+        "branch": "next"
+      },
+      {
+        "from": "art",
         "to": "review",
         "branch": "next"
       },
@@ -217,7 +748,7 @@
     ]
   },
   "feature-announcement": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "family": "pull_request.merged",
     "qualification": {
       "group": "ALL",
@@ -342,7 +873,7 @@
       }
     ]
   },
-  "feature-announcement+copy": {
+  "feature-announcement+all": {
     "schemaVersion": 2,
     "family": "pull_request.merged",
     "qualification": {
@@ -368,27 +899,11 @@
       },
       {
         "id": "condition",
-        "type": "condition",
-        "condition": {
-          "group": "ANY",
-          "children": [
-            {
-              "field": "pr.labels",
-              "operator": "in",
-              "values": [
-                "feature",
-                "marketing",
-                "release"
-              ]
-            },
-            {
-              "field": "pr.title",
-              "operator": "starts_with",
-              "values": [
-                "feat"
-              ]
-            }
-          ]
+        "type": "classify",
+        "classify": {
+          "criteria": "Customer-visible features, improvements, or fixes a user would notice. Not refactors, dependency bumps, tests, or CI.",
+          "threshold": 0.7,
+          "creditLimit": 5
         }
       },
       {
@@ -426,12 +941,27 @@
         }
       },
       {
+        "id": "art",
+        "type": "action",
+        "action": {
+          "type": "render_creatives",
+          "input": {
+            "nodeId": "copy",
+            "output": "campaignId"
+          },
+          "templateIds": [
+            "layout-browser-launch",
+            "layout-phone-duo"
+          ]
+        }
+      },
+      {
         "id": "review",
         "type": "action",
         "action": {
           "type": "submit_review",
           "input": {
-            "nodeId": "copy",
+            "nodeId": "art",
             "output": "campaignId"
           }
         }
@@ -475,6 +1005,11 @@
       },
       {
         "from": "copy",
+        "to": "art",
+        "branch": "next"
+      },
+      {
+        "from": "art",
         "to": "review",
         "branch": "next"
       },
@@ -486,7 +1021,7 @@
     ]
   },
   "deployment-marketing": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "family": "deployment.succeeded",
     "qualification": {
       "field": "deployment.environment",
@@ -585,7 +1120,7 @@
       }
     ]
   },
-  "deployment-marketing+copy": {
+  "deployment-marketing+all": {
     "schemaVersion": 2,
     "family": "deployment.succeeded",
     "qualification": {
@@ -602,10 +1137,11 @@
       },
       {
         "id": "condition",
-        "type": "condition",
-        "condition": {
-          "field": "deployment.production",
-          "operator": "is_true"
+        "type": "classify",
+        "classify": {
+          "criteria": "Customer-visible features, improvements, or fixes a user would notice. Not refactors, dependency bumps, tests, or CI.",
+          "threshold": 0.7,
+          "creditLimit": 5
         }
       },
       {
@@ -643,12 +1179,27 @@
         }
       },
       {
+        "id": "art",
+        "type": "action",
+        "action": {
+          "type": "render_creatives",
+          "input": {
+            "nodeId": "copy",
+            "output": "campaignId"
+          },
+          "templateIds": [
+            "layout-browser-launch",
+            "layout-phone-duo"
+          ]
+        }
+      },
+      {
         "id": "review",
         "type": "action",
         "action": {
           "type": "submit_review",
           "input": {
-            "nodeId": "copy",
+            "nodeId": "art",
             "output": "campaignId"
           }
         }
@@ -692,6 +1243,11 @@
       },
       {
         "from": "copy",
+        "to": "art",
+        "branch": "next"
+      },
+      {
+        "from": "art",
         "to": "review",
         "branch": "next"
       },

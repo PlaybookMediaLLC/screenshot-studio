@@ -189,7 +189,9 @@ export const githubAppEventSchema = z.enum([
   'deployment_status',
   'installation',
   'installation_repositories',
+  'milestone',
   'pull_request',
+  'push',
   'release',
 ])
 

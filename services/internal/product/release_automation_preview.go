@@ -8,6 +8,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
@@ -45,6 +46,7 @@ type AutomationOverview struct {
 	Sources           []AutomationSource                      `json:"sources"`
 	Brands            []AutomationChoice                      `json:"brands"`
 	Destinations      []AutomationChoice                      `json:"destinations"`
+	Surfaces          []AutomationChoice                      `json:"surfaces"`
 	Fields            map[automation.Family]map[string]string `json:"fields"`
 	ExecutorAvailable bool                                    `json:"executorAvailable"`
 	Executor          AutomationExecutor                      `json:"executor"`
@@ -56,7 +58,8 @@ type AutomationOverview struct {
 // workspace entitlements. Activation and every activity check them again.
 func (c *Configuration) automationActions(ctx context.Context, org string, executor AutomationExecutor) ([]AutomationActionAvailability, error) {
 	result := []AutomationActionAvailability{}
-	for _, action := range []struct{ kind, feature string }{{"create_release", "release:create"}, {"create_campaign", "campaign:workflow"}, {"generate_copy", "campaign:workflow"}, {"submit_review", "release:create"}} {
+	for _, action := range []struct{ kind, feature string }{{"create_release", "release:create"}, {"create_campaign", "campaign:workflow"}, {"generate_copy", "campaign:workflow"},
+		{"render_creatives", "campaign:workflow"}, {"submit_review", "release:create"}, {"classify", "release:create"}} {
 		item := AutomationActionAvailability{Type: action.kind, Available: true}
 		err := c.requireWorkspaceFeature(ctx, org, action.feature)
 		var entitlement *FeatureNotEntitledError
@@ -67,10 +70,12 @@ func (c *Configuration) automationActions(ctx context.Context, org string, execu
 			return nil, err
 		case !executor.Available:
 			item.Reason = "No workflow worker is running. You can save and test drafts; activation waits for a worker."
-		case action.kind == "generate_copy" && executor.SchemaVersion < 2:
-			item.Reason = "Running workers predate copy generation. Deploy the current product worker."
-		case action.kind == "generate_copy" && !slices.Contains(executor.Capabilities, automation.CapabilityAICopy):
-			item.Reason = "No worker has an AI model provider configured (OPENROUTER_API_KEY)."
+		case (action.kind == "generate_copy" || action.kind == "classify" || action.kind == "render_creatives") && executor.SchemaVersion < 2:
+			item.Reason = "Running workers predate workflow language version 2. Deploy the current product worker."
+		case (action.kind == "generate_copy" || action.kind == "classify") && !slices.Contains(executor.Capabilities, automation.CapabilityAI):
+			item.Reason = "No worker has an AI model provider and credit meter configured (OPENROUTER_API_KEY, REDIS_URL)."
+		case action.kind == "render_creatives" && !slices.Contains(executor.Capabilities, automation.CapabilityRender):
+			item.Reason = "No worker can reach the design renderer (PLATFORM_WORKFLOW_RENDER_URL, PLATFORM_WORKFLOW_RENDER_KEY)."
 		}
 		item.Available = item.Reason == ""
 		result = append(result, item)
@@ -83,7 +88,14 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 	if err != nil {
 		return nil, err
 	}
-	result := &AutomationOverview{Definitions: definitions, Sources: []AutomationSource{}, Brands: []AutomationChoice{}, Destinations: []AutomationChoice{}, Fields: map[automation.Family]map[string]string{}}
+	result := &AutomationOverview{Definitions: definitions, Sources: []AutomationSource{}, Brands: []AutomationChoice{}, Destinations: []AutomationChoice{}, Surfaces: []AutomationChoice{}, Fields: map[automation.Family]map[string]string{}}
+	surfaces, err := c.client.ProductSurface.Query().Where(productsurface.OrganizationID(actor.OrganizationID)).Order(ent.Asc(productsurface.FieldName)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, surface := range surfaces {
+		result.Surfaces = append(result.Surfaces, AutomationChoice{ID: surface.ID, Name: surface.Name})
+	}
 	result.Executor, err = c.ReleaseAutomationExecutor(ctx)
 	if err != nil {
 		return nil, err
@@ -98,7 +110,7 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 	if err := c.attachLastRuns(ctx, actor.OrganizationID, result.Definitions); err != nil {
 		return nil, err
 	}
-	for _, family := range []automation.Family{automation.Published, automation.Merged, automation.Deployed} {
+	for _, family := range []automation.Family{automation.Published, automation.Merged, automation.Deployed, automation.TagPushed, automation.MilestoneClosed} {
 		result.Fields[family] = automation.FieldKinds(family)
 	}
 	sources, err := c.client.SourceApp.Query().Where(sourceapp.OrganizationID(actor.OrganizationID), sourceapp.Provider("github"), sourceapp.GithubInstallationIDNotNil()).Order(ent.Asc(sourceapp.FieldName)).All(ctx)
@@ -168,6 +180,9 @@ type AutomationPreviewInput struct {
 	Graph       automation.Graph  `json:"graph"`
 	EventID     string            `json:"eventId"`
 	Example     *automation.Event `json:"example"`
+	// AssumeIrrelevant previews AI relevance checks answering "not worth
+	// marketing"; previews never call a model.
+	AssumeIrrelevant bool `json:"assumeIrrelevant"`
 }
 type AutomationPreview struct {
 	automation.Preview
@@ -211,7 +226,7 @@ func (c *Configuration) PreviewReleaseAutomation(ctx context.Context, actor Acto
 			return nil, ErrInvalidInput
 		}
 	}
-	preview := automation.DryRun(input.Graph, snapshot)
+	preview := automation.DryRunAssuming(input.Graph, snapshot, !input.AssumeIrrelevant)
 	// Preview predicts activation, which opts the source into automation mode.
 	source.ReleaseAutomation = true
 	if filter := automationSourceFilter(source, snapshot); filter != "" && len(preview.Issues) == 0 {

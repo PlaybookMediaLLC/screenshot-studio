@@ -9,10 +9,12 @@ reading code alone; each "verified" item names the test that proves it. A row
 that mixes verified work with a blocked part is **Implemented but incomplete**
 and names the blocker.
 
-Audit baseline: `main` at `1c46737d`. Implementation verified on 2026-10-20,
-rebased on `main` at `4c238b90`, on a local isolated stack (Compose project
-`quito`) with fixtures for every external provider. Nothing here is verified in
-production.
+Audit baseline: `main` at `1c46737d`. Implementation verified on 2026-10-20 on
+a local isolated stack (Compose project `quito`) with fixtures for most external
+providers, then shipped in #228 and #229. Three providers were also exercised for
+real: Resend (mail to Resend's test inboxes), Stripe in test mode, and OpenRouter.
+Production was checked after the deploy without touching customer data (see
+section 11).
 
 Test evidence used below:
 
@@ -82,8 +84,11 @@ Test evidence used below:
    maintenance job).
 3. **Verified.** E2E: the display time zone saves and survives a reload. Go: an
    owner of a live workspace cannot request deletion. Existing E2E: name save.
-4. **Not verified.** The email-change confirmation mail and the session list in
-   a browser.
+   The email change was also run end to end through Resend with its test
+   inboxes (`delivered+…@resend.dev`): the confirmation reached the old
+   address, its link sent a verification to the new one, and following that
+   link changed the sign-in email (verified in the database and on the page).
+4. **Not verified by assertion.** The session list (screenshot only).
 5. **Files.** `lib/auth/server.ts`, `lib/auth/transactional-email.ts`,
    `user_preferences.go`, `account_deletion.go`,
    `internal/maintenance/accounts.go`.
@@ -91,9 +96,9 @@ Test evidence used below:
 7. **Authorization.** The signed-in person; deletion needs a session under 15
    minutes old and the sign-in email typed to confirm.
 8. **Automated verification.** Acceptance 1.
-9. **External dependencies.** The change-email confirmation needs a mail
-   transport (`RESEND_API_KEY` or SMTP); not sent in tests.
-10. **Status.** Implemented but incomplete (email change mail is unverified).
+9. **External dependencies.** A mail transport (`RESEND_API_KEY`, set in
+   production).
+10. **Status.** Complete and verified (the session list by screenshot).
 
 ### Notifications
 
@@ -154,16 +159,22 @@ Test evidence used below:
 3. **Verified.** `test/billing-subscription-cycle.test.ts` (renewal,
    cancel-at-period-end, cancel-at), existing Checkout return and signature
    tests.
-4. **Not verified.** The portal flows themselves.
+   Stripe test mode, end to end: a real test-mode subscription shows its
+   renewal date and interval; "Manage subscription" opens the Shots portal
+   configuration, which offers the payment method; cancelling there sets
+   `cancel_at_period_end`, and billing then shows when the plan ends and what
+   that means.
+4. **Finding.** Right after a subscription is created, Stripe's search index can
+   lag by seconds, so "Manage subscription" may briefly answer "billed by
+   invoice" until the subscription appears.
 5. **Files.** `lib/billing/stripe.ts`, `stripe-events.ts`,
    `lib/trpc/routers/billing.ts`.
 6. **Migrations.** None.
 7. **Authorization.** Owners and admins change; members view.
 8. **Automated verification.** Unit tests with Stripe-shaped fixtures.
-9. **External dependencies.** Portal flows need Stripe test-mode credentials.
-   No test touches live billing.
-10. **Status.** Implemented but incomplete (live portal blocked by Stripe
-    credentials).
+9. **External dependencies.** Stripe. Verification used test mode only; no test
+   touched live billing.
+10. **Status.** Complete and verified (test mode).
 
 ### Install
 
@@ -282,17 +293,22 @@ Test evidence used below:
 3. **Verified.** E2E: an anonymous visitor gets 200 while the profile is on and
    404 after it is turned off. Go: writing context precedence. Unit: a sample
    cannot close the fence it is quoted in.
-4. **Not verified.** Handles and avatars on the public page (the e2e social
-   mock reports none), and generation quality with a real model.
+   E2E: the public page shows account handles. A real model (OpenRouter) wrote
+   in a set's voice: no prohibited phrases, no exclamation marks, the set's
+   terminology, within X's limit. That run found the model sometimes opens
+   with "Here's the rewritten post for X:", which would have gone into the
+   post; `assistPosts` now drops such an introduction (unit test in
+   `test/settings-platform-web.test.ts`).
+4. **Not verified.** Avatars on the public page (the e2e mock reports none).
 5. **Files.** `app/[locale]/p/[slug]/page.tsx`, `writing_assistant.go`,
    `lib/content-drafts/assist.ts`, `WritingAssistantPage.tsx`.
 6. **Migrations.** Set public columns, `social_set_writing_sample`.
 7. **Authorization.** `publish:manage` for the profile; `artifact:edit` for
    writing settings.
 8. **Automated verification.** Acceptance 11.
-9. **External dependencies.** Real generation needs `OPENROUTER_API_KEY`; tests
-   use the scripted model.
-10. **Status.** Implemented but incomplete (live model output unverified).
+9. **External dependencies.** `OPENROUTER_API_KEY` (set in production); CI uses
+   the scripted model.
+10. **Status.** Complete and verified (avatars by fixture only).
 
 ## 7. Integrations, API and webhooks
 
@@ -320,9 +336,10 @@ Test evidence used below:
    `webhook_delivery_attempt`; draft `tags`, `plannedFor`.
 7. **Authorization.** Webhooks and keys: owner or admin.
 8. **Automated verification.** Acceptance 12, 13.
-9. **External dependencies.** `PLATFORM_WEBHOOK_ENCRYPTION_KEY` must be set on
-   the backend (production: `TENANT_PLATFORM_WEBHOOK_ENCRYPTION_KEY`); without
-   it the API answers 503 and the page says so.
+9. **External dependencies.** `PLATFORM_WEBHOOK_ENCRYPTION_KEY` on the backend.
+   It is in Infisical (`prod`, `/screenshot-studio`) and reaches the live
+   backend as `TENANT_PLATFORM_WEBHOOK_ENCRYPTION_KEY`; without it the API
+   answers 503 and the page says so.
 10. **Status.** Implemented but incomplete (third-party apps do not exist).
 
 ## 8. Data model
@@ -385,15 +402,19 @@ Test evidence used below:
 
 ## 11. Coverage limits and blockers
 
-Verified only with local fixtures. Each item below names its prerequisite.
+Production, after #228 and #229 deployed (2026-10-20), checked without touching
+customer data. The new routes answer 401 signed out (unknown routes answer
+404), and an unknown public profile is a `no-store` 404. Read-only aggregates
+show the migration recorded, every workspace with a social set, and every
+draft in one. The backend runs with the webhook key.
 
-- **Slack direct messages.** The Slack app must request `im:write` and
-  `users:read.email`, and each workspace must reinstall it.
-- **Email change confirmation.** Needs a mail transport in each environment.
-- **Stripe portal flows.** Need Stripe test-mode credentials; nothing touched
-  live billing.
-- **Provider OAuth reconnects.** Need each provider's OAuth app.
-- **Live model output.** Needs `OPENROUTER_API_KEY`.
+Still open, each with its prerequisite:
+
+- **Slack direct messages.** Not built. The Slack app must request `im:write`
+  and `users:read.email`, each workspace must reinstall it, and delivery code
+  must look up each member and open a DM. Until then the page says DMs are not
+  available.
+- **Provider OAuth reconnects.** Need a real account on each provider: someone
+  signs in through X or LinkedIn from a social set's page and lands back on
+  it.
 - **Zapier, Raycast, Notion Agents, a Mac app.** None exists; the UI says so.
-- **Production.** Webhooks need `TENANT_PLATFORM_WEBHOOK_ENCRYPTION_KEY` in
-  Infisical before they work; until then the API answers 503.

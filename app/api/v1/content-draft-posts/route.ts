@@ -9,6 +9,8 @@ export const GET = route(listCalendarPostsContract, {
   auth: organizationAccess('artifact:read'),
   handler: async ({ access, query }) => {
     if (!contentDraftsEnabled()) return errorResponse(404, 'Content drafts are not available.')
-    return { items: await listContentDraftPostsBetween(access, query.from, query.to) }
+    return {
+      items: await listContentDraftPostsBetween(access, query.from, query.to, query.socialSetId),
+    }
   },
 })

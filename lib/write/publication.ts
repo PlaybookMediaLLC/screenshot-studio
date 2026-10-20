@@ -1,3 +1,4 @@
+import type { Engagement } from 'screenshot-studio-backend-sdk'
 import { z } from 'zod'
 import {
   type BlockImages,
@@ -5,6 +6,7 @@ import {
   type SerializedPost,
   serializeDraft,
 } from '@/lib/content-drafts/serialize'
+import { engagementAutomation } from '@/lib/write/automation'
 import {
   type AccountStanding,
   CAPABILITIES,
@@ -70,6 +72,8 @@ export type PublicationTarget = {
 export type PublicationDraft = {
   article: Article | null
   body: PlateBody
+  /** The follow-ups the draft copied from its set (RFC 043), until its X version sets its own. */
+  engagement?: Engagement
   kind: DraftKind
   platformVersions: PlatformVersions
   target: DraftTarget | null
@@ -210,7 +214,10 @@ export function buildPublication(
     }
   }
   if (poll.question) firstOptions.pollQuestion = poll.question
-  const automation = channel === 'x' ? activeAutomation(options.automation) : undefined
+  const automation =
+    channel === 'x'
+      ? activeAutomation(options.automation ?? engagementAutomation(draft.engagement))
+      : undefined
   if (automation?.plugAtLikes && !automation.plugText?.trim())
     problems.push('The auto plug needs its reply text.')
   let replyTo: string | undefined

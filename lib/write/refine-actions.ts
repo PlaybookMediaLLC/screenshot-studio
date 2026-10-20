@@ -60,9 +60,9 @@ export const refineInputSchema = z.strictObject({
   limit: z.number().int().min(1).max(100_000),
   /** The writer's instruction, for `custom`. */
   prompt: z.string().trim().max(1_000).optional(),
+  /** The draft, whose set's writing context (RFC 043) guides the writing. */
+  draftId: z.string().max(40).optional(),
   scope: refineScopeSchema,
-  /** The social set, whose voice and audience guide the writing. */
-  socialSetId: z.string().max(40).optional(),
   texts: z.array(z.string().max(100_000)).min(1).max(25),
 })
 
@@ -80,15 +80,17 @@ export const assistantInputSchema = z.strictObject({
   channel: draftChannelSchema,
   /** The draft's posts as the platform would read them. */
   draft: z.array(z.string().max(100_000)).max(25),
+  /** The draft, whose set's writing context (RFC 043) guides the writing. */
+  draftId: z.string().max(40).optional(),
   messages: z.array(assistantMessageSchema).min(1).max(30),
-  socialSetId: z.string().max(40).optional(),
 })
 
 /** One of {@link assistantInputSchema}. */
 export type AssistantInput = z.infer<typeof assistantInputSchema>
 
 /** The tags this module fences content with. */
-const FENCE_TAGS = /<\/?\s*(?:text|sample|voice|audience|instruction|draft|post|platform)\b[^>]*>/gi
+const FENCE_TAGS =
+  /<\/?\s*(?:text|sample|voice|audience|instruction|draft|post|platform|writing_context)\b[^>]*>/gi
 
 /**
  * Content for a fence: any of the fence tags inside it are removed, so text

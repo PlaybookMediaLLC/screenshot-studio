@@ -20,28 +20,31 @@ export function DiffView({
     <div className={cn('space-y-1.5', className)}>
       {label ? (
         <div className="flex items-center justify-between gap-3 text-xs">
-          <span className="font-medium text-neutral-400">{label}</span>
-          <span className="text-neutral-600">
+          <span className="font-medium text-foreground/65">{label}</span>
+          <span className="text-muted-foreground/75">
             {unchanged ? 'Unchanged' : `+${stats.added} −${stats.removed} words`}
           </span>
         </div>
       ) : null}
-      <p className="rounded-lg bg-white/[0.02] px-3 py-2 text-sm leading-6 whitespace-pre-wrap text-neutral-300 ring-1 ring-white/[0.06]">
+      <p className="rounded-lg bg-foreground/[0.02] px-3 py-2 text-sm leading-6 whitespace-pre-wrap text-foreground/80 ring-1 ring-foreground/[0.06]">
         {parts.length === 0 ? (
-          <span className="text-neutral-600">Empty</span>
+          <span className="text-muted-foreground/75">Empty</span>
         ) : (
           parts.map((part, index) =>
             part.type === 'equal' ? (
               <span key={index}>{part.text}</span>
             ) : part.type === 'insert' ? (
               <ins
-                className="rounded-sm bg-emerald-500/15 text-emerald-200 no-underline"
+                className="rounded-sm bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 no-underline"
                 key={index}
               >
                 {part.text}
               </ins>
             ) : (
-              <del className="rounded-sm bg-red-500/10 text-red-300/80" key={index}>
+              <del
+                className="rounded-sm bg-red-500/10 text-red-700/80 dark:text-red-300/80"
+                key={index}
+              >
                 {part.text}
               </del>
             )

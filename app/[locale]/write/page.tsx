@@ -18,7 +18,7 @@ export default async function WritePage({ params, searchParams }: WritePageProps
   const { locale } = await params
   const access = await requireDraftsPageAccess(locale, '/write')
   const canManageSets = hasPermission(access.role, 'workspace:update')
-  const data = await loadWrite(access.tenant, await searchParams, { connections: canManageSets })
+  const data = await loadWrite(access.tenant, await searchParams)
   const canEdit = hasPermission(access.role, 'artifact:edit')
   return (
     <PlatformShell

@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   isTimeZone,
-  naturalOffsetMinutes,
   offsetLabel,
   readWhen,
   resolveLocalTime,
@@ -47,17 +46,6 @@ test('wall time round-trips and zones are checked', () => {
   assert.equal(isTimeZone('Europe/Paris'), true)
   assert.equal(isTimeZone('Mars/Olympus'), false)
   assert.throws(() => resolveLocalTime('tomorrow', 'UTC'))
-})
-
-test('the natural offset is stable per key and within four minutes', () => {
-  const offsets = new Set<number>()
-  for (let index = 0; index < 500; index += 1) {
-    const offset = naturalOffsetMinutes(`draft-${index}:v3`)
-    assert.ok(offset >= -4 && offset <= 4)
-    assert.equal(naturalOffsetMinutes(`draft-${index}:v3`), offset)
-    offsets.add(offset)
-  }
-  assert.equal(offsets.size, 9)
 })
 
 test('typed times are read in the set’s zone, not the browser’s', () => {

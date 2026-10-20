@@ -86,15 +86,15 @@ export function ReviewControls({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="flex w-72 flex-col gap-2 p-3 text-sm">
-        <p className="font-medium text-white">Review</p>
+        <p className="font-medium text-foreground">Review</p>
         {review.reviewNote ? (
-          <p className="rounded-md bg-white/[0.04] p-2 text-xs text-neutral-300">
+          <p className="rounded-md bg-foreground/[0.04] p-2 text-xs text-foreground/80">
             {review.reviewNote}
           </p>
         ) : null}
         <Textarea
           aria-label="Review note"
-          className="min-h-16 rounded-md border border-white/[0.08] bg-transparent p-2 text-xs outline-none focus:border-sky-400/50"
+          className="min-h-16 rounded-md border border-foreground/[0.08] bg-transparent p-2 text-xs outline-none focus:border-sky-400/50"
           onChange={(event) => setNote(event.target.value)}
           placeholder="A note, if you want one"
           value={note}
@@ -155,7 +155,7 @@ export function ShareMenu({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="flex w-80 flex-col gap-3 p-3 text-sm">
-        <Label className="flex items-center justify-between gap-3 text-neutral-200">
+        <Label className="flex items-center justify-between gap-3 text-foreground">
           Anyone with the link can read and comment
           <Switch
             aria-label="Share link"
@@ -169,7 +169,7 @@ export function ShareMenu({
           <div className="flex gap-2">
             <Input
               aria-label="Link to share"
-              className="min-w-0 flex-1 rounded-md border border-white/[0.08] bg-transparent px-2 py-1 text-xs text-neutral-300"
+              className="min-w-0 flex-1 rounded-md border border-foreground/[0.08] bg-transparent px-2 py-1 text-xs text-foreground/80"
               readOnly
               value={link}
             />
@@ -185,7 +185,7 @@ export function ShareMenu({
             </Button>
           </div>
         ) : (
-          <p className="text-xs text-neutral-500">Off: nobody outside the workspace can open it.</p>
+          <p className="text-xs text-muted-foreground">Off: nobody outside the workspace can open it.</p>
         )}
       </PopoverContent>
     </Popover>
@@ -231,29 +231,29 @@ export function HistorySheet({
           </SheetDescription>
         </SheetHeader>
         <ul className="flex flex-col gap-2 p-4">
-          {items === null ? <li className="text-sm text-neutral-500">Loading…</li> : null}
+          {items === null ? <li className="text-sm text-muted-foreground">Loading…</li> : null}
           {items?.length === 0 ? (
-            <li className="text-sm text-neutral-500">No revisions yet: they start with edits.</li>
+            <li className="text-sm text-muted-foreground">No revisions yet: they start with edits.</li>
           ) : null}
           {items?.map((item) => (
             <li
-              className="rounded-lg border border-white/[0.06] p-3"
+              className="rounded-lg border border-foreground/[0.06] p-3"
               data-testid="revision"
               key={item.id}
             >
-              <p className="flex items-center justify-between text-xs text-neutral-500">
+              <p className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>
                   {new Date(item.createdAt).toLocaleString()} · version {item.version}
                 </span>
                 <Button variant="custom" size={null}
-                  className="text-sky-300 hover:text-sky-200"
+                  className="text-sky-700 dark:text-sky-300 hover:text-sky-700 dark:hover:text-sky-200"
                   onClick={() => void restore(item.id)}
                   type="button"
                 >
                   Restore
                 </Button>
               </p>
-              <p className="mt-1 line-clamp-3 text-sm text-neutral-200">
+              <p className="mt-1 line-clamp-3 text-sm text-foreground">
                 {item.plainText || 'Empty draft'}
               </p>
             </li>
@@ -269,20 +269,20 @@ export function GuestComments({ comments }: { comments: DraftWire['guestComments
   if (comments.length === 0) return null
   return (
     <section className="mb-10">
-      <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+      <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Comments from the share link
       </h2>
       <ul className="flex flex-col gap-2" data-testid="guest-comments">
         {comments.map((comment) => (
           <li
-            className="rounded-lg border border-white/[0.06] px-3 py-2"
+            className="rounded-lg border border-foreground/[0.06] px-3 py-2"
             key={`${comment.createdAt}-${comment.name}`}
           >
-            <p className="text-xs text-neutral-500">
-              <span className="text-neutral-200">{comment.name}</span> ·{' '}
+            <p className="text-xs text-muted-foreground">
+              <span className="text-foreground">{comment.name}</span> ·{' '}
               <LocalTime value={comment.createdAt} />
             </p>
-            <p className="mt-0.5 whitespace-pre-wrap text-sm text-neutral-200">{comment.text}</p>
+            <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground">{comment.text}</p>
           </li>
         ))}
       </ul>

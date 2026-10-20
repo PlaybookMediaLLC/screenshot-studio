@@ -84,12 +84,13 @@ export function RefineButton({
   channel,
   editor,
   limit,
-  setId,
+  draftId,
 }: {
   channel: DraftChannel
   editor: React.MutableRefObject<PlateEditor | null>
   limit: number
-  setId: string | null
+  /** The draft, whose set's writing context guides Refine. */
+  draftId: string
 }) {
   const { mod } = useKeys()
   const [open, setOpen] = React.useState(false)
@@ -152,8 +153,8 @@ export function RefineButton({
           channel,
           limit,
           prompt: action === 'custom' ? prompt : undefined,
+          draftId,
           scope,
-          socialSetId: setId ?? undefined,
           texts,
         },
         method: 'POST',

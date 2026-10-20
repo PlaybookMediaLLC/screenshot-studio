@@ -1,12 +1,15 @@
 import { z } from 'zod'
 import { defineContract, timestampSchema } from '@/lib/api/contract'
+import { scheduledPostStatusSchema } from '@/lib/api/contracts/scheduled-posts'
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 import { automationSchema, draftKindSchema } from '@/lib/write/document'
 import {
   contentDraftSortSchema,
   contentDraftViewSchema,
+  draftEngagementSchema,
   draftWriteFieldsSchema,
   draftWriteInputSchema,
+  pollSchema,
   postAutomationSchema,
   scheduleTimingSchema,
 } from '@/lib/write/wire'
@@ -24,6 +27,9 @@ export const contentDraftIdSchema = z
 
 /** Plate JSON: the editor's value, a list of block nodes. */
 export const plateValueSchema = z.array(z.record(z.string(), z.unknown())).max(5_000)
+
+/** A platform a draft posts to. */
+const platformSchema = z.enum(['x', 'linkedin', 'instagram', 'threads', 'bluesky', 'mastodon'])
 
 /** A draft as the API returns it. */
 export const contentDraftSchema = z
@@ -57,6 +63,16 @@ export const contentDraftSchema = z
     ),
     /** The draft's live posts (lists only). */
     publishedPosts: z.number().int(),
+    /**
+     * The draft's social set and what it copied from the set's defaults when it
+     * was created (RFC 043). Defaults keep an older backend's answer readable.
+     */
+    engagement: draftEngagementSchema,
+    naturalPostingTime: z.boolean().default(false),
+    /** A calendar placement without scheduling, as an ISO 8601 instant (an experiment). */
+    plannedFor: timestampSchema.nullable().default(null),
+    primaryPlatform: z.string().nullable().default(null),
+    socialSetId: z.string().nullable().default(null),
   })
   .extend(draftWriteFieldsSchema.shape)
 
@@ -66,12 +82,7 @@ export const contentDraftFieldsSchema = draftWriteInputSchema.extend({
   body: plateValueSchema.optional(),
   channelConnectionIds: z.array(contentDraftIdSchema).max(10).optional(),
   /** Text a channel posts instead of the body's, by channel. */
-  channelText: z
-    .partialRecord(
-      z.enum(['x', 'linkedin', 'instagram', 'threads', 'bluesky', 'mastodon']),
-      z.string().max(100_000)
-    )
-    .optional(),
+  channelText: z.partialRecord(platformSchema, z.string().max(100_000)).optional(),
   /** Comment threads on the body and their authors' names. */
   discussions: z.record(z.string(), z.unknown()).optional(),
   plainText: z.string().max(100_000).optional(),
@@ -85,8 +96,11 @@ export const contentDraftFieldsSchema = draftWriteInputSchema.extend({
  */
 export const contentDraftCreateSchema = contentDraftFieldsSchema.extend({
   kind: draftKindSchema.optional(),
+  /** The platform the body is written for; the set's primary platform when omitted. */
+  primaryPlatform: platformSchema.optional(),
   scratchpad: z.string().max(20_000).optional(),
   socialSetId: contentDraftIdSchema.optional(),
+  /** Tags of the draft's set (an experiment). */
   tagIds: z.array(contentDraftIdSchema).max(20).optional(),
 })
 
@@ -94,6 +108,11 @@ export const contentDraftCreateSchema = contentDraftFieldsSchema.extend({
 export const contentDraftUpdateSchema = contentDraftFieldsSchema.extend({
   baseVersion: z.number().int().min(1),
   status: contentDraftEditableStatusSchema.optional(),
+  /** The draft's own choices, which start as copies of its set's defaults. */
+  naturalPostingTime: z.boolean().optional(),
+  primaryPlatform: z.union([platformSchema, z.literal('')]).optional(),
+  /** An ISO 8601 instant, or an empty string to clear it (an experiment). */
+  plannedFor: z.union([z.iso.datetime({ offset: true }), z.literal('')]).optional(),
 })
 
 /**
@@ -239,17 +258,6 @@ export const deleteContentDraftContract = defineContract({
   summary: 'Delete a content draft',
 })
 
-/** Delivery states of a scheduled post. */
-export const scheduledPostStatusSchema = z.enum([
-  'DRAFT',
-  'SCHEDULED',
-  'PROCESSING',
-  'PUBLISHED',
-  'FAILED',
-  'CANCELLED',
-  'UNKNOWN_DELIVERY',
-])
-
 /** A post scheduled from a draft, with the caption it will publish. */
 export const contentDraftPostSchema = z.object({
   caption: z.string(),
@@ -272,18 +280,15 @@ export const contentDraftPostSchema = z.object({
   }),
   /** Its follow-ups once live, each with its receipt (RFC 042). */
   automations: z.array(postAutomationSchema).default([]),
-})
-
-/**
- * A live post's follow-ups (X): repost and reply at a like or repost
- * count, quote after hours, reposts at set times and their removal.
- */
-export const autoActionsSchema = automationSchema
-
-/** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
-export const pollSchema = z.object({
-  durationMinutes: z.number().int().min(5).max(10_080),
-  options: z.array(z.string().trim().min(1).max(25)).min(2).max(4),
+  /**
+   * How the instant was chosen (RFC 043): queue or explicit, the instant
+   * before any natural offset, the offset in seconds, and the time zone.
+   */
+  naturalOffsetSeconds: z.number().int().nullable().default(null),
+  scheduleMode: z.enum(['queue', 'explicit']).nullable().default(null),
+  scheduleTimeZone: z.string().nullable().default(null),
+  slotAt: timestampSchema.nullable().default(null),
+  socialSetId: z.string().nullable().default(null),
 })
 
 /**
@@ -301,11 +306,14 @@ export const contentDraftScheduleSchema = scheduleTimingSchema.extend({
   options: z
     .record(
       contentDraftIdSchema,
-      z.object({ autoActions: autoActionsSchema.optional(), poll: pollSchema.optional() })
+      // X follow-ups: repost and reply at a count, quote later, timed reposts.
+      z.object({ autoActions: automationSchema.optional(), poll: pollSchema.optional() })
     )
     .optional(),
-  /** The queue's next free slot instead of `scheduledFor`. */
+  /** The queue's next free slot instead of `scheduledFor`; the backend reserves it. */
   queue: z.boolean().optional(),
+  /** Overrides the draft's natural posting time for this schedule (±4 minutes). */
+  naturalPostingTime: z.boolean().optional(),
   scheduledFor: z.coerce
     .date()
     .refine((value) => value.getTime() > Date.now(), { message: 'Pick a time in the future.' })

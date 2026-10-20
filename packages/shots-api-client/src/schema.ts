@@ -656,78 +656,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/social-sets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List social sets
-         * @description Lists the social sets the caller may write in, the default set first, each with its accounts and their health. A restricted set is listed only for its members, owners and admins; API keys see workspace sets only.
-         */
-        get: operations["listSocialSets"];
-        put?: never;
-        /**
-         * Create a social set
-         * @description Creates a social set: a publishing identity with at most one account per platform. Owners and admins manage sets.
-         */
-        post: operations["createSocialSet"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/social-sets/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a social set
-         * @description Returns one social set with its accounts and their health.
-         */
-        get: operations["getSocialSet"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete a social set
-         * @description Deletes an empty social set. The default set, and a set with drafts, cannot be deleted.
-         */
-        delete: operations["deleteSocialSet"];
-        options?: never;
-        head?: never;
-        /**
-         * Update a social set
-         * @description Changes a social set's name, colour, accounts, default platforms, time zone, visibility, members or preferences.
-         */
-        patch: operations["updateSocialSet"];
-        trace?: never;
-    };
-    "/api/v1/social-sets/{id}/mentions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Look up a mention for a social set
-         * @description Looks a mention up with the set's own account: an X user by exact username, or a LinkedIn company page by the name in its address. LinkedIn people are not looked up.
-         */
-        get: operations["lookupSocialSetMentions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/social-sets/{id}/tags": {
         parameters: {
             query?: never;
@@ -1607,6 +1535,38 @@ export interface components {
                     text: string;
                 }[];
                 publishedPosts: number;
+                /**
+                 * @default {
+                 *       "autoPlug": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       },
+                 *       "autoRepost": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       }
+                 *     }
+                 */
+                engagement: {
+                    autoPlug: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                    autoRepost: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                };
+                /** @default false */
+                naturalPostingTime: boolean;
+                /** @default null */
+                plannedFor: string | null;
+                /** @default null */
+                primaryPlatform: string | null;
+                /** @default null */
+                socialSetId: string | null;
                 article: {
                     coverAssetId?: string;
                     title: string;
@@ -1616,7 +1576,6 @@ export interface components {
                 kind: "standard" | "reply" | "quote" | "repurpose" | "article";
                 nextPostAt: string | null;
                 pinnedAt: string | null;
-                plannedFor: string | null;
                 planTimeZone: string | null;
                 platformVersions: {
                     /** @constant */
@@ -1673,11 +1632,8 @@ export interface components {
                         sourceHash?: string;
                     }[];
                 };
-                /** @enum {string} */
-                primaryChannel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
                 queuedPosts: number;
                 scratchpad: string;
-                socialSetId: string | null;
                 sourceDraftId: string | null;
                 tagIds: string[];
                 target: {
@@ -1728,6 +1684,38 @@ export interface components {
                     text: string;
                 }[];
                 publishedPosts: number;
+                /**
+                 * @default {
+                 *       "autoPlug": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       },
+                 *       "autoRepost": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       }
+                 *     }
+                 */
+                engagement: {
+                    autoPlug: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                    autoRepost: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                };
+                /** @default false */
+                naturalPostingTime: boolean;
+                /** @default null */
+                plannedFor: string | null;
+                /** @default null */
+                primaryPlatform: string | null;
+                /** @default null */
+                socialSetId: string | null;
                 article: {
                     coverAssetId?: string;
                     title: string;
@@ -1737,7 +1725,6 @@ export interface components {
                 kind: "standard" | "reply" | "quote" | "repurpose" | "article";
                 nextPostAt: string | null;
                 pinnedAt: string | null;
-                plannedFor: string | null;
                 planTimeZone: string | null;
                 platformVersions: {
                     /** @constant */
@@ -1794,11 +1781,8 @@ export interface components {
                         sourceHash?: string;
                     }[];
                 };
-                /** @enum {string} */
-                primaryChannel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
                 queuedPosts: number;
                 scratchpad: string;
-                socialSetId: string | null;
                 sourceDraftId: string | null;
                 tagIds: string[];
                 target: {
@@ -1874,8 +1858,6 @@ export interface components {
                     sourceHash?: string;
                 }[];
             };
-            /** @enum {string} */
-            primaryChannel?: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
             target?: {
                 author?: string;
                 /** @enum {string} */
@@ -1902,6 +1884,8 @@ export interface components {
             title?: string;
             /** @enum {string} */
             kind?: "standard" | "reply" | "quote" | "repurpose" | "article";
+            /** @enum {string} */
+            primaryPlatform?: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
             scratchpad?: string;
             socialSetId?: string;
             tagIds?: string[];
@@ -1941,6 +1925,38 @@ export interface components {
                 text: string;
             }[];
             publishedPosts: number;
+            /**
+             * @default {
+             *       "autoPlug": {
+             *         "atLikes": 0,
+             *         "enabled": false
+             *       },
+             *       "autoRepost": {
+             *         "atLikes": 0,
+             *         "enabled": false
+             *       }
+             *     }
+             */
+            engagement: {
+                autoPlug: {
+                    atLikes: number;
+                    enabled: boolean;
+                    text?: string;
+                };
+                autoRepost: {
+                    atLikes: number;
+                    enabled: boolean;
+                    text?: string;
+                };
+            };
+            /** @default false */
+            naturalPostingTime: boolean;
+            /** @default null */
+            plannedFor: string | null;
+            /** @default null */
+            primaryPlatform: string | null;
+            /** @default null */
+            socialSetId: string | null;
             article: {
                 coverAssetId?: string;
                 title: string;
@@ -1950,7 +1966,6 @@ export interface components {
             kind: "standard" | "reply" | "quote" | "repurpose" | "article";
             nextPostAt: string | null;
             pinnedAt: string | null;
-            plannedFor: string | null;
             planTimeZone: string | null;
             platformVersions: {
                 /** @constant */
@@ -2007,11 +2022,8 @@ export interface components {
                     sourceHash?: string;
                 }[];
             };
-            /** @enum {string} */
-            primaryChannel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
             queuedPosts: number;
             scratchpad: string;
-            socialSetId: string | null;
             sourceDraftId: string | null;
             tagIds: string[];
             target: {
@@ -2086,8 +2098,6 @@ export interface components {
                     sourceHash?: string;
                 }[];
             };
-            /** @enum {string} */
-            primaryChannel?: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
             target?: {
                 author?: string;
                 /** @enum {string} */
@@ -2115,6 +2125,9 @@ export interface components {
             baseVersion: number;
             /** @enum {string} */
             status?: "draft" | "archived";
+            naturalPostingTime?: boolean;
+            primaryPlatform?: ("x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon") | "";
+            plannedFor?: string | "";
         };
         ContentDraftPostList: {
             posts: {
@@ -2150,6 +2163,16 @@ export interface components {
                     status: "pending" | "done" | "failed" | "skipped" | "cancelled" | "expired";
                     updatedAt: string;
                 }[];
+                /** @default null */
+                naturalOffsetSeconds: number | null;
+                /** @default null */
+                scheduleMode: ("queue" | "explicit") | null;
+                /** @default null */
+                scheduleTimeZone: string | null;
+                /** @default null */
+                slotAt: string | null;
+                /** @default null */
+                socialSetId: string | null;
             }[];
         };
         ContentDraftCopy: {
@@ -2188,6 +2211,38 @@ export interface components {
                     text: string;
                 }[];
                 publishedPosts: number;
+                /**
+                 * @default {
+                 *       "autoPlug": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       },
+                 *       "autoRepost": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       }
+                 *     }
+                 */
+                engagement: {
+                    autoPlug: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                    autoRepost: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                };
+                /** @default false */
+                naturalPostingTime: boolean;
+                /** @default null */
+                plannedFor: string | null;
+                /** @default null */
+                primaryPlatform: string | null;
+                /** @default null */
+                socialSetId: string | null;
                 article: {
                     coverAssetId?: string;
                     title: string;
@@ -2197,7 +2252,6 @@ export interface components {
                 kind: "standard" | "reply" | "quote" | "repurpose" | "article";
                 nextPostAt: string | null;
                 pinnedAt: string | null;
-                plannedFor: string | null;
                 planTimeZone: string | null;
                 platformVersions: {
                     /** @constant */
@@ -2254,11 +2308,8 @@ export interface components {
                         sourceHash?: string;
                     }[];
                 };
-                /** @enum {string} */
-                primaryChannel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
                 queuedPosts: number;
                 scratchpad: string;
-                socialSetId: string | null;
                 sourceDraftId: string | null;
                 tagIds: string[];
                 target: {
@@ -2287,116 +2338,6 @@ export interface components {
                 metadata: {
                     [key: string]: unknown;
                 };
-            }[];
-        };
-        SocialSetList: {
-            items: {
-                channelConnectionIds: string[];
-                /** @enum {string} */
-                color: "sky" | "violet" | "emerald" | "amber" | "rose" | "orange" | "teal" | "indigo" | "pink" | "gray";
-                connections: {
-                    avatarUrl: string | null;
-                    /** @enum {string} */
-                    channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
-                    displayName: string | null;
-                    handle: string | null;
-                    /** @enum {string} */
-                    health: "healthy" | "reconnect" | "disabled";
-                    id: string;
-                    platform: string;
-                }[];
-                createdAt: string;
-                defaultChannels: ("x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon")[];
-                id: string;
-                isDefault: boolean;
-                memberUserIds: string[];
-                name: string;
-                preferences: {
-                    audience?: string;
-                    automation?: {
-                        plugAtLikes?: number;
-                        /** @enum {string} */
-                        plugMetric?: "likes" | "reposts";
-                        plugText?: string;
-                        quoteAfterHours?: number;
-                        quoteText?: string;
-                        repostAtLikes?: number;
-                        retweets?: ({
-                            afterMinutes: number;
-                        } | {
-                            at: string;
-                            days: number;
-                            timeZone: string;
-                        })[];
-                        unretweetAfterMinutes?: number;
-                    };
-                    naturalTiming?: boolean;
-                    samples?: string[];
-                    voice?: string;
-                };
-                timeZone: string | null;
-                updatedAt: string;
-                /** @enum {string} */
-                visibility: "workspace" | "restricted";
-            }[];
-        };
-        SocialSet: {
-            channelConnectionIds: string[];
-            /** @enum {string} */
-            color: "sky" | "violet" | "emerald" | "amber" | "rose" | "orange" | "teal" | "indigo" | "pink" | "gray";
-            connections: {
-                avatarUrl: string | null;
-                /** @enum {string} */
-                channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
-                displayName: string | null;
-                handle: string | null;
-                /** @enum {string} */
-                health: "healthy" | "reconnect" | "disabled";
-                id: string;
-                platform: string;
-            }[];
-            createdAt: string;
-            defaultChannels: ("x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon")[];
-            id: string;
-            isDefault: boolean;
-            memberUserIds: string[];
-            name: string;
-            preferences: {
-                audience?: string;
-                automation?: {
-                    plugAtLikes?: number;
-                    /** @enum {string} */
-                    plugMetric?: "likes" | "reposts";
-                    plugText?: string;
-                    quoteAfterHours?: number;
-                    quoteText?: string;
-                    repostAtLikes?: number;
-                    retweets?: ({
-                        afterMinutes: number;
-                    } | {
-                        at: string;
-                        days: number;
-                        timeZone: string;
-                    })[];
-                    unretweetAfterMinutes?: number;
-                };
-                naturalTiming?: boolean;
-                samples?: string[];
-                voice?: string;
-            };
-            timeZone: string | null;
-            updatedAt: string;
-            /** @enum {string} */
-            visibility: "workspace" | "restricted";
-        };
-        SocialMentionList: {
-            items: {
-                handle?: string;
-                image?: string;
-                /** @enum {string} */
-                kind: "person" | "organization";
-                label: string;
-                providerId: string;
             }[];
         };
         DraftTagList: {
@@ -5713,457 +5654,6 @@ export interface operations {
             };
             /** @description The draft was not found. */
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description A required dependency is unavailable. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    listSocialSets: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The social sets. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SocialSetList"];
-                };
-            };
-            /** @description Authentication is required. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The API key lacks the required workspace scope. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description A required dependency is unavailable. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    createSocialSet: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    channelConnectionIds?: string[];
-                    /** @enum {string} */
-                    color?: "sky" | "violet" | "emerald" | "amber" | "rose" | "orange" | "teal" | "indigo" | "pink" | "gray";
-                    defaultChannels?: ("x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon")[];
-                    memberUserIds?: string[];
-                    name: string;
-                    preferences?: {
-                        audience?: string;
-                        automation?: {
-                            plugAtLikes?: number;
-                            /** @enum {string} */
-                            plugMetric?: "likes" | "reposts";
-                            plugText?: string;
-                            quoteAfterHours?: number;
-                            quoteText?: string;
-                            repostAtLikes?: number;
-                            retweets?: ({
-                                afterMinutes: number;
-                            } | {
-                                at: string;
-                                days: number;
-                                timeZone: string;
-                            })[];
-                            unretweetAfterMinutes?: number;
-                        };
-                        naturalTiming?: boolean;
-                        samples?: string[];
-                        voice?: string;
-                    };
-                    timeZone?: string;
-                    /** @enum {string} */
-                    visibility?: "workspace" | "restricted";
-                };
-            };
-        };
-        responses: {
-            /** @description Set created. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SocialSet"];
-                };
-            };
-            /** @description The set is invalid. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description A signed-in workspace session is required. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The workspace has as many sets as it can. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description A required dependency is unavailable. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    getSocialSet: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The set. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SocialSet"];
-                };
-            };
-            /** @description Authentication is required. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The API key lacks the required workspace scope. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The set was not found, or the caller may not see it. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description A required dependency is unavailable. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    deleteSocialSet: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Set deleted. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @constant */
-                        deleted: true;
-                    };
-                };
-            };
-            /** @description A signed-in workspace session is required. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The set was not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The set is the default or has drafts. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description A required dependency is unavailable. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    updateSocialSet: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    channelConnectionIds?: string[];
-                    /** @enum {string} */
-                    color?: "sky" | "violet" | "emerald" | "amber" | "rose" | "orange" | "teal" | "indigo" | "pink" | "gray";
-                    defaultChannels?: ("x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon")[];
-                    memberUserIds?: string[];
-                    name?: string;
-                    preferences?: {
-                        audience?: string;
-                        automation?: {
-                            plugAtLikes?: number;
-                            /** @enum {string} */
-                            plugMetric?: "likes" | "reposts";
-                            plugText?: string;
-                            quoteAfterHours?: number;
-                            quoteText?: string;
-                            repostAtLikes?: number;
-                            retweets?: ({
-                                afterMinutes: number;
-                            } | {
-                                at: string;
-                                days: number;
-                                timeZone: string;
-                            })[];
-                            unretweetAfterMinutes?: number;
-                        };
-                        naturalTiming?: boolean;
-                        samples?: string[];
-                        voice?: string;
-                    };
-                    timeZone?: string;
-                    /** @enum {string} */
-                    visibility?: "workspace" | "restricted";
-                };
-            };
-        };
-        responses: {
-            /** @description The set. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SocialSet"];
-                };
-            };
-            /** @description The change is invalid. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description A signed-in workspace session is required. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The set was not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description A required dependency is unavailable. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-        };
-    };
-    lookupSocialSetMentions: {
-        parameters: {
-            query: {
-                channel: "x" | "linkedin";
-                q: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description What the account can mention; empty when nothing matches. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SocialMentionList"];
-                };
-            };
-            /** @description The query is not a username or company page name. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description A signed-in workspace session is required. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            /** @description The set has no connected account for that platform. */
-            409: {
                 headers: {
                     [name: string]: unknown;
                 };

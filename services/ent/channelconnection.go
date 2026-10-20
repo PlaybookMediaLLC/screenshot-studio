@@ -38,6 +38,8 @@ type ChannelConnection struct {
 	Handle *string `json:"handle,omitempty"`
 	// AvatarURL holds the value of the "avatar_url" field.
 	AvatarURL *string `json:"avatar_url,omitempty"`
+	// SocialSetID holds the value of the "social_set_id" field.
+	SocialSetID *string `json:"social_set_id,omitempty"`
 	// CreatedByUserID holds the value of the "created_by_user_id" field.
 	CreatedByUserID string `json:"created_by_user_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -75,7 +77,7 @@ func (*ChannelConnection) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case channelconnection.FieldProviderSettings:
 			values[i] = new([]byte)
-		case channelconnection.FieldID, channelconnection.FieldOrganizationID, channelconnection.FieldProvider, channelconnection.FieldExternalAccountID, channelconnection.FieldPlatform, channelconnection.FieldSecretReference, channelconnection.FieldStatus, channelconnection.FieldDisplayName, channelconnection.FieldHandle, channelconnection.FieldAvatarURL, channelconnection.FieldCreatedByUserID:
+		case channelconnection.FieldID, channelconnection.FieldOrganizationID, channelconnection.FieldProvider, channelconnection.FieldExternalAccountID, channelconnection.FieldPlatform, channelconnection.FieldSecretReference, channelconnection.FieldStatus, channelconnection.FieldDisplayName, channelconnection.FieldHandle, channelconnection.FieldAvatarURL, channelconnection.FieldSocialSetID, channelconnection.FieldCreatedByUserID:
 			values[i] = new(sql.NullString)
 		case channelconnection.FieldCreatedAt, channelconnection.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -164,6 +166,13 @@ func (_m *ChannelConnection) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				_m.AvatarURL = new(string)
 				*_m.AvatarURL = value.String
+			}
+		case channelconnection.FieldSocialSetID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field social_set_id", values[i])
+			} else if value.Valid {
+				_m.SocialSetID = new(string)
+				*_m.SocialSetID = value.String
 			}
 		case channelconnection.FieldCreatedByUserID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -257,6 +266,11 @@ func (_m *ChannelConnection) String() string {
 	builder.WriteString(", ")
 	if v := _m.AvatarURL; v != nil {
 		builder.WriteString("avatar_url=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SocialSetID; v != nil {
+		builder.WriteString("social_set_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

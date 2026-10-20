@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// AccountDeletionRequest is the predicate function for accountdeletionrequest builders.
+type AccountDeletionRequest func(*sql.Selector)
+
 // AgentAuthorization is the predicate function for agentauthorization builders.
 type AgentAuthorization func(*sql.Selector)
 
@@ -243,6 +246,9 @@ type SocialOAuthStart func(*sql.Selector)
 // SocialSet is the predicate function for socialset builders.
 type SocialSet func(*sql.Selector)
 
+// SocialSetWritingSample is the predicate function for socialsetwritingsample builders.
+type SocialSetWritingSample func(*sql.Selector)
+
 // SocialTenantBinding is the predicate function for socialtenantbinding builders.
 type SocialTenantBinding func(*sql.Selector)
 
@@ -269,6 +275,18 @@ type SurfaceCapture func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
+
+// UserPreference is the predicate function for userpreference builders.
+type UserPreference func(*sql.Selector)
+
+// WebhookDelivery is the predicate function for webhookdelivery builders.
+type WebhookDelivery func(*sql.Selector)
+
+// WebhookDeliveryAttempt is the predicate function for webhookdeliveryattempt builders.
+type WebhookDeliveryAttempt func(*sql.Selector)
+
+// WebhookSubscription is the predicate function for webhooksubscription builders.
+type WebhookSubscription func(*sql.Selector)
 
 // WorkspaceCreditGrant is the predicate function for workspacecreditgrant builders.
 type WorkspaceCreditGrant func(*sql.Selector)

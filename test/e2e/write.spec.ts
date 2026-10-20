@@ -3,10 +3,11 @@ import {
   createDraftWorkspace,
   type DraftWorkspace,
   draftEditor,
+  enableDraftExperiments,
   expectSaved,
 } from './framework/content-drafts'
 import { configureE2EFlow, test } from './framework/flow'
-import { unbindTestGoOrganization } from './framework/publishing'
+import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
 import { createE2EDatabase, queryRows } from './framework/services'
 
 configureE2EFlow()
@@ -82,6 +83,7 @@ test('a thread is written once, adapted per platform, planned, scheduled, backed
   let workspace: DraftWorkspace | null = null
   try {
     workspace = await createDraftWorkspace(identity, page)
+    await enableDraftExperiments(page)
     const draftId = await newDraft(page)
 
     // The composer says who it publishes as, and every post shows its account.
@@ -388,6 +390,7 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
   }
   try {
     workspace = await createDraftWorkspace(identity, page)
+    await enableDraftExperiments(page)
     const first = await newDraft(page)
     await draftEditor(page).click()
     await settle(page)
@@ -434,17 +437,24 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     await expect(rows().filter({ hasText: 'Pricing' })).toHaveCount(2)
 
     // A second set with the same name as the default stays a separate identity.
+    // Sets are made in workspace settings (RFC 043); the switcher links there.
     const setName =
       (await page.getByRole('button', { name: /^Social set: / }).textContent())?.trim() ?? ''
     await page.getByRole('button', { name: /^Social set: / }).click()
-    await choose('New social set…')
-    const setDialog = page.getByRole('dialog')
-    await setDialog.getByRole('textbox', { name: 'Name' }).fill(setName.replace(/▾$/, '').trim())
-    await setDialog.getByRole('button', { name: 'Create set' }).click()
-    await expect(setDialog).toBeHidden()
+    await expect(page.getByRole('menuitem', { name: 'New social set…' })).toHaveAttribute(
+      'href',
+      /\/workspace\/social-sets$/
+    )
+    await page.keyboard.press('Escape')
+    const created = await apiRequest(page, '/api/v1/social-sets', {
+      body: { name: setName.replace(/▾$/, '').trim() },
+      method: 'POST',
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(201)
+    const secondSet = (created.body as { id: string }).id
 
     // Copy to that set: the copy is found there; the original stays here.
-    // The new set is now the active one; switch back to the default (listed first).
+    // Open the new set, then switch back to the default (listed first).
     const switchSet = async (index: number) => {
       await page.waitForLoadState('networkidle')
       await page.getByRole('button', { name: /^Social set: / }).click()
@@ -456,7 +466,7 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
       await page.keyboard.press('Enter')
       await page.waitForLoadState('networkidle')
     }
-    await page.goto('/write')
+    await page.goto(`/write?set=${secondSet}`)
     await expect(page.getByText('No drafts in this set.')).toBeVisible()
     await switchSet(0)
     await rowMenu('Pricing')

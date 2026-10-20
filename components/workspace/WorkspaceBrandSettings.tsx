@@ -143,12 +143,12 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
         <Group>
           {brandKits.length === 0 ? (
             <Row>
-              <p className="text-sm text-neutral-500">No brand kits have been created.</p>
+              <p className="text-sm text-muted-foreground">No brand kits have been created.</p>
             </Row>
           ) : (
             brandKits.map((brandKit) => (
               <div className="flex items-center justify-between gap-4 px-5 py-4" key={brandKit.id}>
-                <span className="min-w-0 truncate text-sm text-white">{brandKit.name}</span>
+                <span className="min-w-0 truncate text-sm text-foreground">{brandKit.name}</span>
                 <Pill tone={brandKit.status.toLowerCase() === 'active' ? 'green' : 'gray'}>
                   v{brandKit.version} · {brandKit.status.toLowerCase()}
                 </Pill>
@@ -177,7 +177,7 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
                   ))}
                 </div>
                 {contrast !== null && contrast < MIN_TEXT_CONTRAST ? (
-                  <p className="text-sm text-amber-400" role="status">
+                  <p className="text-sm text-amber-700 dark:text-amber-400" role="status">
                     Text on background contrast is {contrast.toFixed(1)}:1. Body text needs at least{' '}
                     {MIN_TEXT_CONTRAST}:1 to stay readable.
                   </p>
@@ -186,7 +186,7 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
               <Row label={<Label htmlFor="brand-font-family">Primary typeface</Label>}>
                 <Select defaultValue="inter" name="headingFamily" required>
                   <SelectTrigger
-                    className="h-10 rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none md:w-72"
+                    className="h-10 rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none md:w-72"
                     id="brand-font-family"
                   >
                     <SelectValue />
@@ -209,7 +209,7 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
                     // A local object URL; next/image cannot optimize it.
                     <img
                       alt="Uploaded logo preview"
-                      className="h-10 w-10 rounded-lg bg-white/[0.03] object-contain ring-1 ring-white/[0.08]"
+                      className="h-10 w-10 rounded-lg bg-foreground/[0.03] object-contain ring-1 ring-foreground/[0.08]"
                       src={logo.previewUrl}
                     />
                   ) : null}
@@ -439,7 +439,7 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
           ) : null}
           {canManage ? (
             <div className="flex items-center justify-end gap-4">
-              <p className="text-sm text-neutral-400" role="status">
+              <p className="text-sm text-foreground/65" role="status">
                 {message}
               </p>
               <Button className="rounded-lg" disabled={isSaving} type="submit">
@@ -447,7 +447,7 @@ function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
               </Button>
             </div>
           ) : (
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-muted-foreground">
               Only workspace admins can view and change the brand voice.
             </p>
           )}
@@ -475,7 +475,7 @@ function ProhibitedTermsEditor({
   return (
     <div className="flex w-full flex-col gap-3">
       {value.length === 0 ? (
-        <p className="text-sm text-neutral-500">No prohibited terms.</p>
+        <p className="text-sm text-muted-foreground">No prohibited terms.</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {value.map((entry, index) => (
@@ -507,7 +507,7 @@ function ProhibitedTermsEditor({
               >
                 <SelectTrigger
                   aria-label={`How term ${index + 1} matches`}
-                  className="h-10 rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none"
+                  className="h-10 rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none"
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -559,7 +559,7 @@ function ColorField({
   const isValid = HEX_COLOR.test(value)
   return (
     <div className="flex flex-col gap-1.5">
-      <Label className="text-xs font-medium text-neutral-400" htmlFor={id}>
+      <Label className="text-xs font-medium text-foreground/65" htmlFor={id}>
         {label}
       </Label>
       <div className="flex items-center gap-2">

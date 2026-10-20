@@ -1,3 +1,4 @@
+import type { Engagement } from 'screenshot-studio-backend-sdk'
 import type { Automation, RetweetRule } from '@/lib/write/document'
 import { resolveLocalTime, wallTime } from '@/lib/write/zoned-time'
 
@@ -21,6 +22,24 @@ export const AUTO_DM_UNAVAILABLE =
 export const DEFAULT_AUTOMATION: Automation = {
   retweets: [{ afterMinutes: 360 }],
   unretweetAfterMinutes: 720,
+}
+
+/**
+ * A draft's engagement (RFC 043), which it copied from its set's defaults, as
+ * follow-ups: repost and plug once the post reaches a like count. A draft's
+ * X version follows it until the writer sets follow-ups of its own.
+ */
+export function engagementAutomation(engagement: Engagement | undefined): Automation | undefined {
+  if (!engagement) return undefined
+  const automation: Automation = {}
+  const { autoPlug, autoRepost } = engagement
+  if (autoRepost.enabled && autoRepost.atLikes > 0) automation.repostAtLikes = autoRepost.atLikes
+  if (autoPlug.enabled && autoPlug.atLikes > 0) {
+    automation.plugAtLikes = autoPlug.atLikes
+    automation.plugMetric = 'likes'
+    automation.plugText = autoPlug.text ?? ''
+  }
+  return Object.keys(automation).length > 0 ? automation : undefined
 }
 
 /** When a rule reposts a post published at `publishedAt`; null when it cannot be worked out. */

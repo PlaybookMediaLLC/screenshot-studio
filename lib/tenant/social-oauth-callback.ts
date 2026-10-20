@@ -91,15 +91,33 @@ function verifyChoice(value: string, secret: string): z.infer<typeof pageChoiceS
   }
 }
 
-/** Back to the Channels settings, which confirms the connection. */
-function connectedRedirect(provider: SocialOAuthProvider): Response {
-  return new Response(null, {
-    headers: {
-      'Cache-Control': 'no-store',
-      Location: `/workspace/channels?${new URLSearchParams({ connected: provider })}`,
-    },
-    status: 303,
+/** The cookie naming the social set settings page a connection started from. */
+export const SOCIAL_OAUTH_RETURN_COOKIE = 'shots-oauth-return'
+
+/** Only a social set's own settings page can be returned to. */
+const socialSetReturnSchema = z.string().regex(/^\/workspace\/social-sets\/[a-z0-9]{10,32}$/)
+
+/**
+ * Back to where the connection started, which confirms it: the social set's
+ * settings (RFC 043), or else the Channels settings.
+ */
+function connectedRedirect(provider: SocialOAuthProvider, request: Request): Response {
+  const cookie = request.headers
+    .get('cookie')
+    ?.split(/;\s*/)
+    .find((part) => part.startsWith(`${SOCIAL_OAUTH_RETURN_COOKIE}=`))
+    ?.slice(SOCIAL_OAUTH_RETURN_COOKIE.length + 1)
+  const back = socialSetReturnSchema.safeParse(cookie ? decodeURIComponent(cookie) : undefined)
+  const headers = new Headers({
+    'Cache-Control': 'no-store',
+    Location: `${back.success ? back.data : '/workspace/channels'}?${new URLSearchParams({ connected: provider })}`,
   })
+  if (back.success)
+    headers.append(
+      'Set-Cookie',
+      `${SOCIAL_OAUTH_RETURN_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`
+    )
+  return new Response(null, { headers, status: 303 })
 }
 
 function connectionFailed(provider: SocialOAuthProvider): Response {
@@ -134,7 +152,7 @@ export async function completeSocialOAuth(
   if (!connected.success) return connectionFailed(providerName)
   if (providerName !== 'instagram') {
     await completion.onConnected?.(state, connected.data.id)
-    return connectedRedirect(providerName)
+    return connectedRedirect(providerName, request)
   }
 
   const pages = connected.data.pages ?? []
@@ -192,5 +210,5 @@ export async function selectInstagramAccount(
     return new Response('Social connection is not configured.', { status: 503 })
   await selection.selectPage(choice)
   await selection.onSelected?.(choice.state, choice.integrationId)
-  return connectedRedirect('instagram')
+  return connectedRedirect('instagram', request)
 }

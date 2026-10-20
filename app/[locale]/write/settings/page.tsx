@@ -20,7 +20,7 @@ export default async function WriteSettingsPage({ params, searchParams }: Settin
   const access = await requireDraftsPageAccess(locale, '/write/settings')
   const canManageSets = hasPermission(access.role, 'workspace:update')
   const [data, settings] = await Promise.all([
-    loadWrite(access.tenant, await searchParams, { connections: canManageSets }),
+    loadWrite(access.tenant, await searchParams),
     getContentDraftSettings(access.tenant),
   ])
   return (

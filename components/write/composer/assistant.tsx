@@ -1,13 +1,12 @@
 'use client'
 
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { socialSetHref } from '@/components/workspace/settings-sections'
 import { call } from '@/lib/content-drafts/client'
-import { writeApi } from '@/lib/write/client'
 import type { DraftChannel } from '@/lib/write/document'
 import { useWrite, type WriteSet } from '../write-context'
 
@@ -24,17 +23,20 @@ const STARTERS = [
 
 /**
  * The writing assistant (RFC 042): a conversation about the open draft in
- * the set's voice, from the style guide and samples saved on the set. The
+ * the set's voice, from its Writing Assistant (RFC 043): the workspace brand
+ * refined by the set's style guide and samples, merged by the backend. The
  * conversation stays in this panel; nothing in the draft changes unless the
  * writer adds a reply to it. Each answer uses the workspace's AI credits.
  */
 export function AssistantPanel({
   channel,
+  draftId,
   onInsert,
   posts,
   set,
 }: {
   channel: DraftChannel
+  draftId: string
   /** Add a reply to the draft as a new post. */
   onInsert?: (text: string) => void
   /** The draft's posts as the platform reads them. */
@@ -46,7 +48,7 @@ export function AssistantPanel({
   const [busy, setBusy] = React.useState(false)
   const [setup, setSetup] = React.useState(false)
   const [skipped, setSkipped] = React.useState(false)
-  const configured = Boolean(set?.preferences.voice || set?.preferences.samples?.length)
+  const configured = set?.writingAssistant.status === 'configured'
   const send = async (text: string) => {
     const content = text.trim()
     if (!content || busy) return
@@ -56,7 +58,7 @@ export function AssistantPanel({
     setBusy(true)
     try {
       const answer = await call<{ reply: string }>('/api/v1/content-drafts/assistant', {
-        body: { channel, draft: posts, messages: next.slice(-30), socialSetId: set?.id },
+        body: { channel, draft: posts, draftId, messages: next.slice(-30) },
         method: 'POST',
       })
       setTurns([...next, { content: answer.reply, role: 'assistant' }])
@@ -185,86 +187,31 @@ export function AssistantPanel({
   )
 }
 
-/** The set's style guide, audience and writing samples, which the assistant and Refine follow. */
+/**
+ * Where a set's Writing Assistant is set up: its style guide and samples
+ * live in the set's settings (RFC 043), and the assistant and Refine follow
+ * them.
+ */
 function AssistantSetup({ onDone, set }: { onDone: () => void; set: WriteSet | null }) {
-  const router = useRouter()
   const { canManageSets } = useWrite()
-  const [voice, setVoice] = React.useState(set?.preferences.voice ?? '')
-  const [audience, setAudience] = React.useState(set?.preferences.audience ?? '')
-  const [samples, setSamples] = React.useState((set?.preferences.samples ?? []).join('\n---\n'))
-  const [busy, setBusy] = React.useState(false)
-  const save = async () => {
-    if (!set) return
-    setBusy(true)
-    try {
-      await writeApi.updateSet(set.id, {
-        preferences: {
-          ...set.preferences,
-          audience: audience.trim() || undefined,
-          samples: samples
-            .split(/\n\s*---\s*\n/)
-            .map((sample) => sample.trim())
-            .filter(Boolean)
-            .slice(0, 20),
-          voice: voice.trim() || undefined,
-        },
-      })
-      toast.success('Saved for this set.')
-      router.refresh()
-      onDone()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'The style guide did not save.')
-    } finally {
-      setBusy(false)
-    }
-  }
   return (
     <div className="grid gap-3 p-4 text-sm" data-testid="assistant-setup">
       <p className="text-neutral-300">Set up the assistant for {set?.name ?? 'this set'}</p>
       <p className="text-xs text-neutral-500">
-        The assistant and Refine write in this voice. Everyone who writes in the set shares it.
+        The assistant and Refine write in the set&rsquo;s voice: its style guide and writing
+        samples. Everyone who writes in the set shares it.
       </p>
-      {canManageSets ? (
-        <>
-          <Label className="grid gap-1 text-xs text-neutral-400">
-            Style guide
-            <Textarea
-              maxLength={2_000}
-              onChange={(event) => setVoice(event.target.value)}
-              placeholder="Plain words, short sentences, no hype. First person plural."
-              rows={4}
-              value={voice}
-            />
-          </Label>
-          <Label className="grid gap-1 text-xs text-neutral-400">
-            Audience
-            <Textarea
-              maxLength={2_000}
-              onChange={(event) => setAudience(event.target.value)}
-              placeholder="Who reads these posts, and what they care about."
-              rows={2}
-              value={audience}
-            />
-          </Label>
-          <Label className="grid gap-1 text-xs text-neutral-400">
-            Writing samples, separated by a line with ---
-            <Textarea
-              onChange={(event) => setSamples(event.target.value)}
-              rows={6}
-              value={samples}
-            />
-          </Label>
-          <Button disabled={busy} onClick={() => void save()} type="button">
-            Save for this set
-          </Button>
-        </>
+      {set && canManageSets ? (
+        <Button asChild>
+          <Link href={socialSetHref(set.id, 'writing-assistant')}>Open the Writing Assistant</Link>
+        </Button>
       ) : (
         <p className="text-xs text-neutral-400">
-          An owner or admin sets the style guide for a set.
+          An owner or admin sets up the Writing Assistant for a set.
         </p>
       )}
       <Button onClick={onDone} size="sm" type="button" variant="ghost">
-        {set?.preferences.voice || set?.preferences.samples?.length ? 'Back' : 'Skip for now'}
+        {set?.writingAssistant.status === 'configured' ? 'Back' : 'Skip for now'}
       </Button>
     </div>
   )

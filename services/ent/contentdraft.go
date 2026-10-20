@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
@@ -53,12 +54,18 @@ type ContentDraft struct {
 	Version int `json:"version,omitempty"`
 	// SocialSetID holds the value of the "social_set_id" field.
 	SocialSetID *string `json:"social_set_id,omitempty"`
+	// PrimaryPlatform holds the value of the "primary_platform" field.
+	PrimaryPlatform *string `json:"primary_platform,omitempty"`
+	// NaturalPostingTime holds the value of the "natural_posting_time" field.
+	NaturalPostingTime bool `json:"natural_posting_time,omitempty"`
+	// Engagement holds the value of the "engagement" field.
+	Engagement schema.Engagement `json:"engagement,omitempty"`
+	// PlannedFor holds the value of the "planned_for" field.
+	PlannedFor *time.Time `json:"planned_for,omitempty"`
 	// Kind holds the value of the "kind" field.
 	Kind contentdraft.Kind `json:"kind,omitempty"`
 	// Target holds the value of the "target" field.
 	Target *draftdoc.Target `json:"target,omitempty"`
-	// PrimaryChannel holds the value of the "primary_channel" field.
-	PrimaryChannel string `json:"primary_channel,omitempty"`
 	// PlatformVersions holds the value of the "platform_versions" field.
 	PlatformVersions draftdoc.PlatformVersions `json:"platform_versions,omitempty"`
 	// Article holds the value of the "article" field.
@@ -69,8 +76,6 @@ type ContentDraft struct {
 	TagIds []string `json:"tag_ids,omitempty"`
 	// PinnedAt holds the value of the "pinned_at" field.
 	PinnedAt *time.Time `json:"pinned_at,omitempty"`
-	// PlannedFor holds the value of the "planned_for" field.
-	PlannedFor *time.Time `json:"planned_for,omitempty"`
 	// PlanTimeZone holds the value of the "plan_time_zone" field.
 	PlanTimeZone *string `json:"plan_time_zone,omitempty"`
 	// SourceDraftID holds the value of the "source_draft_id" field.
@@ -93,13 +98,15 @@ func (*ContentDraft) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case contentdraft.FieldBody, contentdraft.FieldAssetIds, contentdraft.FieldChannelConnectionIds, contentdraft.FieldDiscussions, contentdraft.FieldChannelText, contentdraft.FieldGuestComments, contentdraft.FieldTarget, contentdraft.FieldPlatformVersions, contentdraft.FieldArticle, contentdraft.FieldTagIds, contentdraft.FieldCollabState:
+		case contentdraft.FieldBody, contentdraft.FieldAssetIds, contentdraft.FieldChannelConnectionIds, contentdraft.FieldDiscussions, contentdraft.FieldChannelText, contentdraft.FieldGuestComments, contentdraft.FieldEngagement, contentdraft.FieldTarget, contentdraft.FieldPlatformVersions, contentdraft.FieldArticle, contentdraft.FieldTagIds, contentdraft.FieldCollabState:
 			values[i] = new([]byte)
+		case contentdraft.FieldNaturalPostingTime:
+			values[i] = new(sql.NullBool)
 		case contentdraft.FieldApprovedVersion, contentdraft.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case contentdraft.FieldID, contentdraft.FieldOrganizationID, contentdraft.FieldTitle, contentdraft.FieldPlainText, contentdraft.FieldStatus, contentdraft.FieldReviewStatus, contentdraft.FieldReviewedByUserID, contentdraft.FieldReviewNote, contentdraft.FieldShareToken, contentdraft.FieldSocialSetID, contentdraft.FieldKind, contentdraft.FieldPrimaryChannel, contentdraft.FieldScratchpad, contentdraft.FieldPlanTimeZone, contentdraft.FieldSourceDraftID, contentdraft.FieldCreatedByUserID, contentdraft.FieldUpdatedByUserID:
+		case contentdraft.FieldID, contentdraft.FieldOrganizationID, contentdraft.FieldTitle, contentdraft.FieldPlainText, contentdraft.FieldStatus, contentdraft.FieldReviewStatus, contentdraft.FieldReviewedByUserID, contentdraft.FieldReviewNote, contentdraft.FieldShareToken, contentdraft.FieldSocialSetID, contentdraft.FieldPrimaryPlatform, contentdraft.FieldKind, contentdraft.FieldScratchpad, contentdraft.FieldPlanTimeZone, contentdraft.FieldSourceDraftID, contentdraft.FieldCreatedByUserID, contentdraft.FieldUpdatedByUserID:
 			values[i] = new(sql.NullString)
-		case contentdraft.FieldPinnedAt, contentdraft.FieldPlannedFor, contentdraft.FieldCreatedAt, contentdraft.FieldUpdatedAt:
+		case contentdraft.FieldPlannedFor, contentdraft.FieldPinnedAt, contentdraft.FieldCreatedAt, contentdraft.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -241,6 +248,34 @@ func (_m *ContentDraft) assignValues(columns []string, values []any) error {
 				_m.SocialSetID = new(string)
 				*_m.SocialSetID = value.String
 			}
+		case contentdraft.FieldPrimaryPlatform:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field primary_platform", values[i])
+			} else if value.Valid {
+				_m.PrimaryPlatform = new(string)
+				*_m.PrimaryPlatform = value.String
+			}
+		case contentdraft.FieldNaturalPostingTime:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field natural_posting_time", values[i])
+			} else if value.Valid {
+				_m.NaturalPostingTime = value.Bool
+			}
+		case contentdraft.FieldEngagement:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field engagement", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Engagement); err != nil {
+					return fmt.Errorf("unmarshal field engagement: %w", err)
+				}
+			}
+		case contentdraft.FieldPlannedFor:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field planned_for", values[i])
+			} else if value.Valid {
+				_m.PlannedFor = new(time.Time)
+				*_m.PlannedFor = value.Time
+			}
 		case contentdraft.FieldKind:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field kind", values[i])
@@ -254,12 +289,6 @@ func (_m *ContentDraft) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.Target); err != nil {
 					return fmt.Errorf("unmarshal field target: %w", err)
 				}
-			}
-		case contentdraft.FieldPrimaryChannel:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field primary_channel", values[i])
-			} else if value.Valid {
-				_m.PrimaryChannel = value.String
 			}
 		case contentdraft.FieldPlatformVersions:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -297,13 +326,6 @@ func (_m *ContentDraft) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.PinnedAt = new(time.Time)
 				*_m.PinnedAt = value.Time
-			}
-		case contentdraft.FieldPlannedFor:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field planned_for", values[i])
-			} else if value.Valid {
-				_m.PlannedFor = new(time.Time)
-				*_m.PlannedFor = value.Time
 			}
 		case contentdraft.FieldPlanTimeZone:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -448,14 +470,27 @@ func (_m *ContentDraft) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
+	if v := _m.PrimaryPlatform; v != nil {
+		builder.WriteString("primary_platform=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("natural_posting_time=")
+	builder.WriteString(fmt.Sprintf("%v", _m.NaturalPostingTime))
+	builder.WriteString(", ")
+	builder.WriteString("engagement=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Engagement))
+	builder.WriteString(", ")
+	if v := _m.PlannedFor; v != nil {
+		builder.WriteString("planned_for=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
 	builder.WriteString("kind=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Kind))
 	builder.WriteString(", ")
 	builder.WriteString("target=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Target))
-	builder.WriteString(", ")
-	builder.WriteString("primary_channel=")
-	builder.WriteString(_m.PrimaryChannel)
 	builder.WriteString(", ")
 	builder.WriteString("platform_versions=")
 	builder.WriteString(fmt.Sprintf("%v", _m.PlatformVersions))
@@ -471,11 +506,6 @@ func (_m *ContentDraft) String() string {
 	builder.WriteString(", ")
 	if v := _m.PinnedAt; v != nil {
 		builder.WriteString("pinned_at=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	if v := _m.PlannedFor; v != nil {
-		builder.WriteString("planned_for=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")

@@ -189,7 +189,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
       run: () => {
         if (!canEdit) return
         void draftsApi
-          .create({ socialSetId: data.activeSet?.isDefault ? undefined : data.activeSet?.id })
+          .create({ socialSetId: data.activeSet?.id })
           .then((draft) => router.push(draftHref(draft.id, data.activeSet?.id)))
           .catch((error: unknown) =>
             toast.error(error instanceof Error ? error.message : 'No new draft.')

@@ -102,7 +102,7 @@ export function PropertiesPanel({
   const [activity, setActivity] = React.useState<DraftActivityWire[] | null>(null)
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const [naming, setNaming] = React.useState(false)
-  const setId = draft.socialSetId ?? data.sets.find((set) => set.isDefault)?.id
+  const setId = draft.socialSetId ?? data.sets.find((set) => set.visibility === 'WORKSPACE')?.id
   const tags = data.sets.find((set) => set.id === setId)?.id === data.activeSet?.id ? data.tags : []
   React.useEffect(() => {
     void writeApi
@@ -160,7 +160,7 @@ export function PropertiesPanel({
                   const answer = await call<{ texts: string[] }>('/api/v1/content-drafts/refine', {
                     body: {
                       action: 'title',
-                      channel: draft.primaryChannel,
+                      channel: draft.primaryPlatform,
                       limit: 80,
                       scope: 'draft',
                       socialSetId: setId,
@@ -184,49 +184,51 @@ export function PropertiesPanel({
           ) : null}
         </span>
       </Label>
-      <div className="grid gap-1.5">
-        <span className="text-xs text-neutral-400">Tags</span>
-        <div className="flex flex-wrap items-center gap-1">
-          {tags
-            .filter((tag) => tagIds.includes(tag.id))
-            .map((tag) => (
-              <TagChip key={tag.id} tag={tag} />
-            ))}
-          {canEdit ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  className="h-6 rounded-full border border-white/10 px-2 text-[11px] text-neutral-400 hover:text-white"
-                  size={null}
-                  type="button"
-                  variant="custom"
-                >
-                  + Tag
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                {tags.length === 0 ? (
-                  <DropdownMenuItem disabled>No tags in this set yet</DropdownMenuItem>
-                ) : null}
-                {tags.map((tag) => (
-                  <DropdownMenuCheckboxItem
-                    checked={tagIds.includes(tag.id)}
-                    key={tag.id}
-                    onCheckedChange={() => void toggleTag(tag.id)}
+      {data.experiments.tags ? (
+        <div className="grid gap-1.5">
+          <span className="text-xs text-neutral-400">Tags</span>
+          <div className="flex flex-wrap items-center gap-1">
+            {tags
+              .filter((tag) => tagIds.includes(tag.id))
+              .map((tag) => (
+                <TagChip key={tag.id} tag={tag} />
+              ))}
+            {canEdit ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    className="h-6 rounded-full border border-white/10 px-2 text-[11px] text-neutral-400 hover:text-white"
+                    size={null}
+                    type="button"
+                    variant="custom"
                   >
-                    <TagChip tag={tag} />
-                  </DropdownMenuCheckboxItem>
-                ))}
-                {setId ? (
-                  <DropdownMenuItem onSelect={() => setManaging(true)}>
-                    Manage tags…
-                  </DropdownMenuItem>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : null}
+                    + Tag
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  {tags.length === 0 ? (
+                    <DropdownMenuItem disabled>No tags in this set yet</DropdownMenuItem>
+                  ) : null}
+                  {tags.map((tag) => (
+                    <DropdownMenuCheckboxItem
+                      checked={tagIds.includes(tag.id)}
+                      key={tag.id}
+                      onCheckedChange={() => void toggleTag(tag.id)}
+                    >
+                      <TagChip tag={tag} />
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  {setId ? (
+                    <DropdownMenuItem onSelect={() => setManaging(true)}>
+                      Manage tags…
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
       <Label className="grid gap-1 text-xs text-neutral-400">
         Scratchpad
         <Textarea

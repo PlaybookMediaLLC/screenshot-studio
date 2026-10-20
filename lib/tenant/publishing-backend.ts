@@ -65,8 +65,12 @@ export async function cancelBackendScheduledPost(access: TenantContext, id: stri
   return { scheduledPost }
 }
 
-export async function beginBackendSocialOAuth(access: OrganizationAccess, provider: OAuthProvider) {
-  const result = await backendSDK(access).beginSocialOAuth(provider)
+export async function beginBackendSocialOAuth(
+  access: OrganizationAccess,
+  provider: OAuthProvider,
+  socialSetId?: string
+) {
+  const result = await backendSDK(access).beginSocialOAuth(provider, socialSetId)
   return result.url
 }
 

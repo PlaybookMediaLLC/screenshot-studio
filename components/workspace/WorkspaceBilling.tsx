@@ -46,9 +46,12 @@ function UsageRow({
 }) {
   return (
     <Row description={description} label={label} layout="inline">
-      <span className="text-sm font-medium text-white tabular-nums">
+      <span className="text-sm font-medium text-foreground tabular-nums">
         {allowance.left.toLocaleString('en-US')}
-        <span className="text-neutral-500"> / {allowance.included.toLocaleString('en-US')}</span>
+        <span className="text-muted-foreground">
+          {' '}
+          / {allowance.included.toLocaleString('en-US')}
+        </span>
       </span>
     </Row>
   )
@@ -91,7 +94,7 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
       <Group>
         {summary === null ? (
           <Row>
-            <p className="text-sm text-neutral-500">{error ?? 'Loading billing…'}</p>
+            <p className="text-sm text-muted-foreground">{error ?? 'Loading billing…'}</p>
           </Row>
         ) : (
           <>
@@ -104,19 +107,38 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
                         : ''
                     }.`
                   : summary.paid
-                    ? 'Change plans, update your card, or cancel in the billing portal.'
-                    : 'Choose a plan to start using Shots.'
+                    ? 'In the billing portal: switch between Pro and Business or monthly and annual, update the card, download invoices, or cancel. Enterprise is arranged with sales.'
+                    : 'Choose a plan to start using Shots: Pro or Business by card, or Enterprise through sales.'
               }
               label="Plan"
               layout="inline"
             >
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-white">
+                <span className="text-sm font-medium text-foreground">
                   {PLAN_NAMES[summary.plan] ?? summary.plan}
                 </span>
                 {summary.paid && status ? <Pill tone={status.tone}>{status.label}</Pill> : null}
               </div>
             </Row>
+            {summary.paid &&
+            summary.cycle &&
+            (summary.cycle.cancelsAt ?? summary.cycle.renewsAt) ? (
+              <Row
+                description={
+                  summary.cycle.cancelsAt
+                    ? 'Cancelled: the plan ends then. The workspace keeps its drafts, campaigns and assets, but its features and monthly allowances stop until someone chooses a plan. Renew in the billing portal before then to keep it.'
+                    : `Billed ${summary.cycle.interval === 'annual' ? 'yearly' : 'monthly'}. Cancelling in the billing portal ends the plan at the end of the period, not at once.`
+                }
+                label={summary.cycle.cancelsAt ? 'Ends' : 'Renews'}
+                layout="inline"
+              >
+                <span className="text-sm font-medium text-foreground tabular-nums">
+                  {new Date(
+                    summary.cycle.cancelsAt ?? summary.cycle.renewsAt ?? ''
+                  ).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                </span>
+              </Row>
+            ) : null}
             {summary.paid ? (
               <>
                 <UsageRow
@@ -129,7 +151,7 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
                   label="Extra launch credits"
                   layout="inline"
                 >
-                  <span className="text-sm font-medium text-white tabular-nums">
+                  <span className="text-sm font-medium text-foreground tabular-nums">
                     {summary.creditBalance.toLocaleString('en-US')}
                   </span>
                 </Row>
@@ -179,7 +201,7 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
               </Row>
             ) : (
               <Row>
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted-foreground">
                   Only workspace owners and admins can change the plan.
                 </p>
               </Row>

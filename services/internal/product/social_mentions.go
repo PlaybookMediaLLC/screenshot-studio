@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
 // Mentions picked from the platform (RFC 042). A mention is looked up with
@@ -71,20 +69,11 @@ func (c *Configuration) LookupMentions(ctx context.Context, actor Actor, setID, 
 	if err != nil {
 		return nil, err
 	}
-	set, err := c.draftSet(ctx, actor.OrganizationID, &setID)
+	set, err := visibleSocialSet(ctx, c.client, actor, setID)
 	if err != nil {
 		return nil, err
 	}
-	access, err := c.socialSetAccess(ctx, actor)
-	if err != nil {
-		return nil, err
-	}
-	if !access.allows(set) {
-		return nil, publishing.ErrNotFound
-	}
-	connection, err := c.client.ChannelConnection.Query().Where(channelconnection.IDIn(set.ChannelConnectionIds...),
-		channelconnection.OrganizationID(actor.OrganizationID), channelconnection.Platform(channel),
-		channelconnection.StatusEQ(channelconnection.StatusACTIVE)).First(ctx)
+	connection, err := setAccount(ctx, c.client, set, channel)
 	if ent.IsNotFound(err) {
 		return nil, conflict("Connect a " + channelLabel(channel) + " account to this set to look up mentions.")
 	}

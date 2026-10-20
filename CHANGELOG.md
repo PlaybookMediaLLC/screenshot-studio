@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.27.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.26.0...v2.27.0) (2026-10-20)
+
+
+### Features
+
+* **settings:** social sets, preferences and webhooks in the backend (RFC 043, 1/2) ([#228](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/228)) ([f1c5252](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/f1c5252c3c8f228024f6d91e96bf967101578db4))
+
 ## [2.26.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.25.0...v2.26.0) (2026-10-20)
 
 

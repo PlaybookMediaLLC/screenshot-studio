@@ -29,6 +29,8 @@ import {
 import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
 import { DraftPosts } from '@/components/drafts/DraftPosts'
 import type { DraftEditorUser } from '@/components/drafts/DraftEditor'
+import { DraftSettingsDrawer } from '@/components/drafts/DraftSettingsDrawer'
+import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { ReviewControls } from '@/components/drafts/DraftTools'
 import { appendPost, movePost, postRanges } from '@/components/drafts/thread'
 import { POST_COLUMN } from '@/components/drafts/layout'
@@ -46,9 +48,15 @@ import {
 } from '@/lib/content-drafts/serialize'
 import { platformEditorServices } from '@/lib/editor/services'
 import { useTRPCClient } from '@/lib/trpc/react'
+import { engagementAutomation } from '@/lib/write/automation'
 import { CAPABILITIES } from '@/lib/write/capabilities'
 import { writeApi } from '@/lib/write/client'
-import type { DraftChannel, PlateBody, VersionOptions } from '@/lib/write/document'
+import {
+  type DraftChannel,
+  type PlateBody,
+  primaryChannel,
+  type VersionOptions,
+} from '@/lib/write/document'
 import { buildPublication } from '@/lib/write/publication'
 import { forkVersion, versionFor, withOptions, withVersion } from '@/lib/write/versions'
 import { cn } from '@/lib/utils'
@@ -192,7 +200,8 @@ export function WriteComposer({
         updatedAt: saved.updatedAt,
       }),
   })
-  const [tab, setTab] = React.useState<DraftChannel>(initial.primaryChannel)
+  const textDirection = usePreferences().preferences?.textDirection ?? 'ltr'
+  const [tab, setTab] = React.useState<DraftChannel>(() => primaryChannel(initial.primaryPlatform))
   const [panel, setPanel] = React.useState<Panel | null>(() => {
     const asked = params.get('panel')
     return asked === 'properties' ||
@@ -210,8 +219,8 @@ export function WriteComposer({
   const [posts, setPosts] = React.useState(initialPosts)
   const editor = React.useRef<PlateEditor | null>(null)
   const [editorInstance, setEditorInstance] = React.useState<PlateEditor | null>(null)
-  const primary = document.primaryChannel
-  const accounts = set?.connections ?? []
+  const primary = document.primaryPlatform
+  const accounts = set?.accounts ?? []
   const enabled = document.channelConnectionIds
   const channels = tabChannels(accounts, enabled, primary)
   const active = channels.includes(tab) ? tab : primary
@@ -219,6 +228,7 @@ export function WriteComposer({
   const draftFields = {
     article: document.article,
     body: document.value as PlateBody,
+    engagement: server.engagement,
     kind: server.kind,
     platformVersions: document.versions,
     target: document.target,
@@ -294,7 +304,9 @@ export function WriteComposer({
     setTimeZone: set?.timeZone ?? null,
     versionRef: version,
     renderBlocks,
-    automation: versionFor(document.versions, 'x').options?.automation,
+    automation:
+      versionFor(document.versions, 'x').options?.automation ??
+      engagementAutomation(server.engagement),
     onAutomation: canEdit
       ? (automation) =>
           update((current) => ({
@@ -490,6 +502,8 @@ export function WriteComposer({
       : undefined,
     readOnly: !canEdit,
     services,
+    // Text runs in the direction the person chose in Appearance (RFC 043).
+    textDirection,
     title: document.title,
     user,
   }
@@ -527,6 +541,7 @@ export function WriteComposer({
               }
             : undefined
         }
+        draftId={initial.id}
         posts={activePublication.serialized.posts.map((post) => post.caption)}
         set={set}
       />
@@ -639,6 +654,14 @@ export function WriteComposer({
                     label="Assistant"
                     onClick={() => togglePanel('assistant')}
                     shortcut={`${mod}J`}
+                  />
+                ) : null}
+                {/* The set's settings open beside the draft without unmounting it (RFC 043). */}
+                {set ? (
+                  <DraftSettingsDrawer
+                    canManage={canPublish}
+                    canWrite={canEdit}
+                    socialSet={{ id: set.id, name: set.name, timeZone: set.timeZone }}
                   />
                 ) : null}
               </>
@@ -782,6 +805,7 @@ export function WriteComposer({
                   limit={activePublication.serialized.limit}
                   channels={items.map((item) => item.account.channel)}
                   editor={editor}
+                  draftId={initial.id}
                   setId={server.socialSetId ?? set?.id ?? null}
                 />
               }
@@ -821,6 +845,7 @@ export function WriteComposer({
                     limit={activePublication.serialized.limit}
                     channels={[active]}
                     editor={editor}
+                    draftId={initial.id}
                     setId={server.socialSetId ?? set?.id ?? null}
                   />
                 }
@@ -947,7 +972,7 @@ export function WriteComposer({
               ...(change.channelConnectionIds
                 ? { channelConnectionIds: change.channelConnectionIds }
                 : {}),
-              ...(change.primaryChannel ? { primaryChannel: change.primaryChannel } : {}),
+              ...(change.primaryPlatform ? { primaryPlatform: change.primaryPlatform } : {}),
               ...(change.versions ? { versions: change.versions } : {}),
             })
           }
@@ -1084,6 +1109,7 @@ function ToolbarExtras({
   channels,
   editor,
   limit,
+  draftId,
   setId,
 }: {
   aiEnabled: boolean
@@ -1092,6 +1118,7 @@ function ToolbarExtras({
   channels: DraftChannel[]
   editor: React.MutableRefObject<PlateEditor | null>
   limit: number
+  draftId: string
   setId: string | null
 }) {
   const { mod } = useKeys()
@@ -1104,7 +1131,7 @@ function ToolbarExtras({
   return (
     <>
       {aiEnabled ? (
-        <RefineButton channel={channel} editor={editor} limit={limit} setId={setId} />
+        <RefineButton channel={channel} draftId={draftId} editor={editor} limit={limit} />
       ) : null}
       <MentionPicker channels={channels} editor={editor} setId={setId} />
       <Button

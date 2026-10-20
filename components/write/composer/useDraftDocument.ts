@@ -10,7 +10,12 @@ import {
   readDiscussions,
 } from '@/lib/content-drafts/discussions'
 import { type DraftChannel, draftPlainText, serializeDraft } from '@/lib/content-drafts/serialize'
-import type { Article, DraftTarget, PlatformVersions } from '@/lib/write/document'
+import {
+  type Article,
+  type DraftTarget,
+  type PlatformVersions,
+  primaryChannel,
+} from '@/lib/write/document'
 import { readVersions } from '@/lib/write/versions'
 
 /**
@@ -31,7 +36,7 @@ const AUTOSAVE_DELAY_MS = 800
 export type DraftDocument = {
   article: Article | null
   channelConnectionIds: string[]
-  primaryChannel: DraftChannel
+  primaryPlatform: DraftChannel
   target: DraftTarget | null
   title: string
   value: Value
@@ -43,7 +48,7 @@ export function documentOf(draft: DraftWire): DraftDocument {
   return {
     article: draft.article,
     channelConnectionIds: draft.channelConnectionIds,
-    primaryChannel: draft.primaryChannel,
+    primaryPlatform: primaryChannel(draft.primaryPlatform),
     target: draft.target,
     title: draft.title,
     value: draft.body as Value,
@@ -109,7 +114,7 @@ export function useDraftDocument({
             discussions: discussions.current,
             plainText: draftPlainText(next.value),
             platformVersions: next.versions,
-            primaryChannel: next.primaryChannel,
+            primaryPlatform: next.primaryPlatform,
             target: next.target ?? undefined,
             title: next.title,
           })

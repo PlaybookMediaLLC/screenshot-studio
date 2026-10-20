@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 import type { draftFinisherSchema, draftTagSchema } from '@/lib/api/contracts/draft-tags'
-import type { socialSetInputSchema, socialSetSchema } from '@/lib/api/contracts/social-sets'
+import type { engagementSchema, socialSetSchema } from '@/lib/api/contracts/social-sets'
 import type {
   draftActivitySchema,
   draftCopyResultSchema,
@@ -9,8 +9,8 @@ import type {
 import { call, type DraftPostWire, type DraftWire } from '@/lib/content-drafts/client'
 
 /**
- * Browser calls to the Write API (RFC 042) with the session cookie: social
- * sets, tags and finishers, and a draft's properties, plan, copies,
+ * Browser calls to the Write API (RFC 042) with the session cookie: a set's
+ * engagement defaults, tags and finishers, and a draft's properties, plan, copies,
  * backups, activity and recovery. Failures throw `DraftRequestError`.
  */
 
@@ -29,19 +29,18 @@ export type DraftActivityWire = z.output<typeof draftActivitySchema>
 /** A new draft and what its destination could not take. */
 export type DraftCopyWire = z.output<typeof draftCopyResultSchema>
 
-const sets = '/api/v1/social-sets'
-const set = (id: string) => `${sets}/${encodeURIComponent(id)}`
+const set = (id: string) => `/api/v1/social-sets/${encodeURIComponent(id)}`
 const draft = (id: string) => `/api/v1/content-drafts/${encodeURIComponent(id)}`
 const post = (id: string) => `/api/v1/content-draft-posts/${encodeURIComponent(id)}`
 
 /** The Write API. */
 export const writeApi = {
-  sets: () => call<{ items: SocialSetWire[] }>(sets),
-  createSet: (input: z.input<typeof socialSetInputSchema> & { name: string }) =>
-    call<SocialSetWire>(sets, { body: input, method: 'POST' }),
-  updateSet: (id: string, input: z.input<typeof socialSetInputSchema>) =>
-    call<SocialSetWire>(set(id), { body: input, method: 'PATCH' }),
-  deleteSet: (id: string) => call<{ deleted: true }>(set(id), { method: 'DELETE' }),
+  /** A set's engagement defaults (RFC 043), based on the set's version. */
+  updateSetEngagement: (
+    id: string,
+    baseVersion: number,
+    engagementDefaults: z.input<typeof engagementSchema>
+  ) => call<SocialSetWire>(set(id), { body: { baseVersion, engagementDefaults }, method: 'PATCH' }),
   tags: (setId: string) => call<{ items: DraftTagWire[] }>(`${set(setId)}/tags`),
   createTag: (setId: string, input: { color?: DraftTagWire['color']; name: string }) =>
     call<DraftTagWire>(`${set(setId)}/tags`, { body: input, method: 'POST' }),

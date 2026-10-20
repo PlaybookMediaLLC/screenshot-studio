@@ -21,26 +21,38 @@ const (
 	FieldName = "name"
 	// FieldColor holds the string denoting the color field in the database.
 	FieldColor = "color"
-	// FieldIsDefault holds the string denoting the is_default field in the database.
-	FieldIsDefault = "isDefault"
-	// FieldChannelConnectionIds holds the string denoting the channel_connection_ids field in the database.
-	FieldChannelConnectionIds = "channelConnectionIds"
-	// FieldDefaultChannels holds the string denoting the default_channels field in the database.
-	FieldDefaultChannels = "defaultChannels"
-	// FieldTimeZone holds the string denoting the time_zone field in the database.
-	FieldTimeZone = "timeZone"
 	// FieldVisibility holds the string denoting the visibility field in the database.
 	FieldVisibility = "visibility"
-	// FieldMemberUserIds holds the string denoting the member_user_ids field in the database.
-	FieldMemberUserIds = "memberUserIds"
-	// FieldPreferences holds the string denoting the preferences field in the database.
-	FieldPreferences = "preferences"
+	// FieldOwnerUserID holds the string denoting the owner_user_id field in the database.
+	FieldOwnerUserID = "ownerUserId"
+	// FieldTimeZone holds the string denoting the time_zone field in the database.
+	FieldTimeZone = "timeZone"
+	// FieldPostingSlots holds the string denoting the posting_slots field in the database.
+	FieldPostingSlots = "postingSlots"
+	// FieldNaturalPostingTimes holds the string denoting the natural_posting_times field in the database.
+	FieldNaturalPostingTimes = "naturalPostingTimes"
+	// FieldDefaultPlatforms holds the string denoting the default_platforms field in the database.
+	FieldDefaultPlatforms = "defaultPlatforms"
+	// FieldPrimaryPlatform holds the string denoting the primary_platform field in the database.
+	FieldPrimaryPlatform = "primaryPlatform"
+	// FieldEngagementDefaults holds the string denoting the engagement_defaults field in the database.
+	FieldEngagementDefaults = "engagementDefaults"
+	// FieldPublicProfile holds the string denoting the public_profile field in the database.
+	FieldPublicProfile = "publicProfile"
+	// FieldPublicSlug holds the string denoting the public_slug field in the database.
+	FieldPublicSlug = "publicSlug"
+	// FieldWritingAssistant holds the string denoting the writing_assistant field in the database.
+	FieldWritingAssistant = "writingAssistant"
+	// FieldVersion holds the string denoting the version field in the database.
+	FieldVersion = "version"
 	// FieldCreatedByUserID holds the string denoting the created_by_user_id field in the database.
 	FieldCreatedByUserID = "createdByUserId"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "createdAt"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updatedAt"
+	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
+	FieldDeletedAt = "deletedAt"
 	// Table holds the table name of the socialset in the database.
 	Table = "social_set"
 )
@@ -51,16 +63,22 @@ var Columns = []string{
 	FieldOrganizationID,
 	FieldName,
 	FieldColor,
-	FieldIsDefault,
-	FieldChannelConnectionIds,
-	FieldDefaultChannels,
-	FieldTimeZone,
 	FieldVisibility,
-	FieldMemberUserIds,
-	FieldPreferences,
+	FieldOwnerUserID,
+	FieldTimeZone,
+	FieldPostingSlots,
+	FieldNaturalPostingTimes,
+	FieldDefaultPlatforms,
+	FieldPrimaryPlatform,
+	FieldEngagementDefaults,
+	FieldPublicProfile,
+	FieldPublicSlug,
+	FieldWritingAssistant,
+	FieldVersion,
 	FieldCreatedByUserID,
 	FieldCreatedAt,
 	FieldUpdatedAt,
+	FieldDeletedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -76,16 +94,22 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultColor holds the default value on creation for the "color" field.
 	DefaultColor string
-	// DefaultIsDefault holds the default value on creation for the "is_default" field.
-	DefaultIsDefault bool
-	// DefaultChannelConnectionIds holds the default value on creation for the "channel_connection_ids" field.
-	DefaultChannelConnectionIds []string
-	// DefaultDefaultChannels holds the default value on creation for the "default_channels" field.
-	DefaultDefaultChannels []string
-	// DefaultMemberUserIds holds the default value on creation for the "member_user_ids" field.
-	DefaultMemberUserIds []string
-	// DefaultPreferences holds the default value on creation for the "preferences" field.
-	DefaultPreferences schema.SocialSetPreferences
+	// DefaultTimeZone holds the default value on creation for the "time_zone" field.
+	DefaultTimeZone string
+	// DefaultPostingSlots holds the default value on creation for the "posting_slots" field.
+	DefaultPostingSlots []schema.QueueSlot
+	// DefaultNaturalPostingTimes holds the default value on creation for the "natural_posting_times" field.
+	DefaultNaturalPostingTimes bool
+	// DefaultDefaultPlatforms holds the default value on creation for the "default_platforms" field.
+	DefaultDefaultPlatforms []string
+	// DefaultEngagementDefaults holds the default value on creation for the "engagement_defaults" field.
+	DefaultEngagementDefaults schema.Engagement
+	// DefaultPublicProfile holds the default value on creation for the "public_profile" field.
+	DefaultPublicProfile bool
+	// DefaultWritingAssistant holds the default value on creation for the "writing_assistant" field.
+	DefaultWritingAssistant schema.WritingAssistant
+	// DefaultVersion holds the default value on creation for the "version" field.
+	DefaultVersion int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -97,13 +121,13 @@ var (
 // Visibility defines the type for the "visibility" enum field.
 type Visibility string
 
-// VisibilityWorkspace is the default value of the Visibility enum.
-const DefaultVisibility = VisibilityWorkspace
+// VisibilityWORKSPACE is the default value of the Visibility enum.
+const DefaultVisibility = VisibilityWORKSPACE
 
 // Visibility values.
 const (
-	VisibilityWorkspace  Visibility = "workspace"
-	VisibilityRestricted Visibility = "restricted"
+	VisibilityWORKSPACE Visibility = "WORKSPACE"
+	VisibilityPRIVATE   Visibility = "PRIVATE"
 )
 
 func (v Visibility) String() string {
@@ -113,7 +137,7 @@ func (v Visibility) String() string {
 // VisibilityValidator is a validator for the "visibility" field enum values. It is called by the builders before save.
 func VisibilityValidator(v Visibility) error {
 	switch v {
-	case VisibilityWorkspace, VisibilityRestricted:
+	case VisibilityWORKSPACE, VisibilityPRIVATE:
 		return nil
 	default:
 		return fmt.Errorf("socialset: invalid enum value for visibility field: %q", v)
@@ -143,9 +167,14 @@ func ByColor(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldColor, opts...).ToFunc()
 }
 
-// ByIsDefault orders the results by the is_default field.
-func ByIsDefault(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldIsDefault, opts...).ToFunc()
+// ByVisibility orders the results by the visibility field.
+func ByVisibility(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVisibility, opts...).ToFunc()
+}
+
+// ByOwnerUserID orders the results by the owner_user_id field.
+func ByOwnerUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOwnerUserID, opts...).ToFunc()
 }
 
 // ByTimeZone orders the results by the time_zone field.
@@ -153,9 +182,29 @@ func ByTimeZone(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTimeZone, opts...).ToFunc()
 }
 
-// ByVisibility orders the results by the visibility field.
-func ByVisibility(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldVisibility, opts...).ToFunc()
+// ByNaturalPostingTimes orders the results by the natural_posting_times field.
+func ByNaturalPostingTimes(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNaturalPostingTimes, opts...).ToFunc()
+}
+
+// ByPrimaryPlatform orders the results by the primary_platform field.
+func ByPrimaryPlatform(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPrimaryPlatform, opts...).ToFunc()
+}
+
+// ByPublicProfile orders the results by the public_profile field.
+func ByPublicProfile(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPublicProfile, opts...).ToFunc()
+}
+
+// ByPublicSlug orders the results by the public_slug field.
+func ByPublicSlug(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPublicSlug, opts...).ToFunc()
+}
+
+// ByVersion orders the results by the version field.
+func ByVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVersion, opts...).ToFunc()
 }
 
 // ByCreatedByUserID orders the results by the created_by_user_id field.
@@ -171,4 +220,9 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByUpdatedAt orders the results by the updated_at field.
 func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByDeletedAt orders the results by the deleted_at field.
+func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }

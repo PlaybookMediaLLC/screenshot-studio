@@ -189,13 +189,33 @@ type autoActor interface {
 	AutoAct(context.Context, socialapi.AutoActionInput) (socialapi.AutoActionResult, error)
 }
 
+// autoActionRecorder records a follow-up that went out (RFC 043).
+type autoActionRecorder interface {
+	RecordAutoAction(context.Context, string, string) error
+}
+
+// connectionChecker reports whether a post's account may still act.
+type connectionChecker interface {
+	PostConnectionActive(context.Context, string) (bool, error)
+}
+
 // RunAutoActions runs the follow-ups due now; a provider without them has
-// nothing to do, so every one reports done.
+// nothing to do, so every one reports done. An account removed from its
+// social set since the post went out (RFC 043) takes no further action.
 func (a *Activities) RunAutoActions(ctx context.Context, input AutoActionsInput) (AutoActionsResult, error) {
 	actor, ok := a.provider.(autoActor)
 	actions := input.Job.AutoActions
 	if !ok || actions == nil {
 		return AutoActionsResult{Plugged: true, Quoted: true, Reposted: true}, nil
+	}
+	if checker, ok := a.store.(connectionChecker); ok {
+		active, err := checker.PostConnectionActive(ctx, input.Job.PostID)
+		if err != nil {
+			return AutoActionsResult{}, err
+		}
+		if !active {
+			return AutoActionsResult{Plugged: true, Quoted: true, Reposted: true}, nil
+		}
 	}
 	result, err := actor.AutoAct(ctx, socialapi.AutoActionInput{
 		DestinationID: input.Job.DestinationID, OrganizationID: input.Job.OrganizationID,
@@ -204,6 +224,19 @@ func (a *Activities) RunAutoActions(ctx context.Context, input AutoActionsInput)
 		Plug: input.Plug, PlugAtLikes: actions.PlugAtLikes, PlugText: actions.PlugText,
 		Quote: input.Quote, QuoteText: actions.QuoteText,
 	})
+	// A follow-up that went out on X is activity people can be told about.
+	if recorder, ok := a.store.(autoActionRecorder); ok && err == nil && input.Job.Platform == "x" {
+		for kind, done := range map[string]bool{
+			"post.auto_repost_published": input.Repost && result.Reposted && actions.RepostAtLikes > 0,
+			"post.auto_plug_published":   input.Plug && result.Plugged && actions.PlugAtLikes > 0,
+		} {
+			if done {
+				if recordErr := recorder.RecordAutoAction(ctx, input.Job.PostID, kind); recordErr != nil {
+					return AutoActionsResult{}, recordErr
+				}
+			}
+		}
+	}
 	return AutoActionsResult{Plugged: result.Plugged, Quoted: result.Quoted, Reposted: result.Reposted}, err
 }
 

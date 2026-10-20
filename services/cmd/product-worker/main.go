@@ -31,6 +31,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalreleaseautomation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/getsentry/sentry-go"
 	"github.com/lucsky/cuid"
 	workflowservice "go.temporal.io/api/workflowservice/v1"
@@ -238,6 +239,7 @@ func main() {
 		jobs := &maintenance.Store{Activity: notifications.New(db.SQL, db.Client), DB: db.SQL, RetentionDB: retention.SQL, Objects: tenantObjects, Events: events,
 			Onboarding: &temporalonboarding.Client{Temporal: temporalClient},
 			Drains:     maintenance.NewDrainSender(cfg.AuditDrainEncryptionKey),
+			Webhooks:   webhooks.NewDispatcher(db.SQL, cfg.WebhookEncryptionKey),
 			Mail:       &maintenance.Mailer{APIKey: cfg.ResendAPIKey, From: cfg.EmailFrom, BaseURL: cfg.AuthBaseURL, SigningSecret: cfg.AuthSecret, PostalAddress: cfg.CompanyPostalAddress},
 		}
 		maintenanceWorker := worker.New(temporalClient, temporalmaintenance.TaskQueue, worker.Options{

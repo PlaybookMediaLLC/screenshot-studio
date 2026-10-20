@@ -87,11 +87,14 @@ func (c *Configuration) UpdateContentDraftProperties(ctx context.Context, actor 
 		}
 	}
 	if len(input.AddTagIDs) > 0 || len(input.RemoveTagIDs) > 0 {
-		set, err := c.draftSet(ctx, actor.OrganizationID, draft.SocialSetID)
+		set, err := c.draftWriteSet(ctx, tx.Client(), draft)
 		if err != nil {
 			return nil, err
 		}
-		added, err := draftTags(ctx, tx, actor.OrganizationID, set.ID, input.AddTagIDs)
+		if err := c.requireExperiment(ctx, actor, ExperimentDraftTags); err != nil {
+			return nil, err
+		}
+		added, err := c.draftTagIDs(ctx, tx, actor, set.ID, input.AddTagIDs)
 		if err != nil {
 			return nil, err
 		}
@@ -123,6 +126,9 @@ func (c *Configuration) UpdateContentDraftProperties(ctx context.Context, actor 
 		map[string]any{"changed": changed}); err != nil {
 		return nil, err
 	}
+	if err := emitDraftChanges(ctx, tx, draft, row); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -142,6 +148,10 @@ type ContentDraftPlanInput struct {
 // The plan is kept as a backup, like a schedule.
 func (c *Configuration) PlanContentDraft(ctx context.Context, actor Actor, id string, input ContentDraftPlanInput) (*ContentDraftRecord, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
+		return nil, err
+	}
+	// Planning is the draft-planning experiment, the same on every path.
+	if err := c.requireExperiment(ctx, actor, ExperimentDraftPlanning); err != nil {
 		return nil, err
 	}
 	draft, err := c.loadDraft(ctx, actor, id)
@@ -185,6 +195,9 @@ func (c *Configuration) PlanContentDraft(ctx context.Context, actor Actor, id st
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_planned", "content_draft", id, metadata); err != nil {
 		return nil, err
 	}
+	if err := emitDraftChanges(ctx, tx, draft, row); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -213,13 +226,18 @@ type ContentDraftCopyResult struct {
 func (c *Configuration) copyDraft(ctx context.Context, tx *ent.Tx, actor Actor, source *ent.ContentDraft, content draftContent,
 	set *ent.SocialSet, tags []string, reason string) (*ent.ContentDraft, []string, error) {
 	dropped := []string{}
+	sourceSet, err := c.draftWriteSet(ctx, tx.Client(), source)
+	if err != nil {
+		return nil, nil, err
+	}
+	sameSet := sourceSet.ID == set.ID
 	// Destinations: the same platforms, on the destination set's accounts.
 	sourceConnections, err := tx.ChannelConnection.Query().Where(channelconnection.IDIn(source.ChannelConnectionIds...),
 		channelconnection.OrganizationID(actor.OrganizationID)).All(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
-	setConnections, err := tx.ChannelConnection.Query().Where(channelconnection.IDIn(set.ChannelConnectionIds...),
+	setConnections, err := tx.ChannelConnection.Query().Where(channelconnection.SocialSetID(set.ID),
 		channelconnection.OrganizationID(actor.OrganizationID), channelconnection.StatusEQ(channelconnection.StatusACTIVE)).All(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -231,7 +249,7 @@ func (c *Configuration) copyDraft(ctx context.Context, tx *ent.Tx, actor Actor, 
 	}
 	for _, connection := range sourceConnections {
 		channel := draftPlatformChannels[connection.Platform]
-		if source.SocialSetID != nil && set.ID == *source.SocialSetID || source.SocialSetID == nil && set.IsDefault {
+		if sameSet {
 			channels = append(channels, connection.ID)
 			continue
 		}
@@ -248,7 +266,7 @@ func (c *Configuration) copyDraft(ctx context.Context, tx *ent.Tx, actor Actor, 
 	}
 	versions := draftdoc.PlatformVersions{SchemaVersion: draftdoc.SchemaVersion, Versions: []draftdoc.PlatformVersion{}}
 	for _, version := range content.versions.Versions {
-		if available[version.Channel] || source.SocialSetID != nil && set.ID == *source.SocialSetID || source.SocialSetID == nil && set.IsDefault {
+		if available[version.Channel] || sameSet {
 			versions.Versions = append(versions.Versions, version)
 		} else if !slices.Contains(dropped, "platform:"+version.Channel) {
 			dropped = append(dropped, "platform:"+version.Channel)
@@ -260,11 +278,15 @@ func (c *Configuration) copyDraft(ctx context.Context, tx *ent.Tx, actor Actor, 
 	}
 	create := tx.ContentDraft.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetTitle(content.title).
 		SetBody(content.body).SetPlainText(content.plainText).SetAssetIds(assets).SetChannelConnectionIds(channels).
-		SetChannelText(content.channelText).SetKind(contentdraft.Kind(content.kind)).SetPrimaryChannel(content.primary).
+		SetChannelText(content.channelText).SetKind(contentdraft.Kind(content.kind)).SetPrimaryPlatform(content.primary).
 		SetPlatformVersions(versions).SetScratchpad(content.scratchpad).SetTagIds(tags).SetSourceDraftID(source.ID).
-		SetNillableCreatedByUserID(projectActor(actor)).SetNillableUpdatedByUserID(projectActor(actor))
-	if !set.IsDefault {
-		create.SetSocialSetID(set.ID)
+		SetSocialSetID(set.ID).SetNillableCreatedByUserID(projectActor(actor)).SetNillableUpdatedByUserID(projectActor(actor))
+	// Within its set a copy keeps the draft's own choices; in another set it
+	// takes that set's defaults, as a new draft there would.
+	if sameSet {
+		create.SetEngagement(source.Engagement).SetNaturalPostingTime(source.NaturalPostingTime)
+	} else {
+		create.SetEngagement(set.EngagementDefaults).SetNaturalPostingTime(set.NaturalPostingTimes)
 	}
 	if content.target != nil {
 		create.SetTarget(content.target)
@@ -302,7 +324,7 @@ type draftContent struct {
 func contentOf(draft *ent.ContentDraft) draftContent {
 	return draftContent{article: draft.Article, assetIDs: nonNilStrings(draft.AssetIds), body: nonNilBody(draft.Body),
 		channelText: nonNilChannelText(draft.ChannelText), kind: string(draft.Kind), plainText: draft.PlainText,
-		primary: draft.PrimaryChannel, scratchpad: draft.Scratchpad, target: draft.Target, title: draft.Title,
+		primary: draftPrimary(draft), scratchpad: draft.Scratchpad, target: draft.Target, title: draft.Title,
 		versions: nonNilVersions(draft.PlatformVersions)}
 }
 
@@ -324,7 +346,7 @@ func (c *Configuration) DuplicateContentDraft(ctx context.Context, actor Actor, 
 	if err != nil {
 		return nil, err
 	}
-	set, err := c.draftSet(ctx, actor.OrganizationID, source.SocialSetID)
+	set, err := c.draftWriteSet(ctx, c.client, source)
 	if err != nil {
 		return nil, err
 	}
@@ -359,18 +381,15 @@ func (c *Configuration) CopyContentDraftToSet(ctx context.Context, actor Actor, 
 	if err != nil {
 		return nil, err
 	}
-	set, err := c.draftSet(ctx, actor.OrganizationID, input.SocialSetID)
+	setID := ""
+	if input.SocialSetID != nil {
+		setID = *input.SocialSetID
+	}
+	set, err := c.writeSet(ctx, actor, setID)
 	if err != nil {
 		return nil, err
 	}
-	access, err := c.socialSetAccess(ctx, actor)
-	if err != nil {
-		return nil, err
-	}
-	if !access.allows(set) {
-		return nil, publishing.ErrNotFound
-	}
-	if err := draftKindChannel(string(source.Kind), source.PrimaryChannel); err != nil {
+	if err := draftKindChannel(string(source.Kind), draftPrimary(source)); err != nil {
 		return nil, err
 	}
 	tx, err := c.client.Tx(ctx)
@@ -434,7 +453,7 @@ func (c *Configuration) RecoverContentDraftRevision(ctx context.Context, actor A
 	if err != nil {
 		return nil, err
 	}
-	set, err := c.draftSet(ctx, actor.OrganizationID, source.SocialSetID)
+	set, err := c.draftWriteSet(ctx, c.client, source)
 	if err != nil {
 		return nil, err
 	}
@@ -591,18 +610,7 @@ func tagRecord(row *ent.ContentDraftTag) ContentDraftTagRecord {
 
 // visibleSet reads a set the actor may see, by id.
 func (c *Configuration) visibleSet(ctx context.Context, actor Actor, setID string) (*ent.SocialSet, error) {
-	set, err := c.draftSet(ctx, actor.OrganizationID, &setID)
-	if err != nil {
-		return nil, err
-	}
-	access, err := c.socialSetAccess(ctx, actor)
-	if err != nil {
-		return nil, err
-	}
-	if !access.allows(set) {
-		return nil, publishing.ErrNotFound
-	}
-	return set, nil
+	return visibleSocialSet(ctx, c.client, actor, setID)
 }
 
 // ListContentDraftTags lists a set's tags, oldest first.

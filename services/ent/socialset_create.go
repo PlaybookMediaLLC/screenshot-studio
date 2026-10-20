@@ -47,29 +47,31 @@ func (_c *SocialSetCreate) SetNillableColor(v *string) *SocialSetCreate {
 	return _c
 }
 
-// SetIsDefault sets the "is_default" field.
-func (_c *SocialSetCreate) SetIsDefault(v bool) *SocialSetCreate {
-	_c.mutation.SetIsDefault(v)
+// SetVisibility sets the "visibility" field.
+func (_c *SocialSetCreate) SetVisibility(v socialset.Visibility) *SocialSetCreate {
+	_c.mutation.SetVisibility(v)
 	return _c
 }
 
-// SetNillableIsDefault sets the "is_default" field if the given value is not nil.
-func (_c *SocialSetCreate) SetNillableIsDefault(v *bool) *SocialSetCreate {
+// SetNillableVisibility sets the "visibility" field if the given value is not nil.
+func (_c *SocialSetCreate) SetNillableVisibility(v *socialset.Visibility) *SocialSetCreate {
 	if v != nil {
-		_c.SetIsDefault(*v)
+		_c.SetVisibility(*v)
 	}
 	return _c
 }
 
-// SetChannelConnectionIds sets the "channel_connection_ids" field.
-func (_c *SocialSetCreate) SetChannelConnectionIds(v []string) *SocialSetCreate {
-	_c.mutation.SetChannelConnectionIds(v)
+// SetOwnerUserID sets the "owner_user_id" field.
+func (_c *SocialSetCreate) SetOwnerUserID(v string) *SocialSetCreate {
+	_c.mutation.SetOwnerUserID(v)
 	return _c
 }
 
-// SetDefaultChannels sets the "default_channels" field.
-func (_c *SocialSetCreate) SetDefaultChannels(v []string) *SocialSetCreate {
-	_c.mutation.SetDefaultChannels(v)
+// SetNillableOwnerUserID sets the "owner_user_id" field if the given value is not nil.
+func (_c *SocialSetCreate) SetNillableOwnerUserID(v *string) *SocialSetCreate {
+	if v != nil {
+		_c.SetOwnerUserID(*v)
+	}
 	return _c
 }
 
@@ -87,36 +89,104 @@ func (_c *SocialSetCreate) SetNillableTimeZone(v *string) *SocialSetCreate {
 	return _c
 }
 
-// SetVisibility sets the "visibility" field.
-func (_c *SocialSetCreate) SetVisibility(v socialset.Visibility) *SocialSetCreate {
-	_c.mutation.SetVisibility(v)
+// SetPostingSlots sets the "posting_slots" field.
+func (_c *SocialSetCreate) SetPostingSlots(v []schema.QueueSlot) *SocialSetCreate {
+	_c.mutation.SetPostingSlots(v)
 	return _c
 }
 
-// SetNillableVisibility sets the "visibility" field if the given value is not nil.
-func (_c *SocialSetCreate) SetNillableVisibility(v *socialset.Visibility) *SocialSetCreate {
+// SetNaturalPostingTimes sets the "natural_posting_times" field.
+func (_c *SocialSetCreate) SetNaturalPostingTimes(v bool) *SocialSetCreate {
+	_c.mutation.SetNaturalPostingTimes(v)
+	return _c
+}
+
+// SetNillableNaturalPostingTimes sets the "natural_posting_times" field if the given value is not nil.
+func (_c *SocialSetCreate) SetNillableNaturalPostingTimes(v *bool) *SocialSetCreate {
 	if v != nil {
-		_c.SetVisibility(*v)
+		_c.SetNaturalPostingTimes(*v)
 	}
 	return _c
 }
 
-// SetMemberUserIds sets the "member_user_ids" field.
-func (_c *SocialSetCreate) SetMemberUserIds(v []string) *SocialSetCreate {
-	_c.mutation.SetMemberUserIds(v)
+// SetDefaultPlatforms sets the "default_platforms" field.
+func (_c *SocialSetCreate) SetDefaultPlatforms(v []string) *SocialSetCreate {
+	_c.mutation.SetDefaultPlatforms(v)
 	return _c
 }
 
-// SetPreferences sets the "preferences" field.
-func (_c *SocialSetCreate) SetPreferences(v schema.SocialSetPreferences) *SocialSetCreate {
-	_c.mutation.SetPreferences(v)
+// SetPrimaryPlatform sets the "primary_platform" field.
+func (_c *SocialSetCreate) SetPrimaryPlatform(v string) *SocialSetCreate {
+	_c.mutation.SetPrimaryPlatform(v)
 	return _c
 }
 
-// SetNillablePreferences sets the "preferences" field if the given value is not nil.
-func (_c *SocialSetCreate) SetNillablePreferences(v *schema.SocialSetPreferences) *SocialSetCreate {
+// SetNillablePrimaryPlatform sets the "primary_platform" field if the given value is not nil.
+func (_c *SocialSetCreate) SetNillablePrimaryPlatform(v *string) *SocialSetCreate {
 	if v != nil {
-		_c.SetPreferences(*v)
+		_c.SetPrimaryPlatform(*v)
+	}
+	return _c
+}
+
+// SetEngagementDefaults sets the "engagement_defaults" field.
+func (_c *SocialSetCreate) SetEngagementDefaults(v schema.Engagement) *SocialSetCreate {
+	_c.mutation.SetEngagementDefaults(v)
+	return _c
+}
+
+// SetNillableEngagementDefaults sets the "engagement_defaults" field if the given value is not nil.
+func (_c *SocialSetCreate) SetNillableEngagementDefaults(v *schema.Engagement) *SocialSetCreate {
+	if v != nil {
+		_c.SetEngagementDefaults(*v)
+	}
+	return _c
+}
+
+// SetPublicProfile sets the "public_profile" field.
+func (_c *SocialSetCreate) SetPublicProfile(v bool) *SocialSetCreate {
+	_c.mutation.SetPublicProfile(v)
+	return _c
+}
+
+// SetNillablePublicProfile sets the "public_profile" field if the given value is not nil.
+func (_c *SocialSetCreate) SetNillablePublicProfile(v *bool) *SocialSetCreate {
+	if v != nil {
+		_c.SetPublicProfile(*v)
+	}
+	return _c
+}
+
+// SetPublicSlug sets the "public_slug" field.
+func (_c *SocialSetCreate) SetPublicSlug(v string) *SocialSetCreate {
+	_c.mutation.SetPublicSlug(v)
+	return _c
+}
+
+// SetWritingAssistant sets the "writing_assistant" field.
+func (_c *SocialSetCreate) SetWritingAssistant(v schema.WritingAssistant) *SocialSetCreate {
+	_c.mutation.SetWritingAssistant(v)
+	return _c
+}
+
+// SetNillableWritingAssistant sets the "writing_assistant" field if the given value is not nil.
+func (_c *SocialSetCreate) SetNillableWritingAssistant(v *schema.WritingAssistant) *SocialSetCreate {
+	if v != nil {
+		_c.SetWritingAssistant(*v)
+	}
+	return _c
+}
+
+// SetVersion sets the "version" field.
+func (_c *SocialSetCreate) SetVersion(v int) *SocialSetCreate {
+	_c.mutation.SetVersion(v)
+	return _c
+}
+
+// SetNillableVersion sets the "version" field if the given value is not nil.
+func (_c *SocialSetCreate) SetNillableVersion(v *int) *SocialSetCreate {
+	if v != nil {
+		_c.SetVersion(*v)
 	}
 	return _c
 }
@@ -159,6 +229,20 @@ func (_c *SocialSetCreate) SetUpdatedAt(v time.Time) *SocialSetCreate {
 func (_c *SocialSetCreate) SetNillableUpdatedAt(v *time.Time) *SocialSetCreate {
 	if v != nil {
 		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_c *SocialSetCreate) SetDeletedAt(v time.Time) *SocialSetCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_c *SocialSetCreate) SetNillableDeletedAt(v *time.Time) *SocialSetCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
 	}
 	return _c
 }
@@ -208,29 +292,41 @@ func (_c *SocialSetCreate) defaults() {
 		v := socialset.DefaultColor
 		_c.mutation.SetColor(v)
 	}
-	if _, ok := _c.mutation.IsDefault(); !ok {
-		v := socialset.DefaultIsDefault
-		_c.mutation.SetIsDefault(v)
-	}
-	if _, ok := _c.mutation.ChannelConnectionIds(); !ok {
-		v := socialset.DefaultChannelConnectionIds
-		_c.mutation.SetChannelConnectionIds(v)
-	}
-	if _, ok := _c.mutation.DefaultChannels(); !ok {
-		v := socialset.DefaultDefaultChannels
-		_c.mutation.SetDefaultChannels(v)
-	}
 	if _, ok := _c.mutation.Visibility(); !ok {
 		v := socialset.DefaultVisibility
 		_c.mutation.SetVisibility(v)
 	}
-	if _, ok := _c.mutation.MemberUserIds(); !ok {
-		v := socialset.DefaultMemberUserIds
-		_c.mutation.SetMemberUserIds(v)
+	if _, ok := _c.mutation.TimeZone(); !ok {
+		v := socialset.DefaultTimeZone
+		_c.mutation.SetTimeZone(v)
 	}
-	if _, ok := _c.mutation.Preferences(); !ok {
-		v := socialset.DefaultPreferences
-		_c.mutation.SetPreferences(v)
+	if _, ok := _c.mutation.PostingSlots(); !ok {
+		v := socialset.DefaultPostingSlots
+		_c.mutation.SetPostingSlots(v)
+	}
+	if _, ok := _c.mutation.NaturalPostingTimes(); !ok {
+		v := socialset.DefaultNaturalPostingTimes
+		_c.mutation.SetNaturalPostingTimes(v)
+	}
+	if _, ok := _c.mutation.DefaultPlatforms(); !ok {
+		v := socialset.DefaultDefaultPlatforms
+		_c.mutation.SetDefaultPlatforms(v)
+	}
+	if _, ok := _c.mutation.EngagementDefaults(); !ok {
+		v := socialset.DefaultEngagementDefaults
+		_c.mutation.SetEngagementDefaults(v)
+	}
+	if _, ok := _c.mutation.PublicProfile(); !ok {
+		v := socialset.DefaultPublicProfile
+		_c.mutation.SetPublicProfile(v)
+	}
+	if _, ok := _c.mutation.WritingAssistant(); !ok {
+		v := socialset.DefaultWritingAssistant
+		_c.mutation.SetWritingAssistant(v)
+	}
+	if _, ok := _c.mutation.Version(); !ok {
+		v := socialset.DefaultVersion
+		_c.mutation.SetVersion(v)
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := socialset.DefaultCreatedAt()
@@ -253,15 +349,6 @@ func (_c *SocialSetCreate) check() error {
 	if _, ok := _c.mutation.Color(); !ok {
 		return &ValidationError{Name: "color", err: errors.New(`ent: missing required field "SocialSet.color"`)}
 	}
-	if _, ok := _c.mutation.IsDefault(); !ok {
-		return &ValidationError{Name: "is_default", err: errors.New(`ent: missing required field "SocialSet.is_default"`)}
-	}
-	if _, ok := _c.mutation.ChannelConnectionIds(); !ok {
-		return &ValidationError{Name: "channel_connection_ids", err: errors.New(`ent: missing required field "SocialSet.channel_connection_ids"`)}
-	}
-	if _, ok := _c.mutation.DefaultChannels(); !ok {
-		return &ValidationError{Name: "default_channels", err: errors.New(`ent: missing required field "SocialSet.default_channels"`)}
-	}
 	if _, ok := _c.mutation.Visibility(); !ok {
 		return &ValidationError{Name: "visibility", err: errors.New(`ent: missing required field "SocialSet.visibility"`)}
 	}
@@ -270,11 +357,32 @@ func (_c *SocialSetCreate) check() error {
 			return &ValidationError{Name: "visibility", err: fmt.Errorf(`ent: validator failed for field "SocialSet.visibility": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.MemberUserIds(); !ok {
-		return &ValidationError{Name: "member_user_ids", err: errors.New(`ent: missing required field "SocialSet.member_user_ids"`)}
+	if _, ok := _c.mutation.TimeZone(); !ok {
+		return &ValidationError{Name: "time_zone", err: errors.New(`ent: missing required field "SocialSet.time_zone"`)}
 	}
-	if _, ok := _c.mutation.Preferences(); !ok {
-		return &ValidationError{Name: "preferences", err: errors.New(`ent: missing required field "SocialSet.preferences"`)}
+	if _, ok := _c.mutation.PostingSlots(); !ok {
+		return &ValidationError{Name: "posting_slots", err: errors.New(`ent: missing required field "SocialSet.posting_slots"`)}
+	}
+	if _, ok := _c.mutation.NaturalPostingTimes(); !ok {
+		return &ValidationError{Name: "natural_posting_times", err: errors.New(`ent: missing required field "SocialSet.natural_posting_times"`)}
+	}
+	if _, ok := _c.mutation.DefaultPlatforms(); !ok {
+		return &ValidationError{Name: "default_platforms", err: errors.New(`ent: missing required field "SocialSet.default_platforms"`)}
+	}
+	if _, ok := _c.mutation.EngagementDefaults(); !ok {
+		return &ValidationError{Name: "engagement_defaults", err: errors.New(`ent: missing required field "SocialSet.engagement_defaults"`)}
+	}
+	if _, ok := _c.mutation.PublicProfile(); !ok {
+		return &ValidationError{Name: "public_profile", err: errors.New(`ent: missing required field "SocialSet.public_profile"`)}
+	}
+	if _, ok := _c.mutation.PublicSlug(); !ok {
+		return &ValidationError{Name: "public_slug", err: errors.New(`ent: missing required field "SocialSet.public_slug"`)}
+	}
+	if _, ok := _c.mutation.WritingAssistant(); !ok {
+		return &ValidationError{Name: "writing_assistant", err: errors.New(`ent: missing required field "SocialSet.writing_assistant"`)}
+	}
+	if _, ok := _c.mutation.Version(); !ok {
+		return &ValidationError{Name: "version", err: errors.New(`ent: missing required field "SocialSet.version"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SocialSet.created_at"`)}
@@ -329,33 +437,53 @@ func (_c *SocialSetCreate) createSpec() (*SocialSet, *sqlgraph.CreateSpec) {
 		_spec.SetField(socialset.FieldColor, field.TypeString, value)
 		_node.Color = value
 	}
-	if value, ok := _c.mutation.IsDefault(); ok {
-		_spec.SetField(socialset.FieldIsDefault, field.TypeBool, value)
-		_node.IsDefault = value
-	}
-	if value, ok := _c.mutation.ChannelConnectionIds(); ok {
-		_spec.SetField(socialset.FieldChannelConnectionIds, field.TypeJSON, value)
-		_node.ChannelConnectionIds = value
-	}
-	if value, ok := _c.mutation.DefaultChannels(); ok {
-		_spec.SetField(socialset.FieldDefaultChannels, field.TypeJSON, value)
-		_node.DefaultChannels = value
-	}
-	if value, ok := _c.mutation.TimeZone(); ok {
-		_spec.SetField(socialset.FieldTimeZone, field.TypeString, value)
-		_node.TimeZone = &value
-	}
 	if value, ok := _c.mutation.Visibility(); ok {
 		_spec.SetField(socialset.FieldVisibility, field.TypeEnum, value)
 		_node.Visibility = value
 	}
-	if value, ok := _c.mutation.MemberUserIds(); ok {
-		_spec.SetField(socialset.FieldMemberUserIds, field.TypeJSON, value)
-		_node.MemberUserIds = value
+	if value, ok := _c.mutation.OwnerUserID(); ok {
+		_spec.SetField(socialset.FieldOwnerUserID, field.TypeString, value)
+		_node.OwnerUserID = &value
 	}
-	if value, ok := _c.mutation.Preferences(); ok {
-		_spec.SetField(socialset.FieldPreferences, field.TypeJSON, value)
-		_node.Preferences = value
+	if value, ok := _c.mutation.TimeZone(); ok {
+		_spec.SetField(socialset.FieldTimeZone, field.TypeString, value)
+		_node.TimeZone = value
+	}
+	if value, ok := _c.mutation.PostingSlots(); ok {
+		_spec.SetField(socialset.FieldPostingSlots, field.TypeJSON, value)
+		_node.PostingSlots = value
+	}
+	if value, ok := _c.mutation.NaturalPostingTimes(); ok {
+		_spec.SetField(socialset.FieldNaturalPostingTimes, field.TypeBool, value)
+		_node.NaturalPostingTimes = value
+	}
+	if value, ok := _c.mutation.DefaultPlatforms(); ok {
+		_spec.SetField(socialset.FieldDefaultPlatforms, field.TypeJSON, value)
+		_node.DefaultPlatforms = value
+	}
+	if value, ok := _c.mutation.PrimaryPlatform(); ok {
+		_spec.SetField(socialset.FieldPrimaryPlatform, field.TypeString, value)
+		_node.PrimaryPlatform = &value
+	}
+	if value, ok := _c.mutation.EngagementDefaults(); ok {
+		_spec.SetField(socialset.FieldEngagementDefaults, field.TypeJSON, value)
+		_node.EngagementDefaults = value
+	}
+	if value, ok := _c.mutation.PublicProfile(); ok {
+		_spec.SetField(socialset.FieldPublicProfile, field.TypeBool, value)
+		_node.PublicProfile = value
+	}
+	if value, ok := _c.mutation.PublicSlug(); ok {
+		_spec.SetField(socialset.FieldPublicSlug, field.TypeString, value)
+		_node.PublicSlug = value
+	}
+	if value, ok := _c.mutation.WritingAssistant(); ok {
+		_spec.SetField(socialset.FieldWritingAssistant, field.TypeJSON, value)
+		_node.WritingAssistant = value
+	}
+	if value, ok := _c.mutation.Version(); ok {
+		_spec.SetField(socialset.FieldVersion, field.TypeInt, value)
+		_node.Version = value
 	}
 	if value, ok := _c.mutation.CreatedByUserID(); ok {
 		_spec.SetField(socialset.FieldCreatedByUserID, field.TypeString, value)
@@ -368,6 +496,10 @@ func (_c *SocialSetCreate) createSpec() (*SocialSet, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(socialset.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if value, ok := _c.mutation.DeletedAt(); ok {
+		_spec.SetField(socialset.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
 	}
 	return _node, _spec
 }

@@ -2,6 +2,7 @@ import type Stripe from 'stripe'
 import { z } from 'zod'
 import type { entitlementSyncSchema } from '@/lib/billing/entitlements'
 import {
+  billingIntervalSchema,
   CREDIT_PACKS,
   type checkoutPlanSchema,
   type creditPackSchema,
@@ -139,4 +140,40 @@ export function checkoutReturnFor(
     (entitlement.status === 'active' || entitlement.status === 'trialing')
     ? checkoutReturnSchema.enum.success
     : checkoutReturnSchema.enum.pending
+}
+
+/** A live subscription's billing cycle, as the billing page shows it. */
+export const subscriptionCycleSchema = z.object({
+  /** When a scheduled cancellation ends the plan; null when none is scheduled. */
+  cancelsAt: z.string().nullable(),
+  interval: billingIntervalSchema,
+  /** The next renewal; null when the plan is set to end instead. */
+  renewsAt: z.string().nullable(),
+})
+
+/** The billing cycle of a live subscription. */
+export function subscriptionCycle(subscription: {
+  cancel_at: number | null
+  cancel_at_period_end: boolean
+  items: {
+    data: { current_period_end: number; price: { recurring: { interval: string } | null } }[]
+  }
+}): z.infer<typeof subscriptionCycleSchema> | null {
+  const item = subscription.items.data[0]
+  if (!item) return null
+  const iso = (seconds: number) => new Date(seconds * 1000).toISOString()
+  const periodEnd = item.current_period_end ? iso(item.current_period_end) : null
+  const cancelsAt = subscription.cancel_at
+    ? iso(subscription.cancel_at)
+    : subscription.cancel_at_period_end
+      ? periodEnd
+      : null
+  return {
+    cancelsAt,
+    interval:
+      item.price.recurring?.interval === 'year'
+        ? billingIntervalSchema.enum.annual
+        : billingIntervalSchema.enum.monthly,
+    renewsAt: cancelsAt ? null : periodEnd,
+  }
 }

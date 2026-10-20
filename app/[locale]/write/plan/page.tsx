@@ -4,7 +4,10 @@ import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { WriteFrame } from '@/components/write/WriteFrame'
 import { calendarPostSchema } from '@/lib/api/contracts/content-draft-platform'
 import { hasPermission } from '@/lib/auth/permissions'
+import { backendSDK, orNull } from '@/lib/backend/sdk'
 import { draftPlainText } from '@/lib/content-drafts/serialize'
+import { weekStartDaySchema } from '@/lib/settings/appearance'
+import { addDays, dayOfWeek, zonedDayKey, zonedInstant } from '@/lib/settings/zoned-time'
 import { listContentDraftPostsBetween } from '@/lib/tenant/content-drafts'
 import { listPlannedContentDrafts } from '@/lib/tenant/write'
 import { requireDraftsPageAccess } from '../../drafts/page-access'
@@ -17,37 +20,29 @@ type PlanPageProps = {
   searchParams: Promise<Record<string, string | undefined>>
 }
 
-/** The Monday on or before `date`, at midnight. */
-function weekStart(date: Date): Date {
-  const start = new Date(date)
-  start.setHours(0, 0, 0, 0)
-  start.setDate(start.getDate() - ((start.getDay() + 6) % 7))
-  return start
-}
-
 /** Plan: a week of the active set's scheduled posts and planned drafts. */
 export default async function WritePlanPage({ params, searchParams }: PlanPageProps) {
   const { locale } = await params
   const query = await searchParams
   const access = await requireDraftsPageAccess(locale, '/write/plan')
   const canManageSets = hasPermission(access.role, 'workspace:update')
+  const [data, preferences] = await Promise.all([
+    loadWrite(access.tenant, query),
+    orNull(backendSDK(access.tenant).getUserPreferences()),
+  ])
+  // The plan is the set's: its days are days in the set's scheduling zone
+  // (RFC 043), starting on the weekday the person chose.
+  const zone = data.activeSet?.timeZone ?? 'UTC'
   const week = query.week
-  const asked = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? new Date(`${week}T00:00:00`) : new Date()
-  const start = weekStart(Number.isNaN(asked.getTime()) ? new Date() : asked)
-  // The browser lays the week out in its own time zone, which can sit a day
-  // either side of this server's, so fetch a day of slack each way; the
-  // calendar places each post on its local day.
-  const from = new Date(start)
-  from.setDate(start.getDate() - 1)
-  const end = new Date(start)
-  end.setDate(start.getDate() + 8)
-  const data = await loadWrite(access.tenant, query, { connections: canManageSets })
+  const asked = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? week : zonedDayKey(new Date(), zone)
+  const first = weekStartDaySchema.parse(preferences?.weekStart ?? 'monday')
+  const start = addDays(asked, -((dayOfWeek(asked) - first + 7) % 7))
+  const from = zonedInstant(start, 0, 0, zone)
+  const end = zonedInstant(addDays(start, 7), 0, 0, zone)
   const [posts, planned] = await Promise.all([
     listContentDraftPostsBetween(access.tenant, from, end, data.activeSet?.id),
     listPlannedContentDrafts(access.tenant, from, end, data.activeSet?.id),
   ])
-  const day = (date: Date) =>
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
   return (
     <PlatformShell
       campaignsEnabled={access.campaignWorkflowEnabled}
@@ -75,7 +70,9 @@ export default async function WritePlanPage({ params, searchParams }: PlanPagePr
               : []
           )}
           posts={posts.map((post) => calendarPostSchema.parse(post))}
-          weekStart={day(start)}
+          socialSetId={data.activeSet?.id}
+          timeZone={zone}
+          weekStart={start}
         />
       </WriteFrame>
     </PlatformShell>

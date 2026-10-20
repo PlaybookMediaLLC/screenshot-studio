@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { timestampSchema } from '@/lib/api/contract'
 import {
   articleSchema,
-  draftChannelSchema,
   draftKindSchema,
   draftTargetSchema,
   platformVersionsSchema,
@@ -24,24 +23,43 @@ export const draftWriteFieldsSchema = z.object({
   /** When the next queued post goes out (lists only). */
   nextPostAt: timestampSchema.nullable(),
   pinnedAt: timestampSchema.nullable(),
-  /** A planned time puts the draft on the calendar; nothing publishes from it. */
-  plannedFor: timestampSchema.nullable(),
+  /** The zone a planned time was picked in. */
   planTimeZone: z.string().nullable(),
   /** Each platform's version beside the primary body. */
   platformVersions: platformVersionsSchema,
-  /** The channel the body is written for. */
-  primaryChannel: draftChannelSchema,
   /** Posts waiting to go out (lists only). */
   queuedPosts: z.number().int(),
   /** Internal notes; never part of a post. */
   scratchpad: z.string(),
-  /** The draft's social set; null is the workspace's default set. */
-  socialSetId: z.string().nullable(),
   /** The draft it was duplicated, copied or recovered from. */
   sourceDraftId: z.string().nullable(),
+  /** Tags of the draft's set, by id (an experiment). */
   tagIds: z.array(z.string()),
   /** The post a reply answers, a quote embeds, or a repurposed draft came from. */
   target: draftTargetSchema.nullable(),
+})
+
+/** One X follow-up a draft runs once its post reaches a number of likes (RFC 043). */
+const draftEngagementRuleSchema = z.object({
+  atLikes: z.number().int(),
+  enabled: z.boolean(),
+  text: z.string().optional(),
+})
+
+const NO_RULE = { atLikes: 0, enabled: false }
+
+/**
+ * The follow-ups a draft copied from its set's engagement defaults (RFC 043).
+ * The default keeps an older backend's answer readable.
+ */
+export const draftEngagementSchema = z
+  .object({ autoPlug: draftEngagementRuleSchema, autoRepost: draftEngagementRuleSchema })
+  .default({ autoPlug: NO_RULE, autoRepost: NO_RULE })
+
+/** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
+export const pollSchema = z.object({
+  durationMinutes: z.number().int().min(5).max(10_080),
+  options: z.array(z.string().trim().min(1).max(25)).min(2).max(4),
 })
 
 /** The Write fields a draft is created or updated with. */
@@ -50,8 +68,6 @@ export const draftWriteInputSchema = z.object({
   article: articleSchema.optional(),
   /** Each platform's version beside the primary body. */
   platformVersions: platformVersionsSchema.optional(),
-  /** The channel the body is written for. */
-  primaryChannel: draftChannelSchema.optional(),
   /** The post a reply answers or a quote embeds. */
   target: draftTargetSchema.optional(),
 })
@@ -76,8 +92,7 @@ export type ContentDraftView = z.infer<typeof contentDraftViewSchema>
 /**
  * When a schedule goes out, beside `scheduledFor`: now (`publishNow`), or a
  * local time in a zone that the backend resolves, refusing a skipped time
- * and asking which repeated time is meant. `naturalTiming` shifts it by a
- * stable few minutes.
+ * and asking which repeated time is meant.
  */
 export const scheduleTimingSchema = z.object({
   disambiguation: z.enum(['earlier', 'later']).optional(),
@@ -85,7 +100,6 @@ export const scheduleTimingSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
     .optional(),
-  naturalTiming: z.boolean().optional(),
   publishNow: z.boolean().optional(),
   timeZone: z.string().max(80).optional(),
 })

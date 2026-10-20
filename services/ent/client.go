@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/accountdeletionrequest"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/agentauthorization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
@@ -94,6 +95,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialsetwritingsample"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
@@ -103,6 +105,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/userpreference"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhookdelivery"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhookdeliveryattempt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhooksubscription"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
@@ -115,6 +121,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// AccountDeletionRequest is the client for interacting with the AccountDeletionRequest builders.
+	AccountDeletionRequest *AccountDeletionRequestClient
 	// AgentAuthorization is the client for interacting with the AgentAuthorization builders.
 	AgentAuthorization *AgentAuthorizationClient
 	// Apikey is the client for interacting with the Apikey builders.
@@ -273,6 +281,8 @@ type Client struct {
 	SocialOAuthStart *SocialOAuthStartClient
 	// SocialSet is the client for interacting with the SocialSet builders.
 	SocialSet *SocialSetClient
+	// SocialSetWritingSample is the client for interacting with the SocialSetWritingSample builders.
+	SocialSetWritingSample *SocialSetWritingSampleClient
 	// SocialTenantBinding is the client for interacting with the SocialTenantBinding builders.
 	SocialTenantBinding *SocialTenantBindingClient
 	// SourceApp is the client for interacting with the SourceApp builders.
@@ -291,6 +301,14 @@ type Client struct {
 	SurfaceCapture *SurfaceCaptureClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserPreference is the client for interacting with the UserPreference builders.
+	UserPreference *UserPreferenceClient
+	// WebhookDelivery is the client for interacting with the WebhookDelivery builders.
+	WebhookDelivery *WebhookDeliveryClient
+	// WebhookDeliveryAttempt is the client for interacting with the WebhookDeliveryAttempt builders.
+	WebhookDeliveryAttempt *WebhookDeliveryAttemptClient
+	// WebhookSubscription is the client for interacting with the WebhookSubscription builders.
+	WebhookSubscription *WebhookSubscriptionClient
 	// WorkspaceCreditGrant is the client for interacting with the WorkspaceCreditGrant builders.
 	WorkspaceCreditGrant *WorkspaceCreditGrantClient
 	// WorkspaceDeletion is the client for interacting with the WorkspaceDeletion builders.
@@ -312,6 +330,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.AccountDeletionRequest = NewAccountDeletionRequestClient(c.config)
 	c.AgentAuthorization = NewAgentAuthorizationClient(c.config)
 	c.Apikey = NewApikeyClient(c.config)
 	c.Approval = NewApprovalClient(c.config)
@@ -391,6 +410,7 @@ func (c *Client) init() {
 	c.ShareLink = NewShareLinkClient(c.config)
 	c.SocialOAuthStart = NewSocialOAuthStartClient(c.config)
 	c.SocialSet = NewSocialSetClient(c.config)
+	c.SocialSetWritingSample = NewSocialSetWritingSampleClient(c.config)
 	c.SocialTenantBinding = NewSocialTenantBindingClient(c.config)
 	c.SourceApp = NewSourceAppClient(c.config)
 	c.SourceChange = NewSourceChangeClient(c.config)
@@ -400,6 +420,10 @@ func (c *Client) init() {
 	c.SupportAccessGrant = NewSupportAccessGrantClient(c.config)
 	c.SurfaceCapture = NewSurfaceCaptureClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.UserPreference = NewUserPreferenceClient(c.config)
+	c.WebhookDelivery = NewWebhookDeliveryClient(c.config)
+	c.WebhookDeliveryAttempt = NewWebhookDeliveryAttemptClient(c.config)
+	c.WebhookSubscription = NewWebhookSubscriptionClient(c.config)
 	c.WorkspaceCreditGrant = NewWorkspaceCreditGrantClient(c.config)
 	c.WorkspaceDeletion = NewWorkspaceDeletionClient(c.config)
 	c.WorkspaceEntitlement = NewWorkspaceEntitlementClient(c.config)
@@ -497,6 +521,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:                            ctx,
 		config:                         cfg,
+		AccountDeletionRequest:         NewAccountDeletionRequestClient(cfg),
 		AgentAuthorization:             NewAgentAuthorizationClient(cfg),
 		Apikey:                         NewApikeyClient(cfg),
 		Approval:                       NewApprovalClient(cfg),
@@ -576,6 +601,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ShareLink:                      NewShareLinkClient(cfg),
 		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
 		SocialSet:                      NewSocialSetClient(cfg),
+		SocialSetWritingSample:         NewSocialSetWritingSampleClient(cfg),
 		SocialTenantBinding:            NewSocialTenantBindingClient(cfg),
 		SourceApp:                      NewSourceAppClient(cfg),
 		SourceChange:                   NewSourceChangeClient(cfg),
@@ -585,6 +611,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
 		SurfaceCapture:                 NewSurfaceCaptureClient(cfg),
 		User:                           NewUserClient(cfg),
+		UserPreference:                 NewUserPreferenceClient(cfg),
+		WebhookDelivery:                NewWebhookDeliveryClient(cfg),
+		WebhookDeliveryAttempt:         NewWebhookDeliveryAttemptClient(cfg),
+		WebhookSubscription:            NewWebhookSubscriptionClient(cfg),
 		WorkspaceCreditGrant:           NewWorkspaceCreditGrantClient(cfg),
 		WorkspaceDeletion:              NewWorkspaceDeletionClient(cfg),
 		WorkspaceEntitlement:           NewWorkspaceEntitlementClient(cfg),
@@ -609,6 +639,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:                            ctx,
 		config:                         cfg,
+		AccountDeletionRequest:         NewAccountDeletionRequestClient(cfg),
 		AgentAuthorization:             NewAgentAuthorizationClient(cfg),
 		Apikey:                         NewApikeyClient(cfg),
 		Approval:                       NewApprovalClient(cfg),
@@ -688,6 +719,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ShareLink:                      NewShareLinkClient(cfg),
 		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
 		SocialSet:                      NewSocialSetClient(cfg),
+		SocialSetWritingSample:         NewSocialSetWritingSampleClient(cfg),
 		SocialTenantBinding:            NewSocialTenantBindingClient(cfg),
 		SourceApp:                      NewSourceAppClient(cfg),
 		SourceChange:                   NewSourceChangeClient(cfg),
@@ -697,6 +729,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
 		SurfaceCapture:                 NewSurfaceCaptureClient(cfg),
 		User:                           NewUserClient(cfg),
+		UserPreference:                 NewUserPreferenceClient(cfg),
+		WebhookDelivery:                NewWebhookDeliveryClient(cfg),
+		WebhookDeliveryAttempt:         NewWebhookDeliveryAttemptClient(cfg),
+		WebhookSubscription:            NewWebhookSubscriptionClient(cfg),
 		WorkspaceCreditGrant:           NewWorkspaceCreditGrantClient(cfg),
 		WorkspaceDeletion:              NewWorkspaceDeletionClient(cfg),
 		WorkspaceEntitlement:           NewWorkspaceEntitlementClient(cfg),
@@ -708,7 +744,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		AgentAuthorization.
+//		AccountDeletionRequest.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -731,10 +767,10 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AgentAuthorization, c.Apikey, c.Approval, c.Asset, c.AudienceSubscriber,
-		c.AuditDrain, c.AuditDrainDelivery, c.AuditLog, c.AuditOutbox,
-		c.AuditRetentionPolicy, c.BillingEntitlementEvent, c.BrandKit, c.BrandProfile,
-		c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
+		c.AccountDeletionRequest, c.AgentAuthorization, c.Apikey, c.Approval, c.Asset,
+		c.AudienceSubscriber, c.AuditDrain, c.AuditDrainDelivery, c.AuditLog,
+		c.AuditOutbox, c.AuditRetentionPolicy, c.BillingEntitlementEvent, c.BrandKit,
+		c.BrandProfile, c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
 		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
 		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft,
 		c.ContentDraftFinisher, c.ContentDraftRevision, c.ContentDraftSettings,
@@ -754,9 +790,11 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
 		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
 		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
-		c.SocialOAuthStart, c.SocialSet, c.SocialTenantBinding, c.SourceApp,
-		c.SourceChange, c.StorePublishingCredential, c.StoreReview,
-		c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture, c.User,
+		c.SocialOAuthStart, c.SocialSet, c.SocialSetWritingSample,
+		c.SocialTenantBinding, c.SourceApp, c.SourceChange,
+		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
+		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.UserPreference,
+		c.WebhookDelivery, c.WebhookDeliveryAttempt, c.WebhookSubscription,
 		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
 		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
 	} {
@@ -768,10 +806,10 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AgentAuthorization, c.Apikey, c.Approval, c.Asset, c.AudienceSubscriber,
-		c.AuditDrain, c.AuditDrainDelivery, c.AuditLog, c.AuditOutbox,
-		c.AuditRetentionPolicy, c.BillingEntitlementEvent, c.BrandKit, c.BrandProfile,
-		c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
+		c.AccountDeletionRequest, c.AgentAuthorization, c.Apikey, c.Approval, c.Asset,
+		c.AudienceSubscriber, c.AuditDrain, c.AuditDrainDelivery, c.AuditLog,
+		c.AuditOutbox, c.AuditRetentionPolicy, c.BillingEntitlementEvent, c.BrandKit,
+		c.BrandProfile, c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
 		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
 		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft,
 		c.ContentDraftFinisher, c.ContentDraftRevision, c.ContentDraftSettings,
@@ -791,9 +829,11 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
 		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
 		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
-		c.SocialOAuthStart, c.SocialSet, c.SocialTenantBinding, c.SourceApp,
-		c.SourceChange, c.StorePublishingCredential, c.StoreReview,
-		c.StoreReviewComment, c.SupportAccessGrant, c.SurfaceCapture, c.User,
+		c.SocialOAuthStart, c.SocialSet, c.SocialSetWritingSample,
+		c.SocialTenantBinding, c.SourceApp, c.SourceChange,
+		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
+		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.UserPreference,
+		c.WebhookDelivery, c.WebhookDeliveryAttempt, c.WebhookSubscription,
 		c.WorkspaceCreditGrant, c.WorkspaceDeletion, c.WorkspaceEntitlement,
 		c.WorkspaceGitHubInstallation, c.WorkspaceSettings,
 	} {
@@ -804,6 +844,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AccountDeletionRequestMutation:
+		return c.AccountDeletionRequest.mutate(ctx, m)
 	case *AgentAuthorizationMutation:
 		return c.AgentAuthorization.mutate(ctx, m)
 	case *ApikeyMutation:
@@ -962,6 +1004,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SocialOAuthStart.mutate(ctx, m)
 	case *SocialSetMutation:
 		return c.SocialSet.mutate(ctx, m)
+	case *SocialSetWritingSampleMutation:
+		return c.SocialSetWritingSample.mutate(ctx, m)
 	case *SocialTenantBindingMutation:
 		return c.SocialTenantBinding.mutate(ctx, m)
 	case *SourceAppMutation:
@@ -980,6 +1024,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SurfaceCapture.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *UserPreferenceMutation:
+		return c.UserPreference.mutate(ctx, m)
+	case *WebhookDeliveryMutation:
+		return c.WebhookDelivery.mutate(ctx, m)
+	case *WebhookDeliveryAttemptMutation:
+		return c.WebhookDeliveryAttempt.mutate(ctx, m)
+	case *WebhookSubscriptionMutation:
+		return c.WebhookSubscription.mutate(ctx, m)
 	case *WorkspaceCreditGrantMutation:
 		return c.WorkspaceCreditGrant.mutate(ctx, m)
 	case *WorkspaceDeletionMutation:
@@ -992,6 +1044,139 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.WorkspaceSettings.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AccountDeletionRequestClient is a client for the AccountDeletionRequest schema.
+type AccountDeletionRequestClient struct {
+	config
+}
+
+// NewAccountDeletionRequestClient returns a client for the AccountDeletionRequest from the given config.
+func NewAccountDeletionRequestClient(c config) *AccountDeletionRequestClient {
+	return &AccountDeletionRequestClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `accountdeletionrequest.Hooks(f(g(h())))`.
+func (c *AccountDeletionRequestClient) Use(hooks ...Hook) {
+	c.hooks.AccountDeletionRequest = append(c.hooks.AccountDeletionRequest, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `accountdeletionrequest.Intercept(f(g(h())))`.
+func (c *AccountDeletionRequestClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AccountDeletionRequest = append(c.inters.AccountDeletionRequest, interceptors...)
+}
+
+// Create returns a builder for creating a AccountDeletionRequest entity.
+func (c *AccountDeletionRequestClient) Create() *AccountDeletionRequestCreate {
+	mutation := newAccountDeletionRequestMutation(c.config, OpCreate)
+	return &AccountDeletionRequestCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AccountDeletionRequest entities.
+func (c *AccountDeletionRequestClient) CreateBulk(builders ...*AccountDeletionRequestCreate) *AccountDeletionRequestCreateBulk {
+	return &AccountDeletionRequestCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AccountDeletionRequestClient) MapCreateBulk(slice any, setFunc func(*AccountDeletionRequestCreate, int)) *AccountDeletionRequestCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AccountDeletionRequestCreateBulk{err: fmt.Errorf("calling to AccountDeletionRequestClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AccountDeletionRequestCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AccountDeletionRequestCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AccountDeletionRequest.
+func (c *AccountDeletionRequestClient) Update() *AccountDeletionRequestUpdate {
+	mutation := newAccountDeletionRequestMutation(c.config, OpUpdate)
+	return &AccountDeletionRequestUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AccountDeletionRequestClient) UpdateOne(_m *AccountDeletionRequest) *AccountDeletionRequestUpdateOne {
+	mutation := newAccountDeletionRequestMutation(c.config, OpUpdateOne, withAccountDeletionRequest(_m))
+	return &AccountDeletionRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AccountDeletionRequestClient) UpdateOneID(id string) *AccountDeletionRequestUpdateOne {
+	mutation := newAccountDeletionRequestMutation(c.config, OpUpdateOne, withAccountDeletionRequestID(id))
+	return &AccountDeletionRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AccountDeletionRequest.
+func (c *AccountDeletionRequestClient) Delete() *AccountDeletionRequestDelete {
+	mutation := newAccountDeletionRequestMutation(c.config, OpDelete)
+	return &AccountDeletionRequestDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AccountDeletionRequestClient) DeleteOne(_m *AccountDeletionRequest) *AccountDeletionRequestDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AccountDeletionRequestClient) DeleteOneID(id string) *AccountDeletionRequestDeleteOne {
+	builder := c.Delete().Where(accountdeletionrequest.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AccountDeletionRequestDeleteOne{builder}
+}
+
+// Query returns a query builder for AccountDeletionRequest.
+func (c *AccountDeletionRequestClient) Query() *AccountDeletionRequestQuery {
+	return &AccountDeletionRequestQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAccountDeletionRequest},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AccountDeletionRequest entity by its id.
+func (c *AccountDeletionRequestClient) Get(ctx context.Context, id string) (*AccountDeletionRequest, error) {
+	return c.Query().Where(accountdeletionrequest.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AccountDeletionRequestClient) GetX(ctx context.Context, id string) *AccountDeletionRequest {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AccountDeletionRequestClient) Hooks() []Hook {
+	return c.hooks.AccountDeletionRequest
+}
+
+// Interceptors returns the client interceptors.
+func (c *AccountDeletionRequestClient) Interceptors() []Interceptor {
+	return c.inters.AccountDeletionRequest
+}
+
+func (c *AccountDeletionRequestClient) mutate(ctx context.Context, m *AccountDeletionRequestMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AccountDeletionRequestCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AccountDeletionRequestUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AccountDeletionRequestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AccountDeletionRequestDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AccountDeletionRequest mutation op: %q", m.Op())
 	}
 }
 
@@ -11630,6 +11815,139 @@ func (c *SocialSetClient) mutate(ctx context.Context, m *SocialSetMutation) (Val
 	}
 }
 
+// SocialSetWritingSampleClient is a client for the SocialSetWritingSample schema.
+type SocialSetWritingSampleClient struct {
+	config
+}
+
+// NewSocialSetWritingSampleClient returns a client for the SocialSetWritingSample from the given config.
+func NewSocialSetWritingSampleClient(c config) *SocialSetWritingSampleClient {
+	return &SocialSetWritingSampleClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `socialsetwritingsample.Hooks(f(g(h())))`.
+func (c *SocialSetWritingSampleClient) Use(hooks ...Hook) {
+	c.hooks.SocialSetWritingSample = append(c.hooks.SocialSetWritingSample, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `socialsetwritingsample.Intercept(f(g(h())))`.
+func (c *SocialSetWritingSampleClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SocialSetWritingSample = append(c.inters.SocialSetWritingSample, interceptors...)
+}
+
+// Create returns a builder for creating a SocialSetWritingSample entity.
+func (c *SocialSetWritingSampleClient) Create() *SocialSetWritingSampleCreate {
+	mutation := newSocialSetWritingSampleMutation(c.config, OpCreate)
+	return &SocialSetWritingSampleCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SocialSetWritingSample entities.
+func (c *SocialSetWritingSampleClient) CreateBulk(builders ...*SocialSetWritingSampleCreate) *SocialSetWritingSampleCreateBulk {
+	return &SocialSetWritingSampleCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SocialSetWritingSampleClient) MapCreateBulk(slice any, setFunc func(*SocialSetWritingSampleCreate, int)) *SocialSetWritingSampleCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SocialSetWritingSampleCreateBulk{err: fmt.Errorf("calling to SocialSetWritingSampleClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SocialSetWritingSampleCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SocialSetWritingSampleCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SocialSetWritingSample.
+func (c *SocialSetWritingSampleClient) Update() *SocialSetWritingSampleUpdate {
+	mutation := newSocialSetWritingSampleMutation(c.config, OpUpdate)
+	return &SocialSetWritingSampleUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SocialSetWritingSampleClient) UpdateOne(_m *SocialSetWritingSample) *SocialSetWritingSampleUpdateOne {
+	mutation := newSocialSetWritingSampleMutation(c.config, OpUpdateOne, withSocialSetWritingSample(_m))
+	return &SocialSetWritingSampleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SocialSetWritingSampleClient) UpdateOneID(id string) *SocialSetWritingSampleUpdateOne {
+	mutation := newSocialSetWritingSampleMutation(c.config, OpUpdateOne, withSocialSetWritingSampleID(id))
+	return &SocialSetWritingSampleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SocialSetWritingSample.
+func (c *SocialSetWritingSampleClient) Delete() *SocialSetWritingSampleDelete {
+	mutation := newSocialSetWritingSampleMutation(c.config, OpDelete)
+	return &SocialSetWritingSampleDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SocialSetWritingSampleClient) DeleteOne(_m *SocialSetWritingSample) *SocialSetWritingSampleDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SocialSetWritingSampleClient) DeleteOneID(id string) *SocialSetWritingSampleDeleteOne {
+	builder := c.Delete().Where(socialsetwritingsample.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SocialSetWritingSampleDeleteOne{builder}
+}
+
+// Query returns a query builder for SocialSetWritingSample.
+func (c *SocialSetWritingSampleClient) Query() *SocialSetWritingSampleQuery {
+	return &SocialSetWritingSampleQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSocialSetWritingSample},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SocialSetWritingSample entity by its id.
+func (c *SocialSetWritingSampleClient) Get(ctx context.Context, id string) (*SocialSetWritingSample, error) {
+	return c.Query().Where(socialsetwritingsample.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SocialSetWritingSampleClient) GetX(ctx context.Context, id string) *SocialSetWritingSample {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *SocialSetWritingSampleClient) Hooks() []Hook {
+	return c.hooks.SocialSetWritingSample
+}
+
+// Interceptors returns the client interceptors.
+func (c *SocialSetWritingSampleClient) Interceptors() []Interceptor {
+	return c.inters.SocialSetWritingSample
+}
+
+func (c *SocialSetWritingSampleClient) mutate(ctx context.Context, m *SocialSetWritingSampleMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SocialSetWritingSampleCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SocialSetWritingSampleUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SocialSetWritingSampleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SocialSetWritingSampleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SocialSetWritingSample mutation op: %q", m.Op())
+	}
+}
+
 // SocialTenantBindingClient is a client for the SocialTenantBinding schema.
 type SocialTenantBindingClient struct {
 	config
@@ -12827,6 +13145,538 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
+// UserPreferenceClient is a client for the UserPreference schema.
+type UserPreferenceClient struct {
+	config
+}
+
+// NewUserPreferenceClient returns a client for the UserPreference from the given config.
+func NewUserPreferenceClient(c config) *UserPreferenceClient {
+	return &UserPreferenceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `userpreference.Hooks(f(g(h())))`.
+func (c *UserPreferenceClient) Use(hooks ...Hook) {
+	c.hooks.UserPreference = append(c.hooks.UserPreference, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `userpreference.Intercept(f(g(h())))`.
+func (c *UserPreferenceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.UserPreference = append(c.inters.UserPreference, interceptors...)
+}
+
+// Create returns a builder for creating a UserPreference entity.
+func (c *UserPreferenceClient) Create() *UserPreferenceCreate {
+	mutation := newUserPreferenceMutation(c.config, OpCreate)
+	return &UserPreferenceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of UserPreference entities.
+func (c *UserPreferenceClient) CreateBulk(builders ...*UserPreferenceCreate) *UserPreferenceCreateBulk {
+	return &UserPreferenceCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UserPreferenceClient) MapCreateBulk(slice any, setFunc func(*UserPreferenceCreate, int)) *UserPreferenceCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UserPreferenceCreateBulk{err: fmt.Errorf("calling to UserPreferenceClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UserPreferenceCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &UserPreferenceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for UserPreference.
+func (c *UserPreferenceClient) Update() *UserPreferenceUpdate {
+	mutation := newUserPreferenceMutation(c.config, OpUpdate)
+	return &UserPreferenceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *UserPreferenceClient) UpdateOne(_m *UserPreference) *UserPreferenceUpdateOne {
+	mutation := newUserPreferenceMutation(c.config, OpUpdateOne, withUserPreference(_m))
+	return &UserPreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *UserPreferenceClient) UpdateOneID(id string) *UserPreferenceUpdateOne {
+	mutation := newUserPreferenceMutation(c.config, OpUpdateOne, withUserPreferenceID(id))
+	return &UserPreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for UserPreference.
+func (c *UserPreferenceClient) Delete() *UserPreferenceDelete {
+	mutation := newUserPreferenceMutation(c.config, OpDelete)
+	return &UserPreferenceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *UserPreferenceClient) DeleteOne(_m *UserPreference) *UserPreferenceDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *UserPreferenceClient) DeleteOneID(id string) *UserPreferenceDeleteOne {
+	builder := c.Delete().Where(userpreference.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &UserPreferenceDeleteOne{builder}
+}
+
+// Query returns a query builder for UserPreference.
+func (c *UserPreferenceClient) Query() *UserPreferenceQuery {
+	return &UserPreferenceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeUserPreference},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a UserPreference entity by its id.
+func (c *UserPreferenceClient) Get(ctx context.Context, id string) (*UserPreference, error) {
+	return c.Query().Where(userpreference.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *UserPreferenceClient) GetX(ctx context.Context, id string) *UserPreference {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *UserPreferenceClient) Hooks() []Hook {
+	return c.hooks.UserPreference
+}
+
+// Interceptors returns the client interceptors.
+func (c *UserPreferenceClient) Interceptors() []Interceptor {
+	return c.inters.UserPreference
+}
+
+func (c *UserPreferenceClient) mutate(ctx context.Context, m *UserPreferenceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&UserPreferenceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&UserPreferenceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&UserPreferenceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&UserPreferenceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown UserPreference mutation op: %q", m.Op())
+	}
+}
+
+// WebhookDeliveryClient is a client for the WebhookDelivery schema.
+type WebhookDeliveryClient struct {
+	config
+}
+
+// NewWebhookDeliveryClient returns a client for the WebhookDelivery from the given config.
+func NewWebhookDeliveryClient(c config) *WebhookDeliveryClient {
+	return &WebhookDeliveryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `webhookdelivery.Hooks(f(g(h())))`.
+func (c *WebhookDeliveryClient) Use(hooks ...Hook) {
+	c.hooks.WebhookDelivery = append(c.hooks.WebhookDelivery, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `webhookdelivery.Intercept(f(g(h())))`.
+func (c *WebhookDeliveryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WebhookDelivery = append(c.inters.WebhookDelivery, interceptors...)
+}
+
+// Create returns a builder for creating a WebhookDelivery entity.
+func (c *WebhookDeliveryClient) Create() *WebhookDeliveryCreate {
+	mutation := newWebhookDeliveryMutation(c.config, OpCreate)
+	return &WebhookDeliveryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WebhookDelivery entities.
+func (c *WebhookDeliveryClient) CreateBulk(builders ...*WebhookDeliveryCreate) *WebhookDeliveryCreateBulk {
+	return &WebhookDeliveryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WebhookDeliveryClient) MapCreateBulk(slice any, setFunc func(*WebhookDeliveryCreate, int)) *WebhookDeliveryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WebhookDeliveryCreateBulk{err: fmt.Errorf("calling to WebhookDeliveryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WebhookDeliveryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WebhookDeliveryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WebhookDelivery.
+func (c *WebhookDeliveryClient) Update() *WebhookDeliveryUpdate {
+	mutation := newWebhookDeliveryMutation(c.config, OpUpdate)
+	return &WebhookDeliveryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WebhookDeliveryClient) UpdateOne(_m *WebhookDelivery) *WebhookDeliveryUpdateOne {
+	mutation := newWebhookDeliveryMutation(c.config, OpUpdateOne, withWebhookDelivery(_m))
+	return &WebhookDeliveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WebhookDeliveryClient) UpdateOneID(id string) *WebhookDeliveryUpdateOne {
+	mutation := newWebhookDeliveryMutation(c.config, OpUpdateOne, withWebhookDeliveryID(id))
+	return &WebhookDeliveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WebhookDelivery.
+func (c *WebhookDeliveryClient) Delete() *WebhookDeliveryDelete {
+	mutation := newWebhookDeliveryMutation(c.config, OpDelete)
+	return &WebhookDeliveryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WebhookDeliveryClient) DeleteOne(_m *WebhookDelivery) *WebhookDeliveryDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WebhookDeliveryClient) DeleteOneID(id string) *WebhookDeliveryDeleteOne {
+	builder := c.Delete().Where(webhookdelivery.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WebhookDeliveryDeleteOne{builder}
+}
+
+// Query returns a query builder for WebhookDelivery.
+func (c *WebhookDeliveryClient) Query() *WebhookDeliveryQuery {
+	return &WebhookDeliveryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWebhookDelivery},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WebhookDelivery entity by its id.
+func (c *WebhookDeliveryClient) Get(ctx context.Context, id string) (*WebhookDelivery, error) {
+	return c.Query().Where(webhookdelivery.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WebhookDeliveryClient) GetX(ctx context.Context, id string) *WebhookDelivery {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *WebhookDeliveryClient) Hooks() []Hook {
+	return c.hooks.WebhookDelivery
+}
+
+// Interceptors returns the client interceptors.
+func (c *WebhookDeliveryClient) Interceptors() []Interceptor {
+	return c.inters.WebhookDelivery
+}
+
+func (c *WebhookDeliveryClient) mutate(ctx context.Context, m *WebhookDeliveryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WebhookDeliveryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WebhookDeliveryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WebhookDeliveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WebhookDeliveryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WebhookDelivery mutation op: %q", m.Op())
+	}
+}
+
+// WebhookDeliveryAttemptClient is a client for the WebhookDeliveryAttempt schema.
+type WebhookDeliveryAttemptClient struct {
+	config
+}
+
+// NewWebhookDeliveryAttemptClient returns a client for the WebhookDeliveryAttempt from the given config.
+func NewWebhookDeliveryAttemptClient(c config) *WebhookDeliveryAttemptClient {
+	return &WebhookDeliveryAttemptClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `webhookdeliveryattempt.Hooks(f(g(h())))`.
+func (c *WebhookDeliveryAttemptClient) Use(hooks ...Hook) {
+	c.hooks.WebhookDeliveryAttempt = append(c.hooks.WebhookDeliveryAttempt, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `webhookdeliveryattempt.Intercept(f(g(h())))`.
+func (c *WebhookDeliveryAttemptClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WebhookDeliveryAttempt = append(c.inters.WebhookDeliveryAttempt, interceptors...)
+}
+
+// Create returns a builder for creating a WebhookDeliveryAttempt entity.
+func (c *WebhookDeliveryAttemptClient) Create() *WebhookDeliveryAttemptCreate {
+	mutation := newWebhookDeliveryAttemptMutation(c.config, OpCreate)
+	return &WebhookDeliveryAttemptCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WebhookDeliveryAttempt entities.
+func (c *WebhookDeliveryAttemptClient) CreateBulk(builders ...*WebhookDeliveryAttemptCreate) *WebhookDeliveryAttemptCreateBulk {
+	return &WebhookDeliveryAttemptCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WebhookDeliveryAttemptClient) MapCreateBulk(slice any, setFunc func(*WebhookDeliveryAttemptCreate, int)) *WebhookDeliveryAttemptCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WebhookDeliveryAttemptCreateBulk{err: fmt.Errorf("calling to WebhookDeliveryAttemptClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WebhookDeliveryAttemptCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WebhookDeliveryAttemptCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WebhookDeliveryAttempt.
+func (c *WebhookDeliveryAttemptClient) Update() *WebhookDeliveryAttemptUpdate {
+	mutation := newWebhookDeliveryAttemptMutation(c.config, OpUpdate)
+	return &WebhookDeliveryAttemptUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WebhookDeliveryAttemptClient) UpdateOne(_m *WebhookDeliveryAttempt) *WebhookDeliveryAttemptUpdateOne {
+	mutation := newWebhookDeliveryAttemptMutation(c.config, OpUpdateOne, withWebhookDeliveryAttempt(_m))
+	return &WebhookDeliveryAttemptUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WebhookDeliveryAttemptClient) UpdateOneID(id string) *WebhookDeliveryAttemptUpdateOne {
+	mutation := newWebhookDeliveryAttemptMutation(c.config, OpUpdateOne, withWebhookDeliveryAttemptID(id))
+	return &WebhookDeliveryAttemptUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WebhookDeliveryAttempt.
+func (c *WebhookDeliveryAttemptClient) Delete() *WebhookDeliveryAttemptDelete {
+	mutation := newWebhookDeliveryAttemptMutation(c.config, OpDelete)
+	return &WebhookDeliveryAttemptDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WebhookDeliveryAttemptClient) DeleteOne(_m *WebhookDeliveryAttempt) *WebhookDeliveryAttemptDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WebhookDeliveryAttemptClient) DeleteOneID(id string) *WebhookDeliveryAttemptDeleteOne {
+	builder := c.Delete().Where(webhookdeliveryattempt.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WebhookDeliveryAttemptDeleteOne{builder}
+}
+
+// Query returns a query builder for WebhookDeliveryAttempt.
+func (c *WebhookDeliveryAttemptClient) Query() *WebhookDeliveryAttemptQuery {
+	return &WebhookDeliveryAttemptQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWebhookDeliveryAttempt},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WebhookDeliveryAttempt entity by its id.
+func (c *WebhookDeliveryAttemptClient) Get(ctx context.Context, id string) (*WebhookDeliveryAttempt, error) {
+	return c.Query().Where(webhookdeliveryattempt.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WebhookDeliveryAttemptClient) GetX(ctx context.Context, id string) *WebhookDeliveryAttempt {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *WebhookDeliveryAttemptClient) Hooks() []Hook {
+	return c.hooks.WebhookDeliveryAttempt
+}
+
+// Interceptors returns the client interceptors.
+func (c *WebhookDeliveryAttemptClient) Interceptors() []Interceptor {
+	return c.inters.WebhookDeliveryAttempt
+}
+
+func (c *WebhookDeliveryAttemptClient) mutate(ctx context.Context, m *WebhookDeliveryAttemptMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WebhookDeliveryAttemptCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WebhookDeliveryAttemptUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WebhookDeliveryAttemptUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WebhookDeliveryAttemptDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WebhookDeliveryAttempt mutation op: %q", m.Op())
+	}
+}
+
+// WebhookSubscriptionClient is a client for the WebhookSubscription schema.
+type WebhookSubscriptionClient struct {
+	config
+}
+
+// NewWebhookSubscriptionClient returns a client for the WebhookSubscription from the given config.
+func NewWebhookSubscriptionClient(c config) *WebhookSubscriptionClient {
+	return &WebhookSubscriptionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `webhooksubscription.Hooks(f(g(h())))`.
+func (c *WebhookSubscriptionClient) Use(hooks ...Hook) {
+	c.hooks.WebhookSubscription = append(c.hooks.WebhookSubscription, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `webhooksubscription.Intercept(f(g(h())))`.
+func (c *WebhookSubscriptionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WebhookSubscription = append(c.inters.WebhookSubscription, interceptors...)
+}
+
+// Create returns a builder for creating a WebhookSubscription entity.
+func (c *WebhookSubscriptionClient) Create() *WebhookSubscriptionCreate {
+	mutation := newWebhookSubscriptionMutation(c.config, OpCreate)
+	return &WebhookSubscriptionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WebhookSubscription entities.
+func (c *WebhookSubscriptionClient) CreateBulk(builders ...*WebhookSubscriptionCreate) *WebhookSubscriptionCreateBulk {
+	return &WebhookSubscriptionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WebhookSubscriptionClient) MapCreateBulk(slice any, setFunc func(*WebhookSubscriptionCreate, int)) *WebhookSubscriptionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WebhookSubscriptionCreateBulk{err: fmt.Errorf("calling to WebhookSubscriptionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WebhookSubscriptionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WebhookSubscriptionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WebhookSubscription.
+func (c *WebhookSubscriptionClient) Update() *WebhookSubscriptionUpdate {
+	mutation := newWebhookSubscriptionMutation(c.config, OpUpdate)
+	return &WebhookSubscriptionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WebhookSubscriptionClient) UpdateOne(_m *WebhookSubscription) *WebhookSubscriptionUpdateOne {
+	mutation := newWebhookSubscriptionMutation(c.config, OpUpdateOne, withWebhookSubscription(_m))
+	return &WebhookSubscriptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WebhookSubscriptionClient) UpdateOneID(id string) *WebhookSubscriptionUpdateOne {
+	mutation := newWebhookSubscriptionMutation(c.config, OpUpdateOne, withWebhookSubscriptionID(id))
+	return &WebhookSubscriptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WebhookSubscription.
+func (c *WebhookSubscriptionClient) Delete() *WebhookSubscriptionDelete {
+	mutation := newWebhookSubscriptionMutation(c.config, OpDelete)
+	return &WebhookSubscriptionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WebhookSubscriptionClient) DeleteOne(_m *WebhookSubscription) *WebhookSubscriptionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WebhookSubscriptionClient) DeleteOneID(id string) *WebhookSubscriptionDeleteOne {
+	builder := c.Delete().Where(webhooksubscription.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WebhookSubscriptionDeleteOne{builder}
+}
+
+// Query returns a query builder for WebhookSubscription.
+func (c *WebhookSubscriptionClient) Query() *WebhookSubscriptionQuery {
+	return &WebhookSubscriptionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWebhookSubscription},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WebhookSubscription entity by its id.
+func (c *WebhookSubscriptionClient) Get(ctx context.Context, id string) (*WebhookSubscription, error) {
+	return c.Query().Where(webhooksubscription.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WebhookSubscriptionClient) GetX(ctx context.Context, id string) *WebhookSubscription {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *WebhookSubscriptionClient) Hooks() []Hook {
+	return c.hooks.WebhookSubscription
+}
+
+// Interceptors returns the client interceptors.
+func (c *WebhookSubscriptionClient) Interceptors() []Interceptor {
+	return c.inters.WebhookSubscription
+}
+
+func (c *WebhookSubscriptionClient) mutate(ctx context.Context, m *WebhookSubscriptionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WebhookSubscriptionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WebhookSubscriptionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WebhookSubscriptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WebhookSubscriptionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WebhookSubscription mutation op: %q", m.Op())
+	}
+}
+
 // WorkspaceCreditGrantClient is a client for the WorkspaceCreditGrant schema.
 type WorkspaceCreditGrantClient struct {
 	config
@@ -13495,12 +14345,12 @@ func (c *WorkspaceSettingsClient) mutate(ctx context.Context, m *WorkspaceSettin
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AgentAuthorization, Apikey, Approval, Asset, AudienceSubscriber, AuditDrain,
-		AuditDrainDelivery, AuditLog, AuditOutbox, AuditRetentionPolicy,
-		BillingEntitlementEvent, BrandKit, BrandProfile, Campaign, CampaignAsset,
-		CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
-		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
-		ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
+		AccountDeletionRequest, AgentAuthorization, Apikey, Approval, Asset,
+		AudienceSubscriber, AuditDrain, AuditDrainDelivery, AuditLog, AuditOutbox,
+		AuditRetentionPolicy, BillingEntitlementEvent, BrandKit, BrandProfile,
+		Campaign, CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision,
+		ChannelConnection, CommunicationAttempt, CommunicationRecipient, ContentAngle,
+		ContentDraft, ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
 		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
 		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
 		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
@@ -13515,19 +14365,20 @@ type (
 		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
 		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
 		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
-		ShareLink, SocialOAuthStart, SocialSet, SocialTenantBinding, SourceApp,
-		SourceChange, StorePublishingCredential, StoreReview, StoreReviewComment,
-		SupportAccessGrant, SurfaceCapture, User, WorkspaceCreditGrant,
-		WorkspaceDeletion, WorkspaceEntitlement, WorkspaceGitHubInstallation,
-		WorkspaceSettings []ent.Hook
+		ShareLink, SocialOAuthStart, SocialSet, SocialSetWritingSample,
+		SocialTenantBinding, SourceApp, SourceChange, StorePublishingCredential,
+		StoreReview, StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
+		UserPreference, WebhookDelivery, WebhookDeliveryAttempt, WebhookSubscription,
+		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
+		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
 	}
 	inters struct {
-		AgentAuthorization, Apikey, Approval, Asset, AudienceSubscriber, AuditDrain,
-		AuditDrainDelivery, AuditLog, AuditOutbox, AuditRetentionPolicy,
-		BillingEntitlementEvent, BrandKit, BrandProfile, Campaign, CampaignAsset,
-		CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
-		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
-		ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
+		AccountDeletionRequest, AgentAuthorization, Apikey, Approval, Asset,
+		AudienceSubscriber, AuditDrain, AuditDrainDelivery, AuditLog, AuditOutbox,
+		AuditRetentionPolicy, BillingEntitlementEvent, BrandKit, BrandProfile,
+		Campaign, CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision,
+		ChannelConnection, CommunicationAttempt, CommunicationRecipient, ContentAngle,
+		ContentDraft, ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
 		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
 		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
 		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
@@ -13542,10 +14393,11 @@ type (
 		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
 		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
 		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
-		ShareLink, SocialOAuthStart, SocialSet, SocialTenantBinding, SourceApp,
-		SourceChange, StorePublishingCredential, StoreReview, StoreReviewComment,
-		SupportAccessGrant, SurfaceCapture, User, WorkspaceCreditGrant,
-		WorkspaceDeletion, WorkspaceEntitlement, WorkspaceGitHubInstallation,
-		WorkspaceSettings []ent.Interceptor
+		ShareLink, SocialOAuthStart, SocialSet, SocialSetWritingSample,
+		SocialTenantBinding, SourceApp, SourceChange, StorePublishingCredential,
+		StoreReview, StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
+		UserPreference, WebhookDelivery, WebhookDeliveryAttempt, WebhookSubscription,
+		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
+		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Interceptor
 	}
 )

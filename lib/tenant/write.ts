@@ -5,19 +5,13 @@ import type {
   BackendDraftCopy,
   BackendDraftFinisher,
   BackendDraftTag,
-  BackendSocialSet,
-  BackendSocialSetInput,
+  SocialSet,
 } from 'screenshot-studio-backend-sdk'
 import type { TenantContext } from '@/lib/auth/access'
 import { backendSDK, orNull, withDates } from '@/lib/backend/sdk'
 import { readDraft } from '@/lib/tenant/content-drafts'
 import { tagColorSchema } from '@/lib/api/contracts/draft-tags'
-import {
-  socialSetColorSchema,
-  socialSetPreferencesSchema,
-  socialSetVisibilitySchema,
-} from '@/lib/api/contracts/social-sets'
-import { draftChannelSchema } from '@/lib/write/document'
+import { channelForPlatform } from '@/lib/content-drafts/serialize'
 
 /**
  * The Write workspace for a workspace (RFC 042): social sets, their tags and
@@ -26,19 +20,17 @@ import { draftChannelSchema } from '@/lib/write/document'
  * call; a set or draft the caller may not see reads as missing (null).
  */
 
-/** A social set with Dates, its closed values parsed at this boundary. */
-function readSet(set: BackendSocialSet) {
+/**
+ * A social set (RFC 043), each account with the composer channel it posts
+ * as; an account on a platform drafts cannot take is left out.
+ */
+function readSet(set: SocialSet) {
   return {
-    ...withDates(set),
-    color: socialSetColorSchema.parse(set.color),
-    connections: set.connections.map((connection) => ({
-      ...connection,
-      channel: draftChannelSchema.parse(connection.channel),
-    })),
-    defaultChannels: set.defaultChannels.map((channel) => draftChannelSchema.parse(channel)),
-    // Go checks preferences with the same rules on write.
-    preferences: socialSetPreferencesSchema.parse(set.preferences ?? {}),
-    visibility: socialSetVisibilitySchema.parse(set.visibility),
+    ...set,
+    accounts: set.accounts.flatMap((account) => {
+      const channel = channelForPlatform(account.platform)
+      return channel ? [{ ...account, channel }] : []
+    }),
   }
 }
 
@@ -53,38 +45,9 @@ export async function lookupSocialSetMentions(
   return result ? result.items : null
 }
 
-/** The social sets the caller may see, the default first. */
+/** The social sets the caller may see, the workspace's default (oldest shared) first. */
 export async function listSocialSets(context: TenantContext) {
   return (await backendSDK(context).listSocialSets()).items.map(readSet)
-}
-
-/** One social set, or null. */
-export async function getSocialSet(context: TenantContext, id: string) {
-  const set = await orNull(backendSDK(context).getSocialSet(id))
-  return set ? readSet(set) : null
-}
-
-/** Create a social set. */
-export async function createSocialSet(
-  context: TenantContext,
-  input: BackendSocialSetInput & { name: string }
-) {
-  return readSet(await backendSDK(context).createSocialSet(input))
-}
-
-/** Change a social set; null when it is not visible. */
-export async function updateSocialSet(
-  context: TenantContext,
-  id: string,
-  input: BackendSocialSetInput
-) {
-  const set = await orNull(backendSDK(context).updateSocialSet(id, input))
-  return set ? readSet(set) : null
-}
-
-/** Delete an empty social set; false when it is not visible. */
-export async function deleteSocialSet(context: TenantContext, id: string) {
-  return (await orNull(backendSDK(context).deleteSocialSet(id))) !== null
 }
 
 /** A tag with Dates and its colour parsed. */

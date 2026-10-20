@@ -58,8 +58,8 @@ function EditorNavigationContent({
         className={cn(
           'group flex h-8 w-full cursor-pointer items-center gap-2.5 rounded-lg border px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           active
-            ? cn(surface.panel, surface.border, 'text-white shadow-xs')
-            : 'border-transparent text-[#858585] hover:text-neutral-200',
+            ? cn(surface.panel, surface.border, 'text-foreground shadow-xs')
+            : 'border-transparent text-muted-foreground hover:text-foreground',
           collapsed && 'size-8 justify-center px-0'
         )}
       >
@@ -91,8 +91,8 @@ function EditorNavigationContent({
           aria-label="Editor sections"
           className={
             collapsed
-              ? 'mt-1 grid gap-0.5 border-y border-white/[0.06] py-1'
-              : 'my-1.5 ml-[17px] flex flex-col gap-0.5 border-l border-white/[0.08] pl-3'
+              ? 'mt-1 grid gap-0.5 border-y border-foreground/[0.06] py-1'
+              : 'my-1.5 ml-[17px] flex flex-col gap-0.5 border-l border-foreground/[0.08] pl-3'
           }
         >
           {sections.map(({ id, label, icon: Icon }) => {
@@ -108,12 +108,12 @@ function EditorNavigationContent({
                     ? cn(
                         'grid size-8 place-items-center rounded-lg border',
                         active === id
-                          ? cn(surface.panel, surface.border, 'text-white shadow-xs')
-                          : 'border-transparent text-neutral-500 hover:text-neutral-200'
+                          ? cn(surface.panel, surface.border, 'text-foreground shadow-xs')
+                          : 'border-transparent text-muted-foreground hover:text-foreground'
                       )
                     : cn(
                         'block py-1',
-                        active === id ? 'text-white' : 'text-[#858585] hover:text-neutral-200'
+                        active === id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                       )
                 )}
               >

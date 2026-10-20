@@ -137,6 +137,26 @@ func (_u *ChannelConnectionUpdate) ClearAvatarURL() *ChannelConnectionUpdate {
 	return _u
 }
 
+// SetSocialSetID sets the "social_set_id" field.
+func (_u *ChannelConnectionUpdate) SetSocialSetID(v string) *ChannelConnectionUpdate {
+	_u.mutation.SetSocialSetID(v)
+	return _u
+}
+
+// SetNillableSocialSetID sets the "social_set_id" field if the given value is not nil.
+func (_u *ChannelConnectionUpdate) SetNillableSocialSetID(v *string) *ChannelConnectionUpdate {
+	if v != nil {
+		_u.SetSocialSetID(*v)
+	}
+	return _u
+}
+
+// ClearSocialSetID clears the value of the "social_set_id" field.
+func (_u *ChannelConnectionUpdate) ClearSocialSetID() *ChannelConnectionUpdate {
+	_u.mutation.ClearSocialSetID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChannelConnectionUpdate) SetUpdatedAt(v time.Time) *ChannelConnectionUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -276,6 +296,12 @@ func (_u *ChannelConnectionUpdate) sqlSave(ctx context.Context) (_node int, err 
 	}
 	if _u.mutation.AvatarURLCleared() {
 		_spec.ClearField(channelconnection.FieldAvatarURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.SocialSetID(); ok {
+		_spec.SetField(channelconnection.FieldSocialSetID, field.TypeString, value)
+	}
+	if _u.mutation.SocialSetIDCleared() {
+		_spec.ClearField(channelconnection.FieldSocialSetID, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(channelconnection.FieldUpdatedAt, field.TypeTime, value)
@@ -453,6 +479,26 @@ func (_u *ChannelConnectionUpdateOne) ClearAvatarURL() *ChannelConnectionUpdateO
 	return _u
 }
 
+// SetSocialSetID sets the "social_set_id" field.
+func (_u *ChannelConnectionUpdateOne) SetSocialSetID(v string) *ChannelConnectionUpdateOne {
+	_u.mutation.SetSocialSetID(v)
+	return _u
+}
+
+// SetNillableSocialSetID sets the "social_set_id" field if the given value is not nil.
+func (_u *ChannelConnectionUpdateOne) SetNillableSocialSetID(v *string) *ChannelConnectionUpdateOne {
+	if v != nil {
+		_u.SetSocialSetID(*v)
+	}
+	return _u
+}
+
+// ClearSocialSetID clears the value of the "social_set_id" field.
+func (_u *ChannelConnectionUpdateOne) ClearSocialSetID() *ChannelConnectionUpdateOne {
+	_u.mutation.ClearSocialSetID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChannelConnectionUpdateOne) SetUpdatedAt(v time.Time) *ChannelConnectionUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -622,6 +668,12 @@ func (_u *ChannelConnectionUpdateOne) sqlSave(ctx context.Context) (_node *Chann
 	}
 	if _u.mutation.AvatarURLCleared() {
 		_spec.ClearField(channelconnection.FieldAvatarURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.SocialSetID(); ok {
+		_spec.SetField(channelconnection.FieldSocialSetID, field.TypeString, value)
+	}
+	if _u.mutation.SocialSetIDCleared() {
+		_spec.ClearField(channelconnection.FieldSocialSetID, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(channelconnection.FieldUpdatedAt, field.TypeTime, value)

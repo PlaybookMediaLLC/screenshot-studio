@@ -109,9 +109,19 @@ func SocialSetID(v string) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldSocialSetID, v))
 }
 
-// PrimaryChannel applies equality check predicate on the "primary_channel" field. It's identical to PrimaryChannelEQ.
-func PrimaryChannel(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldEQ(FieldPrimaryChannel, v))
+// PrimaryPlatform applies equality check predicate on the "primary_platform" field. It's identical to PrimaryPlatformEQ.
+func PrimaryPlatform(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldPrimaryPlatform, v))
+}
+
+// NaturalPostingTime applies equality check predicate on the "natural_posting_time" field. It's identical to NaturalPostingTimeEQ.
+func NaturalPostingTime(v bool) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldNaturalPostingTime, v))
+}
+
+// PlannedFor applies equality check predicate on the "planned_for" field. It's identical to PlannedForEQ.
+func PlannedFor(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldPlannedFor, v))
 }
 
 // Scratchpad applies equality check predicate on the "scratchpad" field. It's identical to ScratchpadEQ.
@@ -122,11 +132,6 @@ func Scratchpad(v string) predicate.ContentDraft {
 // PinnedAt applies equality check predicate on the "pinned_at" field. It's identical to PinnedAtEQ.
 func PinnedAt(v time.Time) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldPinnedAt, v))
-}
-
-// PlannedFor applies equality check predicate on the "planned_for" field. It's identical to PlannedForEQ.
-func PlannedFor(v time.Time) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldEQ(FieldPlannedFor, v))
 }
 
 // PlanTimeZone applies equality check predicate on the "plan_time_zone" field. It's identical to PlanTimeZoneEQ.
@@ -789,6 +794,141 @@ func SocialSetIDContainsFold(v string) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldContainsFold(FieldSocialSetID, v))
 }
 
+// PrimaryPlatformEQ applies the EQ predicate on the "primary_platform" field.
+func PrimaryPlatformEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformNEQ applies the NEQ predicate on the "primary_platform" field.
+func PrimaryPlatformNEQ(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformIn applies the In predicate on the "primary_platform" field.
+func PrimaryPlatformIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldPrimaryPlatform, vs...))
+}
+
+// PrimaryPlatformNotIn applies the NotIn predicate on the "primary_platform" field.
+func PrimaryPlatformNotIn(vs ...string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldPrimaryPlatform, vs...))
+}
+
+// PrimaryPlatformGT applies the GT predicate on the "primary_platform" field.
+func PrimaryPlatformGT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformGTE applies the GTE predicate on the "primary_platform" field.
+func PrimaryPlatformGTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformLT applies the LT predicate on the "primary_platform" field.
+func PrimaryPlatformLT(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformLTE applies the LTE predicate on the "primary_platform" field.
+func PrimaryPlatformLTE(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformContains applies the Contains predicate on the "primary_platform" field.
+func PrimaryPlatformContains(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContains(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformHasPrefix applies the HasPrefix predicate on the "primary_platform" field.
+func PrimaryPlatformHasPrefix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasPrefix(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformHasSuffix applies the HasSuffix predicate on the "primary_platform" field.
+func PrimaryPlatformHasSuffix(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldHasSuffix(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformIsNil applies the IsNil predicate on the "primary_platform" field.
+func PrimaryPlatformIsNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIsNull(FieldPrimaryPlatform))
+}
+
+// PrimaryPlatformNotNil applies the NotNil predicate on the "primary_platform" field.
+func PrimaryPlatformNotNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotNull(FieldPrimaryPlatform))
+}
+
+// PrimaryPlatformEqualFold applies the EqualFold predicate on the "primary_platform" field.
+func PrimaryPlatformEqualFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEqualFold(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformContainsFold applies the ContainsFold predicate on the "primary_platform" field.
+func PrimaryPlatformContainsFold(v string) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldContainsFold(FieldPrimaryPlatform, v))
+}
+
+// NaturalPostingTimeEQ applies the EQ predicate on the "natural_posting_time" field.
+func NaturalPostingTimeEQ(v bool) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldNaturalPostingTime, v))
+}
+
+// NaturalPostingTimeNEQ applies the NEQ predicate on the "natural_posting_time" field.
+func NaturalPostingTimeNEQ(v bool) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldNaturalPostingTime, v))
+}
+
+// PlannedForEQ applies the EQ predicate on the "planned_for" field.
+func PlannedForEQ(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldPlannedFor, v))
+}
+
+// PlannedForNEQ applies the NEQ predicate on the "planned_for" field.
+func PlannedForNEQ(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldPlannedFor, v))
+}
+
+// PlannedForIn applies the In predicate on the "planned_for" field.
+func PlannedForIn(vs ...time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldPlannedFor, vs...))
+}
+
+// PlannedForNotIn applies the NotIn predicate on the "planned_for" field.
+func PlannedForNotIn(vs ...time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldPlannedFor, vs...))
+}
+
+// PlannedForGT applies the GT predicate on the "planned_for" field.
+func PlannedForGT(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldPlannedFor, v))
+}
+
+// PlannedForGTE applies the GTE predicate on the "planned_for" field.
+func PlannedForGTE(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldPlannedFor, v))
+}
+
+// PlannedForLT applies the LT predicate on the "planned_for" field.
+func PlannedForLT(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldPlannedFor, v))
+}
+
+// PlannedForLTE applies the LTE predicate on the "planned_for" field.
+func PlannedForLTE(v time.Time) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldPlannedFor, v))
+}
+
+// PlannedForIsNil applies the IsNil predicate on the "planned_for" field.
+func PlannedForIsNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIsNull(FieldPlannedFor))
+}
+
+// PlannedForNotNil applies the NotNil predicate on the "planned_for" field.
+func PlannedForNotNil() predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotNull(FieldPlannedFor))
+}
+
 // KindEQ applies the EQ predicate on the "kind" field.
 func KindEQ(v Kind) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldKind, v))
@@ -817,71 +957,6 @@ func TargetIsNil() predicate.ContentDraft {
 // TargetNotNil applies the NotNil predicate on the "target" field.
 func TargetNotNil() predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldNotNull(FieldTarget))
-}
-
-// PrimaryChannelEQ applies the EQ predicate on the "primary_channel" field.
-func PrimaryChannelEQ(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldEQ(FieldPrimaryChannel, v))
-}
-
-// PrimaryChannelNEQ applies the NEQ predicate on the "primary_channel" field.
-func PrimaryChannelNEQ(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldNEQ(FieldPrimaryChannel, v))
-}
-
-// PrimaryChannelIn applies the In predicate on the "primary_channel" field.
-func PrimaryChannelIn(vs ...string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldIn(FieldPrimaryChannel, vs...))
-}
-
-// PrimaryChannelNotIn applies the NotIn predicate on the "primary_channel" field.
-func PrimaryChannelNotIn(vs ...string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldNotIn(FieldPrimaryChannel, vs...))
-}
-
-// PrimaryChannelGT applies the GT predicate on the "primary_channel" field.
-func PrimaryChannelGT(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldGT(FieldPrimaryChannel, v))
-}
-
-// PrimaryChannelGTE applies the GTE predicate on the "primary_channel" field.
-func PrimaryChannelGTE(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldGTE(FieldPrimaryChannel, v))
-}
-
-// PrimaryChannelLT applies the LT predicate on the "primary_channel" field.
-func PrimaryChannelLT(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldLT(FieldPrimaryChannel, v))
-}
-
-// PrimaryChannelLTE applies the LTE predicate on the "primary_channel" field.
-func PrimaryChannelLTE(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldLTE(FieldPrimaryChannel, v))
-}
-
-// PrimaryChannelContains applies the Contains predicate on the "primary_channel" field.
-func PrimaryChannelContains(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldContains(FieldPrimaryChannel, v))
-}
-
-// PrimaryChannelHasPrefix applies the HasPrefix predicate on the "primary_channel" field.
-func PrimaryChannelHasPrefix(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldHasPrefix(FieldPrimaryChannel, v))
-}
-
-// PrimaryChannelHasSuffix applies the HasSuffix predicate on the "primary_channel" field.
-func PrimaryChannelHasSuffix(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldHasSuffix(FieldPrimaryChannel, v))
-}
-
-// PrimaryChannelEqualFold applies the EqualFold predicate on the "primary_channel" field.
-func PrimaryChannelEqualFold(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldEqualFold(FieldPrimaryChannel, v))
-}
-
-// PrimaryChannelContainsFold applies the ContainsFold predicate on the "primary_channel" field.
-func PrimaryChannelContainsFold(v string) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldContainsFold(FieldPrimaryChannel, v))
 }
 
 // ArticleIsNil applies the IsNil predicate on the "article" field.
@@ -1007,56 +1082,6 @@ func PinnedAtIsNil() predicate.ContentDraft {
 // PinnedAtNotNil applies the NotNil predicate on the "pinned_at" field.
 func PinnedAtNotNil() predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldNotNull(FieldPinnedAt))
-}
-
-// PlannedForEQ applies the EQ predicate on the "planned_for" field.
-func PlannedForEQ(v time.Time) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldEQ(FieldPlannedFor, v))
-}
-
-// PlannedForNEQ applies the NEQ predicate on the "planned_for" field.
-func PlannedForNEQ(v time.Time) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldNEQ(FieldPlannedFor, v))
-}
-
-// PlannedForIn applies the In predicate on the "planned_for" field.
-func PlannedForIn(vs ...time.Time) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldIn(FieldPlannedFor, vs...))
-}
-
-// PlannedForNotIn applies the NotIn predicate on the "planned_for" field.
-func PlannedForNotIn(vs ...time.Time) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldNotIn(FieldPlannedFor, vs...))
-}
-
-// PlannedForGT applies the GT predicate on the "planned_for" field.
-func PlannedForGT(v time.Time) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldGT(FieldPlannedFor, v))
-}
-
-// PlannedForGTE applies the GTE predicate on the "planned_for" field.
-func PlannedForGTE(v time.Time) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldGTE(FieldPlannedFor, v))
-}
-
-// PlannedForLT applies the LT predicate on the "planned_for" field.
-func PlannedForLT(v time.Time) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldLT(FieldPlannedFor, v))
-}
-
-// PlannedForLTE applies the LTE predicate on the "planned_for" field.
-func PlannedForLTE(v time.Time) predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldLTE(FieldPlannedFor, v))
-}
-
-// PlannedForIsNil applies the IsNil predicate on the "planned_for" field.
-func PlannedForIsNil() predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldIsNull(FieldPlannedFor))
-}
-
-// PlannedForNotNil applies the NotNil predicate on the "planned_for" field.
-func PlannedForNotNil() predicate.ContentDraft {
-	return predicate.ContentDraft(sql.FieldNotNull(FieldPlannedFor))
 }
 
 // PlanTimeZoneEQ applies the EQ predicate on the "plan_time_zone" field.

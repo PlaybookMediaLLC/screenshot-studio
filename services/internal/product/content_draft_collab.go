@@ -82,7 +82,7 @@ func (c *Configuration) IssueContentDraftCollabToken(ctx context.Context, actor 
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
-	if _, err := c.loadDraft(ctx, actor, draftID); err != nil {
+	if _, err := visibleContentDraft(ctx, c.client, actor, draftID); err != nil {
 		return nil, err
 	}
 	access, err := memberAccess(ctx, c.client, actor.OrganizationID, actor.UserID)
@@ -115,7 +115,13 @@ func (c *Configuration) collabClaims(ctx context.Context, token, documentName, d
 	if claims.Kind == "creative-set" {
 		owned, err = c.client.PlatformCreativeSet.Query().Where(platformcreativeset.ID(claims.DraftID), platformcreativeset.OrganizationID(claims.OrganizationID)).Exist(ctx)
 	} else {
-		owned, err = c.client.ContentDraft.Query().Where(contentdraft.ID(claims.DraftID), contentdraft.OrganizationID(claims.OrganizationID)).Exist(ctx)
+		// The draft must still be one the token's person may see: a private
+		// set's draft closes to everyone else even mid-session.
+		_, err = visibleContentDraft(ctx, c.client, Actor{OrganizationID: claims.OrganizationID, UserID: claims.UserID, Kind: "session"}, claims.DraftID)
+		owned = err == nil
+		if errors.Is(err, publishing.ErrNotFound) {
+			err = nil
+		}
 	}
 	if err != nil {
 		return collab.Claims{}, err
@@ -130,8 +136,12 @@ func (c *Configuration) collabClaims(ctx context.Context, token, documentName, d
 		if err != nil {
 			return collab.Claims{}, err
 		}
-		if err := c.authorizeDraftSet(ctx, Actor{OrganizationID: claims.OrganizationID, UserID: claims.UserID}, draft); err != nil {
+		visible, err := contentDraftVisible(ctx, c.client, Actor{OrganizationID: claims.OrganizationID, UserID: claims.UserID}, draft)
+		if err != nil {
 			return collab.Claims{}, err
+		}
+		if !visible {
+			return collab.Claims{}, publishing.ErrNotFound
 		}
 	}
 	current, err := memberAccess(ctx, c.client, claims.OrganizationID, claims.UserID)

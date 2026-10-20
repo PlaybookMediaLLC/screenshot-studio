@@ -53,32 +53,32 @@ export function SharedDraftView({
     }
   }
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-8 px-6 py-12 text-neutral-200">
+    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-8 px-6 py-12 text-foreground">
       <header>
-        <p className="text-xs uppercase tracking-wide text-neutral-500">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
           Draft shared for feedback
         </p>
-        <h1 className="mt-1 text-xl font-medium text-white">{title}</h1>
+        <h1 className="mt-1 text-xl font-medium text-foreground">{title}</h1>
       </header>
       <article
-        className="whitespace-pre-wrap rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 text-[15px] leading-relaxed"
+        className="whitespace-pre-wrap rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-5 text-[15px] leading-relaxed"
         data-testid="shared-draft"
       >
         {text || 'This draft is empty.'}
       </article>
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-white">Comments</h2>
+        <h2 className="text-sm font-medium text-foreground">Comments</h2>
         {comments.length === 0 ? (
-          <p className="text-sm text-neutral-500">No comments yet.</p>
+          <p className="text-sm text-muted-foreground">No comments yet.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {comments.map((item) => (
               <li
-                className="rounded-lg border border-white/[0.06] px-3 py-2"
+                className="rounded-lg border border-foreground/[0.06] px-3 py-2"
                 key={`${item.createdAt}-${item.name}`}
               >
-                <p className="text-xs text-neutral-500">
-                  <span className="text-neutral-200">{item.name}</span> ·{' '}
+                <p className="text-xs text-muted-foreground">
+                  <span className="text-foreground">{item.name}</span> ·{' '}
                   <LocalTime value={item.createdAt} />
                 </p>
                 <p className="mt-0.5 whitespace-pre-wrap text-sm">{item.text}</p>
@@ -89,7 +89,7 @@ export function SharedDraftView({
         <form className="flex flex-col gap-2" onSubmit={send}>
           <Input
             aria-label="Your name"
-            className="h-9 rounded-md border border-white/[0.08] bg-transparent px-3 text-sm"
+            className="h-9 rounded-md border border-foreground/[0.08] bg-transparent px-3 text-sm"
             maxLength={80}
             onChange={(event) => setName(event.target.value)}
             placeholder="Your name"
@@ -98,7 +98,7 @@ export function SharedDraftView({
           />
           <Textarea
             aria-label="Your comment"
-            className="min-h-24 rounded-md border border-white/[0.08] bg-transparent p-3 text-sm"
+            className="min-h-24 rounded-md border border-foreground/[0.08] bg-transparent p-3 text-sm"
             maxLength={2000}
             onChange={(event) => setComment(event.target.value)}
             placeholder="What do you think?"

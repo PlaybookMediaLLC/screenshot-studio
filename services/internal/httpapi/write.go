@@ -8,17 +8,12 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 )
 
-// WriteStore is the Write workspace (RFC 042): social sets with their tags
-// and thread finishers, and a draft's properties, plan, copies, recovered
-// backups and activity.
+// WriteStore is the Write workspace (RFC 042): a social set's tags, thread
+// finishers and mention lookups, and a draft's properties, plan, copies,
+// recovered backups, activity and follow-ups.
 type WriteStore interface {
-	ListSocialSets(context.Context, product.Actor) ([]product.SocialSetRecord, error)
-	GetSocialSet(context.Context, product.Actor, string) (*product.SocialSetRecord, error)
 	LookupMentions(ctx context.Context, actor product.Actor, setID, channel, query string) ([]product.Mention, error)
 	SetAssetAltText(ctx context.Context, actor product.Actor, assetID, altText string) (*product.AssetAltText, error)
-	CreateSocialSet(context.Context, product.Actor, product.SocialSetInput) (*product.SocialSetRecord, error)
-	UpdateSocialSet(context.Context, product.Actor, string, product.SocialSetInput) (*product.SocialSetRecord, error)
-	DeleteSocialSet(context.Context, product.Actor, string) error
 	ListContentDraftTags(context.Context, product.Actor, string) ([]product.ContentDraftTagRecord, error)
 	CreateContentDraftTag(context.Context, product.Actor, string, product.ContentDraftTagInput) (*product.ContentDraftTagRecord, error)
 	UpdateContentDraftTag(context.Context, product.Actor, string, string, product.ContentDraftTagInput) (*product.ContentDraftTagRecord, error)
@@ -40,13 +35,8 @@ type WriteStore interface {
 }
 
 func (s *Server) registerWrite(mux *http.ServeMux) {
-	mux.Handle("GET /v1/social-sets", s.authenticateProduct(http.HandlerFunc(s.listSocialSets)))
-	mux.Handle("POST /v1/social-sets", s.authenticateProduct(http.HandlerFunc(s.createSocialSet)))
-	mux.Handle("GET /v1/social-sets/{id}", s.authenticateProduct(http.HandlerFunc(s.getSocialSet)))
 	mux.Handle("GET /v1/social-sets/{id}/mentions", s.authenticateProduct(http.HandlerFunc(s.lookupMentions)))
 	mux.Handle("PUT /v1/assets/{id}/alt-text", s.authenticateProduct(http.HandlerFunc(s.setAssetAltText)))
-	mux.Handle("PATCH /v1/social-sets/{id}", s.authenticateProduct(http.HandlerFunc(s.updateSocialSet)))
-	mux.Handle("DELETE /v1/social-sets/{id}", s.authenticateProduct(http.HandlerFunc(s.deleteSocialSet)))
 	mux.Handle("GET /v1/social-sets/{id}/tags", s.authenticateProduct(http.HandlerFunc(s.listDraftTags)))
 	mux.Handle("POST /v1/social-sets/{id}/tags", s.authenticateProduct(http.HandlerFunc(s.createDraftTag)))
 	mux.Handle("PATCH /v1/social-sets/{id}/tags/{itemId}", s.authenticateProduct(http.HandlerFunc(s.updateDraftTag)))
@@ -79,62 +69,6 @@ func pathIDs(w http.ResponseWriter, r *http.Request, names ...string) ([]string,
 		values = append(values, value)
 	}
 	return values, true
-}
-
-// respond writes a store result, or its error.
-func respond[T any](w http.ResponseWriter, status int, value T, err error) {
-	if err != nil {
-		writeStoreError(w, err)
-		return
-	}
-	writeJSON(w, status, value)
-}
-
-func (s *Server) listSocialSets(w http.ResponseWriter, r *http.Request) {
-	sets, err := s.configuration.ListSocialSets(r.Context(), workspaceActor(r))
-	respond(w, http.StatusOK, map[string]any{"items": sets}, err)
-}
-
-func (s *Server) createSocialSet(w http.ResponseWriter, r *http.Request) {
-	var input product.SocialSetInput
-	if err := decodeJSON(r, &input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid social set")
-		return
-	}
-	set, err := s.configuration.CreateSocialSet(r.Context(), workspaceActor(r), input)
-	respond(w, http.StatusCreated, set, err)
-}
-
-func (s *Server) getSocialSet(w http.ResponseWriter, r *http.Request) {
-	ids, ok := pathIDs(w, r, "id")
-	if !ok {
-		return
-	}
-	set, err := s.configuration.GetSocialSet(r.Context(), workspaceActor(r), ids[0])
-	respond(w, http.StatusOK, set, err)
-}
-
-func (s *Server) updateSocialSet(w http.ResponseWriter, r *http.Request) {
-	ids, ok := pathIDs(w, r, "id")
-	if !ok {
-		return
-	}
-	var input product.SocialSetInput
-	if err := decodeJSON(r, &input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid social set")
-		return
-	}
-	set, err := s.configuration.UpdateSocialSet(r.Context(), workspaceActor(r), ids[0], input)
-	respond(w, http.StatusOK, set, err)
-}
-
-func (s *Server) deleteSocialSet(w http.ResponseWriter, r *http.Request) {
-	ids, ok := pathIDs(w, r, "id")
-	if !ok {
-		return
-	}
-	err := s.configuration.DeleteSocialSet(r.Context(), workspaceActor(r), ids[0])
-	respond(w, http.StatusOK, map[string]bool{"deleted": true}, err)
 }
 
 func (s *Server) listDraftTags(w http.ResponseWriter, r *http.Request) {

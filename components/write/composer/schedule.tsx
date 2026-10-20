@@ -26,17 +26,11 @@ import type { BlockImages } from '@/lib/content-drafts/serialize'
 import { followUpLines } from '@/lib/write/automation'
 import { writeApi } from '@/lib/write/client'
 import type { Automation } from '@/lib/write/document'
-import {
-  naturalOffsetMinutes,
-  offsetLabel,
-  readWhen,
-  resolveLocalTime,
-  wallTime,
-} from '@/lib/write/zoned-time'
+import { offsetLabel, readWhen, resolveLocalTime, wallTime } from '@/lib/write/zoned-time'
 import { cn } from '@/lib/utils'
 import { AutomationControls } from './automation'
 import type { PreviewItem } from './preview'
-import { SetDot } from '../sets'
+import { healthLabel, SetDot } from '../sets'
 import { useWrite } from '../write-context'
 
 /** Quarter hours of a day as HH:MM. */
@@ -76,7 +70,7 @@ function blocking(context: ScheduleContext): string[] {
   const problems: string[] = []
   if (context.items.length === 0) problems.push('Turn on at least one platform.')
   for (const item of context.items) {
-    if (item.account.health !== 'healthy') {
+    if (item.account.health !== 'connected') {
       problems.push(`${CHANNEL_META[item.account.channel].label}: reconnect the account first.`)
     }
     for (const problem of item.publication.problems)
@@ -111,7 +105,8 @@ export function ScheduleDialog({
   const [day, setDay] = React.useState(() => dayIn(new Date(now.getTime() + 86_400_000), zone))
   const [time, setTime] = React.useState('09:00')
   const [queue, setQueue] = React.useState(Boolean(initialQueue))
-  const [natural, setNatural] = React.useState(false)
+  // The draft's own choice, copied from its set when it was created (RFC 043).
+  const [natural, setNatural] = React.useState(context.draft.naturalPostingTime)
   const [when, setWhen] = React.useState('')
   const [disambiguation, setDisambiguation] = React.useState<'earlier' | 'later' | null>(null)
   const [bestTimes, setBestTimes] = React.useState<{ at: string; reason: string }[]>([])
@@ -135,7 +130,6 @@ export function ScheduleDialog({
       : resolution.kind === 'ambiguous' && disambiguation
         ? resolution[disambiguation]
         : null
-  const offset = naturalOffsetMinutes(`${context.draft.id}:v${context.versionRef.current}`)
   const past = instant !== null && instant.getTime() <= Date.now()
   const problems = blocking(context)
   const today = dayIn(now, zone)
@@ -162,7 +156,7 @@ export function ScheduleDialog({
         ...(queue
           ? { queue: true }
           : { disambiguation: disambiguation ?? undefined, localTime: local, timeZone: zone }),
-        naturalTiming: natural || undefined,
+        naturalPostingTime: natural,
         version: context.versionRef.current,
       })
       context.versionRef.current = result.draft.version
@@ -419,8 +413,8 @@ export function ScheduleDialog({
           <span>
             Natural posting time
             <span className="block text-[11px] text-neutral-500">
-              Shifts this post by a stable {offset >= 0 ? '+' : ''}
-              {offset}m so it does not land on the minute; a retry keeps the same shift.
+              Shifts this post by up to four minutes either way so it does not land on the minute; a
+              retry keeps the same time.
             </span>
           </span>
           <Switch
@@ -434,18 +428,12 @@ export function ScheduleDialog({
           data-testid="schedule-summary"
         >
           {summary}
-          {natural && instant ? (
-            <span className="text-neutral-400">
-              {' '}
-              {offset >= 0 ? '+' : ''}
-              {offset}m
-            </span>
-          ) : null}
+          {natural && instant ? <span className="text-neutral-400"> ± up to 4 minutes</span> : null}
         </p>
         {past && !queue ? <p className="text-xs text-red-300">That time has passed.</p> : null}
         <Problems problems={problems} />
         <DialogFooter className="flex-wrap gap-2">
-          {context.draft.plannedFor ? (
+          {data.experiments.planning && context.draft.plannedFor ? (
             <Button
               className="mr-auto"
               disabled={busy}
@@ -456,14 +444,17 @@ export function ScheduleDialog({
               Clear planned time
             </Button>
           ) : null}
-          <Button
-            disabled={busy || queue || !instant || past}
-            onClick={() => void plan()}
-            type="button"
-            variant="outline"
-          >
-            Save as planned
-          </Button>
+          {/* Planning is an experiment (RFC 043): shown only when it is on. */}
+          {data.experiments.planning ? (
+            <Button
+              disabled={busy || queue || !instant || past}
+              onClick={() => void plan()}
+              type="button"
+              variant="outline"
+            >
+              Save as planned
+            </Button>
+          ) : null}
           <Button
             disabled={busy || problems.length > 0 || (!queue && (!instant || past))}
             onClick={() => void schedule()}
@@ -538,7 +529,8 @@ function Destinations({
   timeZone: string
 }) {
   const { data } = useWrite()
-  const setId = context.draft.socialSetId ?? data.sets.find((set) => set.isDefault)?.id
+  const setId =
+    context.draft.socialSetId ?? data.sets.find((set) => set.visibility === 'WORKSPACE')?.id
   const set = data.sets.find((item) => item.id === setId)
   if (!set) return null
   const on = new Set(context.items.map((item) => item.account.id))
@@ -547,7 +539,7 @@ function Destinations({
       <legend className="mb-1 flex items-center gap-1.5 text-sm">
         <SetDot color={set.color} /> {set.name}
       </legend>
-      {set.connections.map((account) => (
+      {set.accounts.map((account) => (
         <Label className="flex items-center gap-3 rounded-md px-1 py-1 text-sm" key={account.id}>
           <ChannelIcon channel={account.channel} className="size-4 text-neutral-400" />
           <span className="min-w-0 flex-1 truncate">
@@ -555,8 +547,10 @@ function Destinations({
             {account.handle ? (
               <span className="ml-1.5 text-neutral-500">@{account.handle}</span>
             ) : null}
-            {account.health !== 'healthy' ? (
-              <span className="ml-1.5 text-amber-300">needs reconnecting</span>
+            {account.health !== 'connected' ? (
+              <span className="ml-1.5 text-amber-300">
+                {healthLabel(account.health).toLowerCase()}
+              </span>
             ) : null}
           </span>
           <Switch
@@ -614,7 +608,8 @@ export function PublishReview({
   const problems = blocking(context)
   const set = data.sets.find(
     (item) =>
-      item.id === (context.draft.socialSetId ?? data.sets.find((entry) => entry.isDefault)?.id)
+      item.id ===
+      (context.draft.socialSetId ?? data.sets.find((entry) => entry.visibility === 'WORKSPACE')?.id)
   )
   const followUps = context.items.flatMap(({ account, publication }) =>
     followUpLines(

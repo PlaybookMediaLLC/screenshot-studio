@@ -79,14 +79,39 @@ func Color(v string) predicate.SocialSet {
 	return predicate.SocialSet(sql.FieldEQ(FieldColor, v))
 }
 
-// IsDefault applies equality check predicate on the "is_default" field. It's identical to IsDefaultEQ.
-func IsDefault(v bool) predicate.SocialSet {
-	return predicate.SocialSet(sql.FieldEQ(FieldIsDefault, v))
+// OwnerUserID applies equality check predicate on the "owner_user_id" field. It's identical to OwnerUserIDEQ.
+func OwnerUserID(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldOwnerUserID, v))
 }
 
 // TimeZone applies equality check predicate on the "time_zone" field. It's identical to TimeZoneEQ.
 func TimeZone(v string) predicate.SocialSet {
 	return predicate.SocialSet(sql.FieldEQ(FieldTimeZone, v))
+}
+
+// NaturalPostingTimes applies equality check predicate on the "natural_posting_times" field. It's identical to NaturalPostingTimesEQ.
+func NaturalPostingTimes(v bool) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldNaturalPostingTimes, v))
+}
+
+// PrimaryPlatform applies equality check predicate on the "primary_platform" field. It's identical to PrimaryPlatformEQ.
+func PrimaryPlatform(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldPrimaryPlatform, v))
+}
+
+// PublicProfile applies equality check predicate on the "public_profile" field. It's identical to PublicProfileEQ.
+func PublicProfile(v bool) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldPublicProfile, v))
+}
+
+// PublicSlug applies equality check predicate on the "public_slug" field. It's identical to PublicSlugEQ.
+func PublicSlug(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldPublicSlug, v))
+}
+
+// Version applies equality check predicate on the "version" field. It's identical to VersionEQ.
+func Version(v int) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldVersion, v))
 }
 
 // CreatedByUserID applies equality check predicate on the "created_by_user_id" field. It's identical to CreatedByUserIDEQ.
@@ -102,6 +127,11 @@ func CreatedAt(v time.Time) predicate.SocialSet {
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.SocialSet {
 	return predicate.SocialSet(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
+func DeletedAt(v time.Time) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldDeletedAt, v))
 }
 
 // OrganizationIDEQ applies the EQ predicate on the "organization_id" field.
@@ -299,14 +329,99 @@ func ColorContainsFold(v string) predicate.SocialSet {
 	return predicate.SocialSet(sql.FieldContainsFold(FieldColor, v))
 }
 
-// IsDefaultEQ applies the EQ predicate on the "is_default" field.
-func IsDefaultEQ(v bool) predicate.SocialSet {
-	return predicate.SocialSet(sql.FieldEQ(FieldIsDefault, v))
+// VisibilityEQ applies the EQ predicate on the "visibility" field.
+func VisibilityEQ(v Visibility) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldVisibility, v))
 }
 
-// IsDefaultNEQ applies the NEQ predicate on the "is_default" field.
-func IsDefaultNEQ(v bool) predicate.SocialSet {
-	return predicate.SocialSet(sql.FieldNEQ(FieldIsDefault, v))
+// VisibilityNEQ applies the NEQ predicate on the "visibility" field.
+func VisibilityNEQ(v Visibility) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNEQ(FieldVisibility, v))
+}
+
+// VisibilityIn applies the In predicate on the "visibility" field.
+func VisibilityIn(vs ...Visibility) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldIn(FieldVisibility, vs...))
+}
+
+// VisibilityNotIn applies the NotIn predicate on the "visibility" field.
+func VisibilityNotIn(vs ...Visibility) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNotIn(FieldVisibility, vs...))
+}
+
+// OwnerUserIDEQ applies the EQ predicate on the "owner_user_id" field.
+func OwnerUserIDEQ(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldOwnerUserID, v))
+}
+
+// OwnerUserIDNEQ applies the NEQ predicate on the "owner_user_id" field.
+func OwnerUserIDNEQ(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNEQ(FieldOwnerUserID, v))
+}
+
+// OwnerUserIDIn applies the In predicate on the "owner_user_id" field.
+func OwnerUserIDIn(vs ...string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldIn(FieldOwnerUserID, vs...))
+}
+
+// OwnerUserIDNotIn applies the NotIn predicate on the "owner_user_id" field.
+func OwnerUserIDNotIn(vs ...string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNotIn(FieldOwnerUserID, vs...))
+}
+
+// OwnerUserIDGT applies the GT predicate on the "owner_user_id" field.
+func OwnerUserIDGT(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldGT(FieldOwnerUserID, v))
+}
+
+// OwnerUserIDGTE applies the GTE predicate on the "owner_user_id" field.
+func OwnerUserIDGTE(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldGTE(FieldOwnerUserID, v))
+}
+
+// OwnerUserIDLT applies the LT predicate on the "owner_user_id" field.
+func OwnerUserIDLT(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldLT(FieldOwnerUserID, v))
+}
+
+// OwnerUserIDLTE applies the LTE predicate on the "owner_user_id" field.
+func OwnerUserIDLTE(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldLTE(FieldOwnerUserID, v))
+}
+
+// OwnerUserIDContains applies the Contains predicate on the "owner_user_id" field.
+func OwnerUserIDContains(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldContains(FieldOwnerUserID, v))
+}
+
+// OwnerUserIDHasPrefix applies the HasPrefix predicate on the "owner_user_id" field.
+func OwnerUserIDHasPrefix(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldHasPrefix(FieldOwnerUserID, v))
+}
+
+// OwnerUserIDHasSuffix applies the HasSuffix predicate on the "owner_user_id" field.
+func OwnerUserIDHasSuffix(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldHasSuffix(FieldOwnerUserID, v))
+}
+
+// OwnerUserIDIsNil applies the IsNil predicate on the "owner_user_id" field.
+func OwnerUserIDIsNil() predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldIsNull(FieldOwnerUserID))
+}
+
+// OwnerUserIDNotNil applies the NotNil predicate on the "owner_user_id" field.
+func OwnerUserIDNotNil() predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNotNull(FieldOwnerUserID))
+}
+
+// OwnerUserIDEqualFold applies the EqualFold predicate on the "owner_user_id" field.
+func OwnerUserIDEqualFold(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEqualFold(FieldOwnerUserID, v))
+}
+
+// OwnerUserIDContainsFold applies the ContainsFold predicate on the "owner_user_id" field.
+func OwnerUserIDContainsFold(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldContainsFold(FieldOwnerUserID, v))
 }
 
 // TimeZoneEQ applies the EQ predicate on the "time_zone" field.
@@ -364,16 +479,6 @@ func TimeZoneHasSuffix(v string) predicate.SocialSet {
 	return predicate.SocialSet(sql.FieldHasSuffix(FieldTimeZone, v))
 }
 
-// TimeZoneIsNil applies the IsNil predicate on the "time_zone" field.
-func TimeZoneIsNil() predicate.SocialSet {
-	return predicate.SocialSet(sql.FieldIsNull(FieldTimeZone))
-}
-
-// TimeZoneNotNil applies the NotNil predicate on the "time_zone" field.
-func TimeZoneNotNil() predicate.SocialSet {
-	return predicate.SocialSet(sql.FieldNotNull(FieldTimeZone))
-}
-
 // TimeZoneEqualFold applies the EqualFold predicate on the "time_zone" field.
 func TimeZoneEqualFold(v string) predicate.SocialSet {
 	return predicate.SocialSet(sql.FieldEqualFold(FieldTimeZone, v))
@@ -384,24 +489,204 @@ func TimeZoneContainsFold(v string) predicate.SocialSet {
 	return predicate.SocialSet(sql.FieldContainsFold(FieldTimeZone, v))
 }
 
-// VisibilityEQ applies the EQ predicate on the "visibility" field.
-func VisibilityEQ(v Visibility) predicate.SocialSet {
-	return predicate.SocialSet(sql.FieldEQ(FieldVisibility, v))
+// NaturalPostingTimesEQ applies the EQ predicate on the "natural_posting_times" field.
+func NaturalPostingTimesEQ(v bool) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldNaturalPostingTimes, v))
 }
 
-// VisibilityNEQ applies the NEQ predicate on the "visibility" field.
-func VisibilityNEQ(v Visibility) predicate.SocialSet {
-	return predicate.SocialSet(sql.FieldNEQ(FieldVisibility, v))
+// NaturalPostingTimesNEQ applies the NEQ predicate on the "natural_posting_times" field.
+func NaturalPostingTimesNEQ(v bool) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNEQ(FieldNaturalPostingTimes, v))
 }
 
-// VisibilityIn applies the In predicate on the "visibility" field.
-func VisibilityIn(vs ...Visibility) predicate.SocialSet {
-	return predicate.SocialSet(sql.FieldIn(FieldVisibility, vs...))
+// PrimaryPlatformEQ applies the EQ predicate on the "primary_platform" field.
+func PrimaryPlatformEQ(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldPrimaryPlatform, v))
 }
 
-// VisibilityNotIn applies the NotIn predicate on the "visibility" field.
-func VisibilityNotIn(vs ...Visibility) predicate.SocialSet {
-	return predicate.SocialSet(sql.FieldNotIn(FieldVisibility, vs...))
+// PrimaryPlatformNEQ applies the NEQ predicate on the "primary_platform" field.
+func PrimaryPlatformNEQ(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNEQ(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformIn applies the In predicate on the "primary_platform" field.
+func PrimaryPlatformIn(vs ...string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldIn(FieldPrimaryPlatform, vs...))
+}
+
+// PrimaryPlatformNotIn applies the NotIn predicate on the "primary_platform" field.
+func PrimaryPlatformNotIn(vs ...string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNotIn(FieldPrimaryPlatform, vs...))
+}
+
+// PrimaryPlatformGT applies the GT predicate on the "primary_platform" field.
+func PrimaryPlatformGT(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldGT(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformGTE applies the GTE predicate on the "primary_platform" field.
+func PrimaryPlatformGTE(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldGTE(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformLT applies the LT predicate on the "primary_platform" field.
+func PrimaryPlatformLT(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldLT(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformLTE applies the LTE predicate on the "primary_platform" field.
+func PrimaryPlatformLTE(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldLTE(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformContains applies the Contains predicate on the "primary_platform" field.
+func PrimaryPlatformContains(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldContains(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformHasPrefix applies the HasPrefix predicate on the "primary_platform" field.
+func PrimaryPlatformHasPrefix(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldHasPrefix(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformHasSuffix applies the HasSuffix predicate on the "primary_platform" field.
+func PrimaryPlatformHasSuffix(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldHasSuffix(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformIsNil applies the IsNil predicate on the "primary_platform" field.
+func PrimaryPlatformIsNil() predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldIsNull(FieldPrimaryPlatform))
+}
+
+// PrimaryPlatformNotNil applies the NotNil predicate on the "primary_platform" field.
+func PrimaryPlatformNotNil() predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNotNull(FieldPrimaryPlatform))
+}
+
+// PrimaryPlatformEqualFold applies the EqualFold predicate on the "primary_platform" field.
+func PrimaryPlatformEqualFold(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEqualFold(FieldPrimaryPlatform, v))
+}
+
+// PrimaryPlatformContainsFold applies the ContainsFold predicate on the "primary_platform" field.
+func PrimaryPlatformContainsFold(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldContainsFold(FieldPrimaryPlatform, v))
+}
+
+// PublicProfileEQ applies the EQ predicate on the "public_profile" field.
+func PublicProfileEQ(v bool) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldPublicProfile, v))
+}
+
+// PublicProfileNEQ applies the NEQ predicate on the "public_profile" field.
+func PublicProfileNEQ(v bool) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNEQ(FieldPublicProfile, v))
+}
+
+// PublicSlugEQ applies the EQ predicate on the "public_slug" field.
+func PublicSlugEQ(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldPublicSlug, v))
+}
+
+// PublicSlugNEQ applies the NEQ predicate on the "public_slug" field.
+func PublicSlugNEQ(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNEQ(FieldPublicSlug, v))
+}
+
+// PublicSlugIn applies the In predicate on the "public_slug" field.
+func PublicSlugIn(vs ...string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldIn(FieldPublicSlug, vs...))
+}
+
+// PublicSlugNotIn applies the NotIn predicate on the "public_slug" field.
+func PublicSlugNotIn(vs ...string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNotIn(FieldPublicSlug, vs...))
+}
+
+// PublicSlugGT applies the GT predicate on the "public_slug" field.
+func PublicSlugGT(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldGT(FieldPublicSlug, v))
+}
+
+// PublicSlugGTE applies the GTE predicate on the "public_slug" field.
+func PublicSlugGTE(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldGTE(FieldPublicSlug, v))
+}
+
+// PublicSlugLT applies the LT predicate on the "public_slug" field.
+func PublicSlugLT(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldLT(FieldPublicSlug, v))
+}
+
+// PublicSlugLTE applies the LTE predicate on the "public_slug" field.
+func PublicSlugLTE(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldLTE(FieldPublicSlug, v))
+}
+
+// PublicSlugContains applies the Contains predicate on the "public_slug" field.
+func PublicSlugContains(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldContains(FieldPublicSlug, v))
+}
+
+// PublicSlugHasPrefix applies the HasPrefix predicate on the "public_slug" field.
+func PublicSlugHasPrefix(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldHasPrefix(FieldPublicSlug, v))
+}
+
+// PublicSlugHasSuffix applies the HasSuffix predicate on the "public_slug" field.
+func PublicSlugHasSuffix(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldHasSuffix(FieldPublicSlug, v))
+}
+
+// PublicSlugEqualFold applies the EqualFold predicate on the "public_slug" field.
+func PublicSlugEqualFold(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEqualFold(FieldPublicSlug, v))
+}
+
+// PublicSlugContainsFold applies the ContainsFold predicate on the "public_slug" field.
+func PublicSlugContainsFold(v string) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldContainsFold(FieldPublicSlug, v))
+}
+
+// VersionEQ applies the EQ predicate on the "version" field.
+func VersionEQ(v int) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldVersion, v))
+}
+
+// VersionNEQ applies the NEQ predicate on the "version" field.
+func VersionNEQ(v int) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNEQ(FieldVersion, v))
+}
+
+// VersionIn applies the In predicate on the "version" field.
+func VersionIn(vs ...int) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldIn(FieldVersion, vs...))
+}
+
+// VersionNotIn applies the NotIn predicate on the "version" field.
+func VersionNotIn(vs ...int) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNotIn(FieldVersion, vs...))
+}
+
+// VersionGT applies the GT predicate on the "version" field.
+func VersionGT(v int) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldGT(FieldVersion, v))
+}
+
+// VersionGTE applies the GTE predicate on the "version" field.
+func VersionGTE(v int) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldGTE(FieldVersion, v))
+}
+
+// VersionLT applies the LT predicate on the "version" field.
+func VersionLT(v int) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldLT(FieldVersion, v))
+}
+
+// VersionLTE applies the LTE predicate on the "version" field.
+func VersionLTE(v int) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldLTE(FieldVersion, v))
 }
 
 // CreatedByUserIDEQ applies the EQ predicate on the "created_by_user_id" field.
@@ -557,6 +842,56 @@ func UpdatedAtLT(v time.Time) predicate.SocialSet {
 // UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
 func UpdatedAtLTE(v time.Time) predicate.SocialSet {
 	return predicate.SocialSet(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// DeletedAtEQ applies the EQ predicate on the "deleted_at" field.
+func DeletedAtEQ(v time.Time) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldEQ(FieldDeletedAt, v))
+}
+
+// DeletedAtNEQ applies the NEQ predicate on the "deleted_at" field.
+func DeletedAtNEQ(v time.Time) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNEQ(FieldDeletedAt, v))
+}
+
+// DeletedAtIn applies the In predicate on the "deleted_at" field.
+func DeletedAtIn(vs ...time.Time) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldIn(FieldDeletedAt, vs...))
+}
+
+// DeletedAtNotIn applies the NotIn predicate on the "deleted_at" field.
+func DeletedAtNotIn(vs ...time.Time) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNotIn(FieldDeletedAt, vs...))
+}
+
+// DeletedAtGT applies the GT predicate on the "deleted_at" field.
+func DeletedAtGT(v time.Time) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldGT(FieldDeletedAt, v))
+}
+
+// DeletedAtGTE applies the GTE predicate on the "deleted_at" field.
+func DeletedAtGTE(v time.Time) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldGTE(FieldDeletedAt, v))
+}
+
+// DeletedAtLT applies the LT predicate on the "deleted_at" field.
+func DeletedAtLT(v time.Time) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldLT(FieldDeletedAt, v))
+}
+
+// DeletedAtLTE applies the LTE predicate on the "deleted_at" field.
+func DeletedAtLTE(v time.Time) predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldLTE(FieldDeletedAt, v))
+}
+
+// DeletedAtIsNil applies the IsNil predicate on the "deleted_at" field.
+func DeletedAtIsNil() predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldIsNull(FieldDeletedAt))
+}
+
+// DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
+func DeletedAtNotNil() predicate.SocialSet {
+	return predicate.SocialSet(sql.FieldNotNull(FieldDeletedAt))
 }
 
 // And groups predicates with the AND operator between them.

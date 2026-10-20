@@ -34,18 +34,3 @@ func TestResolveLocalTime(t *testing.T) {
 		}
 	}
 }
-
-// The web computes the same offsets (naturalOffsetMinutes); these values are
-// what it returns for the same keys.
-func TestNaturalOffsetMatchesTheWeb(t *testing.T) {
-	for key, minutes := range map[string]int{"draft-1:v1": 4, "cmabc123:v7": 1, "x": -4} {
-		if got := naturalOffset(key); got != time.Duration(minutes)*time.Minute {
-			t.Errorf("%s: %v, the web says %d minutes", key, got, minutes)
-		}
-	}
-	for index := range 1000 {
-		if offset := naturalOffset(string(rune('a'+index%26)) + time.Duration(index).String()); offset < -4*time.Minute || offset > 4*time.Minute {
-			t.Fatalf("offset out of range: %v", offset)
-		}
-	}
-}

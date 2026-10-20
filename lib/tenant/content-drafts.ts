@@ -4,7 +4,7 @@ import type {
   BackendAutoActions,
   BackendContentDraft,
   BackendContentDraftPost,
-  BackendContentDraftInput,
+  BackendContentDraftCreate,
   BackendContentDraftListQuery,
   BackendContentDraftUpdate,
   BackendPoll,
@@ -19,11 +19,11 @@ import { buildPublication } from '@/lib/write/publication'
 import { readVersions } from '@/lib/write/versions'
 import {
   articleSchema,
-  draftChannelSchema,
   draftKindSchema,
   draftTargetSchema,
   EMPTY_PLATFORM_VERSIONS,
   platformVersionsSchema,
+  primaryChannel,
 } from '@/lib/write/document'
 import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 
@@ -40,7 +40,7 @@ import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
  * fails here instead of in the composer.
  */
 export function readDraft(draft: BackendContentDraft) {
-  const { article, body, kind, plannedFor, platformVersions, primaryChannel, target, ...fields } =
+  const { article, body, kind, plannedFor, platformVersions, primaryPlatform, target, ...fields } =
     draft
   return {
     ...withDates(fields),
@@ -49,7 +49,7 @@ export function readDraft(draft: BackendContentDraft) {
     kind: draftKindSchema.parse(kind ?? 'standard'),
     plannedFor: plannedFor ? new Date(plannedFor) : null,
     platformVersions: platformVersionsSchema.parse(platformVersions ?? EMPTY_PLATFORM_VERSIONS),
-    primaryChannel: draftChannelSchema.parse(primaryChannel ?? 'x'),
+    primaryPlatform: primaryChannel(primaryPlatform),
     target: target ? draftTargetSchema.parse(target) : null,
   }
 }
@@ -68,7 +68,7 @@ export async function listContentDrafts(
 }
 
 /** Create a draft. */
-export async function createContentDraft(context: TenantContext, input: BackendContentDraftInput) {
+export async function createContentDraft(context: TenantContext, input: BackendContentDraftCreate) {
   return readDraft(await backendSDK(context).createContentDraft(input))
 }
 
@@ -134,6 +134,8 @@ export async function scheduleContentDraft(
     publishNow?: boolean
     /** When set, the set's next free queue slot, reserved by the backend. */
     queue?: boolean
+    /** Overrides the draft's natural posting time for this schedule. */
+    naturalPostingTime?: boolean
     scheduledFor?: Date
     timeZone?: string
     version: number
@@ -151,7 +153,7 @@ export async function scheduleContentDraft(
   const platforms = new Map(connections.map((connection) => [connection.id, connection.platform]))
   const premium = new Set(
     sets.items.flatMap((set) =>
-      set.connections.filter((item) => item.premium).map((item) => item.id)
+      set.accounts.filter((account) => account.premium).map((account) => account.id)
     )
   )
   const versions = readVersions(
@@ -185,7 +187,7 @@ export async function scheduleContentDraft(
   const result = await backendSDK(context).scheduleContentDraft(id, {
     disambiguation: input.disambiguation,
     localTime: input.localTime,
-    naturalTiming: input.naturalTiming,
+    naturalPostingTime: input.naturalPostingTime,
     publishNow: input.publishNow,
     queue: input.queue,
     scheduledFor: input.scheduledFor,
@@ -242,14 +244,14 @@ export async function updateContentDraftSettings(
 }
 
 /** Suggested posting times, from the workspace's engagement. */
-export async function bestPostingTimes(context: TenantContext) {
-  const { items } = await backendSDK(context).bestPostingTimes()
+export async function bestPostingTimes(context: TenantContext, socialSetId = '') {
+  const { items } = await backendSDK(context).bestPostingTimes(socialSetId)
   return items.map((item) => ({ ...item, at: new Date(item.at) }))
 }
 
 /** The queue's next free slot. */
-export async function nextQueueSlot(context: TenantContext) {
-  return new Date((await backendSDK(context).nextContentDraftQueueSlot()).scheduledFor)
+export async function nextQueueSlot(context: TenantContext, socialSetId = '') {
+  return new Date((await backendSDK(context).nextContentDraftQueueSlot(socialSetId)).scheduledFor)
 }
 
 /** Draft posts due in [from, to), with their drafts' titles; one set's when given. */

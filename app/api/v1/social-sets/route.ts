@@ -1,21 +1,23 @@
 import { createSocialSetContract, listSocialSetsContract } from '@/lib/api/contracts/social-sets'
 import { errorResponse, route } from '@/lib/api/route'
-import { memberAccess, tenantAccess } from '@/lib/api/route-auth'
+import { organizationAccess } from '@/lib/api/route-auth'
+import { backendSDK } from '@/lib/backend/sdk'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
-import { createSocialSet, listSocialSets } from '@/lib/tenant/write'
 
-const disabled = () => errorResponse(404, 'Content drafts are not enabled.')
-
-/** The social sets the caller may see, the default first. */
+/** The social sets you can see. */
 export const GET = route(listSocialSetsContract, {
-  auth: tenantAccess(listSocialSetsContract.access),
-  handler: async ({ access }) =>
-    contentDraftsEnabled() ? { items: await listSocialSets(access) } : disabled(),
+  auth: organizationAccess('artifact:read'),
+  handler: ({ access }) =>
+    contentDraftsEnabled()
+      ? backendSDK(access).listSocialSets()
+      : errorResponse(404, 'Social sets are not available.'),
 })
 
-/** Create a social set. Owners and admins manage sets. */
+/** Create a social set, shared with the workspace or private to you. */
 export const POST = route(createSocialSetContract, {
-  auth: memberAccess(createSocialSetContract.access),
-  handler: async ({ access, body }) =>
-    contentDraftsEnabled() ? createSocialSet(access, body) : disabled(),
+  auth: organizationAccess('publish:manage'),
+  handler: ({ access, body }) =>
+    contentDraftsEnabled()
+      ? backendSDK(access).createSocialSet(body)
+      : errorResponse(404, 'Social sets are not available.'),
 })

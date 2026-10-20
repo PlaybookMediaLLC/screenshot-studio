@@ -155,12 +155,12 @@ export function PipelineSteps({
         Launch pipeline
       </h2>
       {/* The 1px gap over a hairline background draws the dividers at any column count. */}
-      <ol className="grid gap-px overflow-hidden rounded-2xl bg-white/[0.07] ring-1 ring-white/[0.08] md:grid-cols-2 xl:grid-cols-4">
+      <ol className="grid gap-px overflow-hidden rounded-2xl bg-foreground/[0.07] ring-1 ring-foreground/[0.08] md:grid-cols-2 xl:grid-cols-4">
         {steps.map((step, index) => (
           <li
             className={cn(
               'flex flex-col gap-3 p-5',
-              index === next ? 'bg-[#171717]' : 'bg-[#141414]'
+              index === next ? 'bg-secondary' : 'bg-secondary'
             )}
             key={step.title}
           >
@@ -170,25 +170,27 @@ export function PipelineSteps({
                 className={cn(
                   'grid size-6 shrink-0 place-items-center rounded-full text-xs font-medium ring-1 ring-inset',
                   step.done
-                    ? 'bg-emerald-500/10 text-emerald-300 ring-emerald-500/25'
+                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25'
                     : index === next
-                      ? 'bg-white text-neutral-950 ring-white'
-                      : 'text-neutral-500 ring-white/[0.12]'
+                      ? 'bg-foreground text-background ring-white'
+                      : 'text-muted-foreground ring-foreground/[0.12]'
                 )}
               >
                 {step.done ? <Tick02Icon size={14} strokeWidth={2.2} /> : index + 1}
               </span>
-              <h3 className="text-sm font-medium text-white">{step.title}</h3>
+              <h3 className="text-sm font-medium text-foreground">{step.title}</h3>
               <span className="ml-auto">
                 <Pill tone={step.status.tone}>{step.status.label}</Pill>
               </span>
             </div>
-            <p className="text-xs leading-5 text-neutral-500">{step.description}</p>
+            <p className="text-xs leading-5 text-muted-foreground">{step.description}</p>
             {step.note ? (
               <p
                 className={cn(
                   'text-xs leading-5',
-                  step.note.tone === 'red' ? 'text-red-300' : 'text-amber-300'
+                  step.note.tone === 'red'
+                    ? 'text-red-700 dark:text-red-300'
+                    : 'text-amber-700 dark:text-amber-300'
                 )}
               >
                 {step.note.text}
@@ -201,7 +203,7 @@ export function PipelineSteps({
                 </ButtonLink>
               ) : (
                 <Link
-                  className="text-xs font-medium text-neutral-400 transition-colors hover:text-white"
+                  className="text-xs font-medium text-foreground/65 transition-colors hover:text-foreground"
                   href={step.action.href}
                 >
                   {step.action.label} <span aria-hidden>→</span>

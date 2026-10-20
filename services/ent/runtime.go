@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/accountdeletionrequest"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/agentauthorization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
@@ -85,6 +86,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sharelink"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialsetwritingsample"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourcechange"
@@ -94,6 +96,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/userpreference"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhookdelivery"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhooksubscription"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacecreditgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
@@ -109,6 +114,12 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	accountdeletionrequestFields := schema.AccountDeletionRequest{}.Fields()
+	_ = accountdeletionrequestFields
+	// accountdeletionrequestDescRequestedAt is the schema descriptor for requested_at field.
+	accountdeletionrequestDescRequestedAt := accountdeletionrequestFields[3].Descriptor()
+	// accountdeletionrequest.DefaultRequestedAt holds the default value on creation for the requested_at field.
+	accountdeletionrequest.DefaultRequestedAt = accountdeletionrequestDescRequestedAt.Default.(func() time.Time)
 	agentauthorizationFields := schema.AgentAuthorization{}.Fields()
 	_ = agentauthorizationFields
 	// agentauthorizationDescCreatedAt is the schema descriptor for created_at field.
@@ -334,11 +345,11 @@ func init() {
 	// channelconnection.SecretReferenceValidator is a validator for the "secret_reference" field. It is called by the builders before save.
 	channelconnection.SecretReferenceValidator = channelconnectionDescSecretReference.Validators[0].(func(string) error)
 	// channelconnectionDescCreatedAt is the schema descriptor for created_at field.
-	channelconnectionDescCreatedAt := channelconnectionFields[12].Descriptor()
+	channelconnectionDescCreatedAt := channelconnectionFields[13].Descriptor()
 	// channelconnection.DefaultCreatedAt holds the default value on creation for the created_at field.
 	channelconnection.DefaultCreatedAt = channelconnectionDescCreatedAt.Default.(func() time.Time)
 	// channelconnectionDescUpdatedAt is the schema descriptor for updated_at field.
-	channelconnectionDescUpdatedAt := channelconnectionFields[13].Descriptor()
+	channelconnectionDescUpdatedAt := channelconnectionFields[14].Descriptor()
 	// channelconnection.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	channelconnection.DefaultUpdatedAt = channelconnectionDescUpdatedAt.Default.(func() time.Time)
 	// channelconnection.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -385,28 +396,32 @@ func init() {
 	contentdraftDescVersion := contentdraftFields[16].Descriptor()
 	// contentdraft.DefaultVersion holds the default value on creation for the version field.
 	contentdraft.DefaultVersion = contentdraftDescVersion.Default.(int)
-	// contentdraftDescPrimaryChannel is the schema descriptor for primary_channel field.
-	contentdraftDescPrimaryChannel := contentdraftFields[20].Descriptor()
-	// contentdraft.DefaultPrimaryChannel holds the default value on creation for the primary_channel field.
-	contentdraft.DefaultPrimaryChannel = contentdraftDescPrimaryChannel.Default.(string)
+	// contentdraftDescNaturalPostingTime is the schema descriptor for natural_posting_time field.
+	contentdraftDescNaturalPostingTime := contentdraftFields[19].Descriptor()
+	// contentdraft.DefaultNaturalPostingTime holds the default value on creation for the natural_posting_time field.
+	contentdraft.DefaultNaturalPostingTime = contentdraftDescNaturalPostingTime.Default.(bool)
+	// contentdraftDescEngagement is the schema descriptor for engagement field.
+	contentdraftDescEngagement := contentdraftFields[20].Descriptor()
+	// contentdraft.DefaultEngagement holds the default value on creation for the engagement field.
+	contentdraft.DefaultEngagement = contentdraftDescEngagement.Default.(schema.Engagement)
 	// contentdraftDescPlatformVersions is the schema descriptor for platform_versions field.
-	contentdraftDescPlatformVersions := contentdraftFields[21].Descriptor()
+	contentdraftDescPlatformVersions := contentdraftFields[24].Descriptor()
 	// contentdraft.DefaultPlatformVersions holds the default value on creation for the platform_versions field.
 	contentdraft.DefaultPlatformVersions = contentdraftDescPlatformVersions.Default.(draftdoc.PlatformVersions)
 	// contentdraftDescScratchpad is the schema descriptor for scratchpad field.
-	contentdraftDescScratchpad := contentdraftFields[23].Descriptor()
+	contentdraftDescScratchpad := contentdraftFields[26].Descriptor()
 	// contentdraft.DefaultScratchpad holds the default value on creation for the scratchpad field.
 	contentdraft.DefaultScratchpad = contentdraftDescScratchpad.Default.(string)
 	// contentdraftDescTagIds is the schema descriptor for tag_ids field.
-	contentdraftDescTagIds := contentdraftFields[24].Descriptor()
+	contentdraftDescTagIds := contentdraftFields[27].Descriptor()
 	// contentdraft.DefaultTagIds holds the default value on creation for the tag_ids field.
 	contentdraft.DefaultTagIds = contentdraftDescTagIds.Default.([]string)
 	// contentdraftDescCreatedAt is the schema descriptor for created_at field.
-	contentdraftDescCreatedAt := contentdraftFields[32].Descriptor()
+	contentdraftDescCreatedAt := contentdraftFields[34].Descriptor()
 	// contentdraft.DefaultCreatedAt holds the default value on creation for the created_at field.
 	contentdraft.DefaultCreatedAt = contentdraftDescCreatedAt.Default.(func() time.Time)
 	// contentdraftDescUpdatedAt is the schema descriptor for updated_at field.
-	contentdraftDescUpdatedAt := contentdraftFields[33].Descriptor()
+	contentdraftDescUpdatedAt := contentdraftFields[35].Descriptor()
 	// contentdraft.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	contentdraft.DefaultUpdatedAt = contentdraftDescUpdatedAt.Default.(func() time.Time)
 	// contentdraft.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -953,12 +968,16 @@ func init() {
 	platformnotificationpreferenceDescEvents := platformnotificationpreferenceFields[3].Descriptor()
 	// platformnotificationpreference.DefaultEvents holds the default value on creation for the events field.
 	platformnotificationpreference.DefaultEvents = platformnotificationpreferenceDescEvents.Default.(map[string]interface{})
+	// platformnotificationpreferenceDescSocialSets is the schema descriptor for social_sets field.
+	platformnotificationpreferenceDescSocialSets := platformnotificationpreferenceFields[4].Descriptor()
+	// platformnotificationpreference.DefaultSocialSets holds the default value on creation for the social_sets field.
+	platformnotificationpreference.DefaultSocialSets = platformnotificationpreferenceDescSocialSets.Default.(map[string]map[string]bool)
 	// platformnotificationpreferenceDescGeneration is the schema descriptor for generation field.
-	platformnotificationpreferenceDescGeneration := platformnotificationpreferenceFields[4].Descriptor()
+	platformnotificationpreferenceDescGeneration := platformnotificationpreferenceFields[5].Descriptor()
 	// platformnotificationpreference.DefaultGeneration holds the default value on creation for the generation field.
 	platformnotificationpreference.DefaultGeneration = platformnotificationpreferenceDescGeneration.Default.(int)
 	// platformnotificationpreferenceDescUpdatedAt is the schema descriptor for updated_at field.
-	platformnotificationpreferenceDescUpdatedAt := platformnotificationpreferenceFields[5].Descriptor()
+	platformnotificationpreferenceDescUpdatedAt := platformnotificationpreferenceFields[6].Descriptor()
 	// platformnotificationpreference.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	platformnotificationpreference.DefaultUpdatedAt = platformnotificationpreferenceDescUpdatedAt.Default.(func() time.Time)
 	platformnotificationseenactionFields := schema.PlatformNotificationSeenAction{}.Fields()
@@ -1300,11 +1319,11 @@ func init() {
 	// scheduledpost.IdempotencyKeyValidator is a validator for the "idempotency_key" field. It is called by the builders before save.
 	scheduledpost.IdempotencyKeyValidator = scheduledpostDescIdempotencyKey.Validators[0].(func(string) error)
 	// scheduledpostDescCreatedAt is the schema descriptor for created_at field.
-	scheduledpostDescCreatedAt := scheduledpostFields[21].Descriptor()
+	scheduledpostDescCreatedAt := scheduledpostFields[26].Descriptor()
 	// scheduledpost.DefaultCreatedAt holds the default value on creation for the created_at field.
 	scheduledpost.DefaultCreatedAt = scheduledpostDescCreatedAt.Default.(func() time.Time)
 	// scheduledpostDescUpdatedAt is the schema descriptor for updated_at field.
-	scheduledpostDescUpdatedAt := scheduledpostFields[22].Descriptor()
+	scheduledpostDescUpdatedAt := scheduledpostFields[27].Descriptor()
 	// scheduledpost.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	scheduledpost.DefaultUpdatedAt = scheduledpostDescUpdatedAt.Default.(func() time.Time)
 	// scheduledpost.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -1348,7 +1367,7 @@ func init() {
 	socialoauthstartFields := schema.SocialOAuthStart{}.Fields()
 	_ = socialoauthstartFields
 	// socialoauthstartDescCreatedAt is the schema descriptor for created_at field.
-	socialoauthstartDescCreatedAt := socialoauthstartFields[8].Descriptor()
+	socialoauthstartDescCreatedAt := socialoauthstartFields[9].Descriptor()
 	// socialoauthstart.DefaultCreatedAt holds the default value on creation for the created_at field.
 	socialoauthstart.DefaultCreatedAt = socialoauthstartDescCreatedAt.Default.(func() time.Time)
 	socialsetFields := schema.SocialSet{}.Fields()
@@ -1357,36 +1376,54 @@ func init() {
 	socialsetDescColor := socialsetFields[3].Descriptor()
 	// socialset.DefaultColor holds the default value on creation for the color field.
 	socialset.DefaultColor = socialsetDescColor.Default.(string)
-	// socialsetDescIsDefault is the schema descriptor for is_default field.
-	socialsetDescIsDefault := socialsetFields[4].Descriptor()
-	// socialset.DefaultIsDefault holds the default value on creation for the is_default field.
-	socialset.DefaultIsDefault = socialsetDescIsDefault.Default.(bool)
-	// socialsetDescChannelConnectionIds is the schema descriptor for channel_connection_ids field.
-	socialsetDescChannelConnectionIds := socialsetFields[5].Descriptor()
-	// socialset.DefaultChannelConnectionIds holds the default value on creation for the channel_connection_ids field.
-	socialset.DefaultChannelConnectionIds = socialsetDescChannelConnectionIds.Default.([]string)
-	// socialsetDescDefaultChannels is the schema descriptor for default_channels field.
-	socialsetDescDefaultChannels := socialsetFields[6].Descriptor()
-	// socialset.DefaultDefaultChannels holds the default value on creation for the default_channels field.
-	socialset.DefaultDefaultChannels = socialsetDescDefaultChannels.Default.([]string)
-	// socialsetDescMemberUserIds is the schema descriptor for member_user_ids field.
-	socialsetDescMemberUserIds := socialsetFields[9].Descriptor()
-	// socialset.DefaultMemberUserIds holds the default value on creation for the member_user_ids field.
-	socialset.DefaultMemberUserIds = socialsetDescMemberUserIds.Default.([]string)
-	// socialsetDescPreferences is the schema descriptor for preferences field.
-	socialsetDescPreferences := socialsetFields[10].Descriptor()
-	// socialset.DefaultPreferences holds the default value on creation for the preferences field.
-	socialset.DefaultPreferences = socialsetDescPreferences.Default.(schema.SocialSetPreferences)
+	// socialsetDescTimeZone is the schema descriptor for time_zone field.
+	socialsetDescTimeZone := socialsetFields[6].Descriptor()
+	// socialset.DefaultTimeZone holds the default value on creation for the time_zone field.
+	socialset.DefaultTimeZone = socialsetDescTimeZone.Default.(string)
+	// socialsetDescPostingSlots is the schema descriptor for posting_slots field.
+	socialsetDescPostingSlots := socialsetFields[7].Descriptor()
+	// socialset.DefaultPostingSlots holds the default value on creation for the posting_slots field.
+	socialset.DefaultPostingSlots = socialsetDescPostingSlots.Default.([]schema.QueueSlot)
+	// socialsetDescNaturalPostingTimes is the schema descriptor for natural_posting_times field.
+	socialsetDescNaturalPostingTimes := socialsetFields[8].Descriptor()
+	// socialset.DefaultNaturalPostingTimes holds the default value on creation for the natural_posting_times field.
+	socialset.DefaultNaturalPostingTimes = socialsetDescNaturalPostingTimes.Default.(bool)
+	// socialsetDescDefaultPlatforms is the schema descriptor for default_platforms field.
+	socialsetDescDefaultPlatforms := socialsetFields[9].Descriptor()
+	// socialset.DefaultDefaultPlatforms holds the default value on creation for the default_platforms field.
+	socialset.DefaultDefaultPlatforms = socialsetDescDefaultPlatforms.Default.([]string)
+	// socialsetDescEngagementDefaults is the schema descriptor for engagement_defaults field.
+	socialsetDescEngagementDefaults := socialsetFields[11].Descriptor()
+	// socialset.DefaultEngagementDefaults holds the default value on creation for the engagement_defaults field.
+	socialset.DefaultEngagementDefaults = socialsetDescEngagementDefaults.Default.(schema.Engagement)
+	// socialsetDescPublicProfile is the schema descriptor for public_profile field.
+	socialsetDescPublicProfile := socialsetFields[12].Descriptor()
+	// socialset.DefaultPublicProfile holds the default value on creation for the public_profile field.
+	socialset.DefaultPublicProfile = socialsetDescPublicProfile.Default.(bool)
+	// socialsetDescWritingAssistant is the schema descriptor for writing_assistant field.
+	socialsetDescWritingAssistant := socialsetFields[14].Descriptor()
+	// socialset.DefaultWritingAssistant holds the default value on creation for the writing_assistant field.
+	socialset.DefaultWritingAssistant = socialsetDescWritingAssistant.Default.(schema.WritingAssistant)
+	// socialsetDescVersion is the schema descriptor for version field.
+	socialsetDescVersion := socialsetFields[15].Descriptor()
+	// socialset.DefaultVersion holds the default value on creation for the version field.
+	socialset.DefaultVersion = socialsetDescVersion.Default.(int)
 	// socialsetDescCreatedAt is the schema descriptor for created_at field.
-	socialsetDescCreatedAt := socialsetFields[12].Descriptor()
+	socialsetDescCreatedAt := socialsetFields[17].Descriptor()
 	// socialset.DefaultCreatedAt holds the default value on creation for the created_at field.
 	socialset.DefaultCreatedAt = socialsetDescCreatedAt.Default.(func() time.Time)
 	// socialsetDescUpdatedAt is the schema descriptor for updated_at field.
-	socialsetDescUpdatedAt := socialsetFields[13].Descriptor()
+	socialsetDescUpdatedAt := socialsetFields[18].Descriptor()
 	// socialset.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	socialset.DefaultUpdatedAt = socialsetDescUpdatedAt.Default.(func() time.Time)
 	// socialset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	socialset.UpdateDefaultUpdatedAt = socialsetDescUpdatedAt.UpdateDefault.(func() time.Time)
+	socialsetwritingsampleFields := schema.SocialSetWritingSample{}.Fields()
+	_ = socialsetwritingsampleFields
+	// socialsetwritingsampleDescCreatedAt is the schema descriptor for created_at field.
+	socialsetwritingsampleDescCreatedAt := socialsetwritingsampleFields[7].Descriptor()
+	// socialsetwritingsample.DefaultCreatedAt holds the default value on creation for the created_at field.
+	socialsetwritingsample.DefaultCreatedAt = socialsetwritingsampleDescCreatedAt.Default.(func() time.Time)
 	socialtenantbindingFields := schema.SocialTenantBinding{}.Fields()
 	_ = socialtenantbindingFields
 	// socialtenantbindingDescCreatedAt is the schema descriptor for created_at field.
@@ -1515,6 +1552,78 @@ func init() {
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
+	userpreferenceFields := schema.UserPreference{}.Fields()
+	_ = userpreferenceFields
+	// userpreferenceDescShowScrollbars is the schema descriptor for show_scrollbars field.
+	userpreferenceDescShowScrollbars := userpreferenceFields[6].Descriptor()
+	// userpreference.DefaultShowScrollbars holds the default value on creation for the show_scrollbars field.
+	userpreference.DefaultShowScrollbars = userpreferenceDescShowScrollbars.Default.(bool)
+	// userpreferenceDescDeveloperMode is the schema descriptor for developer_mode field.
+	userpreferenceDescDeveloperMode := userpreferenceFields[7].Descriptor()
+	// userpreference.DefaultDeveloperMode holds the default value on creation for the developer_mode field.
+	userpreference.DefaultDeveloperMode = userpreferenceDescDeveloperMode.Default.(bool)
+	// userpreferenceDescEmailNotifications is the schema descriptor for email_notifications field.
+	userpreferenceDescEmailNotifications := userpreferenceFields[8].Descriptor()
+	// userpreference.DefaultEmailNotifications holds the default value on creation for the email_notifications field.
+	userpreference.DefaultEmailNotifications = userpreferenceDescEmailNotifications.Default.(bool)
+	// userpreferenceDescDismissedTips is the schema descriptor for dismissed_tips field.
+	userpreferenceDescDismissedTips := userpreferenceFields[9].Descriptor()
+	// userpreference.DefaultDismissedTips holds the default value on creation for the dismissed_tips field.
+	userpreference.DefaultDismissedTips = userpreferenceDescDismissedTips.Default.([]string)
+	// userpreferenceDescExperiments is the schema descriptor for experiments field.
+	userpreferenceDescExperiments := userpreferenceFields[10].Descriptor()
+	// userpreference.DefaultExperiments holds the default value on creation for the experiments field.
+	userpreference.DefaultExperiments = userpreferenceDescExperiments.Default.(map[string]bool)
+	// userpreferenceDescVersion is the schema descriptor for version field.
+	userpreferenceDescVersion := userpreferenceFields[11].Descriptor()
+	// userpreference.DefaultVersion holds the default value on creation for the version field.
+	userpreference.DefaultVersion = userpreferenceDescVersion.Default.(int)
+	// userpreferenceDescUpdatedAt is the schema descriptor for updated_at field.
+	userpreferenceDescUpdatedAt := userpreferenceFields[12].Descriptor()
+	// userpreference.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	userpreference.DefaultUpdatedAt = userpreferenceDescUpdatedAt.Default.(func() time.Time)
+	// userpreference.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	userpreference.UpdateDefaultUpdatedAt = userpreferenceDescUpdatedAt.UpdateDefault.(func() time.Time)
+	webhookdeliveryFields := schema.WebhookDelivery{}.Fields()
+	_ = webhookdeliveryFields
+	// webhookdeliveryDescAttempts is the schema descriptor for attempts field.
+	webhookdeliveryDescAttempts := webhookdeliveryFields[7].Descriptor()
+	// webhookdelivery.DefaultAttempts holds the default value on creation for the attempts field.
+	webhookdelivery.DefaultAttempts = webhookdeliveryDescAttempts.Default.(int)
+	// webhookdeliveryDescNextAttemptAt is the schema descriptor for next_attempt_at field.
+	webhookdeliveryDescNextAttemptAt := webhookdeliveryFields[8].Descriptor()
+	// webhookdelivery.DefaultNextAttemptAt holds the default value on creation for the next_attempt_at field.
+	webhookdelivery.DefaultNextAttemptAt = webhookdeliveryDescNextAttemptAt.Default.(func() time.Time)
+	// webhookdeliveryDescManual is the schema descriptor for manual field.
+	webhookdeliveryDescManual := webhookdeliveryFields[13].Descriptor()
+	// webhookdelivery.DefaultManual holds the default value on creation for the manual field.
+	webhookdelivery.DefaultManual = webhookdeliveryDescManual.Default.(bool)
+	// webhookdeliveryDescCreatedAt is the schema descriptor for created_at field.
+	webhookdeliveryDescCreatedAt := webhookdeliveryFields[14].Descriptor()
+	// webhookdelivery.DefaultCreatedAt holds the default value on creation for the created_at field.
+	webhookdelivery.DefaultCreatedAt = webhookdeliveryDescCreatedAt.Default.(func() time.Time)
+	// webhookdeliveryDescUpdatedAt is the schema descriptor for updated_at field.
+	webhookdeliveryDescUpdatedAt := webhookdeliveryFields[15].Descriptor()
+	// webhookdelivery.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	webhookdelivery.DefaultUpdatedAt = webhookdeliveryDescUpdatedAt.Default.(func() time.Time)
+	// webhookdelivery.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	webhookdelivery.UpdateDefaultUpdatedAt = webhookdeliveryDescUpdatedAt.UpdateDefault.(func() time.Time)
+	webhooksubscriptionFields := schema.WebhookSubscription{}.Fields()
+	_ = webhooksubscriptionFields
+	// webhooksubscriptionDescEnabled is the schema descriptor for enabled field.
+	webhooksubscriptionDescEnabled := webhooksubscriptionFields[5].Descriptor()
+	// webhooksubscription.DefaultEnabled holds the default value on creation for the enabled field.
+	webhooksubscription.DefaultEnabled = webhooksubscriptionDescEnabled.Default.(bool)
+	// webhooksubscriptionDescCreatedAt is the schema descriptor for created_at field.
+	webhooksubscriptionDescCreatedAt := webhooksubscriptionFields[10].Descriptor()
+	// webhooksubscription.DefaultCreatedAt holds the default value on creation for the created_at field.
+	webhooksubscription.DefaultCreatedAt = webhooksubscriptionDescCreatedAt.Default.(func() time.Time)
+	// webhooksubscriptionDescUpdatedAt is the schema descriptor for updated_at field.
+	webhooksubscriptionDescUpdatedAt := webhooksubscriptionFields[11].Descriptor()
+	// webhooksubscription.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	webhooksubscription.DefaultUpdatedAt = webhooksubscriptionDescUpdatedAt.Default.(func() time.Time)
+	// webhooksubscription.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	webhooksubscription.UpdateDefaultUpdatedAt = webhooksubscriptionDescUpdatedAt.UpdateDefault.(func() time.Time)
 	workspacecreditgrantFields := schema.WorkspaceCreditGrant{}.Fields()
 	_ = workspacecreditgrantFields
 	// workspacecreditgrantDescCreatedAt is the schema descriptor for created_at field.
@@ -1581,12 +1690,16 @@ func init() {
 	workspacesettingsDescAiAgentEnabled := workspacesettingsFields[5].Descriptor()
 	// workspacesettings.DefaultAiAgentEnabled holds the default value on creation for the ai_agent_enabled field.
 	workspacesettings.DefaultAiAgentEnabled = workspacesettingsDescAiAgentEnabled.Default.(bool)
+	// workspacesettingsDescDisabledExperiments is the schema descriptor for disabled_experiments field.
+	workspacesettingsDescDisabledExperiments := workspacesettingsFields[6].Descriptor()
+	// workspacesettings.DefaultDisabledExperiments holds the default value on creation for the disabled_experiments field.
+	workspacesettings.DefaultDisabledExperiments = workspacesettingsDescDisabledExperiments.Default.([]string)
 	// workspacesettingsDescCreatedAt is the schema descriptor for created_at field.
-	workspacesettingsDescCreatedAt := workspacesettingsFields[6].Descriptor()
+	workspacesettingsDescCreatedAt := workspacesettingsFields[7].Descriptor()
 	// workspacesettings.DefaultCreatedAt holds the default value on creation for the created_at field.
 	workspacesettings.DefaultCreatedAt = workspacesettingsDescCreatedAt.Default.(func() time.Time)
 	// workspacesettingsDescUpdatedAt is the schema descriptor for updated_at field.
-	workspacesettingsDescUpdatedAt := workspacesettingsFields[7].Descriptor()
+	workspacesettingsDescUpdatedAt := workspacesettingsFields[8].Descriptor()
 	// workspacesettings.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	workspacesettings.DefaultUpdatedAt = workspacesettingsDescUpdatedAt.Default.(func() time.Time)
 	// workspacesettings.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

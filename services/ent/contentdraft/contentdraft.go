@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
@@ -49,12 +50,18 @@ const (
 	FieldVersion = "version"
 	// FieldSocialSetID holds the string denoting the social_set_id field in the database.
 	FieldSocialSetID = "socialSetId"
+	// FieldPrimaryPlatform holds the string denoting the primary_platform field in the database.
+	FieldPrimaryPlatform = "primaryPlatform"
+	// FieldNaturalPostingTime holds the string denoting the natural_posting_time field in the database.
+	FieldNaturalPostingTime = "naturalPostingTime"
+	// FieldEngagement holds the string denoting the engagement field in the database.
+	FieldEngagement = "engagement"
+	// FieldPlannedFor holds the string denoting the planned_for field in the database.
+	FieldPlannedFor = "plannedFor"
 	// FieldKind holds the string denoting the kind field in the database.
 	FieldKind = "kind"
 	// FieldTarget holds the string denoting the target field in the database.
 	FieldTarget = "target"
-	// FieldPrimaryChannel holds the string denoting the primary_channel field in the database.
-	FieldPrimaryChannel = "primaryChannel"
 	// FieldPlatformVersions holds the string denoting the platform_versions field in the database.
 	FieldPlatformVersions = "platformVersions"
 	// FieldArticle holds the string denoting the article field in the database.
@@ -65,8 +72,6 @@ const (
 	FieldTagIds = "tagIds"
 	// FieldPinnedAt holds the string denoting the pinned_at field in the database.
 	FieldPinnedAt = "pinnedAt"
-	// FieldPlannedFor holds the string denoting the planned_for field in the database.
-	FieldPlannedFor = "plannedFor"
 	// FieldPlanTimeZone holds the string denoting the plan_time_zone field in the database.
 	FieldPlanTimeZone = "planTimeZone"
 	// FieldSourceDraftID holds the string denoting the source_draft_id field in the database.
@@ -105,15 +110,17 @@ var Columns = []string{
 	FieldGuestComments,
 	FieldVersion,
 	FieldSocialSetID,
+	FieldPrimaryPlatform,
+	FieldNaturalPostingTime,
+	FieldEngagement,
+	FieldPlannedFor,
 	FieldKind,
 	FieldTarget,
-	FieldPrimaryChannel,
 	FieldPlatformVersions,
 	FieldArticle,
 	FieldScratchpad,
 	FieldTagIds,
 	FieldPinnedAt,
-	FieldPlannedFor,
 	FieldPlanTimeZone,
 	FieldSourceDraftID,
 	FieldCollabState,
@@ -142,8 +149,10 @@ var (
 	DefaultGuestComments []map[string]string
 	// DefaultVersion holds the default value on creation for the "version" field.
 	DefaultVersion int
-	// DefaultPrimaryChannel holds the default value on creation for the "primary_channel" field.
-	DefaultPrimaryChannel string
+	// DefaultNaturalPostingTime holds the default value on creation for the "natural_posting_time" field.
+	DefaultNaturalPostingTime bool
+	// DefaultEngagement holds the default value on creation for the "engagement" field.
+	DefaultEngagement schema.Engagement
 	// DefaultPlatformVersions holds the default value on creation for the "platform_versions" field.
 	DefaultPlatformVersions draftdoc.PlatformVersions
 	// DefaultScratchpad holds the default value on creation for the "scratchpad" field.
@@ -305,14 +314,24 @@ func BySocialSetID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSocialSetID, opts...).ToFunc()
 }
 
+// ByPrimaryPlatform orders the results by the primary_platform field.
+func ByPrimaryPlatform(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPrimaryPlatform, opts...).ToFunc()
+}
+
+// ByNaturalPostingTime orders the results by the natural_posting_time field.
+func ByNaturalPostingTime(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNaturalPostingTime, opts...).ToFunc()
+}
+
+// ByPlannedFor orders the results by the planned_for field.
+func ByPlannedFor(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPlannedFor, opts...).ToFunc()
+}
+
 // ByKind orders the results by the kind field.
 func ByKind(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKind, opts...).ToFunc()
-}
-
-// ByPrimaryChannel orders the results by the primary_channel field.
-func ByPrimaryChannel(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPrimaryChannel, opts...).ToFunc()
 }
 
 // ByScratchpad orders the results by the scratchpad field.
@@ -323,11 +342,6 @@ func ByScratchpad(opts ...sql.OrderTermOption) OrderOption {
 // ByPinnedAt orders the results by the pinned_at field.
 func ByPinnedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPinnedAt, opts...).ToFunc()
-}
-
-// ByPlannedFor orders the results by the planned_for field.
-func ByPlannedFor(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPlannedFor, opts...).ToFunc()
 }
 
 // ByPlanTimeZone orders the results by the plan_time_zone field.

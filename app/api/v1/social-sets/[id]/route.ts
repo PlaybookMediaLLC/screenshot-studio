@@ -4,33 +4,33 @@ import {
   updateSocialSetContract,
 } from '@/lib/api/contracts/social-sets'
 import { errorResponse, route } from '@/lib/api/route'
-import { memberAccess, tenantAccess } from '@/lib/api/route-auth'
+import { organizationAccess } from '@/lib/api/route-auth'
+import { backendSDK } from '@/lib/backend/sdk'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
-import { deleteSocialSet, getSocialSet, updateSocialSet } from '@/lib/tenant/write'
 
-const notFound = () => errorResponse(404, 'Social set not found.')
-
-/** One social set with its accounts and their health. */
+/** One social set. */
 export const GET = route(getSocialSetContract, {
-  auth: tenantAccess(getSocialSetContract.access),
-  handler: async ({ access, params }) =>
-    contentDraftsEnabled() ? ((await getSocialSet(access, params.id)) ?? notFound()) : notFound(),
-})
-
-/** Change a social set. */
-export const PATCH = route(updateSocialSetContract, {
-  auth: memberAccess(updateSocialSetContract.access),
-  handler: async ({ access, body, params }) =>
+  auth: organizationAccess('artifact:read'),
+  handler: ({ access, params }) =>
     contentDraftsEnabled()
-      ? ((await updateSocialSet(access, params.id, body)) ?? notFound())
-      : notFound(),
+      ? backendSDK(access).getSocialSet(params.id)
+      : errorResponse(404, 'Social sets are not available.'),
 })
 
-/** Delete an empty social set. */
+/** Save a social set, based on the version you read. */
+export const PATCH = route(updateSocialSetContract, {
+  auth: organizationAccess('publish:manage'),
+  handler: ({ access, body, params }) =>
+    contentDraftsEnabled()
+      ? backendSDK(access).updateSocialSet(params.id, body)
+      : errorResponse(404, 'Social sets are not available.'),
+})
+
+/** Delete a social set; the backend checks you own it or administer the workspace. */
 export const DELETE = route(deleteSocialSetContract, {
-  auth: memberAccess(deleteSocialSetContract.access),
-  handler: async ({ access, params }) =>
-    contentDraftsEnabled() && (await deleteSocialSet(access, params.id))
-      ? { deleted: true as const }
-      : notFound(),
+  auth: organizationAccess('workspace:read'),
+  handler: ({ access, body, params }) =>
+    contentDraftsEnabled()
+      ? backendSDK(access).deleteSocialSet(params.id, body.confirmation)
+      : errorResponse(404, 'Social sets are not available.'),
 })

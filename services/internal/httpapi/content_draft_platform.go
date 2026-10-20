@@ -15,8 +15,8 @@ import (
 type ContentDraftPlatformStore interface {
 	GetContentDraftSettings(context.Context, product.Actor) (*product.ContentDraftSettings, error)
 	UpdateContentDraftSettings(context.Context, product.Actor, product.ContentDraftSettingsUpdate) (*product.ContentDraftSettings, error)
-	NextQueueSlot(context.Context, product.Actor) (time.Time, error)
-	BestPostingTimes(context.Context, product.Actor) ([]product.BestTime, error)
+	NextQueueSlot(context.Context, product.Actor, string) (time.Time, error)
+	BestPostingTimes(context.Context, product.Actor, string) ([]product.BestTime, error)
 	MoveContentDraftPost(context.Context, product.Actor, string, time.Time) (*product.MovedDraftPost, error)
 	ResumeContentDraftThread(context.Context, product.Actor, string) (*product.MovedDraftPost, error)
 	ListContentDraftPostsBetween(context.Context, product.Actor, time.Time, time.Time, string) ([]product.CalendarPost, error)
@@ -71,7 +71,7 @@ func (s *Server) updateContentDraftSettings(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) nextQueueSlot(w http.ResponseWriter, r *http.Request) {
-	at, err := s.configuration.NextQueueSlot(r.Context(), workspaceActor(r))
+	at, err := s.configuration.NextQueueSlot(r.Context(), workspaceActor(r), r.URL.Query().Get("socialSetId"))
 	if err != nil {
 		writeStoreError(w, err)
 		return
@@ -80,7 +80,7 @@ func (s *Server) nextQueueSlot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) bestPostingTimes(w http.ResponseWriter, r *http.Request) {
-	times, err := s.configuration.BestPostingTimes(r.Context(), workspaceActor(r))
+	times, err := s.configuration.BestPostingTimes(r.Context(), workspaceActor(r), r.URL.Query().Get("socialSetId"))
 	if err != nil {
 		writeStoreError(w, err)
 		return

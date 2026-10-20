@@ -1,141 +1,174 @@
 import { z } from 'zod'
-import { defineContract, timestampSchema } from '@/lib/api/contract'
+import type {
+  SocialAccount,
+  SocialSet,
+  SocialSetList,
+  WritingSample,
+} from 'screenshot-studio-backend-sdk'
+import { defineContract, mirrors } from '@/lib/api/contract'
 import { contentDraftIdSchema } from '@/lib/api/contracts/content-drafts'
-import { memberDocs, workspaceDocs } from '@/lib/api/contracts/workspace-docs'
-import { automationSchema, draftChannelSchema } from '@/lib/write/document'
+import { isoInstantSchema } from '@/lib/api/contracts/settings-platform'
 
 /**
- * Social sets (RFC 042): a workspace's publishing identities. Reads take an
- * API key with `artifact:read`; managing sets needs a signed-in owner or
- * admin. A restricted set is visible only to its members, owners and admins.
+ * Social sets (RFC 043): publishing identities with their accounts, schedules,
+ * new-draft defaults, public profiles and Writing Assistant. Each schema
+ * mirrors the backend SDK's type, so the Go contract and this one cannot drift.
  */
 
-const entitlement = {
-  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'pro' },
-}
-
-/** A set's account health: usable, needs reconnecting, or turned off. */
-export const connectionHealthSchema = z.enum(['healthy', 'reconnect', 'disabled'])
-
-/** One of {@link connectionHealthSchema}. */
-export type ConnectionHealth = z.infer<typeof connectionHealthSchema>
-
-/** Who sees a set's drafts: the workspace by role, or owners, admins and listed members. */
-export const socialSetVisibilitySchema = z.enum(['workspace', 'restricted'])
-
-/** A set's colour. */
-export const socialSetColorSchema = z.enum([
-  'sky',
-  'violet',
-  'emerald',
-  'amber',
-  'rose',
-  'orange',
-  'teal',
-  'indigo',
-  'pink',
-  'gray',
+/** An account's health, read from the social service. */
+export const socialAccountHealthSchema = z.enum([
+  'connected',
+  'reconnect_required',
+  'expired',
+  'revoked',
+  'removed',
+  'permission_required',
 ])
 
-/** A set's writing and posting defaults. */
-export const socialSetPreferencesSchema = z.strictObject({
-  audience: z.string().max(2_000).optional(),
-  /** The X follow-ups new drafts in the set start with. */
-  automation: automationSchema.optional(),
-  naturalTiming: z.boolean().optional(),
-  samples: z.array(z.string().max(5_000)).max(20).optional(),
-  voice: z.string().max(2_000).optional(),
+/** A connected account in a social set. */
+export const socialAccountSchema = mirrors<SocialAccount>()(
+  z.object({
+    avatarUrl: z.string().nullable(),
+    createdAt: isoInstantSchema,
+    displayName: z.string().nullable(),
+    handle: z.string().nullable(),
+    health: socialAccountHealthSchema,
+    id: z.string(),
+    platform: z.string(),
+    /** X Premium, read from the account (RFC 042); never the workspace's plan. */
+    premium: z.boolean(),
+    socialSetId: z.string().nullable(),
+  })
+)
+
+/** One X follow-up a new draft starts with. */
+export const engagementRuleSchema = z.object({
+  atLikes: z.number().int().min(0).max(1_000_000),
+  enabled: z.boolean(),
+  text: z.string().max(1_000).optional(),
 })
 
-/** A set's account as the composer shows it. */
-export const socialSetConnectionSchema = z.object({
-  avatarUrl: z.string().nullable(),
-  channel: draftChannelSchema,
-  displayName: z.string().nullable(),
-  handle: z.string().nullable(),
-  health: connectionHealthSchema,
-  id: z.string(),
-  platform: z.string(),
+/** A set's default X follow-ups. */
+export const engagementSchema = z.object({
+  autoPlug: engagementRuleSchema,
+  autoRepost: engagementRuleSchema,
 })
 
-/** A social set: a publishing identity inside the workspace. */
-export const socialSetSchema = z.object({
-  channelConnectionIds: z.array(z.string()),
-  color: socialSetColorSchema,
-  connections: z.array(socialSetConnectionSchema),
-  createdAt: timestampSchema,
-  /** The platforms a new draft enables, in order; the first is the primary. */
-  defaultChannels: z.array(draftChannelSchema),
-  id: z.string(),
-  /** The workspace's first set; drafts without a set belong to it. */
-  isDefault: z.boolean(),
-  memberUserIds: z.array(z.string()),
-  name: z.string(),
-  preferences: socialSetPreferencesSchema,
-  /** The set's own time zone, or null for the workspace's. */
-  timeZone: z.string().nullable(),
-  updatedAt: timestampSchema,
-  visibility: socialSetVisibilitySchema,
+/** A draft platform a default or guidance can name. */
+export const draftPlatformSchema = z.enum([
+  'x',
+  'linkedin',
+  'instagram',
+  'instagram-standalone',
+  'threads',
+  'bluesky',
+  'mastodon',
+])
+
+/** How a set writes; it refines the workspace brand voice. */
+export const styleGuideSchema = z.object({
+  audience: z.string().max(300),
+  endings: z.array(z.string().max(280)).max(10),
+  formatting: z.string().max(600),
+  openings: z.array(z.string().max(280)).max(10),
+  platformGuidance: z.record(z.string(), z.string().max(600)),
+  prohibitedPhrases: z.array(z.string().max(80)).max(30),
+  terminology: z.array(z.string().max(80)).max(30),
+  tone: z.string().max(300),
 })
 
-/** One of {@link socialSetSchema}. */
-export type SocialSet = z.infer<typeof socialSetSchema>
+/** A Writing Assistant's lifecycle. */
+export const writingAssistantStatusSchema = z.enum([
+  'not_configured',
+  'in_progress',
+  'configured',
+  'disabled',
+  'attention',
+])
 
-/** A set's fields; an update changes those it sets. */
-export const socialSetInputSchema = z.strictObject({
-  channelConnectionIds: z.array(contentDraftIdSchema).max(10).optional(),
-  color: socialSetColorSchema.optional(),
-  defaultChannels: z.array(draftChannelSchema).max(6).optional(),
-  memberUserIds: z
-    .array(z.string().regex(/^[A-Za-z0-9_-]{1,64}$/))
-    .max(200)
-    .optional(),
-  name: z.string().trim().min(1).max(80).optional(),
-  preferences: socialSetPreferencesSchema.optional(),
-  /** An IANA zone, or empty for the workspace's. */
-  timeZone: z.string().max(80).optional(),
-  visibility: socialSetVisibilitySchema.optional(),
+/** A weekly posting slot: a weekday (0 is Sunday) and a time as HH:MM. */
+export const weeklySlotSchema = z.object({
+  time: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
+  weekday: z.number().int().min(0).max(6),
 })
 
-/** Path parameters naming one social set. */
+/** Shared with the workspace, or private to its owner. */
+export const socialSetVisibilitySchema = z.enum(['WORKSPACE', 'PRIVATE'])
+
+/** A publishing identity. */
+export const socialSetSchema = mirrors<SocialSet>()(
+  z.object({
+    accounts: z.array(socialAccountSchema),
+    color: z.string(),
+    createdAt: isoInstantSchema,
+    defaultPlatforms: z.array(z.string()),
+    engagementDefaults: engagementSchema,
+    id: z.string(),
+    isOwner: z.boolean(),
+    name: z.string(),
+    naturalPostingTimes: z.boolean(),
+    needsAttention: z.boolean(),
+    ownerUserId: z.string().nullable(),
+    postingSlots: z.array(weeklySlotSchema),
+    primaryPlatform: z.string().nullable(),
+    publicProfile: z.boolean(),
+    publicSlug: z.string(),
+    timeZone: z.string(),
+    updatedAt: isoInstantSchema,
+    version: z.number().int(),
+    visibility: socialSetVisibilitySchema,
+    weeklySlotCount: z.number().int(),
+    writingAssistant: z.object({
+      configuredAt: isoInstantSchema.nullable(),
+      sampleCount: z.number().int(),
+      status: writingAssistantStatusSchema,
+      styleGuide: styleGuideSchema,
+    }),
+  })
+)
+
+/** The sets you see, accounts in no set, and private sets left behind. */
+export const socialSetListSchema = mirrors<SocialSetList>()(
+  z.object({
+    items: z.array(socialSetSchema),
+    orphaned: z.array(
+      z.object({ accountCount: z.number().int(), id: z.string(), name: z.string() })
+    ),
+    unassigned: z.array(socialAccountSchema),
+  })
+)
+
+/** Path parameters naming one set. */
 export const socialSetParamsSchema = z.object({ id: contentDraftIdSchema })
+
+/** Path parameters naming one account of one set. */
+export const socialSetAccountParamsSchema = z.object({
+  connectionId: contentDraftIdSchema,
+  id: contentDraftIdSchema,
+})
 
 /** `GET /api/v1/social-sets` */
 export const listSocialSetsContract = defineContract({
-  access: { apiKeyScope: 'artifact:read', feature: 'content:drafts', permission: 'artifact:read' },
-  docs: workspaceDocs({
-    description:
-      'Lists the social sets the caller may write in, the default set first, each with its accounts and their health. A restricted set is listed only for its members, owners and admins; API keys see workspace sets only.',
-    extensions: entitlement,
-    operationId: 'listSocialSets',
-    outputName: 'SocialSetList',
-    responses: { '200': 'The social sets.' },
-    tag: 'Workspace',
-  }),
   method: 'GET',
   name: 'social-sets.list',
-  output: z.object({ items: z.array(socialSetSchema) }),
+  output: socialSetListSchema,
   path: '/api/v1/social-sets',
-  summary: 'List social sets',
+  summary: 'List your social sets',
 })
 
 /** `POST /api/v1/social-sets` */
 export const createSocialSetContract = defineContract({
-  access: { feature: 'content:drafts', permission: 'workspace:update' },
-  body: socialSetInputSchema.extend({ name: z.string().trim().min(1).max(80) }),
-  docs: memberDocs({
-    description:
-      'Creates a social set: a publishing identity with at most one account per platform. Owners and admins manage sets.',
-    extensions: entitlement,
-    operationId: 'createSocialSet',
-    outputName: 'SocialSet',
-    responses: {
-      '201': 'Set created.',
-      '400': 'The set is invalid.',
-      '409': 'The workspace has as many sets as it can.',
-    },
-    tag: 'Workspace',
-  }),
+  body: z
+    .object({
+      color: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .optional(),
+      name: z.string().trim().min(1).max(80),
+      timeZone: z.string().max(64).optional(),
+      visibility: socialSetVisibilitySchema.optional(),
+    })
+    .strict(),
   method: 'POST',
   name: 'social-sets.create',
   output: socialSetSchema,
@@ -146,109 +179,181 @@ export const createSocialSetContract = defineContract({
 
 /** `GET /api/v1/social-sets/{id}` */
 export const getSocialSetContract = defineContract({
-  access: { apiKeyScope: 'artifact:read', feature: 'content:drafts', permission: 'artifact:read' },
-  docs: workspaceDocs({
-    description: 'Returns one social set with its accounts and their health.',
-    extensions: entitlement,
-    operationId: 'getSocialSet',
-    outputName: 'SocialSet',
-    responses: { '200': 'The set.', '404': 'The set was not found, or the caller may not see it.' },
-    tag: 'Workspace',
-  }),
   method: 'GET',
   name: 'social-sets.get',
   output: socialSetSchema,
   params: socialSetParamsSchema,
   path: '/api/v1/social-sets/{id}',
-  summary: 'Get a social set',
+  summary: 'Read a social set',
 })
+
+/** A set's settings save, based on the version you read. */
+export const socialSetUpdateSchema = z
+  .object({
+    baseVersion: z.number().int().min(1),
+    color: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .optional(),
+    defaultPlatforms: z.array(draftPlatformSchema).max(10).optional(),
+    engagementDefaults: engagementSchema.optional(),
+    name: z.string().trim().min(1).max(80).optional(),
+    naturalPostingTimes: z.boolean().optional(),
+    postingSlots: z.array(weeklySlotSchema).max(50).optional(),
+    primaryPlatform: z.union([draftPlatformSchema, z.literal('')]).optional(),
+    publicProfile: z.boolean().optional(),
+    timeZone: z.string().max(64).optional(),
+  })
+  .strict()
 
 /** `PATCH /api/v1/social-sets/{id}` */
 export const updateSocialSetContract = defineContract({
-  access: { feature: 'content:drafts', permission: 'workspace:update' },
-  body: socialSetInputSchema,
-  docs: memberDocs({
-    description:
-      "Changes a social set's name, colour, accounts, default platforms, time zone, visibility, members or preferences.",
-    extensions: entitlement,
-    operationId: 'updateSocialSet',
-    outputName: 'SocialSet',
-    responses: {
-      '200': 'The set.',
-      '400': 'The change is invalid.',
-      '404': 'The set was not found.',
-    },
-    tag: 'Workspace',
-  }),
+  body: socialSetUpdateSchema,
   method: 'PATCH',
   name: 'social-sets.update',
   output: socialSetSchema,
   params: socialSetParamsSchema,
   path: '/api/v1/social-sets/{id}',
-  summary: 'Update a social set',
+  summary: 'Save a social set',
+})
+
+/** What removing an account or deleting a set did. */
+export const socialSetRemovalSchema = z.object({
+  cancelledPostIds: z.array(z.string()),
+  draftsArchived: z.number().int(),
 })
 
 /** `DELETE /api/v1/social-sets/{id}` */
 export const deleteSocialSetContract = defineContract({
-  access: { feature: 'content:drafts', permission: 'workspace:update' },
-  docs: memberDocs({
-    description:
-      'Deletes an empty social set. The default set, and a set with drafts, cannot be deleted.',
-    extensions: entitlement,
-    operationId: 'deleteSocialSet',
-    responses: {
-      '200': 'Set deleted.',
-      '404': 'The set was not found.',
-      '409': 'The set is the default or has drafts.',
-    },
-    tag: 'Workspace',
-  }),
+  body: z.object({ confirmation: z.string().min(1).max(80) }).strict(),
   method: 'DELETE',
   name: 'social-sets.delete',
-  output: z.object({ deleted: z.literal(true) }),
+  output: socialSetRemovalSchema,
   params: socialSetParamsSchema,
   path: '/api/v1/social-sets/{id}',
   summary: 'Delete a social set',
 })
 
-/** What a looked-up mention is: an X user or a LinkedIn organization. */
-export const mentionKindSchema = z.enum(['person', 'organization'])
-
-/** An account a post can tag, as its platform writes it in a post. */
-export const socialMentionSchema = z.object({
-  handle: z.string().optional(),
-  image: z.string().optional(),
-  kind: mentionKindSchema,
-  label: z.string(),
-  /** The X username, or a LinkedIn organization URN. */
-  providerId: z.string(),
+/** `POST /api/v1/social-sets/{id}/share` */
+export const shareSocialSetContract = defineContract({
+  method: 'POST',
+  name: 'social-sets.share',
+  output: socialSetSchema,
+  params: socialSetParamsSchema,
+  path: '/api/v1/social-sets/{id}/share',
+  summary: 'Share a private social set with the workspace',
 })
 
-/** `GET /api/v1/social-sets/{id}/mentions` */
-export const lookupMentionsContract = defineContract({
-  // Each lookup spends the account's provider rate limit.
-  access: { feature: 'content:drafts', permission: 'artifact:edit', quota: 'api:write:minute' },
-  docs: memberDocs({
-    description:
-      "Looks a mention up with the set's own account: an X user by exact username, or a LinkedIn company page by the name in its address. LinkedIn people are not looked up.",
-    extensions: entitlement,
-    operationId: 'lookupSocialSetMentions',
-    outputName: 'SocialMentionList',
-    responses: {
-      '200': 'What the account can mention; empty when nothing matches.',
-      '400': 'The query is not a username or company page name.',
-      '409': 'The set has no connected account for that platform.',
-    },
-    tag: 'Workspace',
-  }),
+/** `POST /api/v1/social-sets/{id}/accounts/{connectionId}` */
+export const assignSocialSetAccountContract = defineContract({
+  method: 'POST',
+  name: 'social-sets.account-add',
+  output: socialSetSchema,
+  params: socialSetAccountParamsSchema,
+  path: '/api/v1/social-sets/{id}/accounts/{connectionId}',
+  summary: 'Add an account that is in no set to a social set',
+})
+
+/** `DELETE /api/v1/social-sets/{id}/accounts/{connectionId}` */
+export const removeSocialSetAccountContract = defineContract({
+  method: 'DELETE',
+  name: 'social-sets.account-remove',
+  output: socialSetRemovalSchema,
+  params: socialSetAccountParamsSchema,
+  path: '/api/v1/social-sets/{id}/accounts/{connectionId}',
+  summary: 'Remove an account from a social set',
+})
+
+/** A set of another of your workspaces. */
+export const copyableSocialSetSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  workspaceId: z.string(),
+  workspaceName: z.string(),
+})
+
+/** `GET /api/v1/social-sets/copyable` */
+export const listCopyableSocialSetsContract = defineContract({
   method: 'GET',
-  name: 'social-sets.mentions',
-  output: z.object({ items: z.array(socialMentionSchema) }),
+  name: 'social-sets.copyable',
+  output: z.object({ items: z.array(copyableSocialSetSchema) }),
+  path: '/api/v1/social-sets/copyable',
+  summary: 'List social sets of your other workspaces',
+})
+
+/** `POST /api/v1/social-sets/copy` */
+export const copySocialSetContract = defineContract({
+  body: z
+    .object({ socialSetId: contentDraftIdSchema, workspaceId: z.string().min(1).max(64) })
+    .strict(),
+  method: 'POST',
+  name: 'social-sets.copy',
+  output: socialSetSchema,
+  path: '/api/v1/social-sets/copy',
+  status: 201,
+  summary: "Copy another workspace's social set here, without its accounts",
+})
+
+/** `PUT /api/v1/social-sets/{id}/writing-assistant` */
+export const updateWritingAssistantContract = defineContract({
+  body: z
+    .object({
+      action: z.enum(['create', 'disable', 'enable']).optional(),
+      baseVersion: z.number().int().min(1),
+      styleGuide: styleGuideSchema.optional(),
+    })
+    .strict(),
+  method: 'PUT',
+  name: 'social-sets.writing-assistant',
+  output: socialSetSchema,
   params: socialSetParamsSchema,
-  path: '/api/v1/social-sets/{id}/mentions',
-  query: z.object({
-    channel: z.enum(['x', 'linkedin']),
-    q: z.string().trim().min(1).max(200),
-  }),
-  summary: 'Look up a mention for a social set',
+  path: '/api/v1/social-sets/{id}/writing-assistant',
+  summary: "Save a social set's Writing Assistant",
+})
+
+/** One writing sample. */
+export const writingSampleSchema = mirrors<WritingSample>()(
+  z.object({
+    createdAt: isoInstantSchema,
+    createdByUserId: z.string().nullable(),
+    id: z.string(),
+    source: z.enum(['manual', 'draft']),
+    sourceDraftId: z.string().nullable(),
+    text: z.string(),
+  })
+)
+
+/** `GET /api/v1/social-sets/{id}/writing-samples` */
+export const listWritingSamplesContract = defineContract({
+  method: 'GET',
+  name: 'social-sets.writing-samples',
+  output: z.object({ items: z.array(writingSampleSchema) }),
+  params: socialSetParamsSchema,
+  path: '/api/v1/social-sets/{id}/writing-samples',
+  summary: "List a social set's writing samples",
+})
+
+/** `POST /api/v1/social-sets/{id}/writing-samples` */
+export const addWritingSampleContract = defineContract({
+  body: z.union([
+    z.object({ text: z.string().trim().min(1).max(5_000) }).strict(),
+    z.object({ draftId: contentDraftIdSchema }).strict(),
+  ]),
+  method: 'POST',
+  name: 'social-sets.writing-sample-add',
+  output: writingSampleSchema,
+  params: socialSetParamsSchema,
+  path: '/api/v1/social-sets/{id}/writing-samples',
+  status: 201,
+  summary: 'Add a writing sample, written here or imported from a draft of the set',
+})
+
+/** `DELETE /api/v1/social-sets/{id}/writing-samples/{sampleId}` */
+export const deleteWritingSampleContract = defineContract({
+  method: 'DELETE',
+  name: 'social-sets.writing-sample-delete',
+  output: z.object({ deleted: z.literal(true) }),
+  params: socialSetParamsSchema.extend({ sampleId: contentDraftIdSchema }),
+  path: '/api/v1/social-sets/{id}/writing-samples/{sampleId}',
+  summary: 'Remove a writing sample',
 })

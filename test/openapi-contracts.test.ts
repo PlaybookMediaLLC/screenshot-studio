@@ -19,10 +19,13 @@ import * as internal from '@/lib/api/contracts/internal'
 import * as linkPreview from '@/lib/api/contracts/link-preview'
 import * as notifications from '@/lib/api/contracts/notifications'
 import * as onboardingRuns from '@/lib/api/contracts/onboarding-runs'
+import * as outboundWebhooks from '@/lib/api/contracts/outbound-webhooks'
 import * as releases from '@/lib/api/contracts/releases'
 import * as scheduledPosts from '@/lib/api/contracts/scheduled-posts'
+import * as settingsPlatform from '@/lib/api/contracts/settings-platform'
 import * as sharing from '@/lib/api/contracts/sharing'
 import * as shell from '@/lib/api/contracts/shell'
+import * as socialMentions from '@/lib/api/contracts/social-mentions'
 import * as socialSets from '@/lib/api/contracts/social-sets'
 import * as sourceApps from '@/lib/api/contracts/source-apps'
 import * as storePublishing from '@/lib/api/contracts/store-publishing'
@@ -51,11 +54,14 @@ const contracts = new Map<string, RouteContract>(
     internal,
     linkPreview,
     onboardingRuns,
+    outboundWebhooks,
     notifications,
     releases,
     scheduledPosts,
+    settingsPlatform,
     sharing,
     shell,
+    socialMentions,
     socialSets,
     sourceApps,
     storePublishing,

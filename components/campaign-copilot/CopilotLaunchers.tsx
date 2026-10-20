@@ -47,7 +47,7 @@ export function ShipInput({ aiEnabled }: { aiEnabled: boolean }) {
 
   if (!aiEnabled) {
     return (
-      <p className="rounded-2xl bg-white/[0.02] px-5 py-4 text-sm text-neutral-500 ring-1 ring-white/[0.06]">
+      <p className="rounded-2xl bg-foreground/[0.02] px-5 py-4 text-sm text-muted-foreground ring-1 ring-foreground/[0.06]">
         AI is turned off for this workspace.
       </p>
     )
@@ -55,15 +55,15 @@ export function ShipInput({ aiEnabled }: { aiEnabled: boolean }) {
   return (
     <>
       <form
-        className="flex flex-col gap-2 rounded-2xl bg-white/[0.02] p-4 ring-1 ring-white/[0.06]"
+        className="flex flex-col gap-2 rounded-2xl bg-foreground/[0.02] p-4 ring-1 ring-foreground/[0.06]"
         onSubmit={submit}
       >
-        <Label className="text-sm font-medium text-white" htmlFor="ship-input">
+        <Label className="text-sm font-medium text-foreground" htmlFor="ship-input">
           What did you ship?
         </Label>
         <div className="flex flex-col gap-2 md:flex-row">
           <Input
-            className="h-10 w-full rounded-lg bg-white/[0.03] px-3 text-sm text-white ring-1 ring-white/[0.08] outline-none placeholder:text-neutral-600 focus:ring-white/20"
+            className="h-10 w-full rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none placeholder:text-muted-foreground/75 focus:ring-foreground/20"
             disabled={busy}
             id="ship-input"
             maxLength={4_000}
@@ -77,7 +77,10 @@ export function ShipInput({ aiEnabled }: { aiEnabled: boolean }) {
           </Button>
         </div>
         {error ? (
-          <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300" role="alert">
+          <p
+            className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+            role="alert"
+          >
             {error}
           </p>
         ) : null}
@@ -142,7 +145,7 @@ export function AskShotsButton({
         Ask Shots
       </Button>
       {error ? (
-        <span className="text-xs text-red-300" role="alert">
+        <span className="text-xs text-red-700 dark:text-red-300" role="alert">
           {error}
         </span>
       ) : null}

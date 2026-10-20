@@ -3,10 +3,9 @@ import 'server-only'
 import { isCampaignStudioConfigured } from '@/lib/ai/agents/campaign-studio'
 import { errorResponse } from '@/lib/api/route'
 import type { OrganizationAccess } from '@/lib/auth/access'
+import { backendSDK, orNull } from '@/lib/backend/sdk'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
-import { getSocialSet } from '@/lib/tenant/write'
 import { isAiEnabled } from '@/lib/trpc/routers/launch'
-import type { SetVoice } from '@/lib/write/refine'
 
 /**
  * Why Write's AI cannot answer for this workspace, as a response, or null
@@ -20,12 +19,14 @@ export async function aiUnavailable(access: OrganizationAccess) {
   return null
 }
 
-/** A set's voice, when the caller may see the set. */
-export async function setVoice(
+/**
+ * The draft's writing context for a channel: the workspace brand refined by
+ * its social set (RFC 043), when the caller may see the draft.
+ */
+export async function writingContext(
   access: OrganizationAccess,
-  setId: string | undefined
-): Promise<SetVoice | null> {
-  if (!setId) return null
-  const set = await getSocialSet(access, setId)
-  return set ? set.preferences : null
+  draftId: string | undefined,
+  channel: string
+) {
+  return draftId ? orNull(backendSDK(access).getDraftWritingContext(draftId, channel)) : null
 }

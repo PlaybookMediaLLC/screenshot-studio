@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { WriteData } from '@/app/[locale]/write/write-data'
+import { SOCIAL_SET_COOKIE } from '@/lib/settings/appearance'
 
 /**
  * Write's shared client state (RFC 042): the library the page loaded, and
@@ -108,5 +109,5 @@ export function since(iso: string): string {
 /** Remember the set chosen last, for the next visit. */
 export function rememberSet(id: string): void {
   // biome-ignore lint/suspicious/noDocumentCookie: a plain preference cookie, read by the server
-  document.cookie = `write-set=${encodeURIComponent(id)}; path=/; max-age=31536000; samesite=lax`
+  document.cookie = `${SOCIAL_SET_COOKIE}=${encodeURIComponent(id)}; path=/; max-age=31536000; samesite=lax`
 }

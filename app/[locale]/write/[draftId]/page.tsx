@@ -30,11 +30,7 @@ export default async function WriteDraftPage({ params, searchParams }: WriteDraf
   const canManageSets = hasPermission(access.role, 'workspace:update')
   const [data, posts, aiEnabled, settings] = await Promise.all([
     // The library shows the set the draft belongs to, whatever was open before.
-    loadWrite(
-      access.tenant,
-      { ...(await searchParams), set: draft.socialSetId ?? undefined },
-      { connections: canManageSets }
-    ),
+    loadWrite(access.tenant, { ...(await searchParams), set: draft.socialSetId ?? undefined }),
     listContentDraftPosts(access.tenant, draftId),
     isAiEnabled(access.tenant).catch(() => false),
     getContentDraftSettings(access.tenant),

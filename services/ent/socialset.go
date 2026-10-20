@@ -25,26 +25,38 @@ type SocialSet struct {
 	Name string `json:"name,omitempty"`
 	// Color holds the value of the "color" field.
 	Color string `json:"color,omitempty"`
-	// IsDefault holds the value of the "is_default" field.
-	IsDefault bool `json:"is_default,omitempty"`
-	// ChannelConnectionIds holds the value of the "channel_connection_ids" field.
-	ChannelConnectionIds []string `json:"channel_connection_ids,omitempty"`
-	// DefaultChannels holds the value of the "default_channels" field.
-	DefaultChannels []string `json:"default_channels,omitempty"`
-	// TimeZone holds the value of the "time_zone" field.
-	TimeZone *string `json:"time_zone,omitempty"`
 	// Visibility holds the value of the "visibility" field.
 	Visibility socialset.Visibility `json:"visibility,omitempty"`
-	// MemberUserIds holds the value of the "member_user_ids" field.
-	MemberUserIds []string `json:"member_user_ids,omitempty"`
-	// Preferences holds the value of the "preferences" field.
-	Preferences schema.SocialSetPreferences `json:"preferences,omitempty"`
+	// OwnerUserID holds the value of the "owner_user_id" field.
+	OwnerUserID *string `json:"owner_user_id,omitempty"`
+	// TimeZone holds the value of the "time_zone" field.
+	TimeZone string `json:"time_zone,omitempty"`
+	// PostingSlots holds the value of the "posting_slots" field.
+	PostingSlots []schema.QueueSlot `json:"posting_slots,omitempty"`
+	// NaturalPostingTimes holds the value of the "natural_posting_times" field.
+	NaturalPostingTimes bool `json:"natural_posting_times,omitempty"`
+	// DefaultPlatforms holds the value of the "default_platforms" field.
+	DefaultPlatforms []string `json:"default_platforms,omitempty"`
+	// PrimaryPlatform holds the value of the "primary_platform" field.
+	PrimaryPlatform *string `json:"primary_platform,omitempty"`
+	// EngagementDefaults holds the value of the "engagement_defaults" field.
+	EngagementDefaults schema.Engagement `json:"engagement_defaults,omitempty"`
+	// PublicProfile holds the value of the "public_profile" field.
+	PublicProfile bool `json:"public_profile,omitempty"`
+	// PublicSlug holds the value of the "public_slug" field.
+	PublicSlug string `json:"public_slug,omitempty"`
+	// WritingAssistant holds the value of the "writing_assistant" field.
+	WritingAssistant schema.WritingAssistant `json:"writing_assistant,omitempty"`
+	// Version holds the value of the "version" field.
+	Version int `json:"version,omitempty"`
 	// CreatedByUserID holds the value of the "created_by_user_id" field.
 	CreatedByUserID *string `json:"created_by_user_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// DeletedAt holds the value of the "deleted_at" field.
+	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -53,13 +65,15 @@ func (*SocialSet) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case socialset.FieldChannelConnectionIds, socialset.FieldDefaultChannels, socialset.FieldMemberUserIds, socialset.FieldPreferences:
+		case socialset.FieldPostingSlots, socialset.FieldDefaultPlatforms, socialset.FieldEngagementDefaults, socialset.FieldWritingAssistant:
 			values[i] = new([]byte)
-		case socialset.FieldIsDefault:
+		case socialset.FieldNaturalPostingTimes, socialset.FieldPublicProfile:
 			values[i] = new(sql.NullBool)
-		case socialset.FieldID, socialset.FieldOrganizationID, socialset.FieldName, socialset.FieldColor, socialset.FieldTimeZone, socialset.FieldVisibility, socialset.FieldCreatedByUserID:
+		case socialset.FieldVersion:
+			values[i] = new(sql.NullInt64)
+		case socialset.FieldID, socialset.FieldOrganizationID, socialset.FieldName, socialset.FieldColor, socialset.FieldVisibility, socialset.FieldOwnerUserID, socialset.FieldTimeZone, socialset.FieldPrimaryPlatform, socialset.FieldPublicSlug, socialset.FieldCreatedByUserID:
 			values[i] = new(sql.NullString)
-		case socialset.FieldCreatedAt, socialset.FieldUpdatedAt:
+		case socialset.FieldCreatedAt, socialset.FieldUpdatedAt, socialset.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -100,56 +114,87 @@ func (_m *SocialSet) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Color = value.String
 			}
-		case socialset.FieldIsDefault:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field is_default", values[i])
-			} else if value.Valid {
-				_m.IsDefault = value.Bool
-			}
-		case socialset.FieldChannelConnectionIds:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field channel_connection_ids", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.ChannelConnectionIds); err != nil {
-					return fmt.Errorf("unmarshal field channel_connection_ids: %w", err)
-				}
-			}
-		case socialset.FieldDefaultChannels:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field default_channels", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.DefaultChannels); err != nil {
-					return fmt.Errorf("unmarshal field default_channels: %w", err)
-				}
-			}
-		case socialset.FieldTimeZone:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field time_zone", values[i])
-			} else if value.Valid {
-				_m.TimeZone = new(string)
-				*_m.TimeZone = value.String
-			}
 		case socialset.FieldVisibility:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field visibility", values[i])
 			} else if value.Valid {
 				_m.Visibility = socialset.Visibility(value.String)
 			}
-		case socialset.FieldMemberUserIds:
+		case socialset.FieldOwnerUserID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field owner_user_id", values[i])
+			} else if value.Valid {
+				_m.OwnerUserID = new(string)
+				*_m.OwnerUserID = value.String
+			}
+		case socialset.FieldTimeZone:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field time_zone", values[i])
+			} else if value.Valid {
+				_m.TimeZone = value.String
+			}
+		case socialset.FieldPostingSlots:
 			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field member_user_ids", values[i])
+				return fmt.Errorf("unexpected type %T for field posting_slots", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.MemberUserIds); err != nil {
-					return fmt.Errorf("unmarshal field member_user_ids: %w", err)
+				if err := json.Unmarshal(*value, &_m.PostingSlots); err != nil {
+					return fmt.Errorf("unmarshal field posting_slots: %w", err)
 				}
 			}
-		case socialset.FieldPreferences:
+		case socialset.FieldNaturalPostingTimes:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field natural_posting_times", values[i])
+			} else if value.Valid {
+				_m.NaturalPostingTimes = value.Bool
+			}
+		case socialset.FieldDefaultPlatforms:
 			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field preferences", values[i])
+				return fmt.Errorf("unexpected type %T for field default_platforms", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Preferences); err != nil {
-					return fmt.Errorf("unmarshal field preferences: %w", err)
+				if err := json.Unmarshal(*value, &_m.DefaultPlatforms); err != nil {
+					return fmt.Errorf("unmarshal field default_platforms: %w", err)
 				}
+			}
+		case socialset.FieldPrimaryPlatform:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field primary_platform", values[i])
+			} else if value.Valid {
+				_m.PrimaryPlatform = new(string)
+				*_m.PrimaryPlatform = value.String
+			}
+		case socialset.FieldEngagementDefaults:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field engagement_defaults", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.EngagementDefaults); err != nil {
+					return fmt.Errorf("unmarshal field engagement_defaults: %w", err)
+				}
+			}
+		case socialset.FieldPublicProfile:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field public_profile", values[i])
+			} else if value.Valid {
+				_m.PublicProfile = value.Bool
+			}
+		case socialset.FieldPublicSlug:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field public_slug", values[i])
+			} else if value.Valid {
+				_m.PublicSlug = value.String
+			}
+		case socialset.FieldWritingAssistant:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field writing_assistant", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.WritingAssistant); err != nil {
+					return fmt.Errorf("unmarshal field writing_assistant: %w", err)
+				}
+			}
+		case socialset.FieldVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field version", values[i])
+			} else if value.Valid {
+				_m.Version = int(value.Int64)
 			}
 		case socialset.FieldCreatedByUserID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -169,6 +214,13 @@ func (_m *SocialSet) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
+			}
+		case socialset.FieldDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
+			} else if value.Valid {
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -215,28 +267,45 @@ func (_m *SocialSet) String() string {
 	builder.WriteString("color=")
 	builder.WriteString(_m.Color)
 	builder.WriteString(", ")
-	builder.WriteString("is_default=")
-	builder.WriteString(fmt.Sprintf("%v", _m.IsDefault))
-	builder.WriteString(", ")
-	builder.WriteString("channel_connection_ids=")
-	builder.WriteString(fmt.Sprintf("%v", _m.ChannelConnectionIds))
-	builder.WriteString(", ")
-	builder.WriteString("default_channels=")
-	builder.WriteString(fmt.Sprintf("%v", _m.DefaultChannels))
-	builder.WriteString(", ")
-	if v := _m.TimeZone; v != nil {
-		builder.WriteString("time_zone=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
 	builder.WriteString("visibility=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Visibility))
 	builder.WriteString(", ")
-	builder.WriteString("member_user_ids=")
-	builder.WriteString(fmt.Sprintf("%v", _m.MemberUserIds))
+	if v := _m.OwnerUserID; v != nil {
+		builder.WriteString("owner_user_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
-	builder.WriteString("preferences=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Preferences))
+	builder.WriteString("time_zone=")
+	builder.WriteString(_m.TimeZone)
+	builder.WriteString(", ")
+	builder.WriteString("posting_slots=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PostingSlots))
+	builder.WriteString(", ")
+	builder.WriteString("natural_posting_times=")
+	builder.WriteString(fmt.Sprintf("%v", _m.NaturalPostingTimes))
+	builder.WriteString(", ")
+	builder.WriteString("default_platforms=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DefaultPlatforms))
+	builder.WriteString(", ")
+	if v := _m.PrimaryPlatform; v != nil {
+		builder.WriteString("primary_platform=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("engagement_defaults=")
+	builder.WriteString(fmt.Sprintf("%v", _m.EngagementDefaults))
+	builder.WriteString(", ")
+	builder.WriteString("public_profile=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PublicProfile))
+	builder.WriteString(", ")
+	builder.WriteString("public_slug=")
+	builder.WriteString(_m.PublicSlug)
+	builder.WriteString(", ")
+	builder.WriteString("writing_assistant=")
+	builder.WriteString(fmt.Sprintf("%v", _m.WritingAssistant))
+	builder.WriteString(", ")
+	builder.WriteString("version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Version))
 	builder.WriteString(", ")
 	if v := _m.CreatedByUserID; v != nil {
 		builder.WriteString("created_by_user_id=")
@@ -248,6 +317,11 @@ func (_m *SocialSet) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.DeletedAt; v != nil {
+		builder.WriteString("deleted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

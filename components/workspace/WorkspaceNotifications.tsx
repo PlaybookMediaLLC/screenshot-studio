@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { Group, Section } from '@/components/platform-ui'
+import { EmailSwitch, SocialSetNotifications } from '@/components/settings/NotificationExtras'
 import { Button } from '@/components/ui/button'
 import {
   notificationRequest,
@@ -189,6 +190,13 @@ function SettingsForm({
       ) : null}
 
       <Section
+        title="Email"
+        description="Your switch for activity email, in every workspace you belong to."
+      >
+        <EmailSwitch />
+      </Section>
+
+      <Section
         title="Your preferences"
         description="Workspace policy is the limit for every delivery. These settings affect only you."
       >
@@ -269,6 +277,17 @@ function SettingsForm({
             </details>
           ))}
         </Group>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Slack direct messages are not available: the Shots Slack app does not ask for the im:write
+          permission. Workspace activity can still go to a Slack channel.
+        </p>
+        <div className="mt-6">
+          <SocialSetNotifications
+            disabled={!!busy}
+            onChange={(socialSets) => setPreferences((current) => ({ ...current, socialSets }))}
+            value={preferences.socialSets ?? {}}
+          />
+        </div>
         <div className="mt-4 flex flex-wrap gap-3">
           <Button disabled={!!busy} onClick={() => void save('preferences')}>
             {busy === 'preferences' ? 'Saving…' : 'Save my preferences'}

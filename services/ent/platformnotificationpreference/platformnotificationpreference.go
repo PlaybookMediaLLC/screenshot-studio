@@ -19,6 +19,8 @@ const (
 	FieldUserID = "userId"
 	// FieldEvents holds the string denoting the events field in the database.
 	FieldEvents = "events"
+	// FieldSocialSets holds the string denoting the social_sets field in the database.
+	FieldSocialSets = "social_sets"
 	// FieldGeneration holds the string denoting the generation field in the database.
 	FieldGeneration = "generation"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -33,6 +35,7 @@ var Columns = []string{
 	FieldOrganizationID,
 	FieldUserID,
 	FieldEvents,
+	FieldSocialSets,
 	FieldGeneration,
 	FieldUpdatedAt,
 }
@@ -50,6 +53,8 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultEvents holds the default value on creation for the "events" field.
 	DefaultEvents map[string]interface{}
+	// DefaultSocialSets holds the default value on creation for the "social_sets" field.
+	DefaultSocialSets map[string]map[string]bool
 	// DefaultGeneration holds the default value on creation for the "generation" field.
 	DefaultGeneration int
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.

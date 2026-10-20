@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -27,6 +28,8 @@ type WorkspaceSettings struct {
 	DefaultPublishTime string `json:"default_publish_time,omitempty"`
 	// AiAgentEnabled holds the value of the "ai_agent_enabled" field.
 	AiAgentEnabled bool `json:"ai_agent_enabled,omitempty"`
+	// DisabledExperiments holds the value of the "disabled_experiments" field.
+	DisabledExperiments []string `json:"disabled_experiments,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -39,6 +42,8 @@ func (*WorkspaceSettings) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case workspacesettings.FieldDisabledExperiments:
+			values[i] = new([]byte)
 		case workspacesettings.FieldAiAgentEnabled:
 			values[i] = new(sql.NullBool)
 		case workspacesettings.FieldID, workspacesettings.FieldDescription, workspacesettings.FieldLocale, workspacesettings.FieldTimeZone, workspacesettings.FieldDefaultPublishTime:
@@ -96,6 +101,14 @@ func (_m *WorkspaceSettings) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field ai_agent_enabled", values[i])
 			} else if value.Valid {
 				_m.AiAgentEnabled = value.Bool
+			}
+		case workspacesettings.FieldDisabledExperiments:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field disabled_experiments", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.DisabledExperiments); err != nil {
+					return fmt.Errorf("unmarshal field disabled_experiments: %w", err)
+				}
 			}
 		case workspacesettings.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -161,6 +174,9 @@ func (_m *WorkspaceSettings) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("ai_agent_enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AiAgentEnabled))
+	builder.WriteString(", ")
+	builder.WriteString("disabled_experiments=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DisabledExperiments))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

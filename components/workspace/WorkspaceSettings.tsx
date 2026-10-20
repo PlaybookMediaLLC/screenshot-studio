@@ -1,7 +1,8 @@
 import { Page, Section } from '@/components/platform-ui'
+import { SettingsNav } from '@/components/settings/SettingsNav'
 import { WorkspaceDeletionRecovery } from './WorkspaceDeletionSettings'
 import { WorkspaceSettingContent } from './WorkspaceSettingDetail'
-import { SETTINGS_SECTIONS, type SettingId } from './settings-sections'
+import { SETTINGS_SECTIONS, type SettingId, type SocialSetPage } from './settings-sections'
 
 export type WorkspaceSettingsProps = {
   email: string
@@ -24,13 +25,16 @@ export type WorkspaceSettingsProps = {
   }
   role: string
   section: SettingId
+  /** The social set and page, for a social set's own settings. */
+  socialSet?: { id: string; page: SocialSetPage }
   twoFactorEnabled: boolean
   userId: string
 }
 
 /**
- * One workspace settings section. Each section is its own route, linked from
- * the sidebar under Settings, so the page is just the section's content.
+ * One settings section beside the grouped settings navigation. Each section
+ * is its own route, linked from the sidebar under Settings and from the list
+ * here, so the address always says where you are.
  */
 export function WorkspaceSettings({ section, ...props }: WorkspaceSettingsProps) {
   const { organization, userId } = props
@@ -51,9 +55,14 @@ export function WorkspaceSettings({ section, ...props }: WorkspaceSettingsProps)
   const current = SETTINGS_SECTIONS.find((item) => item.id === section) ?? SETTINGS_SECTIONS[0]!
   return (
     <Page title="Settings">
-      <Section description={current.description} title={current.title}>
-        <WorkspaceSettingContent section={section} {...props} />
-      </Section>
+      <div className="flex flex-col gap-6 lg:flex-row lg:gap-10">
+        <SettingsNav />
+        <div className="min-w-0 flex-1">
+          <Section description={current.description} title={current.title}>
+            <WorkspaceSettingContent section={section} {...props} />
+          </Section>
+        </div>
+      </div>
     </Page>
   )
 }

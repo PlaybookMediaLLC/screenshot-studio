@@ -71,12 +71,16 @@ export type DraftSave = {
   channelText?: Partial<Record<DraftChannel, string>>
   discussions?: DraftDiscussions
   plainText?: string
+  /** An ISO instant, or an empty string to clear it (an experiment). */
+  plannedFor?: string
   status?: 'draft' | 'archived'
+  /** Labels (an experiment). */
+  tags?: string[]
   title?: string
   /** Write (RFC 042): the draft's structured parts beside the body. */
   article?: DraftWire['article'] & object
   platformVersions?: DraftWire['platformVersions']
-  primaryChannel?: DraftChannel
+  primaryPlatform?: DraftChannel
   target?: DraftWire['target'] & object
 }
 
@@ -105,8 +109,10 @@ export const draftsApi = {
   settings: () => call<SettingsWire>('/api/v1/content-draft-settings'),
   saveSettings: (input: Partial<SettingsWire>) =>
     call<SettingsWire>('/api/v1/content-draft-settings', { body: input, method: 'PUT' }),
-  bestTimes: () =>
-    call<{ items: { at: string; reason: string }[] }>('/api/v1/content-draft-queue/best-times'),
+  bestTimes: (socialSetId?: string) =>
+    call<{ items: { at: string; reason: string }[] }>(
+      `/api/v1/content-draft-queue/best-times${socialSetId ? `?${new URLSearchParams({ socialSetId })}` : ''}`
+    ),
   calendar: (from: Date, to: Date) =>
     call<{ items: CalendarPostWire[] }>(
       `/api/v1/content-draft-posts?${new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })}`

@@ -5,6 +5,7 @@ package postoptions
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -119,3 +120,27 @@ type PublishOptions struct {
 
 // Empty reports whether no option is set.
 func (o PublishOptions) Empty() bool { return o == PublishOptions{} }
+
+// LivePostURL is a live post's address on its platform, where one can be
+// built from its id.
+func LivePostURL(platform string, remoteID *string) *string {
+	if remoteID == nil || *remoteID == "" {
+		return nil
+	}
+	var url string
+	switch platform {
+	case "x":
+		url = "https://x.com/i/status/" + *remoteID
+	case "linkedin":
+		url = "https://www.linkedin.com/feed/update/" + *remoteID
+	case "threads", "bluesky", "mastodon":
+		// These providers report a post's address as its id.
+		if strings.HasPrefix(*remoteID, "https://") {
+			url = *remoteID
+		}
+	}
+	if url == "" {
+		return nil
+	}
+	return &url
+}

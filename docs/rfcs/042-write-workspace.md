@@ -6,7 +6,7 @@
 
 **Owners:** Product Engineering
 
-**Depends on:** RFC 020 ([publishing](020-social-publishing.md)), RFC 037 ([content drafts](037-workspaces-and-content-drafts.md)), RFC 039 ([scheduling priorities](039-scheduling-feature-priorities.md))
+**Depends on:** RFC 020 ([publishing](020-social-publishing.md)), RFC 037 ([content drafts](037-workspaces-and-content-drafts.md)), RFC 039 ([scheduling priorities](039-scheduling-feature-priorities.md)), RFC 043 ([settings platform](043-settings-platform.md))
 
 ## Decision
 
@@ -37,20 +37,23 @@ Workspace
 
 ### Social sets
 
-A social set (`social_set`) groups a workspace's channel connections under one
-identity. It holds a name and a colour, which need not be unique, the
-connections it publishes to, at most one per platform, the ordered default
-platforms for new drafts, an optional time zone, and writing preferences.
+Write uses the social sets of RFC 043 (`social_set`): a name and a colour,
+which need not be unique, at most one active account per platform
+(`channel_connection.socialSetId`), the ordered default platforms and primary
+platform for new drafts, a scheduling time zone, posting slots, natural
+posting times, engagement defaults, and the set's Writing Assistant. Sets are
+created and edited in workspace settings; Write's switcher links there.
 
-- The workspace's organization and membership stay the authority. A set adds
-  only a visibility rule: `workspace` (every member, by role) or `restricted`
-  (owners, admins, and the members it lists).
-- Every workspace has one default set, created on first use with every active
-  connection. Drafts written before sets existed have no `socialSetId` and
-  belong to the default set; no row is rewritten.
+- The workspace's organization and membership stay the authority. A set is
+  shared with the workspace (`WORKSPACE`) or private to its owner (`PRIVATE`).
+- The workspace's default set is its oldest shared set (RFC 043). A draft
+  without a `socialSetId` belongs to it.
 - Go checks set access on every draft read and write, in lists, and in
-  background work. A draft in a restricted set is not found for a member
-  outside it.
+  background work. A draft in a private set is not found for anyone but the
+  set's owner.
+- A new draft copies its set's default platforms, primary platform, natural
+  posting time and engagement defaults (RFC 043). Write adds its kind, which
+  can narrow the platforms (a reply or an article is X's).
 
 ### Draft kinds and targets
 
@@ -122,7 +125,10 @@ Nothing promotional is ever inserted into a customer's draft.
 
 - **Tags** are `content_draft_tag` rows scoped to a social set, with a colour.
   A draft keeps tag ids. Copying a draft to another set maps tags by name or
-  drops them, as the person copying chooses.
+  drops them, as the person copying chooses. Tags stay behind RFC 043's
+  `draft-tags` experiment: Go refuses them unless the person turned it on and
+  the workspace allows it, and Write hides them otherwise. The
+  `draft.tags_changed` webhook carries tag ids and names.
 - **Pinning** sets `pinnedAt`; pinned drafts sort first.
 - **Activity** reads the audit log for the draft and its posts: creation,
   content edits, renames, destination and tag changes, review, sharing,
@@ -150,16 +156,18 @@ Three operations, with different backend semantics:
 | Operation | Effect |
 | --- | --- |
 | Save | Persists content. |
-| Plan | Sets `plannedFor` and its time zone. No scheduled post exists, so nothing can publish. |
+| Plan | Sets `plannedFor` and its time zone. No scheduled post exists, so nothing can publish. Behind RFC 043's `draft-planning` experiment. |
 | Schedule | Creates the canonical scheduled posts (RFC 037), at an instant resolved in Go. |
 
 Publishing now is a schedule at the current instant, reached only from a final
 review dialog. Go resolves a local wall time in an IANA zone itself and
 refuses a time that does not exist (a DST gap) or is ambiguous (a repeated
-hour) unless the request says which. Queue slots are reserved under a
-transaction-scoped advisory lock per workspace, so two "add to queue" requests
-never take one slot. The natural posting offset (±4 minutes) is derived from a
-hash of the draft id and version, so a retry or a reload keeps it.
+hour) unless the request says which; without a zone it uses the set's
+scheduling zone. Queue slots are the set's (RFC 043), reserved inside the
+scheduling transaction, so two "add to queue" requests never take one slot.
+The natural posting offset (up to four minutes either way) is RFC 043's: it is
+derived from the draft, its version and the base instant, and stored with the
+post, so a retry or a reload keeps it.
 
 Each destination is its own scheduled post with its own outcome. A failed
 post can be retried by itself; a post whose outcome is unknown must be
@@ -194,8 +202,10 @@ workflow or a retried activity finds the receipt and does nothing again.
 Stopping follow-ups (`POST /api/v1/content-draft-posts/{id}/automations/cancel`)
 cancels pending steps but keeps the removals: one whose repost never went up
 skips itself, and one whose repost did, even a repost in flight while the
-cancel ran, still takes it down. Completed actions are not undone. Sets can
-save follow-up defaults, which new drafts in the set start with.
+cancel ran, still takes it down. Completed actions are not undone. A new
+draft copies its set's engagement defaults (RFC 043: repost and plug at a
+like count); its X version follows them until the writer sets follow-ups of
+its own, and a plug can be saved back as the set's default.
 
 **Auto-DM is not built.** Sending needs X's direct-message permission and a
 paid X API plan; the workspace's X connection is authorized with write access
@@ -253,13 +263,16 @@ standard (280).
 
 ## Rollout
 
-All schema changes are additive, in four migrations:
-`20261030090000_write_workspace` (social sets, tags, finishers, draft and
+Four migrations follow RFC 043's `20261029090000_settings_platform`:
+`20261030090000_write_workspace` (tags and finishers of a set, draft and
 revision columns), `20261030090100_write_publish_options` (a scheduled post's
 settings), `20261030090200_write_post_automation` (follow-up receipts), and
-`20261030090300_write_asset_alt_text`. Older clients keep working: Go ignores
-what it is not sent, and drafts from before social sets belong to the
-workspace's default set.
+`20261030090300_write_asset_alt_text`. All are additive but one change: the
+string `tags` RFC 043 kept on drafts become tag records of each draft's set
+(names matched without case, order kept, blanks dropped; a tagged draft
+without a set joins the default set), the drafts point at them by id, and
+the `tags` column is dropped. Older clients keep working: Go ignores what it
+is not sent.
 
 Write ships behind `PLATFORM_CONTENT_DRAFTS`, as drafts do. Capabilities that
 need provider permissions (articles, LinkedIn documents and polls, mentions,
@@ -274,7 +287,10 @@ scheduled posts, and scheduled posts keep running in Temporal as before.
   the old composer's per-channel text was cleared on first save, so a draft
   edited in Write and then in the old composer publishes the primary text.
 - **API and worker**: the new columns and tables are unused by older code, so
-  no down-migration is needed. A follow-up workflow that started under version
+  no down-migration is needed, except for tags: an RFC 043 backend reads the
+  dropped `content_draft.tags` column. Rolling back past this release needs
+  `ALTER TABLE content_draft ADD COLUMN tags JSONB NOT NULL DEFAULT '[]'`,
+  refilled from `content_draft_tag` names by `tagIds` if the tags matter. A follow-up workflow that started under version
   2 of `post-auto-actions` cannot be replayed by an older worker; before
   rolling the worker back, let those finish (at most 48 hours after their post
   went live, or the last repost removal) or terminate them, which stops only

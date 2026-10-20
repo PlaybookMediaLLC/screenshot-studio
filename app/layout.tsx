@@ -1,3 +1,4 @@
+import { AppThemeProvider } from '@/components/platform-shell/AppThemeProvider'
 import type { Metadata, Viewport } from 'next'
 import { SITE_URL } from '@/lib/seo/metadata'
 import {
@@ -427,7 +428,7 @@ export default async function RootLayout({
   const rootJsonLd = getRootJsonLd()
 
   return (
-    <html lang="en" className={`dark ${fontVariables}`}>
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
       <meta name="msvalidate.01" content="A3B8CB50BBD78710971A13FA3EE1E544" />
       <link rel="alternate" type="text/markdown" href="/llms.txt" title="LLMs.txt" />
       <link
@@ -441,17 +442,19 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(rootJsonLd) }}
         />
-        <QueryProvider>
-          <TRPCReactProvider>
-            <GlobalDropZone>
-              <PathTracker />
-              <AdFreeRouteLinks />
-              {children}
-            </GlobalDropZone>
-            <Toaster />
-            <ConsentBanner />
-          </TRPCReactProvider>
-        </QueryProvider>
+        <AppThemeProvider>
+          <QueryProvider>
+            <TRPCReactProvider>
+              <GlobalDropZone>
+                <PathTracker />
+                <AdFreeRouteLinks />
+                {children}
+              </GlobalDropZone>
+              <Toaster />
+              <ConsentBanner />
+            </TRPCReactProvider>
+          </QueryProvider>
+        </AppThemeProvider>
       </body>
     </html>
   )

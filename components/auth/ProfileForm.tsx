@@ -70,7 +70,7 @@ export function ProfileForm({ email, name }: ProfileFormProps) {
           label={<Label htmlFor="profile-email">Email</Label>}
         >
           <Input
-            className="h-10 cursor-not-allowed rounded-lg text-neutral-500 md:w-72"
+            className="h-10 cursor-not-allowed rounded-lg text-muted-foreground md:w-72"
             defaultValue={email}
             disabled
             id="profile-email"

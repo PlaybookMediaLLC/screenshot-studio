@@ -23,6 +23,27 @@ import type {
   AutomationHistoryFilter,
 } from './release-automation.js'
 export type * from './release-automation.js'
+import type {
+  AccountDeletionStatus,
+  CopyableSocialSet,
+  Engagement,
+  ExperimentState,
+  PublicProfile,
+  SocialSet,
+  SocialSetInput,
+  SocialSetList,
+  SocialSetRemoval,
+  SocialSetUpdate,
+  StyleGuide,
+  UserPreferences,
+  UserPreferencesUpdate,
+  Webhook,
+  WebhookDelivery,
+  WebhookWithSecret,
+  WritingContext,
+  WritingSample,
+} from './settings-platform.js'
+export type * from './settings-platform.js'
 
 /**
  * Who the web facade acts for. The backend rechecks the principal on every
@@ -831,21 +852,25 @@ export type BackendContentDraft = {
   /** When the next queued post goes out (lists only). */
   nextPostAt: string | null
   pinnedAt: string | null
-  /** A planned time puts the draft on the calendar; nothing publishes from it. */
-  plannedFor: string | null
   planTimeZone: string | null
   platformVersions: BackendPlatformVersions
-  /** The channel the body is written for. */
-  primaryChannel: string
   /** Posts waiting to go out (lists only). */
   queuedPosts: number
   /** Internal notes; never part of a post. */
   scratchpad: string
-  /** Null is the workspace's default set. */
-  socialSetId: string | null
   sourceDraftId: string | null
+  /** Tags of the draft's set, by id (an experiment). */
   tagIds: string[]
   target: BackendDraftTarget | null
+  /** The draft's social set and what it copied from the set when created (RFC 043). */
+  engagement: Engagement
+  naturalPostingTime: boolean
+  /** A planned time puts the draft on the calendar; nothing publishes from it (an experiment). */
+  plannedFor: string | null
+  /** The platform the body is written for. */
+  primaryPlatform: string | null
+  /** Null is the workspace's default set. */
+  socialSetId: string | null
 }
 
 /** What kind of post a draft is (RFC 042). */
@@ -895,54 +920,6 @@ export type BackendPlatformVersions = {
     sourceHash?: string
   }[]
 }
-
-/** A social set: a publishing identity inside the workspace (RFC 042). */
-export type BackendSocialSet = {
-  channelConnectionIds: string[]
-  color: string
-  connections: {
-    avatarUrl: string | null
-    channel: string
-    displayName: string | null
-    handle: string | null
-    health: 'healthy' | 'reconnect' | 'disabled'
-    id: string
-    platform: string
-    /** X Premium as X reports it for the account; never the workspace plan. */
-    premium: boolean
-  }[]
-  createdAt: string
-  defaultChannels: string[]
-  id: string
-  isDefault: boolean
-  memberUserIds: string[]
-  name: string
-  preferences: {
-    audience?: string
-    /** The X follow-ups new drafts in the set start with. */
-    automation?: BackendAutoActions
-    naturalTiming?: boolean
-    samples?: string[]
-    voice?: string
-  }
-  timeZone: string | null
-  updatedAt: string
-  visibility: 'workspace' | 'restricted'
-}
-
-/** A social set's fields; an update changes those it sets. */
-export type BackendSocialSetInput = Partial<
-  Pick<
-    BackendSocialSet,
-    | 'channelConnectionIds'
-    | 'color'
-    | 'defaultChannels'
-    | 'memberUserIds'
-    | 'name'
-    | 'preferences'
-    | 'visibility'
-  >
-> & { timeZone?: string }
 
 /** A set's tag. */
 export type BackendDraftTag = {
@@ -1077,22 +1054,26 @@ export type BackendContentDraftFields = {
   discussions?: Record<string, unknown>
   plainText?: string
   platformVersions?: BackendPlatformVersions
-  primaryChannel?: string
   target?: BackendDraftTarget
   title?: string
 }
 
-/** A new draft: the fields, plus what only creation sets. */
-export type BackendContentDraftInput = BackendContentDraftFields & {
+/** A new draft: without channels it starts with its set's default platforms. */
+export type BackendContentDraftCreate = BackendContentDraftFields & {
   kind?: BackendDraftKind
   scratchpad?: string
   socialSetId?: string
+  /** An experiment. */
   tagIds?: string[]
 }
 
 export type BackendContentDraftUpdate = BackendContentDraftFields & {
   baseVersion: number
   status?: Exclude<BackendContentDraftStatus, 'scheduled'>
+  naturalPostingTime?: boolean
+  /** RFC 3339, or an empty string to clear (an experiment). */
+  plannedFor?: string
+  primaryPlatform?: string
 }
 
 /** A post scheduled from a content draft, with its delivery status. */
@@ -1113,6 +1094,12 @@ export type BackendContentDraftPost = {
   threadProgress: { lastReplyId?: string; posted: number; total: number }
   /** Its follow-ups once live, each with its receipt (RFC 042). */
   automations?: BackendPostAutomation[]
+  /** How the instant was chosen (RFC 043). */
+  naturalOffsetSeconds: number | null
+  scheduleMode: 'queue' | 'explicit' | null
+  scheduleTimeZone: string | null
+  slotAt: string | null
+  socialSetId: string | null
 }
 
 /** One channel of a draft schedule and the caption serialized for it. */
@@ -1153,7 +1140,7 @@ export type BackendPublishOptions = {
 export type BackendScheduleTiming = {
   disambiguation?: 'earlier' | 'later'
   localTime?: string
-  naturalTiming?: boolean
+  naturalPostingTime?: boolean
   publishNow?: boolean
   queue?: boolean
   scheduledFor?: Date
@@ -2052,9 +2039,10 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
-  async beginSocialOAuth(provider: OAuthProvider) {
+  /** Begins a provider connection; with a set, the account joins that set (RFC 043). */
+  async beginSocialOAuth(provider: OAuthProvider, socialSetId?: string) {
     return this.request<{ url: string }>('v1/social-oauth/begin', {
-      body: { provider },
+      body: socialSetId ? { provider, socialSetId } : { provider },
       method: 'POST',
     })
   }
@@ -2531,7 +2519,7 @@ export class ScreenshotStudioBackendSDK {
     }>(`v1/content-drafts?${params}`)
   }
 
-  async createContentDraft(input: BackendContentDraftInput) {
+  async createContentDraft(input: BackendContentDraftCreate) {
     return this.request<BackendContentDraft>('v1/content-drafts', { body: input, method: 'POST' })
   }
 
@@ -2552,6 +2540,7 @@ export class ScreenshotStudioBackendSDK {
    * repeat at the same version replays the same posts (`created: false`); a
    * stale version fails with 409; a new version cancels queued posts first.
    */
+  /** Schedules at `scheduledFor`, or with `queue` at the set's next free slot, which the backend reserves. */
   async scheduleContentDraft(
     id: string,
     input: BackendScheduleTiming & { targets: BackendContentDraftScheduleTarget[]; version: number }
@@ -2565,9 +2554,12 @@ export class ScreenshotStudioBackendSDK {
 
   /** A short-lived presence token; set documents keep their revision-checked persistence. */
   async createCreativeSetCollabToken(id: string) {
-    return this.request<{ access: 'read' | 'write'; documentName: string; expiresAt: string; token: string }>(
-      `v1/creative-sets/${encodeURIComponent(id)}/collab-token`, { body: {}, method: 'POST' }
-    )
+    return this.request<{
+      access: 'read' | 'write'
+      documentName: string
+      expiresAt: string
+      token: string
+    }>(`v1/creative-sets/${encodeURIComponent(id)}/collab-token`, { body: {}, method: 'POST' })
   }
 
   /** A short-lived token admitting the signed-in member to the draft's live session. */
@@ -2601,16 +2593,19 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** The queue's next free slot. */
-  async nextContentDraftQueueSlot() {
-    return this.request<{ scheduledFor: string }>('v1/content-draft-queue/next')
+  /** The next free slot of a set (the default set when omitted); it suggests, scheduling reserves. */
+  async nextContentDraftQueueSlot(socialSetId = '') {
+    const params = new URLSearchParams(socialSetId ? { socialSetId } : {})
+    return this.request<{ scheduledFor: string }>(`v1/content-draft-queue/next?${params}`)
   }
 
-  async bestPostingTimes() {
-    return this.request<{ items: BackendBestTime[] }>('v1/content-draft-queue/best-times')
+  async bestPostingTimes(socialSetId = '') {
+    const params = new URLSearchParams(socialSetId ? { socialSetId } : {})
+    return this.request<{ items: BackendBestTime[] }>(`v1/content-draft-queue/best-times?${params}`)
   }
 
-  /** Draft posts due in [from, to), for the calendar and the queue; one set's when given. */
-  async listContentDraftPostsBetween(from: Date, to: Date, socialSetId?: string) {
+  /** Draft posts due in [from, to), for the calendar and the queue; optionally one set's. */
+  async listContentDraftPostsBetween(from: Date, to: Date, socialSetId = '') {
     const params = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })
     if (socialSetId) params.set('socialSetId', socialSetId)
     return this.request<{ items: BackendCalendarPost[] }>(`v1/content-draft-posts?${params}`)
@@ -2623,37 +2618,11 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ items: BackendContentDraft[] }>(`v1/content-draft-plans?${params}`)
   }
 
-  /** The social sets the caller may see, the default first (RFC 042). */
-  async listSocialSets() {
-    return this.request<{ items: BackendSocialSet[] }>('v1/social-sets')
-  }
-
-  async getSocialSet(id: string) {
-    return this.request<BackendSocialSet>(`v1/social-sets/${encodeURIComponent(id)}`)
-  }
-
   /** What the set's account for a channel can mention (RFC 042). */
   async lookupSocialSetMentions(id: string, channel: 'x' | 'linkedin', query: string) {
     return this.request<{ items: BackendSocialMention[] }>(
       `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query })}`
     )
-  }
-
-  async createSocialSet(input: BackendSocialSetInput & { name: string }) {
-    return this.request<BackendSocialSet>('v1/social-sets', { body: input, method: 'POST' })
-  }
-
-  async updateSocialSet(id: string, input: BackendSocialSetInput) {
-    return this.request<BackendSocialSet>(`v1/social-sets/${encodeURIComponent(id)}`, {
-      body: input,
-      method: 'PATCH',
-    })
-  }
-
-  async deleteSocialSet(id: string) {
-    return this.request<{ deleted: true }>(`v1/social-sets/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-    })
   }
 
   async listDraftTags(setId: string) {
@@ -2852,6 +2821,205 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
+  /** The signed-in person's preferences (RFC 043). */
+  async getUserPreferences() {
+    return this.request<UserPreferences>('v1/me/preferences')
+  }
+
+  /** Saves the preferences set; a stale `baseVersion` fails with 409. */
+  async updateUserPreferences(input: UserPreferencesUpdate) {
+    return this.request<UserPreferences>('v1/me/preferences', { body: input, method: 'PATCH' })
+  }
+
+  async getAccountDeletion() {
+    return this.request<AccountDeletionStatus>('v1/me/account-deletion')
+  }
+
+  /** Schedules the person's account for deletion after its grace period. */
+  async requestAccountDeletion(confirmation: string) {
+    return this.request<AccountDeletionStatus>('v1/me/account-deletion', {
+      body: { confirmation },
+      method: 'POST',
+    })
+  }
+
+  async cancelAccountDeletion() {
+    return this.request<AccountDeletionStatus>('v1/me/account-deletion', { method: 'DELETE' })
+  }
+
+  async listExperiments() {
+    return this.request<{ items: ExperimentState[] }>('v1/experiments')
+  }
+
+  /** Turns an experiment off, or back on, for the whole workspace (owners and admins). */
+  async setWorkspaceExperiment(id: string, disabled: boolean) {
+    return this.request<{ items: ExperimentState[] }>(
+      `v1/experiments/${encodeURIComponent(id)}/workspace`,
+      { body: { disabled }, method: 'PUT' }
+    )
+  }
+
+  async listSocialSets() {
+    return this.request<SocialSetList>('v1/social-sets')
+  }
+
+  async getSocialSet(id: string) {
+    return this.request<SocialSet>(`v1/social-sets/${encodeURIComponent(id)}`)
+  }
+
+  async createSocialSet(input: SocialSetInput) {
+    return this.request<SocialSet>('v1/social-sets', { body: input, method: 'POST' })
+  }
+
+  async updateSocialSet(id: string, input: SocialSetUpdate) {
+    return this.request<SocialSet>(`v1/social-sets/${encodeURIComponent(id)}`, {
+      body: input,
+      method: 'PATCH',
+    })
+  }
+
+  /** Deletes a set; `confirmation` is its name. */
+  async deleteSocialSet(id: string, confirmation: string) {
+    return this.request<SocialSetRemoval>(`v1/social-sets/${encodeURIComponent(id)}`, {
+      body: { confirmation },
+      method: 'DELETE',
+    })
+  }
+
+  /** Shares a private set with the workspace; only its owner can. */
+  async shareSocialSet(id: string) {
+    return this.request<SocialSet>(`v1/social-sets/${encodeURIComponent(id)}/share`, {
+      body: {},
+      method: 'POST',
+    })
+  }
+
+  async assignSocialSetAccount(id: string, connectionId: string) {
+    return this.request<SocialSet>(
+      `v1/social-sets/${encodeURIComponent(id)}/accounts/${encodeURIComponent(connectionId)}`,
+      { body: {}, method: 'POST' }
+    )
+  }
+
+  /** Removes an account from a set; its queued posts are cancelled. */
+  async removeSocialSetAccount(id: string, connectionId: string) {
+    return this.request<SocialSetRemoval>(
+      `v1/social-sets/${encodeURIComponent(id)}/accounts/${encodeURIComponent(connectionId)}`,
+      { method: 'DELETE' }
+    )
+  }
+
+  async listCopyableSocialSets() {
+    return this.request<{ items: CopyableSocialSet[] }>('v1/social-sets/copyable')
+  }
+
+  async copySocialSet(workspaceId: string, socialSetId: string) {
+    return this.request<SocialSet>('v1/social-sets/copy', {
+      body: { socialSetId, workspaceId },
+      method: 'POST',
+    })
+  }
+
+  async updateWritingAssistant(
+    id: string,
+    input: {
+      action?: 'create' | 'disable' | 'enable'
+      baseVersion: number
+      styleGuide?: StyleGuide
+    }
+  ) {
+    return this.request<SocialSet>(`v1/social-sets/${encodeURIComponent(id)}/writing-assistant`, {
+      body: input,
+      method: 'PUT',
+    })
+  }
+
+  async listWritingSamples(id: string) {
+    return this.request<{ items: WritingSample[] }>(
+      `v1/social-sets/${encodeURIComponent(id)}/writing-samples`
+    )
+  }
+
+  async addWritingSample(id: string, input: { draftId?: string; text?: string }) {
+    return this.request<WritingSample>(`v1/social-sets/${encodeURIComponent(id)}/writing-samples`, {
+      body: input,
+      method: 'POST',
+    })
+  }
+
+  async deleteWritingSample(id: string, sampleId: string) {
+    return this.request<{ deleted: true }>(
+      `v1/social-sets/${encodeURIComponent(id)}/writing-samples/${encodeURIComponent(sampleId)}`,
+      { method: 'DELETE' }
+    )
+  }
+
+  /** The brand voice refined by the draft's set, for AI help on a channel. */
+  async getDraftWritingContext(id: string, channel: string) {
+    return this.request<WritingContext>(
+      `v1/content-drafts/${encodeURIComponent(id)}/writing-context?channel=${encodeURIComponent(channel)}`
+    )
+  }
+
+  /** A set's public profile (service credential); not found while it is off. */
+  async getPublicProfile(slug: string) {
+    return this.request<PublicProfile>(`v1/internal/public-profiles/${encodeURIComponent(slug)}`)
+  }
+
+  async listWebhooks() {
+    return this.request<{ events: string[]; items: Webhook[] }>('v1/webhooks')
+  }
+
+  /** The secret in the result is shown this once. */
+  async createWebhook(input: { events: string[]; name: string; url: string }) {
+    return this.request<WebhookWithSecret>('v1/webhooks', { body: input, method: 'POST' })
+  }
+
+  async updateWebhook(
+    id: string,
+    input: { enabled?: boolean; events?: string[]; name?: string; url?: string }
+  ) {
+    return this.request<Webhook>(`v1/webhooks/${encodeURIComponent(id)}`, {
+      body: input,
+      method: 'PATCH',
+    })
+  }
+
+  async deleteWebhook(id: string) {
+    return this.request<{ deleted: true }>(`v1/webhooks/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+  }
+
+  /** A new secret, shown this once; the old one keeps signing for 24 hours. */
+  async rotateWebhookSecret(id: string) {
+    return this.request<WebhookWithSecret>(`v1/webhooks/${encodeURIComponent(id)}/rotate`, {
+      body: {},
+      method: 'POST',
+    })
+  }
+
+  async testWebhook(id: string) {
+    return this.request<WebhookDelivery>(`v1/webhooks/${encodeURIComponent(id)}/test`, {
+      body: {},
+      method: 'POST',
+    })
+  }
+
+  async listWebhookDeliveries(id: string) {
+    return this.request<{ items: WebhookDelivery[] }>(
+      `v1/webhooks/${encodeURIComponent(id)}/deliveries`
+    )
+  }
+
+  /** Replays a delivery that stopped retrying, with the same event ID. */
+  async retryWebhookDelivery(id: string) {
+    return this.request<WebhookDelivery>(`v1/webhook-deliveries/${encodeURIComponent(id)}/retry`, {
+      body: {},
+      method: 'POST',
+    })
+  }
+
   /** A guest's comment on a shared draft (service credential). */
   async addGuestComment(token: string, input: { name: string; text: string }) {
     return this.request<BackendSharedContentDraft>(
@@ -2974,10 +3142,13 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async duplicateCreativeSet(id: string, name?: string) {
-    return this.request<BackendCreativeSet>(`v1/creative-sets/${encodeURIComponent(id)}/duplicate`, {
-      body: name === undefined ? {} : { name },
-      method: 'POST',
-    })
+    return this.request<BackendCreativeSet>(
+      `v1/creative-sets/${encodeURIComponent(id)}/duplicate`,
+      {
+        body: name === undefined ? {} : { name },
+        method: 'POST',
+      }
+    )
   }
 
   async archiveCreativeSet(id: string) {
@@ -3000,15 +3171,30 @@ export class ScreenshotStudioBackendSDK {
 
   /** Names the creativeSet's current document as a version. */
   async createCreativeSetVersion(id: string, name: string, baseRevision?: number) {
-    return this.request<BackendCreativeSetVersion>(`v1/creative-sets/${encodeURIComponent(id)}/versions`, {
-      body: { name, baseRevision },
-      method: 'POST',
-    })
+    return this.request<BackendCreativeSetVersion>(
+      `v1/creative-sets/${encodeURIComponent(id)}/versions`,
+      {
+        body: { name, baseRevision },
+        method: 'POST',
+      }
+    )
   }
 
   /** Attach an immutable delivered revision to campaign review, idempotently. */
-  async attachCreativeSetDelivery(id: string, input: { baseRevision: number; deliveryId: string; campaignId: string; channel: string; copy: string }) {
-    return this.request<{ campaignId: string; designId: string; postId: string }>(`v1/creative-sets/${encodeURIComponent(id)}/campaign`, { body: input, method: 'POST' })
+  async attachCreativeSetDelivery(
+    id: string,
+    input: {
+      baseRevision: number
+      deliveryId: string
+      campaignId: string
+      channel: string
+      copy: string
+    }
+  ) {
+    return this.request<{ campaignId: string; designId: string; postId: string }>(
+      `v1/creative-sets/${encodeURIComponent(id)}/campaign`,
+      { body: input, method: 'POST' }
+    )
   }
 
   /** Makes a version the current document, as a new revision based on `baseRevision`. */

@@ -20,7 +20,7 @@ export function CampaignSubnav({ campaignId }: { campaignId: string }) {
   return (
     <nav
       aria-label="Campaign"
-      className="-mt-3 flex gap-1 overflow-x-auto border-b border-white/[0.07] pb-3"
+      className="-mt-3 flex gap-1 overflow-x-auto border-b border-foreground/[0.07] pb-3"
     >
       {TABS.map((tab) => {
         const href = base + tab.path
@@ -31,8 +31,8 @@ export function CampaignSubnav({ campaignId }: { campaignId: string }) {
             className={cn(
               'inline-flex h-8 shrink-0 items-center rounded-full px-3 text-sm font-medium transition-colors',
               active
-                ? 'bg-white/[0.08] text-white'
-                : 'text-neutral-500 hover:bg-white/[0.03] hover:text-neutral-200'
+                ? 'bg-foreground/[0.08] text-foreground'
+                : 'text-muted-foreground hover:bg-foreground/[0.03] hover:text-foreground'
             )}
             href={href}
             key={tab.label}

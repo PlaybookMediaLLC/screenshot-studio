@@ -28,10 +28,11 @@ import { CAPABILITIES } from '@/lib/write/capabilities'
 import type { DraftChannel, DraftKind, PlateBody, PlatformVersions } from '@/lib/write/document'
 import { forkVersion, primaryChanged, resyncVersion, versionFor } from '@/lib/write/versions'
 import { cn } from '@/lib/utils'
+import { healthLabel } from '../sets'
 import type { WriteSet } from '../write-context'
 
 /** A set's account as the composer shows it. */
-export type ComposerAccount = WriteSet['connections'][number]
+export type ComposerAccount = WriteSet['accounts'][number]
 
 /**
  * The platforms of a draft (RFC 042). The tab being edited, whether a
@@ -96,15 +97,8 @@ export function PlatformTabs({
                 {mode === 'primary' ? 'primary' : mode === 'manual' ? 'own text' : 'synced'}
               </span>
               {!publishing ? <span className="text-[10px] text-neutral-500">· off</span> : null}
-              {account && account.health !== 'healthy' ? (
-                <span
-                  className="text-amber-300"
-                  title={
-                    account.health === 'reconnect'
-                      ? 'Reconnect this account'
-                      : 'This account is turned off'
-                  }
-                >
+              {account && account.health !== 'connected' ? (
+                <span className="text-amber-300" title={healthLabel(account.health)}>
                   ⚠
                 </span>
               ) : null}
@@ -163,7 +157,7 @@ export function ManagePlatformsDialog({
   kind: DraftKind
   onChange: (change: {
     channelConnectionIds?: string[]
-    primaryChannel?: DraftChannel
+    primaryPlatform?: DraftChannel
     versions?: PlatformVersions
   }) => void
   onClose: () => void
@@ -220,11 +214,7 @@ export function ManagePlatformsDialog({
                         </span>
                         <span className="block text-[11px] text-neutral-500">
                           {account.handle ? `@${account.handle} · ` : ''}
-                          {account.health === 'healthy'
-                            ? 'Connected'
-                            : account.health === 'reconnect'
-                              ? 'Needs reconnecting'
-                              : 'Turned off'}
+                          {healthLabel(account.health)}
                           {account.channel === 'x'
                             ? account.premium
                               ? ' · X Premium'
@@ -244,7 +234,7 @@ export function ManagePlatformsDialog({
                         {CHANNEL_META[account.channel].label} does not take this kind of draft.
                       </p>
                     ) : null}
-                    {account.health !== 'healthy' ? (
+                    {account.health !== 'connected' ? (
                       <a
                         className="mt-1 block text-[11px] text-amber-300 underline"
                         href="/workspace/channels"
@@ -300,7 +290,7 @@ export function ManagePlatformsDialog({
                         CAPABILITIES[account.channel].kinds.includes(kind) ? (
                           <Button
                             className="ml-auto text-neutral-500 hover:text-white"
-                            onClick={() => onChange({ primaryChannel: account.channel })}
+                            onClick={() => onChange({ primaryPlatform: account.channel })}
                             size={null}
                             type="button"
                             variant="custom"

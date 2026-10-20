@@ -55,11 +55,11 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
         <Label className="relative block w-full md:max-w-64">
           <span className="sr-only">Search campaigns</span>
           <Search01Icon
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500"
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
             size={15}
           />
           <Input
-            className="h-9 w-full rounded-lg bg-white/[0.03] pr-3 pl-9 text-sm text-white ring-1 ring-white/[0.08] outline-none placeholder:text-neutral-600 focus:ring-white/20"
+            className="h-9 w-full rounded-lg bg-foreground/[0.03] pr-3 pl-9 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none placeholder:text-muted-foreground/75 focus:ring-foreground/20"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search"
             type="search"
@@ -72,7 +72,7 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
             onValueChange={(nextValue) => setStatus(nextValue as CampaignStatus | 'ALL')}
             value={status}
           >
-            <SelectTrigger className="h-9 w-full rounded-lg bg-white/[0.03] px-3 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none md:w-auto">
+            <SelectTrigger className="h-9 w-full rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none md:w-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -88,21 +88,21 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <p className="py-16 text-center text-sm text-neutral-500">No campaigns match.</p>
+        <p className="py-16 text-center text-sm text-muted-foreground">No campaigns match.</p>
       ) : (
         <Group>
           {visible.map((campaign) => (
             <Link
-              className="group flex items-center justify-between gap-6 px-5 py-4 transition-colors hover:bg-white/[0.025]"
+              className="group flex items-center justify-between gap-6 px-5 py-4 transition-colors hover:bg-foreground/[0.025]"
               href={`/campaigns/${campaign.id}`}
               key={campaign.id}
             >
               <span className="flex min-w-0 items-center gap-4">
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-white">
+                  <span className="block truncate text-sm font-medium text-foreground">
                     {campaign.name}
                   </span>
-                  <span className="mt-0.5 block truncate text-xs text-neutral-500">
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                     {campaign.releaseTitle
                       ? `Release · ${campaign.releaseTitle}`
                       : (campaign.objective ?? 'No release linked')}
@@ -111,11 +111,11 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
               </span>
               <span className="flex shrink-0 items-center gap-4 md:gap-6">
                 <CampaignStatusPill status={campaign.status} />
-                <span className="hidden w-24 text-right text-xs text-neutral-500 md:block">
+                <span className="hidden w-24 text-right text-xs text-muted-foreground md:block">
                   {updatedLabel(campaign.updatedAt)}
                 </span>
                 <ArrowRight01Icon
-                  className="text-neutral-600 transition-colors group-hover:text-neutral-300"
+                  className="text-muted-foreground/75 transition-colors group-hover:text-foreground/80"
                   size={16}
                 />
               </span>

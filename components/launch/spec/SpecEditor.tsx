@@ -81,7 +81,7 @@ export function SpecEditor({
   ) : null
   const aiNote =
     canEdit && !aiConfigured ? (
-      <p className="text-xs text-neutral-500">AI is not configured.</p>
+      <p className="text-xs text-muted-foreground">AI is not configured.</p>
     ) : null
 
   if (!spec) {
@@ -146,7 +146,7 @@ export function SpecEditor({
             <VersionStatus status={current.status} />
           </div>
           {current.changeSummary ? (
-            <p className="text-sm text-neutral-500">{current.changeSummary}</p>
+            <p className="text-sm text-muted-foreground">{current.changeSummary}</p>
           ) : null}
         </div>
         <div className="flex flex-col gap-2 md:items-end">
@@ -169,15 +169,18 @@ export function SpecEditor({
       </div>
 
       {error ? (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300" role="alert">
+        <p
+          className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
 
       {!isLatest ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-4 py-3 text-sm text-neutral-300 ring-1 ring-white/[0.08]">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-foreground/[0.03] px-4 py-3 text-sm text-foreground/80 ring-1 ring-foreground/[0.08]">
           <span>You are viewing v{current.version}, an earlier version. It is read-only.</span>
-          <Link className="font-medium text-white hover:underline" href={pathname}>
+          <Link className="font-medium text-foreground hover:underline" href={pathname}>
             View the latest
           </Link>
         </div>
@@ -185,13 +188,17 @@ export function SpecEditor({
 
       {flagged.length > 0 ? (
         <div className="flex gap-3 rounded-xl bg-red-500/[0.06] px-4 py-3 ring-1 ring-red-500/25">
-          <Alert02Icon aria-hidden className="mt-0.5 shrink-0 text-red-300" size={16} />
+          <Alert02Icon
+            aria-hidden
+            className="mt-0.5 shrink-0 text-red-700 dark:text-red-300"
+            size={16}
+          />
           <div className="text-sm">
-            <p className="font-medium text-red-200">
+            <p className="font-medium text-red-700 dark:text-red-200">
               {flagged.length === 1 ? '1 source reads' : `${flagged.length} sources read`} like
               instructions to an AI: {flagged.map((source) => source.id).join(', ')}
             </p>
-            <p className="mt-0.5 text-red-200/70">
+            <p className="mt-0.5 text-red-700/70 dark:text-red-200/70">
               {flagged.length === 1
                 ? 'The draft treated it as evidence only. Check the claims that cite it before you approve.'
                 : 'The draft treated them as evidence only. Check the claims that cite them before you approve.'}

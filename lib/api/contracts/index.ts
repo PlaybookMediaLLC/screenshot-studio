@@ -59,14 +59,6 @@ import {
   updateDraftTagContract,
 } from '@/lib/api/contracts/draft-tags'
 import {
-  createSocialSetContract,
-  deleteSocialSetContract,
-  getSocialSetContract,
-  listSocialSetsContract,
-  lookupMentionsContract,
-  updateSocialSetContract,
-} from '@/lib/api/contracts/social-sets'
-import {
   contentDraftActivityContract,
   copyContentDraftContract,
   duplicateContentDraftContract,
@@ -110,12 +102,6 @@ export const documentedContracts = [
   copyContentDraftContract,
   recoverContentDraftRevisionContract,
   contentDraftActivityContract,
-  listSocialSetsContract,
-  createSocialSetContract,
-  getSocialSetContract,
-  updateSocialSetContract,
-  deleteSocialSetContract,
-  lookupMentionsContract,
   listDraftTagsContract,
   createDraftTagContract,
   updateDraftTagContract,

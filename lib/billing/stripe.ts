@@ -21,6 +21,7 @@ import {
   creditGrantForSession,
   entitlementForSubscription,
   governingSubscription,
+  subscriptionCycle,
 } from '@/lib/billing/stripe-events'
 
 /**
@@ -210,6 +211,20 @@ export async function createBillingSession(input: {
   })
   if (!session.url) throw new Error('Stripe returned a Checkout session without a URL.')
   return { url: session.url }
+}
+
+/**
+ * The live subscription's interval, renewal and scheduled cancellation, or
+ * null without Stripe or a live subscription: an invoiced plan's terms are in
+ * its contract.
+ */
+export async function workspaceSubscriptionCycle(organizationId: string) {
+  const api = stripe()
+  if (!api) return null
+  const live = (await workspaceSubscriptions(api, organizationId)).find((subscription) =>
+    ['active', 'past_due', 'trialing'].includes(subscription.status)
+  )
+  return live ? subscriptionCycle(live) : null
 }
 
 /** Opens Checkout for a one-time AI credit pack, on any plan. */

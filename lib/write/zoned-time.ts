@@ -105,20 +105,6 @@ export function offsetLabel(at: Date, zone: string): string {
 }
 
 /**
- * A stable natural-timing offset in whole minutes, from −4 to +4, derived
- * from a key such as the draft id and version: the same key always gets the
- * same offset, so a reload or a retry never moves the post.
- */
-export function naturalOffsetMinutes(key: string): number {
-  let hash = 2_166_136_261
-  for (const character of key) {
-    hash ^= character.codePointAt(0) ?? 0
-    hash = Math.imul(hash, 16_777_619) >>> 0
-  }
-  return (hash % 9) - 4
-}
-
-/**
  * A typed time ("tomorrow 9am", "in 3 hours") read in `zone`, as a wall
  * time rounded up to the quarter hour, or null. The parser works in the
  * runtime's own clock, so it is handed the zone's wall time as "now".

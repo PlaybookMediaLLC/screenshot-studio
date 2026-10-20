@@ -52,10 +52,10 @@ export function ChipPopover({
         aria-label={name}
         className={cn(
           chipClass,
-          'cursor-pointer align-[1px] transition-colors outline-none focus-visible:ring-white/50',
+          'cursor-pointer align-[1px] transition-colors outline-none focus-visible:ring-foreground/50',
           tone === 'red'
-            ? 'bg-red-500/10 text-red-300 ring-red-500/25 hover:bg-red-500/20'
-            : 'bg-white/[0.04] text-neutral-400 ring-white/[0.1] hover:bg-white/[0.08] hover:text-white',
+            ? 'bg-red-500/10 text-red-700 dark:text-red-300 ring-red-500/25 hover:bg-red-500/20'
+            : 'bg-foreground/[0.04] text-foreground/65 ring-foreground/[0.1] hover:bg-foreground/[0.08] hover:text-foreground',
           className
         )}
       >
@@ -63,7 +63,7 @@ export function ChipPopover({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-80 space-y-2.5 rounded-xl border-white/[0.08] bg-[#171717] p-4 text-sm text-neutral-300"
+        className="w-80 space-y-2.5 rounded-xl border-foreground/[0.08] bg-secondary p-4 text-sm text-foreground/80"
       >
         {children}
       </PopoverContent>
@@ -73,7 +73,7 @@ export function ChipPopover({
 
 function Excerpt({ text }: { text: string }) {
   return (
-    <p className="max-h-48 overflow-y-auto rounded-lg bg-black/30 px-3 py-2 text-xs leading-5 whitespace-pre-wrap text-neutral-400">
+    <p className="max-h-48 overflow-y-auto rounded-lg bg-black/30 px-3 py-2 text-xs leading-5 whitespace-pre-wrap text-foreground/65">
       {text}
     </p>
   )
@@ -93,12 +93,12 @@ function FlagNote({ flags }: { flags: string[] }) {
     ),
   ]
   return (
-    <div className="rounded-lg bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-200 ring-1 ring-red-500/20 ring-inset">
-      <p className="flex items-center gap-1.5 font-medium text-red-300">
+    <div className="rounded-lg bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-700 dark:text-red-200 ring-1 ring-red-500/20 ring-inset">
+      <p className="flex items-center gap-1.5 font-medium text-red-700 dark:text-red-300">
         <Alert02Icon aria-hidden size={14} />
         Possible prompt injection
       </p>
-      <p className="mt-1 text-red-200/80">
+      <p className="mt-1 text-red-700/80 dark:text-red-200/80">
         This text reads like instructions to an AI. The draft was told to treat it as evidence only.
       </p>
       {reasons.length > 0 ? (
@@ -118,8 +118,8 @@ function SourceCard({ id, index }: { id: string; index: SourceIndex }) {
     const integration = index.byId.get('brief')
     return (
       <>
-        <p className="font-medium text-white">Release brief</p>
-        <p className="text-xs text-neutral-500">
+        <p className="font-medium text-foreground">Release brief</p>
+        <p className="text-xs text-muted-foreground">
           {integration
             ? 'Sent by an integration (a webhook or an API key), and answered open questions.'
             : 'What the team entered, and answered open questions.'}
@@ -134,12 +134,12 @@ function SourceCard({ id, index }: { id: string; index: SourceIndex }) {
   return (
     <>
       <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 font-medium break-words text-white">{source.title || source.url}</p>
+        <p className="min-w-0 font-medium break-words text-foreground">{source.title || source.url}</p>
         <Pill tone={STATUS[source.status].tone}>{STATUS[source.status].label}</Pill>
       </div>
       {source.url ? (
         <a
-          className="block truncate text-xs text-neutral-400 hover:text-white hover:underline"
+          className="block truncate text-xs text-foreground/65 hover:text-foreground hover:underline"
           href={source.url}
           rel="noopener noreferrer"
           target="_blank"
@@ -160,7 +160,7 @@ function ExcerptToggle({ text }: { text: string }) {
     <div className="text-xs">
       <Button variant="custom" size={null}
         aria-expanded={open}
-        className="inline-flex h-5 items-center text-neutral-500 hover:text-neutral-300"
+        className="inline-flex h-5 items-center text-muted-foreground hover:text-foreground/80"
         onClick={() => setOpen(!open)}
         type="button"
       >
@@ -206,14 +206,14 @@ export function SourceList({
       title="Sources"
     >
       <Group>
-        <ul className="divide-y divide-white/[0.07]">
+        <ul className="divide-y divide-foreground/[0.07]">
           <li className="flex gap-2.5 px-4 py-3.5">
-            <span className={cn(chipClass, 'bg-white/[0.04] text-neutral-400 ring-white/[0.1]')}>
+            <span className={cn(chipClass, 'bg-foreground/[0.04] text-foreground/65 ring-foreground/[0.1]')}>
               brief
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white">Release brief</p>
-              <p className="mt-0.5 text-xs text-neutral-500">What the team entered</p>
+              <p className="text-sm font-medium text-foreground">Release brief</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">What the team entered</p>
             </div>
           </li>
           {sources.map((source) => (
@@ -225,20 +225,20 @@ export function SourceList({
                 className={cn(
                   chipClass,
                   source.flagged
-                    ? 'bg-red-500/10 text-red-300 ring-red-500/25'
-                    : 'bg-white/[0.04] text-neutral-400 ring-white/[0.1]'
+                    ? 'bg-red-500/10 text-red-700 dark:text-red-300 ring-red-500/25'
+                    : 'bg-foreground/[0.04] text-foreground/65 ring-foreground/[0.1]'
                 )}
               >
                 {source.id}
               </span>
               <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium break-words text-white">
+                  <p className="text-sm font-medium break-words text-foreground">
                     {source.title || 'Untitled'}
                   </p>
                   {source.url ? (
                     <a
-                      className="mt-0.5 block truncate text-xs text-neutral-500 hover:text-neutral-200 hover:underline"
+                      className="mt-0.5 block truncate text-xs text-muted-foreground hover:text-foreground hover:underline"
                       href={source.url}
                       rel="noopener noreferrer"
                       target="_blank"
@@ -251,13 +251,13 @@ export function SourceList({
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Pill tone={STATUS[source.status].tone}>{STATUS[source.status].label}</Pill>
                   {source.flagged ? <Pill tone="red">Flagged</Pill> : null}
-                  <span className="text-xs text-neutral-500">{KIND[source.kind]}</span>
+                  <span className="text-xs text-muted-foreground">{KIND[source.kind]}</span>
                   {source.status === 'ok' && !cited.has(source.id) ? (
-                    <span className="text-xs text-neutral-600">· Not cited</span>
+                    <span className="text-xs text-muted-foreground/75">· Not cited</span>
                   ) : null}
                 </div>
                 {source.status !== 'ok' && source.statusReason ? (
-                  <p className="text-xs leading-5 text-neutral-500">{source.statusReason}</p>
+                  <p className="text-xs leading-5 text-muted-foreground">{source.statusReason}</p>
                 ) : null}
                 {source.flagged ? <FlagNote flags={source.flags} /> : null}
                 {source.excerpt ? <ExcerptToggle text={source.excerpt} /> : null}

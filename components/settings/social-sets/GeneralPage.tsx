@@ -1,0 +1,288 @@
+'use client'
+
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { ChannelIcon } from '@/components/drafts/channel-meta'
+import { Group, Pill, Row } from '@/components/platform-ui'
+import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
+import { SaveStatus, useSaveState } from '@/components/settings/controls'
+import { DeveloperId } from '@/components/settings/DeveloperId'
+import { settingsHref, SETTINGS_SECTIONS, socialSetHref } from '@/components/workspace/settings-sections'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { socialSetRemovalSchema, socialSetSchema } from '@/lib/api/contracts/social-sets'
+import { channelForPlatform } from '@/lib/content-drafts/serialize'
+import { settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
+import {
+  CONNECT_PROVIDERS,
+  connectHref,
+  HEALTH_GUIDANCE,
+  providerFor,
+  type SocialSetRecord,
+  useSaveSocialSet,
+  useStoreSocialSet,
+} from './api'
+import { SET_COLORS } from './colors'
+import type { SetPermissions } from './SocialSetSettings'
+
+function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRecord }) {
+  const save = useSaveSocialSet(set.id)
+  const [name, setName] = useState(set.name)
+  const [nameState, runName] = useSaveState()
+  const [colorState, runColor] = useSaveState()
+  useEffect(() => setName(set.name), [set.name])
+  const trimmed = name.trim()
+  return (
+    <>
+      <Row description="Names can repeat; each set is its own by ID." label="Name">
+        <form
+          className="flex flex-wrap items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void runName(() => save({ name: trimmed }))
+          }}
+        >
+          <Input aria-label="Social set name" className="w-64" disabled={!canManage} maxLength={80} onChange={(event) => setName(event.target.value)} value={name} />
+          <Button disabled={!canManage || trimmed.length === 0 || trimmed === set.name} type="submit" variant="outline">
+            Save name
+          </Button>
+          <SaveStatus state={nameState} />
+        </form>
+      </Row>
+      <Row label="Colour">
+        <fieldset className="flex flex-wrap items-center gap-2" disabled={!canManage}>
+          <legend className="sr-only">Social set colour</legend>
+          {SET_COLORS.map((option) => (
+            <label className="cursor-pointer" key={option.value} title={option.label}>
+              <input
+                checked={set.color === option.value}
+                className="peer sr-only"
+                name={`color-${set.id}`}
+                onChange={() => void runColor(() => save({ color: option.value }))}
+                type="radio"
+                value={option.value}
+              />
+              <span
+                aria-hidden
+                className="block size-6 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-background peer-checked:ring-foreground peer-focus-visible:ring-ring"
+                style={{ backgroundColor: option.value }}
+              />
+              <span className="sr-only">{option.label}</span>
+            </label>
+          ))}
+          <SaveStatus state={colorState} />
+        </fieldset>
+      </Row>
+    </>
+  )
+}
+
+function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord }) {
+  const store = useStoreSocialSet()
+  const connected = new Set(set.accounts.map((account) => account.platform))
+  return (
+    <Row
+      description="One account per platform. Drafts in this set publish to these accounts."
+      label={<span id="accounts">Connected accounts</span>}
+      layout="stacked"
+    >
+      {set.accounts.length === 0 ? <p className="text-sm text-muted-foreground">No accounts yet. Connect one below.</p> : null}
+      <ul className="grid gap-2">
+        {set.accounts.map((account) => {
+          const channel = channelForPlatform(account.platform)
+          const provider = providerFor(account.platform)
+          const healthy = account.health === 'connected'
+          const name = account.displayName ?? account.handle ?? account.platform
+          return (
+            <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2" key={account.id}>
+              <span className="flex min-w-0 items-center gap-2">
+                {channel ? <ChannelIcon channel={channel} className="size-4 text-foreground/80" /> : null}
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-foreground">
+                    {name}
+                    {account.handle ? <span className="font-normal text-muted-foreground"> @{account.handle}</span> : null}
+                  </span>
+                  <span className={healthy ? 'text-xs text-muted-foreground' : 'text-xs text-amber-700 dark:text-amber-300'}>
+                    {HEALTH_GUIDANCE[account.health]}
+                  </span>
+                </span>
+                <Pill tone={healthy ? 'green' : 'yellow'}>{account.health.replaceAll('_', ' ')}</Pill>
+                <DeveloperId id={account.id} label="Account" />
+              </span>
+              {canManage ? (
+                <span className="flex flex-wrap gap-2">
+                  {provider ? (
+                    // A plain link: prefetching the start route would begin an OAuth flow.
+                    <a className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-foreground/[0.04]" href={connectHref(provider, set.id)}>
+                      Reconnect
+                    </a>
+                  ) : null}
+                  <ConfirmDialog
+                    confirmLabel="Remove account"
+                    description={
+                      <>
+                        <p>Its queued posts are cancelled and nothing more publishes through it. A post already publishing blocks the removal until it finishes.</p>
+                        <p>Drafts that chose it keep it marked as removed, and new drafts stop using it as a default. Published posts and their history stay.</p>
+                        <p>Follow-ups waiting on published posts, such as auto-retweets, do not run once it is removed.</p>
+                      </>
+                    }
+                    destructive
+                    onConfirm={async () => {
+                      try {
+                        const removal = await settingsRequest(
+                          `/api/v1/social-sets/${encodeURIComponent(set.id)}/accounts/${encodeURIComponent(account.id)}`,
+                          socialSetRemovalSchema,
+                          { method: 'DELETE' }
+                        )
+                        await store(await settingsRequest(`/api/v1/social-sets/${encodeURIComponent(set.id)}`, socialSetSchema))
+                        toast.success(
+                          removal.cancelledPostIds.length > 0
+                            ? `Removed. ${removal.cancelledPostIds.length} queued posts were cancelled.`
+                            : 'Removed.'
+                        )
+                        return null
+                      } catch (error) {
+                        return settingsErrorMessage(error)
+                      }
+                    }}
+                    title={`Remove ${name} from ${set.name}?`}
+                    triggerLabel="Remove"
+                  />
+                </span>
+              ) : null}
+            </li>
+          )
+        })}
+      </ul>
+      {canManage ? (
+        <div className="grid gap-2">
+          <p className="text-xs text-muted-foreground">Add a social account. You sign in with the platform, then come back here.</p>
+          <div className="flex flex-wrap gap-2">
+            {CONNECT_PROVIDERS.map((provider) =>
+              connected.has(provider.platform) ? (
+                <Button disabled key={provider.provider} size="sm" title="This set already has an account on this platform." type="button" variant="outline">
+                  {provider.label} connected
+                </Button>
+              ) : (
+                <a
+                  className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-foreground/[0.04]"
+                  href={connectHref(provider.provider, set.id)}
+                  key={provider.provider}
+                >
+                  Add {provider.label}
+                </a>
+              )
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Bluesky connects with an app password through the API for now. <Link className="underline" href={socialSetHref(set.id, 'new-draft')}>Choose default platforms for new drafts</Link>.
+          </p>
+        </div>
+      ) : null}
+    </Row>
+  )
+}
+
+function Ownership({ canManage, set }: { canManage: boolean; set: SocialSetRecord }) {
+  const store = useStoreSocialSet()
+  if (set.visibility === 'WORKSPACE') {
+    return (
+      <Row
+        description="Everyone in this workspace can use this set under their role: viewers read, creators write, publishers schedule."
+        label="Ownership and sharing"
+      >
+        <Pill>Shared with workspace</Pill>
+      </Row>
+    )
+  }
+  return (
+    <Row
+      description="Only you can see this set, its accounts and its drafts. Moving it to the team shares all of them with the workspace under each member's role. This cannot be undone here."
+      label="Ownership and sharing"
+    >
+      {set.isOwner && canManage ? (
+        <ConfirmDialog
+          confirmLabel="Share with workspace"
+          description={
+            <>
+              <p>
+                {set.accounts.length} account{set.accounts.length === 1 ? '' : 's'} and every draft in {set.name} become visible to the
+                workspace.
+              </p>
+              <p>Members can then write, schedule and publish with it according to their role.</p>
+            </>
+          }
+          onConfirm={async () => {
+            try {
+              await store(
+                await settingsRequest(`/api/v1/social-sets/${encodeURIComponent(set.id)}/share`, socialSetSchema, { method: 'POST' })
+              )
+              return null
+            } catch (error) {
+              return settingsErrorMessage(error)
+            }
+          }}
+          title={`Move ${set.name} to the team?`}
+          triggerLabel="Move to team"
+        />
+      ) : (
+        <Pill tone="purple">Private</Pill>
+      )}
+    </Row>
+  )
+}
+
+function DangerZone({ permissions, set }: { permissions: SetPermissions; set: SocialSetRecord }) {
+  const allowed = set.visibility === 'PRIVATE' ? set.isOwner : permissions.isAdmin
+  const list = SETTINGS_SECTIONS.find((section) => section.id === 'social-sets')!
+  return (
+    <Group className="ring-red-500/30">
+      <Row
+        description="Its accounts are disabled so nothing more publishes through them, its drafts are archived, and its published posts keep their history. A set with queued or publishing posts cannot be deleted; cancel them first."
+        label="Delete social set"
+      >
+        <ConfirmDialog
+          confirmLabel="Delete social set"
+          confirmText={set.name}
+          description={<p>This removes {set.name} for everyone who can see it.</p>}
+          destructive
+          disabled={!allowed}
+          onConfirm={async (typed) => {
+            try {
+              await settingsRequest(`/api/v1/social-sets/${encodeURIComponent(set.id)}`, socialSetRemovalSchema, {
+                body: { confirmation: typed },
+                method: 'DELETE',
+              })
+              window.location.assign(settingsHref(list))
+              return null
+            } catch (error) {
+              return settingsErrorMessage(error)
+            }
+          }}
+          title={`Delete ${set.name}?`}
+          triggerLabel="Delete social set"
+        />
+      </Row>
+    </Group>
+  )
+}
+
+/** A set's identity, accounts, sharing and deletion. */
+export function GeneralPage({ permissions, set }: { permissions: SetPermissions; set: SocialSetRecord }) {
+  return (
+    <div className="grid gap-6">
+      <Group>
+        <NameAndColor canManage={permissions.canManage} set={set} />
+      </Group>
+      <Group>
+        <Accounts canManage={permissions.canManage} set={set} />
+      </Group>
+      <Group>
+        <Ownership canManage={permissions.canManage} set={set} />
+      </Group>
+      <h3 className="text-sm font-medium text-red-700 dark:text-red-300">Danger zone</h3>
+      <DangerZone permissions={permissions} set={set} />
+    </div>
+  )
+}

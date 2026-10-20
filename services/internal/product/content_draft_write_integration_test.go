@@ -8,116 +8,94 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
-// The Write workspace (RFC 042): social sets are separate identities with
-// their own access; organizing a draft never touches its content or version;
-// copies, duplicates and recovered backups are new drafts without the
-// source's publication, sharing, review or discussion state.
+// The Write workspace (RFC 042) on the settings platform's social sets (RFC
+// 043): a draft posts as its set's accounts and is hidden with a private
+// set; organizing a draft never touches its content or version; copies,
+// duplicates and recovered backups are new drafts without the source's
+// publication, sharing, review or discussion state.
 func TestWriteWorkspace(t *testing.T) {
 	w := newTestWorkspace(t)
 	ctx, repo, owner := w.ctx, w.repo, w.owner
 	subscribe(t, ctx, repo, w.org, "pro")
 	w.addMember(t, "writer", "creator")
-	w.addMember(t, "outsider", "creator")
-	writer, outsider := w.actor("writer"), w.actor("outsider")
-	connect := func(platform, external string) string {
+	writer := w.actor("writer")
+	if _, err := repo.UpdateUserPreferences(ctx, owner, UserPreferencesUpdate{Experiments: map[string]bool{
+		ExperimentDraftTags: true, ExperimentDraftPlanning: true}}); err != nil {
+		t.Fatal(err)
+	}
+	sets, err := repo.ListSocialSets(ctx, owner)
+	if err != nil || len(sets.Items) != 1 {
+		t.Fatalf("default sets=%+v err=%v", sets, err)
+	}
+	defaultSet := sets.Items[0]
+	brand, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: defaultSet.Name, Visibility: "PRIVATE"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	connect := func(platform, external, setID string) string {
 		t.Helper()
 		connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: w.org, UserID: owner.UserID, RequestID: owner.RequestID, Type: "USER"},
-			publishing.CreateConnectionInput{ExternalAccountID: external, Platform: platform, ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
+			publishing.CreateConnectionInput{ExternalAccountID: external, Platform: platform, ProviderSettings: map[string]any{},
+				SecretReference: "SOCIAL_API_KEY", SocialSetID: &setID})
 		if err != nil {
 			t.Fatal(err)
 		}
 		return connection.ID
 	}
-	xOne, linkedinOne := connect("x", "x-one-"+w.id), connect("linkedin", "li-one-"+w.id)
-	xTwo := connect("x", "x-two-"+w.id)
+	xOne, linkedinOne := connect("x", "x-one-"+w.id, defaultSet.ID), connect("linkedin", "li-one-"+w.id, defaultSet.ID)
+	xTwo := connect("x", "x-two-"+w.id, brand.ID)
+	for id, platforms := range map[string][]string{defaultSet.ID: {"x", "linkedin"}, brand.ID: {"x"}} {
+		current, err := repo.GetSocialSet(ctx, owner, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.UpdateSocialSet(ctx, owner, id, SocialSetUpdate{BaseVersion: current.Version, DefaultPlatforms: &platforms}); err != nil {
+			t.Fatal(err)
+		}
+	}
 	text := func(value string) []any {
 		return []any{map[string]any{"type": "p", "children": []any{map[string]any{"text": value}}}}
 	}
 
-	sets, err := repo.ListSocialSets(ctx, owner)
-	if err != nil || len(sets) != 1 || !sets[0].IsDefault {
-		t.Fatalf("default sets=%+v err=%v", sets, err)
-	}
-	defaultSet := sets[0]
-	if len(defaultSet.Connections) != 2 || defaultSet.Connections[0].ID != xOne || defaultSet.Connections[1].ID != linkedinOne ||
-		len(defaultSet.DefaultChannels) != 2 || defaultSet.Connections[0].Health != "healthy" {
-		t.Fatalf("the default set takes one active account per platform: %+v", defaultSet)
-	}
-	if again, err := repo.ListSocialSets(ctx, owner); err != nil || len(again) != 1 || again[0].ID != defaultSet.ID {
-		t.Fatalf("a second visit made another default set: %+v err=%v", again, err)
-	}
-	name, restricted := defaultSet.Name, "restricted"
-	brand, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: &name, ChannelConnectionIDs: &[]string{xTwo},
-		Visibility: &restricted, MemberUserIDs: &[]string{writer.UserID}})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("sets with the same name stay distinct identities", func(t *testing.T) {
-		if brand.Name != defaultSet.Name || brand.ID == defaultSet.ID || brand.Connections[0].ID != xTwo {
-			t.Fatalf("brand=%+v", brand)
-		}
-		if _, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: &name, ChannelConnectionIDs: &[]string{xOne, xTwo}}); !errors.Is(err, ErrInvalidInput) {
-			t.Fatalf("two X accounts in one set accepted: %v", err)
-		}
-		if _, err := repo.CreateSocialSet(ctx, writer, SocialSetInput{Name: &name}); !errors.Is(err, publishing.ErrForbidden) {
-			t.Fatalf("a creator managed sets: %v", err)
-		}
-		draft, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: &brand.ID, Body: text("brand post")})
+	t.Run("same-named sets stay apart: a draft posts as its own set's accounts", func(t *testing.T) {
+		draft, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: brand.ID, Body: text("brand post")})
 		if err != nil || draft.SocialSetID == nil || *draft.SocialSetID != brand.ID || len(draft.ChannelConnectionIDs) != 1 ||
 			draft.ChannelConnectionIDs[0] != xTwo {
 			t.Fatalf("a draft in the brand set posts as the brand's account: %+v err=%v", draft, err)
 		}
-		if _, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: &brand.ID, ChannelConnectionIDs: []string{xOne}}); !errors.Is(err, ErrInvalidInput) {
+		if _, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: brand.ID, ChannelConnectionIDs: []string{xOne}}); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("a draft took another set's account: %v", err)
 		}
 	})
 
-	t.Run("a restricted set's drafts are hidden from members outside it", func(t *testing.T) {
-		draft, err := repo.CreateContentDraft(ctx, writer, ContentDraftInput{SocialSetID: &brand.ID, Body: text("secret")})
+	t.Run("a private set's drafts are hidden from everyone else", func(t *testing.T) {
+		draft, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: brand.ID, Body: text("secret")})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := repo.GetContentDraft(ctx, outsider, draft.ID); !errors.Is(err, publishing.ErrNotFound) {
-			t.Fatalf("outsider read a restricted draft: %v", err)
+		if _, err := repo.GetContentDraft(ctx, writer, draft.ID); !errors.Is(err, publishing.ErrNotFound) {
+			t.Fatalf("another member read a private draft: %v", err)
 		}
 		title := "taken over"
-		if _, err := repo.UpdateContentDraft(ctx, outsider, draft.ID, ContentDraftUpdate{BaseVersion: 1, Title: &title}); !errors.Is(err, publishing.ErrNotFound) {
-			t.Fatalf("outsider wrote a restricted draft: %v", err)
+		if _, err := repo.UpdateContentDraft(ctx, writer, draft.ID, ContentDraftUpdate{BaseVersion: 1, Title: &title}); !errors.Is(err, publishing.ErrNotFound) {
+			t.Fatalf("another member wrote a private draft: %v", err)
 		}
-		page, err := repo.ListContentDrafts(ctx, outsider, ContentDraftListQuery{})
+		page, err := repo.ListContentDrafts(ctx, writer, ContentDraftListQuery{})
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, item := range page.Items {
 			if item.ID == draft.ID {
-				t.Fatal("outsider listed a restricted draft")
+				t.Fatal("another member listed a private draft")
 			}
 		}
-		if _, err := repo.ListContentDrafts(ctx, outsider, ContentDraftListQuery{SocialSetID: brand.ID}); !errors.Is(err, publishing.ErrNotFound) {
-			t.Fatalf("outsider listed the restricted set: %v", err)
-		}
-		if visible, err := repo.ListSocialSets(ctx, outsider); err != nil || len(visible) != 1 {
-			t.Fatalf("outsider sees sets=%+v err=%v", visible, err)
-		}
-		if _, err := repo.GetContentDraft(ctx, owner, draft.ID); err != nil {
-			t.Fatalf("an owner sees every set: %v", err)
-		}
-		// Removing the writer from the set takes the draft away mid-session.
-		if _, err := repo.UpdateSocialSet(ctx, owner, brand.ID, SocialSetInput{MemberUserIDs: &[]string{}}); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := repo.GetContentDraft(ctx, writer, draft.ID); !errors.Is(err, publishing.ErrNotFound) {
-			t.Fatalf("a member removed from the set still reads it: %v", err)
-		}
-		if _, err := repo.UpdateSocialSet(ctx, owner, brand.ID, SocialSetInput{MemberUserIDs: &[]string{writer.UserID}}); err != nil {
-			t.Fatal(err)
+		if _, err := repo.ListContentDrafts(ctx, writer, ContentDraftListQuery{SocialSetID: brand.ID}); !errors.Is(err, publishing.ErrNotFound) {
+			t.Fatalf("another member listed the private set: %v", err)
 		}
 	})
 
@@ -125,7 +103,7 @@ func TestWriteWorkspace(t *testing.T) {
 		reply, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Kind: "reply",
 			Target: &draftdoc.Target{URL: "https://x.com/someone/status/1234567890"}})
 		if err != nil || reply.Kind != "reply" || reply.Target == nil || reply.Target.RemoteID != "1234567890" ||
-			reply.Target.Platform != "x" || reply.PrimaryChannel != "x" || len(reply.ChannelConnectionIDs) != 1 || reply.ChannelConnectionIDs[0] != xOne {
+			reply.Target.Platform != "x" || reply.PrimaryPlatform == nil || *reply.PrimaryPlatform != "x" || len(reply.ChannelConnectionIDs) != 1 || reply.ChannelConnectionIDs[0] != xOne {
 			t.Fatalf("reply=%+v err=%v", reply, err)
 		}
 		if _, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Kind: "reply"}); !errors.Is(err, ErrInvalidInput) {
@@ -136,10 +114,10 @@ func TestWriteWorkspace(t *testing.T) {
 		}
 		quote, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Kind: "quote",
 			Target: &draftdoc.Target{URL: "https://www.linkedin.com/feed/update/urn:li:share:7000000000000000000/"}})
-		if err != nil || quote.PrimaryChannel != "linkedin" || quote.Target.RemoteID != "urn:li:share:7000000000000000000" {
+		if err != nil || quote.PrimaryPlatform == nil || *quote.PrimaryPlatform != "linkedin" || quote.Target.RemoteID != "urn:li:share:7000000000000000000" {
 			t.Fatalf("a LinkedIn reshare: %+v err=%v", quote, err)
 		}
-		if _, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Kind: "article", PrimaryChannel: "linkedin"}); !errors.Is(err, ErrInvalidInput) {
+		if _, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Kind: "article", PrimaryPlatform: "linkedin"}); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("a LinkedIn article was accepted: %v", err)
 		}
 		article, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Kind: "article", Article: &draftdoc.Article{Title: " Why we built it "}})
@@ -312,8 +290,8 @@ func TestWriteWorkspace(t *testing.T) {
 		if err != nil || len(dropped.Draft.TagIDs) != 0 {
 			t.Fatalf("drop tags: %+v err=%v", dropped, err)
 		}
-		if _, err := repo.CopyContentDraftToSet(ctx, outsider, source.ID, ContentDraftCopyInput{SocialSetID: &brand.ID, TagMode: "drop"}); !errors.Is(err, publishing.ErrNotFound) {
-			t.Fatalf("an outsider copied into a restricted set: %v", err)
+		if _, err := repo.CopyContentDraftToSet(ctx, writer, source.ID, ContentDraftCopyInput{SocialSetID: &brand.ID, TagMode: "drop"}); !errors.Is(err, publishing.ErrNotFound) {
+			t.Fatalf("another member copied into a private set: %v", err)
 		}
 	})
 
@@ -371,42 +349,23 @@ func TestWriteWorkspace(t *testing.T) {
 		}
 	})
 
-	t.Run("a set's follow-up defaults start new drafts; bad follow-ups are refused", func(t *testing.T) {
-		bad := schema.SocialSetPreferences{Automation: &postoptions.AutoActions{Retweets: []postoptions.RetweetRule{{At: "25:00", TimeZone: "UTC"}}}}
-		if _, err := repo.UpdateSocialSet(ctx, owner, defaultSet.ID, SocialSetInput{Preferences: &bad}); !errors.Is(err, ErrInvalidInput) {
-			t.Fatalf("a bad default: %v", err)
-		}
-		defaults := schema.SocialSetPreferences{Voice: "Plain", Automation: &postoptions.AutoActions{
-			Retweets: []postoptions.RetweetRule{{AfterMinutes: 360}}, UnretweetAfterMinutes: 720}}
-		if _, err := repo.UpdateSocialSet(ctx, owner, defaultSet.ID, SocialSetInput{Preferences: &defaults}); err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() {
-			_, _ = repo.UpdateSocialSet(ctx, owner, defaultSet.ID, SocialSetInput{Preferences: &schema.SocialSetPreferences{}})
-		})
-		created, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: &defaultSet.ID})
-		if err != nil {
-			t.Fatal(err)
-		}
-		var automation *postoptions.AutoActions
-		for _, version := range created.PlatformVersions.Versions {
-			if version.Channel == "x" && version.Options != nil {
-				automation = version.Options.Automation
-			}
-		}
-		if automation == nil || len(automation.Retweets) != 1 || automation.UnretweetAfterMinutes != 720 {
-			t.Fatalf("new draft automation = %+v", automation)
-		}
+	t.Run("a draft's own follow-ups are checked", func(t *testing.T) {
 		own := draftdoc.PlatformVersions{SchemaVersion: 1, Versions: []draftdoc.PlatformVersion{{Channel: "x", Mode: "synced",
 			Options: &draftdoc.VersionOptions{Automation: &postoptions.AutoActions{PlugAtLikes: 5, PlugText: "Mine"}}}}}
-		mine, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: &defaultSet.ID, PlatformVersions: &own})
-		if err != nil || mine.PlatformVersions.Versions[0].Options.Automation.PlugAtLikes != 5 || len(mine.PlatformVersions.Versions[0].Options.Automation.Retweets) != 0 {
-			t.Fatalf("a draft's own follow-ups were replaced: %+v %v", mine, err)
+		mine, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{PlatformVersions: &own})
+		if err != nil || mine.PlatformVersions.Versions[0].Options.Automation.PlugAtLikes != 5 {
+			t.Fatalf("a draft's own follow-ups: %+v %v", mine, err)
 		}
-		onLinkedIn := draftdoc.PlatformVersions{SchemaVersion: 1, Versions: []draftdoc.PlatformVersion{{Channel: "linkedin", Mode: "synced",
-			Options: &draftdoc.VersionOptions{Automation: &postoptions.AutoActions{Retweets: []postoptions.RetweetRule{{AfterMinutes: 60}}}}}}}
-		if _, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: &defaultSet.ID, PlatformVersions: &onLinkedIn}); !errors.Is(err, ErrInvalidInput) {
-			t.Fatalf("LinkedIn reposts: %v", err)
+		for name, actions := range map[string]draftdoc.PlatformVersion{
+			"LinkedIn reposts": {Channel: "linkedin", Mode: "synced", Options: &draftdoc.VersionOptions{Automation: &postoptions.AutoActions{
+				Retweets: []postoptions.RetweetRule{{AfterMinutes: 60}}}}},
+			"a repost at 25:00": {Channel: "x", Mode: "synced", Options: &draftdoc.VersionOptions{Automation: &postoptions.AutoActions{
+				Retweets: []postoptions.RetweetRule{{At: "25:00", TimeZone: "UTC", Days: 1}}}}},
+		} {
+			doc := draftdoc.PlatformVersions{SchemaVersion: 1, Versions: []draftdoc.PlatformVersion{actions}}
+			if _, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{PlatformVersions: &doc}); !errors.Is(err, ErrInvalidInput) {
+				t.Errorf("%s: %v", name, err)
+			}
 		}
 	})
 
@@ -491,26 +450,10 @@ func TestWriteWorkspace(t *testing.T) {
 		if _, err := repo.UpdateContentDraftFinisher(ctx, owner, brand.ID, finisher.ID, ContentDraftFinisherInput{Text: ptr("x")}); !errors.Is(err, publishing.ErrNotFound) {
 			t.Fatalf("a finisher was edited through another set: %v", err)
 		}
-		if _, err := repo.ListContentDraftFinishers(ctx, outsider, brand.ID); !errors.Is(err, publishing.ErrNotFound) {
-			t.Fatalf("an outsider read a restricted set's finishers: %v", err)
+		if _, err := repo.ListContentDraftFinishers(ctx, writer, brand.ID); !errors.Is(err, publishing.ErrNotFound) {
+			t.Fatalf("another member read a private set's finishers: %v", err)
 		}
 		if err := repo.DeleteContentDraftFinisher(ctx, owner, defaultSet.ID, finisher.ID); err != nil {
-			t.Fatal(err)
-		}
-	})
-
-	t.Run("a set with drafts cannot be deleted; the default never", func(t *testing.T) {
-		if err := repo.DeleteSocialSet(ctx, owner, brand.ID); !errors.Is(err, publishing.ErrConflict) {
-			t.Fatalf("a set with drafts was deleted: %v", err)
-		}
-		if err := repo.DeleteSocialSet(ctx, owner, defaultSet.ID); !errors.Is(err, publishing.ErrConflict) {
-			t.Fatalf("the default set was deleted: %v", err)
-		}
-		empty, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: ptr("Empty")})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := repo.DeleteSocialSet(ctx, owner, empty.ID); err != nil {
 			t.Fatal(err)
 		}
 	})

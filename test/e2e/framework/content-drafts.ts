@@ -2,6 +2,7 @@ import { expect, type Locator, type Page } from '@playwright/test'
 import type { E2EIdentity } from './flow'
 import { type HttpMockServer, startHttpMockServer } from './http-server'
 import {
+  apiRequest,
   bindTestGoOrganization,
   connectionSchema,
   createPublishingWorkspace,
@@ -65,6 +66,18 @@ export async function createDraftWorkspace(
     channels[platform] = connectionSchema.parse(response.body).connection.id
   }
   return { channels, organizationId, provider }
+}
+
+/**
+ * Turn on tags and calendar planning for the signed-in person: both are
+ * settings platform experiments (RFC 043) the backend enforces.
+ */
+export async function enableDraftExperiments(page: Page): Promise<void> {
+  const response = await apiRequest(page, '/api/v1/me/preferences', {
+    body: { experiments: { 'draft-planning': true, 'draft-tags': true } },
+    method: 'PATCH',
+  })
+  expect(response.status, JSON.stringify(response.body)).toBe(200)
 }
 
 /** The draft body editor. */

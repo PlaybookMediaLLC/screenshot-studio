@@ -37,16 +37,30 @@ func TestWritePublishing(t *testing.T) {
 	ctx, owner := w.ctx, w.owner
 	repo := w.repo.WithAccountStanding(standings{"x-premium-" + w.id: true}).WithMonthlyMeter(&recordingMonthlyMeter{})
 	subscribe(t, ctx, repo, w.org, "pro")
-	connect := func(platform, external string) string {
+	if _, err := repo.UpdateUserPreferences(ctx, owner, UserPreferencesUpdate{Experiments: map[string]bool{ExperimentDraftPlanning: true}}); err != nil {
+		t.Fatal(err)
+	}
+	// The Premium account has a set of its own: one X account per set. The
+	// workspace's default set is its oldest, so it comes first.
+	if _, err := repo.ListSocialSets(ctx, owner); err != nil {
+		t.Fatal(err)
+	}
+	premiumSet, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: "Premium"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	connect := func(platform, external string, setID *string) string {
 		t.Helper()
 		connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: w.org, UserID: owner.UserID, RequestID: owner.RequestID, Type: "USER"},
-			publishing.CreateConnectionInput{ExternalAccountID: external, Platform: platform, ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
+			publishing.CreateConnectionInput{ExternalAccountID: external, Platform: platform, ProviderSettings: map[string]any{},
+				SecretReference: "SOCIAL_API_KEY", SocialSetID: setID})
 		if err != nil {
 			t.Fatal(err)
 		}
 		return connection.ID
 	}
-	x, linkedin, premium := connect("x", "x-standard-"+w.id), connect("linkedin", "li-"+w.id), connect("x", "x-premium-"+w.id)
+	x, linkedin := connect("x", "x-standard-"+w.id, nil), connect("linkedin", "li-"+w.id, nil)
+	premium, premiumLinkedIn := connect("x", "x-premium-"+w.id, &premiumSet.ID), connect("linkedin", "li-premium-"+w.id, &premiumSet.ID)
 	draft := func(input ContentDraftInput) *ContentDraftRecord {
 		t.Helper()
 		created, err := repo.CreateContentDraft(ctx, owner, input)
@@ -116,20 +130,6 @@ func TestWritePublishing(t *testing.T) {
 		if _, err := repo.ScheduleContentDraft(ctx, owner, past.ID, ScheduleContentDraftInput{LocalTime: "2020-01-01T09:00",
 			TimeZone: "UTC", Targets: target("past", x), Version: 1}); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("a past time: %v", err)
-		}
-	})
-
-	t.Run("natural timing shifts a post by a stable few minutes", func(t *testing.T) {
-		d := draft(ContentDraftInput{})
-		at := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Minute)
-		input := ScheduleContentDraftInput{ScheduledFor: at, NaturalTiming: true, Targets: target("natural", x), Version: 1}
-		result, err := repo.ScheduleContentDraft(ctx, owner, d.ID, input)
-		want := at.Add(naturalOffset(d.ID + ":v1"))
-		if err != nil || !result.Posts[0].ScheduledFor.Equal(want) {
-			t.Fatalf("natural=%+v want %v err=%v", result.Posts, want, err)
-		}
-		if replay, err := repo.ScheduleContentDraft(ctx, owner, d.ID, input); err != nil || !replay.Posts[0].ScheduledFor.Equal(want) {
-			t.Fatalf("a retry moved the post: %+v err=%v", replay, err)
 		}
 	})
 
@@ -240,7 +240,11 @@ func TestWritePublishing(t *testing.T) {
 	t.Run("kinds publish only as they can", func(t *testing.T) {
 		at := time.Now().Add(6 * time.Hour)
 		schedule := func(kind string, targets []ContentDraftScheduleTarget) error {
-			d := draft(ContentDraftInput{Kind: kind, Target: kindTarget(kind)})
+			input := ContentDraftInput{Kind: kind, Target: kindTarget(kind)}
+			if targets[0].ChannelConnectionID == premium {
+				input.SocialSetID = premiumSet.ID
+			}
+			d := draft(input)
 			_, err := repo.ScheduleContentDraft(ctx, owner, d.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: targets, Version: 1})
 			return err
 		}
@@ -263,7 +267,7 @@ func TestWritePublishing(t *testing.T) {
 		if err := schedule("article", article(premium)); err != nil {
 			t.Fatalf("an article from a Premium account: %v", err)
 		}
-		if err := schedule("article", append(article(premium), target("and LinkedIn", linkedin)...)); !errors.Is(err, ErrInvalidInput) {
+		if err := schedule("article", append(article(premium), target("and LinkedIn", premiumLinkedIn)...)); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("an article beside another platform: %v", err)
 		}
 	})
@@ -274,7 +278,8 @@ func TestWritePublishing(t *testing.T) {
 		if _, err := repo.ScheduleContentDraft(ctx, owner, standard.ID, ScheduleContentDraftInput{PublishNow: true, Targets: target(long, x), Version: 1}); !errors.Is(err, publishing.ErrConflict) {
 			t.Fatalf("a standard account took 281 characters: %v", err)
 		}
-		if _, err := repo.ScheduleContentDraft(ctx, owner, standard.ID, ScheduleContentDraftInput{PublishNow: true, Targets: target(long, premium), Version: 1}); err != nil {
+		fromPremium := draft(ContentDraftInput{SocialSetID: premiumSet.ID})
+		if _, err := repo.ScheduleContentDraft(ctx, owner, fromPremium.ID, ScheduleContentDraftInput{PublishNow: true, Targets: target(long, premium), Version: 1}); err != nil {
 			t.Fatalf("a Premium account: %v", err)
 		}
 	})
@@ -353,14 +358,14 @@ func TestWritePublishing(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		found, err := repo.LookupMentions(ctx, owner, sets[0].ID, "x", "@someone")
+		found, err := repo.LookupMentions(ctx, owner, sets.Items[0].ID, "x", "@someone")
 		if err != nil || len(found) != 1 || found[0].ProviderID != "x:someone" || !strings.HasPrefix(found[0].Label, "x-") {
 			t.Fatalf("found=%+v err=%v", found, err)
 		}
-		if _, err := repo.LookupMentions(ctx, owner, sets[0].ID, "linkedin", "Jane Doe"); !errors.Is(err, ErrInvalidInput) {
+		if _, err := repo.LookupMentions(ctx, owner, sets.Items[0].ID, "linkedin", "Jane Doe"); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("a person's name on LinkedIn: %v", err)
 		}
-		if _, err := repo.LookupMentions(ctx, w.actor("viewer"), sets[0].ID, "x", "someone"); err == nil {
+		if _, err := repo.LookupMentions(ctx, w.actor("viewer"), sets.Items[0].ID, "x", "someone"); err == nil {
 			t.Fatal("a viewer looked up mentions")
 		}
 	})

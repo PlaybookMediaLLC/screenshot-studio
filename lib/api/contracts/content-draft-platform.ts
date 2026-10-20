@@ -56,6 +56,8 @@ export const bestPostingTimesContract = defineContract({
   name: 'content-drafts.best-times',
   output: z.object({ items: z.array(z.object({ at: timestampSchema, reason: z.string() })) }),
   path: '/api/v1/content-draft-queue/best-times',
+  /** One social set's times and engagement; the workspace's default set when omitted. */
+  query: z.object({ socialSetId: contentDraftIdSchema.optional() }),
   summary: 'Suggest the next times to post',
 })
 
@@ -71,7 +73,12 @@ export const listCalendarPostsContract = defineContract({
   name: 'content-drafts.calendar',
   output: z.object({ items: z.array(calendarPostSchema) }),
   path: '/api/v1/content-draft-posts',
-  query: z.object({ from: z.coerce.date(), to: z.coerce.date() }),
+  /** One social set's posts; every set you can see when `socialSetId` is omitted. */
+  query: z.object({
+    from: z.coerce.date(),
+    socialSetId: contentDraftIdSchema.optional(),
+    to: z.coerce.date(),
+  }),
   summary: 'List draft posts due between two times',
 })
 

@@ -35,7 +35,6 @@ func TestEntProjectionsMatchMigratedTables(t *testing.T) {
 		"content_draft_tag":                func() error { _, err := c.ContentDraftTag.Query().Limit(1).All(ctx); return err },
 		"content_draft_finisher":           func() error { _, err := c.ContentDraftFinisher.Query().Limit(1).All(ctx); return err },
 		"post_automation_run":              func() error { _, err := c.PostAutomationRun.Query().Limit(1).All(ctx); return err },
-		"social_set":                       func() error { _, err := c.SocialSet.Query().Limit(1).All(ctx); return err },
 		"organization_enterprise_settings": func() error { _, err := c.OrganizationEnterpriseSettings.Query().Limit(1).All(ctx); return err },
 		"session":                          func() error { _, err := c.Session.Query().Limit(1).All(ctx); return err },
 		"support_access_grant":             func() error { _, err := c.SupportAccessGrant.Query().Limit(1).All(ctx); return err },
@@ -77,6 +76,17 @@ func TestEntProjectionsMatchMigratedTables(t *testing.T) {
 		"page_knowledge":                   func() error { _, err := c.PageKnowledge.Query().Limit(1).All(ctx); return err },
 		"ideal_customer_profile":           func() error { _, err := c.IdealCustomerProfile.Query().Limit(1).All(ctx); return err },
 		"enrichment_record":                func() error { _, err := c.EnrichmentRecord.Query().Limit(1).All(ctx); return err },
+		"user_preference":                  func() error { _, err := c.UserPreference.Query().Limit(1).All(ctx); return err },
+		"account_deletion_request":         func() error { _, err := c.AccountDeletionRequest.Query().Limit(1).All(ctx); return err },
+		"social_set":                       func() error { _, err := c.SocialSet.Query().Limit(1).All(ctx); return err },
+		"social_set_writing_sample":        func() error { _, err := c.SocialSetWritingSample.Query().Limit(1).All(ctx); return err },
+		"webhook_subscription":             func() error { _, err := c.WebhookSubscription.Query().Limit(1).All(ctx); return err },
+		"webhook_delivery":                 func() error { _, err := c.WebhookDelivery.Query().Limit(1).All(ctx); return err },
+		"webhook_delivery_attempt":         func() error { _, err := c.WebhookDeliveryAttempt.Query().Limit(1).All(ctx); return err },
+		"channel_connection":               func() error { _, err := c.ChannelConnection.Query().Limit(1).All(ctx); return err },
+		"scheduled_post":                   func() error { _, err := c.ScheduledPost.Query().Limit(1).All(ctx); return err },
+		"social_oauth_start":               func() error { _, err := c.SocialOAuthStart.Query().Limit(1).All(ctx); return err },
+		"platform_notification_preference": func() error { _, err := c.PlatformNotificationPreference.Query().Limit(1).All(ctx); return err },
 	}
 	for table, query := range queries {
 		if err := query(); err != nil {

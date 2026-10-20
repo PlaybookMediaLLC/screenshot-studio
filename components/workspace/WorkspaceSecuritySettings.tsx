@@ -142,7 +142,7 @@ function VerifySecurityForm({
           label="Authenticator URI"
           layout="stacked"
         >
-          <code className="w-full overflow-x-auto rounded-lg bg-black/30 p-3 font-mono text-xs text-neutral-300 ring-1 ring-white/[0.08]">
+          <code className="w-full overflow-x-auto rounded-lg bg-black/30 p-3 font-mono text-xs text-foreground/80 ring-1 ring-foreground/[0.08]">
             {setup.totpURI}
           </code>
         </Row>
@@ -151,7 +151,7 @@ function VerifySecurityForm({
           label="Backup codes"
           layout="stacked"
         >
-          <div className="grid w-full grid-cols-2 gap-2 rounded-lg bg-black/30 p-3 font-mono text-xs text-neutral-300 ring-1 ring-white/[0.08]">
+          <div className="grid w-full grid-cols-2 gap-2 rounded-lg bg-black/30 p-3 font-mono text-xs text-foreground/80 ring-1 ring-foreground/[0.08]">
             {setup.backupCodes.map((backupCode) => (
               <code key={backupCode}>{backupCode}</code>
             ))}

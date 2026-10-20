@@ -6,60 +6,64 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { type CalendarPostWire, draftsApi } from '@/lib/content-drafts/client'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
+import { addDays, zonedDayKey, zonedInstant, zonedParts } from '@/lib/settings/zoned-time'
 import { cn } from '@/lib/utils'
 import { ChannelIcon } from './channel-meta'
-import { useHydrated } from './local-time'
 
 /** The drag type a calendar post carries. */
 const CALENDAR_DRAG = 'application/x-shots-calendar-post'
 
-function dayKey(date: Date): string {
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+/** A YYYY-MM-DD day as people read it, without moving it to another zone. */
+function readableDay(key: string, options: Intl.DateTimeFormatOptions): string {
+  return new Date(`${key}T12:00:00Z`).toLocaleDateString(undefined, { ...options, timeZone: 'UTC' })
 }
 
 /** A draft planned for a time: on the calendar, never published by itself. */
 export type PlannedDraft = { at: string; caption: string; draftId: string; title: string }
 
 /**
- * A week of draft posts: each day's posts in time order. A queued post drags
- * to another day and keeps its time of day; live posts stay put. Planned
- * drafts show dashed: they hold a time but publish nothing until scheduled.
+ * A week of draft posts in the social set's scheduling time zone (RFC 043):
+ * each day's posts in time order, the same for every reader. A queued post
+ * drags to another day and keeps its time of day there; live posts stay put.
+ * Moving the view's first weekday changes only how the week is drawn.
+ * Planned drafts show dashed: they hold a time but publish nothing until
+ * scheduled (RFC 042).
  */
 export function DraftCalendar({
   canMove,
   planned = [],
   posts,
+  socialSetId,
+  timeZone,
   weekStart,
 }: {
   canMove: boolean
+  /** Drafts placed on a day without scheduling (an experiment). */
   planned?: PlannedDraft[]
   posts: CalendarPostWire[]
-  /** The week's first day (Monday), as an ISO date. */
+  /** The set the calendar shows, kept when moving between weeks. */
+  socialSetId?: string
+  /** The set's scheduling time zone; days are laid out in it. */
+  timeZone: string
+  /** The week's first day, as YYYY-MM-DD in `timeZone`. */
   weekStart: string
 }) {
   const router = useRouter()
-  // Which day a post falls on depends on the reader's zone, which the server
-  // does not know: lay posts out once in the browser.
-  const hydrated = useHydrated()
   const [over, setOver] = React.useState<string | null>(null)
-  const start = new Date(`${weekStart}T00:00:00`)
-  const days = Array.from({ length: 7 }, (_, index) => {
-    const day = new Date(start)
-    day.setDate(start.getDate() + index)
-    return day
-  })
-  const shift = (weeks: number) => {
-    const next = new Date(start)
-    next.setDate(start.getDate() + weeks * 7)
-    return next.toISOString().slice(0, 10)
+  const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index))
+  const weekHref = (weeks: number | null) => {
+    const params = new URLSearchParams(socialSetId ? { set: socialSetId } : {})
+    if (weeks !== null) params.set('week', addDays(weekStart, weeks * 7))
+    const query = params.toString()
+    return `/write/plan${query ? `?${query}` : ''}`
   }
-  const move = async (postId: string, day: Date) => {
+  const move = async (postId: string, day: string) => {
     const post = posts.find((item) => item.id === postId)
     if (!post) return
     const from = new Date(post.scheduledFor)
-    const to = new Date(day)
-    to.setHours(from.getHours(), from.getMinutes(), 0, 0)
-    if (dayKey(to) === dayKey(from)) return
+    if (zonedDayKey(from, timeZone) === day) return
+    const clock = zonedParts(from, timeZone)
+    const to = zonedInstant(day, clock.hour, clock.minute, timeZone)
     if (to.getTime() <= Date.now()) {
       toast.error('That day has passed; pick a later one.')
       return
@@ -72,27 +76,22 @@ export function DraftCalendar({
       toast.error(error instanceof Error ? error.message : 'The post could not move.')
     }
   }
-  const today = dayKey(new Date())
+  const today = zonedDayKey(new Date(), timeZone)
   return (
     <div className="flex h-full flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-white/[0.06] px-4">
-        <h2 className="text-sm font-medium text-white">
-          Week of {start.toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}
+      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-foreground/[0.06] px-4">
+        <h2 className="text-sm font-medium text-foreground">
+          Week of {readableDay(weekStart, { day: 'numeric', month: 'long' })}
         </h2>
+        <span className="text-xs text-muted-foreground">{timeZone.replaceAll('_', ' ')}</span>
         <div className="ml-auto flex items-center gap-2 text-xs">
-          <Link
-            className="text-neutral-400 hover:text-white"
-            href={`/write/plan?week=${shift(-1)}`}
-          >
+          <Link className="text-foreground/65 hover:text-foreground" href={weekHref(-1)}>
             ← Previous
           </Link>
-          <Link className="text-neutral-400 hover:text-white" href="/write/plan">
+          <Link className="text-foreground/65 hover:text-foreground" href={weekHref(null)}>
             This week
           </Link>
-          <Link
-            className="text-neutral-400 hover:text-white"
-            href={`/write/plan?week=${shift(1)}`}
-          >
+          <Link className="text-foreground/65 hover:text-foreground" href={weekHref(1)}>
             Next →
           </Link>
         </div>
@@ -100,22 +99,21 @@ export function DraftCalendar({
       {/* Local: the site-wide GlobalDropZone would otherwise force a "copy"
           dropEffect on every dragover, which a moved card refuses. */}
       <div
-        className="grid min-h-0 flex-1 grid-cols-7 divide-x divide-white/[0.05] overflow-y-auto"
+        className="grid min-h-0 flex-1 grid-cols-7 divide-x divide-foreground/[0.05] overflow-y-auto"
         data-local-dropzone=""
       >
         {days.map((day) => {
-          const key = dayKey(day)
-          const dayPosts = hydrated
-            ? posts.filter((post) => dayKey(new Date(post.scheduledFor)) === key)
-            : []
+          const key = day
+          const dayPosts = posts.filter((post) => zonedDayKey(new Date(post.scheduledFor), timeZone) === key)
+          const dayPlanned = planned.filter((item) => zonedDayKey(new Date(item.at), timeZone) === key)
           return (
             <section
-              aria-label={day.toDateString()}
+              aria-label={readableDay(day, { day: 'numeric', month: 'long', weekday: 'long', year: 'numeric' })}
               className={cn(
                 'flex min-h-64 flex-col gap-2 p-2',
                 over === key && 'bg-sky-400/[0.06]'
               )}
-              data-testid={`calendar-day-${day.getDate()}`}
+              data-testid={`calendar-day-${Number(day.slice(8))}`}
               key={key}
               onDragLeave={() => setOver(null)}
               onDragOver={(event) => {
@@ -133,9 +131,28 @@ export function DraftCalendar({
                 void move(postId, day)
               }}
             >
-              <p className={cn('text-xs', key === today ? 'text-sky-300' : 'text-neutral-500')}>
-                {day.toLocaleDateString(undefined, { day: 'numeric', weekday: 'short' })}
+              <p
+                className={cn(
+                  'text-xs',
+                  key === today ? 'text-sky-700 dark:text-sky-300' : 'text-muted-foreground'
+                )}
+              >
+                {readableDay(day, { day: 'numeric', weekday: 'short' })}
               </p>
+              {dayPlanned.map((item) => (
+                <Link
+                  className="block rounded-lg border border-dashed border-foreground/20 p-2 text-xs"
+                  data-testid="calendar-planned"
+                  href={`/write/${item.draftId}`}
+                  key={`planned-${item.draftId}`}
+                >
+                  <span className="text-muted-foreground">
+                    Planned ·{' '}
+                    {new Date(item.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone })}
+                  </span>
+                  <span className="mt-1 line-clamp-2 block text-foreground">{item.title || item.caption}</span>
+                </Link>
+              ))}
               {dayPosts.map((post) => {
                 const channel = channelForPlatform(post.platform)
                 const movable = canMove && post.status === 'SCHEDULED'
@@ -145,7 +162,7 @@ export function DraftCalendar({
                       'block rounded-lg border p-2 text-xs',
                       post.status === 'PUBLISHED'
                         ? 'border-emerald-400/20 bg-emerald-400/[0.04]'
-                        : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20',
+                        : 'border-foreground/[0.08] bg-foreground/[0.02] hover:border-foreground/20',
                       movable && 'cursor-grab'
                     )}
                     data-testid="calendar-post"
@@ -157,32 +174,19 @@ export function DraftCalendar({
                       event.dataTransfer.effectAllowed = 'move'
                     }}
                   >
-                    <span className="flex items-center gap-1 text-neutral-400">
+                    <span className="flex items-center gap-1 text-foreground/65">
                       {channel ? <ChannelIcon channel={channel} /> : null}
                       {new Date(post.scheduledFor).toLocaleTimeString(undefined, {
                         hour: 'numeric',
                         minute: '2-digit',
+                        timeZone,
                       })}
                       {post.status === 'PUBLISHED' ? ' · live' : ''}
                     </span>
-                    <span className="mt-1 line-clamp-3 block text-neutral-200">{post.caption}</span>
+                    <span className="mt-1 line-clamp-3 block text-foreground">{post.caption}</span>
                   </Link>
                 )
               })}
-              {(hydrated ? planned.filter((item) => dayKey(new Date(item.at)) === key) : []).map((item) => (
-                <Link
-                  className="block rounded-lg border border-dashed border-violet-300/30 p-2 text-xs hover:border-violet-300/60"
-                  data-testid="calendar-planned"
-                  href={`/write/${item.draftId}`}
-                  key={item.draftId}
-                >
-                  <span className="text-violet-200">
-                    Planned ·{' '}
-                    {new Date(item.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
-                  </span>
-                  <span className="mt-1 line-clamp-3 block text-neutral-300">{item.title || item.caption}</span>
-                </Link>
-              ))}
             </section>
           )
         })}

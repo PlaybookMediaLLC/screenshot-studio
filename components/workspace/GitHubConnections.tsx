@@ -37,7 +37,7 @@ const OUTCOMES: Record<string, string> = {
 }
 
 const selectClass =
-  'h-10 w-full rounded-lg border border-white/10 bg-transparent px-3 text-sm text-white outline-none focus-visible:ring-2 focus-visible:ring-white/20'
+  'h-10 w-full rounded-lg border border-foreground/10 bg-transparent px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-foreground/20'
 
 /**
  * Connect GitHub App installations and select workspace repository sources.
@@ -88,11 +88,11 @@ export function GitHubConnections() {
       <Group>
         {state === null ? (
           <Row>
-            <p className="text-sm text-neutral-500">Loading GitHub connections…</p>
+            <p className="text-sm text-muted-foreground">Loading GitHub connections…</p>
           </Row>
         ) : !state.configured ? (
           <Row>
-            <p className="text-sm text-neutral-500">{OUTCOMES.unavailable}</p>
+            <p className="text-sm text-muted-foreground">{OUTCOMES.unavailable}</p>
           </Row>
         ) : (
           <>
@@ -216,7 +216,7 @@ function ConnectionRow({
     <Row>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-white">{connection.accountLogin}</span>
+          <span className="text-sm font-medium text-foreground">{connection.accountLogin}</span>
           <Pill tone={connection.status === 'ACTIVE' ? 'green' : 'yellow'}>
             {connection.status.toLowerCase()}
           </Pill>
@@ -270,8 +270,8 @@ function ConnectionRow({
           </Button>
         </form>
       )}
-      {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      {message ? <p className="text-sm text-emerald-700 dark:text-emerald-300">{message}</p> : null}
+      {error ? <p className="text-sm text-red-700 dark:text-red-300">{error}</p> : null}
     </Row>
   )
 }

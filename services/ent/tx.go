@@ -12,6 +12,8 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// AccountDeletionRequest is the client for interacting with the AccountDeletionRequest builders.
+	AccountDeletionRequest *AccountDeletionRequestClient
 	// AgentAuthorization is the client for interacting with the AgentAuthorization builders.
 	AgentAuthorization *AgentAuthorizationClient
 	// Apikey is the client for interacting with the Apikey builders.
@@ -170,6 +172,8 @@ type Tx struct {
 	SocialOAuthStart *SocialOAuthStartClient
 	// SocialSet is the client for interacting with the SocialSet builders.
 	SocialSet *SocialSetClient
+	// SocialSetWritingSample is the client for interacting with the SocialSetWritingSample builders.
+	SocialSetWritingSample *SocialSetWritingSampleClient
 	// SocialTenantBinding is the client for interacting with the SocialTenantBinding builders.
 	SocialTenantBinding *SocialTenantBindingClient
 	// SourceApp is the client for interacting with the SourceApp builders.
@@ -188,6 +192,14 @@ type Tx struct {
 	SurfaceCapture *SurfaceCaptureClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserPreference is the client for interacting with the UserPreference builders.
+	UserPreference *UserPreferenceClient
+	// WebhookDelivery is the client for interacting with the WebhookDelivery builders.
+	WebhookDelivery *WebhookDeliveryClient
+	// WebhookDeliveryAttempt is the client for interacting with the WebhookDeliveryAttempt builders.
+	WebhookDeliveryAttempt *WebhookDeliveryAttemptClient
+	// WebhookSubscription is the client for interacting with the WebhookSubscription builders.
+	WebhookSubscription *WebhookSubscriptionClient
 	// WorkspaceCreditGrant is the client for interacting with the WorkspaceCreditGrant builders.
 	WorkspaceCreditGrant *WorkspaceCreditGrantClient
 	// WorkspaceDeletion is the client for interacting with the WorkspaceDeletion builders.
@@ -329,6 +341,7 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.AccountDeletionRequest = NewAccountDeletionRequestClient(tx.config)
 	tx.AgentAuthorization = NewAgentAuthorizationClient(tx.config)
 	tx.Apikey = NewApikeyClient(tx.config)
 	tx.Approval = NewApprovalClient(tx.config)
@@ -408,6 +421,7 @@ func (tx *Tx) init() {
 	tx.ShareLink = NewShareLinkClient(tx.config)
 	tx.SocialOAuthStart = NewSocialOAuthStartClient(tx.config)
 	tx.SocialSet = NewSocialSetClient(tx.config)
+	tx.SocialSetWritingSample = NewSocialSetWritingSampleClient(tx.config)
 	tx.SocialTenantBinding = NewSocialTenantBindingClient(tx.config)
 	tx.SourceApp = NewSourceAppClient(tx.config)
 	tx.SourceChange = NewSourceChangeClient(tx.config)
@@ -417,6 +431,10 @@ func (tx *Tx) init() {
 	tx.SupportAccessGrant = NewSupportAccessGrantClient(tx.config)
 	tx.SurfaceCapture = NewSurfaceCaptureClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.UserPreference = NewUserPreferenceClient(tx.config)
+	tx.WebhookDelivery = NewWebhookDeliveryClient(tx.config)
+	tx.WebhookDeliveryAttempt = NewWebhookDeliveryAttemptClient(tx.config)
+	tx.WebhookSubscription = NewWebhookSubscriptionClient(tx.config)
 	tx.WorkspaceCreditGrant = NewWorkspaceCreditGrantClient(tx.config)
 	tx.WorkspaceDeletion = NewWorkspaceDeletionClient(tx.config)
 	tx.WorkspaceEntitlement = NewWorkspaceEntitlementClient(tx.config)
@@ -431,7 +449,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: AgentAuthorization.QueryXXX(), the query will be executed
+// applies a query, for example: AccountDeletionRequest.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
+import type { EngagementRule } from 'screenshot-studio-backend-sdk'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,6 +21,7 @@ import { serializeDraft } from '@/lib/content-drafts/serialize'
 import {
   DEFAULT_AUTOMATION,
   durationLabel,
+  engagementAutomation,
   PLUG_WINDOW_HOURS,
   retweetAt,
   ruleLabel,
@@ -54,20 +56,26 @@ export function AutomationControls({
 }) {
   const [editing, setEditing] = React.useState<'retweet' | 'plug' | null>(null)
   const { data } = useWrite()
-  const defaults = data.sets.find((set) => set.id === setId)?.preferences.automation
-  const retweeting = (automation?.retweets?.length ?? 0) > 0
+  const defaults = engagementAutomation(
+    data.sets.find((set) => set.id === setId)?.engagementDefaults
+  )
+  const retweeting = (automation?.retweets?.length ?? 0) > 0 || (automation?.repostAtLikes ?? 0) > 0
   const plugging = (automation?.plugAtLikes ?? 0) > 0
-  const update = (next: Automation) => {
-    const empty =
-      !next.retweets?.length && !next.plugAtLikes && !next.repostAtLikes && !next.quoteAfterHours
-    onChange(empty ? undefined : next)
-  }
+  // Turning everything off keeps an empty set of follow-ups, so the draft
+  // stops following the engagement it copied from its set.
+  const update = (next: Automation) => onChange(next)
   return (
     <div className="grid gap-1.5 pl-7" data-testid="automation-controls">
       <Row
         detail={
           retweeting
-            ? `${automation?.retweets?.map(ruleLabel).join('; ')}${automation?.unretweetAfterMinutes ? ` · removed after ${durationLabel(automation.unretweetAfterMinutes)}` : ''}`
+            ? [
+                ...(automation?.retweets ?? []).map(ruleLabel),
+                ...(automation?.repostAtLikes ? [`at ${automation.repostAtLikes} likes`] : []),
+              ].join('; ') +
+              (automation?.unretweetAfterMinutes
+                ? ` · removed after ${durationLabel(automation.unretweetAfterMinutes)}`
+                : '')
             : 'Repost at set times after publishing'
         }
         label="Auto-RT"
@@ -79,7 +87,12 @@ export function AutomationControls({
             : (on) =>
                 on
                   ? setEditing('retweet')
-                  : update({ ...automation, retweets: undefined, unretweetAfterMinutes: undefined })
+                  : update({
+                      ...automation,
+                      repostAtLikes: undefined,
+                      retweets: undefined,
+                      unretweetAfterMinutes: undefined,
+                    })
         }
       />
       <Row
@@ -124,7 +137,6 @@ export function AutomationControls({
             setEditing(null)
           }}
           publishAt={publishAt}
-          setId={setId}
           timeZone={timeZone}
         />
       ) : null}
@@ -187,17 +199,20 @@ function Row({
   )
 }
 
-/** Save follow-ups as the set's defaults for new drafts, keeping its other preferences. */
-async function saveDefaults(
-  setId: string | null,
-  preferences: WriteSet['preferences'] | undefined,
-  automation: Automation,
+/**
+ * Save a plug as the set's engagement default for new drafts (RFC 043),
+ * keeping its auto-repost. Timed reposts are the draft's own.
+ */
+async function savePlugDefault(
+  set: WriteSet | undefined,
+  plug: EngagementRule,
   refresh: () => void
 ) {
-  if (!setId) return
+  if (!set) return
   try {
-    await writeApi.updateSet(setId, {
-      preferences: { ...preferences, automation: { ...preferences?.automation, ...automation } },
+    await writeApi.updateSetEngagement(set.id, set.version, {
+      ...set.engagementDefaults,
+      autoPlug: plug,
     })
     toast.success('Saved as the default for new drafts in this set.')
     refresh()
@@ -246,7 +261,6 @@ function RetweetDialog({
   onClose,
   onSave,
   publishAt,
-  setId,
   timeZone,
 }: {
   automation: Automation | undefined
@@ -254,12 +268,8 @@ function RetweetDialog({
   onClose: () => void
   onSave: (automation: Automation) => void
   publishAt: Date
-  setId: string | null
   timeZone: string
 }) {
-  const router = useRouter()
-  const { canManageSets, data } = useWrite()
-  const preferences = data.sets.find((item) => item.id === setId)?.preferences
   const start = automation?.retweets?.length
     ? automation
     : defaults?.retweets?.length
@@ -411,34 +421,13 @@ function RetweetDialog({
           />
           hours
         </Label>
-        <DialogFooter className="gap-2 sm:justify-between">
-          {canManageSets ? (
-            <Button
-              disabled={!valid || !setId}
-              onClick={() =>
-                void saveDefaults(
-                  setId,
-                  preferences,
-                  { retweets: next.retweets, unretweetAfterMinutes: next.unretweetAfterMinutes },
-                  router.refresh
-                )
-              }
-              type="button"
-              variant="ghost"
-            >
-              Save as default
-            </Button>
-          ) : (
-            <span />
-          )}
-          <span className="flex gap-2">
-            <Button onClick={onClose} type="button" variant="outline">
-              Cancel
-            </Button>
-            <Button disabled={!valid} onClick={() => onSave(next)} type="button">
-              Enable Auto-RT
-            </Button>
-          </span>
+        <DialogFooter className="gap-2">
+          <Button onClick={onClose} type="button" variant="outline">
+            Cancel
+          </Button>
+          <Button disabled={!valid} onClick={() => onSave(next)} type="button">
+            Enable Auto-RT
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -460,7 +449,7 @@ function PlugDialog({
 }) {
   const router = useRouter()
   const { canManageSets, data } = useWrite()
-  const preferences = data.sets.find((item) => item.id === setId)?.preferences
+  const set = data.sets.find((item) => item.id === setId)
   const start = automation?.plugAtLikes ? automation : defaults?.plugAtLikes ? defaults : undefined
   const [threshold, setThreshold] = React.useState(String(start?.plugAtLikes ?? 100))
   const [metric, setMetric] = React.useState<'likes' | 'reposts'>(start?.plugMetric ?? 'likes')
@@ -529,8 +518,19 @@ function PlugDialog({
         <DialogFooter className="gap-2 sm:justify-between">
           {canManageSets ? (
             <Button
-              disabled={!valid || !setId}
-              onClick={() => void saveDefaults(setId, preferences, plug, router.refresh)}
+              disabled={!valid || !set || metric !== 'likes'}
+              onClick={() =>
+                void savePlugDefault(
+                  set,
+                  { atLikes: count, enabled: true, text: text.trim() },
+                  router.refresh
+                )
+              }
+              title={
+                metric === 'likes'
+                  ? undefined
+                  : 'A set’s default plug waits for likes, not reposts.'
+              }
               type="button"
               variant="ghost"
             >

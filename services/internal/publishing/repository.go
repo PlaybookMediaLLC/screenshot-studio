@@ -46,6 +46,10 @@ func (r *Repository) CreateConnection(ctx context.Context, actor Actor, input Cr
 		return nil, err
 	}
 	defer tx.Rollback()
+	setID, err := targetSocialSet(ctx, tx, actor.Organization, input.Platform, input.SocialSetID)
+	if err != nil {
+		return nil, err
+	}
 	connection, err := tx.ChannelConnection.Create().
 		SetID(cuid.New()).
 		SetOrganizationID(actor.Organization).
@@ -55,12 +59,16 @@ func (r *Repository) CreateConnection(ctx context.Context, actor Actor, input Cr
 		SetProviderSettings(input.ProviderSettings).
 		SetSecretReference(input.SecretReference).
 		SetStatus(channelconnection.StatusACTIVE).
+		SetNillableSocialSetID(setID).
 		SetCreatedByUserID(actor.UserID).
 		Save(ctx)
 	if err != nil {
 		if ent.IsConstraintError(err) {
 			return nil, ErrConflict
 		}
+		return nil, err
+	}
+	if err := enableDefaultPlatform(ctx, tx, setID, input.Platform); err != nil {
 		return nil, err
 	}
 	if err := activity.Emit(ctx, tx, actor.Organization, "integration.connected", "channel_connection", connection.ID, actor.UserID, "connected:"+connection.ID, map[string]any{"ownerUserId": actor.UserID}); err != nil {
@@ -603,6 +611,9 @@ func (r *Repository) Complete(ctx context.Context, post *ent.ScheduledPost, atte
 		EntityType: "scheduled_post", Organization: post.OrganizationID, Outcome: auditlog.OutcomeSUCCEEDED,
 		Metadata: map[string]any{"providerPostId": providerPostID},
 	}); err != nil {
+		return err
+	}
+	if err := emitDraftPublished(ctx, tx, post, providerPostID); err != nil {
 		return err
 	}
 	return tx.Commit()

@@ -57,6 +57,8 @@ import { normalizePosts, postBreak } from '@/lib/write/versions'
 import type { PlateBody } from '@/lib/write/document'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import type { z } from 'zod'
+import type { textDirectionSchema } from '@/lib/api/contracts/settings-platform'
 
 /**
  * The document editor for a content draft: the vendored Plate.js editor with
@@ -74,10 +76,10 @@ function HashtagChips({ hashtags }: { hashtags: string[] }) {
   const editor = useEditorRef()
   return (
     <div className={cn('flex flex-wrap items-center gap-1.5 pb-6', POST_COLUMN)}>
-      <span className="text-[11px] text-neutral-500">Your hashtags</span>
+      <span className="text-[11px] text-muted-foreground">Your hashtags</span>
       {hashtags.map((tag) => (
         <Button variant="custom" size={null}
-          className="rounded-full border border-white/[0.08] px-2 py-0.5 text-xs text-neutral-400 hover:border-sky-400/40 hover:text-white"
+          className="rounded-full border border-foreground/[0.08] px-2 py-0.5 text-xs text-foreground/65 hover:border-sky-400/40 hover:text-foreground"
           key={tag}
           onClick={() => {
             // At the caret, or at the end of the draft when there is none.
@@ -96,6 +98,8 @@ function HashtagChips({ hashtags }: { hashtags: string[] }) {
 }
 
 export type DraftEditorProps = {
+  /** The direction text runs in, from Appearance settings. */
+  textDirection?: z.infer<typeof textDirectionSchema>
   collaboration: DraftCollaboration | null
   /** The editor, once made: the host restores revisions through it. */
   onEditor?: (editor: PlateEditor) => void
@@ -235,7 +239,7 @@ function Presence() {
     <div className="absolute -top-12 right-6 flex flex-wrap gap-1.5" data-testid="presence">
       {people.map((person, index) => (
         <span
-          className="rounded-full px-2 py-0.5 text-xs text-white"
+          className="rounded-full px-2 py-0.5 text-xs text-foreground"
           key={`${person.name}-${index}`}
           style={{ background: person.color }}
         >
@@ -423,7 +427,7 @@ function DraftToolbar({
   }
 
   return (
-    <Toolbar className="flex items-center gap-0.5 rounded-full border border-white/[0.08] bg-[#161616]/95 px-1.5 py-1 shadow-xl shadow-black/40 backdrop-blur">
+    <Toolbar className="flex items-center gap-0.5 rounded-full border border-foreground/[0.08] bg-secondary/95 px-1.5 py-1 shadow-xl shadow-black/40 backdrop-blur">
       <ToolbarGroup>
         <MarkToolbarButton nodeType={KEYS.bold} tooltip="Bold">
           <span className="font-bold">B</span>
@@ -500,6 +504,7 @@ function DraftToolbar({
 
 export default function DraftEditor({
   collaboration,
+  textDirection = 'ltr',
   onEditor,
   handles,
   hashtags,
@@ -627,6 +632,7 @@ export default function DraftEditor({
               <Editor
                 aria-label="Draft body"
                 className={cn(POST_COLUMN, 'pt-1 pb-12 text-[15px] leading-relaxed')}
+                dir={textDirection}
                 placeholder="What do you want to say?"
                 variant="default"
               />

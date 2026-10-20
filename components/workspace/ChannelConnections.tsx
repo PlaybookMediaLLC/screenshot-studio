@@ -58,7 +58,7 @@ export function ChannelConnections({ canManage }: { canManage: boolean }) {
       <Group>
         {!canManage ? (
           <Row>
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-muted-foreground">
               Only admins and publishers can connect channels.
             </p>
           </Row>
@@ -67,22 +67,22 @@ export function ChannelConnections({ canManage }: { canManage: boolean }) {
             {connections === null ? (
               error ? null : (
                 <Row>
-                  <p className="text-sm text-neutral-500">Loading channels…</p>
+                  <p className="text-sm text-muted-foreground">Loading channels…</p>
                 </Row>
               )
             ) : connections.length === 0 ? (
               <Row>
-                <p className="text-sm text-neutral-500">No channels connected yet.</p>
+                <p className="text-sm text-muted-foreground">No channels connected yet.</p>
               </Row>
             ) : (
               connections.map((connection) => (
                 <Row key={connection.id}>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-sm font-medium text-foreground">
                       {connection.displayName || connection.externalAccountId}
                     </span>
                     {connection.handle ? (
-                      <span className="text-sm text-neutral-500">@{connection.handle}</span>
+                      <span className="text-sm text-muted-foreground">@{connection.handle}</span>
                     ) : null}
                     <Pill>{connection.platform}</Pill>
                     <Pill tone={connection.status === 'ACTIVE' ? 'green' : 'yellow'}>

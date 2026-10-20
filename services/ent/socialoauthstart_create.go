@@ -64,6 +64,20 @@ func (_c *SocialOAuthStartCreate) SetNillableIntegrationID(v *string) *SocialOAu
 	return _c
 }
 
+// SetSocialSetID sets the "social_set_id" field.
+func (_c *SocialOAuthStartCreate) SetSocialSetID(v string) *SocialOAuthStartCreate {
+	_c.mutation.SetSocialSetID(v)
+	return _c
+}
+
+// SetNillableSocialSetID sets the "social_set_id" field if the given value is not nil.
+func (_c *SocialOAuthStartCreate) SetNillableSocialSetID(v *string) *SocialOAuthStartCreate {
+	if v != nil {
+		_c.SetSocialSetID(*v)
+	}
+	return _c
+}
+
 // SetExpiresAt sets the "expires_at" field.
 func (_c *SocialOAuthStartCreate) SetExpiresAt(v time.Time) *SocialOAuthStartCreate {
 	_c.mutation.SetExpiresAt(v)
@@ -212,6 +226,10 @@ func (_c *SocialOAuthStartCreate) createSpec() (*SocialOAuthStart, *sqlgraph.Cre
 	if value, ok := _c.mutation.IntegrationID(); ok {
 		_spec.SetField(socialoauthstart.FieldIntegrationID, field.TypeString, value)
 		_node.IntegrationID = &value
+	}
+	if value, ok := _c.mutation.SocialSetID(); ok {
+		_spec.SetField(socialoauthstart.FieldSocialSetID, field.TypeString, value)
+		_node.SocialSetID = &value
 	}
 	if value, ok := _c.mutation.ExpiresAt(); ok {
 		_spec.SetField(socialoauthstart.FieldExpiresAt, field.TypeTime, value)

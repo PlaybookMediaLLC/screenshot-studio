@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
@@ -187,6 +188,62 @@ func (_c *ContentDraftCreate) SetNillableSocialSetID(v *string) *ContentDraftCre
 	return _c
 }
 
+// SetPrimaryPlatform sets the "primary_platform" field.
+func (_c *ContentDraftCreate) SetPrimaryPlatform(v string) *ContentDraftCreate {
+	_c.mutation.SetPrimaryPlatform(v)
+	return _c
+}
+
+// SetNillablePrimaryPlatform sets the "primary_platform" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillablePrimaryPlatform(v *string) *ContentDraftCreate {
+	if v != nil {
+		_c.SetPrimaryPlatform(*v)
+	}
+	return _c
+}
+
+// SetNaturalPostingTime sets the "natural_posting_time" field.
+func (_c *ContentDraftCreate) SetNaturalPostingTime(v bool) *ContentDraftCreate {
+	_c.mutation.SetNaturalPostingTime(v)
+	return _c
+}
+
+// SetNillableNaturalPostingTime sets the "natural_posting_time" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableNaturalPostingTime(v *bool) *ContentDraftCreate {
+	if v != nil {
+		_c.SetNaturalPostingTime(*v)
+	}
+	return _c
+}
+
+// SetEngagement sets the "engagement" field.
+func (_c *ContentDraftCreate) SetEngagement(v schema.Engagement) *ContentDraftCreate {
+	_c.mutation.SetEngagement(v)
+	return _c
+}
+
+// SetNillableEngagement sets the "engagement" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableEngagement(v *schema.Engagement) *ContentDraftCreate {
+	if v != nil {
+		_c.SetEngagement(*v)
+	}
+	return _c
+}
+
+// SetPlannedFor sets the "planned_for" field.
+func (_c *ContentDraftCreate) SetPlannedFor(v time.Time) *ContentDraftCreate {
+	_c.mutation.SetPlannedFor(v)
+	return _c
+}
+
+// SetNillablePlannedFor sets the "planned_for" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillablePlannedFor(v *time.Time) *ContentDraftCreate {
+	if v != nil {
+		_c.SetPlannedFor(*v)
+	}
+	return _c
+}
+
 // SetKind sets the "kind" field.
 func (_c *ContentDraftCreate) SetKind(v contentdraft.Kind) *ContentDraftCreate {
 	_c.mutation.SetKind(v)
@@ -204,20 +261,6 @@ func (_c *ContentDraftCreate) SetNillableKind(v *contentdraft.Kind) *ContentDraf
 // SetTarget sets the "target" field.
 func (_c *ContentDraftCreate) SetTarget(v *draftdoc.Target) *ContentDraftCreate {
 	_c.mutation.SetTarget(v)
-	return _c
-}
-
-// SetPrimaryChannel sets the "primary_channel" field.
-func (_c *ContentDraftCreate) SetPrimaryChannel(v string) *ContentDraftCreate {
-	_c.mutation.SetPrimaryChannel(v)
-	return _c
-}
-
-// SetNillablePrimaryChannel sets the "primary_channel" field if the given value is not nil.
-func (_c *ContentDraftCreate) SetNillablePrimaryChannel(v *string) *ContentDraftCreate {
-	if v != nil {
-		_c.SetPrimaryChannel(*v)
-	}
 	return _c
 }
 
@@ -271,20 +314,6 @@ func (_c *ContentDraftCreate) SetPinnedAt(v time.Time) *ContentDraftCreate {
 func (_c *ContentDraftCreate) SetNillablePinnedAt(v *time.Time) *ContentDraftCreate {
 	if v != nil {
 		_c.SetPinnedAt(*v)
-	}
-	return _c
-}
-
-// SetPlannedFor sets the "planned_for" field.
-func (_c *ContentDraftCreate) SetPlannedFor(v time.Time) *ContentDraftCreate {
-	_c.mutation.SetPlannedFor(v)
-	return _c
-}
-
-// SetNillablePlannedFor sets the "planned_for" field if the given value is not nil.
-func (_c *ContentDraftCreate) SetNillablePlannedFor(v *time.Time) *ContentDraftCreate {
-	if v != nil {
-		_c.SetPlannedFor(*v)
 	}
 	return _c
 }
@@ -444,13 +473,17 @@ func (_c *ContentDraftCreate) defaults() {
 		v := contentdraft.DefaultVersion
 		_c.mutation.SetVersion(v)
 	}
+	if _, ok := _c.mutation.NaturalPostingTime(); !ok {
+		v := contentdraft.DefaultNaturalPostingTime
+		_c.mutation.SetNaturalPostingTime(v)
+	}
+	if _, ok := _c.mutation.Engagement(); !ok {
+		v := contentdraft.DefaultEngagement
+		_c.mutation.SetEngagement(v)
+	}
 	if _, ok := _c.mutation.Kind(); !ok {
 		v := contentdraft.DefaultKind
 		_c.mutation.SetKind(v)
-	}
-	if _, ok := _c.mutation.PrimaryChannel(); !ok {
-		v := contentdraft.DefaultPrimaryChannel
-		_c.mutation.SetPrimaryChannel(v)
 	}
 	if _, ok := _c.mutation.PlatformVersions(); !ok {
 		v := contentdraft.DefaultPlatformVersions
@@ -522,6 +555,12 @@ func (_c *ContentDraftCreate) check() error {
 	if _, ok := _c.mutation.Version(); !ok {
 		return &ValidationError{Name: "version", err: errors.New(`ent: missing required field "ContentDraft.version"`)}
 	}
+	if _, ok := _c.mutation.NaturalPostingTime(); !ok {
+		return &ValidationError{Name: "natural_posting_time", err: errors.New(`ent: missing required field "ContentDraft.natural_posting_time"`)}
+	}
+	if _, ok := _c.mutation.Engagement(); !ok {
+		return &ValidationError{Name: "engagement", err: errors.New(`ent: missing required field "ContentDraft.engagement"`)}
+	}
 	if _, ok := _c.mutation.Kind(); !ok {
 		return &ValidationError{Name: "kind", err: errors.New(`ent: missing required field "ContentDraft.kind"`)}
 	}
@@ -529,9 +568,6 @@ func (_c *ContentDraftCreate) check() error {
 		if err := contentdraft.KindValidator(v); err != nil {
 			return &ValidationError{Name: "kind", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.kind": %w`, err)}
 		}
-	}
-	if _, ok := _c.mutation.PrimaryChannel(); !ok {
-		return &ValidationError{Name: "primary_channel", err: errors.New(`ent: missing required field "ContentDraft.primary_channel"`)}
 	}
 	if _, ok := _c.mutation.PlatformVersions(); !ok {
 		return &ValidationError{Name: "platform_versions", err: errors.New(`ent: missing required field "ContentDraft.platform_versions"`)}
@@ -651,6 +687,22 @@ func (_c *ContentDraftCreate) createSpec() (*ContentDraft, *sqlgraph.CreateSpec)
 		_spec.SetField(contentdraft.FieldSocialSetID, field.TypeString, value)
 		_node.SocialSetID = &value
 	}
+	if value, ok := _c.mutation.PrimaryPlatform(); ok {
+		_spec.SetField(contentdraft.FieldPrimaryPlatform, field.TypeString, value)
+		_node.PrimaryPlatform = &value
+	}
+	if value, ok := _c.mutation.NaturalPostingTime(); ok {
+		_spec.SetField(contentdraft.FieldNaturalPostingTime, field.TypeBool, value)
+		_node.NaturalPostingTime = value
+	}
+	if value, ok := _c.mutation.Engagement(); ok {
+		_spec.SetField(contentdraft.FieldEngagement, field.TypeJSON, value)
+		_node.Engagement = value
+	}
+	if value, ok := _c.mutation.PlannedFor(); ok {
+		_spec.SetField(contentdraft.FieldPlannedFor, field.TypeTime, value)
+		_node.PlannedFor = &value
+	}
 	if value, ok := _c.mutation.Kind(); ok {
 		_spec.SetField(contentdraft.FieldKind, field.TypeEnum, value)
 		_node.Kind = value
@@ -658,10 +710,6 @@ func (_c *ContentDraftCreate) createSpec() (*ContentDraft, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Target(); ok {
 		_spec.SetField(contentdraft.FieldTarget, field.TypeJSON, value)
 		_node.Target = value
-	}
-	if value, ok := _c.mutation.PrimaryChannel(); ok {
-		_spec.SetField(contentdraft.FieldPrimaryChannel, field.TypeString, value)
-		_node.PrimaryChannel = value
 	}
 	if value, ok := _c.mutation.PlatformVersions(); ok {
 		_spec.SetField(contentdraft.FieldPlatformVersions, field.TypeJSON, value)
@@ -682,10 +730,6 @@ func (_c *ContentDraftCreate) createSpec() (*ContentDraft, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.PinnedAt(); ok {
 		_spec.SetField(contentdraft.FieldPinnedAt, field.TypeTime, value)
 		_node.PinnedAt = &value
-	}
-	if value, ok := _c.mutation.PlannedFor(); ok {
-		_spec.SetField(contentdraft.FieldPlannedFor, field.TypeTime, value)
-		_node.PlannedFor = &value
 	}
 	if value, ok := _c.mutation.PlanTimeZone(); ok {
 		_spec.SetField(contentdraft.FieldPlanTimeZone, field.TypeString, value)

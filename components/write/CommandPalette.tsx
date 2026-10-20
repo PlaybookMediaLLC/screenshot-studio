@@ -89,7 +89,7 @@ export default function CommandPalette({
                   () =>
                     void draftsApi
                       .create({
-                        socialSetId: data.activeSet?.isDefault ? undefined : data.activeSet?.id,
+                        socialSetId: data.activeSet?.id,
                       })
                       .then((draft) => router.push(draftHref(draft.id, data.activeSet?.id)))
                 )
@@ -115,7 +115,7 @@ export default function CommandPalette({
             <CommandShortcut>{keys.label({ key: '/', mod: true, shift: true })}</CommandShortcut>
           </CommandItem>
         </CommandGroup>
-        {data.tags.length > 0 ? (
+        {data.experiments.tags && data.tags.length > 0 ? (
           <CommandGroup heading="Filter by tag">
             {data.tags.map((tag) => (
               <CommandItem
@@ -142,7 +142,7 @@ export default function CommandPalette({
             >
               {set.name}
               <span className="ml-2 text-xs text-neutral-500">
-                {set.connections
+                {set.accounts
                   .map((connection) => connection.handle ?? connection.platform)
                   .join(' · ')}
               </span>

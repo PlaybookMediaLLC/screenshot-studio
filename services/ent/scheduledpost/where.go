@@ -125,6 +125,26 @@ func TriggerRunID(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldTriggerRunID, v))
 }
 
+// SocialSetID applies equality check predicate on the "social_set_id" field. It's identical to SocialSetIDEQ.
+func SocialSetID(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldSocialSetID, v))
+}
+
+// SlotAt applies equality check predicate on the "slot_at" field. It's identical to SlotAtEQ.
+func SlotAt(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldSlotAt, v))
+}
+
+// NaturalOffsetSeconds applies equality check predicate on the "natural_offset_seconds" field. It's identical to NaturalOffsetSecondsEQ.
+func NaturalOffsetSeconds(v int) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldNaturalOffsetSeconds, v))
+}
+
+// ScheduleTimeZone applies equality check predicate on the "schedule_time_zone" field. It's identical to ScheduleTimeZoneEQ.
+func ScheduleTimeZone(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldScheduleTimeZone, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldCreatedAt, v))
@@ -1023,6 +1043,286 @@ func TriggerRunIDEqualFold(v string) predicate.ScheduledPost {
 // TriggerRunIDContainsFold applies the ContainsFold predicate on the "trigger_run_id" field.
 func TriggerRunIDContainsFold(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldContainsFold(FieldTriggerRunID, v))
+}
+
+// SocialSetIDEQ applies the EQ predicate on the "social_set_id" field.
+func SocialSetIDEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldSocialSetID, v))
+}
+
+// SocialSetIDNEQ applies the NEQ predicate on the "social_set_id" field.
+func SocialSetIDNEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldSocialSetID, v))
+}
+
+// SocialSetIDIn applies the In predicate on the "social_set_id" field.
+func SocialSetIDIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldSocialSetID, vs...))
+}
+
+// SocialSetIDNotIn applies the NotIn predicate on the "social_set_id" field.
+func SocialSetIDNotIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldSocialSetID, vs...))
+}
+
+// SocialSetIDGT applies the GT predicate on the "social_set_id" field.
+func SocialSetIDGT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldSocialSetID, v))
+}
+
+// SocialSetIDGTE applies the GTE predicate on the "social_set_id" field.
+func SocialSetIDGTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldSocialSetID, v))
+}
+
+// SocialSetIDLT applies the LT predicate on the "social_set_id" field.
+func SocialSetIDLT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldSocialSetID, v))
+}
+
+// SocialSetIDLTE applies the LTE predicate on the "social_set_id" field.
+func SocialSetIDLTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldSocialSetID, v))
+}
+
+// SocialSetIDContains applies the Contains predicate on the "social_set_id" field.
+func SocialSetIDContains(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContains(FieldSocialSetID, v))
+}
+
+// SocialSetIDHasPrefix applies the HasPrefix predicate on the "social_set_id" field.
+func SocialSetIDHasPrefix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasPrefix(FieldSocialSetID, v))
+}
+
+// SocialSetIDHasSuffix applies the HasSuffix predicate on the "social_set_id" field.
+func SocialSetIDHasSuffix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasSuffix(FieldSocialSetID, v))
+}
+
+// SocialSetIDIsNil applies the IsNil predicate on the "social_set_id" field.
+func SocialSetIDIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldSocialSetID))
+}
+
+// SocialSetIDNotNil applies the NotNil predicate on the "social_set_id" field.
+func SocialSetIDNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldSocialSetID))
+}
+
+// SocialSetIDEqualFold applies the EqualFold predicate on the "social_set_id" field.
+func SocialSetIDEqualFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEqualFold(FieldSocialSetID, v))
+}
+
+// SocialSetIDContainsFold applies the ContainsFold predicate on the "social_set_id" field.
+func SocialSetIDContainsFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContainsFold(FieldSocialSetID, v))
+}
+
+// ScheduleModeEQ applies the EQ predicate on the "schedule_mode" field.
+func ScheduleModeEQ(v ScheduleMode) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldScheduleMode, v))
+}
+
+// ScheduleModeNEQ applies the NEQ predicate on the "schedule_mode" field.
+func ScheduleModeNEQ(v ScheduleMode) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldScheduleMode, v))
+}
+
+// ScheduleModeIn applies the In predicate on the "schedule_mode" field.
+func ScheduleModeIn(vs ...ScheduleMode) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldScheduleMode, vs...))
+}
+
+// ScheduleModeNotIn applies the NotIn predicate on the "schedule_mode" field.
+func ScheduleModeNotIn(vs ...ScheduleMode) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldScheduleMode, vs...))
+}
+
+// ScheduleModeIsNil applies the IsNil predicate on the "schedule_mode" field.
+func ScheduleModeIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldScheduleMode))
+}
+
+// ScheduleModeNotNil applies the NotNil predicate on the "schedule_mode" field.
+func ScheduleModeNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldScheduleMode))
+}
+
+// SlotAtEQ applies the EQ predicate on the "slot_at" field.
+func SlotAtEQ(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldSlotAt, v))
+}
+
+// SlotAtNEQ applies the NEQ predicate on the "slot_at" field.
+func SlotAtNEQ(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldSlotAt, v))
+}
+
+// SlotAtIn applies the In predicate on the "slot_at" field.
+func SlotAtIn(vs ...time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldSlotAt, vs...))
+}
+
+// SlotAtNotIn applies the NotIn predicate on the "slot_at" field.
+func SlotAtNotIn(vs ...time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldSlotAt, vs...))
+}
+
+// SlotAtGT applies the GT predicate on the "slot_at" field.
+func SlotAtGT(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldSlotAt, v))
+}
+
+// SlotAtGTE applies the GTE predicate on the "slot_at" field.
+func SlotAtGTE(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldSlotAt, v))
+}
+
+// SlotAtLT applies the LT predicate on the "slot_at" field.
+func SlotAtLT(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldSlotAt, v))
+}
+
+// SlotAtLTE applies the LTE predicate on the "slot_at" field.
+func SlotAtLTE(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldSlotAt, v))
+}
+
+// SlotAtIsNil applies the IsNil predicate on the "slot_at" field.
+func SlotAtIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldSlotAt))
+}
+
+// SlotAtNotNil applies the NotNil predicate on the "slot_at" field.
+func SlotAtNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldSlotAt))
+}
+
+// NaturalOffsetSecondsEQ applies the EQ predicate on the "natural_offset_seconds" field.
+func NaturalOffsetSecondsEQ(v int) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldNaturalOffsetSeconds, v))
+}
+
+// NaturalOffsetSecondsNEQ applies the NEQ predicate on the "natural_offset_seconds" field.
+func NaturalOffsetSecondsNEQ(v int) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldNaturalOffsetSeconds, v))
+}
+
+// NaturalOffsetSecondsIn applies the In predicate on the "natural_offset_seconds" field.
+func NaturalOffsetSecondsIn(vs ...int) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldNaturalOffsetSeconds, vs...))
+}
+
+// NaturalOffsetSecondsNotIn applies the NotIn predicate on the "natural_offset_seconds" field.
+func NaturalOffsetSecondsNotIn(vs ...int) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldNaturalOffsetSeconds, vs...))
+}
+
+// NaturalOffsetSecondsGT applies the GT predicate on the "natural_offset_seconds" field.
+func NaturalOffsetSecondsGT(v int) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldNaturalOffsetSeconds, v))
+}
+
+// NaturalOffsetSecondsGTE applies the GTE predicate on the "natural_offset_seconds" field.
+func NaturalOffsetSecondsGTE(v int) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldNaturalOffsetSeconds, v))
+}
+
+// NaturalOffsetSecondsLT applies the LT predicate on the "natural_offset_seconds" field.
+func NaturalOffsetSecondsLT(v int) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldNaturalOffsetSeconds, v))
+}
+
+// NaturalOffsetSecondsLTE applies the LTE predicate on the "natural_offset_seconds" field.
+func NaturalOffsetSecondsLTE(v int) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldNaturalOffsetSeconds, v))
+}
+
+// NaturalOffsetSecondsIsNil applies the IsNil predicate on the "natural_offset_seconds" field.
+func NaturalOffsetSecondsIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldNaturalOffsetSeconds))
+}
+
+// NaturalOffsetSecondsNotNil applies the NotNil predicate on the "natural_offset_seconds" field.
+func NaturalOffsetSecondsNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldNaturalOffsetSeconds))
+}
+
+// ScheduleTimeZoneEQ applies the EQ predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldScheduleTimeZone, v))
+}
+
+// ScheduleTimeZoneNEQ applies the NEQ predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneNEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldScheduleTimeZone, v))
+}
+
+// ScheduleTimeZoneIn applies the In predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldScheduleTimeZone, vs...))
+}
+
+// ScheduleTimeZoneNotIn applies the NotIn predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneNotIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldScheduleTimeZone, vs...))
+}
+
+// ScheduleTimeZoneGT applies the GT predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneGT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldScheduleTimeZone, v))
+}
+
+// ScheduleTimeZoneGTE applies the GTE predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneGTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldScheduleTimeZone, v))
+}
+
+// ScheduleTimeZoneLT applies the LT predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneLT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldScheduleTimeZone, v))
+}
+
+// ScheduleTimeZoneLTE applies the LTE predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneLTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldScheduleTimeZone, v))
+}
+
+// ScheduleTimeZoneContains applies the Contains predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneContains(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContains(FieldScheduleTimeZone, v))
+}
+
+// ScheduleTimeZoneHasPrefix applies the HasPrefix predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneHasPrefix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasPrefix(FieldScheduleTimeZone, v))
+}
+
+// ScheduleTimeZoneHasSuffix applies the HasSuffix predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneHasSuffix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasSuffix(FieldScheduleTimeZone, v))
+}
+
+// ScheduleTimeZoneIsNil applies the IsNil predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldScheduleTimeZone))
+}
+
+// ScheduleTimeZoneNotNil applies the NotNil predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldScheduleTimeZone))
+}
+
+// ScheduleTimeZoneEqualFold applies the EqualFold predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneEqualFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEqualFold(FieldScheduleTimeZone, v))
+}
+
+// ScheduleTimeZoneContainsFold applies the ContainsFold predicate on the "schedule_time_zone" field.
+func ScheduleTimeZoneContainsFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContainsFold(FieldScheduleTimeZone, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

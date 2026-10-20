@@ -245,22 +245,27 @@ function LibraryFilters({ onManageTags }: { onManageTags: () => void }) {
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel>Tags</DropdownMenuLabel>
-          {data.tags.length === 0 ? (
-            <DropdownMenuItem disabled>No tags yet</DropdownMenuItem>
-          ) : (
-            data.tags.map((tag) => (
-              <DropdownMenuCheckboxItem
-                checked={tag.id === data.query.tag}
-                key={tag.id}
-                onCheckedChange={(checked) => setQuery({ tag: checked ? tag.id : undefined })}
-              >
-                <TagChip tag={tag} />
-              </DropdownMenuCheckboxItem>
-            ))
-          )}
-          <DropdownMenuItem onSelect={onManageTags}>Manage tags…</DropdownMenuItem>
+          {/* Tags are an experiment (RFC 043): shown only when it is on. */}
+          {data.experiments.tags ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Tags</DropdownMenuLabel>
+              {data.tags.length === 0 ? (
+                <DropdownMenuItem disabled>No tags yet</DropdownMenuItem>
+              ) : (
+                data.tags.map((tag) => (
+                  <DropdownMenuCheckboxItem
+                    checked={tag.id === data.query.tag}
+                    key={tag.id}
+                    onCheckedChange={(checked) => setQuery({ tag: checked ? tag.id : undefined })}
+                  >
+                    <TagChip tag={tag} />
+                  </DropdownMenuCheckboxItem>
+                ))
+              )}
+              <DropdownMenuItem onSelect={onManageTags}>Manage tags…</DropdownMenuItem>
+            </>
+          ) : null}
           <DropdownMenuSeparator />
           <DropdownMenuLabel>Kind</DropdownMenuLabel>
           <DropdownMenuRadioGroup
@@ -306,9 +311,7 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
   const { data } = useWrite()
   const [creating, setCreating] = React.useState(false)
   const [asking, setAsking] = React.useState<NewKind | null>(null)
-  const channels = new Set(
-    data.activeSet?.connections.map((connection) => connection.channel) ?? []
-  )
+  const channels = new Set(data.activeSet?.accounts.map((account) => account.channel) ?? [])
   const kinds: NewKind[] = [
     ...(channels.has('x') ? [{ kind: 'article' as const, label: 'X Article' }] : []),
     ...(channels.has('x') || channels.has('linkedin')
@@ -324,8 +327,8 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
     try {
       const draft = await draftsApi.create({
         kind,
-        socialSetId: data.activeSet?.isDefault ? undefined : data.activeSet?.id,
-        tagIds: data.query.tag ? [data.query.tag] : undefined,
+        socialSetId: data.activeSet?.id,
+        tagIds: data.experiments.tags && data.query.tag ? [data.query.tag] : undefined,
         target,
       })
       router.push(draftHref(draft.id, data.activeSet?.id))
@@ -503,7 +506,7 @@ function DraftRow({
   const shown = { ...draft, ...saved[draft.id] }
   const channels = [
     ...new Set(
-      (data.activeSet?.connections ?? [])
+      (data.activeSet?.accounts ?? [])
         .filter((connection) => draft.channelConnectionIds.includes(connection.id))
         .map((connection) => connection.channel)
     ),
@@ -702,35 +705,37 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
                 {draft.pinned ? 'Unpin draft' : 'Pin draft'}
                 <DropdownMenuShortcut>{mod}⇧P</DropdownMenuShortcut>
               </DropdownMenuItem>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>Tag this draft</DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="w-56">
-                  {data.tags.length === 0 ? (
-                    <DropdownMenuItem disabled>No tags yet</DropdownMenuItem>
-                  ) : null}
-                  {data.tags.map((tag) => {
-                    const on = draft.tagIds.includes(tag.id)
-                    return (
-                      <DropdownMenuCheckboxItem
-                        checked={on}
-                        key={tag.id}
-                        onCheckedChange={() =>
-                          void act(
-                            () =>
-                              writeApi.properties(
-                                draft.id,
-                                on ? { removeTagIds: [tag.id] } : { addTagIds: [tag.id] }
-                              ),
-                            on ? `Removed ${tag.name}.` : `Tagged ${tag.name}.`
-                          )
-                        }
-                      >
-                        <TagChip tag={tag} />
-                      </DropdownMenuCheckboxItem>
-                    )
-                  })}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
+              {data.experiments.tags ? (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>Tag this draft</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-56">
+                    {data.tags.length === 0 ? (
+                      <DropdownMenuItem disabled>No tags yet</DropdownMenuItem>
+                    ) : null}
+                    {data.tags.map((tag) => {
+                      const on = draft.tagIds.includes(tag.id)
+                      return (
+                        <DropdownMenuCheckboxItem
+                          checked={on}
+                          key={tag.id}
+                          onCheckedChange={() =>
+                            void act(
+                              () =>
+                                writeApi.properties(
+                                  draft.id,
+                                  on ? { removeTagIds: [tag.id] } : { addTagIds: [tag.id] }
+                                ),
+                              on ? `Removed ${tag.name}.` : `Tagged ${tag.name}.`
+                            )
+                          }
+                        >
+                          <TagChip tag={tag} />
+                        </DropdownMenuCheckboxItem>
+                      )
+                    })}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              ) : null}
             </>
           ) : null}
           {onSelect ? (

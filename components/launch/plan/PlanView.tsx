@@ -58,7 +58,7 @@ function refLabel(ref: string): string {
 
 function KeyChip({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex h-5 items-center rounded-md bg-white/[0.04] px-1.5 font-mono text-[11px] font-medium text-neutral-300 ring-1 ring-white/[0.1] ring-inset">
+    <span className="inline-flex h-5 items-center rounded-md bg-foreground/[0.04] px-1.5 font-mono text-[11px] font-medium text-foreground/80 ring-1 ring-foreground/[0.1] ring-inset">
       {children}
     </span>
   )
@@ -76,10 +76,10 @@ function ClaimChip({ claimRef, spec }: { claimRef: string; spec: SpecRef | null 
     >
       {claim ? (
         <>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-muted-foreground">
             {SPEC_SECTION_LABELS[claim.section]} · spec v{spec?.version}
           </p>
-          <p className="leading-6 text-neutral-200">{claim.text}</p>
+          <p className="leading-6 text-foreground">{claim.text}</p>
         </>
       ) : (
         <p>{claimRef} is not in the spec this plan was built from.</p>
@@ -94,11 +94,11 @@ function FormatBox({ format }: { format: string }) {
   return (
     <div
       aria-hidden
-      className="grid size-14 shrink-0 place-items-center rounded-lg bg-black/25 ring-1 ring-white/[0.06]"
+      className="grid size-14 shrink-0 place-items-center rounded-lg bg-black/25 ring-1 ring-foreground/[0.06]"
     >
       <div
         className={cn(
-          'rounded-[3px] bg-white/[0.07] ring-1 ring-white/20',
+          'rounded-[3px] bg-foreground/[0.07] ring-1 ring-foreground/20',
           width >= height ? 'w-10' : 'h-10'
         )}
         style={{ aspectRatio: `${width} / ${height}` }}
@@ -120,8 +120,8 @@ function captureTarget(url: string): { page: string; section: string | null } {
 function Detail({ children, label }: { children: ReactNode; label: string }) {
   return (
     <div className="flex gap-3">
-      <dt className="w-16 shrink-0 text-neutral-500">{label}</dt>
-      <dd className="min-w-0 text-neutral-300">{children}</dd>
+      <dt className="w-16 shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-foreground/80">{children}</dd>
     </div>
   )
 }
@@ -185,7 +185,7 @@ export function PlanView({
   ) : null
   const aiNote =
     canEdit && !aiConfigured ? (
-      <p className="text-xs text-neutral-500">AI is not configured.</p>
+      <p className="text-xs text-muted-foreground">AI is not configured.</p>
     ) : null
 
   if (!plan) {
@@ -236,7 +236,7 @@ export function PlanView({
             <VersionStatus status={current.status} />
           </div>
           {current.changeSummary ? (
-            <p className="text-sm text-neutral-500">{current.changeSummary}</p>
+            <p className="text-sm text-muted-foreground">{current.changeSummary}</p>
           ) : null}
         </div>
         <div className="flex flex-col gap-2 md:items-end">
@@ -259,15 +259,18 @@ export function PlanView({
       </div>
 
       {error ? (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300" role="alert">
+        <p
+          className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
 
       {!isLatest ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-4 py-3 text-sm text-neutral-300 ring-1 ring-white/[0.08]">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-foreground/[0.03] px-4 py-3 text-sm text-foreground/80 ring-1 ring-foreground/[0.08]">
           <span>You are viewing v{current.version}, an earlier version. It is read-only.</span>
-          <Link className="font-medium text-white hover:underline" href={pathname}>
+          <Link className="font-medium text-foreground hover:underline" href={pathname}>
             View the latest
           </Link>
         </div>
@@ -276,8 +279,8 @@ export function PlanView({
       {hasApproved ? (
         <div className="flex flex-col gap-3 rounded-2xl bg-emerald-500/[0.05] px-5 py-4 ring-1 ring-emerald-500/20 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm font-medium text-white">The plan is approved</p>
-            <p className="mt-0.5 text-sm text-neutral-400">
+            <p className="text-sm font-medium text-foreground">The plan is approved</p>
+            <p className="mt-0.5 text-sm text-foreground/65">
               Next, produce the visuals and copy it calls for.
             </p>
           </div>
@@ -294,13 +297,13 @@ export function PlanView({
       <Section title="Summary">
         <Group>
           <div className="flex flex-col gap-3 px-5 py-4">
-            <p className="text-sm leading-6 text-neutral-200">{content.summary}</p>
-            <p className="text-xs text-neutral-500">
+            <p className="text-sm leading-6 text-foreground">{content.summary}</p>
+            <p className="text-xs text-muted-foreground">
               {spec ? (
                 <>
                   Built from{' '}
                   <Link
-                    className="text-neutral-300 hover:text-white hover:underline"
+                    className="text-foreground/80 hover:text-foreground hover:underline"
                     href={`/campaigns/${campaignId}/spec${spec.id === workingSpec.id ? '' : `?version=${spec.id}`}`}
                   >
                     spec v{spec.version}
@@ -336,7 +339,9 @@ export function PlanView({
               key={channel.channel}
               label={LAUNCH_CHANNEL_LABELS[channel.channel]}
             >
-              <p className="text-xs leading-5 text-neutral-400 md:text-right">{channel.cadence}</p>
+              <p className="text-xs leading-5 text-foreground/65 md:text-right">
+                {channel.cadence}
+              </p>
             </Row>
           ))}
         </Group>
@@ -349,16 +354,16 @@ export function PlanView({
         <ul className="grid gap-4 md:grid-cols-2">
           {content.angles.map((angle) => (
             <li
-              className="flex flex-col gap-3 rounded-2xl bg-white/[0.015] p-5 ring-1 ring-white/[0.08]"
+              className="flex flex-col gap-3 rounded-2xl bg-foreground/[0.015] p-5 ring-1 ring-foreground/[0.08]"
               id={`plan-${angle.key}`}
               key={angle.key}
             >
               <div className="flex items-center gap-2">
                 <KeyChip>{angle.key}</KeyChip>
-                <h3 className="text-sm font-medium text-white">{angle.title}</h3>
+                <h3 className="text-sm font-medium text-foreground">{angle.title}</h3>
               </div>
-              <p className="text-xs text-neutral-500">Pillar · {angle.pillar}</p>
-              <p className="text-sm leading-6 text-neutral-300">{angle.hook}</p>
+              <p className="text-xs text-muted-foreground">Pillar · {angle.pillar}</p>
+              <p className="text-sm leading-6 text-foreground/80">{angle.hook}</p>
               <div className="mt-auto flex flex-wrap gap-1 pt-1">
                 {angle.specRefs.map((ref) => (
                   <ClaimChip claimRef={ref} key={ref} spec={spec} />
@@ -379,7 +384,7 @@ export function PlanView({
             const DeviceIcon = asset.captureHint.device === 'mobile' ? SmartPhone01Icon : LaptopIcon
             return (
               <li
-                className="flex flex-col gap-4 rounded-2xl bg-white/[0.015] p-5 ring-1 ring-white/[0.08]"
+                className="flex flex-col gap-4 rounded-2xl bg-foreground/[0.015] p-5 ring-1 ring-foreground/[0.08]"
                 key={asset.key}
               >
                 <div className="flex items-start gap-4">
@@ -387,11 +392,13 @@ export function PlanView({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <KeyChip>{asset.key}</KeyChip>
-                      <h3 className="text-sm font-medium text-white">{ASSET_KIND[asset.kind]}</h3>
-                      <span className="text-xs text-neutral-500">{asset.format}</span>
+                      <h3 className="text-sm font-medium text-foreground">
+                        {ASSET_KIND[asset.kind]}
+                      </h3>
+                      <span className="text-xs text-muted-foreground">{asset.format}</span>
                       {asset.variants === 2 ? <Pill tone="purple">A/B pair</Pill> : null}
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-neutral-200">“{asset.headline}”</p>
+                    <p className="mt-2 text-sm leading-6 text-foreground">“{asset.headline}”</p>
                   </div>
                 </div>
                 <dl className="mt-auto grid gap-2 text-xs leading-5">
@@ -407,7 +414,7 @@ export function PlanView({
                     </span>{' '}
                     · <span className="break-all">{target.page}</span>
                     {target.section ? ` · section #${target.section}` : ''}
-                    <span className="mt-1 block text-neutral-400">{asset.captureHint.focus}</span>
+                    <span className="mt-1 block text-foreground/65">{asset.captureHint.focus}</span>
                   </Detail>
                 </dl>
               </li>
@@ -422,29 +429,29 @@ export function PlanView({
           if (items.length === 0) return null
           return (
             <div className="flex flex-col gap-2" key={phase}>
-              <h3 className="text-sm font-medium text-neutral-300">{PLAN_PHASE_LABELS[phase]}</h3>
+              <h3 className="text-sm font-medium text-foreground/80">{PLAN_PHASE_LABELS[phase]}</h3>
               <Group>
-                <ol className="divide-y divide-white/[0.07]">
+                <ol className="divide-y divide-foreground/[0.07]">
                   {items.map((item, position) => (
                     <li
                       className="flex flex-col gap-1 px-5 py-3.5 md:flex-row md:gap-6"
                       key={position}
                     >
                       <p className="shrink-0 text-sm md:w-64">
-                        <span className="font-medium text-white tabular-nums">
+                        <span className="font-medium text-foreground tabular-nums">
                           {item.day < 0 ? `Day −${-item.day}` : `Day ${item.day}`}
                         </span>
-                        <span className="text-neutral-500"> · </span>
-                        <span className="text-neutral-200">
+                        <span className="text-muted-foreground"> · </span>
+                        <span className="text-foreground">
                           {LAUNCH_CHANNEL_LABELS[item.channel]}
                         </span>
-                        <span className="text-neutral-500">
+                        <span className="text-muted-foreground">
                           {' · '}
                           {[item.angleKey, ...item.assetKeys].join(' · ')}
                         </span>
                       </p>
                       {item.note ? (
-                        <p className="text-sm leading-6 text-neutral-400">{item.note}</p>
+                        <p className="text-sm leading-6 text-foreground/65">{item.note}</p>
                       ) : null}
                     </li>
                   ))}

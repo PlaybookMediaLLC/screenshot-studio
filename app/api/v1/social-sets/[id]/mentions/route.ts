@@ -1,4 +1,4 @@
-import { lookupMentionsContract } from '@/lib/api/contracts/social-sets'
+import { lookupMentionsContract } from '@/lib/api/contracts/social-mentions'
 import { errorResponse, route } from '@/lib/api/route'
 import { memberAccess } from '@/lib/api/route-auth'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'

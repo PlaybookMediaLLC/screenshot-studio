@@ -46,7 +46,9 @@ export function ShareDialog({
   const hydrated = useHydrated()
   const [busy, setBusy] = React.useState(false)
   const set = data.sets.find(
-    (item) => item.id === (draft.socialSetId ?? data.sets.find((entry) => entry.isDefault)?.id)
+    (item) =>
+      item.id ===
+      (draft.socialSetId ?? data.sets.find((entry) => entry.visibility === 'WORKSPACE')?.id)
   )
   const internal = hydrated ? `${window.location.origin}${draftHref(draft.id, set?.id)}` : ''
   const publicLink =
@@ -72,8 +74,8 @@ export function ShareDialog({
         <DialogHeader>
           <DialogTitle>Share & collaborate</DialogTitle>
           <DialogDescription>
-            {set?.visibility === 'restricted'
-              ? `Access: members of ${set.name}, owners and admins.`
+            {set?.visibility === 'PRIVATE'
+              ? `Access: ${set.name} is private to its owner.`
               : 'Access: everyone in this workspace, by their role.'}
           </DialogDescription>
         </DialogHeader>

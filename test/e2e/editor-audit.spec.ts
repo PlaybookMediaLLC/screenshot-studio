@@ -408,7 +408,7 @@ test('App Store transforms, device frames, visibility and backgrounds persist', 
   await expect(page.getByLabel('Rotation', { exact: true })).toHaveValue('15')
 })
 
-test('Editor and Settings expand inline in the rail and mobile navigation', async ({
+test('Editor expands inline in the rail and mobile navigation; Settings opens its own menu', async ({
   identity,
   page,
 }) => {
@@ -423,55 +423,39 @@ test('Editor and Settings expand inline in the rail and mobile navigation', asyn
   await expect(sections).toBeVisible()
   await sections.getByRole('link', { name: 'App Store Screenshots', exact: true }).press('Enter')
   await page.getByRole('button', { name: 'Use the sample set' }).click()
+  // Settings is one link: its sections are listed on the settings pages.
   const workspace = page.getByRole('navigation', { name: 'Workspace', exact: true })
-  const settings = workspace.getByRole('button', { name: 'Settings', exact: true })
-  const settingsLinks = page.getByRole('navigation', { name: 'Workspace settings', exact: true })
-  await expect(settings).toHaveAttribute('aria-expanded', 'false')
-  await settings.press('Space')
-  await expect(settings).toHaveAttribute('aria-expanded', 'true')
+  const settings = workspace.getByRole('link', { name: 'Settings', exact: true })
+  await expect(settings).toHaveAttribute('href', '/workspace')
+  await expect(page.getByRole('navigation', { name: 'Workspace settings' })).toHaveCount(0)
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await settings.click()
+  await expect(page).toHaveURL(/\/workspace$/)
+  await expect(settings).toHaveAttribute('aria-current', 'page')
+  const settingsLinks = page.getByRole('navigation', { name: 'Settings', exact: true })
   // Every settings section, including RFC 043's Appearance, Install, Experimental,
   // New team and Social sets.
   await expect(settingsLinks.getByRole('link')).toHaveCount(22)
   await expect(
     settingsLinks.getByRole('link', { name: 'Notifications', exact: true })
   ).toHaveAttribute('href', '/workspace/notifications')
-  await settingsLinks
-    .getByRole('link', { name: 'Developer API', exact: true })
-    .scrollIntoViewIfNeeded()
-  await expect(
-    settingsLinks.getByRole('link', { name: 'Developer API', exact: true })
-  ).toBeInViewport()
-  await page.setViewportSize({ width: 1280, height: 1000 })
-  await page.screenshot({
-    path: '.context/editor-audit/settings-expanded.png',
-    animations: 'disabled',
-  })
-  await settingsLinks.getByRole('link', { name: 'General', exact: true }).click()
-  await expect(page).toHaveURL(/\/workspace$/)
-  await expect(settings).toHaveAttribute('aria-expanded', 'true')
   await expect(settingsLinks.getByRole('link', { name: 'General', exact: true })).toHaveAttribute(
     'aria-current',
     'page'
   )
+  await page.screenshot({
+    path: '.context/editor-audit/settings-menu.png',
+    animations: 'disabled',
+  })
 
   await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
   const drawer = page.getByRole('dialog', { name: 'Navigation', exact: true })
-  const mobileSettings = drawer.getByRole('button', { name: 'Settings', exact: true })
-  await expect(mobileSettings).toHaveAttribute('aria-expanded', 'true')
-  await mobileSettings.press('Enter')
-  await expect(
-    drawer.getByRole('navigation', { name: 'Workspace settings', exact: true })
-  ).toBeHidden()
-  await mobileSettings.press('Space')
-  await expect(drawer.getByRole('link', { name: 'Notifications', exact: true })).toHaveAttribute(
+  await expect(drawer.getByRole('link', { name: 'Settings', exact: true })).toHaveAttribute(
     'href',
-    '/workspace/notifications'
+    '/workspace'
   )
-  await expect(drawer.getByRole('link', { name: 'General', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page'
-  )
+  await expect(drawer.getByRole('navigation', { name: 'Workspace settings' })).toHaveCount(0)
   await drawer.getByRole('button', { name: 'Editor', exact: true }).press('Enter')
   await drawer.getByRole('link', { name: 'App Store Screenshots', exact: true }).press('Enter')
   await expect(drawer).toBeHidden()

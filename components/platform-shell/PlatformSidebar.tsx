@@ -2,7 +2,6 @@
 
 import {
   Activity01Icon,
-  ArrowDown01Icon,
   Album02Icon,
   ArtboardIcon,
   Folder01Icon,
@@ -21,40 +20,10 @@ import { usePathname } from 'next/navigation'
 import { type ComponentType, useEffect, useState } from 'react'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { AccountMenu } from '@/components/auth/AccountMenu'
-import { Collapsible } from 'radix-ui'
-import {
-  Building2,
-  UserRound,
-  Users,
-  ShieldCheck,
-  CreditCard,
-  LockKeyhole,
-  KeyRound,
-  ScrollText,
-  Palette,
-  Plug,
-  Bot,
-  Link2,
-  Package,
-  PanelsTopLeft,
-  Share2,
-  Code2,
-  Bell,
-  Download,
-  FlaskConical,
-  Layers,
-  SunMoon,
-  UserPlus,
-} from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useHydratedSession } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
-import {
-  SETTINGS_SECTIONS,
-  settingsHref,
-  type SettingId,
-} from '@/components/workspace/settings-sections'
 import { workspaceInitials } from '@/lib/workspace/initials'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
@@ -66,33 +35,7 @@ import { Button } from '@/components/ui/button'
 import { EditorNavigation } from './EditorNavigation'
 
 type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
-type SubItem = { href: string; icon: IconComponent; label: string }
-type NavItem = { children?: SubItem[]; href: string; icon: IconComponent; label: string }
-
-const SETTINGS_ICONS: Record<SettingId, IconComponent> = {
-  general: Building2,
-  profile: UserRound,
-  members: Users,
-  roles: ShieldCheck,
-  billing: CreditCard,
-  security: LockKeyhole,
-  sso: KeyRound,
-  audit: ScrollText,
-  brand: Palette,
-  integrations: Plug,
-  notifications: Bell,
-  agents: Bot,
-  sharing: Link2,
-  product: Package,
-  surfaces: PanelsTopLeft,
-  channels: Share2,
-  api: Code2,
-  appearance: SunMoon,
-  experimental: FlaskConical,
-  install: Download,
-  'new-team': UserPlus,
-  'social-sets': Layers,
-}
+type NavItem = { href: string; icon: IconComponent; label: string }
 
 const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
   {
@@ -111,16 +54,8 @@ const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
   {
     items: [
       { href: '/activity', icon: Activity01Icon, label: 'Activity' },
-      {
-        children: SETTINGS_SECTIONS.map((section) => ({
-          href: settingsHref(section),
-          icon: SETTINGS_ICONS[section.id],
-          label: section.title,
-        })),
-        href: '/workspace',
-        icon: SlidersHorizontalIcon,
-        label: 'Settings',
-      },
+      // Settings has its own section menu on every settings page.
+      { href: '/workspace', icon: SlidersHorizontalIcon, label: 'Settings' },
     ],
     label: 'Workspace',
   },
@@ -147,70 +82,9 @@ function WorkspaceBadge({ name }: { name: string }) {
   )
 }
 
-/** Section links expand inside the rail or underneath the labeled mobile row. */
-function SubNav({
-  collapsed,
-  items,
-  label,
-  onNavigate,
-}: {
-  collapsed: boolean
-  items: SubItem[]
-  label: string
-  onNavigate?: () => void
-}) {
-  const path = routePath(usePathname())
-  return (
-    <nav
-      aria-label={`Workspace ${label.toLowerCase()}`}
-      className={
-        collapsed
-          ? 'mt-1 grid gap-0.5 border-y border-foreground/[0.06] py-1'
-          : 'my-1.5 ml-[17px] flex flex-col gap-0.5 border-l border-foreground/[0.08] pl-3'
-      }
-    >
-      {items.map(({ href, label: itemLabel, icon: Icon }) => {
-        const active = path === href
-        const link = (
-          <Link
-            href={href}
-            aria-current={active ? 'page' : undefined}
-            aria-label={collapsed ? itemLabel : undefined}
-            className={cn(
-              'rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              collapsed
-                ? cn(
-                    'grid size-8 place-items-center rounded-lg border',
-                    active
-                      ? cn(surface.panel, surface.border, 'text-foreground shadow-xs')
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  )
-                : cn(
-                    'block py-1',
-                    active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-                  )
-            )}
-            onClick={onNavigate}
-          >
-            {collapsed ? <Icon className="shrink-0" size={14} strokeWidth={1.8} /> : itemLabel}
-          </Link>
-        )
-        return collapsed ? (
-          <Tooltip key={href}>
-            <TooltipTrigger asChild>{link}</TooltipTrigger>
-            <TooltipContent side="right">{itemLabel}</TooltipContent>
-          </Tooltip>
-        ) : (
-          <div key={href}>{link}</div>
-        )
-      })}
-    </nav>
-  )
-}
-
 function NavLink({
   collapsed,
-  item: { children, href, icon: Icon, label },
+  item: { href, icon: Icon, label },
   onNavigate,
 }: {
   collapsed: boolean
@@ -226,46 +100,6 @@ function NavLink({
       : 'border-transparent text-muted-foreground hover:text-foreground',
     collapsed && 'size-8 justify-center px-0'
   )
-  if (children) {
-    const trigger = (
-      <Collapsible.Trigger asChild>
-        <Button
-          variant="custom"
-          size={null}
-          type="button"
-          aria-label={label}
-          data-keep-selection
-          className={cn(rowClassName, 'group cursor-pointer', !collapsed && 'w-full')}
-        >
-          <Icon className="shrink-0" size={16} strokeWidth={1.8} />
-          {collapsed ? null : (
-            <>
-              <span className="truncate">{label}</span>
-              <ArrowDown01Icon
-                className="ml-auto shrink-0 transition-transform group-data-[state=closed]:-rotate-90"
-                size={14}
-              />
-            </>
-          )}
-        </Button>
-      </Collapsible.Trigger>
-    )
-    return (
-      <Collapsible.Root defaultOpen={active} key={pathname}>
-        {collapsed ? (
-          <Tooltip>
-            <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-            <TooltipContent side="right">{label}</TooltipContent>
-          </Tooltip>
-        ) : (
-          trigger
-        )}
-        <Collapsible.Content>
-          <SubNav collapsed={collapsed} items={children} label={label} onNavigate={onNavigate} />
-        </Collapsible.Content>
-      </Collapsible.Root>
-    )
-  }
   const link = (
     <Link
       aria-current={active ? 'page' : undefined}
@@ -405,8 +239,8 @@ function useNavigationExpanded(initial: z.infer<typeof navigationLayoutSchema>) 
 }
 
 /**
- * Desktop: section icons expand inside the fixed rail, with labels in tooltips.
- * Mobile: a full drawer with collapsible section links.
+ * Desktop: section icons in the fixed rail, with labels in tooltips.
+ * Mobile: a full drawer of the same links.
  */
 export function PlatformSidebar({
   campaignsEnabled,

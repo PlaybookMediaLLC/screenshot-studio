@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.1...v2.24.2) (2026-10-20)
+
+
+### Bug Fixes
+
+* **layout:** use available width across platform pages ([#216](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/216)) ([b686397](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/b6863971772158b865725f44ea418486dadafebf))
+
 ## [2.24.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.0...v2.24.1) (2026-10-19)
 
 

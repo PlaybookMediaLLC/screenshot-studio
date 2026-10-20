@@ -3,7 +3,7 @@
 import * as React from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Eye, MessageSquare, PanelRight, Sparkles } from 'lucide-react'
+import { Eye, MessageSquare, PanelRight, Share2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Value } from '@shots/platejs-editor/platejs'
 import type { PlateEditor } from '@shots/platejs-editor/platejs/react'
@@ -666,15 +666,16 @@ export function WriteComposer({
                 ) : null}
               </>
             )}
-            {/* With a panel open, Share moves into the ⋯ menu to keep the header in its column. */}
+            {/* With a panel open, Share shows as an icon so the header stays in its column. */}
             <Button
-              className={panel ? 'hidden' : 'hidden sm:inline-flex'}
+              aria-label="Share"
+              className={panel ? 'size-8 px-0' : 'hidden sm:inline-flex'}
               onClick={() => setDialog('share')}
               size="sm"
               title={`Share (${mod}⌥S)`}
               variant="ghost"
             >
-              Share
+              {panel ? <Share2 aria-hidden className="size-4" /> : 'Share'}
             </Button>
             {canPublish ? (
               <>
@@ -718,10 +719,7 @@ export function WriteComposer({
                     <DropdownMenuShortcut>{mod}⌥↵</DropdownMenuShortcut>
                   </DropdownMenuItem>
                 ) : null}
-                <DropdownMenuItem
-                  className={panel ? undefined : 'sm:hidden'}
-                  onSelect={() => setDialog('share')}
-                >
+                <DropdownMenuItem className="sm:hidden" onSelect={() => setDialog('share')}>
                   Share…
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setDialog('backups')}>

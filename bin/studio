@@ -327,6 +327,7 @@ run_e2e() {
       OPENROUTER_BASE_URL="http://screenshot-mock:5678/openrouter/api/v1" \
       PLATFORM_ENRICHMENT_DISABLED="github,appstore" \
       PLATFORM_ENRICHMENT_EXA_API_KEY="" \
+      PLATFORM_CREATIVE_SETS="enabled" \
       PLATFORM_AI_SCRIPTED=1 compose --profile e2e up --detach --force-recreate screenshot-mock publishing-backend publishing-orchestrator app
     wait_for_screenshot_mock
     # Publishing runs in the backend, so it is the service that must reach the

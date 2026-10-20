@@ -666,26 +666,22 @@ test('resizing the workspace preserves native geometry, copy and undo history', 
   const layer = page.locator(
     `[data-text-overlay-id="${before.document.outputs[0]!.bindings.headline}"]`
   )
-  const original = await layer.evaluate((element) => ({
-    font: parseFloat(getComputedStyle(element).fontSize),
-    canvas: element.closest('[data-html-canvas]')!.clientWidth,
-  }))
+  // The preview scales the draft with a transform (#220), so the document
+  // keeps its geometry while the visible size follows the viewport.
+  const visible = () =>
+    layer.evaluate((element) => ({
+      font: element.getBoundingClientRect().height,
+      canvas: element.closest('[data-html-canvas]')!.getBoundingClientRect().width,
+    }))
+  const original = await visible()
   await page.setViewportSize({ width: 1280, height: 800 })
-  await expect
-    .poll(async () => layer.evaluate((element) => parseFloat(getComputedStyle(element).fontSize)))
-    .toBeLessThan(original.font)
-  await expect
-    .poll(async () =>
-      layer.evaluate((element) => element.closest('[data-html-canvas]')!.clientWidth)
-    )
-    .toBeLessThan(original.canvas)
+  await expect.poll(async () => (await visible()).font).toBeLessThan(original.font)
+  await expect.poll(async () => (await visible()).canvas).toBeLessThan(original.canvas)
   await page.getByRole('tab', { name: 'Layout', exact: true }).click()
   await saved(page)
   expect((await record(page, id)).document).toEqual(before.document)
   await page.setViewportSize({ width: 1680, height: 1100 })
-  await expect
-    .poll(async () => layer.evaluate((element) => parseFloat(getComputedStyle(element).fontSize)))
-    .toBeCloseTo(original.font, 0)
+  await expect.poll(async () => (await visible()).font).toBeCloseTo(original.font, 0)
   await page.getByRole('button', { name: 'Undo', exact: true }).click()
   await saved(page)
   expect((await record(page, id)).document.outputs[0]!.document.texts[0]!.text).toBe(

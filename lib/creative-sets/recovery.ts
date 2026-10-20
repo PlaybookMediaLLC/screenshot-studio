@@ -1,15 +1,33 @@
-import { getLocalDesignSources, mapDesignSources } from '@/lib/design/document'
+import { getLocalDesignSources, mapDesignSources, type DesignDocument } from '@/lib/design/document'
 import { creativeSetDocumentSchema, type CreativeSetDocument } from './document'
 
-export type SetRecovery = {
+/** A draft one tab kept on this device, with the local images it needs. */
+export type DocumentRecovery<D> = {
   key: string
   workspaceId: string
   setId: string
   tabId: string
   revision: number
   updatedAt: number
-  document: CreativeSetDocument
+  document: D
   blobs?: Record<string, Blob>
+}
+export type SetRecovery = DocumentRecovery<CreativeSetDocument>
+
+/** How a recovered document is read and where its native documents are. */
+export type RecoveryKind<D> = {
+  parse: (raw: unknown) => D
+  natives: (document: D) => DesignDocument[]
+  mapNatives: (document: D, map: (native: DesignDocument) => DesignDocument) => D
+}
+
+const storySetRecovery: RecoveryKind<CreativeSetDocument> = {
+  parse: (raw) => creativeSetDocumentSchema.parse(raw),
+  natives: (document) => document.outputs.map((output) => output.document),
+  mapNatives: (document, map) => {
+    for (const output of document.outputs) output.document = map(output.document)
+    return document
+  },
 }
 
 async function database(): Promise<IDBDatabase> {
@@ -21,12 +39,15 @@ async function database(): Promise<IDBDatabase> {
   })
 }
 
-/** Each tab keeps its own draft; neither another set nor the legacy editor can overwrite it. */
-export async function writeSetRecovery(record: SetRecovery): Promise<void> {
+/** Each tab keeps its own draft; neither another document nor the legacy editor can overwrite it. */
+export async function writeRecovery<D>(
+  record: DocumentRecovery<D>,
+  kind: RecoveryKind<D>
+): Promise<void> {
   const document = structuredClone(record.document)
   const blobs: Record<string, Blob> = {}
-  for (const output of document.outputs) {
-    for (const ref of getLocalDesignSources(output.document)) {
+  for (const native of kind.natives(document)) {
+    for (const ref of getLocalDesignSources(native)) {
       if (ref.startsWith('blob:') && !blobs[ref]) blobs[ref] = await (await fetch(ref)).blob()
     }
   }
@@ -43,13 +64,15 @@ export async function writeSetRecovery(record: SetRecovery): Promise<void> {
   }
 }
 
-export async function readSetRecoveries(
+/** This device's drafts of one document, newest first, with local images restored. */
+export async function readRecoveries<D>(
   workspaceId: string,
-  setId: string
-): Promise<SetRecovery[]> {
+  setId: string,
+  kind: RecoveryKind<D>
+): Promise<DocumentRecovery<D>[]> {
   const db = await database()
   try {
-    const records = await new Promise<SetRecovery[]>((resolve, reject) => {
+    const records = await new Promise<DocumentRecovery<unknown>[]>((resolve, reject) => {
       const request = db.transaction('drafts').objectStore('drafts').getAll()
       request.onsuccess = () => resolve(request.result)
       request.onerror = () => reject(request.error)
@@ -57,18 +80,29 @@ export async function readSetRecoveries(
     return records
       .filter((record) => record.workspaceId === workspaceId && record.setId === setId)
       .map((record) => {
-        const document = creativeSetDocumentSchema.parse(record.document)
         const sources = Object.fromEntries(
           Object.entries(record.blobs ?? {}).map(([ref, blob]) => [ref, URL.createObjectURL(blob)])
         )
-        for (const output of document.outputs)
-          output.document = mapDesignSources(output.document, (ref) => sources[ref] ?? ref)
+        const document = kind.mapNatives(kind.parse(record.document), (native) =>
+          mapDesignSources(native, (ref) => sources[ref] ?? ref)
+        )
         return { ...record, document }
       })
       .sort((a, b) => b.updatedAt - a.updatedAt)
   } finally {
     db.close()
   }
+}
+
+export async function writeSetRecovery(record: SetRecovery): Promise<void> {
+  return writeRecovery(record, storySetRecovery)
+}
+
+export async function readSetRecoveries(
+  workspaceId: string,
+  setId: string
+): Promise<SetRecovery[]> {
+  return readRecoveries(workspaceId, setId, storySetRecovery)
 }
 
 export async function removeSetRecovery(key: string): Promise<void> {

@@ -72,10 +72,10 @@ export async function createCreativeSet(
   )
 }
 
-/** A creativeSet of this workspace, or null. */
+/** A Story Set of this workspace, or null. A canvas (RFC 041) is not a Story Set. */
 export async function getCreativeSet(context: TenantContext, creativeSetId: string) {
   const creativeSet = await orNull(backendSDK(context).getCreativeSet(creativeSetId))
-  return creativeSet ? readCreativeSet(creativeSet) : null
+  return creativeSet && creativeSet.kind !== 'canvas' ? readCreativeSet(creativeSet) : null
 }
 
 /** Rename a creativeSet; null when it is not in this workspace. */

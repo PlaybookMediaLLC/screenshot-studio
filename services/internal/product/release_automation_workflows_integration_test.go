@@ -185,14 +185,14 @@ func TestAutomationHistoryFiltersVersionsAndNotificationsStayInTenant(t *testing
 		filter AutomationHistoryFilter
 		want   []string
 	}{
-		"first version":  {AutomationHistoryFilter{VersionID: *first.ActiveVersionID}, []string{firstRun}},
-		"definition":     {AutomationHistoryFilter{DefinitionID: first.ID}, []string{secondRun, firstRun}},
-		"family":         {AutomationHistoryFilter{Family: automation.Published, SourceAppID: f.source.ID}, []string{secondRun, firstRun}},
-		"other family":   {AutomationHistoryFilter{Family: automation.Merged}, nil},
-		"other source":   {AutomationHistoryFilter{SourceAppID: "missing"}, nil},
-		"status":         {AutomationHistoryFilter{Status: "running"}, []string{secondRun, firstRun}},
-		"before cursor":  {AutomationHistoryFilter{Before: secondRun}, []string{firstRun}},
-		"future window":  {AutomationHistoryFilter{Since: new(time.Now().Add(time.Hour))}, nil},
+		"first version": {AutomationHistoryFilter{VersionID: *first.ActiveVersionID}, []string{firstRun}},
+		"definition":    {AutomationHistoryFilter{DefinitionID: first.ID}, []string{secondRun, firstRun}},
+		"family":        {AutomationHistoryFilter{Family: automation.Published, SourceAppID: f.source.ID}, []string{secondRun, firstRun}},
+		"other family":  {AutomationHistoryFilter{Family: automation.Merged}, nil},
+		"other source":  {AutomationHistoryFilter{SourceAppID: "missing"}, nil},
+		"status":        {AutomationHistoryFilter{Status: "running"}, []string{secondRun, firstRun}},
+		"before cursor": {AutomationHistoryFilter{Before: secondRun}, []string{firstRun}},
+		"future window": {AutomationHistoryFilter{Since: new(time.Now().Add(time.Hour))}, nil},
 	} {
 		t.Run(name, func(t *testing.T) {
 			items, err := f.repo.ListAutomationHistory(f.ctx, f.owner, test.filter)

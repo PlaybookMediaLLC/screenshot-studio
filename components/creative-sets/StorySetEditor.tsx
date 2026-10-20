@@ -452,6 +452,21 @@ function SetWorkspace({
         >
           History
         </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={canEdit && !ready}
+          title="Copy every format onto a Canvas board; this set stays as it is."
+          onClick={() =>
+            void attempt(async () => {
+              if (canEdit && !(await session.save()))
+                throw new Error('Save the set before opening it in Canvas.')
+              router.push(`/canvas/new?set=${session.record.id}`)
+            })
+          }
+        >
+          Open in Canvas
+        </Button>
         {canEdit ? (
           <Button
             variant="outline"

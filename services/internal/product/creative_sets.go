@@ -50,6 +50,7 @@ type CreativeSetRecord struct {
 	Document        map[string]any `json:"document"`
 	DocumentVersion int            `json:"documentVersion"`
 	ID              string         `json:"id"`
+	Kind            string         `json:"kind"`
 	Name            string         `json:"name"`
 	OrganizationID  string         `json:"organizationId"`
 	Revision        int            `json:"revision"`
@@ -78,9 +79,11 @@ type CreativeSetPage struct {
 }
 
 // CreativeSetListQuery filters and orders a creativeSet list. Sort is "updated"
-// (newest first, the default) or "name" (A to Z).
+// (newest first, the default) or "name" (A to Z). Kind is "story-set" (the
+// default) or "canvas".
 type CreativeSetListQuery struct {
 	Cursor string
+	Kind   string
 	Limit  int
 	Search string
 	Sort   string
@@ -100,7 +103,7 @@ type CreativeSetWriteResult struct {
 
 func creativeSetRecord(row *ent.PlatformCreativeSet) CreativeSetRecord {
 	return CreativeSetRecord{Archived: row.Archived, CreatedAt: row.CreatedAt, CreatedByUserID: row.CreatedByUserID, Document: row.Document,
-		DocumentVersion: row.DocumentVersion, ID: row.ID, Name: row.Name, OrganizationID: row.OrganizationID,
+		DocumentVersion: row.DocumentVersion, ID: row.ID, Kind: string(row.Kind), Name: row.Name, OrganizationID: row.OrganizationID,
 		Revision: row.Revision, UpdatedAt: row.UpdatedAt, UpdatedByUserID: row.UpdatedByUserID}
 }
 
@@ -130,6 +133,14 @@ func creativeSetDocument(ctx context.Context, tx *ent.Tx, organizationID string,
 	return 1, nil
 }
 
+// creativeSetAction names an audit action for the row's kind.
+func creativeSetAction(kind platformcreativeset.Kind, action string) string {
+	if kind == platformcreativeset.KindCanvas {
+		return "product.canvas_" + action
+	}
+	return "product.creative_set_" + action
+}
+
 // creativeSetActor sets the acting user, when a person is acting.
 func creativeSetActor(actor Actor) *string {
 	if actor.UserID == "" {
@@ -139,7 +150,8 @@ func creativeSetActor(actor Actor) *string {
 }
 
 func (c *Configuration) CreateCreativeSet(ctx context.Context, actor Actor, id, name string, document map[string]any) (*CreativeSetRecord, error) {
-	if err := c.requireCreativeSetCreation(ctx, actor); err != nil {
+	kind := creativeSetKind(document)
+	if err := c.requireCreativeCreation(ctx, actor, kind); err != nil {
 		return nil, err
 	}
 	if err := c.authorizeRoles(ctx, actor, creativeSetEditRoles...); err != nil {
@@ -159,7 +171,7 @@ func (c *Configuration) CreateCreativeSet(ctx context.Context, actor Actor, id, 
 		}
 		before, _ := json.Marshal(existing.Document)
 		after, _ := json.Marshal(document)
-		if existing.Name != name || !bytes.Equal(before, after) {
+		if existing.Name != name || existing.Kind != string(kind) || !bytes.Equal(before, after) {
 			return nil, publishing.ErrConflict
 		}
 		return existing, nil
@@ -178,7 +190,7 @@ func (c *Configuration) CreateCreativeSet(ctx context.Context, actor Actor, id, 
 	if err != nil {
 		return nil, err
 	}
-	row, err := tx.PlatformCreativeSet.Create().SetID(id).SetOrganizationID(actor.OrganizationID).SetName(name).
+	row, err := tx.PlatformCreativeSet.Create().SetID(id).SetOrganizationID(actor.OrganizationID).SetName(name).SetKind(kind).
 		SetDocument(document).SetDocumentVersion(documentVersion).SetNillableCreatedByUserID(creativeSetActor(actor)).
 		SetNillableUpdatedByUserID(creativeSetActor(actor)).Save(ctx)
 	if err != nil {
@@ -190,10 +202,13 @@ func (c *Configuration) CreateCreativeSet(ctx context.Context, actor Actor, id, 
 	}
 	// The starting point is in the history, and it holds off the first checkpoint.
 	created := "Story Set created"
+	if kind == platformcreativeset.KindCanvas {
+		created = "Canvas created"
+	}
 	if _, err := recordCreativeSetVersion(ctx, tx, actor, row, platformcreativesetversion.KindAutosave, &created); err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_set_created", "creativeSet", row.ID); err != nil {
+	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(kind, "created"), "creativeSet", row.ID); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -245,7 +260,14 @@ func (c *Configuration) ListCreativeSets(ctx context.Context, actor Actor, query
 	if query.Sort != "updated" && query.Sort != "name" {
 		return nil, invalid("Sort by updated or name.")
 	}
-	rows := c.client.PlatformCreativeSet.Query().Where(platformcreativeset.OrganizationID(actor.OrganizationID), platformcreativeset.Archived(false))
+	kind := platformcreativeset.KindStorySet
+	if query.Kind != "" {
+		kind = platformcreativeset.Kind(query.Kind)
+		if platformcreativeset.KindValidator(kind) != nil {
+			return nil, invalid("List story-set or canvas documents.")
+		}
+	}
+	rows := c.client.PlatformCreativeSet.Query().Where(platformcreativeset.OrganizationID(actor.OrganizationID), platformcreativeset.Archived(false), platformcreativeset.KindEQ(kind))
 	if search := strings.TrimSpace(query.Search); search != "" {
 		rows.Where(platformcreativeset.NameContainsFold(search))
 	}
@@ -307,11 +329,11 @@ func (c *Configuration) RenameCreativeSet(ctx context.Context, actor Actor, id, 
 	if count == 0 {
 		return nil, publishing.ErrNotFound
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_set_renamed", "creativeSet", id); err != nil {
-		return nil, err
-	}
 	row, err := tx.PlatformCreativeSet.Get(ctx, id)
 	if err != nil {
+		return nil, err
+	}
+	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(row.Kind, "renamed"), "creativeSet", id); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -326,8 +348,9 @@ func (c *Configuration) RenameCreativeSet(ctx context.Context, actor Actor, id, 
 // writers based on the same revision can never both succeed.
 func advanceCreativeSet(ctx context.Context, tx *ent.Tx, actor Actor, id string, baseRevision int,
 	document map[string]any, documentVersion int) (*ent.PlatformCreativeSet, error) {
+	kind := creativeSetKind(document)
 	count, err := tx.PlatformCreativeSet.Update().Where(platformcreativeset.ID(id), platformcreativeset.OrganizationID(actor.OrganizationID),
-		platformcreativeset.Revision(baseRevision)).SetDocument(document).SetDocumentVersion(documentVersion).AddRevision(1).
+		platformcreativeset.Revision(baseRevision), platformcreativeset.KindEQ(kind)).SetDocument(document).SetDocumentVersion(documentVersion).AddRevision(1).
 		SetNillableUpdatedByUserID(creativeSetActor(actor)).Save(ctx)
 	if err != nil {
 		return nil, err
@@ -339,6 +362,9 @@ func advanceCreativeSet(ctx context.Context, tx *ent.Tx, actor Actor, id string,
 		}
 		if err != nil {
 			return nil, err
+		}
+		if current.Kind != kind {
+			return nil, invalid("A document cannot change between a Story Set and a canvas.")
 		}
 		return nil, &CreativeSetRevisionConflictError{Current: current.Revision}
 	}
@@ -392,6 +418,12 @@ func (c *Configuration) UpdateCreativeSetDocument(ctx context.Context, actor Act
 		return nil, err
 	}
 	defer tx.Rollback()
+	// Another workspace's id is unknown here, whatever document it is sent with.
+	if exists, err := tx.PlatformCreativeSet.Query().Where(platformcreativeset.ID(id), platformcreativeset.OrganizationID(actor.OrganizationID)).Exist(ctx); err != nil {
+		return nil, err
+	} else if !exists {
+		return nil, publishing.ErrNotFound
+	}
 	documentVersion, err := creativeSetDocument(ctx, tx, actor.OrganizationID, input.Document)
 	if err != nil {
 		return nil, err
@@ -407,7 +439,7 @@ func (c *Configuration) UpdateCreativeSetDocument(ctx context.Context, actor Act
 	// Autosave writes every few seconds; the audit trail records the
 	// checkpoints rather than every keystroke-sized write.
 	if checkpointed {
-		if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_set_checkpointed", "creativeSet", id,
+		if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(row.Kind, "checkpointed"), "creativeSet", id,
 			map[string]any{"revision": row.Revision}); err != nil {
 			return nil, err
 		}
@@ -419,9 +451,6 @@ func (c *Configuration) UpdateCreativeSetDocument(ctx context.Context, actor Act
 }
 
 func (c *Configuration) DuplicateCreativeSet(ctx context.Context, actor Actor, id string, name *string) (*CreativeSetRecord, error) {
-	if err := c.requireCreativeSetCreation(ctx, actor); err != nil {
-		return nil, err
-	}
 	if err := c.authorizeRoles(ctx, actor, creativeSetEditRoles...); err != nil {
 		return nil, err
 	}
@@ -437,6 +466,9 @@ func (c *Configuration) DuplicateCreativeSet(ctx context.Context, actor Actor, i
 	if err != nil {
 		return nil, err
 	}
+	if err := c.requireCreativeCreation(ctx, actor, source.Kind); err != nil {
+		return nil, err
+	}
 	copyName := source.Name + " copy"
 	if utf8.RuneCountInString(copyName) > creativeSetNameLimit {
 		copyName = source.Name
@@ -447,7 +479,7 @@ func (c *Configuration) DuplicateCreativeSet(ctx context.Context, actor Actor, i
 		}
 	}
 	row, err := tx.PlatformCreativeSet.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetName(copyName).
-		SetDocument(source.Document).SetDocumentVersion(source.DocumentVersion).
+		SetKind(source.Kind).SetDocument(source.Document).SetDocumentVersion(source.DocumentVersion).
 		SetNillableCreatedByUserID(creativeSetActor(actor)).
 		SetNillableUpdatedByUserID(creativeSetActor(actor)).Save(ctx)
 	if err != nil {
@@ -460,7 +492,7 @@ func (c *Configuration) DuplicateCreativeSet(ctx context.Context, actor Actor, i
 	if _, err := recordCreativeSetVersion(ctx, tx, actor, row, platformcreativesetversion.KindDuplicate, &origin); err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_set_duplicated", "creativeSet", row.ID,
+	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(row.Kind, "duplicated"), "creativeSet", row.ID,
 		map[string]any{"sourceCreativeSetId": source.ID}); err != nil {
 		return nil, err
 	}
@@ -481,14 +513,17 @@ func (c *Configuration) ArchiveCreativeSet(ctx context.Context, actor Actor, id 
 	}
 	defer tx.Rollback()
 	// Archive keeps editable documents and delivered/version references readable.
-	deleted, err := tx.PlatformCreativeSet.Update().Where(platformcreativeset.ID(id), platformcreativeset.OrganizationID(actor.OrganizationID)).SetArchived(true).Save(ctx)
+	current, err := tx.PlatformCreativeSet.Query().Where(platformcreativeset.ID(id), platformcreativeset.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return publishing.ErrNotFound
+	}
 	if err != nil {
 		return err
 	}
-	if deleted == 0 {
-		return publishing.ErrNotFound
+	if err := tx.PlatformCreativeSet.UpdateOne(current).SetArchived(true).Exec(ctx); err != nil {
+		return err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_set_archived", "creativeSet", id); err != nil {
+	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(current.Kind, "archived"), "creativeSet", id); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -611,7 +646,7 @@ func (c *Configuration) CreateCreativeSetVersion(ctx context.Context, actor Acto
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_set_version_created", "creativeSet", creativeSetID,
+	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(row.Kind, "version_created"), "creativeSet", creativeSetID,
 		map[string]any{"revision": row.Revision, "versionId": version.ID}); err != nil {
 		return nil, err
 	}
@@ -685,7 +720,7 @@ func (c *Configuration) RestoreCreativeSetVersion(ctx context.Context, actor Act
 	if _, err := recordCreativeSetVersion(ctx, tx, actor, row, platformcreativesetversion.KindRestore, &restored); err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_set_version_restored", "creativeSet", creativeSetID,
+	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(row.Kind, "version_restored"), "creativeSet", creativeSetID,
 		map[string]any{"revision": row.Revision, "versionId": versionID}); err != nil {
 		return nil, err
 	}

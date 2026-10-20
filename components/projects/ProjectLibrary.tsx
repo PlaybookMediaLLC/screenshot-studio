@@ -257,6 +257,11 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
                       <DropdownMenuItem onSelect={() => router.push(editorHref(project.id))}>
                         Open
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => router.push(`/canvas/new?project=${project.id}`)}
+                      >
+                        Open in Canvas
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setRenaming(project)}>
                         Rename…
                       </DropdownMenuItem>

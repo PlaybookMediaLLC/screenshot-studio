@@ -239,6 +239,26 @@ func NameContainsFold(v string) predicate.PlatformCreativeSet {
 	return predicate.PlatformCreativeSet(sql.FieldContainsFold(FieldName, v))
 }
 
+// KindEQ applies the EQ predicate on the "kind" field.
+func KindEQ(v Kind) predicate.PlatformCreativeSet {
+	return predicate.PlatformCreativeSet(sql.FieldEQ(FieldKind, v))
+}
+
+// KindNEQ applies the NEQ predicate on the "kind" field.
+func KindNEQ(v Kind) predicate.PlatformCreativeSet {
+	return predicate.PlatformCreativeSet(sql.FieldNEQ(FieldKind, v))
+}
+
+// KindIn applies the In predicate on the "kind" field.
+func KindIn(vs ...Kind) predicate.PlatformCreativeSet {
+	return predicate.PlatformCreativeSet(sql.FieldIn(FieldKind, vs...))
+}
+
+// KindNotIn applies the NotIn predicate on the "kind" field.
+func KindNotIn(vs ...Kind) predicate.PlatformCreativeSet {
+	return predicate.PlatformCreativeSet(sql.FieldNotIn(FieldKind, vs...))
+}
+
 // DocumentVersionEQ applies the EQ predicate on the "document_version" field.
 func DocumentVersionEQ(v int) predicate.PlatformCreativeSet {
 	return predicate.PlatformCreativeSet(sql.FieldEQ(FieldDocumentVersion, v))

@@ -43697,6 +43697,7 @@ type PlatformCreativeSetMutation struct {
 	id                  *string
 	organization_id     *string
 	name                *string
+	kind                *platformcreativeset.Kind
 	document            *map[string]interface{}
 	document_version    *int
 	adddocument_version *int
@@ -43887,6 +43888,42 @@ func (m *PlatformCreativeSetMutation) OldName(ctx context.Context) (v string, er
 // ResetName resets all changes to the "name" field.
 func (m *PlatformCreativeSetMutation) ResetName() {
 	m.name = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *PlatformCreativeSetMutation) SetKind(pl platformcreativeset.Kind) {
+	m.kind = &pl
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *PlatformCreativeSetMutation) Kind() (r platformcreativeset.Kind, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the PlatformCreativeSet entity.
+// If the PlatformCreativeSet object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformCreativeSetMutation) OldKind(ctx context.Context) (v platformcreativeset.Kind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *PlatformCreativeSetMutation) ResetKind() {
+	m.kind = nil
 }
 
 // SetDocument sets the "document" field.
@@ -44277,12 +44314,15 @@ func (m *PlatformCreativeSetMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlatformCreativeSetMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.organization_id != nil {
 		fields = append(fields, platformcreativeset.FieldOrganizationID)
 	}
 	if m.name != nil {
 		fields = append(fields, platformcreativeset.FieldName)
+	}
+	if m.kind != nil {
+		fields = append(fields, platformcreativeset.FieldKind)
 	}
 	if m.document != nil {
 		fields = append(fields, platformcreativeset.FieldDocument)
@@ -44320,6 +44360,8 @@ func (m *PlatformCreativeSetMutation) Field(name string) (ent.Value, bool) {
 		return m.OrganizationID()
 	case platformcreativeset.FieldName:
 		return m.Name()
+	case platformcreativeset.FieldKind:
+		return m.Kind()
 	case platformcreativeset.FieldDocument:
 		return m.Document()
 	case platformcreativeset.FieldDocumentVersion:
@@ -44349,6 +44391,8 @@ func (m *PlatformCreativeSetMutation) OldField(ctx context.Context, name string)
 		return m.OldOrganizationID(ctx)
 	case platformcreativeset.FieldName:
 		return m.OldName(ctx)
+	case platformcreativeset.FieldKind:
+		return m.OldKind(ctx)
 	case platformcreativeset.FieldDocument:
 		return m.OldDocument(ctx)
 	case platformcreativeset.FieldDocumentVersion:
@@ -44387,6 +44431,13 @@ func (m *PlatformCreativeSetMutation) SetField(name string, value ent.Value) err
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
+		return nil
+	case platformcreativeset.FieldKind:
+		v, ok := value.(platformcreativeset.Kind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
 		return nil
 	case platformcreativeset.FieldDocument:
 		v, ok := value.(map[string]interface{})
@@ -44540,6 +44591,9 @@ func (m *PlatformCreativeSetMutation) ResetField(name string) error {
 		return nil
 	case platformcreativeset.FieldName:
 		m.ResetName()
+		return nil
+	case platformcreativeset.FieldKind:
+		m.ResetKind()
 		return nil
 	case platformcreativeset.FieldDocument:
 		m.ResetDocument()

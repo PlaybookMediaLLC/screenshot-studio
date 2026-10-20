@@ -119,7 +119,11 @@ func (c *Configuration) AttachCreativeSetDelivery(ctx context.Context, actor Act
 		return nil, err
 	}
 	var native map[string]any
+	// A Story Set delivers an output; a canvas delivers one artboard.
 	outputs, _ := version.Document["outputs"].([]any)
+	if set.Kind == platformcreativeset.KindCanvas {
+		outputs, _ = version.Document["artboards"].([]any)
+	}
 	for _, item := range outputs {
 		output, _ := item.(map[string]any)
 		if output["id"] == delivery["outputId"] {
@@ -137,7 +141,7 @@ func (c *Configuration) AttachCreativeSetDelivery(ctx context.Context, actor Act
 				break
 			}
 		}
-		if !found || media.Width == nil || media.Height == nil {
+		if !found || set.Kind == platformcreativeset.KindCanvas || media.Width == nil || media.Height == nil {
 			return nil, ErrInvalidInput
 		}
 		native = map[string]any{"version": 2, "image": map[string]any{"src": ref}, "canvas": map[string]any{"aspectRatio": "custom", "padding": 0, "size": map[string]any{"width": *media.Width, "height": *media.Height}}}
@@ -151,7 +155,11 @@ func (c *Configuration) AttachCreativeSetDelivery(ctx context.Context, actor Act
 	provenance := map[string]any{"setId": setID, "delivery": delivery, "versionId": version.ID, "copy": input.Copy, "channel": input.Channel}
 	raw, _ := json.Marshal(provenance)
 	renderKey := handoffID(string(raw))
-	_, err = tx.Design.Create().SetID(designID).SetOrganizationID(actor.OrganizationID).SetCampaignID(owner.ID).SetName(set.Name + " · delivered story").SetDocument(native).SetRenderedAssetID(media.ID).SetRenderKey(renderKey).SetCritique(map[string]any{"storyHandoff": provenance}).SetCreatedByUserID(actor.UserID).Save(ctx)
+	name, assetKind := set.Name+" · delivered story", "story-set-delivery"
+	if set.Kind == platformcreativeset.KindCanvas {
+		name, assetKind = set.Name+" · canvas artboard", "canvas-delivery"
+	}
+	_, err = tx.Design.Create().SetID(designID).SetOrganizationID(actor.OrganizationID).SetCampaignID(owner.ID).SetName(name).SetDocument(native).SetRenderedAssetID(media.ID).SetRenderKey(renderKey).SetCritique(map[string]any{"storyHandoff": provenance}).SetCreatedByUserID(actor.UserID).Save(ctx)
 	if ent.IsConstraintError(err) {
 		return nil, publishing.ErrConflict
 	}
@@ -163,7 +171,7 @@ func (c *Configuration) AttachCreativeSetDelivery(ctx context.Context, actor Act
 		return nil, err
 	}
 	if !linked {
-		_, err = tx.CampaignAsset.Create().SetID(handoffID(designID + ":asset")).SetOrganizationID(actor.OrganizationID).SetCampaignID(owner.ID).SetAssetID(media.ID).SetKind("story-set-delivery").Save(ctx)
+		_, err = tx.CampaignAsset.Create().SetID(handoffID(designID + ":asset")).SetOrganizationID(actor.OrganizationID).SetCampaignID(owner.ID).SetAssetID(media.ID).SetKind(assetKind).Save(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +180,7 @@ func (c *Configuration) AttachCreativeSetDelivery(ctx context.Context, actor Act
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.creative_set_delivered", "creativeSet", setID, map[string]any{"campaignId": owner.ID, "deliveryId": input.DeliveryID, "designId": designID, "postId": postID}); err != nil {
+	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(set.Kind, "delivered"), "creativeSet", setID, map[string]any{"campaignId": owner.ID, "deliveryId": input.DeliveryID, "designId": designID, "postId": postID}); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

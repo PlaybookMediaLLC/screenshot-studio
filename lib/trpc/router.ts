@@ -1,4 +1,5 @@
 import { creativeSetRouter } from './routers/creative-set'
+import { canvasRouter } from './routers/canvas'
 import 'server-only'
 
 import { router } from './init'
@@ -35,6 +36,7 @@ export const appRouter = router({
   brandKit: brandKitRouter,
   brandProfile: brandProfileRouter,
   campaign: campaignRouter,
+  canvas: canvasRouter,
   channelConnection: channelConnectionRouter,
   conversation: conversationRouter,
   creativeTemplate: creativeTemplateRouter,

@@ -1436,6 +1436,7 @@ var (
 		{Name: "id", Type: field.TypeString},
 		{Name: "organizationId", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"story-set", "canvas"}, Default: "story-set"},
 		{Name: "document", Type: field.TypeJSON},
 		{Name: "documentVersion", Type: field.TypeInt},
 		{Name: "revision", Type: field.TypeInt, Default: 1},
@@ -1454,7 +1455,12 @@ var (
 			{
 				Name:    "platformcreativeset_organizationId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{PlatformCreativeSetColumns[1], PlatformCreativeSetColumns[10]},
+				Columns: []*schema.Column{PlatformCreativeSetColumns[1], PlatformCreativeSetColumns[11]},
+			},
+			{
+				Name:    "platformcreativeset_organizationId_kind_updatedAt",
+				Unique:  false,
+				Columns: []*schema.Column{PlatformCreativeSetColumns[1], PlatformCreativeSetColumns[3], PlatformCreativeSetColumns[11]},
 			},
 		},
 	}

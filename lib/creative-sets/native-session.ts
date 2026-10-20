@@ -6,6 +6,8 @@ import { applyDesignLayout } from '@/lib/design/apply'
 import { rememberUploadedSources, withUploadedSources } from '@/lib/design/upload-sources'
 import { type DesignDocument } from '@/lib/design/document'
 import { useImageStore } from '@/lib/store'
+import type { TRPCClient } from '@trpc/client'
+import type { AppRouter } from '@/lib/trpc/router'
 import { nativeEdit } from './commands'
 import { materializeOutput } from './document'
 import type { CreativeSetSession } from './session'
@@ -47,8 +49,21 @@ export function mergeNativeDelta(original: unknown, baseline: unknown, next: unk
   return next
 }
 
-/** One mounted canvas; pointer gestures and text-edit sessions flush as one set transaction. */
-export class NativeSetSession {
+/** One native document inside a larger revisioned document, as the mounted editor sees it. */
+export type NativeTarget = {
+  client: TRPCClient<AppRouter>
+  /** The document the editor loads, with linked content resolved. */
+  resolved: () => DesignDocument
+  /** The stored native document, so fields the editor rounds stay lossless. */
+  stored: () => DesignDocument
+  /** Record an edit as one transaction of the containing document. */
+  commit: (document: DesignDocument) => void
+  /** Report an edit that cannot be stored, or clear the report. */
+  failure: (message: string | null) => void
+}
+
+/** One mounted canvas; pointer gestures and text-edit sessions flush as one transaction. */
+export class NativeDocumentBridge {
   private baseline: DesignDocument | null = null
   private timer: ReturnType<typeof setTimeout> | undefined
   private unsubscribe: (() => void) | undefined
@@ -56,19 +71,16 @@ export class NativeSetSession {
   private pointing = false
   private reflowing = false
   private abort = new AbortController()
-  constructor(
-    private session: CreativeSetSession,
-    private outputId: string
-  ) {}
+  constructor(private target: NativeTarget) {}
   async open() {
-    const output = this.session
-      .snapshot()
-      .document.outputs.find((output) => output.id === this.outputId)!
     const sources = await applyStoredDocument(
-      this.session.client,
-      materializeOutput(this.session.snapshot().document, output),
+      this.target.client,
+      this.target.resolved(),
       'external',
-      { replace: true, signal: this.abort.signal }
+      {
+        replace: true,
+        signal: this.abort.signal,
+      }
     )
     if (this.closed) return
     rememberUploadedSources(sources)
@@ -94,7 +106,7 @@ export class NativeSetSession {
           applyDesignLayout(local, (source) => source, state.canvasDimensions, 'external')
           this.baseline = withUploadedSources(exportDesignDocument({ keepLocalSources: true }))
         } catch (error) {
-          this.session.editorFailure(
+          this.target.failure(
             error instanceof Error ? error.message : 'Could not resize the canvas.'
           )
         } finally {
@@ -129,9 +141,9 @@ export class NativeSetSession {
   flush = () => {
     try {
       this.flushNow()
-      this.session.editorFailure(null)
+      this.target.failure(null)
     } catch (error) {
-      this.session.editorFailure(
+      this.target.failure(
         error instanceof Error
           ? error.message
           : 'The canvas edit is invalid. Correct it before leaving this format.'
@@ -147,10 +159,8 @@ export class NativeSetSession {
   }
   private commitSnapshot(next: DesignDocument) {
     if (!this.baseline || JSON.stringify(this.baseline) === JSON.stringify(next)) return
-    const set = this.session.snapshot().document
-    const output = set.outputs.find((output) => output.id === this.outputId)!
-    const merged = mergeNativeDelta(output.document, this.baseline, next) as DesignDocument
-    this.session.commit(nativeEdit(set, output.id, merged), false)
+    const merged = mergeNativeDelta(this.target.stored(), this.baseline, next) as DesignDocument
+    this.target.commit(merged)
     this.baseline = next
   }
   close() {
@@ -166,5 +176,21 @@ export class NativeSetSession {
     window.removeEventListener('blur', this.end)
     useImageStore.temporal.getState().clear()
     useImageStore.temporal.getState().resume()
+  }
+}
+
+/** The Story Set output the mounted canvas edits. */
+export class NativeSetSession extends NativeDocumentBridge {
+  constructor(session: CreativeSetSession, outputId: string) {
+    const output = () =>
+      session.snapshot().document.outputs.find((output) => output.id === outputId)!
+    super({
+      client: session.client,
+      resolved: () => materializeOutput(session.snapshot().document, output()),
+      stored: () => output().document,
+      commit: (document) =>
+        session.commit(nativeEdit(session.snapshot().document, outputId, document), false),
+      failure: (message) => session.editorFailure(message),
+    })
   }
 }

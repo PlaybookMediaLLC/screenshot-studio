@@ -4,8 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { CanvasStageShell } from '@/components/canvas/CanvasStageShell'
 import ClientCanvas from '@/components/canvas/ClientCanvas'
 import { useBackgroundImageReady } from '@/hooks/useBackgroundImageReady'
-import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
-import { applyDesignDocument, applyDesignLayout, waitForSettledCanvas } from '@/lib/design/apply'
+import { applyDesignDocument, applyDesignLayout, layoutCanvasSize } from '@/lib/design/apply'
 import type { DesignDocument } from '@/lib/design/document'
 import { nextPaint, STAGE_ELEMENT_ID, waitForStageImages } from '@/lib/render/capture'
 import { useImageStore } from '@/lib/store'
@@ -46,8 +45,7 @@ export function StageRenderer({ document, sources = {}, time = 0, onReady }: Sta
     usePlaybackStore.setState({ isPlaying: false, playhead: time })
     setApplied(true)
     let cancelled = false
-    const preset = getAspectRatioPreset(useImageStore.getState().selectedAspectRatio)
-    void waitForSettledCanvas(preset ? preset.width / preset.height : null).then((dims) => {
+    void layoutCanvasSize().then((dims) => {
       if (cancelled) return
       applyDesignLayout(document, resolve, dims)
       setLayoutApplied(true)

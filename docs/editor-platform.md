@@ -95,6 +95,17 @@ MP4, and WebM. Each format offers only the settings that apply to it.
 - **Batch mode**: `components/export/batch/BatchWorkspace.tsx` applies the current design, a preset, or a brand kit to up to 50 screenshots. It renders two at a time, with per-item failures, retry, and cancel.
 - **Embeds**: the Save menu's embed entry opens Share, which publishes the design and gives iframe, HTML, and Markdown snippets.
 
+## Canvas
+
+Canvas ([RFC 041](rfcs/041-creative-canvas.md)) places many documents on one
+infinite board. Each artboard is a whole `DesignDocument` at a workspace
+position; workspace units are export pixels, so moving an artboard never
+changes its output. One artboard at a time is open in this editor
+(`components/canvas-workspace/use-native-artboard.ts`); the others draw through
+`renderDocument` at a width that suits the zoom. Canvases are creative sets of
+kind `canvas` and share the Story Set session, history and recovery
+(`lib/creative-sets/revisioned-session.ts`).
+
 ## Persistence
 
 Every write goes through the Go backend (`services/internal/product`) and the

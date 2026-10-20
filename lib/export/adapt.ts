@@ -48,6 +48,8 @@ export const SAFE_MARGIN = 0.03
 export const TEXT_SCALE_LIMITS = { max: 1.6, min: 0.6 } as const
 /** Average glyph width as a fraction of the font size, for fitting a line. */
 const GLYPH_WIDTH = 0.55
+/** Headroom for bold and wide glyphs when one word has to fit a box. */
+const WIDE_GLYPHS = 1.15
 const LINE_HEIGHT = 1.2
 /**
  * The box the render frame's stage is fitted into, in CSS px. Canvas padding
@@ -256,6 +258,10 @@ export function adaptDocumentToSize(
         if (!text.maxWidth) {
           const across = vertical ? lines.length * LINE_HEIGHT : longest * GLYPH_WIDTH
           fontPx = Math.min(fontPx, ((1 - SAFE_MARGIN * 2) * to.width) / across)
+        } else if (!vertical) {
+          // Wrapping cannot split a word, so the longest word must fit the box (bold runs wide).
+          const word = Math.max(1, ...text.text.split(/\s+/).map((part) => part.length))
+          fontPx = Math.min(fontPx, (text.maxWidth * to.width) / (word * GLYPH_WIDTH * WIDE_GLYPHS))
         }
         const fontSize = clamp(fontPx / to.width, 0.005, 0.3)
         const px = fontSize * to.width

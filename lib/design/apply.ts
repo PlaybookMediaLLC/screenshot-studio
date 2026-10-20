@@ -4,7 +4,8 @@ import { motionFromTimeline } from '@/lib/animation/motion-schema'
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { createDeviceScreen, createMockup } from '@/lib/device-mockups/layouts'
 import type { DeviceLayoutId } from '@/types/mockup'
-import { beginHistoryStep, endHistoryStep, useImageStore } from '@/lib/store'
+import { beginHistoryStep, endHistoryStep, useImageStore, type ImageState } from '@/lib/store'
+import { hasCanvasContent } from '@/lib/editor/canvas-content'
 import {
   type DesignChanges,
   type DesignDocument,
@@ -385,7 +386,7 @@ export async function applyDesignChanges(rawChanges: DesignChanges, resolve: Res
   if (changesLayout) {
     const canvas = changes.canvas?.aspectRatio
       ? await waitForSettledCanvas(currentAspectRatio())
-      : (useImageStore.getState().canvasDimensions ?? (await waitForSettledCanvas(null)))
+      : (useImageStore.getState().canvasDimensions ?? (await layoutCanvasSize()))
     writeLayout(changes, resolve, canvas)
   }
   endHistoryStep(step)
@@ -394,6 +395,47 @@ export async function applyDesignChanges(rawChanges: DesignChanges, resolve: Res
 function currentAspectRatio(): number | null {
   const preset = getAspectRatioPreset(useImageStore.getState().selectedAspectRatio)
   return preset ? preset.width / preset.height : null
+}
+
+/** The canvas's output aspect ratio (width / height), custom sizes included; null when unknown. */
+export function canvasAspect(
+  state: Pick<ImageState, 'customDimensions' | 'selectedAspectRatio'>
+): number | null {
+  const size =
+    state.selectedAspectRatio === 'custom'
+      ? state.customDimensions
+      : getAspectRatioPreset(state.selectedAspectRatio)
+  return size && size.width > 0 && size.height > 0 ? size.width / size.height : null
+}
+
+/** The width a stage lays out at when it mounts with no previous size (see `ClientCanvas`). */
+export const STAGE_REFERENCE_WIDTH = 960
+
+/**
+ * The size a stage that is not mounted yet lays pixel layers out at: the
+ * width it will take as its reference (the last stage's width, or
+ * {@link STAGE_REFERENCE_WIDTH}) at the canvas's aspect ratio. A document
+ * whose only content arrives with the layout phase (text, shapes,
+ * stickers) has no stage to measure before then.
+ */
+export function pendingStageSize(
+  state: Pick<ImageState, 'canvasDimensions' | 'customDimensions' | 'selectedAspectRatio'>
+): CanvasSize {
+  const canvasW = state.canvasDimensions?.canvasW ?? STAGE_REFERENCE_WIDTH
+  const aspect = canvasAspect(state) ?? 16 / 9
+  return { canvasW, canvasH: canvasW / aspect }
+}
+
+/**
+ * The stage size to lay pixel layers out against: measured once it settles
+ * when the canvas has content to draw, otherwise the size the stage will
+ * mount at. Waiting for a stage that cannot mount would only time out and
+ * place every layer against a guess.
+ */
+export async function layoutCanvasSize(): Promise<CanvasSize> {
+  const state = useImageStore.getState()
+  if (!hasCanvasContent(state)) return pendingStageSize(state)
+  return waitForSettledCanvas(canvasAspect(state))
 }
 
 /**

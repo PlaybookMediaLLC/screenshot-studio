@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.5](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.4...v2.24.5) (2026-10-20)
+
+
+### Bug Fixes
+
+* **editor:** preserve undo state and align export checks ([#222](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/222)) ([13b36b3](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/13b36b3019af8996a0c5f666156340b46549eab6))
+
 ## [2.24.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.3...v2.24.4) (2026-10-20)
 
 

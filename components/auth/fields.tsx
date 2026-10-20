@@ -7,14 +7,14 @@ import { Label } from '@/components/ui/label'
 
 /** Shared look for the auth and onboarding forms. */
 export const authInputClassName =
-  'h-10 rounded-lg border-white/[0.08] bg-white/[0.03] px-3.5 md:text-sm dark:bg-white/[0.03]'
+  'h-10 rounded-lg border-foreground/[0.08] bg-foreground/[0.03] px-3.5 md:text-sm dark:bg-foreground/[0.03]'
 
 type AuthFieldProps = ComponentProps<typeof Input> & { hint?: ReactNode; id: string; label: string }
 
 export function AuthField({ className, hint, id, label, ...props }: AuthFieldProps) {
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-medium text-neutral-300" htmlFor={id}>
+      <Label className="text-sm font-medium text-foreground/80" htmlFor={id}>
         {label}
       </Label>
       <Input className={cn(authInputClassName, className)} id={id} {...props} />
@@ -75,10 +75,10 @@ export function SubmitButton({
 
 export function Divider({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-center gap-6 text-sm text-neutral-500">
-      <span className="h-px flex-1 bg-white/[0.08]" />
+    <div className="flex items-center gap-6 text-sm text-muted-foreground">
+      <span className="h-px flex-1 bg-foreground/[0.08]" />
       {children}
-      <span className="h-px flex-1 bg-white/[0.08]" />
+      <span className="h-px flex-1 bg-foreground/[0.08]" />
     </div>
   )
 }

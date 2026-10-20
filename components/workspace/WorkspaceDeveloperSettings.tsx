@@ -19,6 +19,7 @@ import { apiKeyScopes, type ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { GitHubConnections } from './GitHubConnections'
 import { getErrorMessage } from './settings-client'
+import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 
 const sourceProviderSchema = z.enum(['generic', 'github', 'gitlab'])
 
@@ -41,9 +42,21 @@ type ApiKey = {
   enabled: boolean | null
   expiresAt: Date | string | null
   id: string
+  lastRequest: Date | string | null
   name: string | null
   prefix: string | null
   start: string | null
+}
+
+/** A key's state: active, disabled, or past its expiry. */
+function keyStatus(key: ApiKey): { label: string; tone: 'gray' | 'green' | 'yellow' } {
+  if (!key.enabled) return { label: 'disabled', tone: 'gray' }
+  if (key.expiresAt && new Date(key.expiresAt).getTime() <= Date.now()) return { label: 'expired', tone: 'yellow' }
+  return { label: 'active', tone: 'green' }
+}
+
+function readableDate(value: Date | string | null): string {
+  return value ? new Date(value).toLocaleDateString() : ''
 }
 
 export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSettingsProps) {
@@ -176,7 +189,7 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
   )
 }
 
-const fieldLabel = 'text-xs font-medium text-neutral-400'
+const fieldLabel = 'text-xs font-medium text-foreground/65'
 
 function NewKeyNotice({ apiKey, onDismiss }: { apiKey: string; onDismiss: () => void }) {
   async function copyKey(): Promise<void> {
@@ -185,10 +198,10 @@ function NewKeyNotice({ apiKey, onDismiss }: { apiKey: string; onDismiss: () => 
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl bg-emerald-500/5 p-5 ring-1 ring-emerald-500/20">
-      <p className="text-sm font-medium text-white">
+      <p className="text-sm font-medium text-foreground">
         Copy this API key now. It cannot be shown again.
       </p>
-      <code className="overflow-x-auto rounded-lg bg-black/30 p-3 font-mono text-xs text-neutral-300 ring-1 ring-white/[0.08]">
+      <code className="overflow-x-auto rounded-lg bg-black/30 p-3 font-mono text-xs text-foreground/80 ring-1 ring-foreground/[0.08]">
         {apiKey}
       </code>
       <div className="flex gap-2">
@@ -229,21 +242,21 @@ function NewSourceNotice({ onDismiss, source }: { onDismiss: () => void; source:
   const { secret, url } = source.webhook
   return (
     <div className="mb-4 flex flex-col gap-3 rounded-2xl bg-emerald-500/5 p-5 ring-1 ring-emerald-500/20">
-      <p className="text-sm font-medium text-white">
+      <p className="text-sm font-medium text-foreground">
         Add this webhook to your repository.{secret ? ' The secret cannot be shown again.' : ''}
       </p>
       <SetupValue id="source-webhook-url" label="Payload URL" value={url} />
       {secret ? (
         <SetupValue id="source-webhook-secret" label="Secret" value={secret} />
       ) : (
-        <p className="text-sm text-neutral-400">
+        <p className="text-sm text-foreground/65">
           {source.provider === 'gitlab'
             ? 'GitLab generates its own signing token. Ask an operator to configure it for this source.'
             : 'This server cannot sign webhooks yet. Ask an operator to set SOURCE_WEBHOOK_SIGNING_KEY.'}
         </p>
       )}
       {source.provider === 'github' && secret ? (
-        <p className="text-sm text-neutral-400">
+        <p className="text-sm text-foreground/65">
           In GitHub, open the repository’s Settings, then Webhooks, then Add webhook. Paste the
           payload URL and secret, choose “Let me select individual events”, and select Pull requests
           and Releases. Merged PRs are held as changes for a published release. To define PR or
@@ -268,7 +281,7 @@ function ApiKeyForm({
 }) {
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-      <h3 className="text-sm font-medium text-white">Create a key</h3>
+      <h3 className="text-sm font-medium text-foreground">Create a key</h3>
       <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
         <div className="flex flex-col gap-1.5">
           <Label className={fieldLabel} htmlFor="api-key-name">
@@ -302,7 +315,7 @@ function ApiKeyForm({
           {apiKeyScopes.map((scope) => (
             <div className="flex items-center gap-2" key={scope}>
               <Checkbox defaultChecked id={`scope-${scope}`} name="scopes" value={scope} />
-              <Label className="font-mono text-xs text-neutral-300" htmlFor={`scope-${scope}`}>
+              <Label className="font-mono text-xs text-foreground/80" htmlFor={`scope-${scope}`}>
                 {scope}
               </Label>
             </div>
@@ -332,32 +345,42 @@ function ApiKeyList({
   if (keys.length === 0)
     return (
       <Row>
-        <p className="text-sm text-neutral-500">No API keys have been created.</p>
+        <p className="text-sm text-muted-foreground">No API keys have been created.</p>
       </Row>
     )
-  return keys.map((key) => (
-    <div className="flex items-center gap-4 px-5 py-4" key={key.id}>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm text-white">{key.name ?? 'Untitled key'}</p>
-        <p className="truncate font-mono text-xs text-neutral-500">
-          {key.start ?? key.prefix ?? 'Hidden key'}
-        </p>
+  return keys.map((key) => {
+    const status = keyStatus(key)
+    return (
+      <div className="flex flex-wrap items-center gap-4 px-5 py-4" key={key.id}>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm text-foreground">{key.name ?? 'Untitled key'}</p>
+          <p className="truncate font-mono text-xs text-muted-foreground">
+            {key.start ?? key.prefix ?? 'Hidden key'}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Created {readableDate(key.createdAt)}
+            {key.expiresAt ? ` · Expires ${readableDate(key.expiresAt)}` : ' · Never expires'}
+            {key.lastRequest ? ` · Last used ${new Date(key.lastRequest).toLocaleString()}` : ' · Not used yet'}
+          </p>
+        </div>
+        <Pill tone={status.tone}>{status.label}</Pill>
+        {canManage ? (
+          <ConfirmDialog
+            confirmLabel="Revoke key"
+            description="Anything using this key stops working at once. This cannot be undone; create a new key to replace it."
+            destructive
+            disabled={isRevoking === key.id}
+            onConfirm={async () => {
+              await onRevoke(key.id)
+              return null
+            }}
+            title={`Revoke ${key.name ?? 'this key'}?`}
+            triggerLabel="Revoke"
+          />
+        ) : null}
       </div>
-      <Pill tone={key.enabled ? 'green' : 'gray'}>{key.enabled ? 'active' : 'disabled'}</Pill>
-      {canManage ? (
-        <Button
-          className="text-red-400 hover:text-red-300"
-          disabled={isRevoking === key.id}
-          onClick={() => void onRevoke(key.id)}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          Revoke
-        </Button>
-      ) : null}
-    </div>
-  ))
+    )
+  })
 }
 
 function SourceForm({

@@ -139,7 +139,7 @@ export function RunButton({
           )}
         </Button>
         {running ? (
-          <span className="text-xs text-neutral-500 tabular-nums">
+          <span className="text-xs text-muted-foreground tabular-nums">
             {clock(now - startedAt)}
             {hint ? ` · ${hint}` : null}
           </span>
@@ -157,7 +157,10 @@ export function RunButton({
         ) : null}
       </div>
       {error ? (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300" role="alert">
+        <p
+          className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}

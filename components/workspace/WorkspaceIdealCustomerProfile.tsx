@@ -220,7 +220,7 @@ export function WorkspaceIdealCustomerProfile({ canManage }: { canManage: boolea
       ) : null}
       {profile === undefined ? (
         error ? null : (
-          <p className="text-sm text-neutral-500">Loading…</p>
+          <p className="text-sm text-muted-foreground">Loading…</p>
         )
       ) : (
         <IdealCustomerProfileForm
@@ -231,7 +231,7 @@ export function WorkspaceIdealCustomerProfile({ canManage }: { canManage: boolea
         />
       )}
       {message ? (
-        <p className="text-sm text-neutral-400" role="status">
+        <p className="text-sm text-foreground/65" role="status">
           {message}
         </p>
       ) : null}

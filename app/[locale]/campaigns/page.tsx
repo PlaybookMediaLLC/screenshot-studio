@@ -48,13 +48,13 @@ function CampaignWorkflows() {
   return (
     <section
       aria-labelledby="campaign-workflows-title"
-      className="flex flex-col gap-6 rounded-2xl bg-white/[0.02] px-6 py-10 ring-1 ring-white/[0.06] md:px-10 md:py-14"
+      className="flex flex-col gap-6 rounded-2xl bg-foreground/[0.02] px-6 py-10 ring-1 ring-foreground/[0.06] md:px-10 md:py-14"
     >
       <div className="text-center">
-        <h2 className="text-lg font-medium text-white" id="campaign-workflows-title">
+        <h2 className="text-lg font-medium text-foreground" id="campaign-workflows-title">
           Start your first campaign
         </h2>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           Each one ends with posts you review and approve before anything publishes.
         </p>
       </div>
@@ -62,16 +62,16 @@ function CampaignWorkflows() {
         {WORKFLOWS.map((workflow) => (
           <li
             aria-disabled={workflow.href === null || undefined}
-            className="flex flex-col gap-4 rounded-xl bg-white/[0.015] p-5 ring-1 ring-white/[0.08] aria-disabled:opacity-60"
+            className="flex flex-col gap-4 rounded-xl bg-foreground/[0.015] p-5 ring-1 ring-foreground/[0.08] aria-disabled:opacity-60"
             key={workflow.title}
           >
             <div className="flex items-center justify-between gap-2">
-              <workflow.icon className="text-neutral-400" size={22} strokeWidth={1.6} />
+              <workflow.icon className="text-foreground/65" size={22} strokeWidth={1.6} />
               {workflow.href === null ? <Pill>Planned</Pill> : null}
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-white">{workflow.title}</h3>
-              <p className="mt-1 text-sm text-neutral-500">{workflow.description}</p>
+              <h3 className="text-sm font-medium text-foreground">{workflow.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{workflow.description}</p>
             </div>
             {workflow.href ? (
               <ButtonLink

@@ -14,7 +14,7 @@ import {
 } from '@/lib/tenant/content-drafts'
 import { listBackendConnections } from '@/lib/tenant/publishing-backend'
 import { isAiEnabled } from '@/lib/trpc/routers/launch'
-import { draftListItems, draftQueue, requireDraftsPageAccess } from '../page-access'
+import { draftListItems, draftQueue, railSets, requireDraftsPageAccess, selectSocialSet } from '../page-access'
 
 export const metadata: Metadata = { title: 'Draft' }
 
@@ -27,17 +27,54 @@ export default async function DraftPage({ params }: DraftPageProps) {
   const access = await requireDraftsPageAccess(locale, `/drafts/${draftId}`)
   const canSchedule = hasPermission(access.role, 'publish:manage')
   const canEdit = hasPermission(access.role, 'artifact:edit')
-  const [draft, posts, connections, aiEnabled, list, settings, queue] = await Promise.all([
-    getContentDraft(access.tenant, draftId),
+  const draft = await getContentDraft(access.tenant, draftId)
+  if (!draft) notFound()
+  // The draft's own set is the context: its accounts, queue and voice (RFC 043).
+  const { selected, sets } = await selectSocialSet(access.tenant, draft.socialSetId ?? undefined)
+  const set = draft.socialSetId ? sets.find((item) => item.id === draft.socialSetId) : undefined
+  const setId = set?.id ?? ''
+  const [posts, connections, aiEnabled, list, settings, queue] = await Promise.all([
     listContentDraftPosts(access.tenant, draftId),
     // Channel connections are a publishing surface: only publishers see them.
-    canSchedule ? listBackendConnections(access.tenant) : Promise.resolve([]),
+    canSchedule && !set ? listBackendConnections(access.tenant) : Promise.resolve([]),
     isAiEnabled(access.tenant).catch(() => false),
-    listContentDrafts(access.tenant, { limit: 100 }),
+    listContentDrafts(access.tenant, { limit: 100, ...(setId ? { socialSetId: setId } : {}) }),
     getContentDraftSettings(access.tenant),
-    draftQueue(access.tenant),
+    draftQueue(access.tenant, setId),
   ])
-  if (!draft) notFound()
+  // A set's accounts with their health; a draft from before sets uses every connection.
+  const channels = set
+    ? canSchedule
+      ? set.accounts.flatMap((account) => {
+          const channel = channelForPlatform(account.platform)
+          return channel
+            ? [
+                {
+                  avatarUrl: account.avatarUrl,
+                  channel,
+                  handle: account.handle,
+                  health: account.health,
+                  id: account.id,
+                  name: account.displayName || account.handle || account.platform,
+                },
+              ]
+            : []
+        })
+      : []
+    : connections.flatMap((connection) => {
+        const channel = channelForPlatform(connection.platform)
+        return connection.status === 'ACTIVE' && channel
+          ? [
+              {
+                avatarUrl: connection.avatarUrl ?? null,
+                channel,
+                handle: connection.handle ?? null,
+                id: connection.id,
+                name: connection.displayName || connection.handle || connection.externalAccountId,
+              },
+            ]
+          : []
+      })
 
   return (
     <PlatformShell
@@ -49,6 +86,8 @@ export default async function DraftPage({ params }: DraftPageProps) {
         canEdit={canEdit}
         drafts={draftListItems(list.items)}
         queue={queue}
+        selectedSet={set?.id ?? selected?.id}
+        sets={railSets(sets)}
       >
         <DraftComposer
           aiEnabled={aiEnabled}
@@ -58,21 +97,8 @@ export default async function DraftPage({ params }: DraftPageProps) {
           canSchedule={canSchedule}
           // Real-time co-editing runs when the collaboration server is configured.
           collabUrl={process.env.PLATFORM_COLLAB_URL || null}
-          channels={connections.flatMap((connection) => {
-            const channel = channelForPlatform(connection.platform)
-            return connection.status === 'ACTIVE' && channel
-              ? [
-                  {
-                    avatarUrl: connection.avatarUrl ?? null,
-                    channel,
-                    handle: connection.handle ?? null,
-                    id: connection.id,
-                    name:
-                      connection.displayName || connection.handle || connection.externalAccountId,
-                  },
-                ]
-              : []
-          })}
+          channels={channels}
+          socialSet={set ? { id: set.id, name: set.name, timeZone: set.timeZone } : null}
           draft={{
             assetIds: draft.assetIds,
             body: draft.body,
@@ -83,6 +109,12 @@ export default async function DraftPage({ params }: DraftPageProps) {
             status: draft.status,
             title: draft.title,
             version: draft.version,
+            engagement: draft.engagement,
+            naturalPostingTime: draft.naturalPostingTime,
+            plannedFor: draft.plannedFor,
+            primaryPlatform: draft.primaryPlatform,
+            socialSetId: draft.socialSetId,
+            tags: draft.tags,
             approvedVersion: draft.approvedVersion,
             reviewNote: draft.reviewNote,
             reviewStatus: draft.reviewStatus,

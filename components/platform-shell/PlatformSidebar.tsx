@@ -18,7 +18,7 @@ import {
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { type ComponentType, useState } from 'react'
+import { type ComponentType, useEffect, useState } from 'react'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { Collapsible } from 'radix-ui'
@@ -40,6 +40,11 @@ import {
   Share2,
   Code2,
   Bell,
+  Download,
+  FlaskConical,
+  Layers,
+  SunMoon,
+  UserPlus,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -51,6 +56,11 @@ import {
   type SettingId,
 } from '@/components/workspace/settings-sections'
 import { workspaceInitials } from '@/lib/workspace/initials'
+import { usePreferences } from '@/components/settings/PreferencesProvider'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { DYNAMIC_NAVIGATION_QUERY } from '@/lib/settings/appearance'
+import type { navigationLayoutSchema } from '@/lib/api/contracts/settings-platform'
+import type { z } from 'zod'
 import { surface } from './shell-config'
 import { Button } from '@/components/ui/button'
 import { EditorNavigation } from './EditorNavigation'
@@ -77,6 +87,11 @@ const SETTINGS_ICONS: Record<SettingId, IconComponent> = {
   surfaces: PanelsTopLeft,
   channels: Share2,
   api: Code2,
+  appearance: SunMoon,
+  experimental: FlaskConical,
+  install: Download,
+  'new-team': UserPlus,
+  'social-sets': Layers,
 }
 
 const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
@@ -150,8 +165,8 @@ function SubNav({
       aria-label={`Workspace ${label.toLowerCase()}`}
       className={
         collapsed
-          ? 'mt-1 grid gap-0.5 border-y border-white/[0.06] py-1'
-          : 'my-1.5 ml-[17px] flex flex-col gap-0.5 border-l border-white/[0.08] pl-3'
+          ? 'mt-1 grid gap-0.5 border-y border-foreground/[0.06] py-1'
+          : 'my-1.5 ml-[17px] flex flex-col gap-0.5 border-l border-foreground/[0.08] pl-3'
       }
     >
       {items.map(({ href, label: itemLabel, icon: Icon }) => {
@@ -167,10 +182,13 @@ function SubNav({
                 ? cn(
                     'grid size-8 place-items-center rounded-lg border',
                     active
-                      ? cn(surface.panel, surface.border, 'text-white shadow-xs')
-                      : 'border-transparent text-neutral-500 hover:text-neutral-200'
+                      ? cn(surface.panel, surface.border, 'text-foreground shadow-xs')
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
                   )
-                : cn('block py-1', active ? 'text-white' : 'text-[#858585] hover:text-neutral-200')
+                : cn(
+                    'block py-1',
+                    active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  )
             )}
             onClick={onNavigate}
           >
@@ -204,8 +222,8 @@ function NavLink({
   const rowClassName = cn(
     'flex h-8 items-center gap-2.5 rounded-lg border px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
     active
-      ? cn(surface.panel, surface.border, 'text-white shadow-xs')
-      : 'border-transparent text-[#858585] hover:text-neutral-200',
+      ? cn(surface.panel, surface.border, 'text-foreground shadow-xs')
+      : 'border-transparent text-muted-foreground hover:text-foreground',
     collapsed && 'size-8 justify-center px-0'
   )
   if (children) {
@@ -287,7 +305,9 @@ function Navigation({
       {NAV_GROUPS.map((group, index) => (
         <div className="grid gap-0.5" key={index}>
           {group.label && !collapsed ? (
-            <p className="mb-1.5 px-2 text-xs font-medium text-neutral-600">{group.label}</p>
+            <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground/75">
+              {group.label}
+            </p>
           ) : null}
           {group.items
             .filter((item) => campaignsEnabled || item.href !== '/campaigns')
@@ -325,7 +345,7 @@ function WorkspaceSwitcher({
       align={collapsed ? 'end' : 'start'}
       side={collapsed ? 'right' : 'top'}
       triggerClassName={cn(
-        'flex h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-white/[0.04]',
+        'flex h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-foreground/[0.04]',
         collapsed && 'size-8 justify-center px-0'
       )}
     >
@@ -333,14 +353,14 @@ function WorkspaceSwitcher({
       {collapsed ? null : (
         <>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-medium text-neutral-100">
+            <span className="block truncate text-sm font-medium text-foreground">
               {organizationName}
             </span>
-            <span className="block truncate text-xs text-neutral-500">
+            <span className="block truncate text-xs text-muted-foreground">
               {session?.user.email ?? 'Account'}
             </span>
           </span>
-          <UnfoldMoreIcon className="shrink-0 text-neutral-500" size={14} />
+          <UnfoldMoreIcon className="shrink-0 text-muted-foreground" size={14} />
         </>
       )}
     </AccountMenu>
@@ -352,9 +372,7 @@ function Brand({ collapsed }: { collapsed: boolean }) {
     <Link className="flex min-w-0 items-center gap-2.5" href="/">
       <Image alt="" className="size-6 rounded-md" height={24} src="/logo-mark.png" width={24} />
       {collapsed ? null : (
-        <span className="truncate text-sm font-semibold tracking-tight text-neutral-100">
-          Shots
-        </span>
+        <span className="truncate text-sm font-semibold tracking-tight text-foreground">Shots</span>
       )}
     </Link>
   )
@@ -364,8 +382,26 @@ export interface PlatformSidebarProps {
   campaignsEnabled: boolean
   /** Show Drafts; content drafts are behind PLATFORM_CONTENT_DRAFTS. */
   draftsEnabled?: boolean
+  /** The layout the navigation cookie names, for the first paint. */
+  initialNavigation?: z.infer<typeof navigationLayoutSchema>
   organizationName?: string
   variant: 'editor' | 'page'
+}
+
+/**
+ * Whether the desktop navigation shows labels. Compact never does and
+ * expanded always does. Dynamic does from 1280 px wide; narrower, it shows
+ * the icon rail and keeps a temporary expansion the person opened until they
+ * close it or move to another page.
+ */
+function useNavigationExpanded(initial: z.infer<typeof navigationLayoutSchema>) {
+  const layout = usePreferences().preferences?.navigation ?? initial
+  const wide = useMediaQuery(DYNAMIC_NAVIGATION_QUERY)
+  const pathname = usePathname()
+  const [temporary, setTemporary] = useState(false)
+  useEffect(() => setTemporary(false), [pathname])
+  const expanded = layout === 'expanded' || (layout === 'dynamic' && (wide || temporary))
+  return { canToggle: layout === 'dynamic' && !wide, expanded, setTemporary, temporary }
 }
 
 /**
@@ -375,44 +411,72 @@ export interface PlatformSidebarProps {
 export function PlatformSidebar({
   campaignsEnabled,
   draftsEnabled = false,
+  initialNavigation = 'compact',
   organizationName = 'Workspace',
   variant,
 }: PlatformSidebarProps) {
   // The editor header already holds its account menu.
   const isPage = variant === 'page'
   const [mobileOpen, setMobileOpen] = useState(false)
+  const navigation = useNavigationExpanded(initialNavigation)
+  const collapsed = !navigation.expanded
 
   return (
     <>
       <aside
+        aria-label="Primary navigation"
         className={cn(
-          'sticky top-0 hidden h-screen w-14 shrink-0 flex-col items-center border-r border-white/[0.04] py-3 md:flex',
+          'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-foreground/[0.04] py-3 md:flex',
+          collapsed ? 'w-14 items-center' : 'w-60 px-2',
           surface.base
         )}
+        data-navigation={collapsed ? 'compact' : 'expanded'}
       >
-        <Brand collapsed />
+        <div className={cn(!collapsed && 'px-2')}>
+          <Brand collapsed={collapsed} />
+        </div>
 
         <div className="mt-5 min-h-0 flex-1 overflow-y-auto px-1 [scrollbar-width:none]">
-          <Navigation campaignsEnabled={campaignsEnabled} collapsed draftsEnabled={draftsEnabled} />
+          <Navigation
+            campaignsEnabled={campaignsEnabled}
+            collapsed={collapsed}
+            draftsEnabled={draftsEnabled}
+          />
         </div>
+
+        {navigation.canToggle ? (
+          <div className={cn('flex w-full pb-2', collapsed ? 'justify-center' : 'px-1')}>
+            <Button
+              aria-expanded={navigation.expanded}
+              aria-label={navigation.expanded ? 'Collapse navigation' : 'Expand navigation'}
+              className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
+              onClick={() => navigation.setTemporary(!navigation.temporary)}
+              size={null}
+              type="button"
+              variant="custom"
+            >
+              <SlidersHorizontalIcon size={15} strokeWidth={1.8} />
+            </Button>
+          </div>
+        ) : null}
 
         {isPage ? (
           // In development, room for the Next.js dev badge, which otherwise
           // sits on the switcher and swallows clicks.
           <div
             className={cn(
-              'flex w-full justify-center border-t border-white/[0.06] pt-2',
+              'flex w-full justify-center border-t border-foreground/[0.06] pt-2',
               process.env.NODE_ENV === 'development' && 'mb-12'
             )}
           >
-            <WorkspaceSwitcher collapsed organizationName={organizationName} />
+            <WorkspaceSwitcher collapsed={collapsed} organizationName={organizationName} />
           </div>
         ) : null}
       </aside>
 
       <header
         className={cn(
-          'sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-white/[0.06] px-4 md:hidden',
+          'sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-foreground/[0.06] px-4 md:hidden',
           surface.base
         )}
       >
@@ -422,14 +486,14 @@ export function PlatformSidebar({
               variant="custom"
               size={null}
               aria-label="Open navigation"
-              className="grid size-9 place-items-center rounded-lg text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-100"
+              className="grid size-9 place-items-center rounded-lg text-foreground/65 hover:bg-foreground/[0.04] hover:text-foreground"
               type="button"
             >
               <Menu01Icon size={18} strokeWidth={1.8} />
             </Button>
           </SheetTrigger>
           <SheetContent
-            className={cn('w-72 gap-0 border-white/[0.06] p-3', surface.base)}
+            className={cn('w-72 gap-0 border-foreground/[0.06] p-3', surface.base)}
             side="left"
           >
             <SheetTitle className="sr-only">Navigation</SheetTitle>
@@ -446,7 +510,7 @@ export function PlatformSidebar({
             </div>
             <div
               className={cn(
-                'border-t border-white/[0.06] pt-2',
+                'border-t border-foreground/[0.06] pt-2',
                 process.env.NODE_ENV === 'development' && 'mb-12'
               )}
             >

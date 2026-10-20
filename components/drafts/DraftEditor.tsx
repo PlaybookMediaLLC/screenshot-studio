@@ -61,6 +61,8 @@ import {
 } from './thread'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import type { z } from 'zod'
+import type { textDirectionSchema } from '@/lib/api/contracts/settings-platform'
 
 /**
  * The document editor for a content draft: the vendored Plate.js editor with
@@ -78,10 +80,10 @@ function HashtagChips({ hashtags }: { hashtags: string[] }) {
   const editor = useEditorRef()
   return (
     <div className={cn('flex flex-wrap items-center gap-1.5 pb-6', POST_COLUMN)}>
-      <span className="text-[11px] text-neutral-500">Your hashtags</span>
+      <span className="text-[11px] text-muted-foreground">Your hashtags</span>
       {hashtags.map((tag) => (
         <Button variant="custom" size={null}
-          className="rounded-full border border-white/[0.08] px-2 py-0.5 text-xs text-neutral-400 hover:border-sky-400/40 hover:text-white"
+          className="rounded-full border border-foreground/[0.08] px-2 py-0.5 text-xs text-foreground/65 hover:border-sky-400/40 hover:text-foreground"
           key={tag}
           onClick={() => {
             // At the caret, or at the end of the draft when there is none.
@@ -102,6 +104,10 @@ function HashtagChips({ hashtags }: { hashtags: string[] }) {
 export type DraftEditorProps = {
   /** The channel the AI writes for: the first selected thread channel. */
   assistChannel: DraftChannel
+  /** The draft, so AI help writes in its social set's voice (RFC 043). */
+  draftId?: string
+  /** The direction text runs in, from Appearance settings. */
+  textDirection?: z.infer<typeof textDirectionSchema>
   collaboration: DraftCollaboration | null
   /** The editor, once made: the host restores revisions through it. */
   onEditor?: (editor: PlateEditor) => void
@@ -225,7 +231,7 @@ function Presence() {
     <div className="absolute -top-12 right-6 flex flex-wrap gap-1.5" data-testid="presence">
       {people.map((person, index) => (
         <span
-          className="rounded-full px-2 py-0.5 text-xs text-white"
+          className="rounded-full px-2 py-0.5 text-xs text-foreground"
           key={`${person.name}-${index}`}
           style={{ background: person.color }}
         >
@@ -326,7 +332,7 @@ const ASSIST_LABELS: Record<DraftAssistAction, (channel: string) => string> = {
  * thread, or shorten it to fit. The answer replaces the text in one step,
  * so undo brings the writer's own back; images stay with the first post.
  */
-function AssistMenu({ channel, editor }: { channel: DraftChannel; editor: PlateEditor }) {
+function AssistMenu({ channel, draftId, editor }: { channel: DraftChannel; draftId?: string; editor: PlateEditor }) {
   const [busy, setBusy] = React.useState(false)
   const label = CHANNEL_META[channel].label
   const run = async (action: DraftAssistAction) => {
@@ -337,7 +343,7 @@ function AssistMenu({ channel, editor }: { channel: DraftChannel; editor: PlateE
     }
     setBusy(true)
     try {
-      const answer = await draftsApi.assist({ action, channel, posts })
+      const answer = await draftsApi.assist({ action, channel, draftId, posts })
       const media = editor.children.filter((node) => node.type === 'img' || node.type === 'video')
       const value = answer.posts.flatMap((post, index) => [
         ...(index > 0 ? [{ children: [{ text: '' }], type: POST_BREAK }] : []),
@@ -425,12 +431,14 @@ function DocumentMenu({
 
 function DraftToolbar({
   assistChannel,
+  draftId,
   editor,
   imageInput,
   services,
   title,
 }: {
   assistChannel: DraftChannel
+  draftId?: string
   editor: PlateEditor
   imageInput: React.RefObject<HTMLInputElement | null>
   services: EditorServices
@@ -471,7 +479,7 @@ function DraftToolbar({
   }
 
   return (
-    <Toolbar className="flex items-center gap-0.5 rounded-full border border-white/[0.08] bg-[#161616]/95 px-1.5 py-1 shadow-xl shadow-black/40 backdrop-blur">
+    <Toolbar className="flex items-center gap-0.5 rounded-full border border-foreground/[0.08] bg-secondary/95 px-1.5 py-1 shadow-xl shadow-black/40 backdrop-blur">
       <ToolbarGroup>
         <MarkToolbarButton nodeType={KEYS.bold} tooltip="Bold">
           <span className="font-bold">B</span>
@@ -526,7 +534,7 @@ function DraftToolbar({
       </ToolbarGroup>
       {services.ai ? (
         <ToolbarGroup>
-          <AssistMenu channel={assistChannel} editor={editor} />
+          <AssistMenu channel={assistChannel} draftId={draftId} editor={editor} />
         </ToolbarGroup>
       ) : null}
       <ToolbarGroup>
@@ -553,6 +561,8 @@ function DraftToolbar({
 export default function DraftEditor({
   assistChannel,
   collaboration,
+  draftId,
+  textDirection = 'ltr',
   onEditor,
   handles,
   hashtags,
@@ -669,6 +679,7 @@ export default function DraftEditor({
               <Editor
                 aria-label="Draft body"
                 className={cn(POST_COLUMN, 'pt-1 pb-12 text-[15px] leading-relaxed')}
+                dir={textDirection}
                 placeholder="What do you want to say?"
                 variant="default"
               />
@@ -680,6 +691,7 @@ export default function DraftEditor({
                 <div className="pointer-events-auto">
                   <DraftToolbar
                     assistChannel={assistChannel}
+                    draftId={draftId}
                     editor={editor}
                     imageInput={imageInput}
                     services={services}

@@ -139,11 +139,11 @@ export function RevisePanel({
 
   return (
     <div
-      className={cn('space-y-3 rounded-xl bg-white/[0.02] p-3 ring-1 ring-white/[0.08]', className)}
+      className={cn('space-y-3 rounded-xl bg-foreground/[0.02] p-3 ring-1 ring-foreground/[0.08]', className)}
     >
       {proposed ? (
         <div className="space-y-3">
-          <p className="text-sm text-white">{proposed.proposal.summary}</p>
+          <p className="text-sm text-foreground">{proposed.proposal.summary}</p>
           <div className="space-y-2">
             {changeFields(proposed.proposal.primary).map((field) => (
               <DiffView
@@ -156,12 +156,12 @@ export function RevisePanel({
           </div>
           {proposed.proposal.related.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-neutral-400">
+              <p className="text-xs font-medium text-foreground/65">
                 Keep related pieces consistent ({proposed.proposal.related.length})
               </p>
               {proposed.proposal.related.map((change, index) => (
                 <Label
-                  className="block space-y-2 rounded-lg p-2 ring-1 ring-white/[0.06]"
+                  className="block space-y-2 rounded-lg p-2 ring-1 ring-foreground/[0.06]"
                   key={`${change.targetId}-${index}`}
                 >
                   <span className="flex items-start gap-2 text-sm">
@@ -176,8 +176,8 @@ export function RevisePanel({
                       }}
                     />
                     <span>
-                      <span className="font-medium text-white">{change.label}</span>
-                      <span className="block text-xs text-neutral-500">{change.reason}</span>
+                      <span className="font-medium text-foreground">{change.label}</span>
+                      <span className="block text-xs text-muted-foreground">{change.reason}</span>
                     </span>
                   </span>
                   {changeFields(change).map((field) => (
@@ -222,12 +222,12 @@ export function RevisePanel({
             void propose()
           }}
         >
-          <Label className="block text-xs font-medium text-neutral-400" htmlFor={fieldId}>
+          <Label className="block text-xs font-medium text-foreground/65" htmlFor={fieldId}>
             What should change?
           </Label>
           <Textarea
             autoFocus
-            className="min-h-20 w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-white/20"
+            className="min-h-20 w-full rounded-lg border border-foreground/[0.08] bg-foreground/[0.03] px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/75 focus:border-foreground/20"
             id={fieldId}
             maxLength={1_000}
             minLength={3}
@@ -259,7 +259,7 @@ export function RevisePanel({
         </form>
       )}
       {error ? (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300" role="alert">
+        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300" role="alert">
           {error}
         </p>
       ) : null}

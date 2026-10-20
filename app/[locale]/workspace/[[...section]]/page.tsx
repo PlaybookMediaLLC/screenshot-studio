@@ -3,7 +3,7 @@ import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { WorkspaceSettings } from '@/components/workspace/WorkspaceSettings'
-import { findSettingsSection } from '@/components/workspace/settings-sections'
+import { findSettingsSection, findSocialSetPage } from '@/components/workspace/settings-sections'
 import { MCP_URL } from '@/lib/agents/mcp-clients'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
 
@@ -21,6 +21,18 @@ export async function generateMetadata({ params }: WorkspacePageProps): Promise<
   return { title: `${found?.title ?? 'Settings'} · Settings` }
 }
 
+/**
+ * The section a path names. Every section is one segment, except a social
+ * set's settings: /workspace/social-sets/{id}/{page}.
+ */
+function resolveSection(segments: string[] | undefined) {
+  const section = findSettingsSection(segments?.[0])
+  if (!section || !segments || segments.length <= 1) return section ? { section } : null
+  if (section.id !== 'social-sets' || segments.length > 3) return null
+  const page = findSocialSetPage(segments[2])
+  return page && /^[a-z0-9]{10,32}$/.test(segments[1] ?? '') ? { page, section, socialSetId: segments[1]! } : null
+}
+
 export default async function WorkspacePage({ params, searchParams }: WorkspacePageProps) {
   const [{ locale, section: segments }, requestHeaders] = await Promise.all([params, headers()])
   const moved = segments?.length === 1 ? MOVED_SECTIONS[segments[0]] : undefined
@@ -31,8 +43,8 @@ export default async function WorkspacePage({ params, searchParams }: WorkspaceP
     }
     redirect(getLocalizedPath(locale, query.size ? `${moved}?${query}` : moved))
   }
-  const section = segments && segments.length > 1 ? undefined : findSettingsSection(segments?.[0])
-  if (!section) notFound()
+  const resolved = resolveSection(segments)
+  if (!resolved) notFound()
   const access = await getPageAccess(requestHeaders)
   if (!access) redirect(getLocalizedPath(locale, '/sign-in'))
   if (!access.hasOrganization || !access.organization) {
@@ -50,7 +62,8 @@ export default async function WorkspacePage({ params, searchParams }: WorkspaceP
         name={access.session.user.name || ''}
         organization={access.organization}
         role={access.role}
-        section={section.id}
+        section={resolved.section.id}
+        socialSet={resolved.socialSetId ? { id: resolved.socialSetId, page: resolved.page } : undefined}
         twoFactorEnabled={Boolean(access.session.user.twoFactorEnabled)}
         userId={access.session.user.id}
       />

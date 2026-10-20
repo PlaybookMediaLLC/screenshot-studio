@@ -86,7 +86,9 @@ export function WorkspaceIntegrations({ canManage }: { canManage: boolean }) {
             <Group>
               {accounts.map((account) => (
                 <div className="flex items-center justify-between gap-4 px-5 py-4" key={account.id}>
-                  <span className="min-w-0 truncate text-sm text-white">{account.displayName}</span>
+                  <span className="min-w-0 truncate text-sm text-foreground">
+                    {account.displayName}
+                  </span>
                   <div className="flex items-center gap-3">
                     <Pill tone="green">Connected</Pill>
                     {canManage ? (
@@ -104,21 +106,21 @@ export function WorkspaceIntegrations({ canManage }: { canManage: boolean }) {
               ))}
               <Row>
                 {!status ? (
-                  <p className="text-sm text-neutral-500">Loading…</p>
+                  <p className="text-sm text-muted-foreground">Loading…</p>
                 ) : !status.ready ? (
-                  <p className="text-sm text-neutral-400">
+                  <p className="text-sm text-foreground/65">
                     Not set up on this server. An operator must set{' '}
                     {status.missing.map((name, index) => (
                       <span key={name}>
                         {index > 0 ? ', ' : ''}
-                        <code className="text-neutral-200">{name}</code>
+                        <code className="text-foreground">{name}</code>
                       </span>
                     ))}
                     . See docs/integrations.md.
                   </p>
                 ) : canManage ? (
                   <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm text-neutral-400">
+                    <p className="text-sm text-foreground/65">
                       {accounts.length
                         ? 'Connect another account, or reconnect to refresh access.'
                         : 'No account connected.'}
@@ -130,7 +132,7 @@ export function WorkspaceIntegrations({ canManage }: { canManage: boolean }) {
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-muted-foreground">
                     {accounts.length
                       ? 'Owners and admins manage connections.'
                       : 'Ask an owner or admin to connect an account.'}

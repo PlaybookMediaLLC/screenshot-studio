@@ -153,7 +153,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
         <div className="relative flex-1">
           <Search01Icon
             aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500"
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
             size={15}
           />
           <Input
@@ -165,13 +165,13 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
             value={search}
           />
         </div>
-        <Label className="flex items-center gap-2 text-sm text-neutral-400">
+        <Label className="flex items-center gap-2 text-sm text-foreground/65">
           Sort
           <Select
             onValueChange={(nextValue) => setSort(projectSortSchema.parse(nextValue))}
             value={sort}
           >
-            <SelectTrigger className="h-9 rounded-md border border-white/10 bg-transparent px-2 text-sm text-white">
+            <SelectTrigger className="h-9 rounded-md border border-foreground/10 bg-transparent px-2 text-sm text-foreground">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -216,7 +216,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
         <ul aria-busy={page.loading} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {page.items.map((project) => (
             <li
-              className="group overflow-hidden rounded-2xl bg-white/[0.015] ring-1 ring-white/[0.08]"
+              className="group overflow-hidden rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]"
               key={project.id}
             >
               <Link
@@ -229,12 +229,12 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
               <div className="flex items-center gap-2 p-4">
                 <div className="min-w-0 flex-1">
                   <Link
-                    className="block truncate text-sm font-medium text-white hover:underline"
+                    className="block truncate text-sm font-medium text-foreground hover:underline"
                     href={editorHref(project.id)}
                   >
                     {project.name}
                   </Link>
-                  <p className="mt-0.5 text-xs text-neutral-500">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     Edited{' '}
                     {project.updatedAt.toLocaleString(undefined, {
                       dateStyle: 'medium',
@@ -281,7 +281,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
         </ul>
       )}
 
-      {page.loading ? <p className="text-sm text-neutral-500">Loading projects…</p> : null}
+      {page.loading ? <p className="text-sm text-muted-foreground">Loading projects…</p> : null}
       {page.next && !page.loading ? (
         <div className="flex justify-center">
           <Button onClick={() => void load(page.next)} variant="outline">

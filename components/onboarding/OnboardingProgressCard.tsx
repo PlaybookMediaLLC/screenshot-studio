@@ -34,17 +34,17 @@ function Card({ initial }: { initial: StoredOnboardingRun }) {
   return (
     <aside
       aria-label="Profile enrichment"
-      className="fixed right-4 bottom-4 z-50 flex w-80 flex-col gap-2 rounded-xl border border-white/[0.1] bg-neutral-950/95 p-4 text-sm shadow-lg backdrop-blur"
+      className="fixed right-4 bottom-4 z-50 flex w-80 flex-col gap-2 rounded-xl border border-foreground/[0.1] bg-background/95 p-4 text-sm shadow-lg backdrop-blur"
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="font-medium text-white">
+        <p className="font-medium text-foreground">
           {running ? 'Enriching your profile' : HEADINGS[run.status]}
         </p>
         <div className="flex items-center gap-2">
-          <span className="text-neutral-300 tabular-nums">{run.progress}%</span>
+          <span className="text-foreground/80 tabular-nums">{run.progress}%</span>
           <Button variant="custom" size={null}
             aria-label="Dismiss"
-            className="text-neutral-500 hover:text-white"
+            className="text-muted-foreground hover:text-foreground"
             onClick={() => {
               window.localStorage.setItem(dismissedKey(run.id), '1')
               setDismissed(true)
@@ -60,16 +60,16 @@ function Card({ initial }: { initial: StoredOnboardingRun }) {
         aria-valuemax={100}
         aria-valuemin={0}
         aria-valuenow={run.progress}
-        className="h-1.5 overflow-hidden rounded-full bg-white/[0.08]"
+        className="h-1.5 overflow-hidden rounded-full bg-foreground/[0.08]"
         role="progressbar"
       >
-        <div className="h-full bg-white transition-all" style={{ width: `${run.progress}%` }} />
+        <div className="h-full bg-foreground transition-all" style={{ width: `${run.progress}%` }} />
       </div>
-      <p aria-live="polite" className="text-xs text-neutral-400">
+      <p aria-live="polite" className="text-xs text-foreground/65">
         {detail}
       </p>
       <Link
-        className="w-fit text-xs text-neutral-300 underline underline-offset-4 hover:text-white"
+        className="w-fit text-xs text-foreground/80 underline underline-offset-4 hover:text-foreground"
         href="/workspace/product"
       >
         Review your profile

@@ -66,9 +66,9 @@ export function XOptions({
     <Accordion type="single" collapsible>
       <AccordionItem
         value="details"
-        className="mt-1 rounded-lg border border-white/[0.06] px-3 py-2 text-xs text-neutral-400"
+        className="mt-1 rounded-lg border border-foreground/[0.06] px-3 py-2 text-xs text-foreground/65"
       >
-        <AccordionTrigger className="cursor-pointer select-none text-neutral-300">
+        <AccordionTrigger className="cursor-pointer select-none text-foreground/80">
           X extras: follow-ups and a poll
         </AccordionTrigger>
         <AccordionContent className="p-0">
@@ -121,12 +121,12 @@ export function XOptions({
               value={actions.quoteText ?? ''}
             />
             <div className="mt-1 flex items-center justify-between">
-              <span className="text-neutral-300">Poll</span>
+              <span className="text-foreground/80">Poll</span>
               {poll ? (
                 <Button
                   variant="custom"
                   size={null}
-                  className="hover:text-white"
+                  className="hover:text-foreground"
                   onClick={() => setPoll(null)}
                   type="button"
                 >
@@ -136,7 +136,7 @@ export function XOptions({
                 <Button
                   variant="custom"
                   size={null}
-                  className="hover:text-white disabled:opacity-40"
+                  className="hover:text-foreground disabled:opacity-40"
                   disabled={hasImages}
                   onClick={() => setPoll({})}
                   title={hasImages ? 'An X poll cannot have images.' : undefined}
@@ -169,7 +169,7 @@ export function XOptions({
                   <Button
                     variant="custom"
                     size={null}
-                    className="justify-self-start hover:text-white"
+                    className="justify-self-start hover:text-foreground"
                     onClick={() => setPoll({ options: [...options, ''] })}
                     type="button"
                   >
@@ -184,7 +184,7 @@ export function XOptions({
                   >
                     <SelectTrigger
                       aria-label="Poll length"
-                      className="h-8 rounded-md border border-white/[0.08] bg-transparent px-2"
+                      className="h-8 rounded-md border border-foreground/[0.08] bg-transparent px-2"
                     >
                       <SelectValue />
                     </SelectTrigger>

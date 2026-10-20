@@ -24,7 +24,7 @@ type AgentKey = {
 /** Scopes an agent key starts with: read the workspace and draft for review. */
 const DEFAULT_AGENT_SCOPES: ApiKeyScope[] = ['artifact:read', 'release:create']
 
-const fieldLabel = 'text-xs font-medium text-neutral-400'
+const fieldLabel = 'text-xs font-medium text-foreground/65'
 
 /**
  * Settings → AI agents (RFC 038): the workspace's MCP server URL, a scoped
@@ -105,7 +105,7 @@ export function WorkspaceAgentSettings({
         <Group>
           <Row>
             <CopyValue id="mcp-url" label="Server URL" value={mcpUrl} />
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted-foreground">
               Agents can read releases, campaigns, the review queue, and the schedule, create
               drafts, upload assets, capture screenshots, and submit drafts for review. With
               post:schedule they also schedule what a person approved. Only a person approves.{' '}
@@ -124,7 +124,7 @@ export function WorkspaceAgentSettings({
         >
           {newKey ? (
             <div className="flex flex-col gap-3 rounded-2xl bg-emerald-500/5 p-5 ring-1 ring-emerald-500/20">
-              <p className="text-sm font-medium text-white">
+              <p className="text-sm font-medium text-foreground">
                 Copy this key now. It cannot be shown again; the configurations below include it
                 until you leave this page.
               </p>
@@ -173,14 +173,16 @@ export function WorkspaceAgentSettings({
           <Group>
             {connected.length === 0 ? (
               <Row>
-                <p className="text-sm text-neutral-500">No agent is connected through OAuth.</p>
+                <p className="text-sm text-muted-foreground">
+                  No agent is connected through OAuth.
+                </p>
               </Row>
             ) : (
               connected.map((key) => (
                 <div className="flex items-center gap-4 px-5 py-4" key={key.id}>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-white">{key.agentClient}</p>
-                    <p className="truncate text-xs text-neutral-500">
+                    <p className="truncate text-sm text-foreground">{key.agentClient}</p>
+                    <p className="truncate text-xs text-muted-foreground">
                       Approved {new Date(key.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -188,7 +190,7 @@ export function WorkspaceAgentSettings({
                     {key.enabled ? 'connected' : 'disabled'}
                   </Pill>
                   <Button
-                    className="text-red-400 hover:text-red-300"
+                    className="text-red-700 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                     disabled={pending === key.id}
                     onClick={() => void revoke(key.id)}
                     size="sm"
@@ -283,8 +285,8 @@ function AgentKeyForm({
               value={scope}
             />
             <Label className="flex flex-col items-start gap-0.5" htmlFor={`agent-scope-${scope}`}>
-              <span className="font-mono text-xs text-neutral-300">{scope}</span>
-              <span className="text-xs font-normal text-neutral-500">
+              <span className="font-mono text-xs text-foreground/80">{scope}</span>
+              <span className="text-xs font-normal text-muted-foreground">
                 {apiKeyScopeDescriptions[scope]}
               </span>
             </Label>
@@ -314,10 +316,10 @@ function ClientGuide({
     <Group>
       <Row>
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium text-white">{client.name}</p>
-          <p className="text-xs text-neutral-500">{client.location}</p>
+          <p className="text-sm font-medium text-foreground">{client.name}</p>
+          <p className="text-xs text-muted-foreground">{client.location}</p>
         </div>
-        <pre className="overflow-x-auto rounded-lg bg-black/30 p-3 font-mono text-xs leading-relaxed text-neutral-200 ring-1 ring-white/[0.08]">
+        <pre className="overflow-x-auto rounded-lg bg-black/30 p-3 font-mono text-xs leading-relaxed text-foreground ring-1 ring-foreground/[0.08]">
           <code>{snippet}</code>
         </pre>
         <div className="flex">
@@ -335,13 +337,13 @@ function ClientGuide({
                 : 'configuration'}
           </Button>
         </div>
-        <ol className="list-decimal space-y-1 pl-5 text-sm text-neutral-400">
+        <ol className="list-decimal space-y-1 pl-5 text-sm text-foreground/65">
           {client.steps.map((step) => (
             <li key={step}>{step}</li>
           ))}
         </ol>
         {apiKey === API_KEY_PLACEHOLDER && client.auth !== 'oauth' ? (
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-muted-foreground">
             Set SHOTS_API_KEY to an agent key, or create one above to fill it in.
           </p>
         ) : null}

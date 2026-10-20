@@ -127,7 +127,7 @@ function SurfaceForm({
     <form className="flex w-full flex-col gap-3" onSubmit={handleSubmit}>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-name`}>
+          <Label className="text-xs font-medium text-foreground/65" htmlFor={`${id}-name`}>
             Name
           </Label>
           <Input
@@ -141,7 +141,7 @@ function SurfaceForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-url`}>
+          <Label className="text-xs font-medium text-foreground/65" htmlFor={`${id}-url`}>
             URL
           </Label>
           <Input
@@ -157,7 +157,7 @@ function SurfaceForm({
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-tags`}>
+        <Label className="text-xs font-medium text-foreground/65" htmlFor={`${id}-tags`}>
           Feature tags
         </Label>
         <Input
@@ -168,12 +168,12 @@ function SurfaceForm({
           name="featureTags"
           placeholder="approvals, invoices"
         />
-        <p className="text-xs text-neutral-500" id={`${id}-tags-hint`}>
+        <p className="text-xs text-muted-foreground" id={`${id}-tags-hint`}>
           Comma-separated. Campaigns about a tagged feature use this page first.
         </p>
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs font-medium text-neutral-400" htmlFor={`${id}-description`}>
+        <Label className="text-xs font-medium text-foreground/65" htmlFor={`${id}-description`}>
           Description
         </Label>
         <Textarea
@@ -214,12 +214,12 @@ function CaptureThumbnail({ assetId }: { assetId: string }) {
       .catch(() => undefined)
   }, [assetId, trpcClient])
   return (
-    <div className="grid aspect-[16/10] w-32 shrink-0 place-items-center overflow-hidden rounded-lg bg-white/[0.03] ring-1 ring-white/[0.06]">
+    <div className="grid aspect-[16/10] w-32 shrink-0 place-items-center overflow-hidden rounded-lg bg-foreground/[0.03] ring-1 ring-foreground/[0.06]">
       {url ? (
         // A signed, short-lived storage URL, so a plain img: next/image would cache it.
         <img alt="" className="size-full object-cover object-top" loading="lazy" src={url} />
       ) : (
-        <div className="size-full animate-pulse bg-white/[0.02]" />
+        <div className="size-full animate-pulse bg-foreground/[0.02]" />
       )}
     </div>
   )
@@ -265,16 +265,16 @@ function CaptureHistory({
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : captures === null ? (
-            <p className="text-sm text-neutral-500">Loading captures…</p>
+            <p className="text-sm text-muted-foreground">Loading captures…</p>
           ) : captures.length === 0 ? (
-            <p className="text-sm text-neutral-500">No captures yet.</p>
+            <p className="text-sm text-muted-foreground">No captures yet.</p>
           ) : (
             <ul className="flex flex-col gap-3">
               {captures.map((capture) => (
                 <li className="flex items-center gap-3" key={capture.id}>
                   <CaptureThumbnail assetId={capture.assetId} />
-                  <div className="flex min-w-0 flex-col gap-1 text-xs text-neutral-400">
-                    <span className="text-sm text-white">
+                  <div className="flex min-w-0 flex-col gap-1 text-xs text-foreground/65">
+                    <span className="text-sm text-foreground">
                       <Ago value={capture.capturedAt} />
                     </span>
                     <span>{SOURCES[capture.source]}</span>
@@ -347,12 +347,12 @@ function SurfaceRow({
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-medium text-white">{surface.name}</h3>
-            <code className="font-mono text-xs text-neutral-500">{surface.slug}</code>
+            <h3 className="text-sm font-medium text-foreground">{surface.name}</h3>
+            <code className="font-mono text-xs text-muted-foreground">{surface.slug}</code>
             <Pill tone={freshness.tone}>{freshness.label}</Pill>
           </div>
           <a
-            className="truncate text-xs text-neutral-400 hover:text-neutral-200"
+            className="truncate text-xs text-foreground/65 hover:text-foreground"
             href={surface.url}
             rel="noopener noreferrer"
             target="_blank"
@@ -368,7 +368,7 @@ function SurfaceRow({
               ))}
             </ul>
           ) : null}
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-muted-foreground">
             {surface.lastCapturedAt ? (
               <>
                 Last captured <Ago value={surface.lastCapturedAt} />
@@ -378,7 +378,7 @@ function SurfaceRow({
             )}
           </p>
           {surface.lastCaptureFailureCode ? (
-            <p className="text-xs text-red-300" role="status">
+            <p className="text-xs text-red-700 dark:text-red-300" role="status">
               {captureFailureMessage(surface.lastCaptureFailureCode)}
             </p>
           ) : null}
@@ -458,12 +458,12 @@ export function WorkspaceProductSurfaces({ canManage }: { canManage: boolean }) 
           {surfaces === null ? (
             error ? null : (
               <Row>
-                <p className="text-sm text-neutral-500">Loading product pages…</p>
+                <p className="text-sm text-muted-foreground">Loading product pages…</p>
               </Row>
             )
           ) : surfaces.length === 0 ? (
             <Row>
-              <p className="text-sm text-neutral-500">No product pages yet.</p>
+              <p className="text-sm text-muted-foreground">No product pages yet.</p>
             </Row>
           ) : (
             surfaces.map((surface) => (

@@ -101,7 +101,7 @@ export function ProduceControl({
               <>
                 Plan the campaign first.{' '}
                 <Link
-                  className="font-medium text-white underline-offset-4 hover:underline"
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
                   href={`/campaigns/${campaignId}/plan`}
                 >
                   Go to the plan
@@ -142,7 +142,7 @@ export function ProduceControl({
       </span>
       {error ? (
         <p
-          className="rounded-xl bg-red-500/5 px-4 py-3 text-sm text-red-300 ring-1 ring-red-500/20"
+          className="rounded-xl bg-red-500/5 px-4 py-3 text-sm text-red-700 dark:text-red-300 ring-1 ring-red-500/20"
           role="alert"
         >
           {error}

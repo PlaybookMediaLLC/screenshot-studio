@@ -1,9 +1,9 @@
 /**
- * Three dark surfaces, each one step lighter (after Polar's dashboard):
+ * Three surfaces, each one step apart (after Polar's dashboard), from the theme:
  * the page and sidebar, the inset content panel, and its hairline border.
  */
 export const surface = {
-  base: 'bg-[#090909]',
-  border: 'border-[#1c1c1c]',
-  panel: 'bg-[#111111]',
+  base: 'bg-background',
+  border: 'border-border',
+  panel: 'bg-card',
 } as const

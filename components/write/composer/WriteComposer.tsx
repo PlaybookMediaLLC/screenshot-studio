@@ -666,8 +666,9 @@ export function WriteComposer({
                 ) : null}
               </>
             )}
+            {/* With a panel open, Share moves into the ⋯ menu to keep the header in its column. */}
             <Button
-              className="hidden sm:inline-flex"
+              className={panel ? 'hidden' : 'hidden sm:inline-flex'}
               onClick={() => setDialog('share')}
               size="sm"
               title={`Share (${mod}⌥S)`}
@@ -717,7 +718,10 @@ export function WriteComposer({
                     <DropdownMenuShortcut>{mod}⌥↵</DropdownMenuShortcut>
                   </DropdownMenuItem>
                 ) : null}
-                <DropdownMenuItem className="sm:hidden" onSelect={() => setDialog('share')}>
+                <DropdownMenuItem
+                  className={panel ? undefined : 'sm:hidden'}
+                  onSelect={() => setDialog('share')}
+                >
                   Share…
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setDialog('backups')}>

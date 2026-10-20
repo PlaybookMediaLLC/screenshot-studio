@@ -16,12 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
 import { LocalTime } from '@/components/drafts/local-time'
-import {
-  DraftRequestError,
-  type DraftWire,
-  draftsApi,
-  type SettingsWire,
-} from '@/lib/content-drafts/client'
+import { DraftRequestError, type DraftWire, draftsApi } from '@/lib/content-drafts/client'
 import type { BlockImages } from '@/lib/content-drafts/serialize'
 import { followUpLines } from '@/lib/write/automation'
 import { writeApi } from '@/lib/write/client'
@@ -99,8 +94,11 @@ export function ScheduleDialog({
   onClose: () => void
 }) {
   const { data } = useWrite()
-  const [settings, setSettings] = React.useState<SettingsWire | null>(null)
-  const zone = context.setTimeZone ?? settings?.timeZone ?? 'UTC'
+  // The draft's set owns the queue: its weekly slots in its zone (RFC 043).
+  const setId =
+    context.draft.socialSetId ?? data.sets.find((item) => item.visibility === 'WORKSPACE')?.id
+  const set = data.sets.find((item) => item.id === setId)
+  const zone = context.setTimeZone ?? set?.timeZone ?? 'UTC'
   const now = new Date()
   const [day, setDay] = React.useState(() => dayIn(new Date(now.getTime() + 86_400_000), zone))
   const [time, setTime] = React.useState('09:00')
@@ -114,14 +112,10 @@ export function ScheduleDialog({
   const [busy, setBusy] = React.useState(false)
   React.useEffect(() => {
     void draftsApi
-      .settings()
-      .then(setSettings)
-      .catch(() => setSettings(null))
-    void draftsApi
-      .bestTimes()
+      .bestTimes(setId)
       .then(({ items }) => setBestTimes(items))
       .catch(() => setBestTimes([]))
-  }, [])
+  }, [setId])
   const local = `${day}T${time}`
   const resolution = resolveLocalTime(local, zone)
   const instant =
@@ -142,7 +136,7 @@ export function ScheduleDialog({
     setDisambiguation(null)
   }
   const slots = upcomingSlots(
-    settings,
+    set?.postingSlots ?? [],
     zone,
     data.queue.map((item) => item.at)
   )
@@ -258,7 +252,9 @@ export function ScheduleDialog({
             data-testid="queue-slots"
           >
             {slots.length === 0 ? (
-              <li className="text-neutral-500">No weekly slots: add them in Write settings.</li>
+              <li className="text-neutral-500">
+                No weekly slots: add them in the set’s scheduling settings.
+              </li>
             ) : null}
             {slots.map((slot) => (
               <li className="flex items-center justify-between" key={slot.at.toISOString()}>
@@ -268,6 +264,7 @@ export function ScheduleDialog({
                     hour: 'numeric',
                     minute: '2-digit',
                     month: 'short',
+                    timeZone: zone,
                     weekday: 'short',
                   }}
                   value={slot.at.toISOString()}
@@ -495,16 +492,15 @@ function nextMondayOffset(zone: string): number {
 
 /** The next weekly slots in the zone, marking those a queued post already takes. */
 function upcomingSlots(
-  settings: SettingsWire | null,
+  postingSlots: { time: string; weekday: number }[],
   zone: string,
   taken: string[]
 ): { at: Date; busy: boolean }[] {
-  if (!settings) return []
   const out: { at: Date; busy: boolean }[] = []
   for (let days = 0; days < 21 && out.length < 12; days += 1) {
     const day = dayIn(new Date(Date.now() + days * 86_400_000), zone)
     const weekday = new Date(`${day}T12:00:00Z`).getUTCDay()
-    for (const slot of settings.postingSlots.filter((item) => item.weekday === weekday)) {
+    for (const slot of postingSlots.filter((item) => item.weekday === weekday)) {
       const resolved = resolveLocalTime(`${day}T${slot.time}`, zone)
       if (resolved.kind !== 'exact' || resolved.at.getTime() <= Date.now()) continue
       out.push({

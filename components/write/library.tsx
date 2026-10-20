@@ -580,6 +580,8 @@ function DraftRow({
 
 /** A row's status line: scheduled, planned, posted, needs attention, in review, shared. */
 function RowStatus({ draft }: { draft: LibraryDraft }) {
+  // Times read in the set's scheduling zone, as the Plan calendar shows them.
+  const timeZone = useWrite().data.activeSet?.timeZone
   const parts: React.ReactNode[] = []
   if (draft.attentionPosts > 0) {
     parts.push(
@@ -593,7 +595,7 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
       <span className="text-sky-300" key="next">
         Scheduled{' '}
         <LocalTime
-          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short' }}
+          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short', timeZone }}
           value={draft.nextPostAt}
         />
       </span>
@@ -603,7 +605,7 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
       <span className="text-violet-300" key="planned">
         Planned{' '}
         <LocalTime
-          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short' }}
+          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short', timeZone }}
           value={draft.plannedFor}
         />
       </span>
@@ -1001,6 +1003,7 @@ function QueueList() {
                   hour: 'numeric',
                   minute: '2-digit',
                   month: 'short',
+                  timeZone: data.activeSet?.timeZone,
                   weekday: 'short',
                 }}
                 value={item.at}

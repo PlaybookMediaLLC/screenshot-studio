@@ -640,8 +640,9 @@ export default function DraftEditor({
             {readOnly || hashtags.length === 0 ? null : <HashtagChips hashtags={hashtags} />}
             {readOnly ? null : (
               // The formatting bar floats at the bottom of the page, out of the text's way.
-              <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center">
-                <div className="pointer-events-auto">
+              <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center px-2">
+                {/* A narrow column scrolls the bar instead of clipping its start. */}
+                <div className="pointer-events-auto max-w-full overflow-x-auto rounded-full">
                   <DraftToolbar
                     editor={editor}
                     extras={toolbarExtras}

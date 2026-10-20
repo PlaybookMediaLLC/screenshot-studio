@@ -363,3 +363,167 @@ test('on a phone the library is the page, panels are sheets, and the review keep
     await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
 })
+
+test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a same-named set, bulk delete, the command palette and the Plan calendar', async ({
+  identity,
+  page,
+}) => {
+  test.setTimeout(300_000)
+  let workspace: DraftWorkspace | null = null
+  const rows = () => page.getByTestId('draft-row')
+  const rowMenu = async (title: string) => {
+    await rows().filter({ hasText: title }).first().hover()
+    await page
+      .getByRole('button', { name: `Actions for ${title}` })
+      .first()
+      .click()
+  }
+  // Menu items are chosen from the keyboard: their open animation can keep
+  // Playwright's stability check from settling.
+  const choose = async (name: string) => {
+    const prefix = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+    const item = page.getByRole('menuitem', { name: prefix }).last()
+    await item.focus()
+    await page.keyboard.press('Enter')
+  }
+  try {
+    workspace = await createDraftWorkspace(identity, page)
+    const first = await newDraft(page)
+    await draftEditor(page).click()
+    await settle(page)
+    await page.keyboard.type('First draft about pricing')
+    await page.getByRole('textbox', { name: 'Draft title' }).fill('Pricing')
+    await expectSaved(page)
+
+    // A tag of this set, put on the draft from its row, then used as a filter.
+    await page.goto('/write')
+    await page.getByRole('button', { name: 'Draft filters' }).click()
+    await choose('Manage tags…')
+    await page.getByLabel('Tag name').fill('Launch')
+    await page.getByRole('button', { name: 'Create tag' }).click()
+    await expect(page.getByRole('dialog')).toContainText('Launch')
+    await page.keyboard.press('Escape')
+    await rowMenu('Pricing')
+    await page.getByRole('menuitem', { name: 'Tag this draft' }).click()
+    await page
+      .getByRole('menuitemcheckbox', { name: 'Launch' })
+      .or(page.getByRole('menuitem', { name: 'Launch' }))
+      .click()
+    await page.keyboard.press('Escape')
+
+    // Pin it; a pinned draft comes first and says so.
+    await rowMenu('Pricing')
+    await choose('Pin draft')
+    await expect(rows().first().getByLabel('Pinned')).toBeVisible()
+
+    // A reply draft carries the post it answers.
+    await page.getByRole('button', { name: 'New draft of another kind' }).first().click()
+    await choose('Reply to an X post')
+    await page.getByLabel('Post URL').fill('https://x.com/someone/status/1234567890')
+    await page.getByRole('button', { name: 'Start writing' }).click()
+    await page.waitForURL(
+      (url) => !url.pathname.endsWith(first) && /\/write\/[a-z0-9]+/.test(url.pathname)
+    )
+    await expect(page.getByTestId('draft-target')).toContainText('Replying to')
+    await expect(page.getByTestId('draft-target')).toContainText('x.com/someone/status/1234567890')
+
+    // Duplicate: a new draft with the text, no schedule or link.
+    await page.goto('/write')
+    await rowMenu('Pricing')
+    await choose('Duplicate')
+    await expect(rows().filter({ hasText: 'Pricing' })).toHaveCount(2)
+
+    // A second set with the same name as the default stays a separate identity.
+    const setName =
+      (await page.getByRole('button', { name: /^Social set: / }).textContent())?.trim() ?? ''
+    await page.getByRole('button', { name: /^Social set: / }).click()
+    await choose('New social set…')
+    const setDialog = page.getByRole('dialog')
+    await setDialog.getByRole('textbox', { name: 'Name' }).fill(setName.replace(/▾$/, '').trim())
+    await setDialog.getByRole('button', { name: 'Create set' }).click()
+    await expect(setDialog).toBeHidden()
+
+    // Copy to that set: the copy is found there; the original stays here.
+    // The new set is now the active one; switch back to the default (listed first).
+    const switchSet = async (index: number) => {
+      await page.waitForLoadState('networkidle')
+      await page.getByRole('button', { name: /^Social set: / }).click()
+      const item = page
+        .getByRole('menuitem')
+        .filter({ hasText: setName.replace(/▾$/, '').trim() })
+        .nth(index)
+      await item.focus()
+      await page.keyboard.press('Enter')
+      await page.waitForLoadState('networkidle')
+    }
+    await page.goto('/write')
+    await expect(page.getByText('No drafts in this set.')).toBeVisible()
+    await switchSet(0)
+    await rowMenu('Pricing')
+    await page.getByRole('menuitem', { name: 'Copy to social set' }).click()
+    await page.getByRole('menu').last().getByRole('menuitem').first().click()
+    await page.getByRole('button', { name: 'Copy without tags' }).click()
+    await expect(page.getByText(/Copied/).first()).toBeVisible()
+    // The copy opens in its set.
+    await page.waitForURL(/\/write\/[a-z0-9]+\?set=/)
+    await expect(draftEditor(page)).toBeVisible({ timeout: 60_000 })
+    await switchSet(1)
+    await expect(rows().filter({ hasText: 'Pricing' })).toHaveCount(1)
+    await switchSet(0)
+    // Back on the default set: the original and its duplicate.
+    await expect(rows().filter({ hasText: 'Pricing' })).toHaveCount(2)
+
+    // Select several and delete them after a confirmation.
+    await rowMenu('Pricing')
+    await choose('Select multiple')
+    // In selection mode a click on a row selects it instead of opening it.
+    await rows().filter({ hasText: 'Pricing (copy)' }).getByRole('link').click()
+    const bulk = page.getByLabel('Selected drafts')
+    await expect(bulk).toContainText('2 selected')
+    await bulk.getByRole('button', { name: 'Delete' }).click()
+    await expect(page.getByRole('alertdialog')).toContainText('Delete 2 drafts?')
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Delete drafts' }).click()
+    await expect(rows().filter({ hasText: 'Pricing' })).toHaveCount(0, { timeout: 30_000 })
+    await snap(page, 'write-library-bulk')
+
+    // The command palette finds drafts and runs commands; the shortcut list opens and closes.
+    await page.keyboard.press('ControlOrMeta+k')
+    const palette = page.getByRole('dialog')
+    await expect(palette).toBeVisible()
+    await page.keyboard.type('reply')
+    await snap(page, 'write-command-palette')
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('ControlOrMeta+Shift+Slash')
+    await expect(page.getByTestId('shortcut-reference').first()).toContainText(
+      'Search and commands'
+    )
+    await snap(page, 'write-shortcuts')
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('shortcut-reference')).toHaveCount(0)
+
+    // Plan: a planned draft shows dashed on the week it is planned for.
+    const planned = await newDraft(page)
+    await draftEditor(page).click()
+    await settle(page)
+    await page.keyboard.type('Planned, not scheduled')
+    await expectSaved(page)
+    await page.getByTestId('schedule-button').click()
+    await page
+      .getByTestId('schedule-dialog')
+      .getByRole('button', { name: /^Tomorrow 9:00/ })
+      .click()
+    await page
+      .getByTestId('schedule-dialog')
+      .getByRole('button', { name: 'Save as planned' })
+      .click()
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+    await page.goto(`/write/plan?week=${tomorrow}`)
+    await expect(page.locator(`[data-testid="calendar-planned"][href$="${planned}"]`)).toBeVisible({
+      timeout: 30_000,
+    })
+    await snap(page, 'write-plan')
+  } finally {
+    await workspace?.provider.close()
+    await unbindTestGoOrganization(workspace?.organizationId ?? null)
+  }
+})

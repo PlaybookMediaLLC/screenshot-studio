@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 import type { E2EIdentity } from './flow'
 import { type HttpMockServer, startHttpMockServer } from './http-server'
 import {
@@ -77,34 +77,59 @@ export async function expectSaved(page: Page): Promise<void> {
   await expect(page.getByTestId('save-state')).toHaveText('Saved', { timeout: 20_000 })
 }
 
-/** Open a new draft from the drafts list; returns its id. */
+/** How the composer names each platform. */
+const PLATFORM_LABELS: Record<string, string> = { linkedin: 'LinkedIn', x: 'X' }
+
+/** Open a new draft from the Write library; returns its id. */
 export async function openNewDraft(page: Page): Promise<string> {
-  await page.goto('/drafts')
-  await page.getByRole('button', { name: 'New draft' }).click()
-  await page.waitForURL(/\/drafts\/[a-z0-9]+$/)
+  await page.goto('/write')
+  await page.getByTestId('new-draft').first().click()
+  await page.waitForURL(/\/write\/[a-z0-9]+/)
   await expect(draftEditor(page)).toBeVisible({ timeout: 60_000 })
   return new URL(page.url()).pathname.split('/').pop() ?? ''
 }
 
-/** Turn channels on from the composer's channel picker, then close it. */
+/**
+ * Turn platforms on in the composer's Manage platforms dialog, then close it.
+ * A new draft already publishes to every platform of its set, so this
+ * confirms them rather than adding any.
+ */
 export async function chooseChannels(page: Page, platforms: readonly string[]): Promise<void> {
-  await page.getByRole('button', { name: 'Channels' }).click()
-  for (const platform of platforms) await page.getByLabel(new RegExp(`^${platform} · `)).check()
-  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Manage platforms' }).click()
+  const dialog = page.getByRole('dialog')
+  for (const platform of platforms) {
+    await dialog.getByRole('switch', { name: `Publish to ${PLATFORM_LABELS[platform]}` }).check()
+  }
+  await dialog.getByRole('button', { name: 'Done' }).click()
+  await expect(dialog).toHaveCount(0)
 }
 
-/** Run checks against the channel previews, with the preview panel open. */
+/** Run checks against the previews, with the preview panel open, then close it. */
 export async function inPreview(page: Page, check: () => Promise<void>): Promise<void> {
-  await page.getByRole('button', { name: 'Preview' }).click()
+  const toggle = page.getByRole('button', { name: 'Preview', exact: true })
+  await toggle.click()
+  await expect(page.getByTestId('preview-panel')).toBeVisible()
   await check()
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await toggle.click()
+  await expect(page.getByTestId('preview-panel')).toHaveCount(0)
+}
+
+/**
+ * Show one platform in the open preview panel. Returns its post preview; the
+ * panel around it lists what blocks it and what changes when it is posted.
+ */
+export async function previewOf(page: Page, platform: string): Promise<Locator> {
+  await page
+    .getByTestId('preview-panel')
+    .getByRole('button', { name: PLATFORM_LABELS[platform], exact: true })
+    .click()
+  return page.getByTestId(`preview-${platform}`)
 }
 
 /** Open the schedule dialog from the top bar; returns it. */
-export async function openSchedule(page: Page) {
-  await page.getByRole('button', { name: /^(Schedule|Reschedule)$/ }).click()
-  const dialog = page.getByRole('dialog')
+export async function openSchedule(page: Page): Promise<Locator> {
+  await page.getByTestId('schedule-button').click()
+  const dialog = page.getByTestId('schedule-dialog')
   await expect(dialog).toBeVisible()
   return dialog
 }

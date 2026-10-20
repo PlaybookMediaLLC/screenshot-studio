@@ -8,6 +8,7 @@ import {
   inPreview,
   openNewDraft,
   openSchedule,
+  previewOf,
 } from './framework/content-drafts'
 import { configureE2EFlow, test } from './framework/flow'
 import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
@@ -96,7 +97,7 @@ test('the queue takes the next slot, and the calendar moves a post to another da
   await withWorkspace(identity, page, ['x'], async () => {
     // The account shows as its platform names it, not an integration id.
     const draftId = await openNewDraft(page)
-    await page.getByRole('button', { name: 'Channels' }).click()
+    await page.getByRole('button', { name: 'Manage platforms' }).click()
     await expect(page.getByRole('dialog')).toContainText('@shots_x')
     await page.keyboard.press('Escape')
     await write(page, 'Queued for the next slot')
@@ -105,7 +106,8 @@ test('the queue takes the next slot, and the calendar moves a post to another da
 
     const dialog = await openSchedule(page)
     await expect(dialog.getByText('Best times')).toBeVisible()
-    await dialog.getByRole('button', { name: 'Add to queue' }).click()
+    await dialog.getByRole('button', { name: 'Next free slot' }).click()
+    await dialog.getByRole('button', { name: 'Confirm: next free slot' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
     const [queued] = await draftPosts(draftId)
     // The default slots: weekdays at 9:00 in the workspace's time zone.
@@ -133,11 +135,12 @@ test('the queue takes the next slot, and the calendar moves a post to another da
     const pad = (value: number) => String(value).padStart(2, '0')
     const local = `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T10:00`
     const scheduleDialog = await openSchedule(page)
-    await scheduleDialog.getByLabel('Schedule time').fill(local)
-    await scheduleDialog.getByRole('button', { name: 'Schedule', exact: true }).click()
+    await scheduleDialog.getByLabel('Day', { exact: true }).fill(local.slice(0, 10))
+    await scheduleDialog.getByLabel('Time', { exact: true }).selectOption(local.slice(11))
+    await scheduleDialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
 
-    await page.goto(`/drafts/calendar?week=${local.slice(0, 10)}`)
+    await page.goto(`/write/plan?week=${local.slice(0, 10)}`)
     const card = page.getByTestId('calendar-post').filter({ hasText: 'Moved on the calendar' })
     await expect(card).toBeVisible()
     // The next day, or the day before when it is the week's last.
@@ -158,7 +161,7 @@ test('a draft waits for approval, and an edit after approval needs another', asy
   page,
 }) => {
   await withWorkspace(identity, page, ['x'], async () => {
-    await page.goto('/drafts/settings')
+    await page.goto('/write/settings')
     await page.getByLabel('Require approval').check()
     await page.getByRole('button', { name: 'Save settings' }).click()
     await expect(page.getByText('Saved.')).toBeVisible()
@@ -168,9 +171,10 @@ test('a draft waits for approval, and an edit after approval needs another', asy
     await chooseChannels(page, ['x'])
     await expectSaved(page)
     const blocked = await openSchedule(page)
-    await expect(blocked.getByRole('alert').filter({ hasText: 'approves drafts' })).toBeVisible()
-    await expect(blocked.getByRole('button', { name: 'Schedule', exact: true })).toBeDisabled()
-    await blocked.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(blocked.getByTestId('blocking-problems')).toContainText('approves drafts')
+    await expect(blocked.getByRole('button', { name: 'Confirm schedule' })).toBeDisabled()
+    await page.keyboard.press('Escape')
+    await expect(blocked).toBeHidden()
 
     await page.getByRole('button', { name: 'Review', exact: true }).click()
     await page.getByRole('button', { name: 'Ask for review' }).click()
@@ -188,7 +192,7 @@ test('a draft waits for approval, and an edit after approval needs another', asy
     await page.keyboard.press('Escape')
 
     const dialog = await openSchedule(page)
-    await dialog.getByRole('button', { name: 'Schedule', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
     expect(await draftPosts(draftId)).toHaveLength(1)
   })
@@ -202,11 +206,12 @@ test('a share link lets a guest read the draft and leave a comment', async ({
   await withWorkspace(identity, page, ['x'], async () => {
     await openNewDraft(page)
     await write(page, 'What do you think of this launch post?')
-    await page.getByRole('button', { name: 'Share' }).click()
+    await page.getByRole('button', { name: 'Share', exact: true }).click()
+    const share = page.getByTestId('share-dialog')
     // The switch follows the server: it turns on once the link exists.
-    await page.getByLabel('Share link').click()
-    await expect(page.getByLabel('Link to share')).toBeVisible()
-    const link = await page.getByLabel('Link to share').inputValue()
+    await share.getByLabel('Public link', { exact: true }).click()
+    await expect(share.getByLabel('Public link to share')).toBeVisible()
+    const link = await share.getByLabel('Public link to share').inputValue()
     expect(link).toMatch(/\/d\/[A-Za-z0-9_-]{30,}$/)
     await page.keyboard.press('Escape')
 
@@ -232,11 +237,12 @@ test('a share link lets a guest read the draft and leave a comment', async ({
 
     // A shared draft renders on the server too.
     expect((await page.goto(page.url()))?.status()).toBe(200)
+    await page.getByRole('button', { name: 'Comments', exact: true }).click()
     await expect(page.getByTestId('guest-comments')).toContainText('Lead with the price.')
     // Off, the link finds nothing.
-    await page.getByRole('button', { name: 'Share' }).click()
-    await page.getByLabel('Share link').click()
-    await expect(page.getByLabel('Link to share')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Share', exact: true }).click()
+    await share.getByLabel('Public link', { exact: true }).click()
+    await expect(share.getByLabel('Public link to share')).toHaveCount(0)
     await page.keyboard.press('Escape')
     const offline = await browser.newContext()
     try {
@@ -273,59 +279,102 @@ test('writing tools: history, per-post tools, channel text, AI, hashtags and pla
     await page.getByRole('button', { name: 'Move post 2 up' }).click()
     // Still two posts, now in the other order.
     await expect(page.getByTestId('post-header')).toHaveCount(2)
-    await expect(draftEditor(page)).toHaveText(/^Second post[\s\S]*#shipit First post$/)
+    // Each post's header (account, length) sits inside the editor, before its text.
+    await expect(draftEditor(page)).toHaveText(/Second post[\s\S]*#shipit First post$/)
     await page.getByTestId('post-header').nth(1).hover()
     await page.getByRole('button', { name: 'Delete post 2' }).click()
     await expect(page.getByTestId('post-header')).toHaveCount(1)
     await expect(draftEditor(page)).not.toContainText('First post')
     await expectSaved(page)
 
-    // History: the first save kept a revision; restoring brings it back.
-    await page.getByRole('button', { name: 'History' }).click()
-    await expect(page.getByTestId('revision').first()).toBeVisible()
-    await page.getByRole('button', { name: 'Restore' }).first().click()
-    await expect(page.getByText('Restored.')).toBeVisible({ timeout: 60_000 })
-    await expectSaved(page)
+    // Backups: the saves so far were kept. Recovering one makes a new draft
+    // that holds it; the draft itself is left as it is.
+    await page.getByRole('button', { name: 'More draft actions' }).click()
+    await page.getByRole('menuitem', { name: 'View automatic backups' }).click()
+    const backups = page.getByTestId('backups-browser')
+    await expect(backups.getByTestId('backup-time')).toBeVisible({ timeout: 60_000 })
+    await backups.getByRole('button', { name: 'Create new draft from this version' }).click()
+    await page.waitForURL(
+      (url) => !url.pathname.endsWith(draftId) && /\/write\/[a-z0-9]+/.test(url.pathname)
+    )
+    await expect(draftEditor(page)).toContainText('#shipit', { timeout: 60_000 })
+    await page.goto(`/write/${draftId}`)
+    await expect(draftEditor(page)).toContainText('Second post', { timeout: 60_000 })
 
-    // Channel text: LinkedIn says something longer.
+    // Channel text: LinkedIn says something longer, in its own version.
     await chooseChannels(page, ['x', 'linkedin'])
+    await page.getByTestId('platform-tab-linkedin').click()
+    await page.getByRole('button', { name: 'Edit for LinkedIn independently' }).click()
+    await expect(page.getByTestId('manual-version-linkedin')).toBeVisible()
+    // Over the forked text, past slate's selection sync.
+    await draftEditor(page).getByText('Second post', { exact: true }).selectText()
+    await page.waitForTimeout(300)
+    await page.keyboard.type('A longer note for LinkedIn readers.')
+    await expect(page.getByTestId('platform-tab-linkedin')).toContainText('own text')
     await inPreview(page, async () => {
-      const linkedin = page.getByTestId('preview-linkedin')
-      await linkedin.getByRole('button', { name: 'Write it differently for LinkedIn' }).click()
-      await linkedin.getByLabel('LinkedIn text').fill('A longer note for LinkedIn readers.')
-      await expect(linkedin).toContainText('Own text')
-      await expect(linkedin).toContainText('A longer note for LinkedIn readers.')
+      await expect(await previewOf(page, 'linkedin')).toContainText(
+        'A longer note for LinkedIn readers.'
+      )
     })
     await expectSaved(page)
 
-    // AI: the scripted model answers, and the answer replaces the text.
-    await page.getByRole('button', { name: 'AI help' }).click()
-    await page.getByRole('menuitem', { name: 'Turn into a thread' }).click()
-    await expect(draftEditor(page)).toContainText('Done.', { timeout: 30_000 })
+    // AI: the scripted model answers, Accept puts the answer in, and Undo takes it back.
+    await page.getByTestId('platform-tab-x').click()
+    await page.getByRole('button', { name: 'Refine', exact: true }).click()
+    await page
+      .getByTestId('refine-menu')
+      .getByRole('button', { name: 'Rewrite as a thread start' })
+      .click()
+    const review = page.getByTestId('refine-review')
+    await expect(review).toContainText('(refined)', { timeout: 60_000 })
+    await review.getByRole('button', { name: 'Accept' }).click()
+    await expect(draftEditor(page)).toContainText('(refined)')
     await page.keyboard.press('ControlOrMeta+z')
+    await expect(draftEditor(page)).not.toContainText('(refined)')
     await expectSaved(page)
 
-    // Plain-language time, then an X poll, then scheduling.
+    // An X poll on the first post.
+    await page.getByRole('button', { name: 'Add a poll' }).click()
+    await page.getByRole('button', { name: 'Add poll', exact: true }).click()
+    await page.getByLabel('Poll option 1').fill('Yes')
+    await page.getByLabel('Poll option 2').fill('No')
+    await page.keyboard.press('Escape')
+    await expectSaved(page)
+
+    // Plain-language time and an X follow-up, then scheduling.
     const dialog = await openSchedule(page)
+    // Times are read in the set's zone, which the dialog names.
+    const zone = /Times are in (\S+) /.exec(
+      (await dialog.getByText(/^Times are in /).textContent()) ?? ''
+    )?.[1]
     await dialog.getByLabel('When, in words').fill('tomorrow 9am')
     await expect(dialog.getByTestId('when-reading')).toContainText('9:00')
-    await dialog.getByText('X extras: follow-ups and a poll').click()
-    await dialog.getByLabel('Repost at likes').fill('25')
-    await dialog.getByRole('button', { name: 'Add a poll' }).click()
-    await dialog.getByLabel('Poll choice 1').fill('Yes')
-    await dialog.getByLabel('Poll choice 2').fill('No')
-    await dialog
-      .getByRole('button', { name: /^Schedule/ })
-      .last()
-      .click()
+    await dialog.getByRole('switch', { name: 'Auto-Plug' }).click()
+    const plug = page.getByTestId('auto-plug-dialog')
+    await plug.getByLabel('Threshold').fill('25')
+    await plug.getByLabel('Plug reply').fill('The full guide is on our blog.')
+    await plug.getByRole('button', { name: 'Enable Auto-Plug' }).click()
+    await expect(dialog.getByTestId('automation-auto-plug')).toContainText('At 25 likes')
+    await dialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
     const posts = await draftPosts(draftId)
     const linkedin = posts.find((post) => post.caption === 'A longer note for LinkedIn readers.')
     const x = posts.find((post) => post !== linkedin)
     expect(linkedin).toBeDefined()
     expect(x?.poll).toEqual({ durationMinutes: 1440, options: ['Yes', 'No'] })
-    expect(x?.autoActions).toEqual({ repostAtLikes: 25 })
-    expect(new Date(x?.scheduledFor ?? 0).getHours()).toBe(9)
+    expect(x?.autoActions).toEqual({
+      plugAtLikes: 25,
+      plugMetric: 'likes',
+      plugText: 'The full guide is on our blog.',
+    })
+    expect(
+      new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        hourCycle: 'h23',
+        minute: '2-digit',
+        timeZone: zone,
+      }).format(new Date(x?.scheduledFor ?? 0))
+    ).toBe('09:00')
   })
 })
 
@@ -344,7 +393,7 @@ test('a live post links to itself, shows engagement, and resumes a thread that s
     await page.keyboard.type('Three')
     await chooseChannels(page, ['x'])
     await expectSaved(page)
-    await (await openSchedule(page)).getByRole('button', { name: 'Schedule', exact: true }).click()
+    await (await openSchedule(page)).getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
 
     // As the publisher leaves it when the second reply failed.
@@ -371,7 +420,8 @@ test('a live post links to itself, shows engagement, and resumes a thread that s
     await expect(live.getByTestId('metric-likes')).toContainText('12')
     await expect(live).toContainText('1 of 2 replies went out.')
     await live.getByRole('button', { name: 'Post the rest' }).click()
-    await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 20_000 })
+    // A cold dev server compiles the resume route first.
+    await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 60_000 })
     const posts = await draftPosts(draftId)
     // It goes out now: here, with no real account behind the channel, it fails.
     expect(posts[1]).toMatchObject({ caption: 'Three', replyTo: 'tweet-2' })

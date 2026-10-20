@@ -10,6 +10,7 @@ import {
   inPreview,
   openNewDraft,
   openSchedule,
+  previewOf,
 } from './framework/content-drafts'
 import { buildDocx } from './fixtures/docx'
 import { configureE2EFlow, test } from './framework/flow'
@@ -145,11 +146,12 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
     await expect(page.getByRole('textbox', { name: 'Draft title' })).toHaveValue('Launch day')
 
     await chooseChannels(page, ['x', 'linkedin'])
+    // Bold is dropped on plain-text channels, and the preview says so.
     await inPreview(page, async () => {
-      await expect(page.getByTestId('preview-x')).toContainText(
+      await expect(await previewOf(page, 'x')).toContainText(
         'Launch day is here. Shots writes the posts for you.'
       )
-      await expect(page.getByTestId('preview-x')).toContainText('formatting are removed')
+      await expect(page.getByTestId('preview-panel')).toContainText('formatting are removed')
     })
 
     // Over X's limit: the counter goes red, and scheduling is blocked.
@@ -158,14 +160,16 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
     await expect(page.getByTestId('counter-x')).toHaveText(/^3\d\d \/ 280$/)
     await expect(page.getByTestId('counter-linkedin')).toHaveText(/ \/ 3000$/)
     await inPreview(page, async () => {
-      await expect(page.getByTestId('preview-x').getByRole('alert')).toContainText(
+      await previewOf(page, 'x')
+      await expect(page.getByTestId('preview-panel').getByRole('alert')).toContainText(
         'of 280 characters'
       )
     })
     const blocked = await openSchedule(page)
-    await expect(blocked.getByRole('alert').first()).toContainText('of 280 characters')
-    await expect(blocked.getByRole('button', { name: /^Schedule/ })).toBeDisabled()
-    await blocked.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(blocked.getByTestId('blocking-problems')).toContainText('of 280 characters')
+    await expect(blocked.getByRole('button', { name: 'Confirm schedule' })).toBeDisabled()
+    await page.keyboard.press('Escape')
+    await expect(blocked).toBeHidden()
     await caretAtDocumentEnd(page)
 
     // Fix it: delete what was added, as the writer would. Count from the
@@ -180,14 +184,12 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
     await expect(page.getByTestId('counter-x')).toHaveText('51 / 280')
     await expectSaved(page)
 
+    // Dropped formatting is shown in the preview, not a block: nothing stops scheduling.
     const dialog = await openSchedule(page)
-    // Bold is dropped on plain-text channels, so the composer says so first.
-    await expect(
-      dialog.getByRole('alert').filter({ hasText: 'Some content changes' })
-    ).toBeVisible()
-    await dialog.getByRole('button', { name: 'Schedule anyway' }).click()
+    await expect(dialog.getByTestId('blocking-problems')).toHaveCount(0)
+    await dialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
-    await expect(page.getByTestId('draft-post').filter({ hasText: 'SCHEDULED' })).toHaveCount(2)
+    await expect(page.getByTestId('draft-post').filter({ hasText: 'Scheduled' })).toHaveCount(2)
 
     const posts = await draftPosts(draftId)
     expect(posts.map(({ caption, platform, status }) => ({ caption, platform, status }))).toEqual([
@@ -239,10 +241,10 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
 
     await page
       .getByTestId('draft-post')
-      .filter({ hasText: 'x ·' })
+      .filter({ hasText: 'X ·' })
       .getByRole('button', { name: 'Cancel' })
       .click()
-    await expect(page.getByTestId('draft-post').filter({ hasText: 'CANCELLED' })).toHaveCount(1)
+    await expect(page.getByTestId('draft-post').filter({ hasText: 'Cancelled' })).toHaveCount(1)
     const database = createE2EDatabase()
     try {
       expect(
@@ -296,13 +298,17 @@ test('a table, a math block and a footnote persist, and the blocks post as image
 
     const expectPreview = () =>
       inPreview(page, async () => {
-        const preview = page.getByTestId('preview-linkedin')
+        const preview = await previewOf(page, 'linkedin')
         await expect(preview).toContainText('Pricing[1]')
+        // LinkedIn cuts a long post at "…more", as the preview shows; read on.
+        const more = preview.getByRole('button', { name: 'more', exact: true })
+        if (await more.isVisible()) await more.click()
         await expect(preview).toContainText('[1] Prices exclude tax.')
         await expect(preview).not.toContainText('E = mc^2')
-        await expect(preview).toContainText('Tables are posted as images.')
-        await expect(preview).toContainText('Math blocks are posted as images.')
-        await expect(preview).toContainText('Footnotes become numbered notes at the end.')
+        const panel = page.getByTestId('preview-panel')
+        await expect(panel).toContainText('Tables are posted as images.')
+        await expect(panel).toContainText('Math blocks are posted as images.')
+        await expect(panel).toContainText('Footnotes become numbered notes at the end.')
       })
     await chooseChannels(page, ['linkedin'])
     await expectPreview()
@@ -315,7 +321,7 @@ test('a table, a math block and a footnote persist, and the blocks post as image
     await expectPreview()
 
     // Scheduling renders the table and the equation and attaches them.
-    await (await openSchedule(page)).getByRole('button', { name: 'Schedule anyway' }).click()
+    await (await openSchedule(page)).getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
     const database = createE2EDatabase()
     try {
@@ -362,12 +368,13 @@ test('a thread schedules to X as a post and its replies', async ({ identity, pag
     await page.reload()
     await expect(page.getByTestId('post-header')).toHaveCount(2, { timeout: 60_000 })
     await inPreview(page, async () => {
-      await expect(page.getByTestId('preview-linkedin')).toContainText(
+      await previewOf(page, 'linkedin')
+      await expect(page.getByTestId('preview-panel')).toContainText(
         'The thread is posted as one LinkedIn post.'
       )
-      await expect(page.getByTestId('preview-x')).toContainText('Second post')
+      await expect(await previewOf(page, 'x')).toContainText('Second post')
     })
-    await (await openSchedule(page)).getByRole('button', { name: 'Schedule anyway' }).click()
+    await (await openSchedule(page)).getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
 
     const database = createE2EDatabase()

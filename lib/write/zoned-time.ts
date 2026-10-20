@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { parseWhen } from '@/lib/content-drafts/when'
 
 /**
  * Local wall times in an IANA time zone (RFC 041). A schedule is chosen as a
@@ -115,4 +116,20 @@ export function naturalOffsetMinutes(key: string): number {
     hash = Math.imul(hash, 16_777_619) >>> 0
   }
   return (hash % 9) - 4
+}
+
+/**
+ * A typed time ("tomorrow 9am", "in 3 hours") read in `zone`, as a wall
+ * time rounded up to the quarter hour, or null. The parser works in the
+ * runtime's own clock, so it is handed the zone's wall time as "now".
+ */
+export function readWhen(text: string, zone: string, now: Date = new Date()): string | null {
+  const parsed = parseWhen(text, new Date(`${wallTime(now, zone)}:00`))
+  if (!parsed) return null
+  const quarter = Math.ceil(parsed.getMinutes() / 15) * 15
+  return new Date(
+    Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), parsed.getHours(), quarter)
+  )
+    .toISOString()
+    .slice(0, 16)
 }

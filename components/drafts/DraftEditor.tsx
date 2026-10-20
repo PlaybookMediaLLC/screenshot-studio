@@ -196,15 +196,20 @@ function DiscussionsWatcher({ onChange }: { onChange: (discussions: DraftDiscuss
   const threads = usePluginOption(discussionPlugin, 'discussions')
   const users = usePluginOption(discussionPlugin, 'users')
   const first = React.useRef(threads)
-  React.useEffect(() => {
-    if (threads === first.current) return
+  // Only a change to the threads or people is news: the host's callback is
+  // often a new function each render, and reacting to that saved forever.
+  const report = React.useEffectEvent(() =>
     onChange({
       threads: threads as DraftDiscussions['threads'],
       users: Object.fromEntries(
         Object.entries(users).map(([id, person]) => [id, { id, name: person.name }])
       ),
     })
-  }, [onChange, threads, users])
+  )
+  React.useEffect(() => {
+    if (threads === first.current) return
+    report()
+  }, [threads, users])
   return null
 }
 

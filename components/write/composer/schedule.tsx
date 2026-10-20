@@ -22,13 +22,14 @@ import {
   draftsApi,
   type SettingsWire,
 } from '@/lib/content-drafts/client'
-import { parseWhen } from '@/lib/content-drafts/when'
+import type { BlockImages } from '@/lib/content-drafts/serialize'
 import { followUpLines } from '@/lib/write/automation'
 import { writeApi } from '@/lib/write/client'
 import type { Automation } from '@/lib/write/document'
 import {
   naturalOffsetMinutes,
   offsetLabel,
+  readWhen,
   resolveLocalTime,
   wallTime,
 } from '@/lib/write/zoned-time'
@@ -63,6 +64,8 @@ export type ScheduleContext = {
   requireApproval: boolean
   setTimeZone: string | null
   versionRef: React.MutableRefObject<number>
+  /** Render the draft's tables and math as uploaded images, in body order. */
+  renderBlocks: () => Promise<BlockImages>
   /** The X version's follow-ups, and how to change them on the draft. */
   automation: Automation | undefined
   onAutomation?: (automation: Automation | undefined) => void
@@ -154,6 +157,7 @@ export function ScheduleDialog({
     try {
       await context.flush()
       const result = await draftsApi.schedule(context.draft.id, {
+        blockImages: await context.renderBlocks(),
         channelConnectionIds: context.items.map((item) => item.account.id),
         ...(queue
           ? { queue: true }
@@ -294,15 +298,20 @@ export function ScheduleDialog({
           aria-label="When, in words"
           onChange={(event) => {
             setWhen(event.target.value)
-            const parsed = parseWhen(event.target.value)
-            if (parsed) setInstant(parsed)
+            const wall = readWhen(event.target.value, zone)
+            if (wall) {
+              setDay(wall.slice(0, 10))
+              setTime(wall.slice(11))
+              setQueue(false)
+              setDisambiguation(null)
+            }
           }}
           placeholder='Type a time: "tomorrow 9am", "in 3 hours", "fri 2pm"'
           value={when}
         />
         {when ? (
           <p className="text-xs text-neutral-500" data-testid="when-reading">
-            {parseWhen(when) ? `→ ${summary}` : 'Not a time this reads yet.'}
+            {readWhen(when, zone) ? `→ ${summary}` : 'Not a time this reads yet.'}
           </p>
         ) : null}
         {queue ? null : (
@@ -619,6 +628,7 @@ export function PublishReview({
     try {
       await context.flush()
       const result = await draftsApi.schedule(context.draft.id, {
+        blockImages: await context.renderBlocks(),
         channelConnectionIds: context.items.map((item) => item.account.id),
         publishNow: true,
         version: context.versionRef.current,

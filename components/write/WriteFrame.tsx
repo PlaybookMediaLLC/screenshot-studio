@@ -246,7 +246,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
             railOpen ? 'md:block' : 'md:hidden'
           )}
         >
-          <WriteRail />
+          <WriteRail key={data.activeSet?.id ?? 'none'} />
         </div>
         <main
           className={cn('relative min-w-0 flex-1 overflow-y-auto', !activeId && 'hidden md:block')}
@@ -260,7 +260,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
             <SheetTitle>Drafts</SheetTitle>
             <SheetDescription>The drafts of this social set.</SheetDescription>
           </SheetHeader>
-          <WriteRail />
+          <WriteRail key={data.activeSet?.id ?? 'none'} />
         </SheetContent>
       </Sheet>
       {palette ? (

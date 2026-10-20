@@ -4,6 +4,7 @@ import {
   isTimeZone,
   naturalOffsetMinutes,
   offsetLabel,
+  readWhen,
   resolveLocalTime,
   wallTime,
 } from '@/lib/write/zoned-time'
@@ -57,4 +58,13 @@ test('the natural offset is stable per key and within four minutes', () => {
     offsets.add(offset)
   }
   assert.equal(offsets.size, 9)
+})
+
+test('typed times are read in the set’s zone, not the browser’s', () => {
+  // 2026-10-20 18:10 UTC is 14:10 in New York and 03:10 the next day in Tokyo.
+  const now = new Date('2026-10-20T18:10:00Z')
+  assert.equal(readWhen('tomorrow 9am', 'UTC', now), '2026-10-21T09:00')
+  assert.equal(readWhen('tomorrow 9am', 'Asia/Tokyo', now), '2026-10-22T09:00')
+  assert.equal(readWhen('in 3 hours', 'America/New_York', now), '2026-10-20T17:15')
+  assert.equal(readWhen('not a time', 'UTC', now), null)
 })

@@ -880,8 +880,16 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
   const { data } = useWrite()
   const [confirm, setConfirm] = React.useState(false)
   const run = async (label: string, work: (id: string) => Promise<unknown>) => {
-    const results = await Promise.allSettled(selected.map((id) => work(id)))
-    const failed = results.filter((result) => result.status === 'rejected').length
+    // One at a time: a duplicate points at its source, and deleting both at
+    // once can race on that link.
+    let failed = 0
+    for (const id of selected) {
+      try {
+        await work(id)
+      } catch {
+        failed += 1
+      }
+    }
     if (failed > 0) toast.error(`${label}: ${failed} of ${selected.length} did not change.`)
     else toast.success(`${label}: ${selected.length} drafts.`)
     onDone()

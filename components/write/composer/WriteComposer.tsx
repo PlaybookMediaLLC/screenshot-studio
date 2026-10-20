@@ -32,8 +32,18 @@ import type { DraftEditorUser } from '@/components/drafts/DraftEditor'
 import { ReviewControls } from '@/components/drafts/DraftTools'
 import { appendPost, movePost, postRanges } from '@/components/drafts/thread'
 import { POST_COLUMN } from '@/components/drafts/layout'
-import { type DraftPostWire, type DraftWire, draftsApi } from '@/lib/content-drafts/client'
-import { draftPlainText } from '@/lib/content-drafts/serialize'
+import {
+  DraftRequestError,
+  type DraftPostWire,
+  type DraftWire,
+  draftsApi,
+} from '@/lib/content-drafts/client'
+import { renderBlockImages } from '@/lib/content-drafts/render-blocks'
+import {
+  type BlockImages,
+  draftPlainText,
+  renderableBlockCount,
+} from '@/lib/content-drafts/serialize'
 import { platformEditorServices } from '@/lib/editor/services'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { CAPABILITIES } from '@/lib/write/capabilities'
@@ -213,19 +223,41 @@ export function WriteComposer({
     platformVersions: document.versions,
     target: document.target,
   }
+  // Tables and math post as images, rendered when scheduling (RFC 037);
+  // until then each counts as a pending image, as it will publish.
+  const pendingBlocks: BlockImages = Array.from(
+    { length: renderableBlockCount(document.value) },
+    () => ''
+  )
+  const bodyArea = React.useRef<HTMLDivElement>(null)
+  const renderBlocks = async (): Promise<BlockImages> => {
+    if (pendingBlocks.length === 0 || !services.uploadFile) return []
+    if (active !== primary || !bodyArea.current) {
+      setTab(primary)
+      throw new DraftRequestError(
+        `Showing the ${CHANNEL_META[primary].label} version so its tables and math can be posted as images. Try again.`,
+        409
+      )
+    }
+    return renderBlockImages(bodyArea.current, services.uploadFile)
+  }
   const items: PreviewItem[] = accounts
     .filter((account) => enabled.includes(account.id))
     .map((account) => ({
       account,
-      publication: buildPublication(draftFields, {
-        channel: account.channel,
-        connectionId: account.id,
-        standing: { premium: account.premium },
-      }),
+      publication: buildPublication(
+        draftFields,
+        {
+          channel: account.channel,
+          connectionId: account.id,
+          standing: { premium: account.premium },
+        },
+        pendingBlocks
+      ),
     }))
   const activePublication =
     items.find((item) => item.account.channel === active)?.publication ??
-    buildPublication(draftFields, { channel: active, connectionId: 'preview' })
+    buildPublication(draftFields, { channel: active, connectionId: 'preview' }, pendingBlocks)
   const approved = server.reviewStatus === 'approved' && server.approvedVersion === server.version
   const refreshPosts = async () => {
     setPosts((await draftsApi.posts(initial.id)).posts)
@@ -261,6 +293,7 @@ export function WriteComposer({
     requireApproval,
     setTimeZone: set?.timeZone ?? null,
     versionRef: version,
+    renderBlocks,
     automation: versionFor(document.versions, 'x').options?.automation,
     onAutomation: canEdit
       ? (automation) =>
@@ -343,6 +376,18 @@ export function WriteComposer({
       label: 'Assistant',
       mod: true,
       run: () => togglePanel('assistant'),
+      inEditor: true,
+    },
+    {
+      // The editor's own image picker, so the upload takes the usual path.
+      key: 'i',
+      label: 'Add media',
+      mod: true,
+      shift: true,
+      run: () =>
+        bodyArea.current
+          ?.querySelector<HTMLInputElement>('input[type="file"][aria-label="Insert image"]')
+          ?.click(),
       inEditor: true,
     },
     {
@@ -716,7 +761,7 @@ export function WriteComposer({
               : undefined
           }
         />
-        <div className="relative flex-1" data-testid="composer-body">
+        <div className="relative flex-1" data-testid="composer-body" ref={bodyArea}>
           {active === primary ? (
             <DraftEditor
               {...editorProps}

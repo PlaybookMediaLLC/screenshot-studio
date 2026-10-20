@@ -65,7 +65,8 @@ function needsAttention(set: WriteSet): boolean {
  * stay apart: each shows its accounts' handles, and the id is what is used.
  */
 export function SocialSetSwitcher() {
-  const { canManageSets, data, setQuery } = useWrite()
+  const router = useRouter()
+  const { activeId, canManageSets, data, setQuery } = useWrite()
   const [managing, setManaging] = React.useState<WriteSet | 'new' | null>(null)
   const active = data.activeSet
   return (
@@ -103,7 +104,15 @@ export function SocialSetSwitcher() {
               key={set.id}
               onSelect={() => {
                 rememberSet(set.id)
-                setQuery({ q: undefined, set: set.id, tag: undefined })
+                // A draft open from another set is that set's: leave it for the library.
+                if (
+                  activeId &&
+                  activeId !== 'plan' &&
+                  activeId !== 'settings' &&
+                  set.id !== data.activeSet?.id
+                )
+                  router.push(`/write?set=${encodeURIComponent(set.id)}`)
+                else setQuery({ q: undefined, set: set.id, tag: undefined })
               }}
             >
               <SetDot color={set.color} />

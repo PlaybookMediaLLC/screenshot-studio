@@ -96,7 +96,7 @@ export function CanvasWorkspace({
       .setViewport(
         remembered ??
           (bounds
-            ? fitRect(bounds, screen, { padding: 96 })
+            ? fitRect(bounds, screen, { padding: Math.min(96, screen.width * 0.06) })
             : { panX: screen.width / 2 - 800, panY: 120, zoom: 0.5 })
       )
   }, [screen, session])
@@ -304,9 +304,14 @@ export function CanvasWorkspace({
               ) : null
             }
           />
-          <ZoomBar actions={actions} />
-          <Minimap artboards={state.document.artboards} />
-          {isMobile ? <MobileBar onDialog={setDialog} /> : null}
+          {isMobile ? (
+            <MobileBar onDialog={setDialog} onFit={() => actions.fitAll()} />
+          ) : (
+            <>
+              <ZoomBar actions={actions} />
+              <Minimap artboards={state.document.artboards} />
+            </>
+          )}
         </section>
         {!isMobile && rightOpen ? (
           <aside aria-label="Properties" className="w-[300px] shrink-0 overflow-y-auto border-l">
@@ -353,9 +358,18 @@ export function CanvasWorkspace({
   )
 }
 
-function MobileBar({ onDialog }: { onDialog: (dialog: CanvasDialog) => void }) {
+function MobileBar({
+  onDialog,
+  onFit,
+}: {
+  onDialog: (dialog: CanvasDialog) => void
+  onFit: () => void
+}) {
   return (
     <div className="absolute inset-x-3 bottom-3 z-30 flex justify-center gap-2" data-board-control>
+      <Button size="sm" variant="secondary" onClick={onFit}>
+        Fit
+      </Button>
       <Button size="sm" variant="secondary" onClick={() => onDialog('mobile-artboards')}>
         Artboards
       </Button>

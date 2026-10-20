@@ -53,7 +53,7 @@ export function useCanvasActions(session: CanvasSession, flush: () => void) {
     function focus(rect: WorkspaceRect | null, maxZoom = 1) {
       if (!rect) return
       const { screen, setViewport } = camera()
-      setViewport(fitRect(rect, screen, { padding: 72, maxZoom }))
+      setViewport(fitRect(rect, screen, { padding: Math.min(72, screen.width * 0.06), maxZoom }))
     }
 
     /** Place a group of new artboards (laid out relative to each other) to the right of the board. */

@@ -7,6 +7,7 @@ import { fetchDesignSources } from '@/lib/design/open-design'
 import { useDocumentPreview } from '@/lib/render/use-document-preview'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getBackgroundCSS } from '@/lib/constants/backgrounds'
+import { readStoredPreview, storedPreviewKey, writeStoredPreview } from '@/lib/canvas/preview-store'
 
 /** A plain CSS stand-in for the artboard's background while its render loads or fails. */
 function backgroundOf(document: DesignDocument): React.CSSProperties {
@@ -41,13 +42,36 @@ export const ArtboardPreview = memo(
     enabled: boolean
   }) {
     const client = useTRPCClient()
+    const output = useMemo<StageOutput>(
+      () => ({ format: 'jpeg', quality: 'medium', maxWidth: width }),
+      [width]
+    )
+    // A preview kept from an earlier visit shows at once and skips rendering.
+    const storedKey = useMemo(() => storedPreviewKey(document, width), [document, width])
+    const [stored, setStored] = useState<{ key: string; url: string | null } | null>(null)
+    useEffect(() => {
+      if (!enabled) return
+      let active = true
+      void readStoredPreview(storedKey).then((blob) => {
+        if (!active) return
+        const url = blob ? URL.createObjectURL(blob) : null
+        // The image it replaces stays up until now; the effect below releases it.
+        setStored({ key: storedKey, url })
+      })
+      return () => {
+        active = false
+      }
+    }, [storedKey, enabled])
+    useEffect(() => () => void (stored?.url && URL.revokeObjectURL(stored.url)), [stored])
+    const kept = stored?.key === storedKey ? stored : null
+    const rendering = enabled && kept !== null && !kept.url
     const [resolved, setResolved] = useState<{
       source: DesignDocument
       document: DesignDocument | null
       error: string | null
     } | null>(null)
     useEffect(() => {
-      if (!enabled) return
+      if (!rendering) return
       let active = true
       fetchDesignSources(client, document).then(
         (urls) => {
@@ -68,13 +92,18 @@ export const ArtboardPreview = memo(
       return () => {
         active = false
       }
-    }, [client, document, enabled])
-    const output = useMemo<StageOutput>(
-      () => ({ format: 'jpeg', quality: 'medium', maxWidth: width }),
-      [width]
-    )
+    }, [client, document, rendering])
     const current = resolved?.source === document ? resolved : null
-    const { status, url } = useDocumentPreview(current?.document ?? null, output, { enabled })
+    const rendered = useDocumentPreview(current?.document ?? null, output, { enabled: rendering })
+    useEffect(() => {
+      if (!rendering || rendered.status !== 'ready' || !rendered.url) return
+      void fetch(rendered.url)
+        .then((response) => response.blob())
+        .then((blob) => writeStoredPreview(storedKey, blob))
+        .catch(() => undefined)
+    }, [rendering, rendered.status, rendered.url, storedKey])
+    const url = kept?.url ?? rendered.url ?? stored?.url ?? null
+    const status = url ? 'ready' : rendered.status
     return (
       <div className="absolute inset-0 overflow-hidden" style={backgroundOf(document)}>
         {url ? (

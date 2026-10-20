@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { socialSetHref } from '@/components/workspace/settings-sections'
 import { call } from '@/lib/content-drafts/client'
+import { assistPosts } from '@/lib/write/refine-actions'
 import type { DraftChannel } from '@/lib/write/document'
 import { useWrite, type WriteSet } from '../write-context'
 
@@ -129,7 +130,8 @@ export function AssistantPanel({
                   {onInsert ? (
                     <Button
                       className="text-sky-300"
-                      onClick={() => onInsert(turn.content)}
+                      // Only the post goes in: never the model's introduction.
+                      onClick={() => assistPosts(turn.content).forEach(onInsert)}
                       size={null}
                       type="button"
                       variant="custom"

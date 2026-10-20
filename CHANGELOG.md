@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.27.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.27.0...v2.27.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **drafts:** drop a model's introduction from AI help, and record the settings verification ([#232](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/232)) ([c08f468](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/c08f4684a9c1f9939da2cedbc908c45fbc5c6ba4))
+
 ## [2.27.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.26.0...v2.27.0) (2026-10-20)
 
 

@@ -3,44 +3,47 @@ import { DraftCalendar } from '@/components/drafts/DraftCalendar'
 import { DraftsFrame } from '@/components/drafts/DraftsRail'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { hasPermission } from '@/lib/auth/permissions'
+import { weekStartDaySchema } from '@/lib/settings/appearance'
+import { addDays, dayOfWeek, zonedDayKey, zonedInstant } from '@/lib/settings/zoned-time'
 import { listContentDraftPostsBetween, listContentDrafts } from '@/lib/tenant/content-drafts'
-import { draftListItems, draftQueue, requireDraftsPageAccess } from '../page-access'
+import {
+  draftListItems,
+  draftQueue,
+  railSets,
+  readPreferences,
+  requireDraftsPageAccess,
+  selectSocialSet,
+} from '../page-access'
 
 export const metadata: Metadata = { title: 'Drafts calendar' }
 
 type CalendarPageProps = {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ week?: string }>
-}
-
-/** The Monday on or before `date`, at midnight. */
-function weekStart(date: Date): Date {
-  const start = new Date(date)
-  start.setHours(0, 0, 0, 0)
-  start.setDate(start.getDate() - ((start.getDay() + 6) % 7))
-  return start
+  searchParams: Promise<{ socialSet?: string; week?: string }>
 }
 
 export default async function DraftsCalendarPage({ params, searchParams }: CalendarPageProps) {
   const { locale } = await params
-  const { week } = await searchParams
+  const { socialSet, week } = await searchParams
   const access = await requireDraftsPageAccess(locale, '/drafts/calendar')
-  const asked = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? new Date(`${week}T00:00:00`) : new Date()
-  const start = weekStart(Number.isNaN(asked.getTime()) ? new Date() : asked)
-  // The browser lays the week out in its own time zone, which can sit a day
-  // either side of this server's, so fetch a day of slack each way; the
-  // calendar places each post on its local day.
-  const from = new Date(start)
-  from.setDate(start.getDate() - 1)
-  const end = new Date(start)
-  end.setDate(start.getDate() + 8)
-  const [page, queue, posts] = await Promise.all([
-    listContentDrafts(access.tenant, { limit: 100 }),
-    draftQueue(access.tenant),
-    listContentDraftPostsBetween(access.tenant, from, end),
+  const [{ selected, sets }, preferences] = await Promise.all([
+    selectSocialSet(access.tenant, socialSet),
+    readPreferences(access.tenant),
   ])
-  const day = (date: Date) =>
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  // The calendar is the set's: its days are days in the set's scheduling zone,
+  // starting on the weekday the person chose. Stored instants never move.
+  const zone = selected?.timeZone ?? 'UTC'
+  const setId = selected?.id ?? ''
+  const asked = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? week : zonedDayKey(new Date(), zone)
+  const first = weekStartDaySchema.parse(preferences?.weekStart ?? 'monday')
+  const start = addDays(asked, -((dayOfWeek(asked) - first + 7) % 7))
+  const from = zonedInstant(start, 0, 0, zone)
+  const end = zonedInstant(addDays(start, 7), 0, 0, zone)
+  const [page, queue, posts] = await Promise.all([
+    listContentDrafts(access.tenant, { limit: 100, ...(setId ? { socialSetId: setId } : {}) }),
+    draftQueue(access.tenant, setId),
+    listContentDraftPostsBetween(access.tenant, from, end, setId),
+  ])
 
   return (
     <PlatformShell
@@ -52,6 +55,8 @@ export default async function DraftsCalendarPage({ params, searchParams }: Calen
         canEdit={hasPermission(access.role, 'artifact:edit')}
         drafts={draftListItems(page.items)}
         queue={queue}
+        selectedSet={selected?.id}
+        sets={railSets(sets)}
       >
         <DraftCalendar
           canMove={hasPermission(access.role, 'publish:manage')}
@@ -62,7 +67,14 @@ export default async function DraftsCalendarPage({ params, searchParams }: Calen
             scheduledFor: post.scheduledFor.toISOString(),
             slotAt: post.slotAt?.toISOString() ?? null,
           }))}
-          weekStart={day(start)}
+          planned={page.items.flatMap((draft) =>
+            draft.plannedFor && draft.status !== 'archived'
+              ? [{ id: draft.id, plannedFor: draft.plannedFor, title: draft.title }]
+              : []
+          )}
+          socialSetId={selected?.id}
+          timeZone={zone}
+          weekStart={start}
         />
       </DraftsFrame>
     </PlatformShell>

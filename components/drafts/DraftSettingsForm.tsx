@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -40,30 +41,35 @@ export function DraftSettingsForm({
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-8 px-6 py-10">
       <div>
-        <h2 className="text-lg font-medium text-white">Drafts settings</h2>
-        <p className="mt-1 text-sm text-neutral-500">Times are in {settings.timeZone}.</p>
+        <h2 className="text-lg font-medium text-foreground">Drafts settings</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Times are in {settings.timeZone}.</p>
       </div>
       <section className="flex flex-col gap-3">
-        <h3 className="text-sm font-medium text-neutral-200">Posting queue</h3>
-        <p className="text-xs text-neutral-500">
-          “Add to queue” takes the next of these times that no post has yet.
+        <h3 className="text-sm font-medium text-foreground">Posting queue</h3>
+        <p className="text-xs text-muted-foreground">
+          These are the times of your first social set. Each social set now keeps its own queue,
+          time zone and defaults; edit them in{' '}
+          <Link className="underline" href="/workspace/social-sets">
+            Social sets
+          </Link>
+          . “Add to queue” takes the set’s next time that no post has yet.
         </p>
-        <ul className="divide-y divide-white/[0.05] rounded-xl border border-white/[0.06]">
+        <ul className="divide-y divide-foreground/[0.05] rounded-xl border border-foreground/[0.06]">
           {WEEKDAYS.map((name, weekday) => {
             const times = slots.filter((slot) => slot.weekday === weekday)
             return (
               <li className="flex flex-wrap items-center gap-2 px-4 py-2.5" key={name}>
-                <span className="w-24 text-sm text-neutral-300">{name}</span>
+                <span className="w-24 text-sm text-foreground/80">{name}</span>
                 {times.map((slot) => (
                   <span
-                    className="flex items-center gap-1 rounded-full border border-white/[0.08] px-2 py-0.5 text-xs text-neutral-200"
+                    className="flex items-center gap-1 rounded-full border border-foreground/[0.08] px-2 py-0.5 text-xs text-foreground"
                     key={slot.time}
                   >
                     {slot.time}
                     {canManage ? (
                       <Button variant="custom" size={null}
                         aria-label={`Remove ${name} ${slot.time}`}
-                        className="text-neutral-500 hover:text-red-400"
+                        className="text-muted-foreground hover:text-red-700 dark:hover:text-red-400"
                         onClick={() =>
                           setSlots((current) => current.filter((item) => item !== slot))
                         }
@@ -78,7 +84,7 @@ export function DraftSettingsForm({
                   <span className="ml-auto flex items-center gap-1">
                     <Input
                       aria-label={`New ${name} time`}
-                      className="h-7 rounded-md border border-white/[0.08] bg-transparent px-1 text-xs text-neutral-200"
+                      className="h-7 rounded-md border border-foreground/[0.08] bg-transparent px-1 text-xs text-foreground"
                       onChange={(event) =>
                         setAdding((current) => ({ ...current, [weekday]: event.target.value }))
                       }
@@ -86,7 +92,7 @@ export function DraftSettingsForm({
                       value={adding[weekday] ?? ''}
                     />
                     <Button variant="custom" size={null}
-                      className="text-xs text-sky-300 hover:text-sky-200 disabled:opacity-40"
+                      className="text-xs text-sky-700 dark:text-sky-300 hover:text-sky-700 dark:hover:text-sky-200 disabled:opacity-40"
                       disabled={!adding[weekday]}
                       onClick={() => {
                         const time = adding[weekday]
@@ -110,8 +116,8 @@ export function DraftSettingsForm({
         </ul>
       </section>
       <section className="flex flex-col gap-2">
-        <h3 className="text-sm font-medium text-neutral-200">Approvals</h3>
-        <Label className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] px-4 py-3 text-sm text-neutral-300">
+        <h3 className="text-sm font-medium text-foreground">Approvals</h3>
+        <Label className="flex items-center justify-between gap-3 rounded-xl border border-foreground/[0.06] px-4 py-3 text-sm text-foreground/80">
           A publisher or admin approves each draft before it is scheduled
           <Switch
             aria-label="Require approval"

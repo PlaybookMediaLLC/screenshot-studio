@@ -64,10 +64,10 @@ export function DraftPosts({
   if (posts.length === 0) return null
   return (
     <section className={cn('mb-10', POST_COLUMN)}>
-      <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+      <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Posts from this draft
       </h2>
-      <ul className="divide-y divide-white/[0.05] rounded-xl border border-white/[0.06]">
+      <ul className="divide-y divide-foreground/[0.05] rounded-xl border border-foreground/[0.06]">
         {posts.map((post) => {
           const channel = channelForPlatform(post.platform)
           const stopped =
@@ -79,18 +79,18 @@ export function DraftPosts({
             <li className="flex flex-col gap-2 px-4 py-3" data-testid="draft-post" key={post.id}>
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 text-sm text-white">
+                  <p className="flex items-center gap-1.5 text-sm text-foreground">
                     {channel ? <ChannelIcon channel={channel} /> : null}
                     {channel ? CHANNEL_META[channel].label : post.platform} ·{' '}
                     <LocalTime value={post.scheduledFor} />
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-neutral-500">{post.caption}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{post.caption}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Pill tone={POST_TONES[post.status] ?? 'gray'}>{post.status}</Pill>
                   {post.url ? (
                     <a
-                      className="text-xs text-sky-300 hover:text-sky-200"
+                      className="text-xs text-sky-700 dark:text-sky-300 hover:text-sky-700 dark:hover:text-sky-200"
                       href={post.url}
                       rel="noreferrer"
                       target="_blank"
@@ -106,12 +106,12 @@ export function DraftPosts({
                 </div>
               </div>
               {post.replies > 0 && post.status !== 'PUBLISHED' ? (
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-muted-foreground">
                   A thread: this post and {post.replies} replies.
                 </p>
               ) : null}
               {stopped ? (
-                <p className="flex items-center gap-2 text-xs text-amber-300" role="status">
+                <p className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300" role="status">
                   {post.threadProgress.posted} of {post.threadProgress.total} replies went out.
                   {canSchedule ? (
                     <Button
@@ -132,11 +132,11 @@ export function DraftPosts({
                 </p>
               ) : null}
               {post.status === 'PUBLISHED' ? (
-                <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-400">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-foreground/65">
                   {counts.length > 0 ? (
                     counts.map(([key, label]) => (
                       <span data-testid={`metric-${key}`} key={key}>
-                        <span className="text-white">{post.metrics?.[key]?.toLocaleString()}</span>{' '}
+                        <span className="text-foreground">{post.metrics?.[key]?.toLocaleString()}</span>{' '}
                         {label}
                       </span>
                     ))
@@ -144,7 +144,7 @@ export function DraftPosts({
                     <span>No engagement read yet.</span>
                   )}
                   <Button variant="custom" size={null}
-                    className="text-neutral-500 hover:text-white disabled:opacity-50"
+                    className="text-muted-foreground hover:text-foreground disabled:opacity-50"
                     disabled={busy === post.id}
                     onClick={() =>
                       void run(

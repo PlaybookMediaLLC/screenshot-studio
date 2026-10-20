@@ -169,7 +169,7 @@ function PostHead({ number }: { number: number }) {
   const count = useEditorSelector((current) => postRanges(current.children).length, [])
   const [over, setOver] = React.useState(false)
   const button =
-    'flex size-6 items-center justify-center rounded-md text-neutral-500 hover:bg-white/[0.06] hover:text-white disabled:opacity-30'
+    'flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-30'
   return (
     <div
       className={cn('group/post flex items-start gap-2 rounded-lg', over && 'bg-sky-400/[0.06]')}
@@ -235,7 +235,7 @@ function PostHead({ number }: { number: number }) {
           ) : null}
           <Button variant="custom" size={null}
             aria-label={`Delete post ${number}`}
-            className={cn(button, 'hover:text-red-400')}
+            className={cn(button, 'hover:text-red-700 dark:hover:text-red-400')}
             onClick={() => deletePost(editor, number)}
             type="button"
           >
@@ -306,7 +306,7 @@ export function ThreadLine() {
   return (
     <div
       aria-hidden
-      className={cn('pointer-events-none absolute w-px bg-white/10', !box && 'hidden')}
+      className={cn('pointer-events-none absolute w-px bg-foreground/10', !box && 'hidden')}
       ref={ref}
       style={box ?? undefined}
     />

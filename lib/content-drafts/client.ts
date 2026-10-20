@@ -67,12 +67,16 @@ export type DraftSave = {
   channelText?: Partial<Record<DraftChannel, string>>
   discussions?: DraftDiscussions
   plainText?: string
+  /** An ISO instant, or an empty string to clear it (an experiment). */
+  plannedFor?: string
   status?: 'draft' | 'archived'
+  /** Labels (an experiment). */
+  tags?: string[]
   title?: string
 }
 
 export const draftsApi = {
-  create: (input: { body?: unknown[]; title?: string } = {}) =>
+  create: (input: { body?: unknown[]; socialSetId?: string; title?: string } = {}) =>
     call<DraftWire>(base, { body: input, method: 'POST' }),
   get: (id: string) => call<DraftWire>(one(id)),
   posts: (id: string) => call<{ posts: DraftPostWire[] }>(`${one(id)}/posts`),
@@ -98,8 +102,10 @@ export const draftsApi = {
   settings: () => call<SettingsWire>('/api/v1/content-draft-settings'),
   saveSettings: (input: Partial<SettingsWire>) =>
     call<SettingsWire>('/api/v1/content-draft-settings', { body: input, method: 'PUT' }),
-  bestTimes: () =>
-    call<{ items: { at: string; reason: string }[] }>('/api/v1/content-draft-queue/best-times'),
+  bestTimes: (socialSetId?: string) =>
+    call<{ items: { at: string; reason: string }[] }>(
+      `/api/v1/content-draft-queue/best-times${socialSetId ? `?${new URLSearchParams({ socialSetId })}` : ''}`
+    ),
   calendar: (from: Date, to: Date) =>
     call<{ items: CalendarPostWire[] }>(
       `/api/v1/content-draft-posts?${new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })}`

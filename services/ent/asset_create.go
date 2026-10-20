@@ -129,6 +129,20 @@ func (_c *AssetCreate) SetNillableStatus(v *asset.Status) *AssetCreate {
 	return _c
 }
 
+// SetAltText sets the "alt_text" field.
+func (_c *AssetCreate) SetAltText(v string) *AssetCreate {
+	_c.mutation.SetAltText(v)
+	return _c
+}
+
+// SetNillableAltText sets the "alt_text" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableAltText(v *string) *AssetCreate {
+	if v != nil {
+		_c.SetAltText(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *AssetCreate) SetCreatedAt(v time.Time) *AssetCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -329,6 +343,10 @@ func (_c *AssetCreate) createSpec() (*Asset, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.AltText(); ok {
+		_spec.SetField(asset.FieldAltText, field.TypeString, value)
+		_node.AltText = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(asset.FieldCreatedAt, field.TypeTime, value)

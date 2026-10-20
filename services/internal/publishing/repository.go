@@ -443,7 +443,11 @@ func (r *Repository) draftMedia(ctx context.Context, organizationID string, ids 
 		if err != nil {
 			return nil, false, err
 		}
-		media = append(media, MediaAsset{MediaType: row.MediaType, ObjectKey: row.ObjectKey})
+		alt := ""
+		if row.AltText != nil {
+			alt = *row.AltText
+		}
+		media = append(media, MediaAsset{Alt: alt, MediaType: row.MediaType, ObjectKey: row.ObjectKey})
 	}
 	return media, false, nil
 }

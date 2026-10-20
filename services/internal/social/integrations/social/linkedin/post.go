@@ -32,6 +32,8 @@ type pendingData struct {
 	IsPdf    bool     `json:"isPdf"`
 	PdfTitle string   `json:"pdfTitle,omitempty"`
 	MediaIDs []string `json:"mediaIds"`
+	// AltTexts describe MediaIDs' images, by index; empty for none.
+	AltTexts []string `json:"altTexts,omitempty"`
 	// Media whose processing status can be read via GET: videos for every
 	// token, images/documents only for organization tokens.
 	Poll []pollMedia `json:"poll"`
@@ -282,7 +284,18 @@ func (p *Provider) processMedia(ctx context.Context, media []mediaItem, accessTo
 	return mediaIDs, poll, graceChecks, nil
 }
 
-func buildPostContent(isPdf bool, mediaIDs []string, pdfTitle string) map[string]any {
+// buildPostContent is the post's media; alts describe images by index
+// (LinkedIn's altText, at most 4,086 characters).
+func buildPostContent(isPdf bool, mediaIDs []string, pdfTitle string, alts ...string) map[string]any {
+	alt := func(index int) string {
+		if index >= len(alts) {
+			return ""
+		}
+		if runes := []rune(alts[index]); len(runes) > 4086 {
+			return string(runes[:4086])
+		}
+		return alts[index]
+	}
 	switch len(mediaIDs) {
 	case 0:
 		return nil
@@ -293,12 +306,17 @@ func buildPostContent(isPdf bool, mediaIDs []string, pdfTitle string) map[string
 				pdfTitle = "slides"
 			}
 			media["title"] = pdfTitle
+		} else if text := alt(0); text != "" {
+			media["altText"] = text
 		}
 		return map[string]any{"media": media}
 	}
 	images := make([]map[string]string, len(mediaIDs))
 	for i, id := range mediaIDs {
 		images[i] = map[string]string{"id": id}
+		if text := alt(i); text != "" {
+			images[i]["altText"] = text
+		}
 	}
 	return map[string]any{"multiImage": map[string]any{"images": images}}
 }
@@ -333,13 +351,18 @@ func (p *Provider) createMainPost(ctx context.Context, data *pendingData, access
 	if data.Visibility != "" {
 		payload.Visibility = data.Visibility
 	}
-	var mediaIDs []string
-	for _, id := range data.MediaIDs {
+	var mediaIDs, alts []string
+	for index, id := range data.MediaIDs {
 		if id != "" {
 			mediaIDs = append(mediaIDs, id)
+			alt := ""
+			if index < len(data.AltTexts) {
+				alt = data.AltTexts[index]
+			}
+			alts = append(alts, alt)
 		}
 	}
-	payload.Content = buildPostContent(data.IsPdf, mediaIDs, data.PdfTitle)
+	payload.Content = buildPostContent(data.IsPdf, mediaIDs, data.PdfTitle, alts...)
 	if data.Question != nil && len(data.Question.Options) >= 2 {
 		payload.Content = pollContent(data.Question)
 	}
@@ -416,6 +439,7 @@ func (p *Provider) PostPendingAs(ctx context.Context, id, accessToken string, po
 	isPdf := integrations.AssetBoolean(settings.PostAsImagesCarousel)
 
 	var media []mediaItem
+	var alts []string
 	if isPdf && len(first.Media) > 0 {
 		// The first post's media is replaced with a single PDF carousel.
 		pdf, err := p.convertImagesToPDFCarousel(ctx, first.Media)
@@ -423,9 +447,11 @@ func (p *Provider) PostPendingAs(ctx context.Context, id, accessToken string, po
 			return nil, err
 		}
 		media = []mediaItem{{path: "carousel.pdf", data: pdf}}
+		alts = nil
 	} else {
 		for _, m := range first.Media {
 			media = append(media, mediaItem{path: m.Path})
+			alts = append(alts, m.Alt)
 		}
 	}
 
@@ -435,7 +461,7 @@ func (p *Provider) PostPendingAs(ctx context.Context, id, accessToken string, po
 	}
 	data := pendingData{
 		AuthorID: id, PostType: postType, Message: first.Message, IsPdf: isPdf,
-		MediaIDs: mediaIDs, Poll: poll, GraceChecks: graceChecks,
+		MediaIDs: mediaIDs, AltTexts: alts, Poll: poll, GraceChecks: graceChecks,
 	}
 	data.Visibility, _ = settings.Visibility.(string)
 	data.ReshareParent, _ = settings.ReshareParent.(string)

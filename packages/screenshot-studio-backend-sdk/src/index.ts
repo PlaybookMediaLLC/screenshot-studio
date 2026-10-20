@@ -2335,6 +2335,14 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
+  /** Describe an image; the description is posted with it (RFC 041). Empty clears it. */
+  async setAssetAltText(id: string, altText: string) {
+    return this.request<{ altText: string | null; id: string }>(
+      `v1/assets/${encodeURIComponent(id)}/alt-text`,
+      { body: { altText }, method: 'PUT' }
+    )
+  }
+
   async deleteAsset(id: string) {
     return this.request<{ status: 'deleted' }>(`v1/assets/${encodeURIComponent(id)}`, {
       method: 'DELETE',

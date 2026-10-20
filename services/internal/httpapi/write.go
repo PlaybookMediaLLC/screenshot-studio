@@ -15,6 +15,7 @@ type WriteStore interface {
 	ListSocialSets(context.Context, product.Actor) ([]product.SocialSetRecord, error)
 	GetSocialSet(context.Context, product.Actor, string) (*product.SocialSetRecord, error)
 	LookupMentions(ctx context.Context, actor product.Actor, setID, channel, query string) ([]product.Mention, error)
+	SetAssetAltText(ctx context.Context, actor product.Actor, assetID, altText string) (*product.AssetAltText, error)
 	CreateSocialSet(context.Context, product.Actor, product.SocialSetInput) (*product.SocialSetRecord, error)
 	UpdateSocialSet(context.Context, product.Actor, string, product.SocialSetInput) (*product.SocialSetRecord, error)
 	DeleteSocialSet(context.Context, product.Actor, string) error
@@ -43,6 +44,7 @@ func (s *Server) registerWrite(mux *http.ServeMux) {
 	mux.Handle("POST /v1/social-sets", s.authenticateProduct(http.HandlerFunc(s.createSocialSet)))
 	mux.Handle("GET /v1/social-sets/{id}", s.authenticateProduct(http.HandlerFunc(s.getSocialSet)))
 	mux.Handle("GET /v1/social-sets/{id}/mentions", s.authenticateProduct(http.HandlerFunc(s.lookupMentions)))
+	mux.Handle("PUT /v1/assets/{id}/alt-text", s.authenticateProduct(http.HandlerFunc(s.setAssetAltText)))
 	mux.Handle("PATCH /v1/social-sets/{id}", s.authenticateProduct(http.HandlerFunc(s.updateSocialSet)))
 	mux.Handle("DELETE /v1/social-sets/{id}", s.authenticateProduct(http.HandlerFunc(s.deleteSocialSet)))
 	mux.Handle("GET /v1/social-sets/{id}/tags", s.authenticateProduct(http.HandlerFunc(s.listDraftTags)))
@@ -364,4 +366,21 @@ func (s *Server) lookupMentions(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	items, err := s.configuration.LookupMentions(r.Context(), workspaceActor(r), ids[0], query.Get("channel"), query.Get("q"))
 	respond(w, http.StatusOK, map[string]any{"items": items}, err)
+}
+
+// setAssetAltText describes an image; it is posted with the image.
+func (s *Server) setAssetAltText(w http.ResponseWriter, r *http.Request) {
+	ids, ok := pathIDs(w, r, "id")
+	if !ok {
+		return
+	}
+	var input struct {
+		AltText string `json:"altText"`
+	}
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid alt text")
+		return
+	}
+	saved, err := s.configuration.SetAssetAltText(r.Context(), workspaceActor(r), ids[0], input.AltText)
+	respond(w, http.StatusOK, saved, err)
 }

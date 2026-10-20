@@ -222,12 +222,15 @@ func (p *Provider) uploadImage(ctx context.Context, c *client, mediaPath string,
 type mediaEntry struct {
 	id    string
 	paths []string
+	// alts are the paths' descriptions, by index; empty for none.
+	alts []string
 }
 
 func entryOf(post integrations.PostDetails) mediaEntry {
 	e := mediaEntry{id: post.ID}
 	for _, m := range post.Media {
 		e.paths = append(e.paths, m.Path)
+		e.alts = append(e.alts, m.Alt)
 	}
 	return e
 }
@@ -242,7 +245,7 @@ func (p *Provider) uploadMediaEntries(ctx context.Context, c *client, entries []
 	media := map[string][]string{}
 	processingIDs := []string{}
 	for _, e := range entries {
-		for _, mediaPath := range e.paths {
+		for index, mediaPath := range e.paths {
 			mediaPath, err = mediaSigner.SignURL(ctx, mediaPath)
 			if err != nil {
 				return nil, nil, err
@@ -264,6 +267,12 @@ func (p *Provider) uploadMediaEntries(ctx context.Context, c *client, entries []
 			}
 			if up.mediaID == "" {
 				continue
+			}
+			// Alt text goes on the media after FINALIZE and before the post exists.
+			if index < len(e.alts) && strings.TrimSpace(e.alts[index]) != "" {
+				if err := c.setAltText(ctx, up.mediaID, e.alts[index]); err != nil {
+					return nil, nil, err
+				}
 			}
 			media[e.id] = append(media[e.id], up.mediaID)
 			if up.processing {

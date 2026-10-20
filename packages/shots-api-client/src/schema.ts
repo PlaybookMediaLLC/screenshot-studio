@@ -256,6 +256,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assets/{assetId}/alt-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set an image's alt text
+         * @description Describes an uploaded image for people who cannot see it. The description is posted with the image wherever it goes (X takes up to 1,000 characters, LinkedIn more); an empty string clears it.
+         */
+        put: operations["setAssetAltText"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/campaigns": {
         parameters: {
             query?: never;
@@ -1297,6 +1317,10 @@ export interface components {
         AssetDownloadResponse: {
             /** Format: uri */
             downloadUrl: string;
+        };
+        AssetAltText: {
+            altText: string | null;
+            id: string;
         };
         CampaignListResponse: {
             data: {
@@ -3670,6 +3694,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    setAssetAltText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    altText: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The image and its description. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetAltText"];
+                };
+            };
+            /** @description The description is too long, or the asset is not an image. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The asset was not found in this workspace. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description A required dependency is unavailable. */

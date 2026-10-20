@@ -8,6 +8,7 @@ import {
   createAssetDownloadUrlContract,
   createAssetUploadUrlContract,
   deleteAssetContract,
+  setAssetAltTextContract,
 } from '@/lib/api/contracts/assets'
 import {
   createCampaignContract,
@@ -85,6 +86,7 @@ export const documentedContracts = [
   completeAssetUploadContract,
   createAssetDownloadUrlContract,
   deleteAssetContract,
+  setAssetAltTextContract,
   listCampaignsContract,
   createCampaignContract,
   getCampaignContract,

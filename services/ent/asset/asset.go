@@ -35,6 +35,8 @@ const (
 	FieldHeight = "height"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldAltText holds the string denoting the alt_text field in the database.
+	FieldAltText = "altText"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "createdAt"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -65,6 +67,7 @@ var Columns = []string{
 	FieldWidth,
 	FieldHeight,
 	FieldStatus,
+	FieldAltText,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -172,6 +175,11 @@ func ByHeight(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByAltText orders the results by the alt_text field.
+func ByAltText(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAltText, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

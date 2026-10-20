@@ -492,3 +492,42 @@ func TestFollowUps(t *testing.T) {
 		t.Fatalf("like-gated repost past 100 likes = %v, %v", done, err)
 	}
 }
+
+// An image's description is set on the media before the post that uses it.
+func TestAltTextGoesOnTheMedia(t *testing.T) {
+	t.Setenv("SOCIAL_PRIVATE_MEDIA", "false")
+	calls, done := fakeX(t, func(r recorded) (int, string) {
+		switch r.path {
+		case "/pic.png":
+			return 200, string(pngBytes())
+		case "/2/media/upload/initialize", "/2/media/upload/img1/finalize":
+			return 200, `{"data":{"id":"img1"}}`
+		case "/2/media/upload/img1/append", "/2/media/metadata":
+			return 200, `{}`
+		}
+		return 404, `{}`
+	})
+	defer done()
+	if _, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
+		ID: "p", Message: "image", Media: []integrations.MediaContent{{Path: apiBase + "/pic.png", Alt: "A chart of signups"}},
+	}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	var metadata struct {
+		ID       string `json:"id"`
+		Metadata struct {
+			AltText struct {
+				Text string `json:"text"`
+			} `json:"alt_text"`
+		} `json:"metadata"`
+	}
+	found := false
+	for _, call := range *calls {
+		if call.path == "/2/media/metadata" {
+			found = json.Unmarshal(call.body, &metadata) == nil
+		}
+	}
+	if !found || metadata.ID != "img1" || metadata.Metadata.AltText.Text != "A chart of signups" {
+		t.Fatalf("metadata = %+v (found %v)", metadata, found)
+	}
+}

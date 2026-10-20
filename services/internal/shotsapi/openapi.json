@@ -1846,6 +1846,125 @@
         ]
       }
     },
+    "/api/v1/assets/{assetId}/alt-text": {
+      "put": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Describes an uploaded image for people who cannot see it. The description is posted with the image wherever it goes (X takes up to 1,000 characters, LinkedIn more); an empty string clears it.",
+        "operationId": "setAssetAltText",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assetId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "altText": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "altText"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The image and its description.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetAltText"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The description is too long, or the asset is not an image.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The asset was not found in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "asset:write"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Set an image's alt text",
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
     "/api/v1/campaigns": {
       "get": {
         "x-shots-entitlement": {
@@ -11548,6 +11667,25 @@
         },
         "required": [
           "downloadUrl"
+        ],
+        "additionalProperties": false
+      },
+      "AssetAltText": {
+        "type": "object",
+        "properties": {
+          "altText": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "altText",
+          "id"
         ],
         "additionalProperties": false
       },

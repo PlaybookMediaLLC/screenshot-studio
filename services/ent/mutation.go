@@ -3383,6 +3383,7 @@ type AssetMutation struct {
 	height          *int
 	addheight       *int
 	status          *asset.Status
+	alt_text        *string
 	created_at      *time.Time
 	updated_at      *time.Time
 	clearedFields   map[string]struct{}
@@ -3985,6 +3986,55 @@ func (m *AssetMutation) ResetStatus() {
 	m.status = nil
 }
 
+// SetAltText sets the "alt_text" field.
+func (m *AssetMutation) SetAltText(s string) {
+	m.alt_text = &s
+}
+
+// AltText returns the value of the "alt_text" field in the mutation.
+func (m *AssetMutation) AltText() (r string, exists bool) {
+	v := m.alt_text
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAltText returns the old "alt_text" field's value of the Asset entity.
+// If the Asset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssetMutation) OldAltText(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAltText is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAltText requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAltText: %w", err)
+	}
+	return oldValue.AltText, nil
+}
+
+// ClearAltText clears the value of the "alt_text" field.
+func (m *AssetMutation) ClearAltText() {
+	m.alt_text = nil
+	m.clearedFields[asset.FieldAltText] = struct{}{}
+}
+
+// AltTextCleared returns if the "alt_text" field was cleared in this mutation.
+func (m *AssetMutation) AltTextCleared() bool {
+	_, ok := m.clearedFields[asset.FieldAltText]
+	return ok
+}
+
+// ResetAltText resets all changes to the "alt_text" field.
+func (m *AssetMutation) ResetAltText() {
+	m.alt_text = nil
+	delete(m.clearedFields, asset.FieldAltText)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *AssetMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -4145,7 +4195,7 @@ func (m *AssetMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AssetMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.organization_id != nil {
 		fields = append(fields, asset.FieldOrganizationID)
 	}
@@ -4175,6 +4225,9 @@ func (m *AssetMutation) Fields() []string {
 	}
 	if m.status != nil {
 		fields = append(fields, asset.FieldStatus)
+	}
+	if m.alt_text != nil {
+		fields = append(fields, asset.FieldAltText)
 	}
 	if m.created_at != nil {
 		fields = append(fields, asset.FieldCreatedAt)
@@ -4210,6 +4263,8 @@ func (m *AssetMutation) Field(name string) (ent.Value, bool) {
 		return m.Height()
 	case asset.FieldStatus:
 		return m.Status()
+	case asset.FieldAltText:
+		return m.AltText()
 	case asset.FieldCreatedAt:
 		return m.CreatedAt()
 	case asset.FieldUpdatedAt:
@@ -4243,6 +4298,8 @@ func (m *AssetMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldHeight(ctx)
 	case asset.FieldStatus:
 		return m.OldStatus(ctx)
+	case asset.FieldAltText:
+		return m.OldAltText(ctx)
 	case asset.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case asset.FieldUpdatedAt:
@@ -4325,6 +4382,13 @@ func (m *AssetMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
+		return nil
+	case asset.FieldAltText:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAltText(v)
 		return nil
 	case asset.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -4424,6 +4488,9 @@ func (m *AssetMutation) ClearedFields() []string {
 	if m.FieldCleared(asset.FieldHeight) {
 		fields = append(fields, asset.FieldHeight)
 	}
+	if m.FieldCleared(asset.FieldAltText) {
+		fields = append(fields, asset.FieldAltText)
+	}
 	return fields
 }
 
@@ -4452,6 +4519,9 @@ func (m *AssetMutation) ClearField(name string) error {
 		return nil
 	case asset.FieldHeight:
 		m.ClearHeight()
+		return nil
+	case asset.FieldAltText:
+		m.ClearAltText()
 		return nil
 	}
 	return fmt.Errorf("unknown Asset nullable field %s", name)
@@ -4490,6 +4560,9 @@ func (m *AssetMutation) ResetField(name string) error {
 		return nil
 	case asset.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case asset.FieldAltText:
+		m.ResetAltText()
 		return nil
 	case asset.FieldCreatedAt:
 		m.ResetCreatedAt()

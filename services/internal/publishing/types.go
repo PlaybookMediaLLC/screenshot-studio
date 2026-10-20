@@ -51,6 +51,8 @@ type CreateScheduledPostResult struct {
 type MediaAsset struct {
 	MediaType string
 	ObjectKey string
+	// Alt describes an image (RFC 041); jobs recorded before it have none.
+	Alt string `json:",omitempty"`
 }
 
 // PublishReply is a thread reply to publish after the post: its text and files.

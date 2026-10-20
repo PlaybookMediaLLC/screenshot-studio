@@ -389,6 +389,17 @@ func (c *client) tweetEngagement(ctx context.Context, tweetID string) (likes, re
 	return res.Data.PublicMetrics.LikeCount, res.Data.PublicMetrics.RetweetCount, err
 }
 
+// setAltText is POST /2/media/metadata: a media's description, at most
+// 1,000 characters.
+func (c *client) setAltText(ctx context.Context, mediaID, alt string) error {
+	if runes := []rune(alt); len(runes) > 1000 {
+		alt = string(runes[:1000])
+	}
+	return c.postJSON(ctx, v2("media/metadata"), map[string]any{
+		"id": mediaID, "metadata": map[string]any{"alt_text": map[string]string{"text": alt}},
+	}, nil)
+}
+
 // retweet is v2.retweet(loggedUserId, tweetId).
 func (c *client) retweet(ctx context.Context, userID, tweetID string) error {
 	return c.postJSON(ctx, v2("users/"+userID+"/retweets"), map[string]string{"tweet_id": tweetID}, nil)

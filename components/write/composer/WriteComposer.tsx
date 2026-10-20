@@ -61,6 +61,7 @@ import { PreviewPanel, type PreviewItem } from './preview'
 import { PropertiesPanel } from './properties'
 import { PublishReview, ScheduleDialog, type ScheduleContext } from './schedule'
 import { BackupsBrowser, ShareDialog } from './share-backups'
+import { DescribeImages } from './describe-images'
 import { MentionPicker, SocialMentionPlugin } from './social-mention'
 import { type SaveState, useDraftDocument } from './useDraftDocument'
 import { VersionOptionsBar } from './version-options'
@@ -1024,6 +1025,7 @@ function ToolbarExtras({
 }) {
   const { mod } = useKeys()
   const [open, setOpen] = React.useState(false)
+  const [describing, setDescribing] = React.useState(false)
   useShortcuts([
     { key: '>', label: 'Emoji', mod: true, shift: true, run: () => setOpen(true), inEditor: true },
     { key: '.', label: 'Emoji', mod: true, shift: true, run: () => setOpen(true), inEditor: true },
@@ -1031,6 +1033,20 @@ function ToolbarExtras({
   return (
     <>
       <MentionPicker channels={channels} editor={editor} setId={setId} />
+      <Button
+        aria-label="Describe images"
+        className="h-7 rounded-md px-2 text-xs"
+        onClick={() => setDescribing(true)}
+        size={null}
+        title="Describe images (alt text)"
+        type="button"
+        variant="ghost"
+      >
+        ALT
+      </Button>
+      {describing && editor.current ? (
+        <DescribeImages editor={editor.current} onClose={() => setDescribing(false)} />
+      ) : null}
       <Popover onOpenChange={setOpen} open={open}>
         <PopoverTrigger asChild>
           <Button

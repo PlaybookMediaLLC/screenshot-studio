@@ -344,7 +344,7 @@ func (p *Publisher) signedMedia(ctx context.Context, organizationID string, asse
 		if strings.HasPrefix(asset.MediaType, "video/") {
 			mediaType = "video"
 		}
-		media = append(media, integrations.MediaContent{Type: mediaType, Path: path})
+		media = append(media, integrations.MediaContent{Alt: asset.Alt, Type: mediaType, Path: path})
 	}
 	return media, nil
 }

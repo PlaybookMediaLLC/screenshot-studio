@@ -254,10 +254,10 @@ standard (280).
 ## Rollout
 
 All schema changes are additive, in four migrations:
-`20261027090000_write_workspace` (social sets, tags, finishers, draft and
-revision columns), `20261027090100_write_publish_options` (a scheduled post's
-settings), `20261027090200_write_post_automation` (follow-up receipts), and
-`20261027090300_write_asset_alt_text`. Older clients keep working: Go ignores
+`20261030090000_write_workspace` (social sets, tags, finishers, draft and
+revision columns), `20261030090100_write_publish_options` (a scheduled post's
+settings), `20261030090200_write_post_automation` (follow-up receipts), and
+`20261030090300_write_asset_alt_text`. Older clients keep working: Go ignores
 what it is not sent, and drafts from before social sets belong to the
 workspace's default set.
 

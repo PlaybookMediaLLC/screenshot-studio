@@ -28,6 +28,7 @@ export function CanvasHeader({
   canEdit,
   canHandOff,
   onDialog,
+  presence,
 }: {
   session: CanvasSession
   state: CanvasSessionState
@@ -35,6 +36,8 @@ export function CanvasHeader({
   canEdit: boolean
   canHandOff: boolean
   onDialog: (dialog: CanvasDialog) => void
+  /** Who else has this canvas open. */
+  presence?: React.ReactNode
 }) {
   const [name, setName] = useState(session.record.name)
   const [renaming, setRenaming] = useState(false)
@@ -83,6 +86,7 @@ export function CanvasHeader({
       >
         {status}
       </span>
+      {presence}
       <div className="ml-auto flex flex-wrap items-center gap-1">
         <Button
           variant="ghost"

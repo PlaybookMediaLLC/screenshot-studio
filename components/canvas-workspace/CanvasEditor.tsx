@@ -25,11 +25,16 @@ export function CanvasEditor({
   workspaceId,
   canEdit,
   canHandOff,
+  collabUrl,
+  user,
 }: {
   canvasId: string
   workspaceId: string
   canEdit: boolean
   canHandOff: boolean
+  /** The presence service, or null where it is not configured. */
+  collabUrl: string | null
+  user: { id: string; name: string }
 }) {
   usePrivateCreativeSurface()
   const client = useTRPCClient()
@@ -92,7 +97,14 @@ export function CanvasEditor({
     )
   return (
     <>
-      <CanvasWorkspace session={session} canEdit={canEdit} canHandOff={canHandOff} notice={error} />
+      <CanvasWorkspace
+        session={session}
+        canEdit={canEdit}
+        canHandOff={canHandOff}
+        notice={error}
+        collabUrl={collabUrl}
+        user={user}
+      />
       {recovery ? (
         <Dialog open>
           <DialogContent showCloseButton={false}>

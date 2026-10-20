@@ -30,6 +30,7 @@ import { useCanvasActions } from './use-canvas-actions'
 import { useNativeArtboard } from './use-native-artboard'
 import { useLayerActions } from './use-layer-actions'
 import { LayerSelection } from './LayerSelection'
+import { PeerMarkers, PresenceSummary, useCanvasPresence } from './CanvasPresence'
 import { useCanvasShortcuts } from './use-canvas-shortcuts'
 
 const TimelineEditor = dynamic(
@@ -47,11 +48,15 @@ export function CanvasWorkspace({
   canEdit,
   canHandOff,
   notice,
+  collabUrl,
+  user,
 }: {
   session: CanvasSession
   canEdit: boolean
   canHandOff: boolean
   notice: string | null
+  collabUrl: string | null
+  user: { id: string; name: string }
 }) {
   const state = useSyncExternalStore(session.subscribe, session.snapshot, session.snapshot)
   const router = useRouter()
@@ -66,6 +71,12 @@ export function CanvasWorkspace({
   const native = useNativeArtboard(session, editing ? activeId : null, editing, state.loadEpoch)
   const flushNative = native.flush
   const layerActions = useLayerActions(session, native.flush, native.sync)
+  const presence = useCanvasPresence(session, collabUrl, user, state.revision)
+  // A member saved a newer revision: fetch it now instead of at the next poll.
+  const newest = Math.max(0, ...presence.peers.map((peer) => peer.revision))
+  useEffect(() => {
+    if (newest > session.snapshot().revision) void session.refreshRemote(flushNative)
+  }, [newest, session, flushNative])
   const flush = useCallback(() => {
     try {
       flushNative()
@@ -233,6 +244,7 @@ export function CanvasWorkspace({
         canEdit={canEdit}
         canHandOff={canHandOff}
         onDialog={setDialog}
+        presence={<PresenceSummary status={presence.status} peers={presence.peers} />}
       />
       {banners ? (
         <div
@@ -304,18 +316,21 @@ export function CanvasWorkspace({
             canEdit={canEdit}
             onDropFiles={(files, at) => void addScreenshots(files, at)}
             editor={
-              active && editing ? (
-                <ActiveArtboardEditor artboard={active} ready={native.ready} error={native.error}>
-                  <LayerSelection
-                    artboard={active}
-                    actions={layerActions}
-                    canEdit={canEdit}
-                    componentName={(id) =>
-                      state.document.components.find((item) => item.id === id)?.name
-                    }
-                  />
-                </ActiveArtboardEditor>
-              ) : null
+              <>
+                <PeerMarkers peers={presence.peers} artboards={state.document.artboards} />
+                {active && editing ? (
+                  <ActiveArtboardEditor artboard={active} ready={native.ready} error={native.error}>
+                    <LayerSelection
+                      artboard={active}
+                      actions={layerActions}
+                      canEdit={canEdit}
+                      componentName={(id) =>
+                        state.document.components.find((item) => item.id === id)?.name
+                      }
+                    />
+                  </ActiveArtboardEditor>
+                ) : null}
+              </>
             }
           />
           {isMobile ? (

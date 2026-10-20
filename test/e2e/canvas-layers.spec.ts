@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test'
 import type { CanvasDocument } from '@/lib/canvas/document'
 import { getActiveOrganizationId, getE2EUrl, signUpViaApi } from './framework/auth'
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
-import { grantWorkspacePlan } from './framework/services'
+import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
 import { trpcMutation, trpcQuery } from './framework/trpc'
 
 configureE2EFlow()
@@ -20,7 +20,8 @@ async function setUp(identity: E2EIdentity, page: Page) {
     slug: identity.email.split('@')[0],
   })
   expect(created.status).toBe(200)
-  await grantWorkspacePlan(await getActiveOrganizationId(page), 'pro')
+  const organizationId = await getActiveOrganizationId(page)
+  await grantWorkspacePlan(organizationId, 'pro')
   for (const route of [
     '/canvas',
     '/canvas/new',
@@ -29,6 +30,7 @@ async function setUp(identity: E2EIdentity, page: Page) {
   ])
     await page.request.get(getE2EUrl(route), { timeout: 180_000 })
   await mkdir(out, { recursive: true })
+  return organizationId
 }
 
 async function saved(page: Page) {
@@ -227,4 +229,72 @@ test('F: layers group, move and take typed text; components keep overrides acros
     canvas.artboards.find((item) => item.name.startsWith('1:1'))!.instances[0]!.overrides
   ).toEqual({})
   await page.screenshot({ path: path.join(out, 'f-components.png') })
+})
+
+test('G: members see who else is on a canvas and which artboard each is editing', async ({
+  identity,
+  page,
+  browser,
+}) => {
+  const organizationId = await setUp(identity, page)
+  await page.goto(getE2EUrl('/canvas/new?blank=1'))
+  await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
+  await saved(page)
+  const context = await browser.newContext({
+    viewport: { width: 1600, height: 1000 },
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: new URL(getE2EUrl('/')).origin,
+          localStorage: [{ name: 'shots-consent', value: '{"analytics":false,"ads":false}' }],
+        },
+      ],
+    },
+  })
+  try {
+    const peer = await context.newPage()
+    const email = `peer-${identity.email}`
+    await signUpViaApi({ ...identity, email, name: 'Canvas colleague' }, peer)
+    const database = createE2EDatabase()
+    try {
+      const user = await database.query('SELECT id FROM "user" WHERE email = $1', [email])
+      await database.query(
+        'INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,$4,now())',
+        [
+          `c${crypto.randomUUID().replaceAll('-', '').slice(0, 24)}`,
+          organizationId,
+          user.rows[0].id,
+          'creator',
+        ]
+      )
+    } finally {
+      await database.end()
+    }
+    expect((await trpcMutation(peer, 'workspace.setActive', { organizationId })).status).toBe(200)
+    await peer.goto(page.url())
+    await saved(peer)
+    await expect(page.getByTestId('canvas-presence')).toContainText('Canvas colleague here', {
+      timeout: 30_000,
+    })
+
+    // Opening an artboard shows the others a named ring on it.
+    await openArtboard(peer, '16:9')
+    await expect(page.getByTestId('peer-marker')).toHaveAttribute(
+      'aria-label',
+      /^Canvas colleague is editing 16:9/,
+      { timeout: 30_000 }
+    )
+    await page.screenshot({ path: path.join(out, 'g-presence.png') })
+
+    // The peer's saved work reaches this tab.
+    await peer.keyboard.press('Escape')
+    await peer.getByRole('button', { name: '1:1 · 1080 × 1080' }).click()
+    await saved(peer)
+    await expect(page.locator('[data-artboard-id]')).toHaveCount(2, { timeout: 30_000 })
+    await peer.close()
+    await expect(page.getByTestId('peer-marker')).toHaveCount(0, { timeout: 30_000 })
+  } finally {
+    await context.close()
+  }
 })

@@ -25,7 +25,7 @@ import { useKeys, useShortcuts } from '../shortcuts'
 import { lineDiff } from './share-backups'
 
 /**
- * AI Refine (RFC 041). The writer picks what it works on (the selection,
+ * AI Refine (RFC 042). The writer picks what it works on (the selection,
  * the post at the caret, or every post of this version) and what to do;
  * the answer is previewed beside the original and applied only on Accept,
  * as one change that Undo takes back. If the text changed while the AI was

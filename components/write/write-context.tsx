@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { WriteData } from '@/app/[locale]/write/write-data'
 
 /**
- * Write's shared client state (RFC 041): the library the page loaded, and
+ * Write's shared client state (RFC 042): the library the page loaded, and
  * helpers to change the URL state it is filtered by. Panels and dialogs are
  * UI state only; nothing here is saved with a draft.
  */

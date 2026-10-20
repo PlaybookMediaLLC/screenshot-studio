@@ -5,7 +5,7 @@ import { socialSetParamsSchema } from '@/lib/api/contracts/social-sets'
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 
 /**
- * A social set's tags and thread finishers (RFC 041). Tags take an API key
+ * A social set's tags and thread finishers (RFC 042). Tags take an API key
  * with the drafts scopes; finishers are managed by signed-in members.
  */
 

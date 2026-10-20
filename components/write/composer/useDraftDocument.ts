@@ -14,7 +14,7 @@ import type { Article, DraftTarget, PlatformVersions } from '@/lib/write/documen
 import { readVersions } from '@/lib/write/versions'
 
 /**
- * A draft's document in the composer (RFC 041): the primary body, the
+ * A draft's document in the composer (RFC 042): the primary body, the
  * platform versions, the title, destinations, target and article, saved on
  * a short debounce against the version the editor last saw. A save that
  * meets a newer version reloads it (or, in a live session, merges comment

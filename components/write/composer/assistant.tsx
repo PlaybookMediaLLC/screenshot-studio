@@ -23,7 +23,7 @@ const STARTERS = [
 ]
 
 /**
- * The writing assistant (RFC 041): a conversation about the open draft in
+ * The writing assistant (RFC 042): a conversation about the open draft in
  * the set's voice, from the style guide and samples saved on the set. The
  * conversation stays in this panel; nothing in the draft changes unless the
  * writer adds a reply to it. Each answer uses the workspace's AI credits.

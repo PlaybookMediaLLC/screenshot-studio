@@ -42,7 +42,7 @@ function draftImages(editor: PlateEditor): DraftImage[] {
 }
 
 /**
- * Describe images (RFC 041): alt text for each uploaded image, saved on the
+ * Describe images (RFC 042): alt text for each uploaded image, saved on the
  * image and posted with it wherever it goes. X takes up to 1,000
  * characters. Kept on the image node too, so the draft shows it.
  */

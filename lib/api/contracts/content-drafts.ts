@@ -270,7 +270,7 @@ export const contentDraftPostSchema = z.object({
     posted: z.number().int(),
     total: z.number().int(),
   }),
-  /** Its follow-ups once live, each with its receipt (RFC 041). */
+  /** Its follow-ups once live, each with its receipt (RFC 042). */
   automations: z.array(postAutomationSchema).default([]),
 })
 

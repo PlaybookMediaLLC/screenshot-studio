@@ -9,7 +9,7 @@ import type {
 import { call, type DraftPostWire, type DraftWire } from '@/lib/content-drafts/client'
 
 /**
- * Browser calls to the Write API (RFC 041) with the session cookie: social
+ * Browser calls to the Write API (RFC 042) with the session cookie: social
  * sets, tags and finishers, and a draft's properties, plan, copies,
  * backups, activity and recovery. Failures throw `DraftRequestError`.
  */

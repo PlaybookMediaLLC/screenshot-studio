@@ -3,7 +3,7 @@
 import * as React from 'react'
 
 /**
- * Write's keyboard contract (RFC 041, spec §26), with the platform's
+ * Write's keyboard contract (RFC 042, spec §26), with the platform's
  * modifier: ⌘ on macOS, Ctrl elsewhere. A shortcut never fires while a text
  * field or a dialog owns the keystroke unless it is marked for editors, and
  * publishing shortcuts only open the review; they never publish.

@@ -12,7 +12,7 @@ import { draftVocabulary } from '@/lib/content-drafts/vocabulary'
 import { listBackendConnections } from '@/lib/tenant/publishing-backend'
 
 /**
- * What every Write page loads (RFC 041): the social sets the member may see,
+ * What every Write page loads (RFC 042): the social sets the member may see,
  * the active one, its draft library for the chosen lifecycle tab, filters
  * and order, its queue, and its tags. The active set comes from the URL,
  * then the last one chosen (a cookie), then the default set.

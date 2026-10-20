@@ -823,7 +823,7 @@ export type BackendContentDraft = {
   guestComments: { createdAt: string; name: string; text: string }[]
   /** The draft's live posts (lists only). */
   publishedPosts: number
-  /** Write (RFC 041): an article's title and cover, for an article draft. */
+  /** Write (RFC 042): an article's title and cover, for an article draft. */
   article: BackendDraftArticle | null
   /** Posts that failed or whose outcome is unknown (lists only). */
   attentionPosts: number
@@ -848,7 +848,7 @@ export type BackendContentDraft = {
   target: BackendDraftTarget | null
 }
 
-/** What kind of post a draft is (RFC 041). */
+/** What kind of post a draft is (RFC 042). */
 export type BackendDraftKind = 'standard' | 'reply' | 'quote' | 'repurpose' | 'article'
 
 /** The post a reply answers, a quote embeds, or a repurposed draft came from. */
@@ -896,7 +896,7 @@ export type BackendPlatformVersions = {
   }[]
 }
 
-/** A social set: a publishing identity inside the workspace (RFC 041). */
+/** A social set: a publishing identity inside the workspace (RFC 042). */
 export type BackendSocialSet = {
   channelConnectionIds: string[]
   color: string
@@ -1018,7 +1018,7 @@ export type BackendSharedContentDraft = {
 
 /**
  * A live post's follow-ups (X): repost and reply at a like count, quote
- * after hours; reposts at set times and their removal (RFC 041).
+ * after hours; reposts at set times and their removal (RFC 042).
  */
 export type BackendAutoActions = {
   plugAtLikes?: number
@@ -1042,7 +1042,7 @@ export type BackendRetweetRule = {
   timeZone?: string
 }
 
-/** An account a post can tag: an X user or a LinkedIn organization (RFC 041). */
+/** An account a post can tag: an X user or a LinkedIn organization (RFC 042). */
 export type BackendSocialMention = {
   handle?: string
   image?: string
@@ -1052,7 +1052,7 @@ export type BackendSocialMention = {
   providerId: string
 }
 
-/** A live post's follow-up and its receipt (RFC 041). */
+/** A live post's follow-up and its receipt (RFC 042). */
 export type BackendPostAutomation = {
   attempts: number
   dueAt: string
@@ -1111,7 +1111,7 @@ export type BackendContentDraftPost = {
   /** A thread: its reply count and how many went out. */
   replies: number
   threadProgress: { lastReplyId?: string; posted: number; total: number }
-  /** Its follow-ups once live, each with its receipt (RFC 041). */
+  /** Its follow-ups once live, each with its receipt (RFC 042). */
   automations?: BackendPostAutomation[]
 }
 
@@ -1125,13 +1125,13 @@ export type BackendContentDraftScheduleTarget = {
   replies?: { assetIds: string[]; caption: string; options?: BackendPublishOptions }[]
   autoActions?: BackendAutoActions
   poll?: BackendPoll
-  /** The first post's settings beyond its text (RFC 041). */
+  /** The first post's settings beyond its text (RFC 042). */
   options?: BackendPublishOptions
   /** The live X post a reply draft answers. */
   replyTo?: string
 }
 
-/** A post's settings beyond its text, as a scheduled post keeps them (RFC 041). */
+/** A post's settings beyond its text, as a scheduled post keeps them (RFC 042). */
 export type BackendPublishOptions = {
   articleCoverAssetId?: string
   articleTitle?: string
@@ -1149,7 +1149,7 @@ export type BackendPublishOptions = {
   visibility?: 'PUBLIC' | 'CONNECTIONS'
 }
 
-/** When a schedule goes out (RFC 041); the backend resolves local times. */
+/** When a schedule goes out (RFC 042); the backend resolves local times. */
 export type BackendScheduleTiming = {
   disambiguation?: 'earlier' | 'later'
   localTime?: string
@@ -2335,7 +2335,7 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
-  /** Describe an image; the description is posted with it (RFC 041). Empty clears it. */
+  /** Describe an image; the description is posted with it (RFC 042). Empty clears it. */
   async setAssetAltText(id: string, altText: string) {
     return this.request<{ altText: string | null; id: string }>(
       `v1/assets/${encodeURIComponent(id)}/alt-text`,
@@ -2623,7 +2623,7 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ items: BackendContentDraft[] }>(`v1/content-draft-plans?${params}`)
   }
 
-  /** The social sets the caller may see, the default first (RFC 041). */
+  /** The social sets the caller may see, the default first (RFC 042). */
   async listSocialSets() {
     return this.request<{ items: BackendSocialSet[] }>('v1/social-sets')
   }
@@ -2632,7 +2632,7 @@ export class ScreenshotStudioBackendSDK {
     return this.request<BackendSocialSet>(`v1/social-sets/${encodeURIComponent(id)}`)
   }
 
-  /** What the set's account for a channel can mention (RFC 041). */
+  /** What the set's account for a channel can mention (RFC 042). */
   async lookupSocialSetMentions(id: string, channel: 'x' | 'linkedin', query: string) {
     return this.request<{ items: BackendSocialMention[] }>(
       `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query })}`

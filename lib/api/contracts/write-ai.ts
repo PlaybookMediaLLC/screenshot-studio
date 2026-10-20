@@ -3,7 +3,7 @@ import { defineContract } from '@/lib/api/contract'
 import { assistantInputSchema, refineInputSchema } from '@/lib/write/refine-actions'
 
 /**
- * AI in the Write composer (RFC 041): Refine and the writing assistant.
+ * AI in the Write composer (RFC 042): Refine and the writing assistant.
  * Signed-in members who edit drafts use them; each call is charged to the
  * workspace's AI credits. Neither changes a draft: the composer applies a
  * refinement only when the writer accepts it.

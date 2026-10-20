@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { parseWhen } from '@/lib/content-drafts/when'
 
 /**
- * Local wall times in an IANA time zone (RFC 041). A schedule is chosen as a
+ * Local wall times in an IANA time zone (RFC 042). A schedule is chosen as a
  * date and time in the social set's zone; this resolves it to the instant it
  * names, and says when it names none (the clocks skip it) or two (the clocks
  * repeat it). The backend resolves the same way (`resolveLocalTime` in Go)

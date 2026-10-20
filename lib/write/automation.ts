@@ -2,7 +2,7 @@ import type { Automation, RetweetRule } from '@/lib/write/document'
 import { resolveLocalTime, wallTime } from '@/lib/write/zoned-time'
 
 /**
- * Follow-ups as people read them (RFC 041): when each automatic repost
+ * Follow-ups as people read them (RFC 042): when each automatic repost
  * lands for a given publish time, and what happens after a post is live.
  * Go plans the same times from the same rules when the post goes out.
  */

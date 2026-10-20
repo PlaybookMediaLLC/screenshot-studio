@@ -90,7 +90,7 @@ function blocking(context: ScheduleContext): string[] {
 }
 
 /**
- * Schedule or plan a draft (RFC 041). A planned time only puts the draft on
+ * Schedule or plan a draft (RFC 042). A planned time only puts the draft on
  * the calendar; Confirm makes it publish. Times are chosen in the set's zone
  * and resolved by the backend, which refuses a time the clocks skip and asks
  * which of two a repeated time means.
@@ -595,7 +595,7 @@ function Problems({ problems }: { problems: string[] }) {
 }
 
 /**
- * The final review before publishing now (RFC 041): the set, each exact
+ * The final review before publishing now (RFC 042): the set, each exact
  * account, what each will post, how many posts, media, audience and labels,
  * follow-ups, who may publish and the approval state. Only Publish now
  * publishes, once: the same version and accounts replay rather than repeat.

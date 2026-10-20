@@ -41,7 +41,7 @@ export const assetUploadSchema = z
     fileName: z.string().trim().min(1).max(128),
     sha256: sha256Schema.optional(),
   })
-  // LinkedIn documents take up to 100 MB (RFC 041); everything else 50 MB.
+  // LinkedIn documents take up to 100 MB (RFC 042); everything else 50 MB.
   .refine((input) => input.contentType === 'application/pdf' || input.bytes <= 50 * 1024 * 1024, {
     message: 'Assets are up to 50 MB; PDF documents up to 100 MB.',
     path: ['bytes'],

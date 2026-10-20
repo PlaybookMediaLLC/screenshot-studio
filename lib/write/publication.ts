@@ -26,7 +26,7 @@ import {
 import { bodyFor, groupSettings, versionFor } from '@/lib/write/versions'
 
 /**
- * What a draft publishes to one account (RFC 041): the same normalized
+ * What a draft publishes to one account (RFC 042): the same normalized
  * content the preview shows and the schedule sends. Built from the stored
  * primary body, the channel's version and its options, the draft's kind and
  * target, and the account's standing. Go checks the result again.

@@ -255,7 +255,7 @@ const FOLLOW_UP_STATUS: Record<DraftPostWire['automations'][number]['status'], s
   skipped: 'skipped',
 }
 
-/** A live post's follow-ups and their receipts (RFC 041). */
+/** A live post's follow-ups and their receipts (RFC 042). */
 function FollowUps({ busy, onStop, post }: { busy: boolean; onStop?: () => void; post: DraftPostWire }) {
   return (
     <div className="grid gap-1 text-xs" data-testid="follow-ups">

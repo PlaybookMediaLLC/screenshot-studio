@@ -20,7 +20,7 @@ import {
 import { draftChannelSchema } from '@/lib/write/document'
 
 /**
- * The Write workspace for a workspace (RFC 041): social sets, their tags and
+ * The Write workspace for a workspace (RFC 042): social sets, their tags and
  * finishers, and a draft's properties, plan, copies, recovered backups and
  * activity. The backend checks roles, the plan, and set visibility on every
  * call; a set or draft the caller may not see reads as missing (null).

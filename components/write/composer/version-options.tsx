@@ -49,7 +49,7 @@ const STYLE_EXAMPLES: Record<Numbering['style'], string> = {
 }
 
 /**
- * A platform version's settings bar (RFC 041): on X, numbering, finishers
+ * A platform version's settings bar (RFC 042): on X, numbering, finishers
  * and a community; on LinkedIn, visibility, a first comment and a PDF
  * document. Each is stored with the version and applied when it publishes.
  */

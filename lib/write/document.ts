@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /**
- * The Write document (RFC 041): the structured parts of a content draft
+ * The Write document (RFC 042): the structured parts of a content draft
  * beside its Plate body. Go stores and checks the same shapes
  * (`services/internal/draftdoc`); every field here has a Go counterpart.
  */
@@ -124,7 +124,7 @@ export const plugMetricSchema = z.enum(['likes', 'reposts'])
 export type PlugMetric = z.infer<typeof plugMetricSchema>
 
 /**
- * An X post's follow-ups once live (RFC 041): reposts at set times and
+ * An X post's follow-ups once live (RFC 042): reposts at set times and
  * their removal, a plug reply at a like or repost count, and the RFC 037
  * like-gated repost and delayed quote.
  */

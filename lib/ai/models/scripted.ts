@@ -782,7 +782,7 @@ function scriptCaptions(text: string) {
 }
 
 /**
- * Write's Refine (RFC 041): one text per <text>, plainly changed, so a
+ * Write's Refine (RFC 042): one text per <text>, plainly changed, so a
  * test can tell the refinement from the original. A title is the first
  * words of the first text.
  */

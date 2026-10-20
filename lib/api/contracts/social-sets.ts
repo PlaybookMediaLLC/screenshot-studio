@@ -5,7 +5,7 @@ import { memberDocs, workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 import { automationSchema, draftChannelSchema } from '@/lib/write/document'
 
 /**
- * Social sets (RFC 041): a workspace's publishing identities. Reads take an
+ * Social sets (RFC 042): a workspace's publishing identities. Reads take an
  * API key with `artifact:read`; managing sets needs a signed-in owner or
  * admin. A restricted set is visible only to its members, owners and admins.
  */

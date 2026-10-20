@@ -34,7 +34,7 @@ import type { WriteSet } from '../write-context'
 export type ComposerAccount = WriteSet['connections'][number]
 
 /**
- * The platforms of a draft (RFC 041). The tab being edited, whether a
+ * The platforms of a draft (RFC 042). The tab being edited, whether a
  * platform publishes, whether its account is healthy, and whether its
  * version follows the primary are four separate things: changing the tab
  * changes nothing that is saved.

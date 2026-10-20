@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { draftChannelSchema } from '@/lib/write/document'
 
 /**
- * AI Refine and the writing assistant (RFC 041), shared by the composer and
+ * AI Refine and the writing assistant (RFC 042), shared by the composer and
  * the routes. Refine works on an explicit scope (a selection, one post, or
  * every post of the version open) and answers one text per text sent; the
  * composer previews it and applies it only when accepted.

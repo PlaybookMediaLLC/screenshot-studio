@@ -14,7 +14,7 @@ import type { DraftChannel } from '@/lib/write/document'
 import { cn } from '@/lib/utils'
 
 /**
- * Atomic social mentions (RFC 041): an account picked from the platform's
+ * Atomic social mentions (RFC 042): an account picked from the platform's
  * own lookup, kept as one inline element that cannot be split or half
  * deleted. It is written per platform at publishing: the LinkedIn
  * annotation for a LinkedIn organization, the @handle for an X user, and

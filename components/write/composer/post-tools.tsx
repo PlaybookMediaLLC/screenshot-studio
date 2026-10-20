@@ -43,7 +43,7 @@ function durationLabel(minutes: number): string {
 }
 
 /**
- * A post's settings for the platform being edited (RFC 041): on X, who can
+ * A post's settings for the platform being edited (RFC 042): on X, who can
  * reply, its labels, a poll on the first post, and, on later posts, quoting
  * the first post; on LinkedIn, a poll. Audience, reply permissions and
  * labels stay separate settings.

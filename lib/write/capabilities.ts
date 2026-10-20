@@ -3,7 +3,7 @@ import { AUTO_DM_UNAVAILABLE } from '@/lib/write/automation'
 import type { DraftChannel, DraftKind, PostPoll } from '@/lib/write/document'
 
 /**
- * What each platform can publish (RFC 041), one typed entry per platform.
+ * What each platform can publish (RFC 042), one typed entry per platform.
  * Every capability here is backed by the provider's documentation and the
  * adapter that sends it; the matrix in
  * docs/scheduling/typefully/write/implementation-matrix.md links the sources.

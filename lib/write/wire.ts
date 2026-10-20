@@ -9,7 +9,7 @@ import {
 } from '@/lib/write/document'
 
 /**
- * What Write (RFC 041) adds to a content draft on the wire: the fields a
+ * What Write (RFC 042) adds to a content draft on the wire: the fields a
  * draft returns, the fields it is written with, and how lists are filtered.
  * The draft contracts extend their schemas with these shapes.
  */
@@ -111,7 +111,7 @@ export const postAutomationStatusSchema = z.enum([
 ])
 
 /**
- * A live post's follow-up and its receipt (RFC 041). `failureCode` is a
+ * A live post's follow-up and its receipt (RFC 042). `failureCode` is a
  * short code such as `http_403` or `threshold_not_reached`, never a
  * provider message.
  */

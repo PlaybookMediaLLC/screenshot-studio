@@ -11,7 +11,7 @@ import type { DraftChannel } from '@/lib/write/document'
 import type { AssistantInput, RefineAction, RefineInput } from '@/lib/write/refine-actions'
 
 /**
- * AI Refine and the writing assistant (RFC 041), charged to the workspace's
+ * AI Refine and the writing assistant (RFC 042), charged to the workspace's
  * AI credits like the editor's other AI calls. Refine answers one text per
  * text it was sent, each within the platform's limit as the platform counts
  * it; an answer that does not is sent back to the model, and one that never

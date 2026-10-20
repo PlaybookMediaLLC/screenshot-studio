@@ -131,7 +131,7 @@ const SAVE_LABELS: Record<SaveState, string> = {
 }
 
 /**
- * The Write composer (RFC 041). The draft is its primary body plus a version
+ * The Write composer (RFC 042). The draft is its primary body plus a version
  * per platform; the tab being edited is UI state only. Destinations,
  * versions, options and the body save together against the draft's version.
  * Previews, the review and the schedule all use the publication the backend

@@ -1,7 +1,7 @@
 import type { Numbering, NumberingStyle } from '@/lib/write/document'
 
 /**
- * Thread numbering (RFC 041). Numbers are added when a version is serialized,
+ * Thread numbering (RFC 042). Numbers are added when a version is serialized,
  * for its preview and its publication; the authored text never holds them,
  * so adding, removing or moving a post renumbers the rest.
  *

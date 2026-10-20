@@ -104,6 +104,7 @@ func (c *Configuration) experimentStates(ctx context.Context, actor Actor, optIn
 	for _, experiment := range experimentRegistry {
 		state := ExperimentState{Experiment: experiment, DisabledByAdmin: disabled[experiment.ID],
 			Entitled: experiment.Entitlement == "" || features[experiment.Entitlement], OptedIn: optIns[experiment.ID]}
+		state.Dependencies = nonNilStrings(experiment.Dependencies)
 		switch experiment.Status {
 		case "promoted", "available":
 			state.Enabled = state.Entitled && !state.DisabledByAdmin

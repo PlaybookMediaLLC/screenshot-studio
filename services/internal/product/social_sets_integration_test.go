@@ -1,7 +1,9 @@
 package product
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"sync"
@@ -385,6 +387,19 @@ func TestSocialSetsPlatform(t *testing.T) {
 		}
 		if _, err := repo.UpdateUserPreferences(ctx, owner, UserPreferencesUpdate{Experiments: map[string]bool{"realistic-previews": false}}); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("a promoted experiment was changed: %v", err)
+		}
+		states, err := repo.ListExperiments(ctx, owner)
+		if err != nil || len(states) != len(experimentRegistry) {
+			t.Fatalf("experiments=%v err=%v", states, err)
+		}
+		// The web's contract reads every list as an array, never null.
+		if raw, _ := json.Marshal(states); bytes.Contains(raw, []byte("null")) {
+			t.Fatalf("the experiment list carries a null: %s", raw)
+		}
+		for _, state := range states {
+			if state.ID == ExperimentDraftTags && (!state.DisabledByAdmin || state.Enabled) {
+				t.Fatalf("a workspace-disabled experiment reads as on: %+v", state)
+			}
 		}
 	})
 

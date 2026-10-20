@@ -41,7 +41,11 @@ const ERROR_LABELS: Record<string, string> = {
 }
 
 /** Valid HTTPS URL with no credentials. The backend checks where it resolves. */
-const httpsUrlSchema = z.url({ protocol: /^https$/ }).refine((value) => !new URL(value).username && !new URL(value).password)
+const httpsUrlSchema = z.url({ protocol: /^https$/ }).refine((value) => {
+  // Refinements run even when the URL check failed, so parse without throwing.
+  const url = URL.parse(value)
+  return url !== null && !url.username && !url.password
+})
 
 function SecretNotice({ onDone, secret }: { onDone: () => void; secret: string }) {
   return (

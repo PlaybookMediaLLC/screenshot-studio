@@ -61,6 +61,8 @@ import {
 } from './thread'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import type { z } from 'zod'
+import type { textDirectionSchema } from '@/lib/api/contracts/settings-platform'
 
 /**
  * The document editor for a content draft: the vendored Plate.js editor with
@@ -105,7 +107,7 @@ export type DraftEditorProps = {
   /** The draft, so AI help writes in its social set's voice (RFC 043). */
   draftId?: string
   /** The direction text runs in, from Appearance settings. */
-  textDirection?: 'ltr' | 'rtl'
+  textDirection?: z.infer<typeof textDirectionSchema>
   collaboration: DraftCollaboration | null
   /** The editor, once made: the host restores revisions through it. */
   onEditor?: (editor: PlateEditor) => void

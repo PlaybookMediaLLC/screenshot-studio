@@ -55,7 +55,7 @@ export function DraftSettingsDrawer({
 
   return (
     <>
-      <Button onClick={() => go('scheduling')} size="sm" type="button" variant="ghost">
+      <Button aria-label={`Settings for ${socialSet.name}`} onClick={() => go('scheduling')} size="sm" type="button" variant="ghost">
         Settings
       </Button>
       <Sheet onOpenChange={(open) => (open ? null : go(null))} open={page !== null}>

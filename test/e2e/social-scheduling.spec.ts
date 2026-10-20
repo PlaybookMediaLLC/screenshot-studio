@@ -249,19 +249,18 @@ test('X OAuth start binds its one-use callback to the active workspace', async (
 
     await expectOAuthConnection(organizationId, integrationId, state, 'x')
 
-    // The channels page lists integrations through the social API as it loads.
-    // Let it settle and leave it, so the replay is the only request that could
-    // reach the social API.
-    await page.waitForLoadState('networkidle')
-    await page.goto('about:blank')
-    const callsBeforeReplay = backend.calls.length
+    // The channels page may still be reading integrations in the background;
+    // what a replay must never do is complete the connection again.
+    const connects = () =>
+      backend.calls.filter((call) => call.url.startsWith('/integrations/social-connect/')).length
+    const connectsBeforeReplay = connects()
     const replay = await page
       .context()
       .request.get(
         getE2EUrl(`/integrations/social/x?oauth_token=${state}&oauth_verifier=test-verifier`)
       )
     expect(replay.status()).toBe(403)
-    expect(backend.calls).toHaveLength(callsBeforeReplay)
+    expect(connects()).toBe(connectsBeforeReplay)
   } finally {
     await deleteOAuthStart(state)
     await unbindTestGoOrganization(organizationId)

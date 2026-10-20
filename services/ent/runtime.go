@@ -68,6 +68,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/release"
 	entreleaseautomation "github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationexecutor"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationnode"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationversion"
@@ -1103,6 +1104,12 @@ func init() {
 	entreleaseautomation.DefaultUpdatedAt = entreleaseautomationDescUpdatedAt.Default.(func() time.Time)
 	// entreleaseautomation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	entreleaseautomation.UpdateDefaultUpdatedAt = entreleaseautomationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	releaseautomationexecutorFields := schema.ReleaseAutomationExecutor{}.Fields()
+	_ = releaseautomationexecutorFields
+	// releaseautomationexecutorDescCapabilities is the schema descriptor for capabilities field.
+	releaseautomationexecutorDescCapabilities := releaseautomationexecutorFields[2].Descriptor()
+	// releaseautomationexecutor.DefaultCapabilities holds the default value on creation for the capabilities field.
+	releaseautomationexecutor.DefaultCapabilities = releaseautomationexecutorDescCapabilities.Default.([]string)
 	releaseautomationnodeFields := schema.ReleaseAutomationNode{}.Fields()
 	_ = releaseautomationnodeFields
 	// releaseautomationnodeDescStatus is the schema descriptor for status field.
@@ -1121,8 +1128,12 @@ func init() {
 	releaseautomationnodeDescOutputs := releaseautomationnodeFields[9].Descriptor()
 	// releaseautomationnode.DefaultOutputs holds the default value on creation for the outputs field.
 	releaseautomationnode.DefaultOutputs = releaseautomationnodeDescOutputs.Default.(releaseautomation.Outputs)
+	// releaseautomationnodeDescCharged is the schema descriptor for charged field.
+	releaseautomationnodeDescCharged := releaseautomationnodeFields[11].Descriptor()
+	// releaseautomationnode.DefaultCharged holds the default value on creation for the charged field.
+	releaseautomationnode.DefaultCharged = releaseautomationnodeDescCharged.Default.(bool)
 	// releaseautomationnodeDescStartedAt is the schema descriptor for started_at field.
-	releaseautomationnodeDescStartedAt := releaseautomationnodeFields[10].Descriptor()
+	releaseautomationnodeDescStartedAt := releaseautomationnodeFields[12].Descriptor()
 	// releaseautomationnode.DefaultStartedAt holds the default value on creation for the started_at field.
 	releaseautomationnode.DefaultStartedAt = releaseautomationnodeDescStartedAt.Default.(func() time.Time)
 	releaseautomationrunFields := schema.ReleaseAutomationRun{}.Fields()

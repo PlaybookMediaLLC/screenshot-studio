@@ -99,6 +99,11 @@ func FailureCode(v string) predicate.ReleaseAutomationNode {
 	return predicate.ReleaseAutomationNode(sql.FieldEQ(FieldFailureCode, v))
 }
 
+// Charged applies equality check predicate on the "charged" field. It's identical to ChargedEQ.
+func Charged(v bool) predicate.ReleaseAutomationNode {
+	return predicate.ReleaseAutomationNode(sql.FieldEQ(FieldCharged, v))
+}
+
 // StartedAt applies equality check predicate on the "started_at" field. It's identical to StartedAtEQ.
 func StartedAt(v time.Time) predicate.ReleaseAutomationNode {
 	return predicate.ReleaseAutomationNode(sql.FieldEQ(FieldStartedAt, v))
@@ -547,6 +552,26 @@ func DecisionIsNil() predicate.ReleaseAutomationNode {
 // DecisionNotNil applies the NotNil predicate on the "decision" field.
 func DecisionNotNil() predicate.ReleaseAutomationNode {
 	return predicate.ReleaseAutomationNode(sql.FieldNotNull(FieldDecision))
+}
+
+// GenerationIsNil applies the IsNil predicate on the "generation" field.
+func GenerationIsNil() predicate.ReleaseAutomationNode {
+	return predicate.ReleaseAutomationNode(sql.FieldIsNull(FieldGeneration))
+}
+
+// GenerationNotNil applies the NotNil predicate on the "generation" field.
+func GenerationNotNil() predicate.ReleaseAutomationNode {
+	return predicate.ReleaseAutomationNode(sql.FieldNotNull(FieldGeneration))
+}
+
+// ChargedEQ applies the EQ predicate on the "charged" field.
+func ChargedEQ(v bool) predicate.ReleaseAutomationNode {
+	return predicate.ReleaseAutomationNode(sql.FieldEQ(FieldCharged, v))
+}
+
+// ChargedNEQ applies the NEQ predicate on the "charged" field.
+func ChargedNEQ(v bool) predicate.ReleaseAutomationNode {
+	return predicate.ReleaseAutomationNode(sql.FieldNEQ(FieldCharged, v))
 }
 
 // StartedAtEQ applies the EQ predicate on the "started_at" field.

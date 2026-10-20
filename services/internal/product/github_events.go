@@ -45,6 +45,7 @@ type GitHubReader interface {
 	MergedPullRequests(ctx context.Context, installationID int64, repositoryID, base string, limit int) ([]githubapp.PullRequest, error)
 	PullRequest(ctx context.Context, installationID int64, repositoryID string, number int) (githubapp.PullRequest, error)
 	PullRequestFiles(ctx context.Context, installationID int64, repositoryID string, number int) ([]string, error)
+	MilestonePullRequests(ctx context.Context, installationID int64, repositoryID string, milestone int) ([]int, error)
 	ReleaseHTML(ctx context.Context, installationID int64, repositoryID string, releaseID int64) (string, error)
 	InstallationToken(ctx context.Context, installationID int64) (string, error)
 }

@@ -26,6 +26,12 @@ func (_c *ReleaseAutomationExecutorCreate) SetSchemaVersion(v int) *ReleaseAutom
 	return _c
 }
 
+// SetCapabilities sets the "capabilities" field.
+func (_c *ReleaseAutomationExecutorCreate) SetCapabilities(v []string) *ReleaseAutomationExecutorCreate {
+	_c.mutation.SetCapabilities(v)
+	return _c
+}
+
 // SetExpiresAt sets the "expires_at" field.
 func (_c *ReleaseAutomationExecutorCreate) SetExpiresAt(v time.Time) *ReleaseAutomationExecutorCreate {
 	_c.mutation.SetExpiresAt(v)
@@ -45,6 +51,7 @@ func (_c *ReleaseAutomationExecutorCreate) Mutation() *ReleaseAutomationExecutor
 
 // Save creates the ReleaseAutomationExecutor in the database.
 func (_c *ReleaseAutomationExecutorCreate) Save(ctx context.Context) (*ReleaseAutomationExecutor, error) {
+	_c.defaults()
 	return withHooks(ctx, _c.sqlSave, _c.mutation, _c.hooks)
 }
 
@@ -70,10 +77,21 @@ func (_c *ReleaseAutomationExecutorCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_c *ReleaseAutomationExecutorCreate) defaults() {
+	if _, ok := _c.mutation.Capabilities(); !ok {
+		v := releaseautomationexecutor.DefaultCapabilities
+		_c.mutation.SetCapabilities(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_c *ReleaseAutomationExecutorCreate) check() error {
 	if _, ok := _c.mutation.SchemaVersion(); !ok {
 		return &ValidationError{Name: "schema_version", err: errors.New(`ent: missing required field "ReleaseAutomationExecutor.schema_version"`)}
+	}
+	if _, ok := _c.mutation.Capabilities(); !ok {
+		return &ValidationError{Name: "capabilities", err: errors.New(`ent: missing required field "ReleaseAutomationExecutor.capabilities"`)}
 	}
 	if _, ok := _c.mutation.ExpiresAt(); !ok {
 		return &ValidationError{Name: "expires_at", err: errors.New(`ent: missing required field "ReleaseAutomationExecutor.expires_at"`)}
@@ -117,6 +135,10 @@ func (_c *ReleaseAutomationExecutorCreate) createSpec() (*ReleaseAutomationExecu
 		_spec.SetField(releaseautomationexecutor.FieldSchemaVersion, field.TypeInt, value)
 		_node.SchemaVersion = value
 	}
+	if value, ok := _c.mutation.Capabilities(); ok {
+		_spec.SetField(releaseautomationexecutor.FieldCapabilities, field.TypeJSON, value)
+		_node.Capabilities = value
+	}
 	if value, ok := _c.mutation.ExpiresAt(); ok {
 		_spec.SetField(releaseautomationexecutor.FieldExpiresAt, field.TypeTime, value)
 		_node.ExpiresAt = value
@@ -142,6 +164,7 @@ func (_c *ReleaseAutomationExecutorCreateBulk) Save(ctx context.Context) ([]*Rel
 	for i := range _c.builders {
 		func(i int, root context.Context) {
 			builder := _c.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*ReleaseAutomationExecutorMutation)
 				if !ok {

@@ -226,3 +226,77 @@ func TestInterpreterExhaustedRetriesStopLaterNodes(t *testing.T) {
 		t.Fatalf("attempts=%d fixture=%+v", attempts, f)
 	}
 }
+
+// A version 2 graph runs copy generation as one node activity with its own
+// bounded retry policy; a transient failure is retried, an unpaid budget is not.
+func TestInterpreterRetriesGenerationWithinItsBudget(t *testing.T) {
+	graph := testGraph()
+	graph.SchemaVersion = 2
+	graph.Nodes = append(graph.Nodes,
+		automation.Node{ID: "campaign", Type: "action", Action: &automation.Action{Type: "create_campaign", Input: &automation.Reference{NodeID: "release", Output: "releaseId"}, BrandKitID: "brand", DestinationIDs: []string{"x"}}},
+		automation.Node{ID: "copy", Type: "action", Action: &automation.Action{Type: "generate_copy", Input: &automation.Reference{NodeID: "campaign", Output: "campaignId"}, CreditLimit: 25}})
+	graph.Edges[3] = automation.Edge{From: "release", To: "campaign", Branch: "next"}
+	graph.Edges = append(graph.Edges, automation.Edge{From: "campaign", To: "copy", Branch: "next"}, automation.Edge{From: "copy", To: "end", Branch: "next"})
+	if issues := automation.Validate(graph); len(issues) > 0 {
+		t.Fatal(issues)
+	}
+	for _, test := range []struct {
+		name     string
+		failure  error
+		attempts int
+		status   string
+	}{
+		{"transient", errors.New("provider timeout"), 2, "succeeded"},
+		{"insufficient credits", temporal.NewNonRetryableApplicationError("Automation configuration requires attention", PermanentError, nil), 1, "needs_attention"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			f := fixture()
+			f.loaded.Plans = []product.AutomationPlan{{DefinitionID: "definition-1", VersionID: "version-1", Graph: graph}}
+			attempts := 0
+			f.node = func(input NodeInput) error {
+				if input.NodeID != "copy" {
+					return nil
+				}
+				if attempts++; attempts == 1 {
+					return test.failure
+				}
+				return nil
+			}
+			env := environment(t, f)
+			env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+			if attempts != test.attempts || f.finish.Status != test.status {
+				t.Fatalf("attempts=%d finish=%+v nodes=%v", attempts, f.finish, f.nodes)
+			}
+		})
+	}
+}
+
+// An AI relevance check picks the branch from the verdict its activity
+// recorded; the interpreter never re-asks on replay.
+func TestInterpreterBranchesOnTheRecordedAIVerdict(t *testing.T) {
+	graph := testGraph()
+	graph.SchemaVersion = 2
+	graph.Nodes[1] = automation.Node{ID: "stable", Type: "classify", Classify: &automation.Classify{Criteria: "Customer-visible features only.", Threshold: 0.7, CreditLimit: 5}}
+	if issues := automation.Validate(graph); len(issues) > 0 {
+		t.Fatal(issues)
+	}
+	for _, worthy := range []bool{true, false} {
+		f := fixture()
+		f.loaded.Plans = []product.AutomationPlan{{DefinitionID: "definition-1", VersionID: "version-1", Graph: graph}}
+		env := environment(t, f)
+		asked := 0
+		env.RegisterActivityWithOptions(func(_ context.Context, input NodeInput) (automation.Decision, error) {
+			asked++
+			f.nodes = append(f.nodes, input.NodeID)
+			return automation.Decision{Status: "evaluated", Match: worthy, Reason: "AI verdict"}, nil
+		}, activity.RegisterOptions{Name: ClassifyActivity})
+		env.ExecuteWorkflow(WorkflowName, Input{OrganizationID: "org", RunID: "run"})
+		want, status := []string{"start", "stable", "release", "end"}, "succeeded"
+		if !worthy {
+			want, status = []string{"start", "stable", "skip"}, "skipped"
+		}
+		if asked != 1 || !reflect.DeepEqual(f.nodes, want) || f.finish.Status != status {
+			t.Fatalf("worthy=%v asked=%d nodes=%v finish=%+v", worthy, asked, f.nodes, f.finish)
+		}
+	}
+}

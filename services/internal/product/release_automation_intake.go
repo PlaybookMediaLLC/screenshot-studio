@@ -91,6 +91,11 @@ func (c *Configuration) acceptGitHubEvent(ctx context.Context, delivery string, 
 		if err != nil {
 			return nil, err
 		}
+		// Tag pushes and milestones only exist as workflow triggers; a legacy
+		// source has no behavior for them, so nothing is recorded.
+		if !source.ReleaseAutomation && automation.FamilyVersion(event.Family) > 1 {
+			continue
+		}
 		if err := automationSourceAccess(ctx, tx.Client(), source); err != nil {
 			return nil, err
 		}
@@ -192,6 +197,10 @@ func automationSourceFilter(source *ent.SourceApp, event automation.Event) strin
 	case automation.Deployed:
 		if !source.ReleaseAutomation && !productionDeployment(event) {
 			return "Legacy capture accepts successful production deployments only."
+		}
+	case automation.TagPushed:
+		if source.SkipPrereleases && eventString(event, "version.level") == "prerelease" {
+			return "Source excludes prereleases; this tag is a prerelease version."
 		}
 	}
 	return ""

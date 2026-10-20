@@ -17,7 +17,7 @@ import (
 func (c *Configuration) recordHistoricalRelease(ctx context.Context, source *ent.SourceApp, repository githubapp.Repository, release githubapp.Release) error {
 	id, repo := strconv.FormatInt(release.ID, 10), strconv.FormatInt(repository.ID, 10)
 	event := automation.Event{Family: automation.Published, SemanticKey: "release:" + repo + ":" + id, RepositoryID: repo, RepositoryName: repository.FullName, ObjectID: id, OccurredAt: release.PublishedAt, Origin: "historical", Title: releasenotes.Clean(firstNonEmpty(release.Name, release.TagName), 160), Notes: releasenotes.Clean(release.Body, MaxReleaseNotesRunes), URL: release.HTMLURL, DefaultBranch: repository.DefaultBranch,
-		Fields: map[string]automation.Value{"repository.id": automation.StringValue(repo), "event.family": automation.StringValue(string(automation.Published)), "event.action": automation.StringValue("published"), "release.tag": automation.StringValue(firstNonEmpty(release.TagName, release.Name)), "release.title": automation.StringValue(releasenotes.Clean(firstNonEmpty(release.Name, release.TagName), 160)), "release.prerelease": automation.BoolValue(release.Prerelease)}}
+		Fields: map[string]automation.Value{"repository.id": automation.StringValue(repo), "repository.name": automation.StringValue(repository.FullName), "event.family": automation.StringValue(string(automation.Published)), "event.action": automation.StringValue("published"), "release.tag": automation.StringValue(firstNonEmpty(release.TagName, release.Name)), "release.title": automation.StringValue(releasenotes.Clean(firstNonEmpty(release.Name, release.TagName), 160)), "release.prerelease": automation.BoolValue(release.Prerelease)}}
 	return c.recordHistoricalEvent(ctx, source, event)
 }
 
@@ -32,7 +32,7 @@ func (c *Configuration) recordHistoricalPR(ctx context.Context, source *ent.Sour
 	}
 	base := firstNonEmpty(pr.Base.Ref, repository.DefaultBranch)
 	event := automation.Event{Family: automation.Merged, SemanticKey: "pr:" + repo + ":" + number, RepositoryID: repo, RepositoryName: repository.FullName, ObjectID: number, Number: pr.Number, OccurredAt: *pr.MergedAt, Origin: "historical", Title: releasenotes.Clean(pr.Title, 160), Notes: releasenotes.Clean(pr.Body, MaxChangeBodyRunes), URL: pr.HTMLURL, DefaultBranch: repository.DefaultBranch,
-		Fields: map[string]automation.Value{"repository.id": automation.StringValue(repo), "event.family": automation.StringValue(string(automation.Merged)), "event.action": automation.StringValue("closed"), "pr.title": automation.StringValue(releasenotes.Clean(pr.Title, 160)), "pr.base": automation.StringValue(base), "pr.author": automation.StringValue(pr.User.Login), "pr.bot": automation.BoolValue(pr.User.Type == "Bot"), "pr.labels": automation.StringValue(labels...), "pr.files": {State: "pending"}}}
+		Fields: map[string]automation.Value{"repository.id": automation.StringValue(repo), "repository.name": automation.StringValue(repository.FullName), "event.family": automation.StringValue(string(automation.Merged)), "event.action": automation.StringValue("closed"), "pr.number": automation.StringValue(number), "pr.title": automation.StringValue(releasenotes.Clean(pr.Title, 160)), "pr.base": automation.StringValue(base), "pr.author": automation.StringValue(pr.User.Login), "pr.bot": automation.BoolValue(pr.User.Type == "Bot"), "pr.labels": automation.StringValue(labels...), "pr.files": {State: "pending"}}}
 	return c.recordHistoricalEvent(ctx, source, event)
 }
 

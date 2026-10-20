@@ -2,6 +2,7 @@
 
 **Status:** Partially implemented
 **Status note (2026-10-16):** Parts of the three workflows exist through the launch pipeline and release intake. Scheduling approved posts is blocked on RFC 020.
+**Implementation update (2026-10-20):** [Workflows](../release-automation.md) is a sidebar destination with executable templates for a release launch, a merged-PR feature announcement, and deployment-driven marketing, each ending at human review. "Stay visible" remains planned.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 015 through RFC 020

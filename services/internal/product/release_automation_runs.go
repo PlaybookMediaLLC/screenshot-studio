@@ -3,11 +3,14 @@ package product
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"slices"
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	releaseautomation "github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationnode"
@@ -15,6 +18,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 )
@@ -36,6 +40,7 @@ type AutomationRun struct {
 	EventID         string             `json:"eventId"`
 	DefinitionID    *string            `json:"definitionId"`
 	VersionID       *string            `json:"versionId"`
+	VersionRevision *int               `json:"versionRevision"`
 	WorkflowID      string             `json:"workflowId"`
 	TemporalRunID   string             `json:"temporalRunId"`
 	Status          string             `json:"status"`
@@ -90,30 +95,173 @@ func automationEvent(row *ent.ReleaseSourceEvent) AutomationEvent {
 	return AutomationEvent{ID: row.ID, SourceAppID: row.SourceAppID, DeliveryID: row.DeliveryID, Snapshot: row.Snapshot, VersionIDs: row.VersionIds, Mode: row.Mode, Disposition: row.Disposition, Reason: row.Reason, ReceivedAt: row.ReceivedAt, EnrichedAt: row.EnrichedAt, Enrichment: row.Enrichment}
 }
 
-func (c *Configuration) ListAutomationHistory(ctx context.Context, actor Actor, before string) ([]AutomationHistoryItem, error) {
+// AutomationHistoryFilter narrows persisted run history. Every field is
+// optional; tenant scope always comes from the actor, never the filter.
+type AutomationHistoryFilter struct {
+	Before       string            `json:"before"`
+	DefinitionID string            `json:"definitionId"`
+	VersionID    string            `json:"versionId"`
+	SourceAppID  string            `json:"sourceAppId"`
+	Family       automation.Family `json:"family"`
+	Status       string            `json:"status"`
+	Since        *time.Time        `json:"since"`
+	Until        *time.Time        `json:"until"`
+}
+
+var automationRunStatuses = []string{"queued", "running", "succeeded", "skipped", "failed", "needs_attention", "cancelled"}
+
+func (c *Configuration) ListAutomationHistory(ctx context.Context, actor Actor, filter AutomationHistoryFilter) ([]AutomationHistoryItem, error) {
 	if err := c.AuthorizeRead(ctx, actor); err != nil {
 		return nil, err
 	}
-	if len(before) > 64 {
+	if len(filter.Before) > 64 || len(filter.DefinitionID) > 64 || len(filter.VersionID) > 64 || len(filter.SourceAppID) > 64 ||
+		(filter.Family != "" && !automation.ValidFamily(filter.Family)) || (filter.Status != "" && !slices.Contains(automationRunStatuses, filter.Status)) {
 		return nil, ErrInvalidInput
 	}
-	query := c.client.ReleaseAutomationRun.Query().Where(releaseautomationrun.OrganizationID(actor.OrganizationID))
-	if before != "" {
-		query.Where(releaseautomationrun.IDLT(before))
+	org := actor.OrganizationID
+	query := c.client.ReleaseAutomationRun.Query().Where(releaseautomationrun.OrganizationID(org))
+	if filter.Before != "" {
+		query.Where(releaseautomationrun.IDLT(filter.Before))
+	}
+	if filter.DefinitionID != "" {
+		query.Where(releaseautomationrun.DefinitionID(filter.DefinitionID))
+	}
+	if filter.VersionID != "" {
+		query.Where(releaseautomationrun.VersionID(filter.VersionID))
+	}
+	if filter.Status != "" {
+		query.Where(releaseautomationrun.Status(filter.Status))
+	}
+	if filter.Since != nil {
+		query.Where(releaseautomationrun.CreatedAtGTE(*filter.Since))
+	}
+	if filter.Until != nil {
+		query.Where(releaseautomationrun.CreatedAtLT(*filter.Until))
+	}
+	if filter.SourceAppID != "" || filter.Family != "" {
+		query.Where(func(s *sql.Selector) {
+			events := sql.Table(releasesourceevent.Table)
+			matching := sql.Select(events.C(releasesourceevent.FieldID)).From(events).Where(sql.EQ(events.C(releasesourceevent.FieldOrganizationID), org))
+			if filter.SourceAppID != "" {
+				matching.Where(sql.EQ(events.C(releasesourceevent.FieldSourceAppID), filter.SourceAppID))
+			}
+			if filter.Family != "" {
+				matching.Where(sqljson.ValueEQ(events.C(releasesourceevent.FieldSnapshot), string(filter.Family), sqljson.Path("family")))
+			}
+			s.Where(sql.In(s.C(releaseautomationrun.FieldEventID), matching))
+		})
 	}
 	runs, err := query.Order(ent.Desc(releaseautomationrun.FieldID)).Limit(50).All(ctx)
 	if err != nil {
 		return nil, err
 	}
+	eventIDs, versionIDs := []string{}, []string{}
+	for _, run := range runs {
+		eventIDs = append(eventIDs, run.EventID)
+		if run.VersionID != nil {
+			versionIDs = append(versionIDs, *run.VersionID)
+		}
+	}
+	events, err := c.client.ReleaseSourceEvent.Query().Where(releasesourceevent.IDIn(eventIDs...), releasesourceevent.OrganizationID(org)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	byID := map[string]*ent.ReleaseSourceEvent{}
+	for _, event := range events {
+		byID[event.ID] = event
+	}
+	revisions, err := c.automationRevisions(ctx, org, versionIDs)
+	if err != nil {
+		return nil, err
+	}
 	result := []AutomationHistoryItem{}
 	for _, run := range runs {
-		event, err := c.client.ReleaseSourceEvent.Query().Where(releasesourceevent.ID(run.EventID), releasesourceevent.OrganizationID(actor.OrganizationID)).Only(ctx)
-		if err != nil {
-			return nil, err
+		event, ok := byID[run.EventID]
+		if !ok {
+			return nil, publishing.ErrNotFound
 		}
-		result = append(result, AutomationHistoryItem{Event: automationEvent(event), Run: automationRun(run)})
+		item := AutomationHistoryItem{Event: automationEvent(event), Run: automationRun(run)}
+		if run.VersionID != nil {
+			if revision, ok := revisions[*run.VersionID]; ok {
+				item.Run.VersionRevision = &revision
+			}
+		}
+		result = append(result, item)
 	}
 	return result, nil
+}
+
+func (c *Configuration) automationRevisions(ctx context.Context, org string, ids []string) (map[string]int, error) {
+	result := map[string]int{}
+	if len(ids) == 0 {
+		return result, nil
+	}
+	versions, err := c.client.ReleaseAutomationVersion.Query().Where(releaseautomationversion.IDIn(ids...), releaseautomationversion.OrganizationID(org)).Select(releaseautomationversion.FieldID, releaseautomationversion.FieldRevision).All(ctx)
+	for _, version := range versions {
+		result[version.ID] = version.Revision
+	}
+	return result, err
+}
+
+// automationRunCounts counts every persisted run of the workspace by status.
+func (c *Configuration) automationRunCounts(ctx context.Context, org string) (map[string]int, error) {
+	var rows []struct {
+		Status string `json:"status"`
+		Count  int    `json:"count"`
+	}
+	err := c.client.ReleaseAutomationRun.Query().Where(releaseautomationrun.OrganizationID(org)).GroupBy(releaseautomationrun.FieldStatus).Aggregate(ent.Count()).Scan(ctx, &rows)
+	result := map[string]int{}
+	for _, status := range automationRunStatuses {
+		result[status] = 0
+	}
+	for _, row := range rows {
+		result[row.Status] = row.Count
+	}
+	return result, err
+}
+
+// AutomationRunSummary is a definition's newest run, for dashboards.
+type AutomationRunSummary struct {
+	ID        string    `json:"id"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+// attachLastRuns adds each definition's newest run and its 30-day run count.
+// Run IDs are time-ordered cuids, so the greatest ID is the newest run.
+func (c *Configuration) attachLastRuns(ctx context.Context, org string, definitions []AutomationDefinition) error {
+	var rows []struct {
+		DefinitionID string `json:"definitionId"`
+		Last         string `json:"last"`
+		Count        int    `json:"count"`
+	}
+	err := c.client.ReleaseAutomationRun.Query().Where(releaseautomationrun.OrganizationID(org), releaseautomationrun.DefinitionIDNotNil(), releaseautomationrun.CreatedAtGTE(time.Now().AddDate(0, 0, -30))).
+		GroupBy(releaseautomationrun.FieldDefinitionID).Aggregate(ent.As(ent.Max(releaseautomationrun.FieldID), "last"), ent.Count()).Scan(ctx, &rows)
+	if err != nil || len(rows) == 0 {
+		return err
+	}
+	ids := []string{}
+	for _, row := range rows {
+		ids = append(ids, row.Last)
+	}
+	runs, err := c.client.ReleaseAutomationRun.Query().Where(releaseautomationrun.IDIn(ids...), releaseautomationrun.OrganizationID(org)).All(ctx)
+	if err != nil {
+		return err
+	}
+	for i := range definitions {
+		for _, row := range rows {
+			if row.DefinitionID != definitions[i].ID {
+				continue
+			}
+			definitions[i].RecentRuns = row.Count
+			for _, run := range runs {
+				if run.ID == row.Last {
+					definitions[i].LastRun = &AutomationRunSummary{ID: run.ID, Status: run.Status, CreatedAt: run.CreatedAt}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (c *Configuration) GetAutomationRun(ctx context.Context, actor Actor, id string) (*AutomationRunDetail, error) {
@@ -124,11 +272,22 @@ func (c *Configuration) GetAutomationRun(ctx context.Context, actor Actor, id st
 	if err != nil {
 		return nil, err
 	}
+	revisions := map[string]int{}
+	if run.VersionID != nil {
+		if revisions, err = c.automationRevisions(ctx, actor.OrganizationID, []string{*run.VersionID}); err != nil {
+			return nil, err
+		}
+	}
 	nodes, err := c.client.ReleaseAutomationNode.Query().Where(releaseautomationnode.OrganizationID(actor.OrganizationID), releaseautomationnode.RunID(id)).Order(ent.Asc(releaseautomationnode.FieldStartedAt), ent.Asc(releaseautomationnode.FieldID)).All(ctx)
 	if err != nil {
 		return nil, err
 	}
 	result := &AutomationRunDetail{AutomationHistoryItem: AutomationHistoryItem{Event: automationEvent(event), Run: automationRun(run)}, Nodes: []AutomationNodeExecution{}}
+	if run.VersionID != nil {
+		if revision, ok := revisions[*run.VersionID]; ok {
+			result.Run.VersionRevision = &revision
+		}
+	}
 	for _, node := range nodes {
 		result.Nodes = append(result.Nodes, AutomationNodeExecution{NodeID: node.NodeID, ActionKey: node.ActionKey, Status: node.Status, Attempts: node.Attempts, FailureCode: node.FailureCode, Decision: node.Decision, Outputs: node.Outputs, StartedAt: node.StartedAt, CompletedAt: node.CompletedAt})
 	}
@@ -194,9 +353,14 @@ func (c *Configuration) DisableReleaseAutomation(ctx context.Context, actor Acto
 
 // SetReleaseAutomationMode is the only way to leave sticky automation mode.
 // Returning to legacy intake is explicit and cancels previously admitted work.
-func (c *Configuration) SetReleaseAutomationMode(ctx context.Context, actor Actor, sourceID string, enabled bool, collectUnmatched *bool) error {
+// A branch changes which pull-request base the source watches for new events;
+// an empty branch watches the repository's default branch.
+func (c *Configuration) SetReleaseAutomationMode(ctx context.Context, actor Actor, sourceID string, enabled bool, collectUnmatched *bool, branch *string) error {
 	if err := c.authorizeAutomationAdmin(ctx, actor); err != nil {
 		return err
+	}
+	if branch != nil && (len(*branch) > 255 || strings.ContainsAny(*branch, " ~^:?*[\\\x00") || strings.HasPrefix(*branch, "-") || strings.Contains(*branch, "..")) {
+		return ErrInvalidInput
 	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
@@ -214,6 +378,11 @@ func (c *Configuration) SetReleaseAutomationMode(ctx context.Context, actor Acto
 	if collectUnmatched != nil {
 		update.SetAutomationCollectUnmatched(*collectUnmatched)
 	}
+	if branch != nil && *branch == "" {
+		update.ClearBranch()
+	} else if branch != nil {
+		update.SetBranch(*branch)
+	}
 	if err := update.Exec(ctx); err != nil {
 		return err
 	}
@@ -222,7 +391,11 @@ func (c *Configuration) SetReleaseAutomationMode(ctx context.Context, actor Acto
 			return err
 		}
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.release_automation_mode_changed", "source_app", sourceID, map[string]any{"enabled": enabled}); err != nil {
+	metadata := map[string]any{"enabled": enabled}
+	if branch != nil {
+		metadata["branch"] = *branch
+	}
+	if err := appendConfigurationAudit(ctx, tx, actor, "product.release_automation_mode_changed", "source_app", sourceID, metadata); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -467,6 +640,13 @@ func (c *Configuration) FinishReleaseAutomation(ctx context.Context, org, id, st
 	}
 	if err := appendConfigurationAudit(ctx, tx, Actor{OrganizationID: org, Kind: "service", Display: "release-automation", RequestID: id}, "product.release_automation_finished", "release_automation_run", id, map[string]any{"status": status, "failureCode": code}); err != nil {
 		return err
+	}
+	// Selected runs notify the workspace; unmatched events and skips stay quiet.
+	if kind := map[string]string{"succeeded": "workflow.completed", "failed": "workflow.needs_attention", "needs_attention": "workflow.needs_attention"}[status]; kind != "" && run.DefinitionID != nil {
+		payload := map[string]any{"background": true, "status": status, "failureCode": code, "definitionId": *run.DefinitionID}
+		if err := activity.Emit(ctx, tx, org, kind, "release_automation_run", id, "", fmt.Sprintf("%s:%d:%s", id, attempt, status), payload); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }

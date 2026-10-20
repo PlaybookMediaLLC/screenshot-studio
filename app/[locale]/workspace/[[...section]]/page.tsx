@@ -9,7 +9,11 @@ import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
 
 type WorkspacePageProps = {
   params: Promise<{ locale: string; section?: string[] }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
+
+/** Release automation moved to Workflows; old links and GitHub returns keep working. */
+const MOVED_SECTIONS: Record<string, string> = { 'release-automation': '/workflows' }
 
 export async function generateMetadata({ params }: WorkspacePageProps): Promise<Metadata> {
   const { section } = await params
@@ -17,8 +21,16 @@ export async function generateMetadata({ params }: WorkspacePageProps): Promise<
   return { title: `${found?.title ?? 'Settings'} · Settings` }
 }
 
-export default async function WorkspacePage({ params }: WorkspacePageProps) {
+export default async function WorkspacePage({ params, searchParams }: WorkspacePageProps) {
   const [{ locale, section: segments }, requestHeaders] = await Promise.all([params, headers()])
+  const moved = segments?.length === 1 ? MOVED_SECTIONS[segments[0]] : undefined
+  if (moved) {
+    const query = new URLSearchParams()
+    for (const [key, value] of Object.entries(await searchParams)) {
+      for (const item of [value ?? []].flat()) query.append(key, item)
+    }
+    redirect(getLocalizedPath(locale, query.size ? `${moved}?${query}` : moved))
+  }
   const section = segments && segments.length > 1 ? undefined : findSettingsSection(segments?.[0])
   if (!section) notFound()
   const access = await getPageAccess(requestHeaders)

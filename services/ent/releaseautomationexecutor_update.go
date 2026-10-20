@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationexecutor"
@@ -25,6 +26,18 @@ type ReleaseAutomationExecutorUpdate struct {
 // Where appends a list predicates to the ReleaseAutomationExecutorUpdate builder.
 func (_u *ReleaseAutomationExecutorUpdate) Where(ps ...predicate.ReleaseAutomationExecutor) *ReleaseAutomationExecutorUpdate {
 	_u.mutation.Where(ps...)
+	return _u
+}
+
+// SetCapabilities sets the "capabilities" field.
+func (_u *ReleaseAutomationExecutorUpdate) SetCapabilities(v []string) *ReleaseAutomationExecutorUpdate {
+	_u.mutation.SetCapabilities(v)
+	return _u
+}
+
+// AppendCapabilities appends value to the "capabilities" field.
+func (_u *ReleaseAutomationExecutorUpdate) AppendCapabilities(v []string) *ReleaseAutomationExecutorUpdate {
+	_u.mutation.AppendCapabilities(v)
 	return _u
 }
 
@@ -83,6 +96,14 @@ func (_u *ReleaseAutomationExecutorUpdate) sqlSave(ctx context.Context) (_node i
 			}
 		}
 	}
+	if value, ok := _u.mutation.Capabilities(); ok {
+		_spec.SetField(releaseautomationexecutor.FieldCapabilities, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedCapabilities(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, releaseautomationexecutor.FieldCapabilities, value)
+		})
+	}
 	if value, ok := _u.mutation.ExpiresAt(); ok {
 		_spec.SetField(releaseautomationexecutor.FieldExpiresAt, field.TypeTime, value)
 	}
@@ -104,6 +125,18 @@ type ReleaseAutomationExecutorUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ReleaseAutomationExecutorMutation
+}
+
+// SetCapabilities sets the "capabilities" field.
+func (_u *ReleaseAutomationExecutorUpdateOne) SetCapabilities(v []string) *ReleaseAutomationExecutorUpdateOne {
+	_u.mutation.SetCapabilities(v)
+	return _u
+}
+
+// AppendCapabilities appends value to the "capabilities" field.
+func (_u *ReleaseAutomationExecutorUpdateOne) AppendCapabilities(v []string) *ReleaseAutomationExecutorUpdateOne {
+	_u.mutation.AppendCapabilities(v)
+	return _u
 }
 
 // SetExpiresAt sets the "expires_at" field.
@@ -190,6 +223,14 @@ func (_u *ReleaseAutomationExecutorUpdateOne) sqlSave(ctx context.Context) (_nod
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.Capabilities(); ok {
+		_spec.SetField(releaseautomationexecutor.FieldCapabilities, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedCapabilities(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, releaseautomationexecutor.FieldCapabilities, value)
+		})
 	}
 	if value, ok := _u.mutation.ExpiresAt(); ok {
 		_spec.SetField(releaseautomationexecutor.FieldExpiresAt, field.TypeTime, value)

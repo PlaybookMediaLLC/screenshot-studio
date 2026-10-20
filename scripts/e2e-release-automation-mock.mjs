@@ -12,6 +12,10 @@ const installation = {
   suspended_at: null,
 }
 let mailCount = 0
+let modelCalls = 0
+// Calls per campaign post: fixture workspaces share one installation, so a
+// test counts the calls for its own posts, not every tenant's.
+const modelPosts = {}
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, `http://localhost:${port}`)
   const json = (body, status = 200) => {
@@ -23,7 +27,51 @@ const server = createServer(async (request, response) => {
     response.end()
   }
   if (url.pathname === '/health') return json({ ready: true })
-  if (url.pathname === '/__counts') return json({ mailCount })
+  if (url.pathname === '/__counts') return json({ mailCount, modelCalls, modelPosts })
+  // A local stand-in for the OpenRouter chat API: it answers each requested
+  // post deterministically so tests can prove a run paid for one call only.
+  if (url.pathname === '/api/v1/chat/completions' && request.method === 'POST') {
+    if (request.headers.authorization !== 'Bearer fixture-only-local-model')
+      return json({ error: 'unauthorized' }, 401)
+    let body = ''
+    for await (const chunk of request) {
+      body += chunk
+      if (body.length > 1 << 20) return json({ error: 'too_large' }, 413)
+    }
+    modelCalls++
+    const chat = JSON.parse(body)
+    const prompt = chat.messages?.at(-1)?.content ?? ''
+    // Relevance checks judge the fenced change: maintenance is not marketing.
+    if (chat.response_format?.json_schema?.name === 'workflow_relevance') {
+      const change = prompt.split('<change trust="untrusted">')[1] ?? ''
+      const worthy = !/\b(chore|bump)\b/i.test(change)
+      return json({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                marketingWorthy: worthy,
+                confidence: worthy ? 0.88 : 0.93,
+                rationale: worthy
+                  ? 'Customers get a visible improvement.'
+                  : 'Only maintenance changes.',
+              }),
+            },
+          },
+        ],
+        usage: { prompt_tokens: 400, completion_tokens: 30, cost: 0.004 },
+      })
+    }
+    const posts = [...prompt.matchAll(/^- postId (\S+): (\S+),/gm)].map(([, postId, channel]) => ({
+      postId,
+      copy: `Fixture AI copy for ${channel}: exports now finish faster and more reliably.`,
+    }))
+    for (const { postId } of posts) modelPosts[postId] = (modelPosts[postId] ?? 0) + 1
+    return json({
+      choices: [{ message: { content: JSON.stringify({ posts }) } }],
+      usage: { prompt_tokens: 900, completion_tokens: 60, cost: 0.031 },
+    })
+  }
   if (url.pathname === '/login/oauth/authorize') {
     const callback = new URL('/integrations/github/callback', appURL)
     callback.searchParams.set('state', url.searchParams.get('state') ?? '')

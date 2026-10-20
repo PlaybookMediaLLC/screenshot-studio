@@ -83,28 +83,6 @@ export async function grantWorkspacePlan(organizationId: string, plan: string): 
 }
 
 /**
- * Turn one feature on for a workspace, the way a design-partner override
- * does, so a spec does not depend on an environment-wide flag.
- */
-export async function grantWorkspaceFeature(
-  organizationId: string,
-  feature: string
-): Promise<void> {
-  const database = createE2EDatabase()
-  try {
-    await database.query(
-      `UPDATE workspace_entitlement
-       SET "featureOverrides" = COALESCE("featureOverrides", '{}'::jsonb) || jsonb_build_object($2::text, true),
-           "updatedAt" = now()
-       WHERE "organizationId" = $1`,
-      [organizationId, feature]
-    )
-  } finally {
-    await database.end()
-  }
-}
-
-/**
  * Drop every rate-limit counter.
  *
  * The invitation policy allows 10 requests per hour and is keyed by client

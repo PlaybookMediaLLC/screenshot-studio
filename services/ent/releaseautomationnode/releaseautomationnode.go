@@ -32,6 +32,10 @@ const (
 	FieldDecision = "decision"
 	// FieldOutputs holds the string denoting the outputs field in the database.
 	FieldOutputs = "outputs"
+	// FieldGeneration holds the string denoting the generation field in the database.
+	FieldGeneration = "generation"
+	// FieldCharged holds the string denoting the charged field in the database.
+	FieldCharged = "charged"
 	// FieldStartedAt holds the string denoting the started_at field in the database.
 	FieldStartedAt = "startedAt"
 	// FieldCompletedAt holds the string denoting the completed_at field in the database.
@@ -52,6 +56,8 @@ var Columns = []string{
 	FieldFailureCode,
 	FieldDecision,
 	FieldOutputs,
+	FieldGeneration,
+	FieldCharged,
 	FieldStartedAt,
 	FieldCompletedAt,
 }
@@ -75,6 +81,8 @@ var (
 	DefaultFailureCode string
 	// DefaultOutputs holds the default value on creation for the "outputs" field.
 	DefaultOutputs releaseautomation.Outputs
+	// DefaultCharged holds the default value on creation for the "charged" field.
+	DefaultCharged bool
 	// DefaultStartedAt holds the default value on creation for the "started_at" field.
 	DefaultStartedAt func() time.Time
 )
@@ -120,6 +128,11 @@ func ByAttempts(opts ...sql.OrderTermOption) OrderOption {
 // ByFailureCode orders the results by the failure_code field.
 func ByFailureCode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFailureCode, opts...).ToFunc()
+}
+
+// ByCharged orders the results by the charged field.
+func ByCharged(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCharged, opts...).ToFunc()
 }
 
 // ByStartedAt orders the results by the started_at field.

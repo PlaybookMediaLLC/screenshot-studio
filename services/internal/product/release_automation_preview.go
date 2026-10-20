@@ -3,10 +3,12 @@ package product
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacegithubinstallation"
@@ -15,6 +17,7 @@ import (
 )
 
 type AutomationSource struct {
+	Branch             string `json:"branch"`
 	CollectUnmatched   bool   `json:"collectUnmatched"`
 	ConnectionState    string `json:"connectionState"`
 	ID                 string `json:"id"`
@@ -29,13 +32,55 @@ type AutomationChoice struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
+
+// AutomationActionAvailability says whether the backend can execute an action
+// for this workspace now, and if not, what has to be configured first.
+type AutomationActionAvailability struct {
+	Type      string `json:"type"`
+	Available bool   `json:"available"`
+	Reason    string `json:"reason"`
+}
+
 type AutomationOverview struct {
 	Definitions       []AutomationDefinition                  `json:"definitions"`
 	Sources           []AutomationSource                      `json:"sources"`
 	Brands            []AutomationChoice                      `json:"brands"`
 	Destinations      []AutomationChoice                      `json:"destinations"`
+	Surfaces          []AutomationChoice                      `json:"surfaces"`
 	Fields            map[automation.Family]map[string]string `json:"fields"`
 	ExecutorAvailable bool                                    `json:"executorAvailable"`
+	Executor          AutomationExecutor                      `json:"executor"`
+	Actions           []AutomationActionAvailability          `json:"actions"`
+	RunCounts         map[string]int                          `json:"runCounts"`
+}
+
+// automationActions reports the registered actions against live workers and
+// workspace entitlements. Activation and every activity check them again.
+func (c *Configuration) automationActions(ctx context.Context, org string, executor AutomationExecutor) ([]AutomationActionAvailability, error) {
+	result := []AutomationActionAvailability{}
+	for _, action := range []struct{ kind, feature string }{{"create_release", "release:create"}, {"create_campaign", "campaign:workflow"}, {"generate_copy", "campaign:workflow"},
+		{"render_creatives", "campaign:workflow"}, {"submit_review", "release:create"}, {"classify", "release:create"}} {
+		item := AutomationActionAvailability{Type: action.kind, Available: true}
+		err := c.requireWorkspaceFeature(ctx, org, action.feature)
+		var entitlement *FeatureNotEntitledError
+		switch {
+		case errors.As(err, &entitlement):
+			item.Reason = "Your plan does not include this action. Upgrade to " + entitlement.RequiredPlan + " to use it."
+		case err != nil:
+			return nil, err
+		case !executor.Available:
+			item.Reason = "No workflow worker is running. You can save and test drafts; activation waits for a worker."
+		case (action.kind == "generate_copy" || action.kind == "classify" || action.kind == "render_creatives") && executor.SchemaVersion < 2:
+			item.Reason = "Running workers predate workflow language version 2. Deploy the current product worker."
+		case (action.kind == "generate_copy" || action.kind == "classify") && !slices.Contains(executor.Capabilities, automation.CapabilityAI):
+			item.Reason = "No worker has an AI model provider and credit meter configured (OPENROUTER_API_KEY, REDIS_URL)."
+		case action.kind == "render_creatives" && !slices.Contains(executor.Capabilities, automation.CapabilityRender):
+			item.Reason = "No worker can reach the design renderer (PLATFORM_WORKFLOW_RENDER_URL, PLATFORM_WORKFLOW_RENDER_KEY)."
+		}
+		item.Available = item.Reason == ""
+		result = append(result, item)
+	}
+	return result, nil
 }
 
 func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Actor) (*AutomationOverview, error) {
@@ -43,12 +88,29 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 	if err != nil {
 		return nil, err
 	}
-	result := &AutomationOverview{Definitions: definitions, Sources: []AutomationSource{}, Brands: []AutomationChoice{}, Destinations: []AutomationChoice{}, Fields: map[automation.Family]map[string]string{}}
-	result.ExecutorAvailable, err = c.ReleaseAutomationAvailable(ctx)
+	result := &AutomationOverview{Definitions: definitions, Sources: []AutomationSource{}, Brands: []AutomationChoice{}, Destinations: []AutomationChoice{}, Surfaces: []AutomationChoice{}, Fields: map[automation.Family]map[string]string{}}
+	surfaces, err := c.client.ProductSurface.Query().Where(productsurface.OrganizationID(actor.OrganizationID)).Order(ent.Asc(productsurface.FieldName)).All(ctx)
 	if err != nil {
 		return nil, err
 	}
-	for _, family := range []automation.Family{automation.Published, automation.Merged, automation.Deployed} {
+	for _, surface := range surfaces {
+		result.Surfaces = append(result.Surfaces, AutomationChoice{ID: surface.ID, Name: surface.Name})
+	}
+	result.Executor, err = c.ReleaseAutomationExecutor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result.ExecutorAvailable = result.Executor.Available
+	if result.Actions, err = c.automationActions(ctx, actor.OrganizationID, result.Executor); err != nil {
+		return nil, err
+	}
+	if result.RunCounts, err = c.automationRunCounts(ctx, actor.OrganizationID); err != nil {
+		return nil, err
+	}
+	if err := c.attachLastRuns(ctx, actor.OrganizationID, result.Definitions); err != nil {
+		return nil, err
+	}
+	for _, family := range []automation.Family{automation.Published, automation.Merged, automation.Deployed, automation.TagPushed, automation.MilestoneClosed} {
 		result.Fields[family] = automation.FieldKinds(family)
 	}
 	sources, err := c.client.SourceApp.Query().Where(sourceapp.OrganizationID(actor.OrganizationID), sourceapp.Provider("github"), sourceapp.GithubInstallationIDNotNil()).Order(ent.Asc(sourceapp.FieldName)).All(ctx)
@@ -58,6 +120,9 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 	for _, source := range sources {
 		item := AutomationSource{ID: source.ID, Name: source.Name, Status: string(source.Status), Mode: "legacy", InstallationStatus: "DELETED"}
 		item.CollectUnmatched = source.AutomationCollectUnmatched
+		if source.Branch != nil {
+			item.Branch = *source.Branch
+		}
 		if source.ExternalID != nil {
 			item.RepositoryID = *source.ExternalID
 		}
@@ -115,6 +180,9 @@ type AutomationPreviewInput struct {
 	Graph       automation.Graph  `json:"graph"`
 	EventID     string            `json:"eventId"`
 	Example     *automation.Event `json:"example"`
+	// AssumeIrrelevant previews AI relevance checks answering "not worth
+	// marketing"; previews never call a model.
+	AssumeIrrelevant bool `json:"assumeIrrelevant"`
 }
 type AutomationPreview struct {
 	automation.Preview
@@ -158,7 +226,7 @@ func (c *Configuration) PreviewReleaseAutomation(ctx context.Context, actor Acto
 			return nil, ErrInvalidInput
 		}
 	}
-	preview := automation.DryRun(input.Graph, snapshot)
+	preview := automation.DryRunAssuming(input.Graph, snapshot, !input.AssumeIrrelevant)
 	// Preview predicts activation, which opts the source into automation mode.
 	source.ReleaseAutomation = true
 	if filter := automationSourceFilter(source, snapshot); filter != "" && len(preview.Issues) == 0 {

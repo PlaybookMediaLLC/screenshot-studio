@@ -1923,6 +1923,7 @@ var (
 	ReleaseAutomationExecutorColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "schemaVersion", Type: field.TypeInt},
+		{Name: "capabilities", Type: field.TypeJSON},
 		{Name: "expiresAt", Type: field.TypeTime},
 	}
 	// ReleaseAutomationExecutorTable holds the schema information for the "release_automation_executor" table.
@@ -1943,6 +1944,8 @@ var (
 		{Name: "failureCode", Type: field.TypeString, Default: ""},
 		{Name: "decision", Type: field.TypeJSON, Nullable: true},
 		{Name: "outputs", Type: field.TypeJSON},
+		{Name: "generation", Type: field.TypeJSON, Nullable: true},
+		{Name: "charged", Type: field.TypeBool, Default: false},
 		{Name: "startedAt", Type: field.TypeTime},
 		{Name: "completedAt", Type: field.TypeTime, Nullable: true},
 	}

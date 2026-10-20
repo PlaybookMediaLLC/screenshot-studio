@@ -4,11 +4,16 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"slices"
+	"strings"
 )
 
 var nodeID = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,64}$`)
+
+// templateID matches the web's design template catalog identifiers.
+var templateID = regexp.MustCompile(`^[a-z0-9-]{1,64}$`)
 
 // BoundedDraft applies storage limits even when a draft is semantically incomplete.
 func BoundedDraft(graph Graph) bool {
@@ -51,11 +56,16 @@ func Validate(graph Graph) []Issue {
 		add("", "graph_size", "Use at most 32 KiB, 64 nodes, 128 edges, and condition depth 8.")
 		return issues
 	}
-	if graph.SchemaVersion != SchemaVersion {
+	if graph.SchemaVersion < 1 || graph.SchemaVersion > SchemaVersion {
 		add("", "schema_version", "This executor does not support the graph schema.")
 	}
 	if !ValidFamily(graph.Family) {
 		add("", "event_family", "Select a supported event family.")
+	} else if graph.SchemaVersion < FamilyVersion(graph.Family) {
+		add("", "schema_version", "This trigger requires workflow language version 2.")
+	}
+	if graph.SchemaVersion < 2 && usesV2Condition(graph) {
+		add("", "schema_version", "These fields or comparison operators require workflow language version 2.")
 	}
 	if reason := ValidateCondition(graph.Qualification, graph.Family); reason != "" {
 		add("", "qualification", reason)
@@ -65,13 +75,13 @@ func Validate(graph Graph) []Issue {
 		return issues
 	}
 	nodes, outgoing, incoming := map[string]Node{}, map[string][]Edge{}, map[string][]string{}
-	trigger := ""
+	trigger, generations, classifiers, renders := "", 0, 0, 0
 	for _, n := range graph.Nodes {
 		if _, ok := nodes[n.ID]; ok || !nodeID.MatchString(n.ID) {
 			add(n.ID, "node_id", "Node IDs must be unique letters, numbers, underscores, or hyphens.")
 		}
 		nodes[n.ID] = n
-		if n.Type != "condition" && n.Condition != nil || n.Type != "action" && n.Action != nil || n.Type != "end" && n.Outcome != "" {
+		if n.Type != "condition" && n.Condition != nil || n.Type != "classify" && n.Classify != nil || n.Type != "action" && n.Action != nil || n.Type != "end" && n.Outcome != "" {
 			add(n.ID, "node_config", "Configuration does not belong to this node type.")
 		}
 		switch n.Type {
@@ -87,8 +97,25 @@ func Validate(graph Graph) []Issue {
 				add(n.ID, "condition", reason)
 			}
 		case "action":
-			if reason := validateAction(n.Action); reason != "" {
+			if reason := validateAction(n.Action, graph.SchemaVersion); reason != "" {
 				add(n.ID, "action", reason)
+			}
+			if n.Action != nil && n.Action.Type == "generate_copy" {
+				if generations++; generations > MaxGenerationNodes {
+					add(n.ID, "generation_limit", fmt.Sprintf("A workflow can generate copy at most %d times per run.", MaxGenerationNodes))
+				}
+			}
+			if n.Action != nil && n.Action.Type == "render_creatives" {
+				if renders++; renders > 1 {
+					add(n.ID, "render_limit", "A workflow can render creatives once per run.")
+				}
+			}
+		case "classify":
+			if reason := validateClassify(n.Classify, graph.SchemaVersion); reason != "" {
+				add(n.ID, "classify", reason)
+			}
+			if classifiers++; classifiers > MaxClassifyNodes {
+				add(n.ID, "classify_limit", fmt.Sprintf("A workflow can ask the AI at most %d times per run.", MaxClassifyNodes))
 			}
 		case "end":
 			if n.Outcome != "completed" && n.Outcome != "skipped" {
@@ -114,7 +141,7 @@ func Validate(graph Graph) []Issue {
 	for _, n := range graph.Nodes {
 		edges := outgoing[n.ID]
 		switch n.Type {
-		case "condition":
+		case "condition", "classify":
 			if len(edges) != 2 || edges[0].Branch == edges[1].Branch || !slices.Contains([]string{"true", "false"}, edges[0].Branch) || !slices.Contains([]string{"true", "false"}, edges[1].Branch) {
 				add(n.ID, "condition_edges", "Connect exactly one true and one false edge.")
 			}
@@ -205,7 +232,7 @@ func outputOf(action string) string {
 	switch action {
 	case "create_release":
 		return "releaseId"
-	case "create_campaign":
+	case "create_campaign", "generate_copy", "render_creatives":
 		return "campaignId"
 	case "submit_review":
 		return "reviewIds"
@@ -213,12 +240,21 @@ func outputOf(action string) string {
 	return ""
 }
 
-func validateAction(action *Action) string {
+func validateAction(action *Action, version int) string {
 	if action == nil {
 		return "Choose an action."
 	}
 	if len(action.Audience) > 1000 || len(action.CallToAction) > 300 || len(action.BrandKitID) > 64 || len(action.DestinationIDs) > 10 {
 		return "Action configuration exceeds its limit."
+	}
+	if action.CreditLimit != 0 && action.Type != "generate_copy" {
+		return "Only copy generation spends AI credits."
+	}
+	if action.Include != "" && (action.Type != "create_release" || action.Include != "unreleased" || version < 2) {
+		return "Release contents apply to create release in language version 2."
+	}
+	if (len(action.TemplateIDs) > 0 || action.SurfaceID != "") && action.Type != "render_creatives" {
+		return "Templates and surfaces belong to render creatives."
 	}
 	switch action.Type {
 	case "create_release":
@@ -239,6 +275,39 @@ func validateAction(action *Action) string {
 			}
 			seen[id] = true
 		}
+	case "generate_copy":
+		if version < 2 {
+			return "Copy generation requires workflow language version 2."
+		}
+		if action.Input == nil || action.Input.Output != "campaignId" {
+			return "Generate copy requires a campaign output."
+		}
+		if action.CreditLimit < 1 || action.CreditLimit > MaxCreditLimit {
+			return fmt.Sprintf("Set an AI credit limit from 1 to %d.", MaxCreditLimit)
+		}
+		if action.BrandKitID != "" || len(action.DestinationIDs) > 0 || action.Audience != "" || action.CallToAction != "" {
+			return "Generate copy uses the campaign's brand and destinations."
+		}
+	case "render_creatives":
+		if version < 2 {
+			return "Rendering creatives requires workflow language version 2."
+		}
+		if action.Input == nil || action.Input.Output != "campaignId" {
+			return "Render creatives requires a campaign output."
+		}
+		if len(action.TemplateIDs) == 0 || len(action.TemplateIDs) > MaxRenderTemplates {
+			return fmt.Sprintf("Choose 1–%d design templates.", MaxRenderTemplates)
+		}
+		seen := map[string]bool{}
+		for _, id := range action.TemplateIDs {
+			if !templateID.MatchString(id) || seen[id] {
+				return "Template IDs must be unique catalog identifiers."
+			}
+			seen[id] = true
+		}
+		if len(action.SurfaceID) > 64 || action.BrandKitID != "" || len(action.DestinationIDs) > 0 || action.Audience != "" || action.CallToAction != "" {
+			return "Render creatives uses the campaign's brand and a product surface."
+		}
 	case "submit_review":
 		if action.Input == nil || action.Input.Output != "campaignId" {
 			return "Submit review requires a campaign output."
@@ -250,6 +319,37 @@ func validateAction(action *Action) string {
 		return "This action is not supported by the executor."
 	}
 	return ""
+}
+
+func validateClassify(c *Classify, version int) string {
+	switch {
+	case c == nil:
+		return "Describe what makes a change worth marketing."
+	case version < 2:
+		return "AI relevance checks require workflow language version 2."
+	case len([]rune(strings.TrimSpace(c.Criteria))) < 10 || len([]rune(c.Criteria)) > 1000 || strings.ContainsRune(c.Criteria, 0):
+		return "Criteria need 10–1,000 characters."
+	case c.Threshold < 0.5 || c.Threshold > 0.99:
+		return "Set a confidence threshold from 0.5 to 0.99."
+	case c.CreditLimit < 1 || c.CreditLimit > MaxClassifyCredits:
+		return fmt.Sprintf("Set an AI credit limit from 1 to %d.", MaxClassifyCredits)
+	}
+	return ""
+}
+
+// usesV2Condition finds version 2 fields or comparison operators anywhere.
+func usesV2Condition(graph Graph) bool {
+	var visit func(Condition) bool
+	visit = func(c Condition) bool {
+		if c.Field != "" && !v1Fields[c.Field] || slices.Contains([]string{"gt", "gte", "lt", "lte"}, c.Operator) {
+			return true
+		}
+		return slices.ContainsFunc(c.Children, visit)
+	}
+	if visit(graph.Qualification) {
+		return true
+	}
+	return slices.ContainsFunc(graph.Nodes, func(n Node) bool { return n.Condition != nil && visit(*n.Condition) })
 }
 
 // ContentHash excludes layout: moving a node cannot change execution semantics.
@@ -286,7 +386,11 @@ func FindNode(graph Graph, id string) Node {
 
 // DryRun predicts control flow only. Actions are listed, never invoked. No
 // action-output predicates exist in v1, so predicted IDs are never fabricated.
-func DryRun(graph Graph, event Event) Preview {
+func DryRun(graph Graph, event Event) Preview { return DryRunAssuming(graph, event, true) }
+
+// DryRunAssuming previews with AI relevance checks assumed to answer
+// relevant; a preview never calls a model.
+func DryRunAssuming(graph Graph, event Event, relevant bool) Preview {
 	result := Preview{Issues: Validate(graph), Steps: []Step{}, Outcome: "invalid"}
 	if len(result.Issues) > 0 {
 		return result
@@ -321,11 +425,23 @@ func DryRun(graph Graph, event Event) Preview {
 			if decision.Match {
 				branch = "true"
 			}
+		case "classify":
+			step.Decision = &Decision{Status: "assumed", Match: relevant, Reason: "Preview assumes this AI verdict; execution asks the model and pays for one call."}
+			branch = "false"
+			if relevant {
+				branch = "true"
+			}
 		case "action":
 			step.Action = n.Action.Type
 			step.Outcome = "Predicted action; output references remain unresolved until execution."
 			if n.Action.Type == "submit_review" {
 				step.Outcome = "Predicted review submission; human approval is required and this workflow ends."
+			}
+			if n.Action.Type == "generate_copy" {
+				step.Outcome = fmt.Sprintf("Predicted paid copy generation of up to %d AI credits; preview never calls a model.", n.Action.CreditLimit)
+			}
+			if n.Action.Type == "render_creatives" {
+				step.Outcome = fmt.Sprintf("Predicted render of %d creatives from the latest product capture; preview renders nothing.", len(n.Action.TemplateIDs))
 			}
 		case "end":
 			step.Outcome = n.Outcome

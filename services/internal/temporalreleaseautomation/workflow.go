@@ -21,8 +21,11 @@ const (
 	LegacyActivity  = "release-automation-legacy-v1"
 	CollectActivity = "release-automation-collect-v1"
 	FinishActivity  = "release-automation-finish-v1"
-	StoppedError    = "ReleaseAutomationStopped"
-	PermanentError  = "ReleaseAutomationInvalid"
+	// ClassifyActivity asks the AI whether an event is worth marketing and
+	// returns the verdict recorded on the node receipt.
+	ClassifyActivity = "release-automation-classify-v1"
+	StoppedError     = "ReleaseAutomationStopped"
+	PermanentError   = "ReleaseAutomationInvalid"
 )
 
 type Input struct {
@@ -162,7 +165,28 @@ func execute(ctx workflow.Context, input Input, finish *Finish) error {
 				branch = "true"
 			}
 		}
-		if err := workflow.ExecuteActivity(ctx, NodeActivity, step).Get(ctx, nil); err != nil {
+		// Only version 2 graphs contain AI, copy, and render nodes, so v1
+		// histories replay unchanged. Receipts persist model output and
+		// renders before completion, so these bounded retries never call,
+		// charge, or render twice.
+		paidCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 5 * time.Minute, RetryPolicy: &temporal.RetryPolicy{InitialInterval: 5 * time.Second, MaximumInterval: time.Minute, MaximumAttempts: 3, NonRetryableErrorTypes: []string{StoppedError, PermanentError}}})
+		if node.Type == "classify" {
+			var verdict automation.Decision
+			if err := workflow.ExecuteActivity(paidCtx, ClassifyActivity, step).Get(ctx, &verdict); err != nil {
+				return err
+			}
+			branch = "false"
+			if verdict.Match {
+				branch = "true"
+			}
+			id = automation.Next(selected.Graph, id, branch)
+			continue
+		}
+		nodeCtx := ctx
+		if node.Type == "action" && (node.Action.Type == "generate_copy" || node.Action.Type == "render_creatives") {
+			nodeCtx = paidCtx
+		}
+		if err := workflow.ExecuteActivity(nodeCtx, NodeActivity, step).Get(ctx, nil); err != nil {
 			return err
 		}
 		if node.Type == "action" && node.Action.Type == "submit_review" {

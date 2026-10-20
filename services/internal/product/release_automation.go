@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"slices"
 	"strings"
 	"time"
 
@@ -36,6 +37,8 @@ type AutomationDefinition struct {
 	ModifiedBy      string                         `json:"modifiedBy"`
 	UpdatedAt       time.Time                      `json:"updatedAt"`
 	Issues          []automation.Issue             `json:"issues"`
+	LastRun         *AutomationRunSummary          `json:"lastRun"`
+	RecentRuns      int                            `json:"recentRuns"`
 }
 
 type SaveAutomationInput struct {
@@ -204,21 +207,69 @@ func (c *Configuration) automationResources(ctx context.Context, org string, gra
 	return nil
 }
 
-// Executor availability is reported from a live worker's short capability lease.
-func (c *Configuration) ReleaseAutomationAvailable(ctx context.Context) (bool, error) {
-	return c.client.ReleaseAutomationExecutor.Query().Where(releaseautomationexecutor.SchemaVersion(automation.SchemaVersion), releaseautomationexecutor.ExpiresAtGT(time.Now())).Exist(ctx)
+// AutomationExecutor is the best live worker lease: the newest graph language
+// and the capabilities, such as AI copy, that some running worker can execute.
+type AutomationExecutor struct {
+	Available     bool     `json:"available"`
+	SchemaVersion int      `json:"schemaVersion"`
+	Capabilities  []string `json:"capabilities"`
+}
+
+// Executor availability is reported from live workers' short capability leases.
+func (c *Configuration) ReleaseAutomationExecutor(ctx context.Context) (AutomationExecutor, error) {
+	leases, err := c.client.ReleaseAutomationExecutor.Query().Where(releaseautomationexecutor.ExpiresAtGT(time.Now())).All(ctx)
+	result := AutomationExecutor{Capabilities: []string{}}
+	if err != nil {
+		return result, err
+	}
+	for _, lease := range leases {
+		result.Available = true
+		result.SchemaVersion = max(result.SchemaVersion, lease.SchemaVersion)
+		for _, capability := range lease.Capabilities {
+			if !slices.Contains(result.Capabilities, capability) {
+				result.Capabilities = append(result.Capabilities, capability)
+			}
+		}
+	}
+	return result, nil
+}
+
+// automationExecutable requires one live lease that runs the graph's language
+// and every capability it needs. Mixed fleets cannot combine two leases.
+func (c *Configuration) automationExecutable(ctx context.Context, graph automation.Graph) (bool, error) {
+	leases, err := c.client.ReleaseAutomationExecutor.Query().Where(releaseautomationexecutor.SchemaVersionGTE(graph.SchemaVersion), releaseautomationexecutor.ExpiresAtGT(time.Now())).All(ctx)
+	if err != nil {
+		return false, err
+	}
+	for _, lease := range leases {
+		if !slices.ContainsFunc(requiredCapabilities(graph), func(capability string) bool { return !slices.Contains(lease.Capabilities, capability) }) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// requiredCapabilities are the worker capabilities a graph's nodes need.
+func requiredCapabilities(graph automation.Graph) []string {
+	required := []string{}
+	for _, n := range graph.Nodes {
+		capability := ""
+		switch {
+		case n.Type == "classify", n.Action != nil && n.Action.Type == "generate_copy":
+			capability = automation.CapabilityAI
+		case n.Action != nil && n.Action.Type == "render_creatives":
+			capability = automation.CapabilityRender
+		}
+		if capability != "" && !slices.Contains(required, capability) {
+			required = append(required, capability)
+		}
+	}
+	return required
 }
 
 func (c *Configuration) ActivateReleaseAutomation(ctx context.Context, actor Actor, id string, revision int) (*AutomationDefinition, error) {
 	if err := c.authorizeAutomationAdmin(ctx, actor); err != nil {
 		return nil, err
-	}
-	available, err := c.ReleaseAutomationAvailable(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if !available {
-		return nil, conflict("No compatible release automation worker is available.")
 	}
 	row, err := c.client.ReleaseAutomation.Query().Where(releaseautomation.ID(id), releaseautomation.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if err != nil {
@@ -229,6 +280,13 @@ func (c *Configuration) ActivateReleaseAutomation(ctx context.Context, actor Act
 	}
 	if len(automation.Validate(row.Draft)) > 0 {
 		return nil, ErrInvalidInput
+	}
+	available, err := c.automationExecutable(ctx, row.Draft)
+	if err != nil {
+		return nil, err
+	}
+	if !available {
+		return nil, conflict("No running worker supports this workflow's language version and actions.")
 	}
 	if err := c.automationResources(ctx, actor.OrganizationID, row.Draft); err != nil {
 		return nil, err
@@ -288,17 +346,20 @@ func (c *Configuration) ActivateReleaseAutomation(ctx context.Context, actor Act
 }
 
 // AdvertiseReleaseAutomationExecutor renews a capability lease only after a
-// worker starts polling the v1 queue. Expiry disables activation, not history.
-func (c *Configuration) AdvertiseReleaseAutomationExecutor(ctx context.Context, id string) error {
+// worker starts polling the queue. Expiry disables activation, not history.
+func (c *Configuration) AdvertiseReleaseAutomationExecutor(ctx context.Context, id string, capabilities ...string) error {
 	expires := time.Now().Add(time.Minute)
-	n, err := c.client.ReleaseAutomationExecutor.Update().Where(releaseautomationexecutor.ID(id)).SetExpiresAt(expires).Save(ctx)
+	if capabilities == nil {
+		capabilities = []string{}
+	}
+	n, err := c.client.ReleaseAutomationExecutor.Update().Where(releaseautomationexecutor.ID(id)).SetExpiresAt(expires).SetCapabilities(capabilities).Save(ctx)
 	if err != nil {
 		return err
 	}
 	if n == 1 {
 		return nil
 	}
-	return c.client.ReleaseAutomationExecutor.Create().SetID(id).SetSchemaVersion(automation.SchemaVersion).SetExpiresAt(expires).Exec(ctx)
+	return c.client.ReleaseAutomationExecutor.Create().SetID(id).SetSchemaVersion(automation.SchemaVersion).SetCapabilities(capabilities).SetExpiresAt(expires).Exec(ctx)
 }
 
 type AutomationVersion struct {
@@ -307,6 +368,12 @@ type AutomationVersion struct {
 	Revision     int              `json:"revision"`
 	Graph        automation.Graph `json:"graph"`
 	ContentHash  string           `json:"contentHash"`
+	ActivatedBy  string           `json:"activatedBy"`
+	CreatedAt    time.Time        `json:"createdAt"`
+}
+
+func automationVersion(row *ent.ReleaseAutomationVersion) AutomationVersion {
+	return AutomationVersion{ID: row.ID, DefinitionID: row.DefinitionID, Revision: row.Revision, Graph: row.Graph, ContentHash: row.ContentHash, ActivatedBy: row.ActivatedBy, CreatedAt: row.CreatedAt}
 }
 
 func (c *Configuration) GetReleaseAutomationVersion(ctx context.Context, actor Actor, id string) (*AutomationVersion, error) {
@@ -317,5 +384,30 @@ func (c *Configuration) GetReleaseAutomationVersion(ctx context.Context, actor A
 	if err != nil {
 		return nil, err
 	}
-	return &AutomationVersion{ID: row.ID, DefinitionID: row.DefinitionID, Revision: row.Revision, Graph: row.Graph, ContentHash: row.ContentHash}, nil
+	version := automationVersion(row)
+	return &version, nil
+}
+
+// ListReleaseAutomationVersions returns a definition's immutable activated
+// revisions, newest first. Runs name the version they executed.
+func (c *Configuration) ListReleaseAutomationVersions(ctx context.Context, actor Actor, definitionID string) ([]AutomationVersion, error) {
+	if err := c.AuthorizeRead(ctx, actor); err != nil {
+		return nil, err
+	}
+	exists, err := c.client.ReleaseAutomation.Query().Where(releaseautomation.ID(definitionID), releaseautomation.OrganizationID(actor.OrganizationID)).Exist(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, publishing.ErrNotFound
+	}
+	rows, err := c.client.ReleaseAutomationVersion.Query().Where(releaseautomationversion.OrganizationID(actor.OrganizationID), releaseautomationversion.DefinitionID(definitionID)).Order(ent.Desc(releaseautomationversion.FieldRevision)).Limit(100).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := []AutomationVersion{}
+	for _, row := range rows {
+		result = append(result, automationVersion(row))
+	}
+	return result, nil
 }

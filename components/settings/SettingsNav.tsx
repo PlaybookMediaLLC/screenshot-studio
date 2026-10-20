@@ -37,7 +37,10 @@ export function SettingsNav() {
         <select
           className="h-9 rounded-lg border border-border bg-card px-2 text-sm text-foreground"
           onChange={(event) => router.push(event.target.value)}
-          value={SETTINGS_SECTIONS.find((section) => section.id === current)?.slug ?? ''}
+          value={(() => {
+            const section = SETTINGS_SECTIONS.find((item) => item.id === current)
+            return section ? settingsHref(section) : ''
+          })()}
         >
           {SETTING_GROUPS.map((group) => (
             <optgroup key={group.id} label={group.title}>

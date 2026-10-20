@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useState, useSyncExternalStore } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -33,6 +33,16 @@ export function browserTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 }
 
+const subscribeNever = () => () => {}
+
+/**
+ * True in the browser after hydration. The zone list, the browser's zone and
+ * the clock differ between server and browser, so they render only then.
+ */
+function useInBrowser(): boolean {
+  return useSyncExternalStore(subscribeNever, () => true, () => false)
+}
+
 /**
  * Picks an IANA time zone: search by region or city, see each zone's UTC
  * offset, detect the browser's zone, and preview what a time reads as.
@@ -53,23 +63,25 @@ export function TimeZonePicker({
 }) {
   const id = useId()
   const [query, setQuery] = useState('')
-  const zones = useMemo(() => allZones(), [])
+  const inBrowser = useInBrowser()
+  const zones = useMemo(() => (inBrowser ? allZones() : []), [inBrowser])
   const matches = useMemo(() => {
     const needle = query.trim().toLowerCase().replaceAll(' ', '_')
     const found = needle ? zones.filter((zone) => zone.toLowerCase().includes(needle)) : zones
     return value && !found.includes(value) ? [value, ...found] : found
   }, [query, value, zones])
-  const effective = value ?? browserTimeZone()
-  const preview = new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: effective,
-  }).format(new Date())
+  const browser = inBrowser ? browserTimeZone() : null
+  const effective = value ?? browser
+  const preview =
+    effective &&
+    new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: effective }).format(
+      new Date()
+    )
 
   return (
-    <div className="grid gap-2">
+    <div className="grid w-full min-w-0 gap-2">
       <div className="flex flex-wrap items-end gap-2">
-        <label className="grid min-w-48 flex-1 gap-1 text-sm" htmlFor={`${id}-search`}>
+        <label className="grid min-w-0 flex-1 basis-48 gap-1 text-sm" htmlFor={`${id}-search`}>
           <span className="text-xs text-muted-foreground">Search {label.toLowerCase()}</span>
           <Input
             disabled={disabled}
@@ -94,13 +106,15 @@ export function TimeZonePicker({
       <label className="grid gap-1 text-sm" htmlFor={`${id}-zone`}>
         <span className="font-medium text-foreground">{label}</span>
         <select
-          className="h-9 rounded-lg border border-border bg-card px-2 text-sm text-foreground disabled:opacity-60"
+          className="h-9 w-full min-w-0 rounded-lg border border-border bg-card px-2 text-sm text-foreground disabled:opacity-60"
           disabled={disabled}
           id={`${id}-zone`}
           onChange={(event) => onChange(event.target.value)}
           value={value ?? ''}
         >
-          {allowBrowser ? <option value="">Follow my browser ({zoneLabel(browserTimeZone())})</option> : null}
+          {allowBrowser ? (
+            <option value="">{browser ? `Follow my browser (${zoneLabel(browser)})` : 'Follow my browser'}</option>
+          ) : null}
           {matches.map((zone) => (
             <option key={zone} value={zone}>
               {zoneLabel(zone)}
@@ -109,7 +123,7 @@ export function TimeZonePicker({
         </select>
       </label>
       <p className="text-xs text-muted-foreground">
-        Now: {preview} ({utcOffset(effective)})
+        {preview && effective ? `Now: ${preview} (${utcOffset(effective)})` : '\u00a0'}
       </p>
     </div>
   )

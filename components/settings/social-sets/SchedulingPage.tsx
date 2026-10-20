@@ -106,95 +106,97 @@ export function SchedulingPage({ canManage, set }: { canManage: boolean; set: So
           }
           layout="stacked"
         >
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-sm">
-              <caption className="sr-only">Posting times by weekday in {set.timeZone}</caption>
-              <thead>
-                <tr className="text-xs text-muted-foreground">
-                  <th className="py-2 text-left font-medium" scope="col">
-                    Time
-                  </th>
-                  {days.map((day) => (
-                    <th className="py-2 text-center font-medium" key={day} scope="col">
-                      <abbr title={DAY_NAMES[day]}>{DAY_NAMES[day]!.slice(0, 3)}</abbr>
-                    </th>
-                  ))}
-                  <th className="sr-only" scope="col">
-                    Remove
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {times.length === 0 ? (
-                  <tr>
-                    <td className="py-4 text-muted-foreground" colSpan={9}>
-                      No posting times yet. The queue has nowhere to place drafts until you add one.
-                    </td>
-                  </tr>
-                ) : null}
-                {times.map((time) => (
-                  <tr className="border-t border-border" key={time}>
-                    <th className="py-2 text-left font-medium text-foreground" scope="row">
-                      {readableTime(time)}
+          <div className="grid w-full min-w-0 gap-3">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[34rem] text-sm">
+                <caption className="sr-only">Posting times by weekday in {set.timeZone}</caption>
+                <thead>
+                  <tr className="text-xs text-muted-foreground">
+                    <th className="py-2 text-left font-medium" scope="col">
+                      Time
                     </th>
                     {days.map((day) => (
-                      <td className="py-2 text-center" key={day}>
-                        <input
-                          aria-label={`${DAY_NAMES[day]} at ${readableTime(time)}`}
-                          checked={enabled(day, time)}
-                          className="size-4 accent-current"
-                          disabled={!canManage}
-                          onChange={(event) => toggle(day, time, event.target.checked)}
-                          type="checkbox"
-                        />
-                      </td>
+                      <th className="py-2 text-center font-medium" key={day} scope="col">
+                        <abbr title={DAY_NAMES[day]}>{DAY_NAMES[day]!.slice(0, 3)}</abbr>
+                      </th>
                     ))}
-                    <td className="py-2 text-right">
-                      <Button
-                        aria-label={`Remove ${readableTime(time)}`}
-                        disabled={!canManage}
-                        onClick={() => removeTime(time)}
-                        size="sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        Remove
-                      </Button>
-                    </td>
+                    <th className="sr-only" scope="col">
+                      Remove
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <form
-              className="flex items-center gap-2"
-              onSubmit={(event) => {
-                event.preventDefault()
-                addTime()
-              }}
-            >
-              <select
-                aria-label="Time to add"
-                className="h-9 rounded-lg border border-border bg-card px-2 text-sm"
-                disabled={!canManage}
-                onChange={(event) => setAdding(event.target.value)}
-                value={adding}
+                </thead>
+                <tbody>
+                  {times.length === 0 ? (
+                    <tr>
+                      <td className="py-4 text-muted-foreground" colSpan={9}>
+                        No posting times yet. The queue has nowhere to place drafts until you add one.
+                      </td>
+                    </tr>
+                  ) : null}
+                  {times.map((time) => (
+                    <tr className="border-t border-border" key={time}>
+                      <th className="py-2 text-left font-medium text-foreground" scope="row">
+                        {readableTime(time)}
+                      </th>
+                      {days.map((day) => (
+                        <td className="py-2 text-center" key={day}>
+                          <input
+                            aria-label={`${DAY_NAMES[day]} at ${readableTime(time)}`}
+                            checked={enabled(day, time)}
+                            className="size-4 accent-current"
+                            disabled={!canManage}
+                            onChange={(event) => toggle(day, time, event.target.checked)}
+                            type="checkbox"
+                          />
+                        </td>
+                      ))}
+                      <td className="py-2 text-right">
+                        <Button
+                          aria-label={`Remove ${readableTime(time)}`}
+                          disabled={!canManage}
+                          onClick={() => removeTime(time)}
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          Remove
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <form
+                className="flex items-center gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  addTime()
+                }}
               >
-                <option value="">Choose a time…</option>
-                {QUARTER_HOURS.filter((time) => !times.includes(time)).map((time) => (
-                  <option key={time} value={time}>
-                    {readableTime(time)}
-                  </option>
-                ))}
-              </select>
-              <Button disabled={!canManage || !adding} type="submit" variant="outline">
-                Add time
-              </Button>
-            </form>
-            <p aria-live="polite" className="text-sm text-foreground" data-testid="weekly-slot-count">
-              {weeklySlotCount(slots)} weekly posting slots
-            </p>
+                <select
+                  aria-label="Time to add"
+                  className="h-9 rounded-lg border border-border bg-card px-2 text-sm"
+                  disabled={!canManage}
+                  onChange={(event) => setAdding(event.target.value)}
+                  value={adding}
+                >
+                  <option value="">Choose a time…</option>
+                  {QUARTER_HOURS.filter((time) => !times.includes(time)).map((time) => (
+                    <option key={time} value={time}>
+                      {readableTime(time)}
+                    </option>
+                  ))}
+                </select>
+                <Button disabled={!canManage || !adding} type="submit" variant="outline">
+                  Add time
+                </Button>
+              </form>
+              <p aria-live="polite" className="text-sm text-foreground" data-testid="weekly-slot-count">
+                {weeklySlotCount(slots)} weekly posting slots
+              </p>
+            </div>
           </div>
         </Row>
       </Group>

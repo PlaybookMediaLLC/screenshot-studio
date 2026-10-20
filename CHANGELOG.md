@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.0...v2.24.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **slack:** preserve parameters on read API calls ([#214](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/214)) ([60beed8](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/60beed85f38895db5fcba0181351f239cb9e7f79))
+
 ## [2.24.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.23.0...v2.24.0) (2026-10-19)
 
 

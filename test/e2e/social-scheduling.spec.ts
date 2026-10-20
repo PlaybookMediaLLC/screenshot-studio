@@ -233,11 +233,9 @@ test('X OAuth start binds its one-use callback to the active workspace', async (
     await enablePublishingTwoFactor(page, identity.password)
     organizationId = await bindTestGoOrganization(page)
 
-    const start = await page
-      .context()
-      .request.get('http://localhost:3000/integrations/social/x/start', {
-        maxRedirects: 0,
-      })
+    const start = await page.context().request.get(getE2EUrl('/integrations/social/x/start'), {
+      maxRedirects: 0,
+    })
     expect(start.status(), `${await start.text()} ${backend.calls.map((call) => call.url)}`).toBe(
       303
     )
@@ -251,11 +249,16 @@ test('X OAuth start binds its one-use callback to the active workspace', async (
 
     await expectOAuthConnection(organizationId, integrationId, state, 'x')
 
+    // The channels page lists integrations through the social API as it loads.
+    // Let it settle and leave it, so the replay is the only request that could
+    // reach the social API.
+    await page.waitForLoadState('networkidle')
+    await page.goto('about:blank')
     const callsBeforeReplay = backend.calls.length
     const replay = await page
       .context()
       .request.get(
-        `http://localhost:3000/integrations/social/x?oauth_token=${state}&oauth_verifier=test-verifier`
+        getE2EUrl(`/integrations/social/x?oauth_token=${state}&oauth_verifier=test-verifier`)
       )
     expect(replay.status()).toBe(403)
     expect(backend.calls).toHaveLength(callsBeforeReplay)

@@ -170,7 +170,7 @@ export function WorkspaceMembersSettings({
   }
 
   if (!canRead) {
-    return <p className="text-sm text-neutral-500">Your role cannot view workspace members.</p>
+    return <p className="text-sm text-muted-foreground">Your role cannot view workspace members.</p>
   }
 
   return (
@@ -180,7 +180,7 @@ export function WorkspaceMembersSettings({
       ) : null}
       {message ? (
         <p
-          className="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 ring-1 ring-emerald-500/20"
+          className="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20"
           role="status"
         >
           {message}
@@ -188,7 +188,7 @@ export function WorkspaceMembersSettings({
       ) : null}
       {error ? (
         <p
-          className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-300 ring-1 ring-red-500/20"
+          className="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300 ring-1 ring-red-500/20"
           role="alert"
         >
           {error}
@@ -197,15 +197,15 @@ export function WorkspaceMembersSettings({
       <Group>
         {isLoading ? (
           <Row>
-            <p className="text-sm text-neutral-500">Loading members…</p>
+            <p className="text-sm text-muted-foreground">Loading members…</p>
           </Row>
         ) : members.length === 0 ? (
           <Row>
-            <p className="text-sm text-neutral-500">This workspace has no members yet.</p>
+            <p className="text-sm text-muted-foreground">This workspace has no members yet.</p>
           </Row>
         ) : (
           <>
-            <div className="px-5 py-3 text-xs font-medium text-neutral-500">
+            <div className="px-5 py-3 text-xs font-medium text-muted-foreground">
               {members.length} {members.length === 1 ? 'member' : 'members'}
             </div>
             {members.map((member) => (
@@ -237,11 +237,11 @@ export function WorkspaceMembersSettings({
           <Group>
             {isLoading ? (
               <Row>
-                <p className="text-sm text-neutral-500">Loading invitations…</p>
+                <p className="text-sm text-muted-foreground">Loading invitations…</p>
               </Row>
             ) : invitations.length === 0 ? (
               <Row>
-                <p className="text-sm text-neutral-500">No invitations are pending.</p>
+                <p className="text-sm text-muted-foreground">No invitations are pending.</p>
               </Row>
             ) : (
               invitations.map((invitation) => (
@@ -250,8 +250,8 @@ export function WorkspaceMembersSettings({
                   key={invitation.id}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-white">{invitation.email}</p>
-                    <p className="text-xs text-neutral-500">
+                    <p className="truncate text-sm text-foreground">{invitation.email}</p>
+                    <p className="text-xs text-muted-foreground">
                       <span className="capitalize">{invitation.role ?? 'viewer'}</span> · expires{' '}
                       {new Date(invitation.expiresAt).toLocaleDateString()}
                     </p>
@@ -277,7 +277,7 @@ export function WorkspaceMembersSettings({
                       Resend
                     </Button>
                     <Button
-                      className="text-red-400 hover:text-red-300"
+                      className="text-red-700 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                       disabled={pendingId === invitation.id}
                       onClick={() => setConfirmation({ invitation, type: 'revoke' })}
                       size="sm"
@@ -315,8 +315,8 @@ function InviteForm({
       <Group>
         <Row>
           <div>
-            <h3 className="text-sm font-medium text-white">Invite a member</h3>
-            <p className="mt-0.5 text-xs text-neutral-500">
+            <h3 className="text-sm font-medium text-foreground">Invite a member</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Send an email invitation and choose the role they join with.
             </p>
           </div>
@@ -376,18 +376,18 @@ function MemberRow({
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4">
       <div
         aria-hidden="true"
-        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-xs font-medium text-neutral-300 uppercase ring-1 ring-white/10"
+        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground/[0.06] text-xs font-medium text-foreground/80 uppercase ring-1 ring-foreground/10"
       >
         {displayName.charAt(0)}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm text-white">
+        <p className="truncate text-sm text-foreground">
           {displayName}
-          {isCurrentUser ? <span className="text-neutral-500"> (you)</span> : null}
+          {isCurrentUser ? <span className="text-muted-foreground"> (you)</span> : null}
         </p>
-        <p className="truncate text-xs text-neutral-500">{member.user.email}</p>
+        <p className="truncate text-xs text-muted-foreground">{member.user.email}</p>
       </div>
-      <span className="hidden text-xs text-neutral-500 md:block">
+      <span className="hidden text-xs text-muted-foreground md:block">
         Joined {new Date(member.createdAt).toLocaleDateString()}
       </span>
       {canManage && !isOwner ? (
@@ -405,7 +405,7 @@ function MemberRow({
             </Button>
           ) : null}
           <Button
-            className="text-red-400 hover:text-red-300"
+            className="text-red-700 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
             disabled={isPending}
             onClick={isCurrentUser ? onLeave : onRemove}
             size="sm"
@@ -419,7 +419,7 @@ function MemberRow({
         <div className="flex items-center gap-2">
           {rolePill}
           <Button
-            className="text-red-400 hover:text-red-300"
+            className="text-red-700 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
             disabled={isPending}
             onClick={onLeave}
             size="sm"

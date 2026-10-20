@@ -205,7 +205,9 @@ export function WorkspaceGeneralSettings({
             </Button>
           </div>
         ) : (
-          <p className="text-sm text-neutral-500">Ask a workspace admin to change these details.</p>
+          <p className="text-sm text-muted-foreground">
+            Ask a workspace admin to change these details.
+          </p>
         )}
       </form>
       <WorkspaceDeletionSettings canDelete={canDelete} workspaceName={organization.name} />

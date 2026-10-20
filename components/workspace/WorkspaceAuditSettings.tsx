@@ -168,7 +168,9 @@ export function WorkspaceAuditSettings({
   }
 
   if (!canRead)
-    return <p className="text-sm text-neutral-500">Audit logs are available to workspace admins.</p>
+    return (
+      <p className="text-sm text-muted-foreground">Audit logs are available to workspace admins.</p>
+    )
   return (
     <div className="flex flex-col gap-10">
       <ScopedError error={error} scope="load" />
@@ -274,10 +276,10 @@ function DrainForm({
   isSubmitting: boolean
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
-  const fieldLabel = 'text-xs font-medium text-neutral-400'
+  const fieldLabel = 'text-xs font-medium text-foreground/65'
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-      <h3 className="text-sm font-medium text-white">Add a drain</h3>
+      <h3 className="text-sm font-medium text-foreground">Add a drain</h3>
       <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
         <div className="flex flex-col gap-1.5">
           <Label className={fieldLabel} htmlFor="drain-name">
@@ -355,19 +357,19 @@ function DrainList({
   if (drains.length === 0)
     return (
       <Row>
-        <p className="text-sm text-neutral-500">No SIEM drains are configured.</p>
+        <p className="text-sm text-muted-foreground">No SIEM drains are configured.</p>
       </Row>
     )
   return drains.map((drain) => (
     <div className="flex items-center gap-4 px-5 py-4" key={drain.id}>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm text-white">{drain.name}</p>
-        <p className="truncate font-mono text-xs text-neutral-500">{drain.endpoint}</p>
+        <p className="truncate text-sm text-foreground">{drain.name}</p>
+        <p className="truncate font-mono text-xs text-muted-foreground">{drain.endpoint}</p>
       </div>
       <Pill>{drain.provider}</Pill>
       <Pill tone={drain.enabled ? 'green' : 'gray'}>{drain.enabled ? 'active' : 'disabled'}</Pill>
       <Button
-        className="text-red-400 hover:text-red-300"
+        className="text-red-700 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
         disabled={isDeleting === drain.id}
         onClick={() => void onDelete(drain)}
         size="sm"

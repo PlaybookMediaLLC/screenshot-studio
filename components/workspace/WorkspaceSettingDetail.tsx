@@ -1,5 +1,14 @@
 import { type ReactNode } from 'react'
-import { ProfileForm } from '@/components/auth/ProfileForm'
+import { AccountSettings } from '@/components/settings/AccountSettings'
+import { AppearanceSettings } from '@/components/settings/AppearanceSettings'
+import { DeveloperTools } from '@/components/settings/DeveloperTools'
+import { ExperimentalSettings } from '@/components/settings/ExperimentalSettings'
+import { InstallSettings } from '@/components/settings/InstallSettings'
+import { IntegrationCatalog } from '@/components/settings/IntegrationCatalog'
+import { NewTeamSettings } from '@/components/settings/NewTeamSettings'
+import { SocialSetList } from '@/components/settings/social-sets/SocialSetList'
+import { SocialSetSettings } from '@/components/settings/social-sets/SocialSetSettings'
+import { WebhookSettings } from '@/components/settings/WebhookSettings'
 import { ChannelConnections } from './ChannelConnections'
 import { WorkspaceAgentSettings } from './WorkspaceAgentSettings'
 import { WorkspaceAuditSettings } from './WorkspaceAuditSettings'
@@ -27,6 +36,7 @@ type WorkspaceSettingContentProps = {
   name: string
   organization: WorkspaceSettingsProps['organization']
   role: string
+  socialSet?: WorkspaceSettingsProps['socialSet']
   twoFactorEnabled: boolean
   userId: string
 }
@@ -37,15 +47,37 @@ function getDetailContent({
   name,
   organization,
   role,
+  socialSet,
   twoFactorEnabled,
   userId,
 }: WorkspaceSettingContentProps): Record<SettingId, ReactNode> {
   const canManage = hasPermission(role, 'workspace:update')
+  const canPublish = hasPermission(role, 'publish:manage')
   return {
+    appearance: <AppearanceSettings />,
+    experimental: <ExperimentalSettings canManage={canManage} />,
+    install: <InstallSettings />,
+    'new-team': <NewTeamSettings email={email} />,
+    'social-sets': socialSet ? (
+      <SocialSetSettings
+        id={socialSet.id}
+        key={`${socialSet.id}:${socialSet.page}`}
+        page={socialSet.page}
+        permissions={{ canManage: canPublish, canWrite: hasPermission(role, 'artifact:edit'), isAdmin: canManage }}
+      />
+    ) : (
+      <SocialSetList canManage={canPublish} />
+    ),
     agents: (
       <WorkspaceAgentSettings canManage={hasPermission(role, 'brand:manage')} mcpUrl={mcpUrl} />
     ),
-    api: <WorkspaceDeveloperSettings canManage={canManage} />,
+    api: (
+      <>
+        <WorkspaceDeveloperSettings canManage={canManage} />
+        <WebhookSettings canManage={canManage} />
+        <DeveloperTools />
+      </>
+    ),
     audit: (
       <WorkspaceAuditSettings
         canManage={canManage}
@@ -63,7 +95,12 @@ function getDetailContent({
         organization={organization}
       />
     ),
-    integrations: <WorkspaceIntegrations canManage={canManage} />,
+    integrations: (
+      <>
+        <IntegrationCatalog canManage={canManage} />
+        <WorkspaceIntegrations canManage={canManage} />
+      </>
+    ),
     notifications: <WorkspaceNotifications />,
     members: (
       <WorkspaceMembersSettings
@@ -80,7 +117,7 @@ function getDetailContent({
         <WorkspaceIdealCustomerProfile canManage={hasPermission(role, 'brand:manage')} />
       </>
     ),
-    profile: <ProfileForm email={email} name={name} />,
+    profile: <AccountSettings email={email} name={name} />,
     roles: <WorkspaceRolesSettings />,
     security: <WorkspaceSecuritySettings twoFactorEnabled={twoFactorEnabled} />,
     sharing: <WorkspaceSharedLinks canEdit={hasPermission(role, 'artifact:edit')} />,

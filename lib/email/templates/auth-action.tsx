@@ -3,11 +3,19 @@ import { EmailLayout, emailStyles } from './layout'
 
 export interface AuthActionEmailProps {
   actionUrl: string
-  /** Distinguishes verification from password reset copy. */
-  kind: 'verify-email' | 'reset-password'
+  /** Distinguishes verification, password reset and email change copy. */
+  kind: 'verify-email' | 'reset-password' | 'change-email'
 }
 
 const copy = {
+  'change-email': {
+    body: 'Confirm that you want to change the email you sign in to Shots with. After you confirm, we send a link to the new address to verify it, and your email changes only once you open that link.',
+    button: 'Confirm email change',
+    heading: 'Confirm your email change',
+    ignore:
+      'If you did not ask for this, ignore this email and your sign-in email stays the same. Consider changing your password.',
+    preview: 'Confirm your Shots email change',
+  },
   'reset-password': {
     body: 'Use the link below to choose a new password. It expires shortly, and your current password stays active until you complete the reset.',
     button: 'Reset password',

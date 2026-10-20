@@ -144,7 +144,7 @@ export function Provenance({
         Edited by you
         {canManage ? (
           <Button variant="custom" size={null}
-            className="text-neutral-300 underline underline-offset-2 hover:text-white"
+            className="text-foreground/80 underline underline-offset-2 hover:text-foreground"
             onClick={onUnlock}
             type="button"
           >
@@ -162,7 +162,7 @@ export function Provenance({
       {from}
       {sure}:{' '}
       <a
-        className="text-neutral-300 underline underline-offset-2 hover:text-white"
+        className="text-foreground/80 underline underline-offset-2 hover:text-foreground"
         href={entry.url}
         rel="noopener noreferrer"
         target="_blank"
@@ -333,7 +333,7 @@ export function WorkspaceProductProfile({ canManage }: { canManage: boolean }) {
       ) : null}
       {profile === undefined ? (
         error ? null : (
-          <p className="text-sm text-neutral-500">Loading…</p>
+          <p className="text-sm text-muted-foreground">Loading…</p>
         )
       ) : (
         <ProductProfileForm
@@ -344,7 +344,7 @@ export function WorkspaceProductProfile({ canManage }: { canManage: boolean }) {
         />
       )}
       {message ? (
-        <p className="text-sm text-neutral-400" role="status">
+        <p className="text-sm text-foreground/65" role="status">
           {message}
         </p>
       ) : null}

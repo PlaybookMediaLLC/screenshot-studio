@@ -10,14 +10,14 @@ export function WorkspaceAuditLogList({ logs }: WorkspaceAuditLogListProps) {
     <Group>
       {logs.length === 0 ? (
         <Row>
-          <p className="text-sm text-neutral-500">No audit events have been recorded.</p>
+          <p className="text-sm text-muted-foreground">No audit events have been recorded.</p>
         </Row>
       ) : (
         logs.map((log) => (
           <div className="flex items-center gap-4 px-5 py-4" key={log.id}>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-mono text-sm text-white">{log.action}</p>
-              <p className="truncate text-xs text-neutral-500">
+              <p className="truncate font-mono text-sm text-foreground">{log.action}</p>
+              <p className="truncate text-xs text-muted-foreground">
                 {log.actorDisplay ?? 'System'} · {log.entityType} ·{' '}
                 {new Date(log.createdAt).toLocaleString()}
               </p>

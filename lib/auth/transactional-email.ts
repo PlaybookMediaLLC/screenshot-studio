@@ -35,6 +35,23 @@ export async function sendVerificationEmail(input: {
   })
 }
 
+/** Asks the current address to confirm an email change before the new one is verified. */
+export async function sendChangeEmailConfirmation(input: {
+  actionUrl: string
+  to: string
+}): Promise<void> {
+  const { html, text } = await renderTemplate(
+    AuthActionEmail({ actionUrl: input.actionUrl, kind: 'change-email' })
+  )
+
+  await sendAuthEmail({
+    html,
+    subject: 'Confirm your Shots email change',
+    text,
+    to: input.to,
+  })
+}
+
 export async function sendPasswordResetEmail(input: {
   actionUrl: string
   to: string

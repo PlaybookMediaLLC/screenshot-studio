@@ -78,11 +78,11 @@ export function WorkspaceSharedLinks({ canEdit }: { canEdit: boolean }) {
         <Group>
           {links === null ? (
             <Row>
-              <p className="text-sm text-neutral-500">Loading…</p>
+              <p className="text-sm text-muted-foreground">Loading…</p>
             </Row>
           ) : links.length === 0 ? (
             <Row>
-              <p className="text-sm text-neutral-500">Nothing has been shared yet.</p>
+              <p className="text-sm text-muted-foreground">Nothing has been shared yet.</p>
             </Row>
           ) : (
             links.map((link) => {
@@ -95,8 +95,8 @@ export function WorkspaceSharedLinks({ canEdit }: { canEdit: boolean }) {
                   key={link.id}
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm text-white">{link.title}</p>
-                    <p className="truncate text-xs text-neutral-500">
+                    <p className="truncate text-sm text-foreground">{link.title}</p>
+                    <p className="truncate text-xs text-muted-foreground">
                       {link.mediaType} · {SHARE_ACCESS_LABELS[link.access]} ·{' '}
                       {link.createdAt.toLocaleDateString()}
                     </p>

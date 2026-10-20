@@ -103,15 +103,15 @@ function AssetPreview({ asset }: { asset: AssetSummary }) {
       className="relative grid aspect-[16/10] place-items-center overflow-hidden bg-[radial-gradient(circle_at_center,#1a1a1a,#0c0c0c)]"
       ref={ref}
     >
-      {isFont ? <span className="text-4xl text-neutral-400" aria-label="Font file">Aa</span> : url && isVideo ? (
+      {isFont ? <span className="text-4xl text-foreground/65" aria-label="Font file">Aa</span> : url && isVideo ? (
         <video className="size-full object-contain" muted preload="metadata" src={url} />
       ) : url ? (
         // A signed, short-lived storage URL, so a plain img: next/image would cache it.
         <img alt="" className="size-full object-contain p-3" loading="lazy" src={url} />
       ) : isVideo ? (
-        <Video01Icon className="text-neutral-700" size={28} />
+        <Video01Icon className="text-muted-foreground/50" size={28} />
       ) : (
-        <div className="size-full animate-pulse bg-white/[0.02]" />
+        <div className="size-full animate-pulse bg-foreground/[0.02]" />
       )}
     </div>
   )
@@ -211,7 +211,7 @@ export function WorkspaceAssets() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div
           aria-label="Filter by type"
-          className="inline-flex w-fit rounded-lg bg-white/[0.03] p-0.5 ring-1 ring-white/[0.08]"
+          className="inline-flex w-fit rounded-lg bg-foreground/[0.03] p-0.5 ring-1 ring-foreground/[0.08]"
           role="group"
         >
           {TYPE_FILTERS.map((filter) => (
@@ -220,8 +220,8 @@ export function WorkspaceAssets() {
               className={cn(
                 'rounded-md px-3 py-1 text-sm font-medium transition-colors',
                 typeFilter === filter.value
-                  ? 'bg-white/[0.08] text-white'
-                  : 'text-neutral-500 hover:text-neutral-200'
+                  ? 'bg-foreground/[0.08] text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
               key={filter.value}
               onClick={() => setTypeFilter(filter.value)}
@@ -231,13 +231,13 @@ export function WorkspaceAssets() {
             </Button>
           ))}
         </div>
-        <Label className="flex items-center gap-2 text-sm text-neutral-500">
+        <Label className="flex items-center gap-2 text-sm text-muted-foreground">
           Sort
           <Select
             onValueChange={(nextValue) => setSort(nextValue as 'newest' | 'oldest')}
             value={sort}
           >
-            <SelectTrigger className="h-8 rounded-lg bg-white/[0.03] px-2 text-sm text-neutral-200 ring-1 ring-white/[0.08] outline-none">
+            <SelectTrigger className="h-8 rounded-lg bg-foreground/[0.03] px-2 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -252,13 +252,13 @@ export function WorkspaceAssets() {
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }, (_, index) => (
             <li
-              className="aspect-[16/12] animate-pulse rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06]"
+              className="aspect-[16/12] animate-pulse rounded-xl bg-foreground/[0.03] ring-1 ring-foreground/[0.06]"
               key={index}
             />
           ))}
         </ul>
       ) : visible.length === 0 ? (
-        <p className="py-16 text-center text-sm text-neutral-500">
+        <p className="py-16 text-center text-sm text-muted-foreground">
           No {typeFilter === 'video' ? 'videos' : 'images'} saved yet.
         </p>
       ) : (
@@ -270,16 +270,16 @@ export function WorkspaceAssets() {
             const isDeleting = deletingId === asset.id
             return (
               <li
-                className="group overflow-hidden rounded-xl bg-white/[0.02] ring-1 ring-white/[0.08] transition hover:ring-white/[0.16]"
+                className="group overflow-hidden rounded-xl bg-foreground/[0.02] ring-1 ring-foreground/[0.08] transition hover:ring-foreground/[0.16]"
                 key={asset.id}
               >
                 <AssetPreview asset={asset} />
-                <div className="flex items-start justify-between gap-3 border-t border-white/[0.06] px-4 py-3">
+                <div className="flex items-start justify-between gap-3 border-t border-foreground/[0.06] px-4 py-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-white">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {describeType(asset.mediaType)}
                     </p>
-                    <p className="mt-0.5 truncate text-xs text-neutral-500">
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       {[dimensions, formatBytes(asset.bytes)].filter(Boolean).join(' · ')}
                       {' · '}
                       {new Date(asset.createdAt).toLocaleDateString()}
@@ -289,7 +289,7 @@ export function WorkspaceAssets() {
                     <DropdownMenuTrigger asChild>
                       <Button variant="custom" size={null}
                         aria-label="Asset actions"
-                        className="grid size-7 shrink-0 place-items-center rounded-md text-neutral-500 opacity-60 transition hover:bg-white/[0.06] hover:text-white hover:opacity-100 group-hover:opacity-100"
+                        className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground opacity-60 transition hover:bg-foreground/[0.06] hover:text-foreground hover:opacity-100 group-hover:opacity-100"
                         type="button"
                       >
                         <MoreHorizontalIcon size={16} />
@@ -317,8 +317,8 @@ export function WorkspaceAssets() {
                   </DropdownMenu>
                 </div>
                 {isConfirmingDelete ? (
-                  <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] bg-red-500/[0.06] px-4 py-2.5 text-sm">
-                    <span className="text-red-300">Delete this asset?</span>
+                  <div className="flex items-center justify-between gap-2 border-t border-foreground/[0.06] bg-red-500/[0.06] px-4 py-2.5 text-sm">
+                    <span className="text-red-700 dark:text-red-300">Delete this asset?</span>
                     <span className="flex gap-1.5">
                       <Button
                         onClick={() => setConfirmingDeleteId(null)}

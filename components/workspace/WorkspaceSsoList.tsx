@@ -8,14 +8,14 @@ export function WorkspaceSsoList({ providers }: WorkspaceSsoListProps) {
   if (providers.length === 0)
     return (
       <Row>
-        <p className="text-sm text-neutral-500">No SSO providers are connected.</p>
+        <p className="text-sm text-muted-foreground">No SSO providers are connected.</p>
       </Row>
     )
   return providers.map((provider) => (
     <div className="flex items-center gap-4 px-5 py-4" key={provider.providerId}>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-mono text-sm text-white">{provider.providerId}</p>
-        <p className="truncate text-xs text-neutral-500">{provider.domain}</p>
+        <p className="truncate font-mono text-sm text-foreground">{provider.providerId}</p>
+        <p className="truncate text-xs text-muted-foreground">{provider.domain}</p>
       </div>
       <Pill tone="green">Connected</Pill>
     </div>

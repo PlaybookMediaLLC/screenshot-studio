@@ -2,6 +2,7 @@ import 'server-only'
 
 import { backendSDK } from '@/lib/backend/sdk'
 import { getWorkspaceQuota, type WorkspaceQuota, workspacePlanSchema } from '@/lib/billing/plans'
+import { workspaceSubscriptionCycle } from '@/lib/billing/stripe'
 import { consumeWorkspaceQuota, WorkspaceQuotaError } from '@/lib/tenant/entitlements'
 import { router } from '../init'
 import { organizationProcedure } from '../procedures'
@@ -21,10 +22,15 @@ export const billingRouter = router({
       }),
     })
     // The AI credit meter answers with the monthly allowance and packs together.
-    const [credits, posts, emails] = await Promise.all([
+    const [credits, posts, emails, cycle] = await Promise.all([
       allowance('ai:credits:monthly'),
       allowance('posts:monthly'),
       allowance('emails:monthly'),
+      // A Stripe outage leaves the cycle out rather than the whole page.
+      workspaceSubscriptionCycle(ctx.access.organizationId).catch((error: unknown) => {
+        console.error('Stripe subscription lookup failed', error)
+        return null
+      }),
     ])
     const creditBalance = entitlements.creditBalance ?? 0
     // The grace date is in the owner's sensitive contract view, which needs a
@@ -38,6 +44,7 @@ export const billingRouter = router({
         : null
     return {
       creditBalance,
+      cycle,
       credits: { ...credits, left: Math.max(credits.left - creditBalance, 0) },
       emails,
       graceUntil,

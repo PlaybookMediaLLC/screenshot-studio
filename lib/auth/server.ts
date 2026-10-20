@@ -13,6 +13,7 @@ import {
   getTrustedOrigins,
 } from './environment'
 import {
+  sendChangeEmailConfirmation,
   sendInvitationEmail,
   sendPasswordResetEmail,
   sendVerificationEmail,
@@ -125,4 +126,13 @@ export const auth = betterAuth({
   session: { cookieCache: { enabled: false }, freshAge: 15 * 60 },
   socialProviders,
   trustedOrigins: getTrustedOrigins(),
+  // Changing the sign-in email (RFC 043): a verified address confirms the
+  // change first, then the new address is verified before it takes effect.
+  user: {
+    changeEmail: {
+      enabled: true,
+      sendChangeEmailConfirmation: async ({ url, user }) =>
+        sendChangeEmailConfirmation({ actionUrl: url, to: user.email }),
+    },
+  },
 })

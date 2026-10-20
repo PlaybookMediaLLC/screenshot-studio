@@ -13,7 +13,7 @@ const roleSummaries: Record<(typeof organizationRoles)[number], string> = {
 export function WorkspaceRolesSettings() {
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-neutral-500">
+      <p className="text-sm text-muted-foreground">
         Roles are fixed policy definitions. Assign a role to a member from the Members section.
       </p>
       <Group>
@@ -39,7 +39,7 @@ export function WorkspaceRolesSettings() {
           <div className="flex flex-wrap gap-1.5">
             {permissions.map((permission) => (
               <span
-                className="rounded-md bg-white/[0.04] px-2 py-0.5 font-mono text-xs text-neutral-400 ring-1 ring-white/[0.06]"
+                className="rounded-md bg-foreground/[0.04] px-2 py-0.5 font-mono text-xs text-foreground/65 ring-1 ring-foreground/[0.06]"
                 key={permission}
               >
                 {permission}

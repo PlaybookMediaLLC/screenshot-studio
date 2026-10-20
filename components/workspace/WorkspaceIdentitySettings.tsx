@@ -145,13 +145,13 @@ export function WorkspaceIdentitySettings({
 
   if (!canManage)
     return (
-      <p className="text-sm text-neutral-500">
+      <p className="text-sm text-muted-foreground">
         SSO and SCIM configuration is available to workspace admins.
       </p>
     )
   return (
     <div className="flex flex-col gap-10">
-      <Alert className="border-white/[0.08] bg-white/[0.015] text-neutral-400">
+      <Alert className="border-foreground/[0.08] bg-foreground/[0.015] text-foreground/65">
         <AlertDescription>
           SSO and SCIM are enterprise features. Configuration requires a recent sign-in and
           two-factor authentication.
@@ -202,7 +202,7 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label className="text-xs font-medium text-neutral-400" htmlFor={htmlFor}>
+      <Label className="text-xs font-medium text-foreground/65" htmlFor={htmlFor}>
         {label}
       </Label>
       {children}
@@ -222,8 +222,8 @@ function SsoForm({
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
       <div>
-        <h3 className="text-sm font-medium text-white">Add a provider</h3>
-        <p className="mt-0.5 text-xs text-neutral-500">
+        <h3 className="text-sm font-medium text-foreground">Add a provider</h3>
+        <p className="mt-0.5 text-xs text-muted-foreground">
           Use the issuer and client credentials from your identity provider.
         </p>
       </div>
@@ -296,7 +296,7 @@ function ScimForm({
 }) {
   return (
     <form className="flex flex-col gap-3" onSubmit={onSubmit}>
-      <Label className="text-xs font-medium text-neutral-400" htmlFor="scim-provider-id">
+      <Label className="text-xs font-medium text-foreground/65" htmlFor="scim-provider-id">
         Provider ID
       </Label>
       <div className="flex gap-3">
@@ -318,10 +318,10 @@ function ScimForm({
 function ScimTokenNotice({ onDismiss, token }: { onDismiss: () => void; token: string }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl bg-emerald-500/5 p-5 ring-1 ring-emerald-500/20">
-      <p className="text-sm font-medium text-white">
+      <p className="text-sm font-medium text-foreground">
         Copy this SCIM token now. It cannot be shown again.
       </p>
-      <code className="overflow-x-auto rounded-lg bg-black/30 p-3 font-mono text-xs text-neutral-300 ring-1 ring-white/[0.08]">
+      <code className="overflow-x-auto rounded-lg bg-black/30 p-3 font-mono text-xs text-foreground/80 ring-1 ring-foreground/[0.08]">
         {token}
       </code>
       <Button className="w-fit rounded-lg" onClick={onDismiss} size="sm" type="button">
@@ -343,17 +343,17 @@ function ScimList({
   if (providers.length === 0)
     return (
       <Row>
-        <p className="text-sm text-neutral-500">No directory connections are configured.</p>
+        <p className="text-sm text-muted-foreground">No directory connections are configured.</p>
       </Row>
     )
   return providers.map((provider) => (
     <div className="flex items-center gap-4 px-5 py-4" key={provider.id}>
       <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-emerald-500" />
-      <span className="min-w-0 flex-1 truncate font-mono text-sm text-white">
+      <span className="min-w-0 flex-1 truncate font-mono text-sm text-foreground">
         {provider.providerId}
       </span>
       <Button
-        className="text-red-400 hover:text-red-300"
+        className="text-red-700 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
         disabled={isDeleting === provider.id}
         onClick={() => void onDelete(provider)}
         size="sm"

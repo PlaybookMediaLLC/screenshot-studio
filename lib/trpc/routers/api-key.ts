@@ -38,7 +38,7 @@ export const apiKeyRouter = router({
     const { rows } = await serviceBackend().authStore({
       model: 'apikey',
       op: 'findMany',
-      select: ['createdAt', 'enabled', 'expiresAt', 'id', 'metadata', 'name', 'prefix', 'start'],
+      select: ['createdAt', 'enabled', 'expiresAt', 'id', 'lastRequest', 'metadata', 'name', 'prefix', 'start'],
       sortBy: { direction: 'desc', field: 'createdAt' },
       where: [{ field: 'referenceId', value: ctx.access.organizationId }],
     })
@@ -48,6 +48,8 @@ export const apiKeyRouter = router({
         enabled: boolean | null
         expiresAt: string | null
         id: string
+        /** When the key last authenticated a request, where it is recorded. */
+        lastRequest: string | null
         metadata: unknown
         name: string | null
         prefix: string | null

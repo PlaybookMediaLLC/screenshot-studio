@@ -422,7 +422,7 @@ export function LinkPreviewApp() {
   const flagged = issues.filter((issue) => issue.severity !== issueSeveritySchema.enum.info).length
 
   return (
-    <div className="w-full max-w-5xl">
+    <div className="w-full">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg bg-muted p-[3px]" role="group" aria-label="Mode">
           {linkPreviewModeSchema.options.map((option) => (

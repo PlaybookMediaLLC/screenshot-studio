@@ -120,7 +120,7 @@ export function StorySetIntake({
     }
   }
   return (
-    <section className="mx-auto max-w-6xl px-8 py-10">
+    <section className="w-full px-8 py-10">
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <p className="mb-3 text-xs font-medium text-muted-foreground">

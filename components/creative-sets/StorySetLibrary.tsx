@@ -56,7 +56,7 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
   }, [client, search, refresh])
   if (creating) return <StorySetIntake onCancel={() => setCreating(false)} />
   return (
-    <main className="mx-auto max-w-7xl space-y-8 p-8">
+    <main className="w-full space-y-8 p-8">
       <header className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs uppercase tracking-[0.16em] text-emerald-400">

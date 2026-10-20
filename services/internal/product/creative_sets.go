@@ -418,6 +418,12 @@ func (c *Configuration) UpdateCreativeSetDocument(ctx context.Context, actor Act
 		return nil, err
 	}
 	defer tx.Rollback()
+	// Another workspace's id is unknown here, whatever document it is sent with.
+	if exists, err := tx.PlatformCreativeSet.Query().Where(platformcreativeset.ID(id), platformcreativeset.OrganizationID(actor.OrganizationID)).Exist(ctx); err != nil {
+		return nil, err
+	} else if !exists {
+		return nil, publishing.ErrNotFound
+	}
 	documentVersion, err := creativeSetDocument(ctx, tx, actor.OrganizationID, input.Document)
 	if err != nil {
 		return nil, err

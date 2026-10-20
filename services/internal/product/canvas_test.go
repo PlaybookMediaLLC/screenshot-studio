@@ -101,6 +101,9 @@ func TestCanvasLifecycleAndHandoff(t *testing.T) {
 	if _, err := w.repo.UpdateCreativeSetDocument(w.ctx, foreign.owner, canvasID, CreativeSetDocumentWrite{BaseRevision: 1, Document: canvasFixture(other)}); !errors.Is(err, publishing.ErrNotFound) {
 		t.Fatalf("cross-tenant update: %v", err)
 	}
+	if _, err := w.repo.UpdateCreativeSetDocument(w.ctx, foreign.owner, canvasID, CreativeSetDocumentWrite{BaseRevision: 1, Document: doc}); !errors.Is(err, publishing.ErrNotFound) {
+		t.Fatalf("cross-tenant update with this workspace's images: %v", err)
+	}
 	if _, err := w.repo.UpdateCreativeSetDocument(w.ctx, w.owner, canvasID, CreativeSetDocumentWrite{BaseRevision: 1, Document: creativeSetFixture(media)}); err == nil || errors.Is(err, publishing.ErrConflict) {
 		t.Fatalf("a canvas became a Story Set: %v", err)
 	}

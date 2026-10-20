@@ -6,7 +6,7 @@
 
 **Owners:** Product Engineering
 
-**Depends on:** RFC 020 ([publishing](020-social-publishing.md)), RFC 037 ([content drafts](037-workspaces-and-content-drafts.md)), RFC 039 ([scheduling priorities](039-scheduling-feature-priorities.md)), RFC 043 ([settings platform](043-settings-platform.md))
+**Depends on:** RFC 020 ([publishing](020-social-publishing.md)), RFC 037 ([content drafts](037-workspaces-and-content-drafts.md)), RFC 039 ([scheduling priorities](039-scheduling-feature-priorities.md))
 
 ## Decision
 
@@ -37,7 +37,8 @@ Workspace
 
 ### Social sets
 
-Write uses the social sets of RFC 043 (`social_set`): a name and a colour,
+Write uses the social sets of the [settings platform](043-settings-platform.md)
+(RFC 043, `social_set`): a name and a colour,
 which need not be unique, at most one active account per platform
 (`channel_connection.socialSetId`), the ordered default platforms and primary
 platform for new drafts, a scheduling time zone, posting slots, natural

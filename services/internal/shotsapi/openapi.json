@@ -4706,12 +4706,59 @@
           },
           {
             "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "standard",
+                "reply",
+                "quote",
+                "repurpose",
+                "article"
+              ]
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
               "type": "integer",
               "minimum": 1,
               "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "in": "query",
+            "name": "socialSetId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "updated_desc",
+                "updated_asc",
+                "created_desc",
+                "created_asc"
+              ]
             }
           },
           {
@@ -4723,6 +4770,28 @@
               "enum": [
                 "draft",
                 "scheduled",
+                "archived"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "tagId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "drafts",
+                "posted",
                 "archived"
               ]
             }
@@ -5289,6 +5358,1749 @@
           }
         ],
         "summary": "List the posts scheduled from a content draft",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/content-drafts/{id}/properties": {
+      "patch": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Pins, tags, or annotates a draft. Properties are not content: the draft's version, and any approval of it, stay. Tags are added and removed by id, so concurrent taggers both count.",
+        "operationId": "updateContentDraftProperties",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "addTagIds": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                    }
+                  },
+                  "pinned": {
+                    "type": "boolean"
+                  },
+                  "removeTagIds": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                    }
+                  },
+                  "scratchpad": {
+                    "type": "string",
+                    "maxLength": 20000
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The draft.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentDraft"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A tag is not in the draft's set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The draft was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "draft:write"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Update a draft's pin, tags, or scratchpad",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/content-drafts/{id}/plan": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Puts a draft on the calendar at a time, or takes it off. A plan creates no scheduled post: a planned draft never publishes when its time passes.",
+        "operationId": "planContentDraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plannedFor": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "timeZone": {
+                    "type": "string",
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "plannedFor"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The draft.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentDraft"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The time is past or the zone unknown.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The draft was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "draft:write"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Plan a draft on the calendar",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/content-drafts/{id}/duplicate": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Duplicates a draft in its social set: a new draft at version 1 with the same writing, destinations and tags, and no share link, comments, review, plan or scheduled posts.",
+        "operationId": "duplicateContentDraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The copy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentDraftCopy"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The draft was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An image was deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "draft:write"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Duplicate a draft",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/content-drafts/{id}/copy": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Copies a draft into another social set. Destinations become that set's accounts on the same platforms; platforms it lacks, and unmatched tags, are reported in `dropped`.",
+        "operationId": "copyContentDraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "socialSetId": {
+                    "type": "string",
+                    "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                  },
+                  "tagMode": {
+                    "type": "string",
+                    "enum": [
+                      "match",
+                      "drop"
+                    ]
+                  }
+                },
+                "required": [
+                  "socialSetId",
+                  "tagMode"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The copy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentDraftCopy"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The draft or set was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "draft:write"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Copy a draft to another social set",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/content-drafts/{id}/revisions/{revisionId}/recover": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Creates a new draft from an automatic backup. The source draft is left exactly as it is, and the new draft has no publication state.",
+        "operationId": "recoverContentDraftRevision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revisionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The recovered draft.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentDraftCopy"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The draft or backup was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "draft:write"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Recover a backup as a new draft",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/content-drafts/{id}/activity": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Lists a draft's history, newest first: creation, edits, renames, destinations, tags, review, sharing, planning, scheduling, publication and recovery, with who and when. Viewing a draft is never recorded.",
+        "operationId": "listContentDraftActivity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The activity.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentDraftActivityList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The draft was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "artifact:read"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "List a draft's activity",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/social-sets": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Lists the social sets the caller may write in, the default set first, each with its accounts and their health. A restricted set is listed only for its members, owners and admins; API keys see workspace sets only.",
+        "operationId": "listSocialSets",
+        "responses": {
+          "200": {
+            "description": "The social sets.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocialSetList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "artifact:read"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "List social sets",
+        "tags": [
+          "Workspace"
+        ]
+      },
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Creates a social set: a publishing identity with at most one account per platform. Owners and admins manage sets.",
+        "operationId": "createSocialSet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "channelConnectionIds": {
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                    }
+                  },
+                  "color": {
+                    "type": "string",
+                    "enum": [
+                      "sky",
+                      "violet",
+                      "emerald",
+                      "amber",
+                      "rose",
+                      "orange",
+                      "teal",
+                      "indigo",
+                      "pink",
+                      "gray"
+                    ]
+                  },
+                  "defaultChannels": {
+                    "maxItems": 6,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "x",
+                        "linkedin",
+                        "instagram",
+                        "threads",
+                        "bluesky",
+                        "mastodon"
+                      ]
+                    }
+                  },
+                  "memberUserIds": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                    }
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "preferences": {
+                    "type": "object",
+                    "properties": {
+                      "audience": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "naturalTiming": {
+                        "type": "boolean"
+                      },
+                      "samples": {
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 5000
+                        }
+                      },
+                      "voice": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "timeZone": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "enum": [
+                      "workspace",
+                      "restricted"
+                    ]
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Set created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocialSet"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The set is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The workspace has as many sets as it can.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Create a social set",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/social-sets/{id}": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Returns one social set with its accounts and their health.",
+        "operationId": "getSocialSet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocialSet"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The set was not found, or the caller may not see it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "artifact:read"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Get a social set",
+        "tags": [
+          "Workspace"
+        ]
+      },
+      "patch": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Changes a social set's name, colour, accounts, default platforms, time zone, visibility, members or preferences.",
+        "operationId": "updateSocialSet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "channelConnectionIds": {
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                    }
+                  },
+                  "color": {
+                    "type": "string",
+                    "enum": [
+                      "sky",
+                      "violet",
+                      "emerald",
+                      "amber",
+                      "rose",
+                      "orange",
+                      "teal",
+                      "indigo",
+                      "pink",
+                      "gray"
+                    ]
+                  },
+                  "defaultChannels": {
+                    "maxItems": 6,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "x",
+                        "linkedin",
+                        "instagram",
+                        "threads",
+                        "bluesky",
+                        "mastodon"
+                      ]
+                    }
+                  },
+                  "memberUserIds": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                    }
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "preferences": {
+                    "type": "object",
+                    "properties": {
+                      "audience": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "naturalTiming": {
+                        "type": "boolean"
+                      },
+                      "samples": {
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "maxLength": 5000
+                        }
+                      },
+                      "voice": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "timeZone": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "enum": [
+                      "workspace",
+                      "restricted"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocialSet"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The change is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The set was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Update a social set",
+        "tags": [
+          "Workspace"
+        ]
+      },
+      "delete": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Deletes an empty social set. The default set, and a set with drafts, cannot be deleted.",
+        "operationId": "deleteSocialSet",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Set deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean",
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The set was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The set is the default or has drafts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Delete a social set",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/social-sets/{id}/tags": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Lists a social set's tags. Each set has its own.",
+        "operationId": "listDraftTags",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tags.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftTagList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The set was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "artifact:read"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "List a set's tags",
+        "tags": [
+          "Workspace"
+        ]
+      },
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Adds a tag to a social set. Names are unique within a set, ignoring case.",
+        "operationId": "createDraftTag",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "color": {
+                    "type": "string",
+                    "enum": [
+                      "gray",
+                      "red",
+                      "orange",
+                      "amber",
+                      "green",
+                      "teal",
+                      "sky",
+                      "blue",
+                      "violet",
+                      "pink"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tag created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftTag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The tag is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The set has a tag of that name.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "draft:write"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Create a tag",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/social-sets/{id}/tags/{tagId}": {
+      "patch": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Renames or recolours a tag.",
+        "operationId": "updateDraftTag",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tagId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "color": {
+                    "type": "string",
+                    "enum": [
+                      "gray",
+                      "red",
+                      "orange",
+                      "amber",
+                      "green",
+                      "teal",
+                      "sky",
+                      "blue",
+                      "violet",
+                      "pink"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The tag.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftTag"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The tag was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The set has a tag of that name.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "draft:write"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Update a tag",
+        "tags": [
+          "Workspace"
+        ]
+      },
+      "delete": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Deletes a tag and takes it off the set's drafts, without changing their versions.",
+        "operationId": "deleteDraftTag",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "tagId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tag deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean",
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The tag was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "draft:write"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Delete a tag",
         "tags": [
           "Workspace"
         ]
@@ -10875,6 +12687,318 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "article": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "coverAssetId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "attentionPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "standard",
+                    "reply",
+                    "quote",
+                    "repurpose",
+                    "article"
+                  ]
+                },
+                "nextPostAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "pinnedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "plannedFor": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "planTimeZone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "platformVersions": {
+                  "type": "object",
+                  "properties": {
+                    "schemaVersion": {
+                      "type": "number",
+                      "const": 1
+                    },
+                    "versions": {
+                      "maxItems": 6,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "body": {
+                            "maxItems": 5000,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {}
+                            }
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "x",
+                              "linkedin",
+                              "instagram",
+                              "threads",
+                              "bluesky",
+                              "mastodon"
+                            ]
+                          },
+                          "forkedFromVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "synced",
+                              "manual"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "properties": {
+                              "community": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^\\d{1,30}$"
+                                  },
+                                  "name": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "shareWithFollowers": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "id"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "document": {
+                                "type": "object",
+                                "properties": {
+                                  "assetId": {
+                                    "type": "string",
+                                    "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  }
+                                },
+                                "required": [
+                                  "assetId"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "firstComment": {
+                                "type": "string",
+                                "maxLength": 1250
+                              },
+                              "numbering": {
+                                "type": "object",
+                                "properties": {
+                                  "enabled": {
+                                    "type": "boolean"
+                                  },
+                                  "position": {
+                                    "type": "string",
+                                    "enum": [
+                                      "start",
+                                      "end"
+                                    ]
+                                  },
+                                  "skipFirst": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 24
+                                  },
+                                  "skipLast": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 24
+                                  },
+                                  "style": {
+                                    "type": "string",
+                                    "enum": [
+                                      "hash",
+                                      "emoji",
+                                      "dot",
+                                      "slash",
+                                      "leading",
+                                      "fraction",
+                                      "of"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "enabled",
+                                  "position",
+                                  "style"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "visibility": {
+                                "type": "string",
+                                "enum": [
+                                  "PUBLIC",
+                                  "CONNECTIONS"
+                                ]
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "sourceHash": {
+                            "type": "string",
+                            "maxLength": 128
+                          }
+                        },
+                        "required": [
+                          "channel",
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "schemaVersion",
+                    "versions"
+                  ],
+                  "additionalProperties": false
+                },
+                "primaryChannel": {
+                  "type": "string",
+                  "enum": [
+                    "x",
+                    "linkedin",
+                    "instagram",
+                    "threads",
+                    "bluesky",
+                    "mastodon"
+                  ]
+                },
+                "queuedPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "scratchpad": {
+                  "type": "string"
+                },
+                "socialSetId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sourceDraftId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tagIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "target": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "author": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "reply",
+                            "quote",
+                            "repurpose"
+                          ]
+                        },
+                        "platform": {
+                          "type": "string",
+                          "maxLength": 40
+                        },
+                        "remoteId": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "sourceDraftId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "sourcePostId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "text": {
+                          "type": "string",
+                          "maxLength": 1000
+                        },
+                        "url": {
+                          "type": "string",
+                          "maxLength": 2048
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               },
               "required": [
@@ -10899,7 +13023,22 @@
                 "reviewedByUserId",
                 "shareToken",
                 "guestComments",
-                "publishedPosts"
+                "publishedPosts",
+                "article",
+                "attentionPosts",
+                "kind",
+                "nextPostAt",
+                "pinnedAt",
+                "plannedFor",
+                "planTimeZone",
+                "platformVersions",
+                "primaryChannel",
+                "queuedPosts",
+                "scratchpad",
+                "socialSetId",
+                "sourceDraftId",
+                "tagIds",
+                "target"
               ],
               "additionalProperties": false
             }
@@ -10909,17 +13048,760 @@
               "string",
               "null"
             ]
+          },
+          "pinned": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "assetIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "body": {
+                  "maxItems": 5000,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "channelConnectionIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "createdByUserId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "channelText": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "discussions": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                },
+                "id": {
+                  "type": "string"
+                },
+                "organizationId": {
+                  "type": "string"
+                },
+                "plainText": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "draft",
+                    "scheduled",
+                    "archived"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string"
+                },
+                "updatedByUserId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "approvedVersion": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reviewNote": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "reviewStatus": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "approved",
+                    "changes_requested"
+                  ]
+                },
+                "reviewedByUserId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "shareToken": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "guestComments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "createdAt",
+                      "name",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "publishedPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "article": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "coverAssetId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "attentionPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "standard",
+                    "reply",
+                    "quote",
+                    "repurpose",
+                    "article"
+                  ]
+                },
+                "nextPostAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "pinnedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "plannedFor": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "planTimeZone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "platformVersions": {
+                  "type": "object",
+                  "properties": {
+                    "schemaVersion": {
+                      "type": "number",
+                      "const": 1
+                    },
+                    "versions": {
+                      "maxItems": 6,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "body": {
+                            "maxItems": 5000,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {}
+                            }
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "x",
+                              "linkedin",
+                              "instagram",
+                              "threads",
+                              "bluesky",
+                              "mastodon"
+                            ]
+                          },
+                          "forkedFromVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "synced",
+                              "manual"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "properties": {
+                              "community": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^\\d{1,30}$"
+                                  },
+                                  "name": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "shareWithFollowers": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "id"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "document": {
+                                "type": "object",
+                                "properties": {
+                                  "assetId": {
+                                    "type": "string",
+                                    "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  }
+                                },
+                                "required": [
+                                  "assetId"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "firstComment": {
+                                "type": "string",
+                                "maxLength": 1250
+                              },
+                              "numbering": {
+                                "type": "object",
+                                "properties": {
+                                  "enabled": {
+                                    "type": "boolean"
+                                  },
+                                  "position": {
+                                    "type": "string",
+                                    "enum": [
+                                      "start",
+                                      "end"
+                                    ]
+                                  },
+                                  "skipFirst": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 24
+                                  },
+                                  "skipLast": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 24
+                                  },
+                                  "style": {
+                                    "type": "string",
+                                    "enum": [
+                                      "hash",
+                                      "emoji",
+                                      "dot",
+                                      "slash",
+                                      "leading",
+                                      "fraction",
+                                      "of"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "enabled",
+                                  "position",
+                                  "style"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "visibility": {
+                                "type": "string",
+                                "enum": [
+                                  "PUBLIC",
+                                  "CONNECTIONS"
+                                ]
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "sourceHash": {
+                            "type": "string",
+                            "maxLength": 128
+                          }
+                        },
+                        "required": [
+                          "channel",
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "schemaVersion",
+                    "versions"
+                  ],
+                  "additionalProperties": false
+                },
+                "primaryChannel": {
+                  "type": "string",
+                  "enum": [
+                    "x",
+                    "linkedin",
+                    "instagram",
+                    "threads",
+                    "bluesky",
+                    "mastodon"
+                  ]
+                },
+                "queuedPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "scratchpad": {
+                  "type": "string"
+                },
+                "socialSetId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sourceDraftId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tagIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "target": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "author": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "reply",
+                            "quote",
+                            "repurpose"
+                          ]
+                        },
+                        "platform": {
+                          "type": "string",
+                          "maxLength": 40
+                        },
+                        "remoteId": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "sourceDraftId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "sourcePostId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "text": {
+                          "type": "string",
+                          "maxLength": 1000
+                        },
+                        "url": {
+                          "type": "string",
+                          "maxLength": 2048
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "assetIds",
+                "body",
+                "channelConnectionIds",
+                "createdAt",
+                "createdByUserId",
+                "channelText",
+                "discussions",
+                "id",
+                "organizationId",
+                "plainText",
+                "status",
+                "title",
+                "updatedAt",
+                "updatedByUserId",
+                "version",
+                "approvedVersion",
+                "reviewNote",
+                "reviewStatus",
+                "reviewedByUserId",
+                "shareToken",
+                "guestComments",
+                "publishedPosts",
+                "article",
+                "attentionPosts",
+                "kind",
+                "nextPostAt",
+                "pinnedAt",
+                "plannedFor",
+                "planTimeZone",
+                "platformVersions",
+                "primaryChannel",
+                "queuedPosts",
+                "scratchpad",
+                "socialSetId",
+                "sourceDraftId",
+                "tagIds",
+                "target"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
           "items",
-          "nextCursor"
+          "nextCursor",
+          "pinned"
         ],
         "additionalProperties": false
       },
       "ContentDraftCreateRequest": {
         "type": "object",
         "properties": {
+          "article": {
+            "type": "object",
+            "properties": {
+              "coverAssetId": {
+                "type": "string",
+                "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+              },
+              "title": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false
+          },
+          "platformVersions": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "number",
+                "const": 1
+              },
+              "versions": {
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "body": {
+                      "maxItems": 5000,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "x",
+                        "linkedin",
+                        "instagram",
+                        "threads",
+                        "bluesky",
+                        "mastodon"
+                      ]
+                    },
+                    "forkedFromVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "synced",
+                        "manual"
+                      ]
+                    },
+                    "options": {
+                      "type": "object",
+                      "properties": {
+                        "community": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^\\d{1,30}$"
+                            },
+                            "name": {
+                              "type": "string",
+                              "maxLength": 200
+                            },
+                            "shareWithFollowers": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "document": {
+                          "type": "object",
+                          "properties": {
+                            "assetId": {
+                              "type": "string",
+                              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                            },
+                            "title": {
+                              "type": "string",
+                              "maxLength": 200
+                            }
+                          },
+                          "required": [
+                            "assetId"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "firstComment": {
+                          "type": "string",
+                          "maxLength": 1250
+                        },
+                        "numbering": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "position": {
+                              "type": "string",
+                              "enum": [
+                                "start",
+                                "end"
+                              ]
+                            },
+                            "skipFirst": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 24
+                            },
+                            "skipLast": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 24
+                            },
+                            "style": {
+                              "type": "string",
+                              "enum": [
+                                "hash",
+                                "emoji",
+                                "dot",
+                                "slash",
+                                "leading",
+                                "fraction",
+                                "of"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "position",
+                            "style"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "visibility": {
+                          "type": "string",
+                          "enum": [
+                            "PUBLIC",
+                            "CONNECTIONS"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "sourceHash": {
+                      "type": "string",
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "channel",
+                    "mode"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "versions"
+            ],
+            "additionalProperties": false
+          },
+          "primaryChannel": {
+            "type": "string",
+            "enum": [
+              "x",
+              "linkedin",
+              "instagram",
+              "threads",
+              "bluesky",
+              "mastodon"
+            ]
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "author": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "reply",
+                  "quote",
+                  "repurpose"
+                ]
+              },
+              "platform": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "remoteId": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "sourceDraftId": {
+                "type": "string",
+                "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+              },
+              "sourcePostId": {
+                "type": "string",
+                "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "url": {
+                "type": "string",
+                "maxLength": 2048
+              }
+            },
+            "additionalProperties": false
+          },
           "assetIds": {
             "maxItems": 20,
             "type": "array",
@@ -10979,6 +13861,32 @@
           "title": {
             "type": "string",
             "maxLength": 200
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "reply",
+              "quote",
+              "repurpose",
+              "article"
+            ]
+          },
+          "scratchpad": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "socialSetId": {
+            "type": "string",
+            "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+          },
+          "tagIds": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
           }
         }
       },
@@ -11133,6 +14041,318 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
+          },
+          "article": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "coverAssetId": {
+                    "type": "string",
+                    "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                  },
+                  "title": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attentionPosts": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "reply",
+              "quote",
+              "repurpose",
+              "article"
+            ]
+          },
+          "nextPostAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pinnedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "plannedFor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "planTimeZone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "platformVersions": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "number",
+                "const": 1
+              },
+              "versions": {
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "body": {
+                      "maxItems": 5000,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "x",
+                        "linkedin",
+                        "instagram",
+                        "threads",
+                        "bluesky",
+                        "mastodon"
+                      ]
+                    },
+                    "forkedFromVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "synced",
+                        "manual"
+                      ]
+                    },
+                    "options": {
+                      "type": "object",
+                      "properties": {
+                        "community": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^\\d{1,30}$"
+                            },
+                            "name": {
+                              "type": "string",
+                              "maxLength": 200
+                            },
+                            "shareWithFollowers": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "document": {
+                          "type": "object",
+                          "properties": {
+                            "assetId": {
+                              "type": "string",
+                              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                            },
+                            "title": {
+                              "type": "string",
+                              "maxLength": 200
+                            }
+                          },
+                          "required": [
+                            "assetId"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "firstComment": {
+                          "type": "string",
+                          "maxLength": 1250
+                        },
+                        "numbering": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "position": {
+                              "type": "string",
+                              "enum": [
+                                "start",
+                                "end"
+                              ]
+                            },
+                            "skipFirst": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 24
+                            },
+                            "skipLast": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 24
+                            },
+                            "style": {
+                              "type": "string",
+                              "enum": [
+                                "hash",
+                                "emoji",
+                                "dot",
+                                "slash",
+                                "leading",
+                                "fraction",
+                                "of"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "position",
+                            "style"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "visibility": {
+                          "type": "string",
+                          "enum": [
+                            "PUBLIC",
+                            "CONNECTIONS"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "sourceHash": {
+                      "type": "string",
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "channel",
+                    "mode"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "versions"
+            ],
+            "additionalProperties": false
+          },
+          "primaryChannel": {
+            "type": "string",
+            "enum": [
+              "x",
+              "linkedin",
+              "instagram",
+              "threads",
+              "bluesky",
+              "mastodon"
+            ]
+          },
+          "queuedPosts": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "scratchpad": {
+            "type": "string"
+          },
+          "socialSetId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceDraftId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tagIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "author": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "reply",
+                      "quote",
+                      "repurpose"
+                    ]
+                  },
+                  "platform": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "remoteId": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "sourceDraftId": {
+                    "type": "string",
+                    "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                  },
+                  "sourcePostId": {
+                    "type": "string",
+                    "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "url": {
+                    "type": "string",
+                    "maxLength": 2048
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -11157,13 +14377,261 @@
           "reviewedByUserId",
           "shareToken",
           "guestComments",
-          "publishedPosts"
+          "publishedPosts",
+          "article",
+          "attentionPosts",
+          "kind",
+          "nextPostAt",
+          "pinnedAt",
+          "plannedFor",
+          "planTimeZone",
+          "platformVersions",
+          "primaryChannel",
+          "queuedPosts",
+          "scratchpad",
+          "socialSetId",
+          "sourceDraftId",
+          "tagIds",
+          "target"
         ],
         "additionalProperties": false
       },
       "ContentDraftUpdateRequest": {
         "type": "object",
         "properties": {
+          "article": {
+            "type": "object",
+            "properties": {
+              "coverAssetId": {
+                "type": "string",
+                "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+              },
+              "title": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "title"
+            ],
+            "additionalProperties": false
+          },
+          "platformVersions": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "number",
+                "const": 1
+              },
+              "versions": {
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "body": {
+                      "maxItems": 5000,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "x",
+                        "linkedin",
+                        "instagram",
+                        "threads",
+                        "bluesky",
+                        "mastodon"
+                      ]
+                    },
+                    "forkedFromVersion": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "synced",
+                        "manual"
+                      ]
+                    },
+                    "options": {
+                      "type": "object",
+                      "properties": {
+                        "community": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^\\d{1,30}$"
+                            },
+                            "name": {
+                              "type": "string",
+                              "maxLength": 200
+                            },
+                            "shareWithFollowers": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "document": {
+                          "type": "object",
+                          "properties": {
+                            "assetId": {
+                              "type": "string",
+                              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                            },
+                            "title": {
+                              "type": "string",
+                              "maxLength": 200
+                            }
+                          },
+                          "required": [
+                            "assetId"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "firstComment": {
+                          "type": "string",
+                          "maxLength": 1250
+                        },
+                        "numbering": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "position": {
+                              "type": "string",
+                              "enum": [
+                                "start",
+                                "end"
+                              ]
+                            },
+                            "skipFirst": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 24
+                            },
+                            "skipLast": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 24
+                            },
+                            "style": {
+                              "type": "string",
+                              "enum": [
+                                "hash",
+                                "emoji",
+                                "dot",
+                                "slash",
+                                "leading",
+                                "fraction",
+                                "of"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "position",
+                            "style"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "visibility": {
+                          "type": "string",
+                          "enum": [
+                            "PUBLIC",
+                            "CONNECTIONS"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "sourceHash": {
+                      "type": "string",
+                      "maxLength": 128
+                    }
+                  },
+                  "required": [
+                    "channel",
+                    "mode"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "versions"
+            ],
+            "additionalProperties": false
+          },
+          "primaryChannel": {
+            "type": "string",
+            "enum": [
+              "x",
+              "linkedin",
+              "instagram",
+              "threads",
+              "bluesky",
+              "mastodon"
+            ]
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "author": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "reply",
+                  "quote",
+                  "repurpose"
+                ]
+              },
+              "platform": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "remoteId": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "sourceDraftId": {
+                "type": "string",
+                "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+              },
+              "sourcePostId": {
+                "type": "string",
+                "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 1000
+              },
+              "url": {
+                "type": "string",
+                "maxLength": 2048
+              }
+            },
+            "additionalProperties": false
+          },
           "assetIds": {
             "maxItems": 20,
             "type": "array",
@@ -11356,6 +14824,1046 @@
         },
         "required": [
           "posts"
+        ],
+        "additionalProperties": false
+      },
+      "ContentDraftCopy": {
+        "type": "object",
+        "properties": {
+          "draft": {
+            "type": "object",
+            "properties": {
+              "assetIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "body": {
+                "maxItems": 5000,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              },
+              "channelConnectionIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "createdByUserId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "channelText": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "discussions": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              },
+              "id": {
+                "type": "string"
+              },
+              "organizationId": {
+                "type": "string"
+              },
+              "plainText": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "scheduled",
+                  "archived"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "updatedByUserId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "approvedVersion": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reviewNote": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reviewStatus": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "pending",
+                  "approved",
+                  "changes_requested"
+                ]
+              },
+              "reviewedByUserId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "shareToken": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "guestComments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "text": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "createdAt",
+                    "name",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "publishedPosts": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "article": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "coverAssetId": {
+                        "type": "string",
+                        "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "maxLength": 200
+                      }
+                    },
+                    "required": [
+                      "title"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "attentionPosts": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "standard",
+                  "reply",
+                  "quote",
+                  "repurpose",
+                  "article"
+                ]
+              },
+              "nextPostAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "pinnedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "plannedFor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "planTimeZone": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "platformVersions": {
+                "type": "object",
+                "properties": {
+                  "schemaVersion": {
+                    "type": "number",
+                    "const": 1
+                  },
+                  "versions": {
+                    "maxItems": 6,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "body": {
+                          "maxItems": 5000,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {}
+                          }
+                        },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "x",
+                            "linkedin",
+                            "instagram",
+                            "threads",
+                            "bluesky",
+                            "mastodon"
+                          ]
+                        },
+                        "forkedFromVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "synced",
+                            "manual"
+                          ]
+                        },
+                        "options": {
+                          "type": "object",
+                          "properties": {
+                            "community": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "pattern": "^\\d{1,30}$"
+                                },
+                                "name": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                },
+                                "shareWithFollowers": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "id"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "document": {
+                              "type": "object",
+                              "properties": {
+                                "assetId": {
+                                  "type": "string",
+                                  "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                }
+                              },
+                              "required": [
+                                "assetId"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "firstComment": {
+                              "type": "string",
+                              "maxLength": 1250
+                            },
+                            "numbering": {
+                              "type": "object",
+                              "properties": {
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "position": {
+                                  "type": "string",
+                                  "enum": [
+                                    "start",
+                                    "end"
+                                  ]
+                                },
+                                "skipFirst": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 24
+                                },
+                                "skipLast": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 24
+                                },
+                                "style": {
+                                  "type": "string",
+                                  "enum": [
+                                    "hash",
+                                    "emoji",
+                                    "dot",
+                                    "slash",
+                                    "leading",
+                                    "fraction",
+                                    "of"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "enabled",
+                                "position",
+                                "style"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "visibility": {
+                              "type": "string",
+                              "enum": [
+                                "PUBLIC",
+                                "CONNECTIONS"
+                              ]
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "sourceHash": {
+                          "type": "string",
+                          "maxLength": 128
+                        }
+                      },
+                      "required": [
+                        "channel",
+                        "mode"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "schemaVersion",
+                  "versions"
+                ],
+                "additionalProperties": false
+              },
+              "primaryChannel": {
+                "type": "string",
+                "enum": [
+                  "x",
+                  "linkedin",
+                  "instagram",
+                  "threads",
+                  "bluesky",
+                  "mastodon"
+                ]
+              },
+              "queuedPosts": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "scratchpad": {
+                "type": "string"
+              },
+              "socialSetId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sourceDraftId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tagIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "target": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "author": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "reply",
+                          "quote",
+                          "repurpose"
+                        ]
+                      },
+                      "platform": {
+                        "type": "string",
+                        "maxLength": 40
+                      },
+                      "remoteId": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "sourceDraftId": {
+                        "type": "string",
+                        "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                      },
+                      "sourcePostId": {
+                        "type": "string",
+                        "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                      },
+                      "text": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "url": {
+                        "type": "string",
+                        "maxLength": 2048
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "assetIds",
+              "body",
+              "channelConnectionIds",
+              "createdAt",
+              "createdByUserId",
+              "channelText",
+              "discussions",
+              "id",
+              "organizationId",
+              "plainText",
+              "status",
+              "title",
+              "updatedAt",
+              "updatedByUserId",
+              "version",
+              "approvedVersion",
+              "reviewNote",
+              "reviewStatus",
+              "reviewedByUserId",
+              "shareToken",
+              "guestComments",
+              "publishedPosts",
+              "article",
+              "attentionPosts",
+              "kind",
+              "nextPostAt",
+              "pinnedAt",
+              "plannedFor",
+              "planTimeZone",
+              "platformVersions",
+              "primaryChannel",
+              "queuedPosts",
+              "scratchpad",
+              "socialSetId",
+              "sourceDraftId",
+              "tagIds",
+              "target"
+            ],
+            "additionalProperties": false
+          },
+          "dropped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "draft",
+          "dropped"
+        ],
+        "additionalProperties": false
+      },
+      "ContentDraftActivityList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "actorName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "actorType": {
+                  "type": "string"
+                },
+                "actorUserId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "at": {
+                  "type": "string"
+                },
+                "entityId": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "metadata": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "action",
+                "actorName",
+                "actorType",
+                "actorUserId",
+                "at",
+                "entityId",
+                "id",
+                "metadata"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "SocialSetList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "channelConnectionIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "color": {
+                  "type": "string",
+                  "enum": [
+                    "sky",
+                    "violet",
+                    "emerald",
+                    "amber",
+                    "rose",
+                    "orange",
+                    "teal",
+                    "indigo",
+                    "pink",
+                    "gray"
+                  ]
+                },
+                "connections": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "avatarUrl": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "x",
+                          "linkedin",
+                          "instagram",
+                          "threads",
+                          "bluesky",
+                          "mastodon"
+                        ]
+                      },
+                      "displayName": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "handle": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "health": {
+                        "type": "string",
+                        "enum": [
+                          "healthy",
+                          "reconnect",
+                          "disabled"
+                        ]
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "platform": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "avatarUrl",
+                      "channel",
+                      "displayName",
+                      "handle",
+                      "health",
+                      "id",
+                      "platform"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "defaultChannels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "x",
+                      "linkedin",
+                      "instagram",
+                      "threads",
+                      "bluesky",
+                      "mastodon"
+                    ]
+                  }
+                },
+                "id": {
+                  "type": "string"
+                },
+                "isDefault": {
+                  "type": "boolean"
+                },
+                "memberUserIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "name": {
+                  "type": "string"
+                },
+                "preferences": {
+                  "type": "object",
+                  "properties": {
+                    "audience": {
+                      "type": "string",
+                      "maxLength": 2000
+                    },
+                    "naturalTiming": {
+                      "type": "boolean"
+                    },
+                    "samples": {
+                      "maxItems": 20,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 5000
+                      }
+                    },
+                    "voice": {
+                      "type": "string",
+                      "maxLength": 2000
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "timeZone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "updatedAt": {
+                  "type": "string"
+                },
+                "visibility": {
+                  "type": "string",
+                  "enum": [
+                    "workspace",
+                    "restricted"
+                  ]
+                }
+              },
+              "required": [
+                "channelConnectionIds",
+                "color",
+                "connections",
+                "createdAt",
+                "defaultChannels",
+                "id",
+                "isDefault",
+                "memberUserIds",
+                "name",
+                "preferences",
+                "timeZone",
+                "updatedAt",
+                "visibility"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "SocialSet": {
+        "type": "object",
+        "properties": {
+          "channelConnectionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "color": {
+            "type": "string",
+            "enum": [
+              "sky",
+              "violet",
+              "emerald",
+              "amber",
+              "rose",
+              "orange",
+              "teal",
+              "indigo",
+              "pink",
+              "gray"
+            ]
+          },
+          "connections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "avatarUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "channel": {
+                  "type": "string",
+                  "enum": [
+                    "x",
+                    "linkedin",
+                    "instagram",
+                    "threads",
+                    "bluesky",
+                    "mastodon"
+                  ]
+                },
+                "displayName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "handle": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "health": {
+                  "type": "string",
+                  "enum": [
+                    "healthy",
+                    "reconnect",
+                    "disabled"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "platform": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "avatarUrl",
+                "channel",
+                "displayName",
+                "handle",
+                "health",
+                "id",
+                "platform"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "defaultChannels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "x",
+                "linkedin",
+                "instagram",
+                "threads",
+                "bluesky",
+                "mastodon"
+              ]
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "memberUserIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "preferences": {
+            "type": "object",
+            "properties": {
+              "audience": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "naturalTiming": {
+                "type": "boolean"
+              },
+              "samples": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 5000
+                }
+              },
+              "voice": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "additionalProperties": false
+          },
+          "timeZone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "workspace",
+              "restricted"
+            ]
+          }
+        },
+        "required": [
+          "channelConnectionIds",
+          "color",
+          "connections",
+          "createdAt",
+          "defaultChannels",
+          "id",
+          "isDefault",
+          "memberUserIds",
+          "name",
+          "preferences",
+          "timeZone",
+          "updatedAt",
+          "visibility"
+        ],
+        "additionalProperties": false
+      },
+      "DraftTagList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "color": {
+                  "type": "string",
+                  "enum": [
+                    "gray",
+                    "red",
+                    "orange",
+                    "amber",
+                    "green",
+                    "teal",
+                    "sky",
+                    "blue",
+                    "violet",
+                    "pink"
+                  ]
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "socialSetId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "color",
+                "createdAt",
+                "id",
+                "name",
+                "socialSetId"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "DraftTag": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": "string",
+            "enum": [
+              "gray",
+              "red",
+              "orange",
+              "amber",
+              "green",
+              "teal",
+              "sky",
+              "blue",
+              "violet",
+              "pink"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "socialSetId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "color",
+          "createdAt",
+          "id",
+          "name",
+          "socialSetId"
         ],
         "additionalProperties": false
       },

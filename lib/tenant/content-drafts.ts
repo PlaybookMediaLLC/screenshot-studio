@@ -13,7 +13,16 @@ import type {
 import type { OrganizationAccess, TenantContext } from '@/lib/auth/access'
 import { backendSDK, orNull, serviceBackend, withDates } from '@/lib/backend/sdk'
 import { channelForPlatform, serializeDraft } from '@/lib/content-drafts/serialize'
+import { revisionReasonSchema } from '@/lib/api/contracts/content-draft-platform'
 import { listBackendConnections } from '@/lib/tenant/publishing-backend'
+import {
+  articleSchema,
+  draftChannelSchema,
+  draftKindSchema,
+  draftTargetSchema,
+  EMPTY_PLATFORM_VERSIONS,
+  platformVersionsSchema,
+} from '@/lib/write/document'
 import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 
 /**
@@ -23,10 +32,24 @@ import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
  * 409.
  */
 
-/** Dates for the draft's own timestamps; the Plate body passes through as is. */
-function readDraft(draft: BackendContentDraft) {
-  const { body, ...fields } = draft
-  return { ...withDates(fields), body: body as Record<string, unknown>[] }
+/**
+ * A draft as the web reads it: Dates for its timestamps, the Plate body as
+ * is, and its Write document parsed at this boundary, so a malformed one
+ * fails here instead of in the composer.
+ */
+export function readDraft(draft: BackendContentDraft) {
+  const { article, body, kind, plannedFor, platformVersions, primaryChannel, target, ...fields } =
+    draft
+  return {
+    ...withDates(fields),
+    article: article ? articleSchema.parse(article) : null,
+    body: body as Record<string, unknown>[],
+    kind: draftKindSchema.parse(kind ?? 'standard'),
+    plannedFor: plannedFor ? new Date(plannedFor) : null,
+    platformVersions: platformVersionsSchema.parse(platformVersions ?? EMPTY_PLATFORM_VERSIONS),
+    primaryChannel: draftChannelSchema.parse(primaryChannel ?? 'x'),
+    target: target ? draftTargetSchema.parse(target) : null,
+  }
 }
 
 /** One page of the workspace's drafts, newest first. */
@@ -35,7 +58,11 @@ export async function listContentDrafts(
   query: BackendContentDraftListQuery
 ) {
   const page = await backendSDK(context).listContentDrafts(query)
-  return { items: page.items.map(readDraft), nextCursor: page.nextCursor }
+  return {
+    items: page.items.map(readDraft),
+    nextCursor: page.nextCursor,
+    pinned: (page.pinned ?? []).map(readDraft),
+  }
 }
 
 /** Create a draft. */
@@ -177,9 +204,14 @@ export async function nextQueueSlot(context: TenantContext) {
   return new Date((await backendSDK(context).nextContentDraftQueueSlot()).scheduledFor)
 }
 
-/** Draft posts due in [from, to), with their drafts' titles. */
-export async function listContentDraftPostsBetween(context: TenantContext, from: Date, to: Date) {
-  const { items } = await backendSDK(context).listContentDraftPostsBetween(from, to)
+/** Draft posts due in [from, to), with their drafts' titles; one set's when given. */
+export async function listContentDraftPostsBetween(
+  context: TenantContext,
+  from: Date,
+  to: Date,
+  socialSetId?: string
+) {
+  const { items } = await backendSDK(context).listContentDraftPostsBetween(from, to, socialSetId)
   return items.map((post) => ({
     ...readPost(post),
     draftId: post.draftId,
@@ -227,11 +259,12 @@ export async function listContentDraftRevisions(context: TenantContext, id: stri
   // A list carries no bodies; one revision's read does.
   return result
     ? result.items.map(
-        ({ createdAt, createdByUserId, id: revisionId, plainText, title, version }) => ({
+        ({ createdAt, createdByUserId, id: revisionId, plainText, reason, title, version }) => ({
           createdAt: new Date(createdAt),
           createdByUserId,
           id: revisionId,
           plainText,
+          reason: revisionReasonSchema.parse(reason ?? 'edit'),
           title,
           version,
         })
@@ -247,8 +280,14 @@ export async function getContentDraftRevision(
 ) {
   const revision = await orNull(backendSDK(context).getContentDraftRevision(id, revisionId))
   if (!revision) return null
-  const { body, ...fields } = revision
-  return { ...withDates(fields), body: body as Record<string, unknown>[] | undefined }
+  const { article, body, platformVersions, reason, ...fields } = revision
+  return {
+    ...withDates(fields),
+    article: article ? articleSchema.parse(article) : undefined,
+    body: body as Record<string, unknown>[] | undefined,
+    platformVersions: platformVersions ? platformVersionsSchema.parse(platformVersions) : undefined,
+    reason: revisionReasonSchema.parse(reason ?? 'edit'),
+  }
 }
 
 /** A shared draft with Dates, and its body as Plate nodes. */

@@ -516,6 +516,226 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/content-drafts/{id}/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a draft's pin, tags, or scratchpad
+         * @description Pins, tags, or annotates a draft. Properties are not content: the draft's version, and any approval of it, stay. Tags are added and removed by id, so concurrent taggers both count.
+         */
+        patch: operations["updateContentDraftProperties"];
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Plan a draft on the calendar
+         * @description Puts a draft on the calendar at a time, or takes it off. A plan creates no scheduled post: a planned draft never publishes when its time passes.
+         */
+        post: operations["planContentDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate a draft
+         * @description Duplicates a draft in its social set: a new draft at version 1 with the same writing, destinations and tags, and no share link, comments, review, plan or scheduled posts.
+         */
+        post: operations["duplicateContentDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy a draft to another social set
+         * @description Copies a draft into another social set. Destinations become that set's accounts on the same platforms; platforms it lacks, and unmatched tags, are reported in `dropped`.
+         */
+        post: operations["copyContentDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/revisions/{revisionId}/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recover a backup as a new draft
+         * @description Creates a new draft from an automatic backup. The source draft is left exactly as it is, and the new draft has no publication state.
+         */
+        post: operations["recoverContentDraftRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a draft's activity
+         * @description Lists a draft's history, newest first: creation, edits, renames, destinations, tags, review, sharing, planning, scheduling, publication and recovery, with who and when. Viewing a draft is never recorded.
+         */
+        get: operations["listContentDraftActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List social sets
+         * @description Lists the social sets the caller may write in, the default set first, each with its accounts and their health. A restricted set is listed only for its members, owners and admins; API keys see workspace sets only.
+         */
+        get: operations["listSocialSets"];
+        put?: never;
+        /**
+         * Create a social set
+         * @description Creates a social set: a publishing identity with at most one account per platform. Owners and admins manage sets.
+         */
+        post: operations["createSocialSet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social-sets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a social set
+         * @description Returns one social set with its accounts and their health.
+         */
+        get: operations["getSocialSet"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a social set
+         * @description Deletes an empty social set. The default set, and a set with drafts, cannot be deleted.
+         */
+        delete: operations["deleteSocialSet"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a social set
+         * @description Changes a social set's name, colour, accounts, default platforms, time zone, visibility, members or preferences.
+         */
+        patch: operations["updateSocialSet"];
+        trace?: never;
+    };
+    "/api/v1/social-sets/{id}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a set's tags
+         * @description Lists a social set's tags. Each set has its own.
+         */
+        get: operations["listDraftTags"];
+        put?: never;
+        /**
+         * Create a tag
+         * @description Adds a tag to a social set. Names are unique within a set, ignoring case.
+         */
+        post: operations["createDraftTag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social-sets/{id}/tags/{tagId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a tag
+         * @description Deletes a tag and takes it off the set's drafts, without changing their versions.
+         */
+        delete: operations["deleteDraftTag"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a tag
+         * @description Renames or recolours a tag.
+         */
+        patch: operations["updateDraftTag"];
+        trace?: never;
+    };
     "/api/v1/onboarding-runs": {
         parameters: {
             query?: never;
@@ -1343,10 +1563,235 @@ export interface components {
                     text: string;
                 }[];
                 publishedPosts: number;
+                article: {
+                    coverAssetId?: string;
+                    title: string;
+                } | null;
+                attentionPosts: number;
+                /** @enum {string} */
+                kind: "standard" | "reply" | "quote" | "repurpose" | "article";
+                nextPostAt: string | null;
+                pinnedAt: string | null;
+                plannedFor: string | null;
+                planTimeZone: string | null;
+                platformVersions: {
+                    /** @constant */
+                    schemaVersion: 1;
+                    versions: {
+                        body?: {
+                            [key: string]: unknown;
+                        }[];
+                        /** @enum {string} */
+                        channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                        forkedFromVersion?: number;
+                        /** @enum {string} */
+                        mode: "synced" | "manual";
+                        options?: {
+                            community?: {
+                                id: string;
+                                name?: string;
+                                shareWithFollowers?: boolean;
+                            };
+                            document?: {
+                                assetId: string;
+                                title?: string;
+                            };
+                            firstComment?: string;
+                            numbering?: {
+                                enabled: boolean;
+                                /** @enum {string} */
+                                position: "start" | "end";
+                                skipFirst?: number;
+                                skipLast?: number;
+                                /** @enum {string} */
+                                style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                            };
+                            /** @enum {string} */
+                            visibility?: "PUBLIC" | "CONNECTIONS";
+                        };
+                        sourceHash?: string;
+                    }[];
+                };
+                /** @enum {string} */
+                primaryChannel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                queuedPosts: number;
+                scratchpad: string;
+                socialSetId: string | null;
+                sourceDraftId: string | null;
+                tagIds: string[];
+                target: {
+                    author?: string;
+                    /** @enum {string} */
+                    kind?: "reply" | "quote" | "repurpose";
+                    platform?: string;
+                    remoteId?: string;
+                    sourceDraftId?: string;
+                    sourcePostId?: string;
+                    text?: string;
+                    url?: string;
+                } | null;
             }[];
             nextCursor: string | null;
+            pinned: {
+                assetIds: string[];
+                body: {
+                    [key: string]: unknown;
+                }[];
+                channelConnectionIds: string[];
+                createdAt: string;
+                createdByUserId: string | null;
+                channelText: {
+                    [key: string]: string;
+                };
+                discussions: {
+                    [key: string]: unknown;
+                };
+                id: string;
+                organizationId: string;
+                plainText: string;
+                /** @enum {string} */
+                status: "draft" | "scheduled" | "archived";
+                title: string;
+                updatedAt: string;
+                updatedByUserId: string | null;
+                version: number;
+                approvedVersion: number | null;
+                reviewNote: string | null;
+                /** @enum {string} */
+                reviewStatus: "none" | "pending" | "approved" | "changes_requested";
+                reviewedByUserId: string | null;
+                shareToken: string | null;
+                guestComments: {
+                    createdAt: string;
+                    name: string;
+                    text: string;
+                }[];
+                publishedPosts: number;
+                article: {
+                    coverAssetId?: string;
+                    title: string;
+                } | null;
+                attentionPosts: number;
+                /** @enum {string} */
+                kind: "standard" | "reply" | "quote" | "repurpose" | "article";
+                nextPostAt: string | null;
+                pinnedAt: string | null;
+                plannedFor: string | null;
+                planTimeZone: string | null;
+                platformVersions: {
+                    /** @constant */
+                    schemaVersion: 1;
+                    versions: {
+                        body?: {
+                            [key: string]: unknown;
+                        }[];
+                        /** @enum {string} */
+                        channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                        forkedFromVersion?: number;
+                        /** @enum {string} */
+                        mode: "synced" | "manual";
+                        options?: {
+                            community?: {
+                                id: string;
+                                name?: string;
+                                shareWithFollowers?: boolean;
+                            };
+                            document?: {
+                                assetId: string;
+                                title?: string;
+                            };
+                            firstComment?: string;
+                            numbering?: {
+                                enabled: boolean;
+                                /** @enum {string} */
+                                position: "start" | "end";
+                                skipFirst?: number;
+                                skipLast?: number;
+                                /** @enum {string} */
+                                style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                            };
+                            /** @enum {string} */
+                            visibility?: "PUBLIC" | "CONNECTIONS";
+                        };
+                        sourceHash?: string;
+                    }[];
+                };
+                /** @enum {string} */
+                primaryChannel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                queuedPosts: number;
+                scratchpad: string;
+                socialSetId: string | null;
+                sourceDraftId: string | null;
+                tagIds: string[];
+                target: {
+                    author?: string;
+                    /** @enum {string} */
+                    kind?: "reply" | "quote" | "repurpose";
+                    platform?: string;
+                    remoteId?: string;
+                    sourceDraftId?: string;
+                    sourcePostId?: string;
+                    text?: string;
+                    url?: string;
+                } | null;
+            }[];
         };
         ContentDraftCreateRequest: {
+            article?: {
+                coverAssetId?: string;
+                title: string;
+            };
+            platformVersions?: {
+                /** @constant */
+                schemaVersion: 1;
+                versions: {
+                    body?: {
+                        [key: string]: unknown;
+                    }[];
+                    /** @enum {string} */
+                    channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                    forkedFromVersion?: number;
+                    /** @enum {string} */
+                    mode: "synced" | "manual";
+                    options?: {
+                        community?: {
+                            id: string;
+                            name?: string;
+                            shareWithFollowers?: boolean;
+                        };
+                        document?: {
+                            assetId: string;
+                            title?: string;
+                        };
+                        firstComment?: string;
+                        numbering?: {
+                            enabled: boolean;
+                            /** @enum {string} */
+                            position: "start" | "end";
+                            skipFirst?: number;
+                            skipLast?: number;
+                            /** @enum {string} */
+                            style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                        };
+                        /** @enum {string} */
+                        visibility?: "PUBLIC" | "CONNECTIONS";
+                    };
+                    sourceHash?: string;
+                }[];
+            };
+            /** @enum {string} */
+            primaryChannel?: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+            target?: {
+                author?: string;
+                /** @enum {string} */
+                kind?: "reply" | "quote" | "repurpose";
+                platform?: string;
+                remoteId?: string;
+                sourceDraftId?: string;
+                sourcePostId?: string;
+                text?: string;
+                url?: string;
+            };
             assetIds?: string[];
             body?: {
                 [key: string]: unknown;
@@ -1360,6 +1805,11 @@ export interface components {
             };
             plainText?: string;
             title?: string;
+            /** @enum {string} */
+            kind?: "standard" | "reply" | "quote" | "repurpose" | "article";
+            scratchpad?: string;
+            socialSetId?: string;
+            tagIds?: string[];
         };
         ContentDraft: {
             assetIds: string[];
@@ -1396,8 +1846,130 @@ export interface components {
                 text: string;
             }[];
             publishedPosts: number;
+            article: {
+                coverAssetId?: string;
+                title: string;
+            } | null;
+            attentionPosts: number;
+            /** @enum {string} */
+            kind: "standard" | "reply" | "quote" | "repurpose" | "article";
+            nextPostAt: string | null;
+            pinnedAt: string | null;
+            plannedFor: string | null;
+            planTimeZone: string | null;
+            platformVersions: {
+                /** @constant */
+                schemaVersion: 1;
+                versions: {
+                    body?: {
+                        [key: string]: unknown;
+                    }[];
+                    /** @enum {string} */
+                    channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                    forkedFromVersion?: number;
+                    /** @enum {string} */
+                    mode: "synced" | "manual";
+                    options?: {
+                        community?: {
+                            id: string;
+                            name?: string;
+                            shareWithFollowers?: boolean;
+                        };
+                        document?: {
+                            assetId: string;
+                            title?: string;
+                        };
+                        firstComment?: string;
+                        numbering?: {
+                            enabled: boolean;
+                            /** @enum {string} */
+                            position: "start" | "end";
+                            skipFirst?: number;
+                            skipLast?: number;
+                            /** @enum {string} */
+                            style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                        };
+                        /** @enum {string} */
+                        visibility?: "PUBLIC" | "CONNECTIONS";
+                    };
+                    sourceHash?: string;
+                }[];
+            };
+            /** @enum {string} */
+            primaryChannel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+            queuedPosts: number;
+            scratchpad: string;
+            socialSetId: string | null;
+            sourceDraftId: string | null;
+            tagIds: string[];
+            target: {
+                author?: string;
+                /** @enum {string} */
+                kind?: "reply" | "quote" | "repurpose";
+                platform?: string;
+                remoteId?: string;
+                sourceDraftId?: string;
+                sourcePostId?: string;
+                text?: string;
+                url?: string;
+            } | null;
         };
         ContentDraftUpdateRequest: {
+            article?: {
+                coverAssetId?: string;
+                title: string;
+            };
+            platformVersions?: {
+                /** @constant */
+                schemaVersion: 1;
+                versions: {
+                    body?: {
+                        [key: string]: unknown;
+                    }[];
+                    /** @enum {string} */
+                    channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                    forkedFromVersion?: number;
+                    /** @enum {string} */
+                    mode: "synced" | "manual";
+                    options?: {
+                        community?: {
+                            id: string;
+                            name?: string;
+                            shareWithFollowers?: boolean;
+                        };
+                        document?: {
+                            assetId: string;
+                            title?: string;
+                        };
+                        firstComment?: string;
+                        numbering?: {
+                            enabled: boolean;
+                            /** @enum {string} */
+                            position: "start" | "end";
+                            skipFirst?: number;
+                            skipLast?: number;
+                            /** @enum {string} */
+                            style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                        };
+                        /** @enum {string} */
+                        visibility?: "PUBLIC" | "CONNECTIONS";
+                    };
+                    sourceHash?: string;
+                }[];
+            };
+            /** @enum {string} */
+            primaryChannel?: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+            target?: {
+                author?: string;
+                /** @enum {string} */
+                kind?: "reply" | "quote" | "repurpose";
+                platform?: string;
+                remoteId?: string;
+                sourceDraftId?: string;
+                sourcePostId?: string;
+                text?: string;
+                url?: string;
+            };
             assetIds?: string[];
             body?: {
                 [key: string]: unknown;
@@ -1437,6 +2009,210 @@ export interface components {
                     total: number;
                 };
             }[];
+        };
+        ContentDraftCopy: {
+            draft: {
+                assetIds: string[];
+                body: {
+                    [key: string]: unknown;
+                }[];
+                channelConnectionIds: string[];
+                createdAt: string;
+                createdByUserId: string | null;
+                channelText: {
+                    [key: string]: string;
+                };
+                discussions: {
+                    [key: string]: unknown;
+                };
+                id: string;
+                organizationId: string;
+                plainText: string;
+                /** @enum {string} */
+                status: "draft" | "scheduled" | "archived";
+                title: string;
+                updatedAt: string;
+                updatedByUserId: string | null;
+                version: number;
+                approvedVersion: number | null;
+                reviewNote: string | null;
+                /** @enum {string} */
+                reviewStatus: "none" | "pending" | "approved" | "changes_requested";
+                reviewedByUserId: string | null;
+                shareToken: string | null;
+                guestComments: {
+                    createdAt: string;
+                    name: string;
+                    text: string;
+                }[];
+                publishedPosts: number;
+                article: {
+                    coverAssetId?: string;
+                    title: string;
+                } | null;
+                attentionPosts: number;
+                /** @enum {string} */
+                kind: "standard" | "reply" | "quote" | "repurpose" | "article";
+                nextPostAt: string | null;
+                pinnedAt: string | null;
+                plannedFor: string | null;
+                planTimeZone: string | null;
+                platformVersions: {
+                    /** @constant */
+                    schemaVersion: 1;
+                    versions: {
+                        body?: {
+                            [key: string]: unknown;
+                        }[];
+                        /** @enum {string} */
+                        channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                        forkedFromVersion?: number;
+                        /** @enum {string} */
+                        mode: "synced" | "manual";
+                        options?: {
+                            community?: {
+                                id: string;
+                                name?: string;
+                                shareWithFollowers?: boolean;
+                            };
+                            document?: {
+                                assetId: string;
+                                title?: string;
+                            };
+                            firstComment?: string;
+                            numbering?: {
+                                enabled: boolean;
+                                /** @enum {string} */
+                                position: "start" | "end";
+                                skipFirst?: number;
+                                skipLast?: number;
+                                /** @enum {string} */
+                                style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                            };
+                            /** @enum {string} */
+                            visibility?: "PUBLIC" | "CONNECTIONS";
+                        };
+                        sourceHash?: string;
+                    }[];
+                };
+                /** @enum {string} */
+                primaryChannel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                queuedPosts: number;
+                scratchpad: string;
+                socialSetId: string | null;
+                sourceDraftId: string | null;
+                tagIds: string[];
+                target: {
+                    author?: string;
+                    /** @enum {string} */
+                    kind?: "reply" | "quote" | "repurpose";
+                    platform?: string;
+                    remoteId?: string;
+                    sourceDraftId?: string;
+                    sourcePostId?: string;
+                    text?: string;
+                    url?: string;
+                } | null;
+            };
+            dropped: string[];
+        };
+        ContentDraftActivityList: {
+            items: {
+                action: string;
+                actorName: string | null;
+                actorType: string;
+                actorUserId: string | null;
+                at: string;
+                entityId: string;
+                id: string;
+                metadata: {
+                    [key: string]: unknown;
+                };
+            }[];
+        };
+        SocialSetList: {
+            items: {
+                channelConnectionIds: string[];
+                /** @enum {string} */
+                color: "sky" | "violet" | "emerald" | "amber" | "rose" | "orange" | "teal" | "indigo" | "pink" | "gray";
+                connections: {
+                    avatarUrl: string | null;
+                    /** @enum {string} */
+                    channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                    displayName: string | null;
+                    handle: string | null;
+                    /** @enum {string} */
+                    health: "healthy" | "reconnect" | "disabled";
+                    id: string;
+                    platform: string;
+                }[];
+                createdAt: string;
+                defaultChannels: ("x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon")[];
+                id: string;
+                isDefault: boolean;
+                memberUserIds: string[];
+                name: string;
+                preferences: {
+                    audience?: string;
+                    naturalTiming?: boolean;
+                    samples?: string[];
+                    voice?: string;
+                };
+                timeZone: string | null;
+                updatedAt: string;
+                /** @enum {string} */
+                visibility: "workspace" | "restricted";
+            }[];
+        };
+        SocialSet: {
+            channelConnectionIds: string[];
+            /** @enum {string} */
+            color: "sky" | "violet" | "emerald" | "amber" | "rose" | "orange" | "teal" | "indigo" | "pink" | "gray";
+            connections: {
+                avatarUrl: string | null;
+                /** @enum {string} */
+                channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                displayName: string | null;
+                handle: string | null;
+                /** @enum {string} */
+                health: "healthy" | "reconnect" | "disabled";
+                id: string;
+                platform: string;
+            }[];
+            createdAt: string;
+            defaultChannels: ("x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon")[];
+            id: string;
+            isDefault: boolean;
+            memberUserIds: string[];
+            name: string;
+            preferences: {
+                audience?: string;
+                naturalTiming?: boolean;
+                samples?: string[];
+                voice?: string;
+            };
+            timeZone: string | null;
+            updatedAt: string;
+            /** @enum {string} */
+            visibility: "workspace" | "restricted";
+        };
+        DraftTagList: {
+            items: {
+                /** @enum {string} */
+                color: "gray" | "red" | "orange" | "amber" | "green" | "teal" | "sky" | "blue" | "violet" | "pink";
+                createdAt: string;
+                id: string;
+                name: string;
+                socialSetId: string;
+            }[];
+        };
+        DraftTag: {
+            /** @enum {string} */
+            color: "gray" | "red" | "orange" | "amber" | "green" | "teal" | "sky" | "blue" | "violet" | "pink";
+            createdAt: string;
+            id: string;
+            name: string;
+            socialSetId: string;
         };
         OnboardingRunCreateRequest: {
             sentence?: string;
@@ -3873,8 +4649,14 @@ export interface operations {
         parameters: {
             query?: {
                 cursor?: string;
+                kind?: "standard" | "reply" | "quote" | "repurpose" | "article";
                 limit?: number;
+                search?: string;
+                socialSetId?: string;
+                sort?: "updated_desc" | "updated_asc" | "created_desc" | "created_asc";
                 status?: "draft" | "scheduled" | "archived";
+                tagId?: string;
+                view?: "drafts" | "posted" | "archived";
             };
             header?: never;
             path?: never;
@@ -4255,6 +5037,1024 @@ export interface operations {
             };
             /** @description The draft was not found in this workspace. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateContentDraftProperties: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    addTagIds?: string[];
+                    pinned?: boolean;
+                    removeTagIds?: string[];
+                    scratchpad?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The draft. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraft"];
+                };
+            };
+            /** @description A tag is not in the draft's set. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    planContentDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    plannedFor: string | null;
+                    timeZone?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The draft. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraft"];
+                };
+            };
+            /** @description The time is past or the zone unknown. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    duplicateContentDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The copy. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraftCopy"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description An image was deleted. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    copyContentDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    socialSetId: string;
+                    /** @enum {string} */
+                    tagMode: "match" | "drop";
+                };
+            };
+        };
+        responses: {
+            /** @description The copy. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraftCopy"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft or set was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    recoverContentDraftRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                revisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The recovered draft. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraftCopy"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft or backup was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listContentDraftActivity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The activity. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContentDraftActivityList"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The draft was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listSocialSets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The social sets. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialSetList"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createSocialSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    channelConnectionIds?: string[];
+                    /** @enum {string} */
+                    color?: "sky" | "violet" | "emerald" | "amber" | "rose" | "orange" | "teal" | "indigo" | "pink" | "gray";
+                    defaultChannels?: ("x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon")[];
+                    memberUserIds?: string[];
+                    name: string;
+                    preferences?: {
+                        audience?: string;
+                        naturalTiming?: boolean;
+                        samples?: string[];
+                        voice?: string;
+                    };
+                    timeZone?: string;
+                    /** @enum {string} */
+                    visibility?: "workspace" | "restricted";
+                };
+            };
+        };
+        responses: {
+            /** @description Set created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialSet"];
+                };
+            };
+            /** @description The set is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The workspace has as many sets as it can. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getSocialSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The set. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialSet"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The set was not found, or the caller may not see it. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteSocialSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Set deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        deleted: true;
+                    };
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The set was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The set is the default or has drafts. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateSocialSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    channelConnectionIds?: string[];
+                    /** @enum {string} */
+                    color?: "sky" | "violet" | "emerald" | "amber" | "rose" | "orange" | "teal" | "indigo" | "pink" | "gray";
+                    defaultChannels?: ("x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon")[];
+                    memberUserIds?: string[];
+                    name?: string;
+                    preferences?: {
+                        audience?: string;
+                        naturalTiming?: boolean;
+                        samples?: string[];
+                        voice?: string;
+                    };
+                    timeZone?: string;
+                    /** @enum {string} */
+                    visibility?: "workspace" | "restricted";
+                };
+            };
+        };
+        responses: {
+            /** @description The set. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialSet"];
+                };
+            };
+            /** @description The change is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The set was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listDraftTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tags. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftTagList"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The set was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createDraftTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    color?: "gray" | "red" | "orange" | "amber" | "green" | "teal" | "sky" | "blue" | "violet" | "pink";
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Tag created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftTag"];
+                };
+            };
+            /** @description The tag is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The set has a tag of that name. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteDraftTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                tagId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tag deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        deleted: true;
+                    };
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The tag was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateDraftTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                tagId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    color?: "gray" | "red" | "orange" | "amber" | "green" | "teal" | "sky" | "blue" | "violet" | "pink";
+                    name?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The tag. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftTag"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The tag was not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The set has a tag of that name. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

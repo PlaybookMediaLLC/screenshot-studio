@@ -1,6 +1,13 @@
 import { z } from 'zod'
 import { defineContract, timestampSchema } from '@/lib/api/contract'
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
+import { draftKindSchema } from '@/lib/write/document'
+import {
+  contentDraftSortSchema,
+  contentDraftViewSchema,
+  draftWriteFieldsSchema,
+  draftWriteInputSchema,
+} from '@/lib/write/wire'
 
 /** Where a draft is in its life. Scheduling sets `scheduled`. */
 export const contentDraftStatusSchema = z.enum(['draft', 'scheduled', 'archived'])
@@ -17,40 +24,42 @@ export const contentDraftIdSchema = z
 export const plateValueSchema = z.array(z.record(z.string(), z.unknown())).max(5_000)
 
 /** A draft as the API returns it. */
-export const contentDraftSchema = z.object({
-  assetIds: z.array(z.string()),
-  body: plateValueSchema,
-  channelConnectionIds: z.array(z.string()),
-  createdAt: timestampSchema,
-  createdByUserId: z.string().nullable(),
-  /** Text a channel posts instead of the body's, by channel. */
-  channelText: z.record(z.string(), z.string()),
-  discussions: z.record(z.string(), z.unknown()),
-  id: z.string(),
-  organizationId: z.string(),
-  plainText: z.string(),
-  status: contentDraftStatusSchema,
-  title: z.string(),
-  updatedAt: timestampSchema,
-  updatedByUserId: z.string().nullable(),
-  version: z.number().int().min(1),
-  /** Review before scheduling; approval holds for `approvedVersion` only. */
-  approvedVersion: z.number().int().nullable(),
-  reviewNote: z.string().nullable(),
-  reviewStatus: z.enum(['none', 'pending', 'approved', 'changes_requested']),
-  reviewedByUserId: z.string().nullable(),
-  /** The read-and-comment link's token, while the link is on. */
-  shareToken: z.string().nullable(),
-  /** Comments guests left through that link. */
-  guestComments: z.array(
-    z.object({ createdAt: timestampSchema, name: z.string(), text: z.string() })
-  ),
-  /** The draft's live posts (lists only). */
-  publishedPosts: z.number().int(),
-})
+export const contentDraftSchema = z
+  .object({
+    assetIds: z.array(z.string()),
+    body: plateValueSchema,
+    channelConnectionIds: z.array(z.string()),
+    createdAt: timestampSchema,
+    createdByUserId: z.string().nullable(),
+    /** Text a channel posts instead of the body's, by channel. */
+    channelText: z.record(z.string(), z.string()),
+    discussions: z.record(z.string(), z.unknown()),
+    id: z.string(),
+    organizationId: z.string(),
+    plainText: z.string(),
+    status: contentDraftStatusSchema,
+    title: z.string(),
+    updatedAt: timestampSchema,
+    updatedByUserId: z.string().nullable(),
+    version: z.number().int().min(1),
+    /** Review before scheduling; approval holds for `approvedVersion` only. */
+    approvedVersion: z.number().int().nullable(),
+    reviewNote: z.string().nullable(),
+    reviewStatus: z.enum(['none', 'pending', 'approved', 'changes_requested']),
+    reviewedByUserId: z.string().nullable(),
+    /** The read-and-comment link's token, while the link is on. */
+    shareToken: z.string().nullable(),
+    /** Comments guests left through that link. */
+    guestComments: z.array(
+      z.object({ createdAt: timestampSchema, name: z.string(), text: z.string() })
+    ),
+    /** The draft's live posts (lists only). */
+    publishedPosts: z.number().int(),
+  })
+  .extend(draftWriteFieldsSchema.shape)
 
 /** The fields a draft is created or updated with. */
-export const contentDraftFieldsSchema = z.object({
+export const contentDraftFieldsSchema = draftWriteInputSchema.extend({
   assetIds: z.array(contentDraftIdSchema).max(20).optional(),
   body: plateValueSchema.optional(),
   channelConnectionIds: z.array(contentDraftIdSchema).max(10).optional(),
@@ -67,17 +76,38 @@ export const contentDraftFieldsSchema = z.object({
   title: z.string().max(200).optional(),
 })
 
+/**
+ * A new draft: the fields, plus what only creation sets. Without a social
+ * set the draft goes to the workspace's default set; without channels it
+ * takes the set's default platforms.
+ */
+export const contentDraftCreateSchema = contentDraftFieldsSchema.extend({
+  kind: draftKindSchema.optional(),
+  scratchpad: z.string().max(20_000).optional(),
+  socialSetId: contentDraftIdSchema.optional(),
+  tagIds: z.array(contentDraftIdSchema).max(20).optional(),
+})
+
 /** An update: the fields it sets, based on the version the client last saw. */
 export const contentDraftUpdateSchema = contentDraftFieldsSchema.extend({
   baseVersion: z.number().int().min(1),
   status: contentDraftEditableStatusSchema.optional(),
 })
 
-/** The list query. Without `status`, archived drafts are left out. */
+/**
+ * The list query. Without `status` or `view`, archived drafts are left out.
+ * Pinned drafts come first, in `pinned`, on the first page.
+ */
 export const contentDraftListQuerySchema = z.object({
   cursor: z.string().max(500).optional(),
+  kind: draftKindSchema.optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
+  search: z.string().max(200).optional(),
+  socialSetId: contentDraftIdSchema.optional(),
+  sort: contentDraftSortSchema.optional(),
   status: contentDraftStatusSchema.optional(),
+  tagId: contentDraftIdSchema.optional(),
+  view: contentDraftViewSchema.optional(),
 })
 
 /** Path parameters naming one draft. */
@@ -101,7 +131,11 @@ export const listContentDraftsContract = defineContract({
   }),
   method: 'GET',
   name: 'content-drafts.list',
-  output: z.object({ items: z.array(contentDraftSchema), nextCursor: z.string().nullable() }),
+  output: z.object({
+    items: z.array(contentDraftSchema),
+    nextCursor: z.string().nullable(),
+    pinned: z.array(contentDraftSchema),
+  }),
   path: '/api/v1/content-drafts',
   query: contentDraftListQuerySchema,
   summary: 'List content drafts',
@@ -110,7 +144,7 @@ export const listContentDraftsContract = defineContract({
 /** `POST /api/v1/content-drafts` */
 export const createContentDraftContract = defineContract({
   access: { apiKeyScope: 'draft:write', feature: 'content:drafts', permission: 'artifact:edit' },
-  body: contentDraftFieldsSchema,
+  body: contentDraftCreateSchema,
   docs: workspaceDocs({
     bodyName: 'ContentDraftCreateRequest',
     description:

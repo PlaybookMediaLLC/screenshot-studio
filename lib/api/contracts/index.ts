@@ -51,6 +51,27 @@ import {
   listOrganizationsContract,
 } from '@/lib/api/contracts/shell'
 import { createSourceAppContract, updateSourceAppContract } from '@/lib/api/contracts/source-apps'
+import {
+  createDraftTagContract,
+  deleteDraftTagContract,
+  listDraftTagsContract,
+  updateDraftTagContract,
+} from '@/lib/api/contracts/draft-tags'
+import {
+  createSocialSetContract,
+  deleteSocialSetContract,
+  getSocialSetContract,
+  listSocialSetsContract,
+  updateSocialSetContract,
+} from '@/lib/api/contracts/social-sets'
+import {
+  contentDraftActivityContract,
+  copyContentDraftContract,
+  duplicateContentDraftContract,
+  planContentDraftContract,
+  recoverContentDraftRevisionContract,
+  updateDraftPropertiesContract,
+} from '@/lib/api/contracts/write'
 
 /** Every contract in the public OpenAPI spec, in the order the spec lists them. */
 export const documentedContracts = [
@@ -80,6 +101,21 @@ export const documentedContracts = [
   updateContentDraftContract,
   deleteContentDraftContract,
   listContentDraftPostsContract,
+  updateDraftPropertiesContract,
+  planContentDraftContract,
+  duplicateContentDraftContract,
+  copyContentDraftContract,
+  recoverContentDraftRevisionContract,
+  contentDraftActivityContract,
+  listSocialSetsContract,
+  createSocialSetContract,
+  getSocialSetContract,
+  updateSocialSetContract,
+  deleteSocialSetContract,
+  listDraftTagsContract,
+  createDraftTagContract,
+  updateDraftTagContract,
+  deleteDraftTagContract,
   createOnboardingRunContract,
   getOnboardingRunContract,
   cancelOnboardingRunContract,

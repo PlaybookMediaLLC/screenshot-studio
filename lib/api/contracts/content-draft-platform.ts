@@ -7,6 +7,7 @@ import {
   contentDraftSchema,
   plateValueSchema,
 } from '@/lib/api/contracts/content-drafts'
+import { articleSchema, platformVersionsSchema } from '@/lib/write/document'
 
 /**
  * Content drafts, round two (RFC 037): the posting queue and its settings,
@@ -138,13 +139,21 @@ export const shareContentDraftContract = defineContract({
   summary: "Turn a draft's read-and-comment link on or off",
 })
 
-/** A saved point in a draft's history. */
+/** Why a backup was kept. */
+export const revisionReasonSchema = z.enum(['edit', 'schedule', 'plan', 'publish', 'recovery'])
+
+/** A saved point in a draft's history: an immutable automatic backup. */
 export const contentDraftRevisionSchema = z.object({
+  /** An article's title and cover as they were (one revision's read). */
+  article: articleSchema.optional(),
   body: plateValueSchema.optional(),
   createdAt: timestampSchema,
   createdByUserId: z.string().nullable(),
   id: z.string(),
   plainText: z.string(),
+  /** The platform versions as they were (one revision's read). */
+  platformVersions: platformVersionsSchema.optional(),
+  reason: revisionReasonSchema,
   title: z.string(),
   version: z.number().int(),
 })

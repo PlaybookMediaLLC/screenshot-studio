@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { draftChannelSchema } from '@/lib/write/document'
 import { xLength } from './x-length'
 
 /**
@@ -9,15 +10,8 @@ import { xLength } from './x-length'
  * preview is what gets posted.
  */
 
-/** Channels a draft can be scheduled to. */
-export const draftChannelSchema = z.enum([
-  'x',
-  'linkedin',
-  'instagram',
-  'threads',
-  'bluesky',
-  'mastodon',
-])
+/** Channels a draft can be scheduled to (defined with the Write document). */
+export { draftChannelSchema }
 
 /** One of {@link draftChannelSchema}. */
 export type DraftChannel = z.infer<typeof draftChannelSchema>

@@ -12,6 +12,7 @@ import * as billing from '@/lib/api/contracts/billing'
 import * as campaigns from '@/lib/api/contracts/campaigns'
 import * as contentDrafts from '@/lib/api/contracts/content-drafts'
 import * as contentDraftPlatform from '@/lib/api/contracts/content-draft-platform'
+import * as draftTags from '@/lib/api/contracts/draft-tags'
 import * as integrations from '@/lib/api/contracts/integrations'
 import * as internal from '@/lib/api/contracts/internal'
 import * as linkPreview from '@/lib/api/contracts/link-preview'
@@ -21,11 +22,13 @@ import * as releases from '@/lib/api/contracts/releases'
 import * as scheduledPosts from '@/lib/api/contracts/scheduled-posts'
 import * as sharing from '@/lib/api/contracts/sharing'
 import * as shell from '@/lib/api/contracts/shell'
+import * as socialSets from '@/lib/api/contracts/social-sets'
 import * as sourceApps from '@/lib/api/contracts/source-apps'
 import * as storePublishing from '@/lib/api/contracts/store-publishing'
 import * as storeScreenshots from '@/lib/api/contracts/store-screenshots'
 import * as unsubscribe from '@/lib/api/contracts/unsubscribe'
 import * as webhooks from '@/lib/api/contracts/webhooks'
+import * as write from '@/lib/api/contracts/write'
 import { openApiSpec } from '@/lib/api/openapi'
 import { getMinimumPlan } from '@/lib/billing/plans'
 
@@ -41,6 +44,7 @@ const contracts = new Map<string, RouteContract>(
     campaigns,
     contentDraftPlatform,
     contentDrafts,
+    draftTags,
     integrations,
     internal,
     linkPreview,
@@ -50,11 +54,13 @@ const contracts = new Map<string, RouteContract>(
     scheduledPosts,
     sharing,
     shell,
+    socialSets,
     sourceApps,
     storePublishing,
     storeScreenshots,
     unsubscribe,
     webhooks,
+    write,
   ]
     .flatMap((module) => Object.entries(module))
     .filter(([, value]) => routeContractSchema.safeParse(value).success)

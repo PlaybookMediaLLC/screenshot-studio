@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { z } from 'zod'
-import { Group, Pill, Row, Section } from '@/components/platform-ui'
+import { Pill, Section } from '@/components/platform-ui'
 import { settingsErrorMessage } from '@/lib/settings/client'
 import { useTRPCClient } from '@/lib/trpc/react'
 
@@ -156,55 +156,50 @@ export function IntegrationCatalog({ canManage }: { canManage: boolean }) {
           {settingsErrorMessage(integrations.error)}
         </p>
       ) : null}
-      <Group>
+      {/* A list, not headings: the provider sections below already head "Slack" and "Notion". */}
+      <ul
+        aria-label="Agents and integrations"
+        className="flex w-full flex-col divide-y divide-foreground/[0.07] overflow-hidden rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]"
+      >
         {entries.map((entry) => {
           const status = STATUS_LABELS[entry.status]
           return (
-            <Row
-              description={
-                <span className="grid gap-1">
+            <li className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between" key={entry.name}>
+              <div className="min-w-0 md:max-w-[60%]">
+                <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  {entry.name}
+                  <Pill tone={status.tone}>{status.label}</Pill>
+                </p>
+                <div className="mt-0.5 grid gap-1 text-xs text-muted-foreground">
                   <span>{entry.purpose}</span>
                   <span>
-                    <strong className="font-medium text-foreground/80">Access:</strong>{' '}
-                    {entry.authorization}
+                    <strong className="font-medium text-foreground/80">Access:</strong> {entry.authorization}
                   </span>
                   <span>
-                    <strong className="font-medium text-foreground/80">Scopes:</strong>{' '}
-                    {entry.scopes}
+                    <strong className="font-medium text-foreground/80">Scopes:</strong> {entry.scopes}
                   </span>
                   <span>
                     <strong className="font-medium text-foreground/80">Setup:</strong> {entry.setup}
                   </span>
-                </span>
-              }
-              key={entry.name}
-              label={
-                <span className="flex items-center gap-2">
-                  {entry.name}
-                  <Pill tone={status.tone}>{status.label}</Pill>
-                </span>
-              }
-            >
+                </div>
+              </div>
               {entry.action ? (
-                entry.action.external ? (
-                  <a
-                    className="text-sm underline"
-                    href={entry.action.href}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {entry.action.label}
-                  </a>
-                ) : (
-                  <Link className="text-sm underline" href={entry.action.href}>
-                    {entry.action.label}
-                  </Link>
-                )
+                <div className="flex min-w-0 items-center gap-2 md:justify-end">
+                  {entry.action.external ? (
+                    <a className="text-sm underline" href={entry.action.href} rel="noreferrer" target="_blank">
+                      {entry.action.label}
+                    </a>
+                  ) : (
+                    <Link className="text-sm underline" href={entry.action.href}>
+                      {entry.action.label}
+                    </Link>
+                  )}
+                </div>
               ) : null}
-            </Row>
+            </li>
           )
         })}
-      </Group>
+      </ul>
     </Section>
   )
 }

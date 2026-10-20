@@ -19,6 +19,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
 )
 
@@ -482,6 +483,9 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_created", "content_draft", row.ID); err != nil {
 		return nil, err
 	}
+	if err := emitDraftEvent(ctx, tx, row, webhooks.DraftCreated, nil); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -729,6 +733,9 @@ func (c *Configuration) UpdateContentDraft(ctx context.Context, actor Actor, id 
 		map[string]any{"version": row.Version}); err != nil {
 		return nil, err
 	}
+	if err := emitDraftChanges(ctx, tx, previous, row); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -758,7 +765,8 @@ func (c *Configuration) DeleteContentDraft(ctx context.Context, actor Actor, id 
 		return err
 	}
 	defer tx.Rollback()
-	if _, err := visibleContentDraft(ctx, tx.Client(), actor, id); err != nil {
+	existing, err := visibleContentDraft(ctx, tx.Client(), actor, id)
+	if err != nil {
 		return err
 	}
 	count, err := tx.ContentDraft.Delete().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID)).Exec(ctx)
@@ -773,6 +781,9 @@ func (c *Configuration) DeleteContentDraft(ctx context.Context, actor Actor, id 
 		return publishing.ErrNotFound
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_deleted", "content_draft", id); err != nil {
+		return err
+	}
+	if err := emitDraftEvent(ctx, tx, existing, webhooks.DraftDeleted, nil); err != nil {
 		return err
 	}
 	return tx.Commit()

@@ -4,7 +4,7 @@ import type {
   BackendAutoActions,
   BackendContentDraft,
   BackendContentDraftPost,
-  BackendContentDraftInput,
+  BackendContentDraftCreate,
   BackendContentDraftListQuery,
   BackendContentDraftUpdate,
   BackendPoll,
@@ -39,7 +39,7 @@ export async function listContentDrafts(
 }
 
 /** Create a draft. */
-export async function createContentDraft(context: TenantContext, input: BackendContentDraftInput) {
+export async function createContentDraft(context: TenantContext, input: BackendContentDraftCreate) {
   return readDraft(await backendSDK(context).createContentDraft(input))
 }
 
@@ -92,16 +92,17 @@ export async function scheduleContentDraft(
     options?: Record<string, { autoActions?: BackendAutoActions; poll?: BackendPoll }>
     /** When set, the queue's next free slot instead of `scheduledFor`. */
     queue?: boolean
+    /** Overrides the draft's natural posting time for this schedule. */
+    naturalPostingTime?: boolean
     scheduledFor?: Date
     version: number
   }
 ) {
   const draft = await getContentDraft(context, id)
   if (!draft) return null
-  const scheduledFor = input.queue
-    ? new Date((await backendSDK(context).nextContentDraftQueueSlot()).scheduledFor)
-    : input.scheduledFor
-  if (!scheduledFor)
+  // The backend picks and reserves a queued slot inside the scheduling
+  // transaction, so two requests cannot take the same one.
+  if (!input.queue && !input.scheduledFor)
     throw new ScheduledPostError('Pick a time, or add the draft to the queue.', 400)
   const platforms = new Map(
     (await listBackendConnections(context)).map((connection) => [
@@ -136,7 +137,8 @@ export async function scheduleContentDraft(
     }
   })
   const result = await backendSDK(context).scheduleContentDraft(id, {
-    scheduledFor,
+    ...(input.naturalPostingTime === undefined ? {} : { naturalPostingTime: input.naturalPostingTime }),
+    ...(input.queue ? { queue: true } : { scheduledFor: input.scheduledFor }),
     targets,
     version: input.version,
   })

@@ -20,6 +20,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
 )
 
@@ -415,6 +416,13 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 	}
 	if err := recordProductActivity(ctx, tx, actor, "post.moved", "post.moved", "scheduled_post", moved.ID,
 		map[string]any{"from": post.ID, "scheduledFor": at.UTC()}); err != nil {
+		return nil, err
+	}
+	movedPost := contentDraftPost(moved, post.Edges.ChannelConnection.Platform)
+	if draft, err := tx.ContentDraft.Get(ctx, *post.ContentDraftID); err != nil {
+		return nil, err
+	} else if err := emitDraftEvent(ctx, tx, draft, webhooks.DraftScheduled, map[string]any{
+		"posts": scheduledPostsData([]ContentDraftPost{movedPost}), "scheduleMode": "explicit"}); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

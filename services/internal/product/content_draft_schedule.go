@@ -16,6 +16,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
 )
 
@@ -118,25 +119,7 @@ type ContentDraftPost struct {
 // livePostURL is a live post's address on its platform, where one can be
 // built from its id.
 func livePostURL(platform string, remoteID *string) *string {
-	if remoteID == nil || *remoteID == "" {
-		return nil
-	}
-	var url string
-	switch platform {
-	case "x":
-		url = "https://x.com/i/status/" + *remoteID
-	case "linkedin":
-		url = "https://www.linkedin.com/feed/update/" + *remoteID
-	case "threads", "bluesky", "mastodon":
-		// These providers report a post's address as its id.
-		if strings.HasPrefix(*remoteID, "https://") {
-			url = *remoteID
-		}
-	}
-	if url == "" {
-		return nil
-	}
-	return &url
+	return postoptions.LivePostURL(platform, remoteID)
 }
 
 // ScheduleContentDraftResult is the draft after scheduling and its new posts.
@@ -528,6 +511,13 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	}
 	updated, err := tx.ContentDraft.Get(ctx, draft.ID)
 	if err != nil {
+		return nil, err
+	}
+	if err := emitDraftEvent(ctx, tx, updated, webhooks.DraftScheduled,
+		map[string]any{"posts": scheduledPostsData(result.Posts), "scheduleMode": string(placement.mode)}); err != nil {
+		return nil, err
+	}
+	if err := emitDraftChanges(ctx, tx, draft, updated); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

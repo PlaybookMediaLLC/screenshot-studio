@@ -59,6 +59,7 @@ type ConfigurationStore interface {
 	ContentDraftStore
 	ContentDraftPlatformStore
 	SettingsPlatformStore
+	WebhookStore
 	LibraryStore
 	SharingStore
 	GetCampaignAsset(context.Context, product.Actor, string, string) (*product.CampaignAssetLink, error)
@@ -288,6 +289,7 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 		s.registerCreativeSets(mux)
 		s.registerContentDrafts(mux)
 		s.registerSettingsPlatform(mux)
+		s.registerWebhooks(mux)
 		s.registerLibrary(mux)
 		s.registerSharing(mux)
 		s.registerNotifications(mux)
@@ -737,6 +739,8 @@ func writeStoreError(w http.ResponseWriter, err error) {
 			"code": "plan_limit_reached", "currentPlan": atLimit.Plan, "error": err.Error(),
 			"limit": atLimit.Limit, "name": atLimit.Name,
 		})
+	case errors.Is(err, product.ErrWebhooksUnavailable):
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"code": "webhooks_unavailable", "error": err.Error()})
 	case errors.Is(err, publishing.ErrSocialSetSlotTaken), errors.Is(err, publishing.ErrAccountInAnotherSet):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, publishing.ErrUnauthorized):

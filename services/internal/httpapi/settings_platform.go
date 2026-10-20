@@ -301,7 +301,7 @@ func (s *Server) deleteWritingSample(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
 }
 
 func (s *Server) draftWritingContext(w http.ResponseWriter, r *http.Request) {

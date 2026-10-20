@@ -1064,10 +1064,23 @@ func (c *Configuration) DeleteSocialSet(ctx context.Context, actor Actor, id, co
 		channelconnection.StatusEQ(channelconnection.StatusACTIVE)).SetStatus(channelconnection.StatusDISABLED).Save(ctx); err != nil {
 		return nil, err
 	}
+	open, err := tx.ContentDraft.Query().Where(contentdraft.SocialSetID(set.ID), contentdraft.StatusNEQ(contentdraft.StatusArchived)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
 	archived, err := tx.ContentDraft.Update().Where(contentdraft.SocialSetID(set.ID), contentdraft.StatusNEQ(contentdraft.StatusArchived)).
 		SetStatus(contentdraft.StatusArchived).AddVersion(1).Save(ctx)
 	if err != nil {
 		return nil, err
+	}
+	for _, before := range open {
+		after, err := tx.ContentDraft.Get(ctx, before.ID)
+		if err != nil {
+			return nil, err
+		}
+		if err := emitDraftChanges(ctx, tx, before, after); err != nil {
+			return nil, err
+		}
 	}
 	if _, err := tx.SocialSet.UpdateOneID(set.ID).SetDeletedAt(time.Now().UTC()).SetPublicProfile(false).AddVersion(1).Save(ctx); err != nil {
 		return nil, err

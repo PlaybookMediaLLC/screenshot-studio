@@ -80,6 +80,13 @@ func main() {
 	} else {
 		slog.Warn("post engagement unavailable", "error", err)
 	}
+	// Outbound webhooks (RFC 043): the key seals signing secrets.
+	webhookKey, err := config.WebhookEncryptionKey()
+	if err != nil {
+		slog.Error("invalid webhook configuration", "error", err)
+		os.Exit(1)
+	}
+	configuration.WithWebhooks(webhookKey, nil)
 	// Content draft collaboration (RFC 037): only the backend can sign tokens.
 	if key := os.Getenv("COLLAB_TOKEN_SECRET"); key != "" {
 		configuration.WithCollabKey([]byte(key))

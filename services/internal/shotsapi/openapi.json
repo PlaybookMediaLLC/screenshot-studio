@@ -4716,6 +4716,15 @@
           },
           {
             "in": "query",
+            "name": "socialSetId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          },
+          {
+            "in": "query",
             "name": "status",
             "required": false,
             "schema": {
@@ -10875,6 +10884,100 @@
                   "type": "integer",
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
+                },
+                "engagement": {
+                  "default": {
+                    "autoPlug": {
+                      "atLikes": 0,
+                      "enabled": false
+                    },
+                    "autoRepost": {
+                      "atLikes": 0,
+                      "enabled": false
+                    }
+                  },
+                  "type": "object",
+                  "properties": {
+                    "autoPlug": {
+                      "type": "object",
+                      "properties": {
+                        "atLikes": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "atLikes",
+                        "enabled"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "autoRepost": {
+                      "type": "object",
+                      "properties": {
+                        "atLikes": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "atLikes",
+                        "enabled"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "autoPlug",
+                    "autoRepost"
+                  ],
+                  "additionalProperties": false
+                },
+                "naturalPostingTime": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "plannedFor": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "primaryPlatform": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "socialSetId": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tags": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
               "required": [
@@ -10899,7 +11002,13 @@
                 "reviewedByUserId",
                 "shareToken",
                 "guestComments",
-                "publishedPosts"
+                "publishedPosts",
+                "engagement",
+                "naturalPostingTime",
+                "plannedFor",
+                "primaryPlatform",
+                "socialSetId",
+                "tags"
               ],
               "additionalProperties": false
             }
@@ -10979,6 +11088,10 @@
           "title": {
             "type": "string",
             "maxLength": 200
+          },
+          "socialSetId": {
+            "type": "string",
+            "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
           }
         }
       },
@@ -11133,6 +11246,100 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
+          },
+          "engagement": {
+            "default": {
+              "autoPlug": {
+                "atLikes": 0,
+                "enabled": false
+              },
+              "autoRepost": {
+                "atLikes": 0,
+                "enabled": false
+              }
+            },
+            "type": "object",
+            "properties": {
+              "autoPlug": {
+                "type": "object",
+                "properties": {
+                  "atLikes": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "atLikes",
+                  "enabled"
+                ],
+                "additionalProperties": false
+              },
+              "autoRepost": {
+                "type": "object",
+                "properties": {
+                  "atLikes": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "atLikes",
+                  "enabled"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "autoPlug",
+              "autoRepost"
+            ],
+            "additionalProperties": false
+          },
+          "naturalPostingTime": {
+            "default": false,
+            "type": "boolean"
+          },
+          "plannedFor": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "primaryPlatform": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "socialSetId": {
+            "default": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -11157,7 +11364,13 @@
           "reviewedByUserId",
           "shareToken",
           "guestComments",
-          "publishedPosts"
+          "publishedPosts",
+          "engagement",
+          "naturalPostingTime",
+          "plannedFor",
+          "primaryPlatform",
+          "socialSetId",
+          "tags"
         ],
         "additionalProperties": false
       },
@@ -11235,6 +11448,42 @@
               "draft",
               "archived"
             ]
+          },
+          "naturalPostingTime": {
+            "type": "boolean"
+          },
+          "primaryPlatform": {
+            "type": "string",
+            "enum": [
+              "x",
+              "linkedin",
+              "instagram",
+              "threads",
+              "bluesky",
+              "mastodon",
+              ""
+            ]
+          },
+          "plannedFor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ]
+          },
+          "tags": {
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 32
+            }
           }
         },
         "required": [
@@ -11334,6 +11583,55 @@
                     "total"
                   ],
                   "additionalProperties": false
+                },
+                "naturalOffsetSeconds": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "scheduleMode": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "queue",
+                        "explicit"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "scheduleTimeZone": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "slotAt": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "socialSetId": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
               },
               "required": [
@@ -11348,7 +11646,12 @@
                 "metricsAt",
                 "url",
                 "replies",
-                "threadProgress"
+                "threadProgress",
+                "naturalOffsetSeconds",
+                "scheduleMode",
+                "scheduleTimeZone",
+                "slotAt",
+                "socialSetId"
               ],
               "additionalProperties": false
             }

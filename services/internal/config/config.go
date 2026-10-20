@@ -45,12 +45,15 @@ type Orchestrator struct {
 	RunMaintenance            bool
 	AuditRetentionDatabaseURL string
 	AuditDrainEncryptionKey   []byte
-	ResendAPIKey              string
-	EmailFrom                 string
-	AuthBaseURL               string
-	AuthSecret                string
-	CompanyPostalAddress      string
-	WorkerConcurrencyDivider  int
+	// WebhookEncryptionKey seals outbound webhook secrets (RFC 043); without
+	// it outbound webhooks are unavailable.
+	WebhookEncryptionKey     []byte
+	ResendAPIKey             string
+	EmailFrom                string
+	AuthBaseURL              string
+	AuthSecret               string
+	CompanyPostalAddress     string
+	WorkerConcurrencyDivider int
 }
 
 func LoadBackend() (Backend, error) {
@@ -112,6 +115,9 @@ func LoadOrchestrator() (Orchestrator, error) {
 		AuthBaseURL: os.Getenv("BETTER_AUTH_URL"), AuthSecret: os.Getenv("BETTER_AUTH_SECRET"),
 		CompanyPostalAddress:     os.Getenv("COMPANY_POSTAL_ADDRESS"),
 		WorkerConcurrencyDivider: envInt("WORKER_CONCURRENCY_DIVIDER", 1),
+	}
+	if cfg.WebhookEncryptionKey, err = WebhookEncryptionKey(); err != nil {
+		return Orchestrator{}, err
 	}
 	if cfg.RunMaintenance {
 		cfg.AuditDrainEncryptionKey, err = base64.StdEncoding.DecodeString(os.Getenv("AUDIT_DRAIN_ENCRYPTION_KEY"))
@@ -221,4 +227,18 @@ func envDuration(name string, fallback time.Duration) time.Duration {
 		return fallback
 	}
 	return parsed
+}
+
+// WebhookEncryptionKey reads PLATFORM_WEBHOOK_ENCRYPTION_KEY, 32 bytes as
+// base64. It is optional: unset, outbound webhooks are unavailable.
+func WebhookEncryptionKey() ([]byte, error) {
+	raw := os.Getenv("PLATFORM_WEBHOOK_ENCRYPTION_KEY")
+	if raw == "" {
+		return nil, nil
+	}
+	key, err := base64.StdEncoding.DecodeString(raw)
+	if err != nil || len(key) != 32 {
+		return nil, fmt.Errorf("PLATFORM_WEBHOOK_ENCRYPTION_KEY must encode 32 bytes")
+	}
+	return key, nil
 }

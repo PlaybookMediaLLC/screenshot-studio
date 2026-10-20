@@ -3,10 +3,14 @@ package publishing
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhooksubscription"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 )
 
 // ErrSocialSetSlotTaken refuses a second active account of one platform in a
@@ -82,4 +86,34 @@ func enableDefaultPlatform(ctx context.Context, tx *ent.Tx, setID *string, platf
 	}
 	_, err = update.Save(ctx)
 	return err
+}
+
+// emitDraftPublished writes a draft.published webhook event (RFC 043) in the
+// transaction that marks a draft's post live: the draft's identity and the
+// live post, never its text.
+func emitDraftPublished(ctx context.Context, tx *ent.Tx, post *ent.ScheduledPost, providerPostID string) error {
+	if post.ContentDraftID == nil {
+		return nil
+	}
+	subscribed, err := tx.WebhookSubscription.Query().Where(webhooksubscription.OrganizationID(post.OrganizationID),
+		webhooksubscription.Enabled(true)).Exist(ctx)
+	if err != nil || !subscribed {
+		return err
+	}
+	draft, err := tx.ContentDraft.Get(ctx, *post.ContentDraftID)
+	if err != nil {
+		return err
+	}
+	connection, err := tx.ChannelConnection.Get(ctx, post.ChannelConnectionID)
+	if err != nil {
+		return err
+	}
+	data := map[string]any{
+		"draft": map[string]any{"id": draft.ID, "socialSetId": draft.SocialSetID, "status": string(draft.Status),
+			"tags": draft.Tags, "title": draft.Title},
+		"post": map[string]any{"id": post.ID, "platform": connection.Platform, "publishedAt": time.Now().UTC(),
+			"remotePostId": providerPostID, "url": postoptions.LivePostURL(connection.Platform, &providerPostID)},
+	}
+	return webhooks.Emit(ctx, tx, webhooks.NewEnvelope(post.OrganizationID, webhooks.DraftPublished, draft.SocialSetID,
+		webhooks.Resource{ID: draft.ID, Type: "draft"}, data))
 }

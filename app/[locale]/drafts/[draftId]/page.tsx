@@ -98,6 +98,7 @@ export default async function DraftPage({ params }: DraftPageProps) {
             createdAt: post.createdAt.toISOString(),
             metricsAt: post.metricsAt?.toISOString() ?? null,
             scheduledFor: post.scheduledFor.toISOString(),
+            slotAt: post.slotAt?.toISOString() ?? null,
           }))}
           user={{ id: access.session.user.id, name: access.session.user.name }}
         />

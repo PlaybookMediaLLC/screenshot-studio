@@ -47,6 +47,23 @@ export const contentDraftSchema = z.object({
   ),
   /** The draft's live posts (lists only). */
   publishedPosts: z.number().int(),
+  /**
+   * The draft's social set and what it copied from the set's defaults when it
+   * was created (RFC 043). Defaults keep an older backend's answer readable.
+   */
+  engagement: z
+    .object({
+      autoPlug: z.object({ atLikes: z.number().int(), enabled: z.boolean(), text: z.string().optional() }),
+      autoRepost: z.object({ atLikes: z.number().int(), enabled: z.boolean(), text: z.string().optional() }),
+    })
+    .default({ autoPlug: { atLikes: 0, enabled: false }, autoRepost: { atLikes: 0, enabled: false } }),
+  naturalPostingTime: z.boolean().default(false),
+  /** A calendar placement without scheduling, as an ISO 8601 instant (an experiment). */
+  plannedFor: z.string().nullable().default(null),
+  primaryPlatform: z.string().nullable().default(null),
+  socialSetId: z.string().nullable().default(null),
+  /** Labels on the draft (an experiment). */
+  tags: z.array(z.string()).default([]),
 })
 
 /** The fields a draft is created or updated with. */
@@ -67,16 +84,33 @@ export const contentDraftFieldsSchema = z.object({
   title: z.string().max(200).optional(),
 })
 
+/**
+ * A new draft: the fields above and its social set (RFC 043). Without
+ * `channelConnectionIds` it starts with the set's default platforms in order.
+ */
+export const contentDraftCreateSchema = contentDraftFieldsSchema.extend({
+  socialSetId: contentDraftIdSchema.optional(),
+})
+
 /** An update: the fields it sets, based on the version the client last saw. */
 export const contentDraftUpdateSchema = contentDraftFieldsSchema.extend({
   baseVersion: z.number().int().min(1),
   status: contentDraftEditableStatusSchema.optional(),
+  /** The draft's own choices, which start as copies of its set's defaults. */
+  naturalPostingTime: z.boolean().optional(),
+  primaryPlatform: z.enum(['x', 'linkedin', 'instagram', 'threads', 'bluesky', 'mastodon', '']).optional(),
+  /** An ISO 8601 instant, or an empty string to clear it (an experiment). */
+  plannedFor: z.union([z.iso.datetime({ offset: true }), z.literal('')]).optional(),
+  /** Labels (an experiment): at most ten of 32 characters. */
+  tags: z.array(z.string().trim().max(32)).max(10).optional(),
 })
 
 /** The list query. Without `status`, archived drafts are left out. */
 export const contentDraftListQuerySchema = z.object({
   cursor: z.string().max(500).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
+  /** One social set's drafts; every set you can see when omitted. */
+  socialSetId: contentDraftIdSchema.optional(),
   status: contentDraftStatusSchema.optional(),
 })
 
@@ -110,7 +144,7 @@ export const listContentDraftsContract = defineContract({
 /** `POST /api/v1/content-drafts` */
 export const createContentDraftContract = defineContract({
   access: { apiKeyScope: 'draft:write', feature: 'content:drafts', permission: 'artifact:edit' },
-  body: contentDraftFieldsSchema,
+  body: contentDraftCreateSchema,
   docs: workspaceDocs({
     bodyName: 'ContentDraftCreateRequest',
     description:
@@ -234,6 +268,15 @@ export const contentDraftPostSchema = z.object({
     posted: z.number().int(),
     total: z.number().int(),
   }),
+  /**
+   * How the instant was chosen (RFC 043): queue or explicit, the instant
+   * before any natural offset, the offset in seconds, and the time zone.
+   */
+  naturalOffsetSeconds: z.number().int().nullable().default(null),
+  scheduleMode: z.enum(['queue', 'explicit']).nullable().default(null),
+  scheduleTimeZone: z.string().nullable().default(null),
+  slotAt: timestampSchema.nullable().default(null),
+  socialSetId: z.string().nullable().default(null),
 })
 
 /** A live post's follow-ups (X): repost and reply at a like count, quote after hours. */
@@ -269,8 +312,10 @@ export const contentDraftScheduleSchema = z.object({
       z.object({ autoActions: autoActionsSchema.optional(), poll: pollSchema.optional() })
     )
     .optional(),
-  /** The queue's next free slot instead of `scheduledFor`. */
+  /** The queue's next free slot instead of `scheduledFor`; the backend reserves it. */
   queue: z.boolean().optional(),
+  /** Overrides the draft's natural posting time for this schedule (±4 minutes). */
+  naturalPostingTime: z.boolean().optional(),
   scheduledFor: z.coerce
     .date()
     .refine((value) => value.getTime() > Date.now(), { message: 'Pick a time in the future.' })

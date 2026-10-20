@@ -3,6 +3,8 @@
 // got. A leaf package, so the ent schema can use its types.
 package postoptions
 
+import "strings"
+
 // AutoActions are what happens after a post is live, on channels that
 // support them (X). Zero values are off.
 type AutoActions struct {
@@ -39,3 +41,27 @@ type ThreadProgress struct {
 // Metrics are a live post's engagement counts by name (likes, reposts,
 // replies, impressions, …), as its platform reports them.
 type Metrics map[string]float64
+
+// LivePostURL is a live post's address on its platform, where one can be
+// built from its id.
+func LivePostURL(platform string, remoteID *string) *string {
+	if remoteID == nil || *remoteID == "" {
+		return nil
+	}
+	var url string
+	switch platform {
+	case "x":
+		url = "https://x.com/i/status/" + *remoteID
+	case "linkedin":
+		url = "https://www.linkedin.com/feed/update/" + *remoteID
+	case "threads", "bluesky", "mastodon":
+		// These providers report a post's address as its id.
+		if strings.HasPrefix(*remoteID, "https://") {
+			url = *remoteID
+		}
+	}
+	if url == "" {
+		return nil
+	}
+	return &url
+}

@@ -60,6 +60,7 @@ export default async function DraftsCalendarPage({ params, searchParams }: Calen
             createdAt: post.createdAt.toISOString(),
             metricsAt: post.metricsAt?.toISOString() ?? null,
             scheduledFor: post.scheduledFor.toISOString(),
+            slotAt: post.slotAt?.toISOString() ?? null,
           }))}
           weekStart={day(start)}
         />

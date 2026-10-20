@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
 )
 
@@ -35,6 +36,8 @@ type Store struct {
 	Events      ProductEvents
 	// Onboarding stops a workspace's onboarding run before its data is purged.
 	Onboarding OnboardingCanceller
+	// Webhooks delivers outbound customer webhooks (RFC 043).
+	Webhooks *webhooks.Dispatcher
 }
 
 // OnboardingCanceller stops a workspace's running onboarding workflow.
@@ -51,6 +54,7 @@ func (s *Store) Run(ctx context.Context, job string) (int, error) {
 		"audit-retention":   s.AuditRetention,
 		"notifications":     s.Notifications,
 		"account-deletions": s.AccountDeletions,
+		"webhooks":          s.DeliverWebhooks,
 	}
 	handler, ok := handlers[job]
 	if !ok {
@@ -152,4 +156,13 @@ func ids(ctx context.Context, db *sql.DB, query string, args ...any) ([]string, 
 		result = append(result, id)
 	}
 	return result, rows.Err()
+}
+
+// DeliverWebhooks fans out and delivers outbound webhooks for most of a
+// minute; the schedule starts it again once it ends.
+func (s *Store) DeliverWebhooks(ctx context.Context) (int, error) {
+	if s.Webhooks == nil {
+		return 0, nil
+	}
+	return s.Webhooks.Run(ctx, 50*time.Second)
 }

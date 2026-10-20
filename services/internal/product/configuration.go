@@ -15,6 +15,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
 )
 
@@ -74,6 +75,10 @@ type Configuration struct {
 	web *http.Client
 	// postMetrics reads a live post's engagement from its platform (RFC 037).
 	postMetrics PostMetricsReader
+	// webhookKey seals outbound webhook secrets; webhookResolver checks their
+	// destinations (RFC 043).
+	webhookKey      []byte
+	webhookResolver webhooks.Resolver
 }
 
 func NewConfiguration(client *ent.Client) *Configuration {

@@ -593,6 +593,9 @@ func (r *Repository) Complete(ctx context.Context, post *ent.ScheduledPost, atte
 	}); err != nil {
 		return err
 	}
+	if err := emitDraftPublished(ctx, tx, post, providerPostID); err != nil {
+		return err
+	}
 	return tx.Commit()
 }
 

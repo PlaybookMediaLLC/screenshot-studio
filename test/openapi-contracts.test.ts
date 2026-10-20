@@ -19,6 +19,7 @@ import * as notifications from '@/lib/api/contracts/notifications'
 import * as onboardingRuns from '@/lib/api/contracts/onboarding-runs'
 import * as releases from '@/lib/api/contracts/releases'
 import * as scheduledPosts from '@/lib/api/contracts/scheduled-posts'
+import * as settingsPlatform from '@/lib/api/contracts/settings-platform'
 import * as sharing from '@/lib/api/contracts/sharing'
 import * as shell from '@/lib/api/contracts/shell'
 import * as sourceApps from '@/lib/api/contracts/source-apps'
@@ -48,6 +49,7 @@ const contracts = new Map<string, RouteContract>(
     notifications,
     releases,
     scheduledPosts,
+    settingsPlatform,
     sharing,
     shell,
     sourceApps,

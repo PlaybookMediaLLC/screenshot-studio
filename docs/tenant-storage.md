@@ -47,7 +47,20 @@ The bucket's CORS policy must allow `PUT` and `GET` from the web origin, with
 the `Content-Type` and `If-None-Match` request headers. Upload URLs are signed
 write-once (`If-None-Match: *`): a replayed PUT gets `412` and cannot replace
 bytes the backend already verified. The Compose RustFS initializer applies the
-policy locally; set it on the R2 bucket in production.
+policy locally. The production policy is versioned in
+`infra/storage/tenant-cors.json`; it permits the current web origin and the
+previous domain, without making any object public. With an existing authorized
+Cloudflare CLI session, review the current policy and apply it using:
+
+```sh
+CLOUDFLARE_ACCOUNT_ID=<account-id> npx wrangler@4 r2 bucket cors list screenshot-studio
+CLOUDFLARE_ACCOUNT_ID=<account-id> npx wrangler@4 r2 bucket cors set screenshot-studio --file infra/storage/tenant-cors.json
+```
+
+Verify with `cors list` and save/reopen an image project through the browser.
+A domain change must update this policy: a valid presigned URL still fails
+browser preflight when the origin is absent. See the
+[Cloudflare CORS guide](https://developers.cloudflare.com/r2/buckets/cors/).
 
 ## Public editor assets
 

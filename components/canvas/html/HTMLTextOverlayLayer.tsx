@@ -5,7 +5,7 @@ import { fitFontSize, textFillCss } from '@/lib/typography/text-style';
 import { measureLine, useFontsVersion } from '@/lib/typography/measure';
 import { getFontCSS } from '@/lib/constants/fonts';
 import type { TextOverlay } from '@/lib/store';
-import { canvasOf, collectSnapLines, endSnapDrag, snapDrag } from '@/lib/editor/snap-dom';
+import { canvasOf, canvasScale, collectSnapLines, endSnapDrag, snapDrag } from '@/lib/editor/snap-dom';
 import type { SnapLines } from '@/lib/editor/snapping';
 import { useLayerMotion, useTextReveal } from '@/lib/animation/use-motion';
 import { RevealedText } from '../motion/motion-layers';
@@ -114,7 +114,7 @@ function DraggableText({
           const centerY = (drag.current.position.y / 100) * bounds.height + deltaY;
           const snap = snapDrag(
             { height: own.height, width: own.width, x: centerX - own.width / 2, y: centerY - own.height / 2 },
-            drag.current.lines
+            drag.current.lines, canvasScale(event.currentTarget)
           );
           deltaX += snap.dx;
           deltaY += snap.dy;

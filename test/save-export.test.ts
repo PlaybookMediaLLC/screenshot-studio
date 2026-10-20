@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import cors from '../infra/storage/tenant-cors.json'
 import { buildExportFileName } from '@/lib/workspace/save-export'
 
 test('export file names carry the media extension', () => {
@@ -38,4 +39,16 @@ test('an unknown media type still produces a usable name', () => {
   // fallback exists to avoid producing a name ending in "undefined"
   // should the guard ever be bypassed.
   assert.match(buildExportFileName(''), /\.png$/)
+})
+
+test('production storage permits signed browser uploads from the current application origin', () => {
+  const rule = cors.rules.find((rule) =>
+    rule.allowed.origins.includes('https://shots.playbookmedia.io')
+  )
+  assert.ok(rule, 'the current site must pass the storage preflight')
+  assert.ok(rule.allowed.methods.includes('PUT'))
+  assert.ok(rule.allowed.methods.includes('GET'))
+  assert.ok(rule.allowed.headers.includes('content-type'))
+  assert.ok(rule.allowed.headers.includes('if-none-match'), 'write-once upload header is allowed')
+  assert.ok(cors.rules.every((rule) => !rule.allowed.origins.includes('*')))
 })

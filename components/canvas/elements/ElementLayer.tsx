@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import Moveable from 'react-moveable'
+import { canvasScale } from '@/lib/editor/snap-dom'
 import { elementWithMotion } from '@/lib/animation/motion-evaluate'
 import { useLayerMotions } from '@/lib/animation/use-motion'
 import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts'
@@ -92,8 +93,8 @@ function CalloutSourceHandle({ callout }: { callout: ElementOf<'callout'> }) {
     updateElement(callout.id, {
       props: {
         source: {
-          x: clamp(start.current.x + (event.clientX - start.current.pointerX) / image.width),
-          y: clamp(start.current.y + (event.clientY - start.current.pointerY) / image.height),
+          x: clamp(start.current.x + (event.clientX - start.current.pointerX) / image.width / canvasScale(event.currentTarget)),
+          y: clamp(start.current.y + (event.clientY - start.current.pointerY) / image.height / canvasScale(event.currentTarget)),
         },
       },
     })

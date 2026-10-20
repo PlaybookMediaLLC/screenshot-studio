@@ -9,6 +9,7 @@ import {
   formatBadgeNumber,
   nextBadgeNumber,
 } from '../lib/editor/elements/schema'
+import { useDeviceUIStore } from '../lib/store/device-ui'
 import { useImageStore } from '../lib/store'
 
 test('every element type starts valid and centred where asked', () => {
@@ -72,4 +73,20 @@ test('elements survive a document round trip unchanged', () => {
   store.clearImage()
   applyDesignDocument(exported, (ref) => ref)
   assert.deepEqual(useImageStore.getState().elements, exported.elements)
+})
+
+test('inserting and duplicating elements replace text and screen selections', () => {
+  const store = useImageStore.getState()
+  store.clearImage()
+  const textId = store.addTextOverlay()
+  for (const action of ['insert', 'duplicate', 'select']) {
+    store.setSelectedTextId(textId)
+    useDeviceUIStore.getState().setSelectedDeviceId('old-screen')
+    if (action === 'insert') store.addElement(createElement('badge', { aspect: 1, id: 'badge' }))
+    else if (action === 'duplicate') store.duplicateElement('badge')
+    else store.setSelectedElementId('badge')
+    assert.ok(useImageStore.getState().selectedElementId)
+    assert.equal(useImageStore.getState().selectedTextId, null)
+    assert.equal(useDeviceUIStore.getState().selectedDeviceId, null)
+  }
 })

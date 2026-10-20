@@ -24,6 +24,12 @@ export function canvasOf(node: Element | null): HTMLElement | null {
   return node?.closest<HTMLElement>('[data-html-canvas="true"]') ?? null
 }
 
+/** Preview pixels per document pixel, including responsive canvas scaling. */
+export function canvasScale(node: Element | null): number {
+  const canvas = canvasOf(node)
+  return canvas ? canvas.getBoundingClientRect().width / parseFloat(canvas.style.width) || 1 : 1
+}
+
 /** Lines a layer can snap to: the canvas's own, and every other layer's edges and centre. */
 export function collectSnapLines(canvas: HTMLElement, exclude: Element | null): SnapLines {
   const guides = useCanvasGuides.getState()
@@ -43,14 +49,14 @@ export function collectSnapLines(canvas: HTMLElement, exclude: Element | null): 
 }
 
 /** Snap a dragged box (canvas px) and show the guides it snapped to. */
-export function snapDrag(box: SnapBox, lines: SnapLines): { dx: number; dy: number } {
+export function snapDrag(box: SnapBox, lines: SnapLines, scale = 1): { dx: number; dy: number } {
   const guides = useCanvasGuides.getState()
   if (!guides.snapping) {
     endSnapDrag()
     return { dx: 0, dy: 0 }
   }
   const result = snapBox(box, lines, guides.snapTolerance)
-  useActiveSnapGuides.setState({ horizontal: result.horizontal, vertical: result.vertical })
+  useActiveSnapGuides.setState({ horizontal: result.horizontal === null ? null : result.horizontal / scale, vertical: result.vertical === null ? null : result.vertical / scale })
   return { dx: result.dx, dy: result.dy }
 }
 

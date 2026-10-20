@@ -8,7 +8,7 @@ import { ChromeFrame } from '@/components/frames/ChromeFrame';
 import type { FrameChrome, Tone } from '@/lib/frames/schema';
 import { CanvasObjectTopControls } from './CanvasObjectTopControls';
 import { imageFilterCss } from '@/lib/editor/image-adjustments';
-import { canvasOf, collectSnapLines, endSnapDrag, snapDrag } from '@/lib/editor/snap-dom';
+import { canvasOf, canvasScale, collectSnapLines, endSnapDrag, snapDrag } from '@/lib/editor/snap-dom';
 import { removeScreenshot } from '@/lib/editor/remove-screenshot'
 
 /** The main screenshot's browser or window chrome, with the tone it draws in. */
@@ -153,8 +153,8 @@ export function HTMLMainImageLayer({
     setIsDragging(true);
     onDragStateChange?.(true);
     setDragStart({
-      x: e.clientX - screenshot.offsetX,
-      y: e.clientY - screenshot.offsetY,
+      x: e.clientX - screenshot.offsetX * canvasScale(containerRef.current),
+      y: e.clientY - screenshot.offsetY * canvasScale(containerRef.current),
     });
     setIsMainImageSelected(true);
     setSelectedOverlayId(null);
@@ -179,19 +179,20 @@ export function HTMLMainImageLayer({
     if (!isDragging) return;
     const canvas = canvasOf(containerRef.current);
     const lines = canvas ? collectSnapLines(canvas, containerRef.current) : null;
-    const width = framedW * screenshot.scale;
-    const height = framedH * screenshot.scale;
+    const previewScale = canvasScale(containerRef.current);
+    const width = framedW * screenshot.scale * previewScale;
+    const height = framedH * screenshot.scale * previewScale;
 
     const handleMouseMove = (e: MouseEvent) => {
       const offsetX = e.clientX - dragStart.x;
       const offsetY = e.clientY - dragStart.y;
       const { dx, dy } = lines
         ? snapDrag(
-            { height, width, x: canvasW / 2 + offsetX - width / 2, y: canvasH / 2 + offsetY - height / 2 },
-            lines
+            { height, width, x: canvasW * previewScale / 2 + offsetX - width / 2, y: canvasH * previewScale / 2 + offsetY - height / 2 },
+            lines, previewScale
           )
         : { dx: 0, dy: 0 };
-      setScreenshot({ offsetX: offsetX + dx, offsetY: offsetY + dy });
+      setScreenshot({ offsetX: (offsetX + dx) / previewScale, offsetY: (offsetY + dy) / previewScale });
     };
 
     const handleMouseUp = () => {
@@ -218,8 +219,8 @@ export function HTMLMainImageLayer({
       if (!start) return;
 
       // Calculate diagonal movement based on handle position
-      const dx = e.clientX - start.mouseX;
-      const dy = e.clientY - start.mouseY;
+      const dx = (e.clientX - start.mouseX) / canvasScale(containerRef.current);
+      const dy = (e.clientY - start.mouseY) / canvasScale(containerRef.current);
 
       // Determine direction multiplier based on handle corner
       let dirX = 1, dirY = 1;

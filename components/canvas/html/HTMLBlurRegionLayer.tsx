@@ -1,5 +1,6 @@
 'use client';
 
+import { canvasScale } from '@/lib/editor/snap-dom';
 import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts';
 
 import { useRef, useState, useCallback, useEffect, useSyncExternalStore } from 'react';
@@ -90,8 +91,8 @@ function DraggableBlurRegion({
     if (!isDragging) return;
 
     const handleMove = (e: PointerEvent) => {
-      const dx = e.clientX - dragStartRef.current.mouseX;
-      const dy = e.clientY - dragStartRef.current.mouseY;
+      const dx = (e.clientX - dragStartRef.current.mouseX) / canvasScale(ref.current);
+      const dy = (e.clientY - dragStartRef.current.mouseY) / canvasScale(ref.current);
       onUpdate({
         position: {
           x: dragStartRef.current.posX + dx,
@@ -117,8 +118,8 @@ function DraggableBlurRegion({
       const start = resizeStartRef.current;
       if (!start) return;
 
-      const dx = e.clientX - start.mouseX;
-      const dy = e.clientY - start.mouseY;
+      const dx = (e.clientX - start.mouseX) / canvasScale(ref.current);
+      const dy = (e.clientY - start.mouseY) / canvasScale(ref.current);
 
       let newW = start.width;
       let newH = start.height;

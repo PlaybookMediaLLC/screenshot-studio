@@ -116,10 +116,12 @@ async function capture3DTransformWithModernScreenshot(
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   }
 
-  const elementRect = element.getBoundingClientRect();
+  const elementRect = { width: parseFloat(element.style.width), height: parseFloat(element.style.height) };
 
   const canvas = await domToCanvas(element, {
     scale: scale,
+    width: elementRect.width,
+    height: elementRect.height,
     backgroundColor: null,
     filter: shouldIncludeInExport,
     onCloneNode: cleanExportClone,
@@ -153,7 +155,7 @@ async function exportHTMLCanvas(
   skipDelay: boolean = false
 ): Promise<HTMLCanvasElement> {
   // Get current container dimensions
-  const containerRect = container.getBoundingClientRect();
+  const containerRect = { width: parseFloat(container.style.width), height: parseFloat(container.style.height) };
   const originalWidth = containerRect.width;
   const originalHeight = containerRect.height;
 
@@ -269,7 +271,7 @@ export async function exportElement(
   report(10);
 
   try {
-    const has3DTransform = perspective3D && imageSrc && (
+    const has3DTransform = perspective3D && imageSrc && container.querySelector('[data-3d-overlay="true"]') && (
       perspective3D.rotateX !== 0 ||
       perspective3D.rotateY !== 0 ||
       perspective3D.rotateZ !== 0 ||
@@ -379,7 +381,7 @@ export async function exportElementAsCanvas(
     throw new Error('HTML canvas container not found');
   }
 
-  const has3DTransform = perspective3D && imageSrc && (
+  const has3DTransform = perspective3D && imageSrc && container.querySelector('[data-3d-overlay="true"]') && (
     perspective3D.rotateX !== 0 ||
     perspective3D.rotateY !== 0 ||
     perspective3D.rotateZ !== 0 ||

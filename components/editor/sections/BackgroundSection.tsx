@@ -373,6 +373,7 @@ export function BackgroundSection() {
               className="w-full h-full object-cover"
             />
             <Button variant="custom" size={null}
+              aria-label="Remove background image"
               className="absolute top-2 right-2 p-1 rounded-md bg-background/80 text-foreground hover:bg-foreground/10 transition-colors"
               onClick={() => {
                 setBackgroundType('gradient');
@@ -442,6 +443,8 @@ export function BackgroundSection() {
             {(Object.keys(magicGradients) as MagicGradientKey[]).map((key, idx) => (
               <Button variant="custom" size={null}
                 key={`magic-${key}`}
+                aria-label={`Magic gradient ${key.replace(/[_-]/g, ' ')}`}
+                aria-pressed={backgroundConfig.value === `magic:${key}`}
                 onClick={() => {
                   setBackgroundType('gradient');
                   setBackgroundValue(`magic:${key}`);
@@ -483,6 +486,8 @@ export function BackgroundSection() {
             {(Object.keys(gradientColors) as GradientKey[]).map((key, idx) => (
               <Button variant="custom" size={null}
                 key={`classic-${key}`}
+                aria-label={`Gradient ${key.replace(/[_-]/g, ' ')}`}
+                aria-pressed={backgroundConfig.value === key}
                 onClick={() => {
                   setBackgroundType('gradient');
                   setBackgroundValue(key);
@@ -505,6 +510,8 @@ export function BackgroundSection() {
               return (
                 <Button variant="custom" size={null}
                   key={`mesh-${key}`}
+                  aria-label={`Mesh gradient ${key.replace(/[_-]/g, ' ')}`}
+                  aria-pressed={backgroundConfig.value === `mesh:${key}`}
                   onClick={() => {
                     setBackgroundType('gradient');
                     setBackgroundValue(`mesh:${key}`);

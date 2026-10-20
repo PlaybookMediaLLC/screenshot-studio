@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.30.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.29.0...v2.30.0) (2026-10-20)
+
+
+### Features
+
+* **write:** promote calendar planning out of its experiment ([#237](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/237)) ([5220c05](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/5220c05629051744d5c1b65497fc5421cc3e5fc2))
+
 ## [2.29.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.28.0...v2.29.0) (2026-10-20)
 
 

@@ -8,7 +8,7 @@ import type { CreativeSetDocument } from '@/lib/creative-sets/document'
 import { getE2EUrl, signUpViaApi, getActiveOrganizationId } from './framework/auth'
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
 import { trpcMutation, trpcQuery } from './framework/trpc'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
+import { createE2EDatabase, grantWorkspaceFeature, grantWorkspacePlan } from './framework/services'
 
 configureE2EFlow()
 test.setTimeout(600_000)
@@ -26,6 +26,7 @@ async function signUpAndCreateWorkspace(identity: E2EIdentity, page: Page) {
   ).toBe(200)
   const organizationId = await getActiveOrganizationId(page)
   await grantWorkspacePlan(organizationId, 'pro')
+  await grantWorkspaceFeature(organizationId, 'creative-sets:create')
   // Cold dev compilation refreshes shared CSS and can cancel a concurrent client navigation.
   await page.request.get(getE2EUrl('/creative-sets/c000000000000000000000000'), {
     timeout: 120_000,
@@ -666,26 +667,21 @@ test('resizing the workspace preserves native geometry, copy and undo history', 
   const layer = page.locator(
     `[data-text-overlay-id="${before.document.outputs[0]!.bindings.headline}"]`
   )
-  const original = await layer.evaluate((element) => ({
-    font: parseFloat(getComputedStyle(element).fontSize),
-    canvas: element.closest('[data-html-canvas]')!.clientWidth,
-  }))
+  // The stage scales with a transform, so measure what is drawn, not CSS sizes.
+  const drawn = () =>
+    layer.evaluate((element) => ({
+      text: element.getBoundingClientRect().height,
+      canvas: element.closest('[data-html-canvas]')!.getBoundingClientRect().width,
+    }))
+  const original = await drawn()
   await page.setViewportSize({ width: 1280, height: 800 })
-  await expect
-    .poll(async () => layer.evaluate((element) => parseFloat(getComputedStyle(element).fontSize)))
-    .toBeLessThan(original.font)
-  await expect
-    .poll(async () =>
-      layer.evaluate((element) => element.closest('[data-html-canvas]')!.clientWidth)
-    )
-    .toBeLessThan(original.canvas)
+  await expect.poll(async () => (await drawn()).text).toBeLessThan(original.text)
+  await expect.poll(async () => (await drawn()).canvas).toBeLessThan(original.canvas)
   await page.getByRole('tab', { name: 'Layout', exact: true }).click()
   await saved(page)
   expect((await record(page, id)).document).toEqual(before.document)
   await page.setViewportSize({ width: 1680, height: 1100 })
-  await expect
-    .poll(async () => layer.evaluate((element) => parseFloat(getComputedStyle(element).fontSize)))
-    .toBeCloseTo(original.font, 0)
+  await expect.poll(async () => (await drawn()).text).toBeCloseTo(original.text, 0)
   await page.getByRole('button', { name: 'Undo', exact: true }).click()
   await saved(page)
   expect((await record(page, id)).document.outputs[0]!.document.texts[0]!.text).toBe(

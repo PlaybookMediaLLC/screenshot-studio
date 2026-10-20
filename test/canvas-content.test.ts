@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { artboardRect, canvasDocumentSchema, type CanvasDocument } from '@/lib/canvas/document'
 import {
+  alternativeLayouts,
   buildRecipe,
   blankArtboard,
   canvasRecipeSchema,
@@ -313,4 +314,31 @@ test('imports copy native documents losslessly and pin exactly what was copied',
     'Approvals',
     'linked copy resolved'
   )
+})
+
+test('alternative layouts add artboards beside the original and keep claim status', () => {
+  const [source] = buildRecipe(
+    'feature-announcement',
+    { release, featureIndex: 0, screenshots: [shot] },
+    { newId: ids(), fill }
+  )
+  const before = structuredClone(source!)
+  const alternatives = alternativeLayouts(source!, shot, { newId: ids() })
+  assert.equal(alternatives.length, 4)
+  assert.deepEqual(source, before, 'the original is untouched')
+  for (const artboard of alternatives) {
+    assert.equal(artboard.document.image.src, shot.src)
+    assert.equal(artboard.document.texts[0]!.text, 'Bulk approve')
+    const claim = artboard.provenance.find(
+      (entry) => entry.layerId === artboard.document.texts[0]!.id
+    )
+    assert.equal(claim?.status, 'verified', 'the quoted feature stays verified')
+  }
+  const xs = alternatives.map((artboard) => artboard.x)
+  assert.deepEqual(
+    [...xs].sort((a, b) => a - b),
+    xs,
+    'laid out left to right'
+  )
+  assert.equal(new Set(xs).size, 4)
 })

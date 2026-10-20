@@ -227,7 +227,7 @@ export function CanvasLibrary({
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {item.document
-                    ? `${item.document.artboards.length} artboards`
+                    ? `${item.document.artboards.length} artboard${item.document.artboards.length === 1 ? '' : 's'}`
                     : 'Saved by a newer version'}{' '}
                   · Edited{' '}
                   {item.updatedAt.toLocaleString(undefined, {

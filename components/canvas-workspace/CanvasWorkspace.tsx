@@ -62,14 +62,15 @@ export function CanvasWorkspace({
   const [error, setError] = useState<string | null>(null)
   const editing = canEdit && !isMobile
   const native = useNativeArtboard(session, editing ? activeId : null, editing, state.loadEpoch)
+  const flushNative = native.flush
   const flush = useCallback(() => {
     try {
-      native.flush()
+      flushNative()
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Correct this edit before continuing.')
       throw failure
     }
-  }, [native])
+  }, [flushNative])
   const actions = useCanvasActions(session, flush)
   const active = state.document.artboards.find((artboard) => artboard.id === activeId) ?? null
 
@@ -127,7 +128,7 @@ export function CanvasWorkspace({
         document.activeElement?.closest('input,textarea,[contenteditable="true"],[role="dialog"]')
       )
         return
-      void session.refreshRemote(() => native.flush())
+      void session.refreshRemote(flushNative)
     }, 4000)
     window.addEventListener('pointerdown', start, true)
     window.addEventListener('pointerup', end, true)
@@ -136,14 +137,14 @@ export function CanvasWorkspace({
       window.removeEventListener('pointerdown', start, true)
       window.removeEventListener('pointerup', end, true)
     }
-  }, [session, native])
+  }, [session, flushNative])
 
   // Leaving with unsaved work asks first; a pending native edit is committed.
   useEffect(() => {
     const leave = (event: BeforeUnloadEvent) => {
       let failed = false
       try {
-        native.flush()
+        flushNative()
       } catch {
         failed = true
       }
@@ -154,7 +155,7 @@ export function CanvasWorkspace({
     }
     window.addEventListener('beforeunload', leave)
     return () => window.removeEventListener('beforeunload', leave)
-  }, [session, native])
+  }, [session, flushNative])
 
   /** Screenshots dropped or pasted: into the open artboard, or as new announcement artboards. */
   const addScreenshots = useCallback(

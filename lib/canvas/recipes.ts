@@ -995,3 +995,61 @@ export function blankArtboard(
     document,
   })
 }
+
+/** The Story Set format closest to an artboard's shape. */
+function nearestFormat(size: { width: number; height: number }): StoryFormat {
+  const aspect = size.width / size.height
+  return aspect > 1.2 ? 'wide' : aspect < 0.9 ? 'portrait' : 'square'
+}
+
+/**
+ * Other arrangements of an artboard's screenshot and copy, as new artboards.
+ * Regeneration never overwrites: the original stays exactly as it is, and a
+ * generated line keeps its claim status in every alternative.
+ */
+export function alternativeLayouts(
+  source: Artboard,
+  screenshot: RecipeScreenshot,
+  { newId = () => crypto.randomUUID() }: { newId?: NewId } = {}
+): Artboard[] {
+  const texts = source.document.texts.filter((text) => text.visible !== false)
+  const headline = texts.find((text) => text.role === 'headline') ?? texts[0]
+  const supporting = texts.find(
+    (text) => text !== headline && (text.role === 'body' || text.role === 'subheadline')
+  )
+  const format = nearestFormat(documentCanvasSize(source.document))
+  const claimOf = (layer: Text | undefined) =>
+    layer
+      ? source.provenance.find(
+          (claim) => claim.layerId === layer.id && claim.generated === layer.text
+        )
+      : undefined
+  let x = source.x
+  return (['product-hero', 'editorial-split', 'detail-spotlight', 'product-closeup'] as const).map(
+    (kind) => {
+      const placed = treatment(
+        { headline: headline?.text, supporting: supporting?.text, screenshots: [], steps: [] },
+        format,
+        kind,
+        newId,
+        screenshot
+      )
+      const bindings = placed.document.texts.map((text) => text.id!)
+      const provenance = [claimOf(headline), claimOf(supporting)].flatMap((claim, index) =>
+        claim && bindings[index] ? [{ ...claim, layerId: bindings[index]! }] : []
+      )
+      const at = x
+      x += documentCanvasSize(placed.document).width + ARTBOARD_GAP
+      return artboardSchema.parse({
+        id: newId(),
+        name: `${source.name.slice(0, 90)} · ${kind.replaceAll('-', ' ')}`,
+        x: at,
+        y: source.y,
+        document: placed.document,
+        origin: { kind: 'recipe', id: 'feature-announcement', version: RECIPE_VERSION },
+        provenance,
+        ...(source.context ? { context: source.context } : {}),
+      })
+    }
+  )
+}

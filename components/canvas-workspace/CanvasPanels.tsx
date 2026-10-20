@@ -11,6 +11,7 @@ import type { CanvasSession, CanvasSessionState } from '@/lib/canvas/session'
 import { artboardRect, artboardSize, type Artboard } from '@/lib/canvas/document'
 import { alignModeSchema, type AlignMode } from '@/lib/canvas/layout'
 import {
+  alternativeLayouts,
   ARTBOARD_PRESETS,
   artboardPresetSchema,
   CANVAS_RECIPES,
@@ -39,6 +40,8 @@ import {
 import { useImageStore } from '@/lib/store'
 import { validateImageFile } from '@/lib/editor/import-images'
 import { cn } from '@/lib/utils'
+import { useTRPCClient } from '@/lib/trpc/react'
+import { screenshotFromAsset, screenshotFromUrl } from '@/lib/canvas/create'
 import { ProductContextPanel } from './ProductContextPanel'
 import type { CanvasActions } from './use-canvas-actions'
 import type { CanvasDialog } from './CanvasDialogs'
@@ -500,7 +503,8 @@ export function RightPanel(props: PanelProps) {
       <section className={section}>
         <h2 className="text-sm font-medium">Canvas</h2>
         <p className="text-xs text-muted-foreground">
-          {state.document.artboards.length} artboards · revision {state.revision}
+          {state.document.artboards.length} artboard
+          {state.document.artboards.length === 1 ? '' : 's'} · revision {state.revision}
         </p>
         <div className="flex flex-wrap gap-1">
           <Button size="sm" variant="outline" onClick={() => actions.fitAll()}>
@@ -574,6 +578,48 @@ function FormatsButton({
         </Button>
       </div>
     </fieldset>
+  )
+}
+
+/** New artboards that arrange this screenshot and copy differently; the original is untouched. */
+function AlternativesButton({
+  artboard,
+  actions,
+  disabled,
+}: {
+  artboard: Artboard
+  actions: CanvasActions
+  disabled: boolean
+}) {
+  const client = useTRPCClient()
+  const [busy, setBusy] = useState(false)
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      disabled={disabled || busy}
+      title="Adds new artboards beside this one. Nothing here is overwritten."
+      onClick={async () => {
+        setBusy(true)
+        try {
+          const src = artboard.document.image.src!
+          const screenshot = src.startsWith('asset:')
+            ? await screenshotFromAsset(
+                client,
+                src.slice('asset:'.length),
+                artboard.document.image.name ?? 'Screenshot'
+              )
+            : await screenshotFromUrl(src, artboard.document.image.name ?? 'Screenshot')
+          actions.addArtboards(alternativeLayouts(artboard, screenshot))
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : 'The screenshot could not be read.')
+        } finally {
+          setBusy(false)
+        }
+      }}
+    >
+      Alternative layouts
+    </Button>
   )
 }
 
@@ -721,6 +767,9 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
             Export
           </Button>
           <FormatsButton actions={actions} ids={[artboard.id]} disabled={!canEdit} />
+          {artboard.document.image.src ? (
+            <AlternativesButton artboard={artboard} actions={actions} disabled={!canEdit} />
+          ) : null}
           <Button
             size="sm"
             variant="ghost"

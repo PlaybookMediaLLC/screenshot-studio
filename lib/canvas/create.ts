@@ -27,6 +27,11 @@ export async function screenshotFromFile(file: File): Promise<RecipeScreenshot> 
   return { src, name: file.name.slice(0, 200) || 'Screenshot', ...(await imageSize(src)) }
 }
 
+/** A local image URL (one not uploaded yet) as a recipe screenshot. */
+export async function screenshotFromUrl(src: string, name: string): Promise<RecipeScreenshot> {
+  return { src, name: name.slice(0, 200) || 'Screenshot', ...(await imageSize(src)) }
+}
+
 /** A workspace asset (a release or product surface screenshot) as a recipe screenshot. */
 export async function screenshotFromAsset(
   client: TRPCClient<AppRouter>,

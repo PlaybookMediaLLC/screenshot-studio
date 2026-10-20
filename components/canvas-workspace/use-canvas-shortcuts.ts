@@ -41,7 +41,12 @@ function editable(target: EventTarget | null) {
 export function useCanvasShortcuts(actions: CanvasActions, canEdit: boolean, onExport: () => void) {
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
-      if (editable(event.target)) return
+      // An open dialog or menu owns the keyboard, Escape included, even when focus fell to the page.
+      if (
+        editable(event.target) ||
+        document.querySelector('[role="dialog"],[role="alertdialog"],[role="menu"]')
+      )
+        return
       const ui = useCanvasUi.getState()
       const mod = event.metaKey || event.ctrlKey
       const lower = event.key.toLowerCase()

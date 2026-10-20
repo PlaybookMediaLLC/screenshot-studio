@@ -218,6 +218,16 @@ function VisualCard({
           >
             Open in editor
           </ButtonLink>
+          {visual.designId ? (
+            <ButtonLink
+              className="h-8 rounded-lg text-xs"
+              href={`/canvas/new?design=${visual.designId}`}
+              size="sm"
+              variant="outline"
+            >
+              Edit in Canvas
+            </ButtonLink>
+          ) : null}
           {options.canApprove &&
           visual.designId &&
           visual.renderedAssetId &&

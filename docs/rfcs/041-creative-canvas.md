@@ -243,15 +243,10 @@ report for this change. The checks are:
 
 ## Limits
 
-- Layers inside an artboard are selected one at a time. Multi-select,
-  grouping, layer copy and paste and on-canvas text editing remain editor
-  features to build.
-- No new shape or component primitives: cards are image layers behind text,
-  shapes have no corner radius, and there is no reusable component with
-  overrides beyond Story Set blocks.
-- Canvas has no live presence; concurrent editors are protected by revisions
-  and field-level merges.
-- Store screenshot groups stay in their studio.
-- Generating a canvas from automation runs in the browser; release automation
-  does not create canvases.
-- PDF pages are images.
+[RFC 044](./044-canvas-layers-and-automation.md) removes the limits this
+version shipped with: several layers of an artboard select, group and move
+together and text is typed on the stage; rectangles have rounded corners and
+components carry per-layer overrides; members see each other's artboards;
+store screenshot groups sit on a canvas; release automation lays out canvases
+on the server; and PDF pages can keep real text and vector shapes. Its own
+limits are listed there.

@@ -1,0 +1,494 @@
+'use client'
+
+import * as React from 'react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
+import { serializeDraft } from '@/lib/content-drafts/serialize'
+import { CAPABILITIES } from '@/lib/write/capabilities'
+import type { DraftChannel, DraftKind, PlateBody, PlatformVersions } from '@/lib/write/document'
+import { forkVersion, primaryChanged, resyncVersion, versionFor } from '@/lib/write/versions'
+import { cn } from '@/lib/utils'
+import type { WriteSet } from '../write-context'
+
+/** A set's account as the composer shows it. */
+export type ComposerAccount = WriteSet['connections'][number]
+
+/**
+ * The platforms of a draft (RFC 041). The tab being edited, whether a
+ * platform publishes, whether its account is healthy, and whether its
+ * version follows the primary are four separate things: changing the tab
+ * changes nothing that is saved.
+ */
+export function PlatformTabs({
+  accounts,
+  active,
+  enabled,
+  onManage,
+  onSelect,
+  primary,
+  versions,
+}: {
+  accounts: ComposerAccount[]
+  active: DraftChannel
+  enabled: string[]
+  onManage?: () => void
+  onSelect: (channel: DraftChannel) => void
+  primary: DraftChannel
+  versions: PlatformVersions
+}) {
+  const channels = tabChannels(accounts, enabled, primary)
+  return (
+    <div className="flex items-center gap-1 overflow-x-auto px-4 py-2" data-testid="platform-tabs">
+      <div aria-label="Platform being edited" className="flex items-center gap-1" role="tablist">
+        {channels.map((channel) => {
+          const account = accounts.find((item) => item.channel === channel)
+          const publishing = account ? enabled.includes(account.id) : false
+          const mode = channel === primary ? 'primary' : versionFor(versions, channel).mode
+          return (
+            <Button
+              aria-selected={active === channel}
+              className={cn(
+                'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors',
+                active === channel
+                  ? 'border-white/20 bg-white/[0.08] text-white'
+                  : 'border-white/[0.06] text-neutral-400 hover:text-white'
+              )}
+              data-testid={`platform-tab-${channel}`}
+              key={channel}
+              onClick={() => onSelect(channel)}
+              role="tab"
+              size={null}
+              type="button"
+              variant="custom"
+            >
+              <ChannelIcon channel={channel} />
+              {CHANNEL_META[channel].label}
+              <span
+                className={cn(
+                  'rounded-full px-1.5 text-[10px]',
+                  mode === 'primary'
+                    ? 'bg-sky-400/15 text-sky-200'
+                    : mode === 'manual'
+                      ? 'bg-amber-400/15 text-amber-200'
+                      : 'bg-white/[0.06] text-neutral-400'
+                )}
+              >
+                {mode === 'primary' ? 'primary' : mode === 'manual' ? 'own text' : 'synced'}
+              </span>
+              {!publishing ? <span className="text-[10px] text-neutral-500">· off</span> : null}
+              {account && account.health !== 'healthy' ? (
+                <span
+                  className="text-amber-300"
+                  title={
+                    account.health === 'reconnect'
+                      ? 'Reconnect this account'
+                      : 'This account is turned off'
+                  }
+                >
+                  ⚠
+                </span>
+              ) : null}
+            </Button>
+          )
+        })}
+      </div>
+      {onManage ? (
+        <Button
+          className="ml-1 text-xs text-neutral-500 hover:text-white"
+          onClick={onManage}
+          size={null}
+          type="button"
+          variant="custom"
+        >
+          Manage platforms
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
+/** The tabs a draft shows: its primary, then each enabled platform, once. */
+export function tabChannels(
+  accounts: ComposerAccount[],
+  enabled: string[],
+  primary: DraftChannel
+): DraftChannel[] {
+  const channels: DraftChannel[] = [primary]
+  for (const account of accounts) {
+    if (enabled.includes(account.id) && !channels.includes(account.channel))
+      channels.push(account.channel)
+  }
+  return channels
+}
+
+/**
+ * Turn platforms on and off for publication, see each account's health,
+ * choose the primary, and choose which versions follow it. Turning a
+ * version back to synced discards its own text, so it asks first.
+ */
+export function ManagePlatformsDialog({
+  accounts,
+  draftVersion,
+  enabled,
+  kind,
+  onChange,
+  onClose,
+  primary,
+  value,
+  versions,
+}: {
+  accounts: ComposerAccount[]
+  draftVersion: number
+  enabled: string[]
+  kind: DraftKind
+  onChange: (change: {
+    channelConnectionIds?: string[]
+    primaryChannel?: DraftChannel
+    versions?: PlatformVersions
+  }) => void
+  onClose: () => void
+  primary: DraftChannel
+  value: PlateBody
+  versions: PlatformVersions
+}) {
+  const [resync, setResync] = React.useState<DraftChannel | null>(null)
+  const orphaned = resync ? resyncVersion(versions, resync).orphaned : []
+  const toggle = (account: ComposerAccount, on: boolean) => {
+    const next = on
+      ? [
+          ...enabled.filter(
+            (id) => accounts.find((item) => item.id === id)?.channel !== account.channel
+          ),
+          account.id,
+        ]
+      : enabled.filter((id) => id !== account.id)
+    onChange({ channelConnectionIds: next })
+  }
+  const exclusive = kind === 'article' || kind === 'reply'
+  return (
+    <>
+      <Dialog onOpenChange={(open) => !open && onClose()} open>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Draft platforms</DialogTitle>
+            <DialogDescription>
+              Choose where this draft publishes, and which platforms write their own version. The
+              primary is the text you write first; synced versions follow it.
+              {exclusive ? ' An article or a reply publishes to one X account only.' : ''}
+            </DialogDescription>
+          </DialogHeader>
+          {accounts.length === 0 ? (
+            <p className="text-sm text-neutral-400">
+              This social set has no accounts. Add one to the set, or connect one in workspace
+              settings, Channels.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {accounts.map((account) => {
+                const on = enabled.includes(account.id)
+                const version = versionFor(versions, account.channel)
+                const supported = CAPABILITIES[account.channel].kinds.includes(kind)
+                return (
+                  <li className="rounded-lg border border-white/[0.06] p-3" key={account.id}>
+                    <div className="flex items-center gap-3">
+                      <ChannelIcon channel={account.channel} className="size-4 text-neutral-300" />
+                      <span className="min-w-0 flex-1 text-sm">
+                        <span className="block truncate text-white">
+                          {account.displayName ??
+                            account.handle ??
+                            CHANNEL_META[account.channel].label}
+                        </span>
+                        <span className="block text-[11px] text-neutral-500">
+                          {account.handle ? `@${account.handle} · ` : ''}
+                          {account.health === 'healthy'
+                            ? 'Connected'
+                            : account.health === 'reconnect'
+                              ? 'Needs reconnecting'
+                              : 'Turned off'}
+                          {account.channel === 'x'
+                            ? account.premium
+                              ? ' · X Premium'
+                              : ' · standard X account'
+                            : ''}
+                        </span>
+                      </span>
+                      <Switch
+                        aria-label={`Publish to ${CHANNEL_META[account.channel].label}`}
+                        checked={on}
+                        disabled={!supported || (exclusive && !on && enabled.length > 0)}
+                        onCheckedChange={(checked) => toggle(account, checked === true)}
+                      />
+                    </div>
+                    {!supported ? (
+                      <p className="mt-1 text-[11px] text-neutral-500">
+                        {CHANNEL_META[account.channel].label} does not take this kind of draft.
+                      </p>
+                    ) : null}
+                    {account.health !== 'healthy' ? (
+                      <a
+                        className="mt-1 block text-[11px] text-amber-300 underline"
+                        href="/workspace/channels"
+                      >
+                        Reconnect in workspace settings
+                      </a>
+                    ) : null}
+                    {on && account.channel !== primary ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                        <span className="text-neutral-500">Text:</span>
+                        <Button
+                          aria-pressed={version.mode === 'synced'}
+                          className={cn(
+                            'rounded-full border px-2 py-0.5',
+                            version.mode === 'synced'
+                              ? 'border-sky-400/50 text-sky-200'
+                              : 'border-white/10 text-neutral-400'
+                          )}
+                          onClick={() => version.mode === 'manual' && setResync(account.channel)}
+                          size={null}
+                          type="button"
+                          variant="custom"
+                        >
+                          Synced with {CHANNEL_META[primary].label}
+                        </Button>
+                        <Button
+                          aria-pressed={version.mode === 'manual'}
+                          className={cn(
+                            'rounded-full border px-2 py-0.5',
+                            version.mode === 'manual'
+                              ? 'border-amber-400/50 text-amber-200'
+                              : 'border-white/10 text-neutral-400'
+                          )}
+                          onClick={() =>
+                            version.mode === 'synced' &&
+                            onChange({
+                              versions: forkVersion(
+                                versions,
+                                account.channel,
+                                value,
+                                draftVersion,
+                                Boolean(CAPABILITIES[account.channel].thread)
+                              ),
+                            })
+                          }
+                          size={null}
+                          type="button"
+                          variant="custom"
+                        >
+                          Its own text
+                        </Button>
+                        {versionFor(versions, account.channel).mode === 'synced' &&
+                        CAPABILITIES[account.channel].kinds.includes(kind) ? (
+                          <Button
+                            className="ml-auto text-neutral-500 hover:text-white"
+                            onClick={() => onChange({ primaryChannel: account.channel })}
+                            size={null}
+                            type="button"
+                            variant="custom"
+                          >
+                            Make primary
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          <DialogFooter>
+            <Button onClick={onClose} type="button">
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog onOpenChange={(open) => !open && setResync(null)} open={resync !== null}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Sync {resync ? CHANNEL_META[resync].label : ''} with {CHANNEL_META[primary].label}{' '}
+              again?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Its own text is replaced by {CHANNEL_META[primary].label}’s from now on. A backup
+              keeps the current text.
+              {orphaned.length > 0
+                ? ` ${orphaned.length} comment thread${orphaned.length === 1 ? '' : 's'} on its text will lose their anchor and show as resolved-orphaned.`
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep its own text</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (resync) onChange({ versions: resyncVersion(versions, resync).versions })
+                setResync(null)
+              }}
+            >
+              Replace with {CHANNEL_META[primary].label}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
+
+/**
+ * A synced version: what it will post, read-only, and the way to give it its
+ * own text. A manual version whose primary moved on says so and offers a
+ * comparison.
+ */
+export function SyncedVersion({
+  channel,
+  onFork,
+  primary,
+  value,
+}: {
+  channel: DraftChannel
+  onFork?: () => void
+  primary: DraftChannel
+  value: PlateBody
+}) {
+  const posts = serializeDraft(value, channel).posts
+  return (
+    <div className="mx-auto max-w-2xl px-6 py-6" data-testid={`synced-version-${channel}`}>
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-xs text-neutral-400">
+        <span className="flex-1">
+          {CHANNEL_META[channel].label} follows {CHANNEL_META[primary].label}: what you write there
+          appears here
+          {CAPABILITIES[channel].thread ? ', post by post.' : ', joined into one post.'}
+        </span>
+        {onFork ? (
+          <Button onClick={onFork} size="sm" type="button" variant="outline">
+            Edit for {CHANNEL_META[channel].label} independently
+          </Button>
+        ) : null}
+      </div>
+      {posts.length === 0 ? <p className="text-sm text-neutral-500">Nothing written yet.</p> : null}
+      {posts.map((post, index) => (
+        <article
+          className="mb-3 whitespace-pre-wrap rounded-lg border border-white/[0.04] p-3 text-[15px] leading-relaxed text-neutral-200"
+          key={index}
+        >
+          {post.caption}
+        </article>
+      ))}
+    </div>
+  )
+}
+
+/** A manual version's notice: edited on its own, and whether the primary changed since. */
+export function ManualVersionNotice({
+  channel,
+  onCompare,
+  onResync,
+  primary,
+  value,
+  versions,
+}: {
+  channel: DraftChannel
+  onCompare: () => void
+  onResync?: () => void
+  primary: DraftChannel
+  value: PlateBody
+  versions: PlatformVersions
+}) {
+  const changed = primaryChanged(versionFor(versions, channel), value, channel)
+  return (
+    <div
+      className={cn(
+        'mx-auto mt-3 flex max-w-2xl flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-xs',
+        changed
+          ? 'border-amber-400/30 bg-amber-400/[0.05] text-amber-100'
+          : 'border-white/[0.06] text-neutral-400'
+      )}
+      data-testid={`manual-version-${channel}`}
+    >
+      <span className="flex-1">
+        {changed
+          ? `${CHANNEL_META[primary].label} changed since you wrote this version. Your ${CHANNEL_META[channel].label} text is kept.`
+          : `${CHANNEL_META[channel].label} has its own text: edits to ${CHANNEL_META[primary].label} do not change it.`}
+      </span>
+      <Button onClick={onCompare} size="sm" type="button" variant="ghost">
+        Compare
+      </Button>
+      {onResync ? (
+        <Button onClick={onResync} size="sm" type="button" variant="ghost">
+          Sync again…
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
+/** The primary's version for a channel beside the channel's own, to decide what to keep. */
+export function CompareDialog({
+  channel,
+  onClose,
+  primary,
+  value,
+  versions,
+}: {
+  channel: DraftChannel
+  onClose: () => void
+  primary: DraftChannel
+  value: PlateBody
+  versions: PlatformVersions
+}) {
+  const fromPrimary = serializeDraft(value, channel).caption
+  const own = serializeDraft(versionFor(versions, channel).body ?? [], channel).caption
+  return (
+    <Dialog onOpenChange={(open) => !open && onClose()} open>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Compare {CHANNEL_META[channel].label} versions</DialogTitle>
+          <DialogDescription>
+            Left: what {CHANNEL_META[primary].label}’s text would post on{' '}
+            {CHANNEL_META[channel].label}. Right: {CHANNEL_META[channel].label}’s own text, which is
+            what publishes.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Label className="grid gap-1 text-xs text-neutral-500">
+            From {CHANNEL_META[primary].label}
+            <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white/[0.03] p-3 font-sans text-sm text-neutral-200">
+              {fromPrimary || ' '}
+            </pre>
+          </Label>
+          <Label className="grid gap-1 text-xs text-neutral-500">
+            {CHANNEL_META[channel].label}’s own (publishes)
+            <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white/[0.03] p-3 font-sans text-sm text-neutral-200">
+              {own || ' '}
+            </pre>
+          </Label>
+        </div>
+        <DialogFooter>
+          <Button onClick={onClose} type="button">
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

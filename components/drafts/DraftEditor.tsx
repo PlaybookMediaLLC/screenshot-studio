@@ -50,15 +50,17 @@ import { POST_COLUMN } from './layout'
 /** What the AI can do to a draft (the assist contract's actions). */
 type DraftAssistAction = 'rewrite' | 'thread' | 'shorten'
 import {
-  FirstPostHeader,
   insertPostBreak,
   PostBreakPlugin,
   PostHeaderContext,
+  type PostTools,
   PostToolsContext,
   splitPostAtCaret,
   ThreadLine,
   threadAsRules,
 } from './thread'
+import { normalizePosts, postBreak } from '@/lib/write/versions'
+import type { PlateBody } from '@/lib/write/document'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -111,6 +113,14 @@ export type DraftEditorProps = {
   hashtags: string[]
   /** Each post's header, by its 1-based number in the thread: who it is from. */
   postHeader: (number: number) => React.ReactNode
+  /** Per-post settings tools for the platform being edited. */
+  postSettings?: PostTools['settings']
+  /** Extra buttons for the bottom toolbar: numbering, finishers, platform tools. */
+  toolbarExtras?: React.ReactNode
+  /** Plugins the host adds, such as social mentions. */
+  extraPlugins?: unknown[]
+  /** Collaboration is off for a platform's own version: it saves with the draft. */
+  documentName?: string
   /** Comment threads stored with the draft. */
   initialDiscussions: DraftDiscussions
   initialValue: Value
@@ -123,7 +133,10 @@ export type DraftEditorProps = {
   user: DraftEditorUser
 }
 
-const EMPTY_VALUE: Value = [{ children: [{ text: '' }], type: 'p' }]
+/** A new body: one post, empty. */
+function emptyValue(): Value {
+  return [postBreak(), { children: [{ text: '' }], type: 'p' }] as Value
+}
 
 function download(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob)
@@ -429,12 +442,14 @@ function DraftToolbar({
   imageInput,
   services,
   title,
+  extras,
 }: {
   assistChannel: DraftChannel
   editor: PlateEditor
   imageInput: React.RefObject<HTMLInputElement | null>
   services: EditorServices
   title: string
+  extras?: React.ReactNode
 }) {
   const importDocument = async (file: File) => {
     try {
@@ -524,6 +539,7 @@ function DraftToolbar({
           Image
         </FileButton>
       </ToolbarGroup>
+      {extras ? <ToolbarGroup>{extras}</ToolbarGroup> : null}
       {services.ai ? (
         <ToolbarGroup>
           <AssistMenu channel={assistChannel} editor={editor} />
@@ -557,6 +573,10 @@ export default function DraftEditor({
   handles,
   hashtags,
   postHeader,
+  postSettings,
+  toolbarExtras,
+  extraPlugins,
+  documentName,
   initialDiscussions: storedDiscussions,
   initialValue,
   onChange,
@@ -573,7 +593,7 @@ export default function DraftEditor({
       ? createYjsPlugin(
           {
             access: readOnly ? 'read' : 'write',
-            documentName: `content-draft:${collaboration.draftId}`,
+            documentName: documentName ?? `content-draft:${collaboration.draftId}`,
             getToken: () => collabToken(collaboration.draftId),
             hocuspocusUrl: collaboration.url,
             // WebRTC stays off: it would need our own signaling and TURN servers.
@@ -582,8 +602,9 @@ export default function DraftEditor({
           { color: colorFor(user.id), name: user.name, userId: user.id }
         )
       : null
+    const hosted = (extraPlugins ?? []) as typeof PostBreakPlugin[]
     return createEditorKit({
-      additionalPlugins: live ? [PostBreakPlugin, live] : [PostBreakPlugin],
+      additionalPlugins: live ? [PostBreakPlugin, ...hosted, live] : [PostBreakPlugin, ...hosted],
       // Comments and suggestions are authored by the signed-in member, not
       // the upstream demo users.
       overridePlugins: [
@@ -602,7 +623,7 @@ export default function DraftEditor({
         }),
       ],
     })
-  }, [collaboration, initialDiscussions, readOnly, user.id, user.name])
+  }, [collaboration, documentName, extraPlugins, initialDiscussions, readOnly, user.id, user.name])
   // Mentions offer the signed-in member and the handles the workspace already
   // writes, instead of the upstream demo list.
   const handleList = handles.join(' ')
@@ -620,7 +641,11 @@ export default function DraftEditor({
     readOnly,
     // A live session takes its value from the shared document instead.
     skipInitialization: Boolean(collaboration),
-    value: collaboration ? undefined : initialValue.length > 0 ? initialValue : EMPTY_VALUE,
+    value: collaboration
+      ? undefined
+      : initialValue.length > 0
+        ? (normalizePosts(initialValue as PlateBody) as Value)
+        : emptyValue(),
   })
   React.useEffect(() => onEditor?.(editor), [editor, onEditor])
   const firstValue = React.useRef(initialValue)
@@ -640,7 +665,10 @@ export default function DraftEditor({
         .init({
           autoSelect: 'end',
           id: `content-draft:${collaboration.draftId}`,
-          value: firstValue.current.length > 0 ? firstValue.current : EMPTY_VALUE,
+          value:
+            firstValue.current.length > 0
+              ? (normalizePosts(firstValue.current as PlateBody) as Value)
+              : emptyValue(),
         })
         .then(() => setLive(true))
         .catch((error: unknown) => console.error('[drafts] live session failed', error))
@@ -652,9 +680,9 @@ export default function DraftEditor({
   }, [collaboration, editor])
 
   const imageInput = React.useRef<HTMLInputElement>(null)
-  const postTools = React.useMemo(
-    () => (readOnly ? {} : { addImage: () => imageInput.current?.click() }),
-    [readOnly]
+  const postTools = React.useMemo<PostTools>(
+    () => (readOnly ? {} : { addImage: () => imageInput.current?.click(), settings: postSettings }),
+    [postSettings, readOnly]
   )
   return (
     <EditorServicesProvider services={services}>
@@ -664,7 +692,6 @@ export default function DraftEditor({
             {collaboration ? <Presence /> : null}
             <DiscussionsWatcher onChange={onDiscussionsChange} />
             <CommentColumn key={live ? 'live' : 'local'}>
-              <FirstPostHeader />
               <ThreadLine />
               <Editor
                 aria-label="Draft body"
@@ -681,6 +708,7 @@ export default function DraftEditor({
                   <DraftToolbar
                     assistChannel={assistChannel}
                     editor={editor}
+                    extras={toolbarExtras}
                     imageInput={imageInput}
                     services={services}
                     title={title}

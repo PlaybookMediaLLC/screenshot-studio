@@ -29,8 +29,15 @@ export function newPostId(): string {
   return `p_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
 }
 
+/** A post break block: the start of a post, its id, and its settings. */
+export type PostBreakNode = PostSettings & {
+  children: { text: string }[]
+  id: string
+  type: string
+}
+
 /** A post break with an id, starting a post. */
-export function postBreak(settings: PostSettings = {}): Node {
+export function postBreak(settings: PostSettings = {}): PostBreakNode {
   return { ...settings, children: [{ text: '' }], id: settings.id ?? newPostId(), type: POST_BREAK }
 }
 

@@ -7,7 +7,7 @@ const contentTypeSchema = z
   .string()
   .trim()
   .regex(
-    /^(image\/(gif|jpeg|png|webp)|video\/(mp4|webm)|audio\/(aac|mp4|mpeg|ogg|wav|webm)|font\/(woff2?|ttf|otf))$/,
+    /^(image\/(gif|jpeg|png|webp)|video\/(mp4|webm)|audio\/(aac|mp4|mpeg|ogg|wav|webm)|font\/(woff2?|ttf|otf)|application\/pdf)$/,
     'Unsupported media type.'
   )
 
@@ -29,17 +29,23 @@ export const assetDownloadQuerySchema = z.object({
   assetId: assetIdSchema,
 })
 
-export const assetUploadSchema = z.object({
-  bytes: z
-    .number()
-    .int()
-    .positive()
-    .max(50 * 1024 * 1024),
-  classification: z.enum(assetClassifications).default('input'),
-  contentType: contentTypeSchema,
-  fileName: z.string().trim().min(1).max(128),
-  sha256: sha256Schema.optional(),
-})
+export const assetUploadSchema = z
+  .object({
+    bytes: z
+      .number()
+      .int()
+      .positive()
+      .max(100 * 1024 * 1024),
+    classification: z.enum(assetClassifications).default('input'),
+    contentType: contentTypeSchema,
+    fileName: z.string().trim().min(1).max(128),
+    sha256: sha256Schema.optional(),
+  })
+  // LinkedIn documents take up to 100 MB (RFC 041); everything else 50 MB.
+  .refine((input) => input.contentType === 'application/pdf' || input.bytes <= 50 * 1024 * 1024, {
+    message: 'Assets are up to 50 MB; PDF documents up to 100 MB.',
+    path: ['bytes'],
+  })
 
 const hexColorSchema = z
   .string()

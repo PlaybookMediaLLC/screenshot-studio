@@ -17,16 +17,22 @@ function dayKey(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
 }
 
+/** A draft planned for a time: on the calendar, never published by itself. */
+export type PlannedDraft = { at: string; caption: string; draftId: string; title: string }
+
 /**
  * A week of draft posts: each day's posts in time order. A queued post drags
- * to another day and keeps its time of day; live posts stay put.
+ * to another day and keeps its time of day; live posts stay put. Planned
+ * drafts show dashed: they hold a time but publish nothing until scheduled.
  */
 export function DraftCalendar({
   canMove,
+  planned = [],
   posts,
   weekStart,
 }: {
   canMove: boolean
+  planned?: PlannedDraft[]
   posts: CalendarPostWire[]
   /** The week's first day (Monday), as an ISO date. */
   weekStart: string
@@ -76,16 +82,16 @@ export function DraftCalendar({
         <div className="ml-auto flex items-center gap-2 text-xs">
           <Link
             className="text-neutral-400 hover:text-white"
-            href={`/drafts/calendar?week=${shift(-1)}`}
+            href={`/write/plan?week=${shift(-1)}`}
           >
             ← Previous
           </Link>
-          <Link className="text-neutral-400 hover:text-white" href="/drafts/calendar">
+          <Link className="text-neutral-400 hover:text-white" href="/write/plan">
             This week
           </Link>
           <Link
             className="text-neutral-400 hover:text-white"
-            href={`/drafts/calendar?week=${shift(1)}`}
+            href={`/write/plan?week=${shift(1)}`}
           >
             Next →
           </Link>
@@ -144,7 +150,7 @@ export function DraftCalendar({
                     )}
                     data-testid="calendar-post"
                     draggable={movable}
-                    href={`/drafts/${post.draftId}`}
+                    href={`/write/${post.draftId}`}
                     key={post.id}
                     onDragStart={(event) => {
                       event.dataTransfer.setData(CALENDAR_DRAG, post.id)
@@ -163,6 +169,20 @@ export function DraftCalendar({
                   </Link>
                 )
               })}
+              {(hydrated ? planned.filter((item) => dayKey(new Date(item.at)) === key) : []).map((item) => (
+                <Link
+                  className="block rounded-lg border border-dashed border-violet-300/30 p-2 text-xs hover:border-violet-300/60"
+                  data-testid="calendar-planned"
+                  href={`/write/${item.draftId}`}
+                  key={item.draftId}
+                >
+                  <span className="text-violet-200">
+                    Planned ·{' '}
+                    {new Date(item.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                  <span className="mt-1 line-clamp-3 block text-neutral-300">{item.title || item.caption}</span>
+                </Link>
+              ))}
             </section>
           )
         })}

@@ -5,6 +5,9 @@ import { toast } from 'sonner'
 import { Pill, type PillTone } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
 import { type DraftPostWire, draftsApi } from '@/lib/content-drafts/client'
+import { writeApi } from '@/lib/write/client'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { cn } from '@/lib/utils'
 import { CHANNEL_META, ChannelIcon } from './channel-meta'
@@ -18,6 +21,16 @@ const POST_TONES: Partial<Record<DraftPostWire['status'], PillTone>> = {
   PUBLISHED: 'green',
   SCHEDULED: 'purple',
   UNKNOWN_DELIVERY: 'yellow',
+}
+
+/** What each status means to the person reading it. */
+const STATUS_LABELS: Partial<Record<DraftPostWire['status'], string>> = {
+  CANCELLED: 'Cancelled',
+  FAILED: 'Failed',
+  PROCESSING: 'Publishing',
+  PUBLISHED: 'Published',
+  SCHEDULED: 'Scheduled',
+  UNKNOWN_DELIVERY: 'Outcome unknown',
 }
 
 /** The engagement counts the posts list shows, in order, with their labels. */
@@ -87,7 +100,7 @@ export function DraftPosts({
                   <p className="mt-0.5 truncate text-xs text-neutral-500">{post.caption}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <Pill tone={POST_TONES[post.status] ?? 'gray'}>{post.status}</Pill>
+                  <Pill tone={POST_TONES[post.status] ?? 'gray'}>{STATUS_LABELS[post.status] ?? post.status}</Pill>
                   {post.url ? (
                     <a
                       className="text-xs text-sky-300 hover:text-sky-200"
@@ -105,6 +118,39 @@ export function DraftPosts({
                   ) : null}
                 </div>
               </div>
+              {post.status === 'FAILED' ? (
+                <p className="flex flex-wrap items-center gap-2 text-xs text-red-300" role="status">
+                  This destination did not publish; the draft’s other posts are unaffected.
+                  {canSchedule ? (
+                    <Button
+                      disabled={busy === post.id}
+                      onClick={() => void run(post.id, () => writeApi.retryPost(post.id), 'Retrying this destination now.')}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Retry this destination
+                    </Button>
+                  ) : null}
+                </p>
+              ) : null}
+              {post.status === 'UNKNOWN_DELIVERY' ? (
+                <div className="flex flex-wrap items-center gap-2 text-xs text-amber-300" role="status">
+                  The platform did not confirm whether this went out. Check the account before doing
+                  anything: retrying blindly could post twice.
+                  {canSchedule ? (
+                    <Reconcile
+                      busy={busy === post.id}
+                      onSettle={(live, url) =>
+                        void run(
+                          post.id,
+                          () => writeApi.reconcilePost(post.id, { live, url: url || undefined }),
+                          live ? 'Marked as published.' : 'Marked as not published; you can retry it now.'
+                        )
+                      }
+                    />
+                  ) : null}
+                </div>
+              ) : null}
               {post.replies > 0 && post.status !== 'PUBLISHED' ? (
                 <p className="text-xs text-neutral-500">
                   A thread: this post and {post.replies} replies.
@@ -170,5 +216,36 @@ export function DraftPosts({
         })}
       </ul>
     </section>
+  )
+}
+
+/** Say what the platform shows for a post of unknown outcome. Nothing is sent to it. */
+function Reconcile({ busy, onSettle }: { busy: boolean; onSettle: (live: boolean, url: string) => void }) {
+  const [url, setUrl] = React.useState('')
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button disabled={busy} size="sm" variant="outline">
+          I checked the account…
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="grid w-80 gap-2 p-3 text-sm">
+        <p className="text-neutral-200">Is the post on the account?</p>
+        <Input
+          aria-label="The post's URL"
+          onChange={(event) => setUrl(event.target.value)}
+          placeholder="Its URL, if it is live (optional)"
+          value={url}
+        />
+        <div className="flex gap-2">
+          <Button onClick={() => onSettle(true, url.trim())} size="sm">
+            It is live
+          </Button>
+          <Button onClick={() => onSettle(false, '')} size="sm" variant="outline">
+            It is not there
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }

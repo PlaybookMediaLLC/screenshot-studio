@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.28.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.27.1...v2.28.0) (2026-10-20)
+
+
+### Features
+
+* **canvas:** layers, components, presence, store groups, automation and vector PDF ([#231](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/231)) ([43f4ed9](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/43f4ed90b62ed1212e896e972d06bf34c5f07b44))
+
 ## [2.27.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.27.0...v2.27.1) (2026-10-20)
 
 

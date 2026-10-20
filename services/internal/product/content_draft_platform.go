@@ -340,6 +340,9 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 	if post.ReplyTo != nil {
 		create.SetReplyTo(*post.ReplyTo)
 	}
+	if !post.PublishOptions.Empty() {
+		create.SetPublishOptions(post.PublishOptions)
+	}
 	moved, err := create.Save(ctx)
 	if err != nil {
 		return nil, err
@@ -823,6 +826,14 @@ func (c *Configuration) ResumeContentDraftThread(ctx context.Context, actor Acto
 		SetReplyTo(answer).SetIdempotencyKey(fmt.Sprintf("%s:resume:%d", post.IdempotencyKey, progress.Posted))
 	if len(rest[0].AssetIDs) > 0 {
 		create.SetAssetID(rest[0].AssetIDs[0]).SetAssetIds(rest[0].AssetIDs)
+	}
+	if rest[0].Options != nil && !rest[0].Options.Empty() {
+		options := *rest[0].Options
+		if options.QuoteFirstPost && post.RemotePostID != nil {
+			// The first post is live: the quote can name it now.
+			options.QuoteFirstPost, options.QuoteRemoteID = false, *post.RemotePostID
+		}
+		create.SetPublishOptions(options)
 	}
 	if len(rest) > 1 {
 		create.SetReplies(append([]thread.Reply{}, rest[1:]...))

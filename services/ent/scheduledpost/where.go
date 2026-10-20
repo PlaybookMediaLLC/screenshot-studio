@@ -685,6 +685,16 @@ func PollNotNil() predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldNotNull(FieldPoll))
 }
 
+// PublishOptionsIsNil applies the IsNil predicate on the "publish_options" field.
+func PublishOptionsIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldPublishOptions))
+}
+
+// PublishOptionsNotNil applies the NotNil predicate on the "publish_options" field.
+func PublishOptionsNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldPublishOptions))
+}
+
 // ChannelConnectionIDEQ applies the EQ predicate on the "channel_connection_id" field.
 func ChannelConnectionIDEQ(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldChannelConnectionID, v))

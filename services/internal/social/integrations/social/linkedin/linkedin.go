@@ -59,6 +59,12 @@ const (
 type LinkedinDTO struct {
 	PostAsImagesCarousel any `json:"post_as_images_carousel,omitempty"`
 	CarouselName         any `json:"carousel_name,omitempty"`
+	// Visibility is PUBLIC (the default) or CONNECTIONS.
+	Visibility any `json:"visibility,omitempty"`
+	// DocumentTitle names an uploaded PDF document post.
+	DocumentTitle any `json:"document_title,omitempty"`
+	// ReshareParent reshares a post with this post's text as commentary.
+	ReshareParent any `json:"reshare_parent,omitempty"`
 }
 
 func (d *LinkedinDTO) Validate() []string {
@@ -68,6 +74,15 @@ func (d *LinkedinDTO) Validate() []string {
 	}
 	if _, ok := d.CarouselName.(string); d.CarouselName != nil && !ok {
 		out = append(out, "carousel_name must be a string")
+	}
+	if value, ok := d.Visibility.(string); d.Visibility != nil && (!ok || value != "PUBLIC" && value != "CONNECTIONS") {
+		out = append(out, "visibility must be PUBLIC or CONNECTIONS")
+	}
+	if _, ok := d.DocumentTitle.(string); d.DocumentTitle != nil && !ok {
+		out = append(out, "document_title must be a string")
+	}
+	if _, ok := d.ReshareParent.(string); d.ReshareParent != nil && !ok {
+		out = append(out, "reshare_parent must be a string")
 	}
 	return out
 }

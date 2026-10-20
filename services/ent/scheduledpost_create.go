@@ -174,6 +174,20 @@ func (_c *ScheduledPostCreate) SetNillablePoll(v *postoptions.Poll) *ScheduledPo
 	return _c
 }
 
+// SetPublishOptions sets the "publish_options" field.
+func (_c *ScheduledPostCreate) SetPublishOptions(v postoptions.PublishOptions) *ScheduledPostCreate {
+	_c.mutation.SetPublishOptions(v)
+	return _c
+}
+
+// SetNillablePublishOptions sets the "publish_options" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillablePublishOptions(v *postoptions.PublishOptions) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetPublishOptions(*v)
+	}
+	return _c
+}
+
 // SetChannelConnectionID sets the "channel_connection_id" field.
 func (_c *ScheduledPostCreate) SetChannelConnectionID(v string) *ScheduledPostCreate {
 	_c.mutation.SetChannelConnectionID(v)
@@ -454,6 +468,10 @@ func (_c *ScheduledPostCreate) createSpec() (*ScheduledPost, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.Poll(); ok {
 		_spec.SetField(scheduledpost.FieldPoll, field.TypeJSON, value)
 		_node.Poll = value
+	}
+	if value, ok := _c.mutation.PublishOptions(); ok {
+		_spec.SetField(scheduledpost.FieldPublishOptions, field.TypeJSON, value)
+		_node.PublishOptions = value
 	}
 	if value, ok := _c.mutation.ScheduledFor(); ok {
 		_spec.SetField(scheduledpost.FieldScheduledFor, field.TypeTime, value)

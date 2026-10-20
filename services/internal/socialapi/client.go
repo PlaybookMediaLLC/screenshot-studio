@@ -38,8 +38,13 @@ type PublishInput struct {
 	// Replies follow the post as a thread, each answering the one before.
 	Replies []publishing.PublishReply
 	// ReplyTo is the live post a resumed thread answers.
-	ReplyTo          string
-	Poll             *postoptions.Poll
+	ReplyTo string
+	Poll    *postoptions.Poll
+	// Options are the post's settings beyond its text (RFC 041); Document is
+	// a LinkedIn PDF and Cover an X article's cover.
+	Options          *postoptions.PublishOptions
+	Document         *publishing.MediaAsset
+	Cover            *publishing.MediaAsset
 	Caption          string
 	DestinationID    string
 	OrganizationID   string

@@ -46,8 +46,10 @@ func (ScheduledPost) Fields() []ent.Field {
 		field.Time("metrics_at").StorageKey("metricsAt").Optional().Nillable(),
 		// Follow-ups once the post is live (X: repost, plug, quote).
 		field.JSON("auto_actions", postoptions.AutoActions{}).StorageKey("autoActions").Optional().Immutable(),
-		// A poll on the post (X).
+		// A poll on the post (X, LinkedIn).
 		field.JSON("poll", postoptions.Poll{}).StorageKey("poll").Optional().Immutable(),
+		// The post's settings beyond its text (RFC 041), as scheduled.
+		field.JSON("publish_options", postoptions.PublishOptions{}).StorageKey("publishOptions").Optional().Immutable(),
 		field.String("channel_connection_id").StorageKey("channelConnectionId").Immutable(),
 		field.Time("scheduled_for").StorageKey("scheduledFor"),
 		field.Enum("status").StorageKey("status").Values("DRAFT", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELLED", "UNKNOWN_DELIVERY").Default("DRAFT"),

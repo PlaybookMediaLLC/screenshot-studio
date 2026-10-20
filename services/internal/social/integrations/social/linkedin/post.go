@@ -48,6 +48,33 @@ type pendingData struct {
 	// again (LinkedIn has no idempotency key).
 	Attempting bool `json:"attempting,omitempty"`
 	Confirmed  bool `json:"confirmed,omitempty"`
+	// Write (RFC 041): who sees the post, a poll, and a reshared post.
+	Visibility    string                    `json:"visibility,omitempty"`
+	Question      *integrations.PollDetails `json:"linkedinPoll,omitempty"`
+	ReshareParent string                    `json:"reshareParent,omitempty"`
+}
+
+// linkedInPollDurations are the Poll API's lengths by whole days.
+var linkedInPollDurations = map[int]string{1: "ONE_DAY", 3: "THREE_DAYS", 7: "SEVEN_DAYS", 14: "FOURTEEN_DAYS"}
+
+// pollContent is a poll as the Posts API takes it: a question, 2 to 4
+// options, and one of its durations.
+func pollContent(poll *integrations.PollDetails) map[string]any {
+	minutes := poll.DurationMinutes
+	if minutes == 0 {
+		minutes = poll.Duration * 60
+	}
+	duration, ok := linkedInPollDurations[minutes/(24*60)]
+	if !ok || minutes%(24*60) != 0 {
+		duration = "SEVEN_DAYS"
+	}
+	options := make([]map[string]string, 0, len(poll.Options))
+	for _, option := range poll.Options {
+		options = append(options, map[string]string{"text": option})
+	}
+	return map[string]any{"poll": map[string]any{
+		"question": poll.Question, "options": options, "settings": map[string]string{"duration": duration},
+	}}
 }
 
 func authorURN(postType, id string) string {
@@ -303,6 +330,9 @@ func newPayload(author, commentary string) postPayload {
 
 func (p *Provider) createMainPost(ctx context.Context, data *pendingData, accessToken string) (string, error) {
 	payload := newPayload(authorURN(data.PostType, data.AuthorID), FixText(data.Message))
+	if data.Visibility != "" {
+		payload.Visibility = data.Visibility
+	}
 	var mediaIDs []string
 	for _, id := range data.MediaIDs {
 		if id != "" {
@@ -310,6 +340,12 @@ func (p *Provider) createMainPost(ctx context.Context, data *pendingData, access
 		}
 	}
 	payload.Content = buildPostContent(data.IsPdf, mediaIDs, data.PdfTitle)
+	if data.Question != nil && len(data.Question.Options) >= 2 {
+		payload.Content = pollContent(data.Question)
+	}
+	if data.ReshareParent != "" {
+		payload.ReshareContext = map[string]string{"parent": data.ReshareParent}
+	}
 	body, _ := json.Marshal(payload)
 	// Fetch only returns 200/201, so TypeScript's "Error posting to LinkedIn"
 	// status check cannot trigger here.
@@ -401,10 +437,23 @@ func (p *Provider) PostPendingAs(ctx context.Context, id, accessToken string, po
 		AuthorID: id, PostType: postType, Message: first.Message, IsPdf: isPdf,
 		MediaIDs: mediaIDs, Poll: poll, GraceChecks: graceChecks,
 	}
+	data.Visibility, _ = settings.Visibility.(string)
+	data.ReshareParent, _ = settings.ReshareParent.(string)
+	if first.Poll != nil && len(first.Poll.Options) >= 2 {
+		data.Question = first.Poll
+	}
 	if isPdf {
 		data.PdfTitle, _ = settings.CarouselName.(string)
 		if data.PdfTitle == "" {
 			data.PdfTitle = "slides"
+		}
+	}
+	// An uploaded PDF goes out as a document post with its own title.
+	if !isPdf && len(first.Media) == 1 && helpers.HasExtension(first.Media[0].Path, "pdf") {
+		data.IsPdf = true
+		data.PdfTitle, _ = settings.DocumentTitle.(string)
+		if data.PdfTitle == "" {
+			data.PdfTitle = "Document"
 		}
 	}
 	raw, err := json.Marshal(data)

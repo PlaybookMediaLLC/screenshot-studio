@@ -41,6 +41,8 @@ const (
 	FieldAutoActions = "autoActions"
 	// FieldPoll holds the string denoting the poll field in the database.
 	FieldPoll = "poll"
+	// FieldPublishOptions holds the string denoting the publish_options field in the database.
+	FieldPublishOptions = "publishOptions"
 	// FieldChannelConnectionID holds the string denoting the channel_connection_id field in the database.
 	FieldChannelConnectionID = "channelConnectionId"
 	// FieldScheduledFor holds the string denoting the scheduled_for field in the database.
@@ -95,6 +97,7 @@ var Columns = []string{
 	FieldMetricsAt,
 	FieldAutoActions,
 	FieldPoll,
+	FieldPublishOptions,
 	FieldChannelConnectionID,
 	FieldScheduledFor,
 	FieldStatus,

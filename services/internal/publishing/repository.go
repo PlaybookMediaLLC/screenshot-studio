@@ -387,16 +387,31 @@ func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.Schedule
 		return inactive, err
 	}
 	job.Assets = assets
-	job.AutoActions, job.Poll = post.AutoActions, post.Poll
+	job.AutoActions, job.Poll, job.Options = post.AutoActions, post.Poll, post.PublishOptions
 	if post.ReplyTo != nil {
 		job.ReplyTo = *post.ReplyTo
+	}
+	// A document or article cover that was deleted cancels the post too.
+	for _, id := range []string{post.PublishOptions.DocumentAssetID, post.PublishOptions.ArticleCoverAssetID} {
+		if id == "" {
+			continue
+		}
+		media, missing, err := r.draftMedia(ctx, post.OrganizationID, []string{id})
+		if err != nil || missing {
+			return inactive, err
+		}
+		if id == post.PublishOptions.DocumentAssetID {
+			job.Document = &media[0]
+		} else {
+			job.Cover = &media[0]
+		}
 	}
 	for _, reply := range post.Replies {
 		media, missing, err := r.draftMedia(ctx, post.OrganizationID, reply.AssetIDs)
 		if err != nil || missing {
 			return inactive, err
 		}
-		job.Replies = append(job.Replies, PublishReply{Assets: media, Caption: reply.Caption})
+		job.Replies = append(job.Replies, PublishReply{Assets: media, Caption: reply.Caption, Options: reply.Options})
 	}
 	if len(job.Assets) > 0 {
 		job.AssetObjectKey, job.AssetMediaType = job.Assets[0].ObjectKey, job.Assets[0].MediaType

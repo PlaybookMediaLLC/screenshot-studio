@@ -67445,6 +67445,7 @@ type ScheduledPostMutation struct {
 	metrics_at                *time.Time
 	auto_actions              *postoptions.AutoActions
 	poll                      *postoptions.Poll
+	publish_options           *postoptions.PublishOptions
 	scheduled_for             *time.Time
 	status                    *scheduledpost.Status
 	caption                   *string
@@ -68223,6 +68224,55 @@ func (m *ScheduledPostMutation) ResetPoll() {
 	delete(m.clearedFields, scheduledpost.FieldPoll)
 }
 
+// SetPublishOptions sets the "publish_options" field.
+func (m *ScheduledPostMutation) SetPublishOptions(po postoptions.PublishOptions) {
+	m.publish_options = &po
+}
+
+// PublishOptions returns the value of the "publish_options" field in the mutation.
+func (m *ScheduledPostMutation) PublishOptions() (r postoptions.PublishOptions, exists bool) {
+	v := m.publish_options
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPublishOptions returns the old "publish_options" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldPublishOptions(ctx context.Context) (v postoptions.PublishOptions, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPublishOptions is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPublishOptions requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPublishOptions: %w", err)
+	}
+	return oldValue.PublishOptions, nil
+}
+
+// ClearPublishOptions clears the value of the "publish_options" field.
+func (m *ScheduledPostMutation) ClearPublishOptions() {
+	m.publish_options = nil
+	m.clearedFields[scheduledpost.FieldPublishOptions] = struct{}{}
+}
+
+// PublishOptionsCleared returns if the "publish_options" field was cleared in this mutation.
+func (m *ScheduledPostMutation) PublishOptionsCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldPublishOptions]
+	return ok
+}
+
+// ResetPublishOptions resets all changes to the "publish_options" field.
+func (m *ScheduledPostMutation) ResetPublishOptions() {
+	m.publish_options = nil
+	delete(m.clearedFields, scheduledpost.FieldPublishOptions)
+}
+
 // SetChannelConnectionID sets the "channel_connection_id" field.
 func (m *ScheduledPostMutation) SetChannelConnectionID(s string) {
 	m.channel_connection = &s
@@ -68639,7 +68689,7 @@ func (m *ScheduledPostMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ScheduledPostMutation) Fields() []string {
-	fields := make([]string, 0, 21)
+	fields := make([]string, 0, 22)
 	if m.organization_id != nil {
 		fields = append(fields, scheduledpost.FieldOrganizationID)
 	}
@@ -68678,6 +68728,9 @@ func (m *ScheduledPostMutation) Fields() []string {
 	}
 	if m.poll != nil {
 		fields = append(fields, scheduledpost.FieldPoll)
+	}
+	if m.publish_options != nil {
+		fields = append(fields, scheduledpost.FieldPublishOptions)
 	}
 	if m.channel_connection != nil {
 		fields = append(fields, scheduledpost.FieldChannelConnectionID)
@@ -68737,6 +68790,8 @@ func (m *ScheduledPostMutation) Field(name string) (ent.Value, bool) {
 		return m.AutoActions()
 	case scheduledpost.FieldPoll:
 		return m.Poll()
+	case scheduledpost.FieldPublishOptions:
+		return m.PublishOptions()
 	case scheduledpost.FieldChannelConnectionID:
 		return m.ChannelConnectionID()
 	case scheduledpost.FieldScheduledFor:
@@ -68788,6 +68843,8 @@ func (m *ScheduledPostMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldAutoActions(ctx)
 	case scheduledpost.FieldPoll:
 		return m.OldPoll(ctx)
+	case scheduledpost.FieldPublishOptions:
+		return m.OldPublishOptions(ctx)
 	case scheduledpost.FieldChannelConnectionID:
 		return m.OldChannelConnectionID(ctx)
 	case scheduledpost.FieldScheduledFor:
@@ -68903,6 +68960,13 @@ func (m *ScheduledPostMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPoll(v)
+		return nil
+	case scheduledpost.FieldPublishOptions:
+		v, ok := value.(postoptions.PublishOptions)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPublishOptions(v)
 		return nil
 	case scheduledpost.FieldChannelConnectionID:
 		v, ok := value.(string)
@@ -69026,6 +69090,9 @@ func (m *ScheduledPostMutation) ClearedFields() []string {
 	if m.FieldCleared(scheduledpost.FieldPoll) {
 		fields = append(fields, scheduledpost.FieldPoll)
 	}
+	if m.FieldCleared(scheduledpost.FieldPublishOptions) {
+		fields = append(fields, scheduledpost.FieldPublishOptions)
+	}
 	if m.FieldCleared(scheduledpost.FieldTriggerRunID) {
 		fields = append(fields, scheduledpost.FieldTriggerRunID)
 	}
@@ -69079,6 +69146,9 @@ func (m *ScheduledPostMutation) ClearField(name string) error {
 	case scheduledpost.FieldPoll:
 		m.ClearPoll()
 		return nil
+	case scheduledpost.FieldPublishOptions:
+		m.ClearPublishOptions()
+		return nil
 	case scheduledpost.FieldTriggerRunID:
 		m.ClearTriggerRunID()
 		return nil
@@ -69128,6 +69198,9 @@ func (m *ScheduledPostMutation) ResetField(name string) error {
 		return nil
 	case scheduledpost.FieldPoll:
 		m.ResetPoll()
+		return nil
+	case scheduledpost.FieldPublishOptions:
+		m.ResetPublishOptions()
 		return nil
 	case scheduledpost.FieldChannelConnectionID:
 		m.ResetChannelConnectionID()

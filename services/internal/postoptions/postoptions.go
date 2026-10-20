@@ -39,3 +39,38 @@ type ThreadProgress struct {
 // Metrics are a live post's engagement counts by name (likes, reposts,
 // replies, impressions, …), as its platform reports them.
 type Metrics map[string]float64
+
+// PublishOptions are a draft post's settings beyond its text (RFC 041):
+// who can reply, its labels, where it goes, and what it quotes. Each field
+// belongs to the platforms whose adapter sends it; scheduling refuses it
+// anywhere else. Zero values are off.
+type PublishOptions struct {
+	// X: who can reply (following, mentionedUsers, subscribers, verified);
+	// empty is everyone. Replies never change who can see the post.
+	ReplySettings string `json:"replySettings,omitempty"`
+	// X: content labels.
+	MadeWithAI      bool `json:"madeWithAi,omitempty"`
+	PaidPartnership bool `json:"paidPartnership,omitempty"`
+	// X: post to a community, and whether followers see it too.
+	CommunityID        string `json:"communityId,omitempty"`
+	ShareWithFollowers bool   `json:"shareWithFollowers,omitempty"`
+	// X: the post this one quotes; LinkedIn: the post this one reshares.
+	QuoteRemoteID string `json:"quoteRemoteId,omitempty"`
+	// X: this reply quotes the thread's first post, once it is live.
+	QuoteFirstPost bool `json:"quoteFirstPost,omitempty"`
+	// X articles: the title and cover; the caption is the body.
+	ArticleTitle        string `json:"articleTitle,omitempty"`
+	ArticleCoverAssetID string `json:"articleCoverAssetId,omitempty"`
+	// LinkedIn: PUBLIC or CONNECTIONS; empty is PUBLIC.
+	Visibility string `json:"visibility,omitempty"`
+	// LinkedIn: a comment posted under the post once it is live.
+	FirstComment string `json:"firstComment,omitempty"`
+	// LinkedIn: a PDF asset posted as a document carousel, with its title.
+	DocumentAssetID string `json:"documentAssetId,omitempty"`
+	DocumentTitle   string `json:"documentTitle,omitempty"`
+	// LinkedIn: a poll's question (X polls ask the post's text).
+	PollQuestion string `json:"pollQuestion,omitempty"`
+}
+
+// Empty reports whether no option is set.
+func (o PublishOptions) Empty() bool { return o == PublishOptions{} }

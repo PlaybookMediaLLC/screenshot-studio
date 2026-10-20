@@ -32,6 +32,8 @@ type WriteStore interface {
 	RecoverContentDraftRevision(context.Context, product.Actor, string, string) (*product.ContentDraftCopyResult, error)
 	ListContentDraftActivity(context.Context, product.Actor, string) ([]product.ContentDraftActivity, error)
 	ListPlannedContentDrafts(context.Context, product.Actor, time.Time, time.Time, string) ([]product.ContentDraftRecord, error)
+	RetryContentDraftPost(context.Context, product.Actor, string) (*product.MovedDraftPost, error)
+	ReconcileContentDraftPost(context.Context, product.Actor, string, product.ReconcileInput) (*product.ContentDraftPost, error)
 }
 
 func (s *Server) registerWrite(mux *http.ServeMux) {
@@ -55,6 +57,8 @@ func (s *Server) registerWrite(mux *http.ServeMux) {
 	mux.Handle("POST /v1/content-drafts/{id}/revisions/{revisionId}/recover", s.authenticateProduct(http.HandlerFunc(s.recoverContentDraft)))
 	mux.Handle("GET /v1/content-drafts/{id}/activity", s.authenticateProduct(http.HandlerFunc(s.contentDraftActivity)))
 	mux.Handle("GET /v1/content-draft-plans", s.authenticateProduct(http.HandlerFunc(s.listPlannedContentDrafts)))
+	mux.Handle("POST /v1/content-draft-posts/{id}/retry", s.authenticateProduct(http.HandlerFunc(s.retryContentDraftPost)))
+	mux.Handle("POST /v1/content-draft-posts/{id}/reconcile", s.authenticateProduct(http.HandlerFunc(s.reconcileContentDraftPost)))
 }
 
 // pathIDs reads path values that must be resource IDs.
@@ -302,4 +306,37 @@ func (s *Server) listPlannedContentDrafts(w http.ResponseWriter, r *http.Request
 	}
 	items, err := s.configuration.ListPlannedContentDrafts(r.Context(), workspaceActor(r), from, to, setID)
 	respond(w, http.StatusOK, map[string]any{"items": items}, err)
+}
+
+// retryContentDraftPost publishes one failed destination again and starts
+// its workflow; the draft's other posts are left as they are.
+func (s *Server) retryContentDraftPost(w http.ResponseWriter, r *http.Request) {
+	ids, ok := pathIDs(w, r, "id")
+	if !ok {
+		return
+	}
+	retried, err := s.configuration.RetryContentDraftPost(r.Context(), workspaceActor(r), ids[0])
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	if s.startMovedPost(w, r, retried) {
+		writeJSON(w, http.StatusCreated, retried)
+	}
+}
+
+// reconcileContentDraftPost records what a person found for a post whose
+// outcome was unknown. Nothing is sent to the platform.
+func (s *Server) reconcileContentDraftPost(w http.ResponseWriter, r *http.Request) {
+	ids, ok := pathIDs(w, r, "id")
+	if !ok {
+		return
+	}
+	var input product.ReconcileInput
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid reconciliation")
+		return
+	}
+	post, err := s.configuration.ReconcileContentDraftPost(r.Context(), workspaceActor(r), ids[0], input)
+	respond(w, http.StatusOK, map[string]any{"post": post}, err)
 }

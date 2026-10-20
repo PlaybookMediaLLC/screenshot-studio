@@ -47,6 +47,8 @@ type ScheduledPost struct {
 	AutoActions postoptions.AutoActions `json:"auto_actions,omitempty"`
 	// Poll holds the value of the "poll" field.
 	Poll postoptions.Poll `json:"poll,omitempty"`
+	// PublishOptions holds the value of the "publish_options" field.
+	PublishOptions postoptions.PublishOptions `json:"publish_options,omitempty"`
 	// ChannelConnectionID holds the value of the "channel_connection_id" field.
 	ChannelConnectionID string `json:"channel_connection_id,omitempty"`
 	// ScheduledFor holds the value of the "scheduled_for" field.
@@ -105,7 +107,7 @@ func (*ScheduledPost) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case scheduledpost.FieldAssetIds, scheduledpost.FieldReplies, scheduledpost.FieldThreadProgress, scheduledpost.FieldMetrics, scheduledpost.FieldAutoActions, scheduledpost.FieldPoll:
+		case scheduledpost.FieldAssetIds, scheduledpost.FieldReplies, scheduledpost.FieldThreadProgress, scheduledpost.FieldMetrics, scheduledpost.FieldAutoActions, scheduledpost.FieldPoll, scheduledpost.FieldPublishOptions:
 			values[i] = new([]byte)
 		case scheduledpost.FieldID, scheduledpost.FieldOrganizationID, scheduledpost.FieldVariantID, scheduledpost.FieldContentDraftID, scheduledpost.FieldAssetID, scheduledpost.FieldReplyTo, scheduledpost.FieldRemotePostID, scheduledpost.FieldChannelConnectionID, scheduledpost.FieldStatus, scheduledpost.FieldCaption, scheduledpost.FieldIdempotencyKey, scheduledpost.FieldTriggerRunID:
 			values[i] = new(sql.NullString)
@@ -226,6 +228,14 @@ func (_m *ScheduledPost) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &_m.Poll); err != nil {
 					return fmt.Errorf("unmarshal field poll: %w", err)
+				}
+			}
+		case scheduledpost.FieldPublishOptions:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field publish_options", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.PublishOptions); err != nil {
+					return fmt.Errorf("unmarshal field publish_options: %w", err)
 				}
 			}
 		case scheduledpost.FieldChannelConnectionID:
@@ -373,6 +383,9 @@ func (_m *ScheduledPost) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("poll=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Poll))
+	builder.WriteString(", ")
+	builder.WriteString("publish_options=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PublishOptions))
 	builder.WriteString(", ")
 	builder.WriteString("channel_connection_id=")
 	builder.WriteString(_m.ChannelConnectionID)

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.25.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.5...v2.25.0) (2026-10-20)
+
+
+### Features
+
+* **workflows:** first-class workflows with AI relevance, rendered creatives, and flexible release definitions ([#224](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/224)) ([4a3d28e](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/4a3d28e616bc3989272bc26a9cf2ca74bc7bd001))
+
 ## [2.24.5](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.24.4...v2.24.5) (2026-10-20)
 
 

@@ -499,10 +499,11 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 				u.SetProfile(*p.Username)
 			}
 			u.SetProviderIdentifier(p.Provider)
-			u.SetToken(p.Token)
+			// Ent upsert setters bypass ValueScanner; use the sealed insert values.
+			u.UpdateToken()
 			// never wipe a stored refresh token with an empty one
 			if p.RefreshToken != "" {
-				u.SetRefreshToken(&p.RefreshToken)
+				u.UpdateRefreshToken()
 			}
 			if expiresIn != 0 {
 				u.SetTokenExpiration(time.Now().Add(time.Duration(expiresIn) * time.Second))

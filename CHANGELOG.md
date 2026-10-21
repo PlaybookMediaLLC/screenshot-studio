@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.32.6](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.5...v2.32.6) (2026-10-21)
+
+
+### Bug Fixes
+
+* **link-preview:** preserve drafts and align audit results ([#264](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/264)) ([b1c08bf](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/b1c08bf242eda7ab5b2ea0ae3e06e9ab6f31d0b7))
+
 ## [2.32.5](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.4...v2.32.5) (2026-10-21)
 
 

@@ -19,6 +19,13 @@ import (
 	"github.com/lucsky/cuid"
 )
 
+func verifiedXReceipt(id string) schema.SocialOAuthExchange {
+	now := time.Now()
+	caps := socialidentity.XStandardPostLimits("read-write", nil)
+	return schema.SocialOAuthExchange{ID: id, Account: &socialidentity.Connection{ID: id, Provider: "x", NativeID: "123456789", Active: true, VerifiedAt: &now,
+		Verification: &socialidentity.Verification{AccountKey: "x:123456789", AccountKind: "profile", GrantedScopes: []string{"read-write"}, Capabilities: socialidentity.Capabilities{Version: 1, X: &caps}}}}
+}
+
 func TestOAuthReceiptsKeepOriginalContextAndIdentity(t *testing.T) {
 	url := os.Getenv("PUBLISHING_TEST_DATABASE_URL")
 	if url == "" {
@@ -106,7 +113,10 @@ func TestOAuthReceiptsKeepOriginalContextAndIdentity(t *testing.T) {
 		if receipt, err := repo.ClaimOAuthExchange(ctx, actor, sessionID, state, "x"); err != nil || receipt != nil {
 			t.Fatalf("claim=%+v %v", receipt, err)
 		}
-		if err := repo.SaveOAuthExchange(ctx, actor, sessionID, state, "x", schema.SocialOAuthExchange{ID: external}); err != nil {
+		if err := repo.SaveOAuthExchange(ctx, actor, sessionID, state, "x", schema.SocialOAuthExchange{ID: external}); !errors.Is(err, ErrConflict) {
+			t.Fatal("unverified X receipt accepted")
+		}
+		if err := repo.SaveOAuthExchange(ctx, actor, sessionID, state, "x", verifiedXReceipt(external)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -335,7 +345,7 @@ func TestOAuthReceiptsKeepOriginalContextAndIdentity(t *testing.T) {
 		if _, err := repo.ClaimOAuthExchange(ctx, actor, sessionID, reconnect, "x"); err != nil {
 			t.Fatal(err)
 		}
-		if err := repo.SaveOAuthExchange(ctx, actor, sessionID, reconnect, "x", schema.SocialOAuthExchange{ID: "wrong-account"}); !errors.Is(err, ErrOAuthIdentityMismatch) {
+		if err := repo.SaveOAuthExchange(ctx, actor, sessionID, reconnect, "x", verifiedXReceipt("wrong-account")); !errors.Is(err, ErrOAuthIdentityMismatch) {
 			t.Fatalf("wrong reconnect identity=%v", err)
 		}
 		current, err := db.Client.ChannelConnection.Get(ctx, connection.ID)

@@ -292,6 +292,10 @@ func (c *Client) postOAuthJSON(ctx context.Context, endpoint string, input, outp
 }
 
 func (c *Client) VerifyDestination(ctx context.Context, input VerifyDestinationInput) error {
+	if input.Platform == "x" {
+		_, err := c.VerifyX(ctx, input)
+		return err
+	}
 	if !publishing.IsSecretReference(input.SecretReference) {
 		return &Error{Status: http.StatusConflict, message: "invalid social API credential reference"}
 	}

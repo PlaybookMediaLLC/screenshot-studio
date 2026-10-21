@@ -21,9 +21,8 @@ Verified through the browser and disposable PostgreSQL database:
   envelope.
 
 No post was published. Publishing, current account limits, revocation detection,
-and production deployment are not verified by this connection check. The legacy
-X adapter still does not persist the newer verified-scope/capability snapshot;
-S20 remains in progress even though live authorization and association succeeded.
+and production deployment are not verified by this connection check. The follow-up below records the identity/grant verification work. S20 remains in
+progress until the remaining connection and publishing capability gaps are verified.
 
 ## Reconnect encryption correction
 
@@ -50,3 +49,75 @@ back to the defective upsert after the backfill.
 
 Local evidence: `.context/x-live-verification.json`,
 `.context/x-live-connected-detail.jpg`, and `.context/x-app-configured.jpg`.
+
+## Verified X identity and grant
+
+The adapter now binds the OAuth access-token response's decimal `user_id` to a
+signed `GET /2/users/me` response. It requires an observed `x-access-level` of
+`read-write` or `read-write-directmessages`; this is OAuth 1.0a access-level
+evidence, not an OAuth 2.0 scope list. Missing, combined, or read-only levels,
+mismatched IDs, malformed token replies, and partial identity errors fail closed.
+The response header was observed on the approved disposable account's real X
+response. It is not an assertion that the header is a documented permanent API.
+If X stops returning it, connections require a supported verification replacement.
+
+The versioned credential-free proof stores `x:<native ID>`, profile identity,
+observed access level, optional subscription metadata, and documented standard
+post limits. A subscription name or editable Verified setting cannot grant a
+4,000-character allowance. Premium long-post and account-specific video byte/time
+limits remain explicitly unknown. This snapshot does not prove paid API quota,
+article support, media eligibility, or successful publication.
+
+Primary references checked on 2026-10-21:
+
+- [X user access tokens](https://docs.x.com/fundamentals/authentication/oauth-1-0a/obtaining-user-access-tokens):
+  OAuth 1.0a tokens do not expire, but users can revoke them. Reconnect now clears
+  the old fabricated token expiry through the existing non-expiring contract.
+- [X developer apps](https://docs.x.com/fundamentals/developer-apps) and
+  [authentication API](https://docs.x.com/fundamentals/authentication/api-reference):
+  request write access; permission changes require renewed user authorization.
+- [Official twitter-text configuration](https://github.com/twitter/twitter-text/blob/master/config/v3.json):
+  standard weighted length 280, with 23 characters reserved per URL.
+- [Create post](https://docs.x.com/x-api/posts/create-post) and
+  [media introduction](https://docs.x.com/x-api/media/introduction):
+  at most four photos, one GIF or one video; image 5 MB and GIF 15 MB. Content and
+  account eligibility still need validation at the publication boundary.
+
+OAuth and identity requests have a 15-second context deadline, a 1 MiB response
+bound, and reject redirects. Provider response bodies never enter authentication
+errors. Rate limits and server outages remain transient errors.
+
+The product API reads the adapter's proof through the original tenant credential,
+persists it in the durable OAuth exchange receipt, and requires it before first
+completion. Destination verification also rejects legacy X records without proof.
+Completed callback replay retains its prior result without exchanging the code
+again. An uncertain verification outcome never repeats the one-time exchange.
+
+No new DDL is needed: existing verified identity columns and exchange receipt JSON
+hold the proof. Roll out the social adapter before the product API. Existing X
+connections need a same-account reconnect to obtain proof; do not synthesize proof
+from settings or old tokens. In-flight legacy exchanged receipts without proof are
+rejected at completion and require a new authorization attempt. Completed historical
+receipts remain replayable. Listing health and execution-time enforcement still need
+the broader provider health/capability work; this change does not claim to solve them.
+
+### Execution evidence
+
+A fourth real same-account OAuth attempt completed against the rebuilt local
+adapter and updated product API. The original private set, channel, and adapter
+integration stayed unchanged. PostgreSQL confirms matching native identity,
+`read-write` access, the versioned standard capability snapshot, verification time,
+a null token expiry, authenticated credential encryption, and the same proof in
+the completed reconnect receipt. No public post was made.
+
+All 124 Go package tests passed after correcting one old capacity-test fixture to
+supply the new proof. Full vet, five focused race suites, TypeScript, changed-spec
+lint/format, and the production picker/create/replay browser journey passed.
+CodeRabbit reviewed 16 source/test files without findings. The later capacity-test
+fixture update was inspected and passed in the full rerun. The web application
+bundle was unchanged; the existing production build was reused.
+
+Evidence: `.context/x-proof-live-verification.json`,
+`.context/x-proof-connected-detail.jpg`, `.context/x-proof-go-final.log`,
+`.context/x-proof-race.log`, `.context/x-proof-browser.log`, and
+`.context/x-proof-review.ndjson`. The screenshot was inspected after reconnect.

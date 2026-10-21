@@ -94,7 +94,7 @@ func TestDtoValidate(t *testing.T) {
 
 func TestMaxLengthAndValidity(t *testing.T) {
 	p := New()
-	if p.MaxLength([]integrations.AdditionalSetting{{Title: "Verified", Value: true}}, nil) != 4000 ||
+	if p.MaxLength([]integrations.AdditionalSetting{{Title: "Verified", Value: true}}, nil) != 280 ||
 		p.MaxLength(nil, nil) != 280 || p.MaxLength(nil, json.RawMessage(`{"post_type":"article"}`)) != 100000 {
 		t.Fatal("maxLength")
 	}
@@ -146,6 +146,9 @@ func fakeX(t *testing.T, handler func(r recorded) (int, string)) (*[]recorded, f
 		calls = append(calls, rec)
 		mu.Unlock()
 		status, out := handler(rec)
+		if r.URL.Path == "/2/users/me" {
+			w.Header().Set("x-access-level", "read-write")
+		}
 		w.WriteHeader(status)
 		_, _ = io.WriteString(w, out)
 	}))
@@ -427,7 +430,8 @@ func TestAuthFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if auth.AccessToken != "at:as" || auth.Username != "me" || auth.AdditionalSettings[0].Value != true || auth.ExpiresIn != 999999999 {
+	if auth.AccessToken != "at:as" || auth.Username != "me" || len(auth.AdditionalSettings) != 0 || !auth.NonExpiring || auth.ExpiresIn != 0 ||
+		auth.Verification == nil || auth.Verification.Validate("x", "1") != nil {
 		t.Fatalf("%+v", auth)
 	}
 	if !strings.Contains((*calls)[1].auth, `oauth_token="rt"`) || !strings.Contains((*calls)[2].auth, `oauth_token="at"`) {

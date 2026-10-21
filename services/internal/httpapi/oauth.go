@@ -14,6 +14,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/instances"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 type oauthRequest struct {
@@ -117,6 +118,10 @@ type socialOAuthExchanger interface {
 	SelectInstagramPage(context.Context, string, string, string, string) error
 }
 
+type xIdentityVerifier interface {
+	VerifyX(context.Context, socialapi.VerifyDestinationInput) (*socialidentity.Connection, error)
+}
+
 type oauthExchangeRequest struct {
 	Provider string `json:"provider"`
 	State    string `json:"state"`
@@ -153,6 +158,11 @@ func (s *Server) exchangeSocialOAuth(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "social connection is unavailable for this workspace")
 		return
 	}
+	xVerifier, verifiesX := s.verifier.(xIdentityVerifier)
+	if input.Provider == "x" && !verifiesX {
+		writeError(w, http.StatusServiceUnavailable, "X account verification is unavailable")
+		return
+	}
 	receipt, err := s.store.ClaimOAuthExchange(r.Context(), actor, sessionID, input.State, input.Provider)
 	if err != nil {
 		writeOAuthStoreError(w, err)
@@ -166,6 +176,16 @@ func (s *Server) exchangeSocialOAuth(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "social provider rejected the callback")
 		return
+	}
+	if input.Provider == "x" {
+		account, err := xVerifier.VerifyX(r.Context(), socialapi.VerifyDestinationInput{
+			DestinationID: connected.ID, Platform: "x", ExpectedGoOrganizationID: binding.GoOrganizationID, SecretReference: start.SecretReference,
+		})
+		if err != nil || account.Validate("x", connected.ID) != nil {
+			writeError(w, http.StatusConflict, "X account identity or read and write access could not be verified")
+			return
+		}
+		connected.Account = account
 	}
 	if err := s.store.SaveOAuthExchange(r.Context(), actor, sessionID, input.State, input.Provider, connected); err != nil {
 		writeOAuthStoreError(w, err)

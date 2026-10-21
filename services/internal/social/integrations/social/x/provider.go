@@ -91,20 +91,12 @@ func truthy(v any) bool {
 	return true
 }
 
-func (p *Provider) MaxLength(additionalSettings []integrations.AdditionalSetting, settings json.RawMessage) int {
+func (p *Provider) MaxLength(_ []integrations.AdditionalSetting, settings json.RawMessage) int {
 	// Articles are long-form content, the tweet character limit doesn't apply.
 	if str(decodeSettings(settings).PostType) == "article" {
 		return 100000
 	}
-	// "Verified" => premium => higher limit.
-	for _, s := range additionalSettings {
-		if s.Title == "Verified" {
-			if truthy(s.Value) {
-				return 4000
-			}
-			break
-		}
-	}
+	// An editable Verified flag does not prove a long-post API entitlement.
 	return 280
 }
 
@@ -336,12 +328,15 @@ func (p *Provider) GenerateAuthURL(ctx context.Context, _ *integrations.ClientIn
 	if callback == "" {
 		callback = os.Getenv("FRONTEND_URL")
 	}
-	res, err := (&client{}).postForm(ctx, apiBase+"/oauth/request_token", url.Values{
+	res, err := (&client{}).connectionForm(ctx, apiBase+"/oauth/request_token", url.Values{
 		"oauth_callback":     {callback + "/integrations/social/x"},
 		"x_auth_access_type": {"write"},
 	})
 	if err != nil {
 		return nil, err
+	}
+	if res.Get("oauth_callback_confirmed") != "true" || len(res["oauth_callback_confirmed"]) != 1 {
+		return nil, errIdentity
 	}
 	token := res.Get("oauth_token")
 	return &integrations.GenerateAuthURLResponse{
@@ -352,9 +347,15 @@ func (p *Provider) GenerateAuthURL(ctx context.Context, _ *integrations.ClientIn
 }
 
 func (p *Provider) Authenticate(ctx context.Context, params integrations.AuthenticateParams, _ *integrations.ClientInformation) (*integrations.AuthTokenDetails, error) {
+	if strings.Count(params.CodeVerifier, ":") != 1 || !validCredential(params.Code) {
+		return nil, errIdentity
+	}
 	oauthToken, oauthTokenSecret := splitToken(params.CodeVerifier)
+	if !validCredential(oauthToken) || !validCredential(oauthTokenSecret) {
+		return nil, errIdentity
+	}
 	starting := &client{token: oauthToken, secret: oauthTokenSecret}
-	login, err := starting.postForm(ctx, apiBase+"/oauth/access_token", url.Values{
+	login, err := starting.connectionForm(ctx, apiBase+"/oauth/access_token", url.Values{
 		"oauth_token":    {oauthToken},
 		"oauth_verifier": {params.Code},
 	})
@@ -363,24 +364,10 @@ func (p *Provider) Authenticate(ctx context.Context, params integrations.Authent
 	}
 	accessToken, accessSecret := login.Get("oauth_token"), login.Get("oauth_token_secret")
 	c := &client{token: accessToken, secret: accessSecret}
-	me, err := c.me(ctx, url.Values{"user.fields": {"username,verified,verified_type,profile_image_url,name"}})
-	if err != nil {
-		return nil, err
+	if len(login["user_id"]) != 1 {
+		return nil, errIdentity
 	}
-	return &integrations.AuthTokenDetails{
-		ID:          me.ID,
-		AccessToken: accessToken + ":" + accessSecret,
-		Name:        me.Name,
-		ExpiresIn:   999999999,
-		Picture:     me.ProfileImageURL,
-		Username:    me.Username,
-		AdditionalSettings: []integrations.AdditionalSetting{{
-			Title:       "Verified",
-			Description: "Is this a verified user? (Premium)",
-			Type:        "checkbox",
-			Value:       me.Verified,
-		}},
-	}, nil
+	return c.verifiedIdentity(ctx, login.Get("user_id"))
 }
 
 type tweet struct {

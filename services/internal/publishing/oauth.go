@@ -145,7 +145,7 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 	if start.ExchangeStatus != socialoauthstart.ExchangeStatusEXCHANGED {
 		return nil, ErrOAuthExchangeUncertain
 	}
-	if provider == "bluesky" && start.ExchangeReceipt.Account.Validate(provider, integrationID) != nil {
+	if (provider == "bluesky" || provider == "x") && start.ExchangeReceipt.Account.Validate(provider, integrationID) != nil {
 		return nil, ErrConflict
 	}
 	if err := workspaceplan.RequireChannel(ctx, tx.Client(), actor.Organization, integrationID); err != nil {

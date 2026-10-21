@@ -15,6 +15,7 @@ import (
 type Capabilities struct {
 	Version                  int                  `json:"version"`
 	Bluesky                  *BlueskyCapabilities `json:"bluesky,omitempty"`
+	X                        *XCapabilities       `json:"x,omitempty"`
 	MaxCharacters            int                  `json:"maxCharacters"`
 	MaxMediaAttachments      int                  `json:"maxMediaAttachments"`
 	CharactersReservedPerURL int                  `json:"charactersReservedPerUrl"`
@@ -43,14 +44,21 @@ var scopeName = regexp.MustCompile(`^[a-zA-Z0-9:._-]{1,100}$`)
 // Validate binds a snapshot to the actual adapter and returned native identity.
 // Each additional provider must supply its own identity and grant rules here.
 func (v *Verification) Validate(provider, internalID string) error {
-	if v != nil && provider == "bluesky" {
-		if !BlueskyDID(internalID) || v.AccountKey != "bluesky:"+internalID || v.AccountKind != "profile" || len(v.GrantedScopes) != 1 ||
-			(v.GrantedScopes[0] != "com.atproto.appPass" && v.GrantedScopes[0] != "com.atproto.appPassPrivileged") || v.Capabilities.Bluesky == nil {
+	if v != nil && provider == "x" {
+		if !XAccountID(internalID) || v.AccountKey != "x:"+internalID || v.AccountKind != "profile" ||
+			v.Capabilities.X == nil || v.Capabilities.Bluesky != nil || len(v.GrantedScopes) != 1 || v.GrantedScopes[0] != v.Capabilities.X.OAuth1AccessLevel {
 			return ErrInvalid
 		}
 		return v.Capabilities.Validate()
 	}
-	if v == nil || provider != "mastodon-custom" || v.AccountKey != internalID || len(v.AccountKey) > 350 || !mastodonKey.MatchString(v.AccountKey) || v.AccountKind != "profile" || v.Capabilities.Bluesky != nil {
+	if v != nil && provider == "bluesky" {
+		if !BlueskyDID(internalID) || v.AccountKey != "bluesky:"+internalID || v.AccountKind != "profile" || len(v.GrantedScopes) != 1 ||
+			(v.GrantedScopes[0] != "com.atproto.appPass" && v.GrantedScopes[0] != "com.atproto.appPassPrivileged") || v.Capabilities.Bluesky == nil || v.Capabilities.X != nil {
+			return ErrInvalid
+		}
+		return v.Capabilities.Validate()
+	}
+	if v == nil || provider != "mastodon-custom" || v.AccountKey != internalID || len(v.AccountKey) > 350 || !mastodonKey.MatchString(v.AccountKey) || v.AccountKind != "profile" || v.Capabilities.Bluesky != nil || v.Capabilities.X != nil {
 		return ErrInvalid
 	}
 	if len(v.GrantedScopes) == 0 || len(v.GrantedScopes) > 64 {
@@ -71,10 +79,16 @@ func (v *Verification) Validate(provider, internalID string) error {
 
 // Validate rejects missing, inconsistent and unbounded remote configuration.
 func (c Capabilities) Validate() error {
-	if c.Bluesky != nil {
+	if c.Bluesky != nil || c.X != nil {
 		if c.Version != 1 || c.MaxCharacters != 0 || c.MaxMediaAttachments != 0 || c.CharactersReservedPerURL != 0 || len(c.MediaMIMETypes) != 0 ||
 			c.ImageSizeLimit != 0 || c.VideoSizeLimit != 0 || c.ImageMatrixLimit != 0 || c.VideoMatrixLimit != 0 || c.VideoFrameRateLimit != 0 || c.MediaDescriptionLimit != nil {
 			return ErrInvalid
+		}
+		if c.X != nil {
+			if c.Bluesky != nil {
+				return ErrInvalid
+			}
+			return c.X.Validate()
 		}
 		return c.Bluesky.Validate()
 	}

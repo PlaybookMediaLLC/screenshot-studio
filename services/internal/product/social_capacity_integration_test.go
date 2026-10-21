@@ -13,6 +13,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/workspaceplan"
 	"github.com/lucsky/cuid"
 )
@@ -39,7 +40,11 @@ func TestSocialCapacityCommitsUnderWorkspaceLock(t *testing.T) {
 		if _, err := repo.ClaimOAuthExchange(ctx, actor, w.owner.SessionID, state, "x"); err != nil {
 			t.Fatal(err)
 		}
-		if err := repo.SaveOAuthExchange(ctx, actor, w.owner.SessionID, state, "x", schema.SocialOAuthExchange{ID: external}); err != nil {
+		now := time.Now()
+		caps := socialidentity.XStandardPostLimits("read-write", nil)
+		account := &socialidentity.Connection{ID: external, Provider: "x", NativeID: "123456789", Active: true, VerifiedAt: &now,
+			Verification: &socialidentity.Verification{AccountKey: "x:123456789", AccountKind: "profile", GrantedScopes: []string{"read-write"}, Capabilities: socialidentity.Capabilities{Version: 1, X: &caps}}}
+		if err := repo.SaveOAuthExchange(ctx, actor, w.owner.SessionID, state, "x", schema.SocialOAuthExchange{ID: external, Account: account}); err != nil {
 			t.Fatal(err)
 		}
 		return state

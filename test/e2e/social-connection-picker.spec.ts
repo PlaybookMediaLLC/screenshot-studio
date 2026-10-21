@@ -35,6 +35,40 @@ test('provider-first creation stays layered, commits once, and preserves its set
       return { body: { url: `https://api.x.com/oauth/authenticate?oauth_token=${state}` } }
     if (request.url === '/integrations/social-connect/x')
       return { body: { id: externalId, pages: [] } }
+    if (request.url === `/api/public/v1/integrations/${externalId}/identity`)
+      return {
+        body: {
+          id: externalId,
+          provider: 'x',
+          nativeId: '123456789',
+          name: 'Fixture X profile',
+          handle: 'fixture_x',
+          active: true,
+          verifiedAt: new Date().toISOString(),
+          verification: {
+            accountKey: 'x:123456789',
+            accountKind: 'profile',
+            grantedScopes: ['read-write'],
+            capabilities: {
+              version: 1,
+              x: {
+                oauth1AccessLevel: 'read-write',
+                subscriptionType: null,
+                standardMaxWeightedCharacters: 280,
+                charactersReservedPerUrl: 23,
+                maxImages: 4,
+                maxGifs: 1,
+                maxVideos: 1,
+                imageMaxBytes: 5000000,
+                gifMaxBytes: 15000000,
+                longPostMaxWeightedCharacters: null,
+                videoMaxBytes: null,
+                videoMaxDurationSeconds: null,
+              },
+            },
+          },
+        },
+      }
     if (request.url === '/api/public/v1/integrations')
       return { body: [{ id: externalId, identifier: 'x', disabled: false }] }
     return { status: 404 }

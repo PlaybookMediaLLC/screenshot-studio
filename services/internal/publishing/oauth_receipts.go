@@ -213,7 +213,7 @@ func (r *Repository) SaveOAuthExchange(ctx context.Context, actor Actor, session
 	if result.ID == "" || len(result.ID) > 160 || len(result.Pages) > 500 {
 		return ErrConflict
 	}
-	if (provider == "bluesky" || result.Account != nil) && result.Account.Validate(provider, result.ID) != nil {
+	if (provider == "bluesky" || provider == "x" || result.Account != nil) && result.Account.Validate(provider, result.ID) != nil {
 		return ErrConflict
 	}
 	for _, page := range result.Pages {

@@ -130,6 +130,7 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
     // The image goes to the workspace's storage through the signed upload.
     await page
       .getByLabel('Insert media')
+      .and(page.locator('input[type="file"]'))
       .setInputFiles({ buffer: png, mimeType: 'image/png', name: 'launch.png' })
     const image = draftEditor(page).locator('img[src*="/api/v1/assets/"]')
     await expect(image).toBeVisible({ timeout: 30_000 })
@@ -281,6 +282,7 @@ test('a table, a math block and a footnote persist, and the blocks post as image
     await caretAtEndOf(page, draftEditor(page).getByText('Pricing', { exact: true }))
     await page.getByRole('button', { name: 'Insert', exact: true }).click()
     await page.getByRole('menuitem', { name: 'Math', exact: true }).click()
+    await draftEditor(page).getByRole('button', { name: 'Add a Tex equation' }).click()
     await page.getByPlaceholder(/f\(x\) =/).fill('E = mc^2')
     await page.getByRole('button', { name: 'Done' }).click()
     await expect(draftEditor(page).locator('.katex').first()).toBeVisible()
@@ -416,8 +418,9 @@ test('a comment thread survives a reload', async ({ identity, page }) => {
     await page.keyboard.type('Launch day')
     await draftEditor(page).getByText('Launch day', { exact: true }).selectText()
     await page.getByRole('button', { name: 'Comment', exact: true }).click()
-    // The reply box is a small editor that takes focus when it opens.
+    // Focus the reply editor after the floating toolbar closes.
     await expect(page.getByText('Reply...')).toBeInViewport()
+    await page.getByText('Reply...').click()
     await page.keyboard.type('Check the date')
     await page.keyboard.press('Enter')
     await expect(page.getByText('Check the date')).toBeVisible()

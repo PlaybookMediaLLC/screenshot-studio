@@ -269,7 +269,7 @@ jobs:
       - name: Verify dependency failure and recovery
         if: matrix.shard_index == 3
         run: make e2e-recovery
-      - if: failure()
+      - if: failure() || cancelled()
         name: Upload Playwright artifacts
         uses: actions/upload-artifact@v4
         with:

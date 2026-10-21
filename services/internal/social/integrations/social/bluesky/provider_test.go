@@ -54,7 +54,7 @@ func newFakePDS(t *testing.T) *fakePDS {
 			_, _ = w.Write([]byte(`{"accessJwt":"access","refreshJwt":"refresh","handle":"me.bsky.social","did":"did:plc:me",
 				"didDoc":{"id":"did:plc:me","service":[{"id":"#atproto_pds","type":"AtprotoPersonalDataServer","serviceEndpoint":"` + f.URL + `/pds"}]}}`))
 		case "/xrpc/app.bsky.actor.getProfile":
-			_, _ = w.Write([]byte(`{"handle":"me.bsky.social","displayName":"Me","avatar":"https://cdn/avatar.jpg"}`))
+			_, _ = w.Write([]byte(`{"did":"did:plc:me","handle":"me.bsky.social","displayName":"Me","avatar":"https://cdn/avatar.jpg"}`))
 		case "/xrpc/com.atproto.identity.resolveHandle":
 			if r.URL.Query().Get("handle") != "alice.bsky.social" {
 				w.WriteHeader(400)

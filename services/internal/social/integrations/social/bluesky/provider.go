@@ -33,6 +33,9 @@ import (
 
 const identifier = "bluesky"
 
+var errAccountMismatch = temporalx.Disconnect(identifier, "{}", "{}", "Bluesky returned a different account; reconnect the original account")
+var errAccountInactive = temporalx.Disconnect(identifier, "{}", "{}", "Bluesky account is inactive; restore access and reconnect the original account")
+
 // videoServiceURL is Bluesky's video service, overridden by tests.
 var videoServiceURL = "https://video.bsky.app"
 
@@ -66,7 +69,7 @@ func (p *Provider) Info() integrations.Info {
 		Name:       "Bluesky",
 		Editor:     "normal",
 		Scopes:     []string{"write:statuses", "profile", "write:media"},
-		ToolTip:    "We don’t currently support two-factor authentication. If it’s enabled on Bluesky, you’ll need to disable it.",
+		ToolTip:    "Use a dedicated Bluesky app password. Keep your main account password private.",
 		// Bluesky limits are per account and per IP
 		MaxConcurrentJob: 6,
 		Rules:            "Bluesky can have maximum 1 video or 4 pictures in one post, it can also be without attachments",
@@ -149,7 +152,7 @@ func (p *Provider) Authenticate(ctx context.Context, params integrations.Authent
 		return nil, invalid
 	}
 	profile, err := a.getProfile(ctx, a.session.Did)
-	if err != nil {
+	if err != nil || profile.Did != a.session.Did {
 		return nil, invalid
 	}
 	now := time.Now()
@@ -181,7 +184,15 @@ func loginAgent(ctx context.Context, integration *ent.Integration) (*agent, erro
 	if err != nil {
 		return nil, err
 	}
-	return a, a.login(ctx, body.Identifier, body.Password)
+	if err := a.login(ctx, body.Identifier, body.Password); err != nil {
+		return nil, err
+	}
+	// Handles can change owners. A new login must still represent the immutable
+	// DID saved when this integration connected, before any publishing call.
+	if integration.InternalID == "" || a.session.Did != integration.InternalID {
+		return nil, errAccountMismatch
+	}
+	return a, nil
 }
 
 func (p *Provider) getAgent(ctx context.Context, integration *ent.Integration) (*agent, error) {
@@ -650,8 +661,8 @@ func (p *Provider) FinalizePost(ctx context.Context, _ string, raw json.RawMessa
 	early, err := prepare()
 	if err != nil {
 		// Explicit verdicts keep their meaning: a failed video job fails the
-		// post, an invalid login goes through the refresh-token flow.
-		if kind := temporalx.FailureType(err); kind == temporalx.TypeBadBody || kind == temporalx.TypeRefreshToken {
+		// post, an invalid login refreshes, and identity loss requires reconnect.
+		if kind := temporalx.FailureType(err); kind == temporalx.TypeBadBody || kind == temporalx.TypeRefreshToken || kind == temporalx.TypeDisconnect {
 			return nil, err
 		}
 		// Repeated preparation failures mean the integration is broken, not

@@ -80,6 +80,8 @@ type session struct {
 	Handle     string          `json:"handle"`
 	Did        string          `json:"did"`
 	DidDoc     json.RawMessage `json:"didDoc,omitempty"`
+	Active     *bool           `json:"active,omitempty"`
+	Status     string          `json:"status,omitempty"`
 }
 
 type agent struct {
@@ -123,7 +125,10 @@ func (a *agent) call(ctx context.Context, req xrpcRequest, out any) error {
 	// the access token expired mid-run: refresh once and replay
 	if status != nil && status.Status == 400 && status.Name == "ExpiredToken" && req.authorization == "" && a.session != nil && a.session.RefreshJwt != "" {
 		accessJwt := a.session.AccessJwt
-		if a.refreshSession(ctx) == nil && a.session != nil && a.session.AccessJwt != accessJwt {
+		if err := a.refreshSession(ctx); err != nil {
+			return err
+		}
+		if a.session != nil && a.session.AccessJwt != accessJwt {
 			status, data, err = a.do(ctx, a.dispatchURL(), req)
 			if err != nil {
 				return err
@@ -208,6 +213,9 @@ func (a *agent) login(ctx context.Context, identifier, password string) error {
 	if err != nil {
 		return err
 	}
+	if err := validateSession(s); err != nil {
+		return err
+	}
 	a.session = &s
 	a.updateAPIEndpoint(s.DidDoc)
 	return nil
@@ -232,8 +240,26 @@ func (a *agent) refreshSession(ctx context.Context) error {
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
+	if err := validateSession(s); err != nil {
+		a.session = nil
+		return err
+	}
+	if a.session == nil || s.Did != a.session.Did {
+		a.session = nil
+		return errAccountMismatch
+	}
 	a.session = &s
 	a.updateAPIEndpoint(s.DidDoc)
+	return nil
+}
+
+func validateSession(s session) error {
+	if (s.Active != nil && !*s.Active) || s.Status != "" {
+		return errAccountInactive
+	}
+	if s.Did == "" || s.AccessJwt == "" || s.RefreshJwt == "" {
+		return errors.New("Bluesky account session could not be verified")
+	}
 	return nil
 }
 
@@ -283,6 +309,7 @@ func (a *agent) accountDid() (string, error) {
 }
 
 type profile struct {
+	Did         string `json:"did"`
 	DisplayName string `json:"displayName"`
 	Avatar      string `json:"avatar"`
 	Handle      string `json:"handle"`

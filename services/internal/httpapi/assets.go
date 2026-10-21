@@ -21,11 +21,11 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 		limit = value
 	}
 	cursor := strings.TrimSpace(r.URL.Query().Get("cursor"))
-	if limit < 1 || limit > 100 || len(cursor) > 128 {
+	if limit < 1 || limit > 100 || len(cursor) > 512 {
 		writeError(w, http.StatusBadRequest, "invalid asset query")
 		return
 	}
-	page, err := s.configuration.ListAssets(r.Context(), workspaceActor(r), limit, cursor)
+	page, err := s.configuration.ListAssets(r.Context(), workspaceActor(r), product.AssetListOptions{Limit: limit, Cursor: cursor, Type: r.URL.Query().Get("type"), Sort: r.URL.Query().Get("sort")})
 	if err != nil {
 		writeStoreError(w, err)
 		return

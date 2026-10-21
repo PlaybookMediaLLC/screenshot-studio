@@ -19,6 +19,8 @@ export function TRPCReactProvider({ children }: { children: React.ReactNode }) {
       links: [
         httpBatchLink({
           transformer: superjson,
+          // Also bypass previously cached responses from before the no-store policy.
+          fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }),
           url: `${getBaseUrl()}/api/trpc`,
         }),
       ],

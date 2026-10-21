@@ -34,11 +34,18 @@ export async function signAssetDownload(
 
 export async function listAssets(
   context: TenantContext,
-  options: { cursor?: string; take: number }
+  options: {
+    cursor?: string
+    take: number
+    type?: 'all' | 'image' | 'video'
+    sort?: 'newest' | 'oldest'
+  }
 ) {
   const page = await backendSDK(context).listAssets({
     cursor: options.cursor,
     limit: options.take,
+    type: options.type,
+    sort: options.sort,
   })
   return {
     assets: page.assets.map((item) => ({ ...item, createdAt: new Date(item.createdAt) })),

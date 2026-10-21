@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -214,6 +215,10 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	if err := c.checkUploadedBytes(ctx, actor, row); err != nil {
 		return nil, err
 	}
+	dimensions, err := c.uploadedImageDimensions(ctx, row)
+	if err != nil {
+		return nil, err
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
@@ -221,6 +226,9 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	defer tx.Rollback()
 	update := tx.Asset.Update().Where(asset.ID(row.ID), asset.OrganizationID(actor.OrganizationID),
 		asset.StatusEQ(asset.StatusPENDING)).SetStatus(asset.StatusUPLOADED)
+	if dimensions != nil {
+		update.SetWidth(dimensions.Width).SetHeight(dimensions.Height)
+	}
 	if sha256 != nil {
 		update.SetSha256(*sha256)
 	}
@@ -312,6 +320,15 @@ func (c *Configuration) ReadAsset(ctx context.Context, actor Actor, assetID stri
 	body, err := c.objects.Read(ctx, row.ObjectKey)
 	if err != nil {
 		return nil, "", fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+	}
+	// Repair legacy image records as they are viewed, using the stored bytes.
+	if strings.HasPrefix(row.MediaType, "image/") && (row.Width == nil || row.Height == nil) {
+		if dimensions, err := decodeAssetDimensions(bytes.NewReader(body)); err == nil {
+			if _, err := c.client.Asset.Update().Where(asset.ID(row.ID), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED)).
+				SetWidth(dimensions.Width).SetHeight(dimensions.Height).Save(ctx); err != nil {
+				return nil, "", err
+			}
+		}
 	}
 	return body, row.MediaType, nil
 }

@@ -251,16 +251,49 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	assetPage, err := repo.ListAssets(ctx, actor, 1, "")
+	assetPage, err := repo.ListAssets(ctx, actor, AssetListOptions{Limit: 1})
 	if err != nil || len(assetPage.Assets) != 1 || assetPage.Assets[0].ID != "asset_new_"+id || assetPage.NextCursor == nil {
 		t.Fatalf("first asset page=%+v err=%v", assetPage, err)
 	}
-	olderPage, err := repo.ListAssets(ctx, actor, 1, *assetPage.NextCursor)
+	// Deleting the boundary row must not strand the rest of the library.
+	if _, err := db.SQL.ExecContext(ctx, `DELETE FROM asset WHERE id=$1`, "asset_new_"+id); err != nil {
+		t.Fatal(err)
+	}
+	olderPage, err := repo.ListAssets(ctx, actor, AssetListOptions{Limit: 1, Cursor: *assetPage.NextCursor})
 	if err != nil || len(olderPage.Assets) != 1 || olderPage.Assets[0].ID != "asset_old_"+id || olderPage.NextCursor != nil {
 		t.Fatalf("second asset page=%+v err=%v", olderPage, err)
 	}
-	if _, err := repo.ListAssets(ctx, actor, 1, "asset_other_"+id); !errors.Is(err, publishing.ErrNotFound) {
+	if _, err := repo.ListAssets(ctx, actor, AssetListOptions{Limit: 1, Cursor: "asset_other_" + id}); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("cross-tenant asset cursor accepted: %v", err)
+	}
+	// Filters run before LIMIT, including media older than the initial page.
+	for _, videoID := range []string{"video_a_" + id, "video_b_" + id} {
+		if _, err := db.SQL.ExecContext(ctx, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$1,'video/mp4',100,'UPLOADED','2020-01-01',now())`, videoID, orgID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	videos, err := repo.ListAssets(ctx, actor, AssetListOptions{Limit: 1, Type: "video", Sort: "oldest"})
+	if err != nil || len(videos.Assets) != 1 || videos.Assets[0].ID != "video_a_"+id || videos.NextCursor == nil {
+		t.Fatalf("oldest video=%+v err=%v", videos, err)
+	}
+	nextVideo, err := repo.ListAssets(ctx, actor, AssetListOptions{Limit: 1, Type: "video", Sort: "oldest", Cursor: *videos.NextCursor})
+	if err != nil || len(nextVideo.Assets) != 1 || nextVideo.Assets[0].ID != "video_b_"+id || nextVideo.NextCursor != nil {
+		t.Fatalf("tied video=%+v err=%v", nextVideo, err)
+	}
+	oldest, err := repo.ListAssets(ctx, actor, AssetListOptions{Limit: 1, Sort: "oldest"})
+	if err != nil || oldest.Assets[0].ID != "video_a_"+id {
+		t.Fatalf("global oldest=%+v err=%v", oldest, err)
+	}
+	images, err := repo.ListAssets(ctx, actor, AssetListOptions{Limit: 100, Type: "image"})
+	if err != nil || len(images.Assets) != 1 || images.Assets[0].ID != "asset_old_"+id {
+		t.Fatalf("filtered images=%+v err=%v", images, err)
+	}
+	if _, err := repo.ListAssets(ctx, actor, AssetListOptions{Limit: 1, Type: "image", Cursor: *videos.NextCursor}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("mismatched cursor: %v", err)
+	}
+	// Restore the shared fixture for the creative-variant checks below.
+	if _, err := db.SQL.ExecContext(ctx, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$1,'image/png',100,'UPLOADED',now(),now())`, "asset_new_"+id, orgID); err != nil {
+		t.Fatal(err)
 	}
 	if result, err := repo.DeleteAsset(ctx, actor, "asset_other_"+id); err != nil || result != AssetMissing {
 		t.Fatalf("foreign asset deletion disclosed ownership: result=%s err=%v", result, err)
@@ -277,9 +310,25 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 		t.Fatalf("missing upload completed: %v", err)
 	}
 	objects.exists = true
+	var uploaded bytes.Buffer
+	if err := png.Encode(&uploaded, image.NewRGBA(image.Rect(0, 0, 1200, 900))); err != nil {
+		t.Fatal(err)
+	}
+	objects.written = uploaded.Bytes()
 	completed, err := repo.CompleteAssetUpload(ctx, actor, signed.Asset.ID, nil)
 	if err != nil || completed.Status != "UPLOADED" {
 		t.Fatalf("completed asset=%+v err=%v", completed, err)
+	}
+	var width, height int
+	if err := db.SQL.QueryRowContext(ctx, `SELECT width,height FROM asset WHERE id=$1`, signed.Asset.ID).Scan(&width, &height); err != nil || width != 1200 || height != 900 {
+		t.Fatalf("saved dimensions %dx%d: %v", width, height, err)
+	}
+	// Viewing a legacy image repairs its missing metadata from the actual stored bytes.
+	if _, _, err := repo.ReadAsset(ctx, actor, "asset_old_"+id); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SQL.QueryRowContext(ctx, `SELECT width,height FROM asset WHERE id=$1`, "asset_old_"+id).Scan(&width, &height); err != nil || width != 1200 || height != 900 {
+		t.Fatalf("backfilled dimensions %dx%d: %v", width, height, err)
 	}
 	if _, err := repo.CompleteAssetUpload(ctx, actor, signed.Asset.ID, nil); err != nil {
 		t.Fatalf("repeat asset completion: %v", err)

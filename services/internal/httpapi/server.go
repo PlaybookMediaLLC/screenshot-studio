@@ -187,7 +187,7 @@ type ConfigurationStore interface {
 	GetActiveAccess(context.Context, product.Actor) (*product.ActiveAccess, error)
 	VerifySupportGrant(context.Context, product.Actor, string, string) (*product.SupportGrantAccess, error)
 	RequireEnterpriseFeature(context.Context, product.Actor, string) error
-	ListAssets(context.Context, product.Actor, int, string) (*product.AssetPage, error)
+	ListAssets(context.Context, product.Actor, product.AssetListOptions) (*product.AssetPage, error)
 	DeleteAsset(context.Context, product.Actor, string) (product.AssetDeletionResult, error)
 	SignAssetUpload(context.Context, product.Actor, product.AssetUploadInput) (*product.AssetUploadResult, error)
 	CompleteAssetUpload(context.Context, product.Actor, string, *string) (*product.AssetRecord, error)

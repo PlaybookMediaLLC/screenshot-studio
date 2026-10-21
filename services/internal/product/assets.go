@@ -2,6 +2,9 @@ package product
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -10,7 +13,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
 )
 
@@ -28,45 +30,94 @@ type AssetPage struct {
 	NextCursor *string         `json:"nextCursor"`
 }
 
-func (c *Configuration) ListAssets(ctx context.Context, actor Actor, limit int, cursorID string) (*AssetPage, error) {
+// AssetListOptions applies filters before pagination, with a stable total order.
+type AssetListOptions struct {
+	Limit  int
+	Cursor string
+	Type   string
+	Sort   string
+}
+
+type assetCursor struct {
+	ID             string    `json:"id"`
+	CreatedAt      time.Time `json:"at"`
+	OrganizationID string    `json:"org"`
+	Type           string    `json:"type"`
+	Sort           string    `json:"sort"`
+}
+
+func encodeAssetCursor(cursor assetCursor) string {
+	body, _ := json.Marshal(cursor)
+	return "v1." + base64.RawURLEncoding.EncodeToString(body)
+}
+
+func decodeAssetCursor(value, org, kind, sort string) (*assetCursor, error) {
+	if len(value) > 512 || !strings.HasPrefix(value, "v1.") {
+		return nil, ErrInvalidInput
+	}
+	body, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(value, "v1."))
+	if err != nil {
+		return nil, ErrInvalidInput
+	}
+	var cursor assetCursor
+	if json.Unmarshal(body, &cursor) != nil || !validAssetSegment(cursor.ID) || cursor.CreatedAt.IsZero() ||
+		cursor.OrganizationID != org || cursor.Type != kind || cursor.Sort != sort {
+		return nil, ErrInvalidInput
+	}
+	return &cursor, nil
+}
+
+func (c *Configuration) ListAssets(ctx context.Context, actor Actor, options AssetListOptions) (*AssetPage, error) {
 	if err := c.AuthorizeRead(ctx, actor); err != nil {
 		return nil, err
 	}
-	if limit < 1 || limit > 100 {
+	if options.Type == "" {
+		options.Type = "all"
+	}
+	if options.Sort == "" {
+		options.Sort = "newest"
+	}
+	if options.Limit < 1 || options.Limit > 100 ||
+		(options.Type != "all" && options.Type != "image" && options.Type != "video") ||
+		(options.Sort != "newest" && options.Sort != "oldest") {
 		return nil, ErrInvalidInput
 	}
 	conditions := []predicate.Asset{asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED)}
-	if cursorID != "" {
-		cursor, err := c.client.Asset.Query().Where(asset.ID(cursorID), asset.OrganizationID(actor.OrganizationID),
-			asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
-		if ent.IsNotFound(err) {
-			return nil, publishing.ErrNotFound
-		}
+	if options.Type != "all" {
+		conditions = append(conditions, asset.MediaTypeHasPrefix(options.Type+"/"))
+	}
+	if options.Cursor != "" {
+		cursor, err := decodeAssetCursor(options.Cursor, actor.OrganizationID, options.Type, options.Sort)
 		if err != nil {
 			return nil, err
 		}
-		conditions = append(conditions, asset.Or(asset.CreatedAtLT(cursor.CreatedAt),
-			asset.And(asset.CreatedAtEQ(cursor.CreatedAt), asset.IDLT(cursor.ID))))
+		// The boundary is carried in the cursor, so deleting its row cannot break paging.
+		boundary := asset.Or(asset.CreatedAtLT(cursor.CreatedAt), asset.And(asset.CreatedAtEQ(cursor.CreatedAt), asset.IDLT(cursor.ID)))
+		if options.Sort == "oldest" {
+			boundary = asset.Or(asset.CreatedAtGT(cursor.CreatedAt), asset.And(asset.CreatedAtEQ(cursor.CreatedAt), asset.IDGT(cursor.ID)))
+		}
+		conditions = append(conditions, boundary)
 	}
-	rows, err := c.client.Asset.Query().Where(conditions...).
-		Order(ent.Desc(asset.FieldCreatedAt), ent.Desc(asset.FieldID)).Limit(limit + 1).All(ctx)
+	order := ent.Desc
+	if options.Sort == "oldest" {
+		order = ent.Asc
+	}
+	rows, err := c.client.Asset.Query().Where(conditions...).Order(order(asset.FieldCreatedAt), order(asset.FieldID)).Limit(options.Limit + 1).All(ctx)
 	if err != nil {
 		return nil, err
 	}
-	page := &AssetPage{Assets: make([]AssetListItem, 0, limit)}
-	hasMore := len(rows) > limit
+	page := &AssetPage{Assets: make([]AssetListItem, 0, options.Limit)}
+	hasMore := len(rows) > options.Limit
 	if hasMore {
-		rows = rows[:limit]
+		rows = rows[:options.Limit]
 	}
 	for _, row := range rows {
-		page.Assets = append(page.Assets, AssetListItem{
-			ID: row.ID, Bytes: row.Bytes, CreatedAt: row.CreatedAt,
-			Height: row.Height, MediaType: row.MediaType, Width: row.Width,
-		})
+		page.Assets = append(page.Assets, AssetListItem{ID: row.ID, Bytes: row.Bytes, CreatedAt: row.CreatedAt, Height: row.Height, MediaType: row.MediaType, Width: row.Width})
 	}
 	if hasMore {
-		last := rows[len(rows)-1].ID
-		page.NextCursor = &last
+		last := rows[len(rows)-1]
+		cursor := encodeAssetCursor(assetCursor{ID: last.ID, CreatedAt: last.CreatedAt, OrganizationID: actor.OrganizationID, Type: options.Type, Sort: options.Sort})
+		page.NextCursor = &cursor
 	}
 	return page, nil
 }

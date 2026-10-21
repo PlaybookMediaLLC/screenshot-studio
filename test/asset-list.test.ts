@@ -17,14 +17,13 @@ test('the page size is capped', () => {
   assert.equal(assetListQuerySchema.safeParse({ limit: 0 }).success, false)
 })
 
-test('a cursor must be an asset identifier', () => {
-  // The cursor is echoed back into a where clause, so a value that is not
-  // an asset id is rejected at the boundary rather than reaching the
-  // query.
-  assert.equal(
-    assetListQuerySchema.safeParse({ cursor: '3f2504e0-4f89-11d3-9a0c-0305e82c3301' }).success,
-    true
-  )
-  assert.equal(assetListQuerySchema.safeParse({ cursor: 'not-a-uuid' }).success, false)
-  assert.equal(assetListQuerySchema.safeParse({ cursor: '' }).success, false)
+test('cursors are bounded opaque keysets and filters have safe defaults', () => {
+  assert.deepEqual(assetListQuerySchema.parse({}), { limit: 50, type: 'all', sort: 'newest' })
+  assert.equal(assetListQuerySchema.safeParse({ cursor: 'v1.eyJpZCI6ImEifQ' }).success, true)
+  for (const cursor of ['', 'not-a-cursor', 'v1.', 'v1.' + 'a'.repeat(512)]) {
+    assert.equal(assetListQuerySchema.safeParse({ cursor }).success, false)
+  }
+  assert.equal(assetListQuerySchema.safeParse({ type: 'video', sort: 'oldest' }).success, true)
+  assert.equal(assetListQuerySchema.safeParse({ type: 'audio' }).success, false)
+  assert.equal(assetListQuerySchema.safeParse({ sort: 'random' }).success, false)
 })

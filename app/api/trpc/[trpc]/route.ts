@@ -17,6 +17,7 @@ function handler(request: Request): Promise<Response> {
         console.error(`tRPC ${path ?? '<router>'} failed.`, error.cause ?? error)
       }
     },
+    responseMeta: () => ({ headers: { 'cache-control': 'private, no-store' } }),
     req: request,
     router: appRouter,
   })

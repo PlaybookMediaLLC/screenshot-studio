@@ -3301,23 +3301,29 @@ export class ScreenshotStudioBackendSDK {
     })
   }
   /** Read-only inbox page. */
-  notificationInbox(cursor = '') {
+  notificationInbox(cursor = '', filter: 'all' | 'unseen' = 'all') {
     return this.request<NotificationPage>(
-      `v1/workspace/notifications/inbox?cursor=${encodeURIComponent(cursor)}`
+      `v1/workspace/notifications/inbox?cursor=${encodeURIComponent(cursor)}&filter=${filter}`
     )
   }
   /** Read-only unseen count. */
   notificationCount() {
     return this.request<{ unseenCount: number }>('v1/workspace/notifications/count')
   }
-  /** Delete displayed rows, or mark a transaction snapshot seen with a stable key. */
-  acknowledgeNotifications(body: { ids?: string[]; all?: boolean; key?: string }) {
+  /** Mark retained rows seen, or undo a bulk action with a stable key. */
+  acknowledgeNotifications(body: { ids?: string[]; all?: boolean; key?: string; undo?: boolean }) {
     return this.request<NotificationSeen>('v1/workspace/notifications/seen', {
       method: 'POST',
       body,
     })
   }
-  /** Reauthorize a link, including after its inbox row was deleted. */
+  /** Change exactly one recipient row. */
+  setNotificationSeen(id: string, seen: boolean) {
+    return this.request<NotificationSeen>(`v1/workspace/notifications/items/${encodeURIComponent(id)}`, {
+      method: 'PATCH', body: { seen },
+    })
+  }
+  /** Reauthorize a retained notification's link. */
   resolveNotification(id: string) {
     return this.request<{ href: string }>(
       `v1/workspace/notifications/resolve/${encodeURIComponent(id)}`

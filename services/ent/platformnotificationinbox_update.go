@@ -140,6 +140,46 @@ func (_u *PlatformNotificationInboxUpdate) SetNillableHref(v *string) *PlatformN
 	return _u
 }
 
+// SetSeenAt sets the "seen_at" field.
+func (_u *PlatformNotificationInboxUpdate) SetSeenAt(v time.Time) *PlatformNotificationInboxUpdate {
+	_u.mutation.SetSeenAt(v)
+	return _u
+}
+
+// SetNillableSeenAt sets the "seen_at" field if the given value is not nil.
+func (_u *PlatformNotificationInboxUpdate) SetNillableSeenAt(v *time.Time) *PlatformNotificationInboxUpdate {
+	if v != nil {
+		_u.SetSeenAt(*v)
+	}
+	return _u
+}
+
+// ClearSeenAt clears the value of the "seen_at" field.
+func (_u *PlatformNotificationInboxUpdate) ClearSeenAt() *PlatformNotificationInboxUpdate {
+	_u.mutation.ClearSeenAt()
+	return _u
+}
+
+// SetSeenActionID sets the "seen_action_id" field.
+func (_u *PlatformNotificationInboxUpdate) SetSeenActionID(v string) *PlatformNotificationInboxUpdate {
+	_u.mutation.SetSeenActionID(v)
+	return _u
+}
+
+// SetNillableSeenActionID sets the "seen_action_id" field if the given value is not nil.
+func (_u *PlatformNotificationInboxUpdate) SetNillableSeenActionID(v *string) *PlatformNotificationInboxUpdate {
+	if v != nil {
+		_u.SetSeenActionID(*v)
+	}
+	return _u
+}
+
+// SetContext sets the "context" field.
+func (_u *PlatformNotificationInboxUpdate) SetContext(v map[string]interface{}) *PlatformNotificationInboxUpdate {
+	_u.mutation.SetContext(v)
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *PlatformNotificationInboxUpdate) SetCreatedAt(v time.Time) *PlatformNotificationInboxUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -218,6 +258,18 @@ func (_u *PlatformNotificationInboxUpdate) sqlSave(ctx context.Context) (_node i
 	}
 	if value, ok := _u.mutation.Href(); ok {
 		_spec.SetField(platformnotificationinbox.FieldHref, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.SeenAt(); ok {
+		_spec.SetField(platformnotificationinbox.FieldSeenAt, field.TypeTime, value)
+	}
+	if _u.mutation.SeenAtCleared() {
+		_spec.ClearField(platformnotificationinbox.FieldSeenAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.SeenActionID(); ok {
+		_spec.SetField(platformnotificationinbox.FieldSeenActionID, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Context(); ok {
+		_spec.SetField(platformnotificationinbox.FieldContext, field.TypeJSON, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(platformnotificationinbox.FieldCreatedAt, field.TypeTime, value)
@@ -354,6 +406,46 @@ func (_u *PlatformNotificationInboxUpdateOne) SetNillableHref(v *string) *Platfo
 	return _u
 }
 
+// SetSeenAt sets the "seen_at" field.
+func (_u *PlatformNotificationInboxUpdateOne) SetSeenAt(v time.Time) *PlatformNotificationInboxUpdateOne {
+	_u.mutation.SetSeenAt(v)
+	return _u
+}
+
+// SetNillableSeenAt sets the "seen_at" field if the given value is not nil.
+func (_u *PlatformNotificationInboxUpdateOne) SetNillableSeenAt(v *time.Time) *PlatformNotificationInboxUpdateOne {
+	if v != nil {
+		_u.SetSeenAt(*v)
+	}
+	return _u
+}
+
+// ClearSeenAt clears the value of the "seen_at" field.
+func (_u *PlatformNotificationInboxUpdateOne) ClearSeenAt() *PlatformNotificationInboxUpdateOne {
+	_u.mutation.ClearSeenAt()
+	return _u
+}
+
+// SetSeenActionID sets the "seen_action_id" field.
+func (_u *PlatformNotificationInboxUpdateOne) SetSeenActionID(v string) *PlatformNotificationInboxUpdateOne {
+	_u.mutation.SetSeenActionID(v)
+	return _u
+}
+
+// SetNillableSeenActionID sets the "seen_action_id" field if the given value is not nil.
+func (_u *PlatformNotificationInboxUpdateOne) SetNillableSeenActionID(v *string) *PlatformNotificationInboxUpdateOne {
+	if v != nil {
+		_u.SetSeenActionID(*v)
+	}
+	return _u
+}
+
+// SetContext sets the "context" field.
+func (_u *PlatformNotificationInboxUpdateOne) SetContext(v map[string]interface{}) *PlatformNotificationInboxUpdateOne {
+	_u.mutation.SetContext(v)
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *PlatformNotificationInboxUpdateOne) SetCreatedAt(v time.Time) *PlatformNotificationInboxUpdateOne {
 	_u.mutation.SetCreatedAt(v)
@@ -462,6 +554,18 @@ func (_u *PlatformNotificationInboxUpdateOne) sqlSave(ctx context.Context) (_nod
 	}
 	if value, ok := _u.mutation.Href(); ok {
 		_spec.SetField(platformnotificationinbox.FieldHref, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.SeenAt(); ok {
+		_spec.SetField(platformnotificationinbox.FieldSeenAt, field.TypeTime, value)
+	}
+	if _u.mutation.SeenAtCleared() {
+		_spec.ClearField(platformnotificationinbox.FieldSeenAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.SeenActionID(); ok {
+		_spec.SetField(platformnotificationinbox.FieldSeenActionID, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Context(); ok {
+		_spec.SetField(platformnotificationinbox.FieldContext, field.TypeJSON, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(platformnotificationinbox.FieldCreatedAt, field.TypeTime, value)

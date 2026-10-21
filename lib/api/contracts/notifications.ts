@@ -51,7 +51,10 @@ export const getNotificationInboxContract = defineContract({
   summary: 'getNotificationInbox',
   shell: true,
   output: notificationPageSchema,
-  query: z.object({ cursor: z.string().max(1024).default('') }),
+  query: z.object({
+    cursor: z.string().max(1024).default(''),
+    filter: z.enum(['unseen', 'all']).default('all'),
+  }),
 })
 
 /** `GET /api/workspace/notifications/count`: session-scoped workspace activity. */
@@ -75,6 +78,7 @@ export const acknowledgeNotificationsContract = defineContract({
   body: z.strictObject({
     ids: z.array(z.string().min(1).max(128)).max(100).optional(),
     all: z.boolean().optional(),
+    undo: z.boolean().optional(),
     key: z.string().min(16).max(128).optional(),
   }),
 })
@@ -182,4 +186,16 @@ export const getNotificationDeliveryContract = defineContract({
   shell: true,
   params: z.object({ id: z.string().min(1).max(128) }),
   output: notificationDeliverySchema,
+})
+
+/** Change one notification's seen state without deleting its history. */
+export const setNotificationSeenContract = defineContract({
+  method: 'PATCH',
+  name: 'notifications.setseen',
+  path: '/api/workspace/notifications/items/{id}',
+  summary: 'Set notification seen state',
+  shell: true,
+  params: z.object({ id: z.string().min(1).max(128) }),
+  body: z.strictObject({ seen: z.boolean() }),
+  output: notificationSeenSchema,
 })

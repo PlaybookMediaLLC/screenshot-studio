@@ -52,6 +52,20 @@ func (_c *PlatformNotificationSeenActionCreate) SetNillableDeletedCount(v *int) 
 	return _c
 }
 
+// SetUndoneAt sets the "undone_at" field.
+func (_c *PlatformNotificationSeenActionCreate) SetUndoneAt(v time.Time) *PlatformNotificationSeenActionCreate {
+	_c.mutation.SetUndoneAt(v)
+	return _c
+}
+
+// SetNillableUndoneAt sets the "undone_at" field if the given value is not nil.
+func (_c *PlatformNotificationSeenActionCreate) SetNillableUndoneAt(v *time.Time) *PlatformNotificationSeenActionCreate {
+	if v != nil {
+		_c.SetUndoneAt(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *PlatformNotificationSeenActionCreate) SetCreatedAt(v time.Time) *PlatformNotificationSeenActionCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -184,6 +198,10 @@ func (_c *PlatformNotificationSeenActionCreate) createSpec() (*PlatformNotificat
 	if value, ok := _c.mutation.DeletedCount(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldDeletedCount, field.TypeInt, value)
 		_node.DeletedCount = value
+	}
+	if value, ok := _c.mutation.UndoneAt(); ok {
+		_spec.SetField(platformnotificationseenaction.FieldUndoneAt, field.TypeTime, value)
+		_node.UndoneAt = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldCreatedAt, field.TypeTime, value)

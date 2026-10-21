@@ -21,6 +21,8 @@ const (
 	FieldRequestKey = "request_key"
 	// FieldDeletedCount holds the string denoting the deleted_count field in the database.
 	FieldDeletedCount = "deleted_count"
+	// FieldUndoneAt holds the string denoting the undone_at field in the database.
+	FieldUndoneAt = "undone_at"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// Table holds the table name of the platformnotificationseenaction in the database.
@@ -34,6 +36,7 @@ var Columns = []string{
 	FieldUserID,
 	FieldRequestKey,
 	FieldDeletedCount,
+	FieldUndoneAt,
 	FieldCreatedAt,
 }
 
@@ -80,6 +83,11 @@ func ByRequestKey(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedCount orders the results by the deleted_count field.
 func ByDeletedCount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedCount, opts...).ToFunc()
+}
+
+// ByUndoneAt orders the results by the undone_at field.
+func ByUndoneAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUndoneAt, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

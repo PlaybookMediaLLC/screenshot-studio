@@ -60,7 +60,23 @@ export const notificationSettingsSchema = z.object({
     z.record(z.string(), z.object({ enabled: z.boolean(), reason: z.string() }))
   ),
 })
-/** An unseen recipient row; acknowledging it removes it from storage. */
+/** Safe resource details captured for a notification recipient. */
+export const notificationContextSchema = z.object({
+  entityType: z.string(),
+  entityId: z.string(),
+  name: z.string().optional(),
+  source: z.string(),
+  status: z.string().optional(),
+  message: z.string().optional(),
+  repository: z.string().optional(),
+  branch: z.string().optional(),
+  tag: z.string().optional(),
+  actorName: z.string().optional(),
+  pullRequest: z.number().int().positive().optional(),
+  campaignName: z.string().optional(),
+  storySetName: z.string().optional(),
+})
+/** A retained recipient row with explicit seen state. */
 export const notificationItemSchema = z.object({
   id: z.string(),
   kind: z.string(),
@@ -69,6 +85,8 @@ export const notificationItemSchema = z.object({
   workspaceId: z.string(),
   workspaceName: z.string(),
   createdAt: z.string(),
+  seenAt: z.string().nullable().default(null),
+  context: notificationContextSchema.optional(),
 })
 /** Read-only, cursor-paginated inbox. */
 export const notificationPageSchema = z.object({
@@ -79,6 +97,7 @@ export const notificationPageSchema = z.object({
 /** Acknowledgment confirmation. */
 export const notificationSeenSchema = z.object({
   deleted: z.number().int().nonnegative(),
+  updated: z.number().int().nonnegative(),
   unseenCount: z.number().int().nonnegative(),
 })
 /** One page of Slack channels, including empty pages with a continuation cursor. */

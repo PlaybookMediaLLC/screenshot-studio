@@ -31,6 +31,7 @@ import {
 import { type Artboard } from '@/lib/canvas/document'
 import { releaseCanvas, stacked } from '@/lib/canvas/plan'
 import { usePrivateCreativeSurface } from '@/components/creative-sets/use-private-surface'
+import { RecipePreview } from './RecipePreview'
 import {
   CampaignDesignPicker,
   ProjectPicker,
@@ -451,14 +452,16 @@ export function RecipeGallery({ onPick }: { onPick: (recipe: CanvasRecipe) => vo
                 <button
                   key={recipe}
                   type="button"
+                  aria-label={CANVAS_RECIPES[recipe].name}
                   onClick={() => onPick(recipe)}
-                  className="rounded-lg border p-3 text-left hover:bg-foreground/[0.03] focus-visible:outline-2 focus-visible:outline-ring"
+                  className="flex min-w-0 flex-col rounded-lg border p-3 text-left hover:bg-foreground/[0.03] focus-visible:outline-2 focus-visible:outline-ring"
                 >
+                  <RecipePreview recipe={recipe} />
                   <span className="block text-sm font-medium">{CANVAS_RECIPES[recipe].name}</span>
                   <span className="mt-1 block text-xs text-muted-foreground">
                     {CANVAS_RECIPES[recipe].description}
                   </span>
-                  <span className="mt-2 block text-[11px] text-muted-foreground">
+                  <span className="mt-auto block pt-2 text-[11px] text-muted-foreground">
                     {CANVAS_RECIPES[recipe].artboards}
                   </span>
                 </button>

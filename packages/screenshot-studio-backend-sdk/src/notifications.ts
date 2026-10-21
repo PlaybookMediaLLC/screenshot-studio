@@ -49,7 +49,7 @@ export type NotificationSettings = {
   connections: NotificationConnection[]
   effective: Record<string, Record<string, { enabled: boolean; reason: string }>>
 }
-/** An unseen inbox row. */
+/** A retained inbox row. */
 export type NotificationItem = {
   id: string
   kind: string
@@ -58,6 +58,22 @@ export type NotificationItem = {
   workspaceId: string
   workspaceName: string
   createdAt: string
+  seenAt: string | null
+  context?: {
+    entityType: string
+    entityId: string
+    source: string
+    name?: string
+    status?: string
+    message?: string
+    repository?: string
+    branch?: string
+    tag?: string
+    actorName?: string
+    pullRequest?: number
+    campaignName?: string
+    storySetName?: string
+  }
 }
 /** An inbox page; reading it never acknowledges rows. */
 export type NotificationPage = {
@@ -66,7 +82,7 @@ export type NotificationPage = {
   unseenCount: number
 }
 /** Confirmed acknowledgment. */
-export type NotificationSeen = { deleted: number; unseenCount: number }
+export type NotificationSeen = { deleted: number; updated: number; unseenCount: number }
 /** A Slack discovery page; follow nextCursor even when channels is empty. */
 export type NotificationSlackChannels = {
   channels: {

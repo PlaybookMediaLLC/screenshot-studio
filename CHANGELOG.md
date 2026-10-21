@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.33.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.0...v2.33.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **notifications:** retain seen activity and require explicit actions ([#272](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/272)) ([6ce18bf](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/6ce18bf11102c2f1f429ef05fb5c988895168c06))
+
+## [2.33.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.7...v2.33.0) (2026-10-21)
+
+
+### Features
+
+* **story-sets:** preview saved formats in library cards ([#269](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/269)) ([fbfaf59](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/fbfaf5908900cb60025265f9ec46af6125c472c6))
+
 ## [2.32.7](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.6...v2.32.7) (2026-10-21)
 
 

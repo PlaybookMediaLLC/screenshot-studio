@@ -356,3 +356,102 @@ compatibility rules still apply. Fresh identity lookups add read requests and ca
 block publication when X is unavailable; pending workflow outcomes remain
 conservative after an armed attempt. Rollback restores older publication behavior,
 including any legacy link-stripping configuration.
+
+
+## X media staging and preservation — 2026-10-21
+
+The adapter now uploads the exact inspected source bytes. The old 1000-pixel
+resize and image-to-GIF/JPEG conversion pipeline was removed. MIME comes from
+source bytes rather than the URL extension. A single GET preserves signed URL
+queries, refuses redirects/partial responses, uses the existing dial-time SSRF
+guard, and enforces actual byte bounds even for chunked responses. Local sources
+must be regular files. Source reads respect cancellation, and private 0600
+snapshots are closed and removed on return. Upload chunks read those snapshots;
+changes to the original source do not alter a validated upload.
+
+The complete selected media group is staged and checked before the first X INIT.
+For Articles, that includes the cover and inline images. Normal posts reject
+mixed image/GIF/video selections; static images use `tweet_image`, animated GIFs
+use `tweet_gif`, and MP4 uses `tweet_video`. Missing or malformed INIT IDs and
+missing/mismatched FINALIZE IDs stop the operation instead of dropping media.
+GIF processing uses the existing pending status workflow rather than blocking in
+an unbounded image-processing loop.
+
+Inspection uses the [X media contract](https://docs.x.com/x-api/media/quickstart/best-practices)
+and [FINALIZE response](https://docs.x.com/x-api/media/finalize-media-upload):
+
+- Images retain their source dimensions and encoding. PNG containers include CRC
+  and completion checks; JPEG/WebP require valid dimension headers and container
+  completion. The provider still performs full image decoding.
+- GIF validation walks every frame and bounded LZW output, enforcing the canvas,
+  frame-count and total-pixel limits without retaining all decoded frame bitmaps.
+- MP4 inspection reads bounded metadata with `github.com/abema/go-mp4 v1.7.3`.
+  It checks movie/track/sample timing, the account's duration and size limits,
+  maximum frame rate, minimum dimensions/aspect ratio, H.264 configuration, and
+  optional mono/stereo AAC-LC audio. The multi-gigabyte media payload is never
+  decoded or held in memory. Root box bounds are checked before loading at most
+  32 MiB of movie metadata; per-box decoding is limited to that metadata, with
+  further depth/count/read bounds. The small upstream MP4 test fixture is
+  included unchanged with its MIT license and source attribution.
+
+Pending upload receipts now carry the inspected MIME, byte count and video
+duration alongside media IDs. Finalization rechecks those facts against the fresh
+signed account capabilities; comments do the same after processing. Pending
+media without matching facts fails with a prepare-again message. Old text-only
+pending jobs continue to work. These facts describe the prepared upload; they do
+not replace the current tenant-bound identity/grant check.
+
+Protocol tests cover exact PNG/JPEG/WebP/GIF/MP4 bytes and categories, a misleading
+filename, signed GET preservation, multiple video chunks, changed original files,
+GIF limits, bad/truncated containers, size and duration limits, actual modified
+MP4 timing/codec/dimension fields, complete-selection rejection before upload,
+invalid Article cover/media, missing receipts, no redirects/private-network
+access, cancellation, temporary-file cleanup, legacy pending media and account
+downgrades. Initial test compilation found removed-helper references; those were
+updated. A metadata mutation test initially edited the `avc1` compatible-brand
+label instead of the sample-entry box; it now targets the actual sample entry.
+
+Final execution passed:
+
+- All 124 Go test packages using `notification-stack.mjs go test -p 1 ./...`
+  (`.context/x-media-go-test-final.log`) and full `go vet ./...`
+  (`.context/x-media-go-vet-final.log`).
+- X adapter and identity race tests (`.context/x-media-provider-race-final.log`),
+  plus social activities and tenant publishing race tests
+  (`.context/x-media-publisher-race.log`).
+- Five-second GIF and MP4 fuzz sessions
+  (`.context/x-media-gif-fuzz-final.log`, `.context/x-media-mp4-fuzz.log`).
+  These are bounded smoke runs, not exhaustive parser verification.
+- Static Linux/amd64 social API build from the final source
+  (`.context/x-media-linux-build-final.log`) and 17/17 RFC checks
+  (`.context/x-media-rfcs.log`).
+- CodeRabbit reviewed all 16 changed files (`.context/x-media-review.ndjson`).
+  Both minor findings were addressed: actual validation evidence replaces the
+  placeholder, and complete GIF frames without an explicit LZW end code now
+  match Go's decoder behavior. The new regression failed before the fix and
+  passes afterward; incomplete frames and invalid codes still fail. Final
+  manual inspection also separated internal media keys from caller post IDs
+  and preserved Article cover alt text, with regressions passing in the final
+  full/race runs. No frontend source changed.
+
+The open browser shows the approved @yoanyombax account connected. Read-only
+records confirm one connection, four completed attempts, and encrypted,
+non-expiring read/write credentials. No public post, Article draft or media
+upload was sent to that account. Media results are local protocol evidence,
+not live provider acceptance.
+
+Deployment uses the existing static Linux image and adds no native binary or
+schema. Provision writable temporary storage for the account's maximum selected
+media and the configured concurrent publishing workload; a single Premium video
+can require up to 16 GB while staged. Deploy the updated adapter and workers
+together. Existing pending media must be prepared again from its approved source;
+do not invent facts for already-uploaded IDs. Reconcile uncertain remote results
+before rescheduling. Rollback loses the new validation/preservation behavior.
+
+Remaining media gaps include fragmented MP4 timing (explicitly reported as not
+yet supported), full video bitstream checks such as pixel format, scan/GOP rules,
+and the conflicting resolution guidance in X's own documentation. Provider
+processing and post-create errors still remain authoritative. Exact poll rules,
+legacy API long-post admission, root/Article mutation retries, native ownership,
+remaining provider checks and live publication are still open. S20 remains
+In progress; this increment does not establish complete X publishing support.

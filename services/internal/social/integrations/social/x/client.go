@@ -307,54 +307,6 @@ func (c *client) mediaStatus(ctx context.Context, mediaID string) (*processingIn
 
 const uploadChunkSize = 1024 * 1024
 
-// uploadMedia is v2.uploadMedia(buffer, { media_type, media_category }):
-// initialize, 1MB appends, finalize, then wait for the processing if any.
-func (c *client) uploadMedia(ctx context.Context, media []byte, mediaType, mediaCategory string) (string, error) {
-	init := map[string]any{"media_type": mediaType, "total_bytes": len(media)}
-	if mediaCategory != "" {
-		init["media_category"] = mediaCategory
-	}
-	var initRes mediaResponse
-	if err := c.postJSON(ctx, v2("media/upload/initialize"), init, &initRes); err != nil {
-		return "", err
-	}
-	mediaID := initRes.Data.ID
-	for i := 0; i*uploadChunkSize < len(media); i++ {
-		end := min((i+1)*uploadChunkSize, len(media))
-		if err := c.appendChunk(ctx, mediaID, i, media[i*uploadChunkSize:end]); err != nil {
-			return "", err
-		}
-	}
-	var finalize mediaResponse
-	if err := c.postJSON(ctx, v2("media/upload/"+mediaID+"/finalize"), nil, &finalize); err != nil {
-		return "", err
-	}
-	processing := finalize.Data.ProcessingInfo
-	for processing != nil && (processing.State == "pending" || processing.State == "in_progress") {
-		wait := processing.CheckAfterSecs
-		if wait == 0 {
-			wait = 1
-		}
-		select {
-		case <-ctx.Done():
-			return "", ctx.Err()
-		case <-time.After(time.Duration(wait) * time.Second):
-		}
-		var err error
-		if processing, err = c.mediaStatus(ctx, mediaID); err != nil {
-			return "", err
-		}
-	}
-	if processing != nil && processing.State == "failed" {
-		message := ""
-		if processing.Error != nil {
-			message = processing.Error.Message
-		}
-		return "", fmt.Errorf("Failed to process media: %s", message)
-	}
-	return mediaID, nil
-}
-
 type user struct {
 	ID              string `json:"id"`
 	Name            string `json:"name"`

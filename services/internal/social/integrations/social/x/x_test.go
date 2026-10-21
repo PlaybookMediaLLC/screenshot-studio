@@ -168,9 +168,9 @@ func TestSignedImageUpload(t *testing.T) {
 		switch r.path {
 		case "/pic.png":
 			return 200, string(pngBytes())
-		case "/2/media/upload/initialize", "/2/media/upload/img1/finalize":
-			return 200, `{"data":{"id":"img1"}}`
-		case "/2/media/upload/img1/append":
+		case "/2/media/upload/initialize", "/2/media/upload/11/finalize":
+			return 200, `{"data":{"id":"11"}}`
+		case "/2/media/upload/11/append":
 			return 200, `{}`
 		}
 		return 404, `{}`
@@ -198,11 +198,11 @@ func TestSignedImageUpload(t *testing.T) {
 			if err := json.Unmarshal(call.body, &body); err != nil {
 				t.Fatal(err)
 			}
-			uploaded = body.MediaType == "image/gif"
+			uploaded = body.MediaType == "image/png"
 		}
 	}
-	if !fetched || !uploaded || lookup(signed) != "image/png" {
-		t.Fatalf("signed image fetch=%t upload=%t lookup=%q", fetched, uploaded, lookup(signed))
+	if !fetched || !uploaded {
+		t.Fatalf("signed image fetch=%t upload=%t", fetched, uploaded)
 	}
 }
 
@@ -213,11 +213,11 @@ func TestArticleFlow(t *testing.T) {
 		case "/pic.png":
 			return 200, string(pngBytes())
 		case "/2/media/upload/initialize":
-			return 200, `{"data":{"id":"img1"}}`
-		case "/2/media/upload/img1/append":
+			return 200, `{"data":{"id":"11"}}`
+		case "/2/media/upload/11/append":
 			return 200, ``
-		case "/2/media/upload/img1/finalize":
-			return 200, `{"data":{"id":"img1"}}`
+		case "/2/media/upload/11/finalize":
+			return 200, `{"data":{"id":"11"}}`
 		case "/2/articles/draft":
 			return 200, `{"data":{"id":"draft1"}}`
 		case "/2/articles/draft1/publish":
@@ -270,7 +270,7 @@ func TestFinalizeTweet(t *testing.T) {
 	pending := marshal(pendingData{
 		Message:  "hi",
 		Settings: pendingSettings{WhoCanReplyPost: ptr("following"), Community: ptr("https://x.com/i/communities/42"), MadeWithAI: "true"},
-		MediaIDs: []string{"m1", ""}, Attempting: true, Confirmed: true,
+		MediaIDs: []string{"11"}, MediaFacts: []mediaFacts{{MIME: "image/png", Bytes: 100}}, Attempting: true, Confirmed: true,
 	})
 	res, err := New().FinalizePost(context.Background(), "a:b", pending, publishingAccount())
 	if err != nil {
@@ -279,7 +279,7 @@ func TestFinalizeTweet(t *testing.T) {
 	if res.PostID != "99" || res.ReleaseURL != "https://twitter.com/me/status/99" {
 		t.Fatalf("%+v", res)
 	}
-	want := `{"reply_settings":"following","share_with_followers":true,"community_id":"42","text":"hi","media":{"media_ids":["m1"]},"made_with_ai":true,"paid_partnership":false}`
+	want := `{"reply_settings":"following","share_with_followers":true,"community_id":"42","text":"hi","media":{"media_ids":["11"]},"made_with_ai":true,"paid_partnership":false}`
 	if got := string((*calls)[1].body); got != want {
 		t.Fatalf("tweet body %s", got)
 	}
@@ -344,15 +344,15 @@ func TestVideoChunkUpload(t *testing.T) {
 	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		switch {
 		case strings.HasSuffix(r.path, "/initialize"):
-			return 200, `{"data":{"id":"vid"}}`
+			return 200, `{"data":{"id":"22"}}`
 		case strings.HasSuffix(r.path, "/finalize"):
-			return 200, `{"data":{"id":"vid","processing_info":{"state":"pending","check_after_secs":1}}}`
+			return 200, `{"data":{"id":"22","processing_info":{"state":"pending","check_after_secs":1}}}`
 		}
 		return 200, `{}`
 	})
 	defer done()
 	file := filepath.Join(t.TempDir(), "clip.mp4")
-	if err := os.WriteFile(file, make([]byte, uploadChunkSize+10), 0o600); err != nil {
+	if err := os.WriteFile(file, videoFixture(t, uploadChunkSize+10), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	res, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
@@ -364,7 +364,7 @@ func TestVideoChunkUpload(t *testing.T) {
 	}
 	var pending pendingData
 	_ = json.Unmarshal(res[0].PendingData, &pending)
-	if res[0].Status != "pending" || strings.Join(pending.ProcessingIDs, ",") != "vid" || strings.Join(pending.MediaIDs, ",") != "vid" {
+	if res[0].Status != "pending" || strings.Join(pending.ProcessingIDs, ",") != "22" || strings.Join(pending.MediaIDs, ",") != "22" {
 		t.Fatalf("pending %s", res[0].PendingData)
 	}
 	appends := 0
@@ -390,7 +390,7 @@ func TestUploadErrorClassified(t *testing.T) {
 	})
 	defer done()
 	file := filepath.Join(t.TempDir(), "clip.mp4")
-	_ = os.WriteFile(file, []byte("data"), 0o600)
+	_ = os.WriteFile(file, videoFixture(t, 0), 0o600)
 	_, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
 		ID: "p", Media: []integrations.MediaContent{{Path: file}},
 	}}, publishingAccount())
@@ -503,9 +503,9 @@ func TestAltTextGoesOnTheMedia(t *testing.T) {
 		switch r.path {
 		case "/pic.png":
 			return 200, string(pngBytes())
-		case "/2/media/upload/initialize", "/2/media/upload/img1/finalize":
-			return 200, `{"data":{"id":"img1"}}`
-		case "/2/media/upload/img1/append", "/2/media/metadata":
+		case "/2/media/upload/initialize", "/2/media/upload/11/finalize":
+			return 200, `{"data":{"id":"11"}}`
+		case "/2/media/upload/11/append", "/2/media/metadata":
 			return 200, `{}`
 		}
 		return 404, `{}`
@@ -530,7 +530,7 @@ func TestAltTextGoesOnTheMedia(t *testing.T) {
 			found = json.Unmarshal(call.body, &metadata) == nil
 		}
 	}
-	if !found || metadata.ID != "img1" || metadata.Metadata.AltText.Text != "A chart of signups" {
+	if !found || metadata.ID != "11" || metadata.Metadata.AltText.Text != "A chart of signups" {
 		t.Fatalf("metadata = %+v (found %v)", metadata, found)
 	}
 }

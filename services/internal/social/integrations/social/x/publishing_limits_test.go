@@ -308,9 +308,9 @@ func TestCommentRechecksSubscriptionAfterMediaUpload(t *testing.T) {
 			return 200, `{"data":{"id":"1","name":"Me","username":"me","subscription_type":"` + tier + `"}}`
 		case "/pic.png":
 			return 200, string(pngBytes())
-		case "/2/media/upload/initialize", "/2/media/upload/img1/finalize":
-			return 200, `{"data":{"id":"img1"}}`
-		case "/2/media/upload/img1/append":
+		case "/2/media/upload/initialize", "/2/media/upload/11/finalize":
+			return 200, `{"data":{"id":"11"}}`
+		case "/2/media/upload/11/append":
 			return 200, `{}`
 		default:
 			t.Error("reply published after account downgrade")

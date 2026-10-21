@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	entgo.io/ent v0.14.5
+	github.com/abema/go-mp4 v1.7.3
 	github.com/andybalholm/brotli v1.2.6
 	github.com/aws/aws-sdk-go-v2 v1.41.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.16

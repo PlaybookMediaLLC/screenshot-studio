@@ -274,38 +274,15 @@ func (s *Service) RefreshTokens(ctx context.Context) error {
 		return err
 	}
 	for _, integration := range list {
-		provider := s.manager.GetSocialIntegration(integration.ProviderIdentifier)
-		if provider == nil {
-			return fmt.Errorf("unknown provider %s", integration.ProviderIdentifier)
+		data, err := s.refresh.Refresh(ctx, integration, "")
+		if errors.Is(err, ErrRefreshChanged) {
+			continue
 		}
-		refreshToken := ""
-		if integration.RefreshToken != nil {
-			refreshToken = *integration.RefreshToken
-		}
-		data := s.RefreshToken(ctx, provider, refreshToken)
-		if data == nil {
-			if err := s.InformAboutRefreshError(ctx, integration.OrganizationID, integration, ""); err != nil {
-				return err
-			}
-			_, err := s.repo.RefreshNeeded(ctx, integration.OrganizationID, integration.ID)
-			return err
-		}
-
-		expiresIn := data.ExpiresIn
-		if _, err := s.CreateOrUpdateIntegration(ctx, CreateOrUpdateIntegrationParams{
-			OneTimeToken: provider.Info().OneTimeToken,
-			Org:          integration.OrganizationID,
-			Name:         integration.Name,
-			Type:         "social",
-			InternalID:   integration.InternalID,
-			Provider:     integration.ProviderIdentifier,
-			Token:        data.AccessToken,
-			RefreshToken: data.RefreshToken,
-			ExpiresIn:    &expiresIn,
-		}); err != nil {
+		if err != nil || data == nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

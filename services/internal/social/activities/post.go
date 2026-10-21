@@ -582,11 +582,18 @@ func (a *PostActivities) RefreshTokenWithCause(ctx context.Context, in *Integrat
 	row := entIntegration(in)
 	refresh, err := a.refresh.Refresh(ctx, row, cause)
 	if err != nil {
+		if errors.Is(err, integration.ErrRefreshChanged) {
+			return OrFalse[integrations.AuthTokenDetails]{}, temporal.NewNonRetryableApplicationError("The connected account changed during refresh", temporalx.TypeBadBody, nil)
+		}
 		message := cause
 		if message == "" {
 			message = temporalx.FailureMessage(err)
 		}
-		return OrFalse[integrations.AuthTokenDetails]{}, a.refresh.SetBetweenSteps(ctx, row, message)
+		err := a.refresh.SetBetweenSteps(ctx, row, message)
+		if errors.Is(err, integration.ErrRefreshChanged) {
+			err = temporal.NewNonRetryableApplicationError("The connected account changed during refresh", temporalx.TypeBadBody, nil)
+		}
+		return OrFalse[integrations.AuthTokenDetails]{}, err
 	}
 	if refresh == nil {
 		return OrFalse[integrations.AuthTokenDetails]{}, nil

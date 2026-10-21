@@ -36,6 +36,7 @@ type fakeProvider struct {
 	token     string
 	commented []string // postID, lastCommentID
 	status    *integrations.PendingCheckResponse
+	onRefresh func()
 }
 
 func (p *fakeProvider) Info() integrations.Info {

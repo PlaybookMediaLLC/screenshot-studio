@@ -18,6 +18,7 @@ import (
 type fakeProvider struct {
 	*integrations.Base
 	id            string
+	oneTimeToken  bool
 	analyticsHits int
 	plugRuns      int
 	refresh       func() (*integrations.AuthTokenDetails, error)
@@ -28,7 +29,7 @@ func newFake(id string) *fakeProvider {
 }
 
 func (f *fakeProvider) Info() integrations.Info {
-	return integrations.Info{Identifier: f.id, Name: f.id}
+	return integrations.Info{Identifier: f.id, Name: f.id, OneTimeToken: f.oneTimeToken}
 }
 func (f *fakeProvider) MaxLength([]integrations.AdditionalSetting, json.RawMessage) int { return 100 }
 func (f *fakeProvider) GenerateAuthURL(context.Context, *integrations.ClientInformation) (*integrations.GenerateAuthURLResponse, error) {

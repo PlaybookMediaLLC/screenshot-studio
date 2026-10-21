@@ -9,12 +9,31 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
 	"go.temporal.io/sdk/converter"
 )
 
 func (p *fakeProvider) RefreshToken(_ context.Context, token string) (*integrations.AuthTokenDetails, error) {
 	p.token = token
+	if p.onRefresh != nil {
+		p.onRefresh()
+	}
 	return &integrations.AuthTokenDetails{AccessToken: "rotated-access", RefreshToken: "rotated-refresh", ExpiresIn: 3600}, nil
+}
+
+func TestRefreshActivityDoesNotChangeRevokedAccountAfterRemoteCall(t *testing.T) {
+	f := setup(t)
+	f.provider.onRefresh = func() {
+		f.client.Integration.UpdateOneID(f.in.ID).SetDeletedAt(time.Now()).ExecX(f.ctx)
+	}
+	result, err := f.a.RefreshTokenWithCause(f.ctx, f.in, "expired")
+	if result.V != nil || temporalx.FailureType(err) != temporalx.TypeBadBody {
+		t.Fatal("stale refresh was not a terminal activity result", err)
+	}
+	stored := f.client.Integration.GetX(f.ctx, f.in.ID)
+	if stored.DeletedAt == nil || stored.Token == "rotated-access" || stored.RefreshNeeded || stored.InBetweenSteps {
+		t.Fatal("activity refresh/error handling changed the revoked account")
+	}
 }
 
 func (p *fakeProvider) FinalizePost(_ context.Context, token string, pending json.RawMessage, _ *ent.Integration) (*integrations.PendingCheckResponse, error) {

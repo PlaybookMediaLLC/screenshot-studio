@@ -57,6 +57,33 @@ work and deployment of the updated local API/worker image.
 
 Deploy the Go migration/backend before the web facade. A rollout interrupted after a provider consumed a pre-upgrade code can require a fresh authorization; never assume it is safe to exchange that code again. Rolling the application back may consume pending rows using the earlier deletion semantics; retain the additive columns and connection records when rolling back. No provider tokens are copied into receipts.
 
+## Refresh completion and revocation
+
+Credential refresh updates an existing connection conditionally. It never uses
+an upsert that can recreate a deleted integration or clear its removal marker.
+Before contacting the provider, the service rereads the original workspace,
+provider/account identity, credentials, state and row version. After the response,
+a short transaction locks the workspace and connection, verifies the same
+snapshot, and saves only the returned credentials and known lifetime. Missing
+refresh tokens preserve the existing value; unspecified lifetime preserves the
+existing expiry. No database locks are held across provider HTTP calls.
+
+Deletion, disabling, reconnecting, identity changes and a competing refresh win
+over a stale completion. Both late success and late failure are rejected: an old
+failure cannot mark a newer connection as broken or send its reconnect notice.
+Linked-account propagation checks each captured row version in the same
+workspace/provider, skipping removed or independently reconnected siblings. The
+periodic refresh sweep uses this same service and skips superseded snapshots.
+Provider errors are logged as fixed outcomes without raw remote error text.
+
+The activity converts a superseded refresh into a terminal, credential-free
+result before its error handler can mutate connection health. PostgreSQL tests
+exercise changes during both successful and failed remote refreshes, two
+simultaneous refreshes, linked accounts, deleted workspaces, the periodic sweep,
+and activity error handling. These conditional writes protect persisted state;
+they do not cancel a provider request already in flight. A provider-side token
+rotation whose result is lost can still require a fresh user authorization.
+
 ## Custom Mastodon adapter preparation
 
 The `mastodon-custom` adapter remains outside the production provider registry

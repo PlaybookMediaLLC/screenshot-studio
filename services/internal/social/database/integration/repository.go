@@ -21,6 +21,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/integration"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/messagesgroup"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/orders"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/organization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/plugs"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/post"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/predicate"
@@ -537,6 +538,8 @@ func (r *Repository) NeedsToBeRefreshed(ctx context.Context) ([]*ent.Integration
 		integration.InBetweenSteps(false),
 		integration.DeletedAtIsNil(),
 		integration.RefreshNeeded(false),
+		integration.Disabled(false),
+		integration.HasOrganizationWith(organization.DeletedAtIsNil()),
 	).All(ctx)
 }
 

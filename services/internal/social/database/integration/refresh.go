@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -26,39 +27,27 @@ func NewRefreshIntegrationService(manager *integrations.Manager, service *Servic
 // Refresh returns nil (TypeScript's false) when the token could not be
 // refreshed; the channel is then flagged and the user notified.
 func (r *RefreshIntegrationService) Refresh(ctx context.Context, integration *ent.Integration, cause string) (*integrations.AuthTokenDetails, error) {
+	if integration == nil {
+		return nil, ErrRefreshChanged
+	}
 	provider := r.manager.GetSocialIntegration(integration.ProviderIdentifier)
 	if provider == nil {
 		return nil, fmt.Errorf("unknown provider %s", integration.ProviderIdentifier)
 	}
 
-	refresh, err := r.refreshProcess(ctx, integration, provider, cause)
+	snapshot, err := r.service.repo.prepareRefresh(ctx, integration, provider.Info().OneTimeToken)
+	if err != nil {
+		return nil, err
+	}
+	refresh, err := r.refreshProcess(ctx, snapshot.connection, provider, cause)
 	if err != nil || refresh == nil {
 		return nil, err
 	}
 
-	picture := ""
-	if integration.Picture != nil {
-		picture = *integration.Picture
+	if refresh.ID != "" && refresh.ID != snapshot.connection.InternalID {
+		return nil, errors.New("provider refresh returned a different account identity")
 	}
-	var expiresIn *int64
-	if refresh.NonExpiring {
-		zero := int64(0)
-		expiresIn = &zero
-	} else if refresh.ExpiresIn != 0 {
-		expiresIn = &refresh.ExpiresIn
-	}
-	if _, err := r.service.CreateOrUpdateIntegration(ctx, CreateOrUpdateIntegrationParams{
-		OneTimeToken: provider.Info().OneTimeToken,
-		Org:          integration.OrganizationID,
-		Name:         integration.Name,
-		Picture:      picture,
-		Type:         "social",
-		InternalID:   integration.InternalID,
-		Provider:     integration.ProviderIdentifier,
-		Token:        refresh.AccessToken,
-		RefreshToken: refresh.RefreshToken,
-		ExpiresIn:    expiresIn,
-	}); err != nil {
+	if err := r.service.repo.saveRefresh(ctx, snapshot, refresh); err != nil {
 		return nil, err
 	}
 
@@ -66,7 +55,7 @@ func (r *RefreshIntegrationService) Refresh(ctx context.Context, integration *en
 }
 
 func (r *RefreshIntegrationService) SetBetweenSteps(ctx context.Context, integration *ent.Integration, cause string) error {
-	if _, err := r.service.SetBetweenRefreshSteps(ctx, integration.ID); err != nil {
+	if err := r.service.repo.markRefreshFailure(ctx, integration, true); err != nil {
 		return err
 	}
 	return r.service.InformAboutRefreshError(ctx, integration.OrganizationID, integration, cause)
@@ -95,14 +84,14 @@ func (r *RefreshIntegrationService) refreshProcess(ctx context.Context, integrat
 
 	if refreshError != nil || refresh == nil || refresh.AccessToken == "" {
 		if refreshError != nil {
-			slog.Error(fmt.Sprintf("Could not refresh %s integration %s", integration.ProviderIdentifier, integration.ID), "error", refreshError)
+			slog.Warn("Provider credential refresh failed", "provider", integration.ProviderIdentifier, "integration_id", integration.ID)
 		}
 
 		// informAboutRefreshError (with the failure cause) already notifies
 		// the user, and refreshNeeded sets the same flag disconnectChannel
 		// would — calling disconnectChannel here sent a second, cause-less
 		// copy of the same email for every failed refresh.
-		if _, err := r.service.RefreshNeeded(ctx, integration.OrganizationID, integration.ID); err != nil {
+		if err := r.service.repo.markRefreshFailure(ctx, integration, false); err != nil {
 			return nil, err
 		}
 
@@ -127,8 +116,8 @@ func (r *RefreshIntegrationService) refreshProcess(ctx context.Context, integrat
 
 	reConnect, err := reconnector.ReConnect(ctx, root, integration.InternalID, refresh.AccessToken)
 	if err != nil {
-		slog.Error(fmt.Sprintf("Could not reconnect %s integration %s after a successful token refresh", integration.ProviderIdentifier, integration.ID), "error", err)
-		return nil, err
+		slog.Warn("Provider identity verification failed after credential refresh", "provider", integration.ProviderIdentifier, "integration_id", integration.ID)
+		return nil, errors.New("provider identity verification failed after credential refresh")
 	}
 
 	return mergeAuth(*refresh, reConnect), nil

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select'
 import { creativeSetSortSchema } from '@/lib/creative-sets/schema'
 import { StorySetAccess } from './StorySetAccess'
-import { ProjectPreview } from '@/components/projects/ProjectPreview'
+import { StorySetFormatPreview } from './StorySetFormatPreview'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { StorySetIntake } from './StorySetIntake'
 import { usePrivateCreativeSurface } from './use-private-surface'
@@ -186,21 +186,51 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
           ) : null}
         </section>
       ) : null}
-      <div aria-busy={busy} className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div aria-busy={busy} className="grid gap-6 lg:grid-cols-2">
         {items.map((item) => (
-          <article className="overflow-hidden rounded-xl border bg-foreground/[0.02]" key={item.id}>
-            <Link prefetch={false} href={`/creative-sets/${item.id}`} className="block">
-              <div className="aspect-video">
-                <ProjectPreview
-                  alt={item.name}
-                  document={item.document?.outputs[0]?.document ?? null}
+          <article
+            className="min-w-0 overflow-hidden rounded-xl border bg-foreground/[0.02]"
+            key={item.id}
+          >
+            <Link
+              prefetch={false}
+              href={`/creative-sets/${item.id}`}
+              aria-label={item.name}
+              className="block rounded-xl focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              <div className="mx-auto max-w-2xl p-3 pb-0 sm:p-4 sm:pb-0">
+                <StorySetFormatPreview
+                  setId={item.id}
+                  revision={item.revision}
+                  document={item.document}
                 />
               </div>
               <div className="p-4">
-                <h2 className="font-medium">{item.name}</h2>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <h2 className="min-w-0 break-words font-medium">{item.name}</h2>
+                  {item.document &&
+                  [...item.document.outputs, ...item.document.storeGroups].some((output) =>
+                    Object.values(output.review).some(Boolean)
+                  ) ? (
+                    <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
+                      Needs review
+                    </span>
+                  ) : null}
+                </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {item.document?.stories.length ?? '—'} stories ·{' '}
+                  {item.document?.stories.length ?? '—'}{' '}
+                  {item.document?.stories.length === 1 ? 'story' : 'stories'} ·{' '}
                   {item.document?.outputs.length ?? '—'} formats · Revision {item.revision}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Last edited{' '}
+                  <time dateTime={item.updatedAt.toISOString()}>
+                    {item.updatedAt.toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </time>
                 </p>
               </div>
             </Link>

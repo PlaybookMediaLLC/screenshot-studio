@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -102,7 +103,8 @@ func Type(v string) predicate.Integration {
 
 // Token applies equality check predicate on the "token" field. It's identical to TokenEQ.
 func Token(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEQ(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldEQ(FieldToken, vc), err)
 }
 
 // Disabled applies equality check predicate on the "disabled" field. It's identical to DisabledEQ.
@@ -113,11 +115,6 @@ func Disabled(v bool) predicate.Integration {
 // TokenExpiration applies equality check predicate on the "token_expiration" field. It's identical to TokenExpirationEQ.
 func TokenExpiration(v time.Time) predicate.Integration {
 	return predicate.Integration(sql.FieldEQ(FieldTokenExpiration, v))
-}
-
-// RefreshToken applies equality check predicate on the "refresh_token" field. It's identical to RefreshTokenEQ.
-func RefreshToken(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEQ(FieldRefreshToken, v))
 }
 
 // Profile applies equality check predicate on the "profile" field. It's identical to ProfileEQ.
@@ -652,67 +649,116 @@ func TypeContainsFold(v string) predicate.Integration {
 
 // TokenEQ applies the EQ predicate on the "token" field.
 func TokenEQ(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEQ(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldEQ(FieldToken, vc), err)
 }
 
 // TokenNEQ applies the NEQ predicate on the "token" field.
 func TokenNEQ(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldNEQ(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldNEQ(FieldToken, vc), err)
 }
 
 // TokenIn applies the In predicate on the "token" field.
 func TokenIn(vs ...string) predicate.Integration {
-	return predicate.Integration(sql.FieldIn(FieldToken, vs...))
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Token.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.IntegrationOrErr(sql.FieldIn(FieldToken, v...), err)
 }
 
 // TokenNotIn applies the NotIn predicate on the "token" field.
 func TokenNotIn(vs ...string) predicate.Integration {
-	return predicate.Integration(sql.FieldNotIn(FieldToken, vs...))
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Token.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.IntegrationOrErr(sql.FieldNotIn(FieldToken, v...), err)
 }
 
 // TokenGT applies the GT predicate on the "token" field.
 func TokenGT(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldGT(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldGT(FieldToken, vc), err)
 }
 
 // TokenGTE applies the GTE predicate on the "token" field.
 func TokenGTE(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldGTE(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldGTE(FieldToken, vc), err)
 }
 
 // TokenLT applies the LT predicate on the "token" field.
 func TokenLT(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldLT(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldLT(FieldToken, vc), err)
 }
 
 // TokenLTE applies the LTE predicate on the "token" field.
 func TokenLTE(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldLTE(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldLTE(FieldToken, vc), err)
 }
 
 // TokenContains applies the Contains predicate on the "token" field.
 func TokenContains(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldContains(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("token value is not a string: %T", vc)
+	}
+	return predicate.IntegrationOrErr(sql.FieldContains(FieldToken, vcs), err)
 }
 
 // TokenHasPrefix applies the HasPrefix predicate on the "token" field.
 func TokenHasPrefix(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldHasPrefix(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("token value is not a string: %T", vc)
+	}
+	return predicate.IntegrationOrErr(sql.FieldHasPrefix(FieldToken, vcs), err)
 }
 
 // TokenHasSuffix applies the HasSuffix predicate on the "token" field.
 func TokenHasSuffix(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldHasSuffix(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("token value is not a string: %T", vc)
+	}
+	return predicate.IntegrationOrErr(sql.FieldHasSuffix(FieldToken, vcs), err)
 }
 
 // TokenEqualFold applies the EqualFold predicate on the "token" field.
 func TokenEqualFold(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEqualFold(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("token value is not a string: %T", vc)
+	}
+	return predicate.IntegrationOrErr(sql.FieldEqualFold(FieldToken, vcs), err)
 }
 
 // TokenContainsFold applies the ContainsFold predicate on the "token" field.
 func TokenContainsFold(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldContainsFold(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("token value is not a string: %T", vc)
+	}
+	return predicate.IntegrationOrErr(sql.FieldContainsFold(FieldToken, vcs), err)
 }
 
 // DisabledEQ applies the EQ predicate on the "disabled" field.
@@ -775,61 +821,6 @@ func TokenExpirationNotNil() predicate.Integration {
 	return predicate.Integration(sql.FieldNotNull(FieldTokenExpiration))
 }
 
-// RefreshTokenEQ applies the EQ predicate on the "refresh_token" field.
-func RefreshTokenEQ(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEQ(FieldRefreshToken, v))
-}
-
-// RefreshTokenNEQ applies the NEQ predicate on the "refresh_token" field.
-func RefreshTokenNEQ(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldNEQ(FieldRefreshToken, v))
-}
-
-// RefreshTokenIn applies the In predicate on the "refresh_token" field.
-func RefreshTokenIn(vs ...string) predicate.Integration {
-	return predicate.Integration(sql.FieldIn(FieldRefreshToken, vs...))
-}
-
-// RefreshTokenNotIn applies the NotIn predicate on the "refresh_token" field.
-func RefreshTokenNotIn(vs ...string) predicate.Integration {
-	return predicate.Integration(sql.FieldNotIn(FieldRefreshToken, vs...))
-}
-
-// RefreshTokenGT applies the GT predicate on the "refresh_token" field.
-func RefreshTokenGT(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldGT(FieldRefreshToken, v))
-}
-
-// RefreshTokenGTE applies the GTE predicate on the "refresh_token" field.
-func RefreshTokenGTE(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldGTE(FieldRefreshToken, v))
-}
-
-// RefreshTokenLT applies the LT predicate on the "refresh_token" field.
-func RefreshTokenLT(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldLT(FieldRefreshToken, v))
-}
-
-// RefreshTokenLTE applies the LTE predicate on the "refresh_token" field.
-func RefreshTokenLTE(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldLTE(FieldRefreshToken, v))
-}
-
-// RefreshTokenContains applies the Contains predicate on the "refresh_token" field.
-func RefreshTokenContains(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldContains(FieldRefreshToken, v))
-}
-
-// RefreshTokenHasPrefix applies the HasPrefix predicate on the "refresh_token" field.
-func RefreshTokenHasPrefix(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldHasPrefix(FieldRefreshToken, v))
-}
-
-// RefreshTokenHasSuffix applies the HasSuffix predicate on the "refresh_token" field.
-func RefreshTokenHasSuffix(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldHasSuffix(FieldRefreshToken, v))
-}
-
 // RefreshTokenIsNil applies the IsNil predicate on the "refresh_token" field.
 func RefreshTokenIsNil() predicate.Integration {
 	return predicate.Integration(sql.FieldIsNull(FieldRefreshToken))
@@ -838,16 +829,6 @@ func RefreshTokenIsNil() predicate.Integration {
 // RefreshTokenNotNil applies the NotNil predicate on the "refresh_token" field.
 func RefreshTokenNotNil() predicate.Integration {
 	return predicate.Integration(sql.FieldNotNull(FieldRefreshToken))
-}
-
-// RefreshTokenEqualFold applies the EqualFold predicate on the "refresh_token" field.
-func RefreshTokenEqualFold(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEqualFold(FieldRefreshToken, v))
-}
-
-// RefreshTokenContainsFold applies the ContainsFold predicate on the "refresh_token" field.
-func RefreshTokenContainsFold(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldContainsFold(FieldRefreshToken, v))
 }
 
 // ProfileEQ applies the EQ predicate on the "profile" field.

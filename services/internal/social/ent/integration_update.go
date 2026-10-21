@@ -195,16 +195,8 @@ func (_u *IntegrationUpdate) ClearTokenExpiration() *IntegrationUpdate {
 }
 
 // SetRefreshToken sets the "refresh_token" field.
-func (_u *IntegrationUpdate) SetRefreshToken(v string) *IntegrationUpdate {
+func (_u *IntegrationUpdate) SetRefreshToken(v *string) *IntegrationUpdate {
 	_u.mutation.SetRefreshToken(v)
-	return _u
-}
-
-// SetNillableRefreshToken sets the "refresh_token" field if the given value is not nil.
-func (_u *IntegrationUpdate) SetNillableRefreshToken(v *string) *IntegrationUpdate {
-	if v != nil {
-		_u.SetRefreshToken(*v)
-	}
 	return _u
 }
 
@@ -682,7 +674,11 @@ func (_u *IntegrationUpdate) sqlSave(ctx context.Context) (_node int, err error)
 		_spec.SetField(integration.FieldType, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Token(); ok {
-		_spec.SetField(integration.FieldToken, field.TypeString, value)
+		vv, err := integration.ValueScanner.Token.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(integration.FieldToken, field.TypeString, vv)
 	}
 	if value, ok := _u.mutation.Disabled(); ok {
 		_spec.SetField(integration.FieldDisabled, field.TypeBool, value)
@@ -694,7 +690,11 @@ func (_u *IntegrationUpdate) sqlSave(ctx context.Context) (_node int, err error)
 		_spec.ClearField(integration.FieldTokenExpiration, field.TypeTime)
 	}
 	if value, ok := _u.mutation.RefreshToken(); ok {
-		_spec.SetField(integration.FieldRefreshToken, field.TypeString, value)
+		vv, err := integration.ValueScanner.RefreshToken.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(integration.FieldRefreshToken, field.TypeString, vv)
 	}
 	if _u.mutation.RefreshTokenCleared() {
 		_spec.ClearField(integration.FieldRefreshToken, field.TypeString)
@@ -1208,16 +1208,8 @@ func (_u *IntegrationUpdateOne) ClearTokenExpiration() *IntegrationUpdateOne {
 }
 
 // SetRefreshToken sets the "refresh_token" field.
-func (_u *IntegrationUpdateOne) SetRefreshToken(v string) *IntegrationUpdateOne {
+func (_u *IntegrationUpdateOne) SetRefreshToken(v *string) *IntegrationUpdateOne {
 	_u.mutation.SetRefreshToken(v)
-	return _u
-}
-
-// SetNillableRefreshToken sets the "refresh_token" field if the given value is not nil.
-func (_u *IntegrationUpdateOne) SetNillableRefreshToken(v *string) *IntegrationUpdateOne {
-	if v != nil {
-		_u.SetRefreshToken(*v)
-	}
 	return _u
 }
 
@@ -1725,7 +1717,11 @@ func (_u *IntegrationUpdateOne) sqlSave(ctx context.Context) (_node *Integration
 		_spec.SetField(integration.FieldType, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Token(); ok {
-		_spec.SetField(integration.FieldToken, field.TypeString, value)
+		vv, err := integration.ValueScanner.Token.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(integration.FieldToken, field.TypeString, vv)
 	}
 	if value, ok := _u.mutation.Disabled(); ok {
 		_spec.SetField(integration.FieldDisabled, field.TypeBool, value)
@@ -1737,7 +1733,11 @@ func (_u *IntegrationUpdateOne) sqlSave(ctx context.Context) (_node *Integration
 		_spec.ClearField(integration.FieldTokenExpiration, field.TypeTime)
 	}
 	if value, ok := _u.mutation.RefreshToken(); ok {
-		_spec.SetField(integration.FieldRefreshToken, field.TypeString, value)
+		vv, err := integration.ValueScanner.RefreshToken.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(integration.FieldRefreshToken, field.TypeString, vv)
 	}
 	if _u.mutation.RefreshTokenCleared() {
 		_spec.ClearField(integration.FieldRefreshToken, field.TypeString)

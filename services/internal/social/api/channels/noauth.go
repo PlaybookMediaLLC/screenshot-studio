@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/integration"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/organizations"
 	integrationsdto "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/dtos/integrations"
@@ -100,6 +101,9 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 	if !slices.Contains(h.manager.GetAllowedSocialsIntegrations(), name) {
 		return nil, errors.New("Integration not allowed")
 	}
+	if err := credentialcipher.ValidateKey(); err != nil {
+		return nil, err
+	}
 
 	provider := h.manager.GetSocialIntegration(name)
 	_, hasCustomFields := provider.(integrations.CustomFielder)
@@ -142,6 +146,9 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 	details := ""
 	if isExternal {
 		if details, err = h.take(ctx, "external:"+body.State); err != nil {
+			return nil, err
+		}
+		if details, err = credentialcipher.Open(details, "oauth-external:"+body.State); err != nil {
 			return nil, err
 		}
 	}
@@ -204,9 +211,9 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 	customInstanceDetails := ""
 	switch {
 	case details != "":
-		customInstanceDetails, err = helpers.FixedEncryption(details)
+		customInstanceDetails, err = credentialcipher.Seal(details, "custom-instance")
 	case hasCustomFields, info.IsChromeExtension:
-		customInstanceDetails, err = helpers.FixedEncryption(string(nodeBase64(body.Code)))
+		customInstanceDetails, err = credentialcipher.Seal(string(nodeBase64(body.Code)), "custom-instance")
 	}
 	if err != nil {
 		return nil, err

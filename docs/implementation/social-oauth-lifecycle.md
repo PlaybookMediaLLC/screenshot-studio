@@ -26,6 +26,25 @@ Go tests cover URL validation, malformed and oversized responses, denied private
 
 ## Migration and retention
 
+Provider storage uses authenticated encryption in the existing integration
+columns. Ent seals access/refresh tokens on every write and opens them only in
+backend memory. Custom client credentials are encrypted before Redis and database
+persistence; temporary envelopes are bound to the exact OAuth state. Missing keys
+block handoff before remote registration or exchange. Existing legacy credentials
+remain readable for the bounded, rerunnable backfill. See the coordinated rollout
+and key-rotation procedure in [the deployment guide](../social-backend-deployment.md).
+The key never belongs in the web environment or OAuth receipts.
+
+PostgreSQL tests verify raw encrypted storage, NULL/empty preservation, failed
+authentication, batch rollback, idempotent backfill, retired-key rotation, erased
+account tombstones, and the legacy Slack import. Linked-account token propagation
+is restricted to the same workspace and provider and preserves a refresh token
+when a provider returns no replacement. The social database/API/provider,
+notification, publishing, and product suites pass; the affected storage/controller
+packages also pass the race detector. The production non-root image builds and
+its social API health and migration/backfill commands pass locally. Live-account
+verification still waits for the legacy Temporal payload and provider-flow work.
+
 `20261031100000_social_oauth_receipts.sql` is additive. Existing social and Slack starts remain pending with the same original identities, set, and expiry. Pending starts expire after one hour. Completed receipts can replay for 24 hours, subject to current authorization. Maintenance removes completed receipts after that window and other expired social starts after another 24 hours. Shared Slack starts retain their existing single-use deletion and expiry behavior.
 
 `20261031110000_social_oauth_creation.sql` adds operation, creation visibility, and the resulting set receipt. It backfills legacy reconnect starts from their expected connection IDs. Constraints prevent mixed creation/reconnect targets and incomplete creation receipts. Upgrade tests preserve pending X/Slack starts and reconnect identity, then replay the migrations safely.

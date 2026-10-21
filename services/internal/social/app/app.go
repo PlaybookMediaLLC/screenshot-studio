@@ -16,6 +16,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/auth"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/chat"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/chat/mcp"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/adminstats"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/agencies"
@@ -118,6 +119,9 @@ type App struct {
 // Migrations only run with SOCIAL_MIGRATE=true: the original app migrates with
 // Prisma, so by default the Go services use the schema as they find it.
 func New(ctx context.Context) (*App, error) {
+	if err := credentialcipher.ValidateKey(); err != nil {
+		return nil, err
+	}
 	a := &App{}
 	var err error
 	if a.DB, err = database.Open(ctx, os.Getenv("DATABASE_URL")); err != nil {

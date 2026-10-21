@@ -158,6 +158,23 @@ func TestCreateOrUpdateIntegrationUpsert(t *testing.T) {
 	if sibling.Token != "t3" || *sibling.RefreshToken != "r3" {
 		t.Errorf("one-time token not propagated: %s", sibling.Token)
 	}
+	otherOrg := f.client.Organization.Create().SetName("Other workspace").SaveX(f.ctx)
+	foreign := f.client.Integration.Create().SetOrganizationID(otherOrg.ID).SetInternalID("foreign").SetName("Foreign").
+		SetProviderIdentifier("x").SetType("social").SetToken("foreign-token").SetRootInternalID("u1").SaveX(f.ctx)
+	otherProvider := f.client.Integration.Create().SetOrganizationID(f.org.ID).SetInternalID("other-provider").SetName("Other provider").
+		SetProviderIdentifier("different").SetType("social").SetToken("other-token").SetRootInternalID("u1").SaveX(f.ctx)
+	f.connect(t, CreateOrUpdateIntegrationParams{OneTimeToken: true, Name: "Alice", InternalID: "u1", Provider: "x", Token: "t4"})
+	sibling = f.client.Integration.GetX(f.ctx, sibling.ID)
+	if sibling.Token != "t4" || sibling.RefreshToken == nil || *sibling.RefreshToken != "r3" {
+		t.Fatal("empty refresh response erased sibling credentials")
+	}
+	if f.client.Integration.GetX(f.ctx, foreign.ID).Token != "foreign-token" || f.client.Integration.GetX(f.ctx, otherProvider.ID).Token != "other-token" {
+		t.Fatal("one-time token update escaped workspace/provider scope")
+	}
+	withoutRefresh := f.connect(t, CreateOrUpdateIntegrationParams{Name: "New account", InternalID: "no-refresh", Provider: "x", Token: "access"})
+	if withoutRefresh.RefreshToken != nil {
+		t.Fatal("absent refresh token did not stay NULL")
+	}
 }
 
 func TestMigrateIntegrationOnConnect(t *testing.T) {

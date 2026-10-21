@@ -7,6 +7,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/lucsky/cuid"
 )
 
@@ -69,6 +70,14 @@ func (s *Service) importSocialSlack(ctx context.Context, org, socialOrg, id stri
 	}
 	if exists {
 		return nil
+	}
+	if token, err = credentialcipher.Open(token, "integration.token"); err != nil {
+		return err
+	}
+	if refresh.Valid {
+		if refresh.String, err = credentialcipher.Open(refresh.String, "integration.refresh_token"); err != nil {
+			return err
+		}
 	}
 	if token == "" || token == "backend-owned" {
 		return &slackError{Code: "reconnect_required"}

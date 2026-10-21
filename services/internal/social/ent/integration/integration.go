@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
 )
 
 const (
@@ -194,6 +195,11 @@ var (
 	DefaultAdditionalSettings string
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all Integration fields.
+	ValueScanner struct {
+		Token        field.TypeValueScanner[string]
+		RefreshToken field.TypeValueScanner[*string]
+	}
 )
 
 // OrderOption defines the ordering options for the Integration queries.

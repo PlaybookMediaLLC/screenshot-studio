@@ -86,6 +86,53 @@ verified media URL requirement has a separate design and live test.
 
 ## Production release
 
+Social API and worker processes require `PLATFORM_SOCIAL_ENCRYPTION_KEY`, a
+base64-encoded random 32-byte key held in the backend secret store. The local
+`bin/studio` setup generates it. Supply the same value to every backend process
+that reads social credentials, including the product notification service's
+legacy Slack import. Never put it in the web environment. The production spec
+renderer requires the key; the social process refuses to start without it.
+
+The existing `Integration.token` and `refreshToken` fields now use AES-256-GCM
+with a fresh nonce and field-bound authentication. Provider-specific credentials
+and temporary OAuth client secrets use the same envelope, bound to their purpose
+or OAuth state. Existing plaintext tokens and legacy CBC custom credentials stay
+readable during migration. No new credential table or connection identity is
+created. Secret fields must not be used as equality/search predicates: the
+randomized ciphertext intentionally differs on every write.
+
+This storage change requires a coordinated backend rollout:
+
+1. Back up the database and preserve its existing `JWT_SECRET` and encryption
+   keys in the secret store. Pause social API intake and social workers; leave
+   queued workflows intact. Drain active provider calls before stopping workers.
+2. Deploy all readers and writers with the same new key before resuming them.
+   Old binaries cannot read the authenticated envelopes and must not run beside
+   the new writers. Include product workers that import legacy Slack accounts.
+3. Run `/social-credentials` from the new image with `DATABASE_URL`, the new key,
+   and the existing `JWT_SECRET`. It locks batches of 100 integration rows,
+   authenticates each value, and commits one batch at a time. A failed batch is
+   rolled back; earlier batches remain committed. Its error identifies only the
+   row and field. Investigate invalid legacy values without printing credentials,
+   then rerun. A rerun verifies completed rows without rewriting them.
+4. Verify existing accounts and refresh paths against disposable destinations,
+   then resume intake and workers. A rollback to an old binary requires restoring
+   the coordinated database backup while writes remain stopped; prefer a forward
+   fix so new connections and queued work are preserved.
+
+For key rotation, repeat the coordinated pause above. Keep the old key as
+`PLATFORM_SOCIAL_ENCRYPTION_PREVIOUS_KEY` and deploy the new current key to all
+readers and writers together before resuming traffic. Run `/social-credentials` again to reseal old
+envelopes. Retain the previous key until all rows have been verified and transient
+OAuth states (one hour) have expired. Keep historical keys with backups for the
+backup retention period. Never rotate the legacy `JWT_SECRET` before the custom
+credential backfill completes.
+
+This protects database credentials and temporary custom OAuth client state.
+Legacy social Temporal activity payloads still need their separate token-removal
+cutover before live-account verification; encryption here does not rewrite
+existing workflow history.
+
 The [DigitalOcean guide](digitalocean-deployment.md) describes the App
 Platform renderer and release commands. The intended order is database backup,
 `/platform-migrate`, combined backend image and readiness checks, then the

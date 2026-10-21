@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/auth"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/adminstats"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/clipping"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/integration"
@@ -437,6 +438,9 @@ func (h *controller) listIntegration(c *httpx.Ctx) (any, error) {
 }
 
 func (h *controller) getIntegrationURL(c *httpx.Ctx) (any, error) {
+	if err := credentialcipher.ValidateKey(); err != nil {
+		return nil, msg(http.StatusServiceUnavailable, "Social credential storage is unavailable")
+	}
 	ctx := c.R.Context()
 	name, refresh := c.Param("integration"), c.Query("refresh")
 	if !slices.Contains(h.Manager.GetAllowedSocialsIntegrations(), name) {

@@ -63,6 +63,7 @@ NODE
     ensure_env_value SOCIAL_API_URL "http://host.docker.internal:5679/api/public/v1"
     ensure_env_value SOCIAL_API_KEY "e2e-social-token"
     ensure_env_value SOCIAL_API_KEY_E2E "e2e-social-token"
+    ensure_env_value PLATFORM_SOCIAL_ENCRYPTION_KEY "$(random_base64 32)"
     ensure_env_value SOCIAL_JWT_SECRET "$(random_hex 32)"
     ensure_env_value PUBLISHING_SERVICE_TOKEN "$(random_hex 32)"
     ensure_env_value COLLAB_TOKEN_SECRET "$(random_hex 32)"
@@ -117,6 +118,7 @@ HOST_DATABASE_URL=postgresql://screenshot_studio:$postgres_app_password@127.0.0.
 SOCIAL_API_URL=http://host.docker.internal:5679/api/public/v1
 SOCIAL_API_KEY=e2e-social-token
 SOCIAL_API_KEY_E2E=e2e-social-token
+PLATFORM_SOCIAL_ENCRYPTION_KEY=$(random_base64 32)
 SOCIAL_JWT_SECRET=$(random_hex 32)
 PUBLISHING_SERVICE_TOKEN=$(random_hex 32)
 COLLAB_TOKEN_SECRET=$(random_hex 32)

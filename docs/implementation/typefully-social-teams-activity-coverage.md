@@ -39,6 +39,14 @@ The initial audit found existing functionality but has not yet executed the full
 acceptance matrix. `npm ci` completed; a separate disposable Postgres container was
 created for this task. Customer databases and provider accounts are not test fixtures.
 
+On 2026-10-21 the user confirmed disposable provider accounts are available for
+browser authorization. No live account has been authorized yet. The credential
+storage prerequisite now has PostgreSQL, race-detector and non-root container
+verification: authenticated encryption, legacy backfill/key rotation, state-bound
+custom OAuth secrets and scoped linked-account refresh propagation. These checks
+do not mark a provider acceptance criterion complete. Legacy Temporal payloads
+and the remaining provider flows must be finished before browser handoff.
+
 ## Coverage matrix
 
 | ID  | Exact expected behavior                                                                             | Source specification                                                                                                                                                     | Existing implementation                                                                                                                                       | Verified current behavior                                                                                                                                                                               | Missing functionality / proposed code changes                                                                                    | Database changes                                                                                                             | Authorization boundary                                                | Provider dependency                                                                                               | Unit tests                                                                                                                 | Integration tests                                                                                                                                                                                 | Browser E2E tests                                                                                                                                                                          | Actual execution result                                                                                                                                                                                              | Completion status              |

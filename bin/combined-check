@@ -10,9 +10,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-if [[ ! -f .local/dev.env ]]; then
-  ./bin/studio env
-fi
+./bin/studio env
 
 # Production passes the product settings with a TENANT_ prefix
 # (infra/digitalocean/consolidate-live-spec.py). Do the same with the dev env.

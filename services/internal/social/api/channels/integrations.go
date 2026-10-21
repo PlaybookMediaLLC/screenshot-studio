@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/auth"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/integration"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/subscriptions"
 	integrationsdto "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/dtos/integrations"
@@ -266,6 +267,9 @@ func (h *integrationsController) getSingleIntegration(c *httpx.Ctx) (any, error)
 }
 
 func (h *integrationsController) getIntegrationURL(c *httpx.Ctx) (any, error) {
+	if err := credentialcipher.ValidateKey(); err != nil {
+		return nil, err
+	}
 	ctx := c.R.Context()
 	name := c.Param("integration")
 	refresh, externalURL := c.Query("refresh"), c.Query("externalUrl")
@@ -332,8 +336,14 @@ func (h *integrationsController) getIntegrationURL(c *httpx.Ctx) (any, error) {
 		// JSON.stringify(undefined) is stored by ioredis as ""
 		external := ""
 		if client != nil {
-			data, _ := json.Marshal(client)
-			external = string(data)
+			data, err := json.Marshal(client)
+			if err != nil {
+				return "", err
+			}
+			external, err = credentialcipher.Seal(string(data), "oauth-external:"+state)
+			if err != nil {
+				return "", err
+			}
 		}
 		if err := h.store.Set(ctx, "external:"+state, external, stateTTL); err != nil {
 			return "", err

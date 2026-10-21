@@ -123,16 +123,8 @@ func (_c *IntegrationCreate) SetNillableTokenExpiration(v *time.Time) *Integrati
 }
 
 // SetRefreshToken sets the "refresh_token" field.
-func (_c *IntegrationCreate) SetRefreshToken(v string) *IntegrationCreate {
+func (_c *IntegrationCreate) SetRefreshToken(v *string) *IntegrationCreate {
 	_c.mutation.SetRefreshToken(v)
-	return _c
-}
-
-// SetNillableRefreshToken sets the "refresh_token" field if the given value is not nil.
-func (_c *IntegrationCreate) SetNillableRefreshToken(v *string) *IntegrationCreate {
-	if v != nil {
-		_c.SetRefreshToken(*v)
-	}
 	return _c
 }
 
@@ -503,7 +495,10 @@ func (_c *IntegrationCreate) sqlSave(ctx context.Context) (*Integration, error) 
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -522,7 +517,7 @@ func (_c *IntegrationCreate) sqlSave(ctx context.Context) (*Integration, error) 
 	return _node, nil
 }
 
-func (_c *IntegrationCreate) createSpec() (*Integration, *sqlgraph.CreateSpec) {
+func (_c *IntegrationCreate) createSpec() (*Integration, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &Integration{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(integration.Table, sqlgraph.NewFieldSpec(integration.FieldID, field.TypeString))
@@ -557,7 +552,11 @@ func (_c *IntegrationCreate) createSpec() (*Integration, *sqlgraph.CreateSpec) {
 		_node.Type = value
 	}
 	if value, ok := _c.mutation.Token(); ok {
-		_spec.SetField(integration.FieldToken, field.TypeString, value)
+		vv, err := integration.ValueScanner.Token.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(integration.FieldToken, field.TypeString, vv)
 		_node.Token = value
 	}
 	if value, ok := _c.mutation.Disabled(); ok {
@@ -569,8 +568,12 @@ func (_c *IntegrationCreate) createSpec() (*Integration, *sqlgraph.CreateSpec) {
 		_node.TokenExpiration = &value
 	}
 	if value, ok := _c.mutation.RefreshToken(); ok {
-		_spec.SetField(integration.FieldRefreshToken, field.TypeString, value)
-		_node.RefreshToken = &value
+		vv, err := integration.ValueScanner.RefreshToken.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(integration.FieldRefreshToken, field.TypeString, vv)
+		_node.RefreshToken = value
 	}
 	if value, ok := _c.mutation.Profile(); ok {
 		_spec.SetField(integration.FieldProfile, field.TypeString, value)
@@ -726,7 +729,7 @@ func (_c *IntegrationCreate) createSpec() (*Integration, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -917,7 +920,7 @@ func (u *IntegrationUpsert) ClearTokenExpiration() *IntegrationUpsert {
 }
 
 // SetRefreshToken sets the "refresh_token" field.
-func (u *IntegrationUpsert) SetRefreshToken(v string) *IntegrationUpsert {
+func (u *IntegrationUpsert) SetRefreshToken(v *string) *IntegrationUpsert {
 	u.Set(integration.FieldRefreshToken, v)
 	return u
 }
@@ -1309,7 +1312,7 @@ func (u *IntegrationUpsertOne) ClearTokenExpiration() *IntegrationUpsertOne {
 }
 
 // SetRefreshToken sets the "refresh_token" field.
-func (u *IntegrationUpsertOne) SetRefreshToken(v string) *IntegrationUpsertOne {
+func (u *IntegrationUpsertOne) SetRefreshToken(v *string) *IntegrationUpsertOne {
 	return u.Update(func(s *IntegrationUpsert) {
 		s.SetRefreshToken(v)
 	})
@@ -1586,7 +1589,10 @@ func (_c *IntegrationCreateBulk) Save(ctx context.Context) ([]*Integration, erro
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -1898,7 +1904,7 @@ func (u *IntegrationUpsertBulk) ClearTokenExpiration() *IntegrationUpsertBulk {
 }
 
 // SetRefreshToken sets the "refresh_token" field.
-func (u *IntegrationUpsertBulk) SetRefreshToken(v string) *IntegrationUpsertBulk {
+func (u *IntegrationUpsertBulk) SetRefreshToken(v *string) *IntegrationUpsertBulk {
 	return u.Update(func(s *IntegrationUpsert) {
 		s.SetRefreshToken(v)
 	})

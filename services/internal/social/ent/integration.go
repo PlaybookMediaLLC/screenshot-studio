@@ -56,7 +56,7 @@ type Integration struct {
 	// PostingTimes holds the value of the "posting_times" field.
 	PostingTimes string `json:"posting_times,omitempty"`
 	// CustomInstanceDetails holds the value of the "custom_instance_details" field.
-	CustomInstanceDetails *string `json:"custom_instance_details,omitempty"`
+	CustomInstanceDetails *string `json:"-"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID *string `json:"customer_id,omitempty"`
 	// RootInternalID holds the value of the "root_internal_id" field.
@@ -175,10 +175,14 @@ func (*Integration) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case integration.FieldDisabled, integration.FieldInBetweenSteps, integration.FieldRefreshNeeded:
 			values[i] = new(sql.NullBool)
-		case integration.FieldID, integration.FieldInternalID, integration.FieldOrganizationID, integration.FieldName, integration.FieldCustomName, integration.FieldPicture, integration.FieldProviderIdentifier, integration.FieldType, integration.FieldToken, integration.FieldRefreshToken, integration.FieldProfile, integration.FieldPostingTimes, integration.FieldCustomInstanceDetails, integration.FieldCustomerID, integration.FieldRootInternalID, integration.FieldAdditionalSettings:
+		case integration.FieldID, integration.FieldInternalID, integration.FieldOrganizationID, integration.FieldName, integration.FieldCustomName, integration.FieldPicture, integration.FieldProviderIdentifier, integration.FieldType, integration.FieldProfile, integration.FieldPostingTimes, integration.FieldCustomInstanceDetails, integration.FieldCustomerID, integration.FieldRootInternalID, integration.FieldAdditionalSettings:
 			values[i] = new(sql.NullString)
 		case integration.FieldTokenExpiration, integration.FieldDeletedAt, integration.FieldCreatedAt, integration.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case integration.FieldToken:
+			values[i] = integration.ValueScanner.Token.ScanValue()
+		case integration.FieldRefreshToken:
+			values[i] = integration.ValueScanner.RefreshToken.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -245,10 +249,10 @@ func (_m *Integration) assignValues(columns []string, values []any) error {
 				_m.Type = value.String
 			}
 		case integration.FieldToken:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field token", values[i])
-			} else if value.Valid {
-				_m.Token = value.String
+			if value, err := integration.ValueScanner.Token.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Token = value
 			}
 		case integration.FieldDisabled:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -264,11 +268,10 @@ func (_m *Integration) assignValues(columns []string, values []any) error {
 				*_m.TokenExpiration = value.Time
 			}
 		case integration.FieldRefreshToken:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field refresh_token", values[i])
-			} else if value.Valid {
-				_m.RefreshToken = new(string)
-				*_m.RefreshToken = value.String
+			if value, err := integration.ValueScanner.RefreshToken.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.RefreshToken = value
 			}
 		case integration.FieldProfile:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -483,10 +486,7 @@ func (_m *Integration) String() string {
 	builder.WriteString("posting_times=")
 	builder.WriteString(_m.PostingTimes)
 	builder.WriteString(", ")
-	if v := _m.CustomInstanceDetails; v != nil {
-		builder.WriteString("custom_instance_details=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("custom_instance_details=<sensitive>")
 	builder.WriteString(", ")
 	if v := _m.CustomerID; v != nil {
 		builder.WriteString("customer_id=")
@@ -528,7 +528,6 @@ func (_m *Integration) MarshalJSON() ([]byte, error) {
 	w.field("inBetweenSteps", _m.InBetweenSteps)
 	w.field("refreshNeeded", _m.RefreshNeeded)
 	w.field("postingTimes", _m.PostingTimes)
-	w.field("customInstanceDetails", _m.CustomInstanceDetails)
 	w.field("customerId", _m.CustomerID)
 	w.field("rootInternalId", _m.RootInternalID)
 	w.field("additionalSettings", _m.AdditionalSettings)

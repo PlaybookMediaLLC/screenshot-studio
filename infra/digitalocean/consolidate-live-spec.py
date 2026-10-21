@@ -28,6 +28,7 @@ SOCIAL_SECRET_SOURCES = {
     "INSTAGRAM_APP_SECRET": "SOCIAL_INSTAGRAM_APP_SECRET",
 }
 OPTIONAL_SOCIAL_SECRETS = (
+    "PLATFORM_SOCIAL_ENCRYPTION_PREVIOUS_KEY",
     "LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "X_API_KEY", "X_API_SECRET",
     "FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET", "INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET",
 )
@@ -197,6 +198,16 @@ def add_optional_social_secrets(envs, secrets):
                 item.update(value=value, type="SECRET", scope="RUN_TIME")
 
 
+def configure_social_credentials(envs, secrets):
+    key = "PLATFORM_SOCIAL_ENCRYPTION_KEY"
+    if secrets is not None:
+        if not secrets.get(key):
+            raise ValueError("PLATFORM_SOCIAL_ENCRYPTION_KEY must be configured before deploying social credentials")
+        set_secret_env(envs, key, secrets[key])
+    elif not any(item["key"] == key and item.get("value") and item.get("type") == "SECRET" for item in envs):
+        raise ValueError("PLATFORM_SOCIAL_ENCRYPTION_KEY must be configured before deploying social credentials")
+
+
 COLLAB = "collab"
 COLLAB_SECRETS = ("COLLAB_TOKEN_SECRET", "COLLAB_SERVICE_TOKEN")
 
@@ -311,6 +322,7 @@ def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
     configure_mcp(spec, backend, services["web"], secrets)
     refresh_secrets(backend["envs"], secrets)
     add_optional_social_secrets(backend["envs"], secrets)
+    configure_social_credentials(backend["envs"], secrets)
     configure_publishing_api(backend, services["web"], publishing_token(services, secrets),
                              secrets is not None and secrets.get("ENABLE_DIRECT_PROVIDER") == "true")
     configure_product_api(backend, secrets)

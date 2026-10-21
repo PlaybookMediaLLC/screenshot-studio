@@ -434,12 +434,14 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 		SetToken(p.Token).
 		SetNillableProfile(p.Username).
 		SetInBetweenSteps(p.IsBetweenSteps).
-		SetRefreshToken(p.RefreshToken).
 		SetInternalID(p.InternalID).
 		SetOrganizationID(p.Org).
 		SetRefreshNeeded(false).
 		SetRootInternalID(p.InternalID).
 		SetAdditionalSettings("[]")
+	if p.RefreshToken != "" {
+		create.SetRefreshToken(&p.RefreshToken)
+	}
 	if p.Picture != "" {
 		create.SetPicture(p.Picture)
 	}
@@ -478,7 +480,7 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 			u.SetToken(p.Token)
 			// never wipe a stored refresh token with an empty one
 			if p.RefreshToken != "" {
-				u.SetRefreshToken(p.RefreshToken)
+				u.SetRefreshToken(&p.RefreshToken)
 			}
 			if expiresIn != 0 {
 				u.SetTokenExpiration(time.Now().Add(time.Duration(expiresIn) * time.Second))
@@ -508,10 +510,12 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 			rootID = *found.RootInternalID
 		}
 		u := r.client.Integration.Update().
-			Where(integration.IDNEQ(upsert.ID), integration.RootInternalID(rootID)).
+			Where(integration.OrganizationID(p.Org), integration.ProviderIdentifier(p.Provider), integration.IDNEQ(upsert.ID), integration.RootInternalID(rootID)).
 			SetToken(p.Token).
-			SetRefreshToken(p.RefreshToken).
 			SetRefreshNeeded(false)
+		if p.RefreshToken != "" {
+			u.SetRefreshToken(&p.RefreshToken)
+		}
 		if expiresIn != 0 {
 			u.SetTokenExpiration(time.Now().Add(time.Duration(expiresIn) * time.Second))
 		}
@@ -846,7 +850,9 @@ func (r *Repository) DeleteIntegrationsForAccount(ctx context.Context, org strin
 			ClearPicture().
 			SetDeletedAt(deletedAt)
 		setOrClear(hashOrNil(i.RootInternalID), u.SetRootInternalID, u.ClearRootInternalID)
-		setOrClear(hashOrNil(i.RefreshToken), u.SetRefreshToken, u.ClearRefreshToken)
+		setOrClear(hashOrNil(i.RefreshToken), func(value string) *ent.IntegrationUpdateOne {
+			return u.SetRefreshToken(&value)
+		}, u.ClearRefreshToken)
 		setOrClear(hashOrNil(i.Profile), u.SetProfile, u.ClearProfile)
 		setOrClear(hashOrNil(i.CustomInstanceDetails), u.SetCustomInstanceDetails, u.ClearCustomInstanceDetails)
 		if err := u.Exec(ctx); err != nil {

@@ -9276,7 +9276,7 @@ type IntegrationMutation struct {
 	token                   *string
 	disabled                *bool
 	token_expiration        *time.Time
-	refresh_token           *string
+	refresh_token           **string
 	profile                 *string
 	deleted_at              *time.Time
 	created_at              *time.Time
@@ -9816,12 +9816,12 @@ func (m *IntegrationMutation) ResetTokenExpiration() {
 }
 
 // SetRefreshToken sets the "refresh_token" field.
-func (m *IntegrationMutation) SetRefreshToken(s string) {
+func (m *IntegrationMutation) SetRefreshToken(s *string) {
 	m.refresh_token = &s
 }
 
 // RefreshToken returns the value of the "refresh_token" field in the mutation.
-func (m *IntegrationMutation) RefreshToken() (r string, exists bool) {
+func (m *IntegrationMutation) RefreshToken() (r *string, exists bool) {
 	v := m.refresh_token
 	if v == nil {
 		return
@@ -10961,7 +10961,7 @@ func (m *IntegrationMutation) SetField(name string, value ent.Value) error {
 		m.SetTokenExpiration(v)
 		return nil
 	case integration.FieldRefreshToken:
-		v, ok := value.(string)
+		v, ok := value.(*string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

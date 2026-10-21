@@ -30,6 +30,9 @@ func Open(t *testing.T) *ent.Client {
 	if !strings.Contains(base, "test") {
 		t.Fatal("SOCIAL_TEST_DATABASE_URL must name a disposable test database")
 	}
+	if os.Getenv("PLATFORM_SOCIAL_ENCRYPTION_KEY") == "" {
+		t.Setenv("PLATFORM_SOCIAL_ENCRYPTION_KEY", "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=")
+	}
 	ctx := context.Background()
 	admin, err := database.Open(ctx, base)
 	if err != nil {

@@ -46,6 +46,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/userorganization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/webhooks"
+
+	"entgo.io/ent/schema/field"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -222,10 +224,16 @@ func init() {
 	github.DefaultID = githubDescID.Default.(func() string)
 	integrationFields := schema.Integration{}.Fields()
 	_ = integrationFields
+	// integrationDescToken is the schema descriptor for token field.
+	integrationDescToken := integrationFields[8].Descriptor()
+	integration.ValueScanner.Token = integrationDescToken.ValueScanner.(field.TypeValueScanner[string])
 	// integrationDescDisabled is the schema descriptor for disabled field.
 	integrationDescDisabled := integrationFields[9].Descriptor()
 	// integration.DefaultDisabled holds the default value on creation for the disabled field.
 	integration.DefaultDisabled = integrationDescDisabled.Default.(bool)
+	// integrationDescRefreshToken is the schema descriptor for refresh_token field.
+	integrationDescRefreshToken := integrationFields[11].Descriptor()
+	integration.ValueScanner.RefreshToken = integrationDescRefreshToken.ValueScanner.(field.TypeValueScanner[*string])
 	// integrationDescCreatedAt is the schema descriptor for created_at field.
 	integrationDescCreatedAt := integrationFields[14].Descriptor()
 	// integration.DefaultCreatedAt holds the default value on creation for the created_at field.

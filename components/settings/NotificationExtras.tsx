@@ -4,6 +4,7 @@ import { Group, Row } from '@/components/platform-ui'
 import { SaveStatus, useSaveState } from '@/components/settings/controls'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { useSocialSets } from '@/components/settings/social-sets/api'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { SettingsRequestError, settingsErrorMessage } from '@/lib/settings/client'
 
@@ -106,16 +107,14 @@ export function SocialSetNotifications({
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {SET_KINDS.map((kind) => (
                   <label className="flex items-center gap-2 text-sm" key={kind.id}>
-                    <input
+                    <Checkbox
                       checked={value[set.id]?.[kind.id] ?? true}
-                      className="size-4 accent-violet-500"
-                      onChange={(event) =>
+                      onCheckedChange={(checked) =>
                         onChange({
                           ...value,
-                          [set.id]: { ...value[set.id], [kind.id]: event.target.checked },
+                          [set.id]: { ...value[set.id], [kind.id]: checked === true },
                         })
                       }
-                      type="checkbox"
                     />
                     {kind.label}
                   </label>

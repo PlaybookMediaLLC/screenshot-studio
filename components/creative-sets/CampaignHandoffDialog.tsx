@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import type { CreativeSetSession } from '@/lib/creative-sets/session'
 import { creativeSetHandoffSchema } from '@/lib/creative-sets/schema'
@@ -86,48 +93,49 @@ export function CampaignHandoffDialog({
           <>
             <label className="grid gap-1 text-sm">
               Campaign
-              <select
-                value={campaignId}
-                onChange={(event) => setCampaignId(event.target.value)}
-                className="rounded border bg-background p-2"
-              >
-                <option value="">Choose campaign…</option>
-                {campaigns.map((campaign) => (
-                  <option key={campaign.id} value={campaign.id}>
-                    {campaign.name}
-                  </option>
-                ))}
-              </select>
+              <Select value={campaignId} onValueChange={setCampaignId}>
+                <SelectTrigger aria-label="Campaign" className="w-full">
+                  <SelectValue placeholder="Choose campaign…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {campaigns.map((campaign) => (
+                    <SelectItem key={campaign.id} value={campaign.id}>
+                      {campaign.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
             <label className="grid gap-1 text-sm">
               Immutable delivered file
-              <select
-                value={deliveryId}
-                onChange={(event) => setDeliveryId(event.target.value)}
-                className="rounded border bg-background p-2"
-              >
-                <option value="">Choose a saved delivery…</option>
-                {delivered.map((delivery) => (
-                  <option key={delivery.id} value={delivery.id}>
-                    {delivery.fileName} · r{delivery.revision}
-                  </option>
-                ))}
-              </select>
+              <Select value={deliveryId} onValueChange={setDeliveryId}>
+                <SelectTrigger aria-label="Immutable delivered file" className="w-full">
+                  <SelectValue placeholder="Choose a saved delivery…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {delivered.map((delivery) => (
+                    <SelectItem key={delivery.id} value={delivery.id}>
+                      {delivery.fileName} · r{delivery.revision}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
             {!delivered.length ? (
               <p className="text-sm">Export a format and save it to workspace assets first.</p>
             ) : null}
             <label className="grid gap-1 text-sm">
               Post channel
-              <select
-                value={channel}
-                onChange={(event) => setChannel(event.target.value)}
-                className="rounded border bg-background p-2"
-              >
-                <option value="linkedin">LinkedIn</option>
-                <option value="x">X</option>
-                <option value="instagram">Instagram</option>
-              </select>
+              <Select value={channel} onValueChange={setChannel}>
+                <SelectTrigger aria-label="Post channel" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                  <SelectItem value="x">X</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                </SelectContent>
+              </Select>
             </label>
             <label className="grid gap-1 text-sm">
               Draft post

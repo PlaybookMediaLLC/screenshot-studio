@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { socialSetKey, type SocialSetRecord } from '@/components/settings/social-sets/api'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
 import { LocalTime } from '@/components/drafts/local-time'
@@ -236,16 +238,15 @@ export function ScheduleDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <Label className="grid content-start gap-1 text-xs text-neutral-400">
               Day
-              <Input
+              <DatePicker
                 aria-label="Day"
                 min={today}
-                onChange={(event) => {
-                  if (event.target.value >= today) {
-                    setDay(event.target.value)
+                onChange={(value) => {
+                  if (value >= today) {
+                    setDay(value)
                     setDisambiguation(null)
                   }
                 }}
-                type="date"
                 value={day}
               />
             </Label>
@@ -267,23 +268,26 @@ export function ScheduleDialog({
                   <legend className="text-amber-300">
                     {time} happens twice that day. Which one?
                   </legend>
-                  {(['earlier', 'later'] as const).map((option) => (
-                    <label className="flex items-center gap-2" key={option}>
-                      <input
-                        checked={disambiguation === option}
-                        name="disambiguation"
-                        onChange={() => setDisambiguation(option)}
-                        type="radio"
-                      />
-                      {option === 'earlier' ? 'The first' : 'The second'} (
-                      {resolution[option].toLocaleTimeString(undefined, {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        timeZoneName: 'short',
-                      })}
-                      )
-                    </label>
-                  ))}
+                  <RadioGroup
+                    className="gap-1"
+                    onValueChange={(value) =>
+                      setDisambiguation(value === 'later' ? 'later' : 'earlier')
+                    }
+                    value={disambiguation ?? ''}
+                  >
+                    {(['earlier', 'later'] as const).map((option) => (
+                      <label className="flex items-center gap-2" key={option}>
+                        <RadioGroupItem value={option} />
+                        {option === 'earlier' ? 'The first' : 'The second'} (
+                        {resolution[option].toLocaleTimeString(undefined, {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          timeZoneName: 'short',
+                        })}
+                        )
+                      </label>
+                    ))}
+                  </RadioGroup>
                 </fieldset>
               ) : null}
               {resolution.kind === 'gap' ? (

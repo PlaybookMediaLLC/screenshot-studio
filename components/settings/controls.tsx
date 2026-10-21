@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import type { SaveResult } from '@/components/settings/PreferencesProvider'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
 
 /** Where a save is: nothing yet, under way, confirmed by the server, or refused. */
@@ -77,7 +78,17 @@ export function ChoiceGroup<Value extends string>({
         <legend className="text-sm font-medium text-foreground">{legend}</legend>
         {status ? <SaveStatus state={status} /> : null}
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <RadioGroup
+        aria-label={legend}
+        className="sm:grid-cols-3"
+        disabled={disabled}
+        name={name}
+        onValueChange={(next) => {
+          const choice = choices.find((item) => item.value === next)
+          if (choice) onChange(choice.value)
+        }}
+        value={value ?? ''}
+      >
         {choices.map((choice) => (
           <label
             className={cn(
@@ -89,20 +100,13 @@ export function ChoiceGroup<Value extends string>({
             key={choice.value}
           >
             <span className="flex items-center gap-2 font-medium">
-              <input
-                checked={value === choice.value}
-                className="accent-current"
-                name={name}
-                onChange={() => onChange(choice.value)}
-                type="radio"
-                value={choice.value}
-              />
+              <RadioGroupItem value={choice.value} />
               {choice.label}
             </span>
             {choice.description ? <span className="text-xs text-muted-foreground">{choice.description}</span> : null}
           </label>
         ))}
-      </div>
+      </RadioGroup>
     </fieldset>
   )
 }

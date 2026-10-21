@@ -7,6 +7,7 @@ import {
   expectSaved,
   openNewDraft,
 } from './framework/content-drafts'
+import { chooseOption } from './framework/controls'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { unbindTestGoOrganization } from './framework/publishing'
 import { createE2EDatabase, queryRow } from './framework/services'
@@ -90,14 +91,15 @@ test('personal settings are addressable, saved on the server and survive a reloa
 
   await openWorkspaceSetting(page, 'Account')
   await page.getByLabel('Search display time zone').fill('Tokyo')
-  await page
-    .getByRole('combobox', { exact: true, name: 'Display time zone' })
-    .selectOption('Asia/Tokyo')
+  await chooseOption(
+    page.getByRole('combobox', { exact: true, name: 'Display time zone' }),
+    /^Tokyo · Asia\/Tokyo · /
+  )
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
   await page.reload()
-  await expect(page.getByRole('combobox', { exact: true, name: 'Display time zone' })).toHaveValue(
-    'Asia/Tokyo'
-  )
+  await expect(
+    page.getByRole('combobox', { exact: true, name: 'Display time zone' })
+  ).toContainText('Asia/Tokyo')
 
   // The registry says what each experiment is, and promoted or unavailable
   // ones cannot be switched.
@@ -164,11 +166,12 @@ test('social sets keep their own names, schedules and settings beside the compos
     await page.goto(`/workspace/social-sets/${setId}/scheduling`)
     await expect(page.getByTestId('weekly-slot-count')).toHaveText('5 weekly posting slots')
     await page.getByLabel('Search scheduling time zone').fill('Paris')
-    await page
-      .getByRole('combobox', { exact: true, name: 'Scheduling time zone' })
-      .selectOption('Europe/Paris')
+    await chooseOption(
+      page.getByRole('combobox', { exact: true, name: 'Scheduling time zone' }),
+      /^Paris · Europe\/Paris · /
+    )
     await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
-    await page.getByLabel('Time to add').selectOption('13:00')
+    await chooseOption(page.getByLabel('Time to add'), /^1:00\sPM$/)
     await page.getByRole('button', { name: 'Add time' }).click()
     await expect(page.getByTestId('weekly-slot-count')).toHaveText('10 weekly posting slots')
     await expect.poll(() => slotCount(setId)).toBe(10)
@@ -176,7 +179,7 @@ test('social sets keep their own names, schedules and settings beside the compos
     await expect(page.getByTestId('weekly-slot-count')).toHaveText('10 weekly posting slots')
     await expect(
       page.getByRole('combobox', { exact: true, name: 'Scheduling time zone' })
-    ).toHaveValue('Europe/Paris')
+    ).toContainText('Europe/Paris')
 
     // Settings open beside a draft without losing what was typed, and the
     // editor runs text in the direction Appearance chose.

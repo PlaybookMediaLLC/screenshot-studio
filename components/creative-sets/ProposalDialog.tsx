@@ -3,6 +3,13 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { applyStoryProposal } from '@/lib/creative-sets/proposals'
 import type { CreativeSetSession } from '@/lib/creative-sets/session'
@@ -72,19 +79,23 @@ export function ProposalDialog({
         </DialogDescription>
         <label className="grid gap-1 text-sm">
           Editing scope
-          <select
+          <Select
             disabled={busy}
-            className="rounded border bg-background p-2"
             value={scope}
-            onChange={(event) => {
-              setScope(event.target.value as 'story' | 'output')
+            onValueChange={(value) => {
+              setScope(value as 'story' | 'output')
               setProposals([])
               setSelected(null)
             }}
           >
-            <option value="output">This format · create a local override</option>
-            <option value="story">Story · update linked formats</option>
-          </select>
+            <SelectTrigger aria-label="Editing scope" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="output">This format · create a local override</SelectItem>
+              <SelectItem value="story">Story · update linked formats</SelectItem>
+            </SelectContent>
+          </Select>
         </label>
         <label className="grid gap-1 text-sm">
           Supplied product facts

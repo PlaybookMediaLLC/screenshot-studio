@@ -3,6 +3,7 @@
 import { useId, useMemo, useState, useSyncExternalStore } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 /** Every IANA zone this browser knows, with UTC always first. */
 function allZones(): string[] {
@@ -34,6 +35,9 @@ export function browserTimeZone(): string {
 }
 
 const subscribeNever = () => () => {}
+
+/** The Select's stand-in for "follow my browser", which saves as no zone. */
+const FOLLOW_BROWSER = '__browser__'
 
 /**
  * True in the browser after hydration. The zone list, the browser's zone and
@@ -103,25 +107,30 @@ export function TimeZonePicker({
           Detect
         </Button>
       </div>
-      <label className="grid gap-1 text-sm" htmlFor={`${id}-zone`}>
-        <span className="font-medium text-foreground">{label}</span>
-        <select
-          className="h-9 w-full min-w-0 rounded-lg border border-border bg-card px-2 text-sm text-foreground disabled:opacity-60"
+      <div className="grid gap-1 text-sm">
+        <label className="font-medium text-foreground" htmlFor={`${id}-zone`}>
+          {label}
+        </label>
+        <Select
           disabled={disabled}
-          id={`${id}-zone`}
-          onChange={(event) => onChange(event.target.value)}
-          value={value ?? ''}
+          onValueChange={(zone) => onChange(zone === FOLLOW_BROWSER ? '' : zone)}
+          value={value ?? (allowBrowser ? FOLLOW_BROWSER : '')}
         >
-          {allowBrowser ? (
-            <option value="">{browser ? `Follow my browser (${zoneLabel(browser)})` : 'Follow my browser'}</option>
-          ) : null}
-          {matches.map((zone) => (
-            <option key={zone} value={zone}>
-              {zoneLabel(zone)}
-            </option>
-          ))}
-        </select>
-      </label>
+          <SelectTrigger className="w-full min-w-0 bg-card text-foreground" id={`${id}-zone`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {allowBrowser ? (
+              <SelectItem value={FOLLOW_BROWSER}>{browser ? `Follow my browser (${zoneLabel(browser)})` : 'Follow my browser'}</SelectItem>
+            ) : null}
+            {matches.map((zone) => (
+              <SelectItem key={zone} value={zone}>
+                {zoneLabel(zone)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <p className="text-xs text-muted-foreground">
         {preview && effective ? `Now: ${preview} (${utcOffset(effective)})` : '\u00a0'}
       </p>

@@ -8,6 +8,7 @@ import { z } from 'zod'
 import type { CanvasDocument } from '@/lib/canvas/document'
 import { getActiveOrganizationId, getE2EUrl, signUpViaApi } from './framework/auth'
 import { requestJson, uploadSignedAsset } from './framework/browser'
+import { chooseOption } from './framework/controls'
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
 import { createE2EDatabase, grantWorkspacePlan, queryRow } from './framework/services'
 import { trpcMutation, trpcQuery } from './framework/trpc'
@@ -102,7 +103,7 @@ async function exportFiles(page: Page, options: { format?: string; only?: string
     for (const name of options.only)
       await dialog.getByRole('checkbox', { name: new RegExp(`^${name}`) }).check()
   }
-  if (options.format) await dialog.getByLabel('Export format').selectOption(options.format)
+  if (options.format) await chooseOption(dialog.getByLabel('Export format'), options.format)
   await dialog.getByRole('button', { name: /^Render \d+/ }).click()
   const download = dialog.getByRole('button', { name: /^Download/ })
   const refused = dialog.getByRole('alert')
@@ -195,7 +196,7 @@ test('A: a manual product announcement survives reload and exports what was comp
   await page.getByRole('button', { name: 'Top', exact: true }).click()
   await saved(page)
   await selectArtboard(page, '16:9')
-  await page.getByLabel('Size preset').selectOption('portrait-4x5')
+  await chooseOption(page.getByLabel('Size preset'), '4:5 · 1080 × 1350')
   await saved(page)
 
   const before = await stored(page, canvasId)
@@ -246,7 +247,7 @@ test('B: a multi-artboard campaign adapts formats, persists and exports a ZIP', 
   await saved(page)
   await page.getByLabel('Artboard name').fill('LinkedIn post')
   await page.getByLabel('Artboard name').press('Enter')
-  await page.getByLabel('Size preset').selectOption('linkedin-post')
+  await chooseOption(page.getByLabel('Size preset'), 'LinkedIn · 1200 × 627')
   await saved(page)
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'Tidy up' }).click()
@@ -370,7 +371,7 @@ test('C: a generated campaign design is refined on a canvas without touching its
     await saved(page)
     await clickEmptyBoard(page)
     await selectArtboard(page, 'Launch hero')
-    await page.getByLabel('Size preset').selectOption('square-1x1')
+    await chooseOption(page.getByLabel('Size preset'), '1:1 · 1080 × 1080')
     await saved(page)
     await page.getByRole('button', { name: 'History', exact: true }).click()
     await page.getByLabel('Version name').fill('Refined by hand')
@@ -400,7 +401,7 @@ test('C: a generated campaign design is refined on a canvas without touching its
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Campaign…', exact: true }).click()
     const handoff = page.getByRole('dialog', { name: 'Send to a campaign for review' })
-    await handoff.getByLabel('Campaign').selectOption(campaignId)
+    await chooseOption(handoff.getByLabel('Campaign'), 'Approvals launch')
     await handoff.getByLabel('Post copy').fill('Approve every launch in one queue.')
     await handoff.getByRole('button', { name: 'Attach for review' }).click()
     await expect(handoff.getByText('Attached as a draft for review.')).toBeVisible({

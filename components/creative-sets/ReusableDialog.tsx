@@ -3,6 +3,13 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { ProjectPreview } from '@/components/projects/ProjectPreview'
 import {
@@ -182,17 +189,21 @@ export function ReusableDialog({
             <div className="grid gap-3 rounded border p-3">
               <label className="grid gap-1 text-sm">
                 Publish from this output
-                <select
-                  className="rounded border bg-background p-2"
+                <Select
                   value={scope}
-                  onChange={(event) => setScope(reusableScopeSchema.parse(event.target.value))}
+                  onValueChange={(value) => setScope(reusableScopeSchema.parse(value))}
                 >
-                  {reusableScopeSchema.options.map((scope) => (
-                    <option key={scope} value={scope}>
-                      {labels[scope]}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger aria-label="Publish from this output" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reusableScopeSchema.options.map((scope) => (
+                      <SelectItem key={scope} value={scope}>
+                        {labels[scope]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </label>
               <label className="grid gap-1 text-sm">
                 Published name

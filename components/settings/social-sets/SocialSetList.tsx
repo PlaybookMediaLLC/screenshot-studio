@@ -12,6 +12,8 @@ import { socialSetHref } from '@/components/workspace/settings-sections'
 import { Button } from '@/components/ui/button'
 import { TimeZonePicker } from '@/components/settings/TimeZonePicker'
 import { Input } from '@/components/ui/input'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { copyableSocialSetSchema, socialSetRemovalSchema, socialSetSchema } from '@/lib/api/contracts/social-sets'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
@@ -124,34 +126,33 @@ function CreateSet({ canManage }: { canManage: boolean }) {
             </label>
             <label className="grid gap-1 text-sm">
               <span className="text-xs text-muted-foreground">Who can use it</span>
-              <select
-                className="h-9 rounded-lg border border-border bg-card px-2 text-sm text-foreground"
-                onChange={(event) => setVisibility(z.enum(['WORKSPACE', 'PRIVATE']).parse(event.target.value))}
-                value={visibility}
-              >
-                <option value="WORKSPACE">Everyone in the workspace</option>
-                <option value="PRIVATE">Only me</option>
-              </select>
+              <Select onValueChange={(next) => setVisibility(z.enum(['WORKSPACE', 'PRIVATE']).parse(next))} value={visibility}>
+                <SelectTrigger aria-label="Who can use it" className="bg-card text-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="WORKSPACE">Everyone in the workspace</SelectItem>
+                  <SelectItem value="PRIVATE">Only me</SelectItem>
+                </SelectContent>
+              </Select>
             </label>
             <Button disabled={!valid || creating} type="submit">
               {creating ? 'Creating…' : 'Create brand'}
             </Button>
           </div>
           <TimeZonePicker label="Scheduling time zone" value={timeZone} onChange={setTimeZone} />
-          <fieldset className="flex flex-wrap items-center gap-2">
-            <legend className="sr-only">Colour</legend>
+          <RadioGroup aria-label="Colour" className="flex flex-wrap items-center gap-2" name="new-set-color" onValueChange={setColor} value={color}>
             {SET_COLORS.map((option) => (
-              <label className="cursor-pointer" key={option.value} title={option.label}>
-                <input checked={color === option.value} className="peer sr-only" name="new-set-color" onChange={() => setColor(option.value)} type="radio" value={option.value} />
-                <span
-                  aria-hidden
-                  className="block size-6 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-background peer-checked:ring-foreground peer-focus-visible:ring-ring"
-                  style={{ backgroundColor: option.value }}
-                />
-                <span className="sr-only">{option.label}</span>
-              </label>
+              <RadioGroupItem
+                aria-label={option.label}
+                className="size-6 cursor-pointer border-0 shadow-none ring-2 ring-transparent ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:ring-foreground [&_svg]:hidden"
+                key={option.value}
+                style={{ backgroundColor: option.value }}
+                title={option.label}
+                value={option.value}
+              />
             ))}
-          </fieldset>
+          </RadioGroup>
         </form>
       </Row>
     </Group>
@@ -173,13 +174,8 @@ function Unassigned({ canManage, sets }: { canManage: boolean; sets: SocialSetRe
                 {account.displayName ?? account.handle ?? account.platform} <span className="text-muted-foreground">· {account.platform}</span>
               </span>
               {canManage ? (
-                <select
-                  aria-label={`Add ${account.displayName ?? account.platform} to a set`}
-                  className="h-8 rounded-lg border border-border bg-card px-2 text-sm"
-                  defaultValue=""
-                  onChange={async (event) => {
-                    const target = event.target.value
-                    if (!target) return
+                <Select
+                  onValueChange={async (target) => {
                     try {
                       await store(
                         await settingsRequest(
@@ -192,17 +188,21 @@ function Unassigned({ canManage, sets }: { canManage: boolean; sets: SocialSetRe
                       toast.success('Account added to the set.')
                     } catch (error) {
                       toast.error(settingsErrorMessage(error))
-                      event.target.value = ''
                     }
                   }}
+                  value=""
                 >
-                  <option value="">Add to a set…</option>
-                  {sets.map((set) => (
-                    <option key={set.id} value={set.id}>
-                      {set.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger aria-label={`Add ${account.displayName ?? account.platform} to a set`} className="bg-card" size="sm">
+                    <SelectValue placeholder="Add to a set…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sets.map((set) => (
+                      <SelectItem key={set.id} value={set.id}>
+                        {set.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : null}
             </li>
           ))}
@@ -269,12 +269,9 @@ function CopyFromWorkspace({ canManage }: { canManage: boolean }) {
         description="Copies a set's name, colour, schedule, defaults and style guide from another of your workspaces. Accounts are not copied: their access stays with their own workspace, so you connect them again here. The copy starts private to you."
         label="Copy from another workspace"
       >
-        <select
-          aria-label="Copy a brand from another workspace"
-          className="h-9 rounded-lg border border-border bg-card px-2 text-sm"
-          defaultValue=""
-          onChange={async (event) => {
-            const choice = items.find((item) => `${item.workspaceId}/${item.id}` === event.target.value)
+        <Select
+          onValueChange={async (value) => {
+            const choice = items.find((item) => `${item.workspaceId}/${item.id}` === value)
             if (!choice) return
             try {
               const copied = await settingsRequest('/api/v1/social-sets/copy', socialSetSchema, {
@@ -285,17 +282,21 @@ function CopyFromWorkspace({ canManage }: { canManage: boolean }) {
               window.location.assign(`${socialSetHref(copied.id)}#accounts`)
             } catch (error) {
               toast.error(settingsErrorMessage(error))
-              event.target.value = ''
             }
           }}
+          value=""
         >
-          <option value="">Choose a set…</option>
-          {items.map((item) => (
-            <option key={`${item.workspaceId}/${item.id}`} value={`${item.workspaceId}/${item.id}`}>
-              {item.name} · {item.workspaceName}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger aria-label="Copy a brand from another workspace" className="bg-card">
+            <SelectValue placeholder="Choose a set…" />
+          </SelectTrigger>
+          <SelectContent>
+            {items.map((item) => (
+              <SelectItem key={`${item.workspaceId}/${item.id}`} value={`${item.workspaceId}/${item.id}`}>
+                {item.name} · {item.workspaceName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Row>
     </Group>
   )

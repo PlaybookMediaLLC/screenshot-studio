@@ -7,6 +7,13 @@ import { usePrivateCreativeSurface } from './use-private-surface'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   DropdownMenu,
@@ -748,28 +755,31 @@ function SetWorkspace({
               <TabsContent value="layout">
                 <section className="space-y-4">
                   <h2 className="text-sm font-medium">Layout · this format</h2>
-                  <select
-                    aria-label="This format layout"
+                  <Select
                     value={active.composition.id}
                     disabled={!canEdit || !ready || active.format === 'original'}
-                    onChange={(event) =>
+                    onValueChange={(value) =>
                       run({
                         type: 'layout',
                         outputId: active.id,
-                        treatment: event.target.value as Treatment,
+                        treatment: value as Treatment,
                       })
                     }
-                    className="w-full rounded-md border bg-background p-2 text-sm"
                   >
-                    {!treatmentSchema.safeParse(active.composition.id).success ? (
-                      <option value={active.composition.id}>Imported composition</option>
-                    ) : null}
-                    {Object.entries(TREATMENTS).map(([id, label]) => (
-                      <option key={id} value={id}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger aria-label="This format layout" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {!treatmentSchema.safeParse(active.composition.id).success ? (
+                        <SelectItem value={active.composition.id}>Imported composition</SelectItem>
+                      ) : null}
+                      {Object.entries(TREATMENTS).map(([id, label]) => (
+                        <SelectItem key={id} value={id}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
                     Choosing a treatment rearranges managed layers. Custom copy and added layers
                     stay.
@@ -777,29 +787,32 @@ function SetWorkspace({
 
                   <label className="grid gap-1 text-xs">
                     Motion · this format
-                    <select
+                    <Select
                       disabled={!canEdit || !ready}
                       value=""
-                      className="rounded border bg-background p-2"
-                      onChange={(event) => {
+                      onValueChange={(value) => {
                         flushActive()
                         session.commit(
                           applyStoryMotion(
                             session.snapshot().document,
                             activeId,
-                            storyMotionSchema.parse(event.target.value)
+                            storyMotionSchema.parse(value)
                           )
                         )
                         useImageStore.setState({ showTimeline: true })
                       }}
                     >
-                      <option value="">Choose motion…</option>
-                      {storyMotionSchema.options.map((motion) => (
-                        <option key={motion} value={motion}>
-                          {STORY_MOTION[motion]}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger aria-label="Motion · this format" className="w-full">
+                        <SelectValue placeholder="Choose motion…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {storyMotionSchema.options.map((motion) => (
+                          <SelectItem key={motion} value={motion}>
+                            {STORY_MOTION[motion]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </label>
                   {active.document.timeline ? (
                     <Button
@@ -842,13 +855,12 @@ function SetWorkspace({
                       ? `${state.document.brand.name} · pinned v${state.document.brand.version}`
                       : 'Neutral bundled style'}
                   </p>
-                  <select
-                    aria-label="Preview workspace brand"
+                  <Select
                     value=""
                     disabled={!canEdit || !ready}
-                    onChange={(event) => {
+                    onValueChange={(value) => {
                       flushActive()
-                      const kit = kits.find((kit) => kit.id === event.target.value)
+                      const kit = kits.find((kit) => kit.id === value)
                       if (kit) {
                         const before = session.snapshot().document
                         void prepareSetBrand(session.client, before, kit)
@@ -856,15 +868,18 @@ function SetWorkspace({
                           .catch((error) => setError(error.message))
                       }
                     }}
-                    className="w-full rounded-md border bg-background p-2 text-sm"
                   >
-                    <option value="">Preview a brand kit…</option>
-                    {kits.map((kit) => (
-                      <option key={kit.id} value={kit.id}>
-                        {kit.name} · v{kit.version}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger aria-label="Preview workspace brand" className="w-full">
+                      <SelectValue placeholder="Preview a brand kit…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {kits.map((kit) => (
+                        <SelectItem key={kit.id} value={kit.id}>
+                          {kit.name} · v{kit.version}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </section>
               </TabsContent>
             </Tabs>

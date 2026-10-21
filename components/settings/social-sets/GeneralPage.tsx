@@ -11,6 +11,7 @@ import { DeveloperId } from '@/components/settings/DeveloperId'
 import { settingsHref, SETTINGS_SECTIONS, socialSetHref } from '@/components/workspace/settings-sections'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { socialSetRemovalSchema, socialSetSchema } from '@/lib/api/contracts/social-sets'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
@@ -51,28 +52,28 @@ function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRe
         </form>
       </Row>
       <Row label="Colour">
-        <fieldset className="flex flex-wrap items-center gap-2" disabled={!canManage}>
-          <legend className="sr-only">Brand colour</legend>
-          {SET_COLORS.map((option) => (
-            <label className="cursor-pointer" key={option.value} title={option.label}>
-              <input
-                checked={set.color === option.value}
-                className="peer sr-only"
-                name={`color-${set.id}`}
-                onChange={() => void runColor(() => save({ color: option.value }))}
-                type="radio"
+        <div className="flex flex-wrap items-center gap-2">
+          <RadioGroup
+            aria-label="Brand colour"
+            className="flex flex-wrap items-center gap-2"
+            disabled={!canManage}
+            name={`color-${set.id}`}
+            onValueChange={(color) => void runColor(() => save({ color }))}
+            value={set.color}
+          >
+            {SET_COLORS.map((option) => (
+              <RadioGroupItem
+                aria-label={option.label}
+                className="size-6 cursor-pointer border-0 shadow-none ring-2 ring-transparent ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:ring-foreground [&_svg]:hidden"
+                key={option.value}
+                style={{ backgroundColor: option.value }}
+                title={option.label}
                 value={option.value}
               />
-              <span
-                aria-hidden
-                className="block size-6 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-background peer-checked:ring-foreground peer-focus-visible:ring-ring"
-                style={{ backgroundColor: option.value }}
-              />
-              <span className="sr-only">{option.label}</span>
-            </label>
-          ))}
+            ))}
+          </RadioGroup>
           <SaveStatus state={colorState} />
-        </fieldset>
+        </div>
       </Row>
     </>
   )

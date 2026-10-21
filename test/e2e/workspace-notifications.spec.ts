@@ -183,7 +183,7 @@ test('workspace activity goes through controlled providers and deletes only seen
       Number(
         (
           await database.query(
-            'SELECT count(*) AS n FROM platform_notification_inbox WHERE "organizationId"=$1 AND "userId"=$2 AND kind=$3',
+            'SELECT count(*) AS n FROM platform_notification_inbox WHERE "organizationId"=$1 AND "userId"=$2 AND kind=$3 AND seen_at IS NULL',
             [workspace.id, session.user.id, 'source_app.connected']
           )
         ).rows[0].n
@@ -221,89 +221,41 @@ test('workspace activity goes through controlled providers and deletes only seen
     ).toBeVisible()
     await page.bringToFront()
 
-    let failedAck = false
-    await page.route('**/api/workspace/notifications/seen', async (route) => {
-      if (!failedAck) {
-        failedAck = true
-        await route.fulfill({
-          status: 503,
-          contentType: 'application/json',
-          body: '{"error":"Fixture interruption"}',
-        })
-        return
-      }
-      await route.continue()
-    })
-    const background = await page.context().newPage()
-    await background.goto('about:blank')
-    await page.bringToFront()
-    let showInbox!: () => void
-    const inboxGate = new Promise<void>((resolve) => {
-      showInbox = resolve
-    })
-    await page.route('**/api/workspace/notifications/inbox?*', async (route) => {
-      await inboxGate
-      await route.continue()
-    })
     await page
       .getByRole('button', { name: /^Notifications/ })
       .first()
       .click()
     const inbox = page.getByRole('dialog', { name: 'Notifications' })
-    const focus = await page.context().newCDPSession(page)
-    // Playwright forces focus on every page; disable that override for the background-tab check.
-    await focus.send('Emulation.setFocusEmulationEnabled', { enabled: false })
-    await background.bringToFront()
-    showInbox()
-    await expect(inbox.locator('[data-notification-id]').first()).toBeAttached()
-    await expect.poll(() => page.evaluate(() => document.hasFocus())).toBe(false)
-    await page.waitForTimeout(700)
+    await expect(inbox.locator('[data-notification-id]').first()).toBeVisible()
     expect(await inboxCount()).toBe(12)
-    await page.unroute('**/api/workspace/notifications/inbox?*')
-    await background.close()
-    await focus.send('Emulation.setFocusEmulationEnabled', { enabled: true })
-    await page.bringToFront()
-    await expect.poll(inboxCount).toBeLessThan(12)
-    expect(await inboxCount()).toBeGreaterThan(0)
-    await expect.poll(() => failedAck).toBe(true)
-    const firstID = await inbox
-      .locator('[data-notification-id]')
+    await page.keyboard.press('Escape')
+    expect(await inboxCount()).toBe(12)
+    await page
+      .getByRole('button', { name: /^Notifications/ })
       .first()
-      .getAttribute('data-notification-id')
-    await expect
-      .poll(async () =>
-        Number(
-          (
-            await database.query(
-              'SELECT count(*) AS n FROM platform_notification_inbox WHERE id=$1',
-              [firstID]
-            )
-          ).rows[0].n
-        )
-      )
-      .toBe(0)
-    await expect(inbox.locator(`[data-notification-id="${firstID}"]`)).toBeVisible()
-    await page.screenshot({ path: '.context/workspace-notifications.png', fullPage: false })
+      .click()
+    const first = inbox.locator('[data-notification-id]').first()
+    const firstID = await first.getAttribute('data-notification-id')
+    await first.getByRole('button', { name: 'Mark as seen', exact: true }).click()
+    await expect.poll(inboxCount).toBe(11)
+    await expect(first.getByRole('button', { name: 'Mark as unseen' })).toBeVisible()
     await page.keyboard.press('Escape')
     await page
       .getByRole('button', { name: /^Notifications/ })
       .first()
       .click()
-    await expect(inbox.locator(`[data-notification-id="${firstID}"]`)).toHaveCount(0)
-    await inbox.getByRole('button', { name: 'Mark all seen' }).click()
+    await expect(inbox.locator(`[data-notification-id="${firstID}"]`)).toBeVisible()
+    await inbox.getByRole('button', { name: 'Mark all as seen' }).click()
     await expect.poll(inboxCount).toBe(0)
     await expect(
-      peer.getByRole('button', { name: 'Notifications', exact: true }).first()
+      peer.getByRole('button', { name: 'Notifications, 0 unseen', exact: true }).first()
     ).toBeVisible()
+    await page.getByRole('button', { name: 'Undo', exact: true }).click()
+    await expect.poll(inboxCount).toBe(11)
+    await inbox.getByRole('button', { name: 'Mark all as seen' }).click()
+    await expect.poll(inboxCount).toBe(0)
     await peer.close()
     await page.keyboard.press('Escape')
-    await page
-      .getByRole('button', { name: /^Notifications/ })
-      .first()
-      .click()
-    await expect(inbox.getByText('You’re all caught up.')).toBeVisible()
-    await page.keyboard.press('Escape')
-    await focus.detach()
 
     await page.getByRole('button', { name: 'My notifications', exact: true }).click()
     const personalEmail = page.getByLabel('Source connected: your email preference', {
@@ -354,7 +306,7 @@ test('workspace activity goes through controlled providers and deletes only seen
       .filter({ visible: true })
       .click()
     await expect(inbox).toBeVisible()
-    await expect.poll(inboxCount).toBe(0)
+    await expect.poll(inboxCount).toBe(1)
     await page.screenshot({ path: '.context/workspace-notifications-mobile.png' })
   } finally {
     await otherContext.close()

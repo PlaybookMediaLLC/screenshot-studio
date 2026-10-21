@@ -29,6 +29,12 @@ const (
 	FieldDescription = "description"
 	// FieldHref holds the string denoting the href field in the database.
 	FieldHref = "href"
+	// FieldSeenAt holds the string denoting the seen_at field in the database.
+	FieldSeenAt = "seen_at"
+	// FieldSeenActionID holds the string denoting the seen_action_id field in the database.
+	FieldSeenActionID = "seen_action_id"
+	// FieldContext holds the string denoting the context field in the database.
+	FieldContext = "context"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// Table holds the table name of the platformnotificationinbox in the database.
@@ -46,6 +52,9 @@ var Columns = []string{
 	FieldResourceID,
 	FieldDescription,
 	FieldHref,
+	FieldSeenAt,
+	FieldSeenActionID,
+	FieldContext,
 	FieldCreatedAt,
 }
 
@@ -60,6 +69,10 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultSeenActionID holds the default value on creation for the "seen_action_id" field.
+	DefaultSeenActionID string
+	// DefaultContext holds the default value on creation for the "context" field.
+	DefaultContext map[string]interface{}
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 )
@@ -110,6 +123,16 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByHref orders the results by the href field.
 func ByHref(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldHref, opts...).ToFunc()
+}
+
+// BySeenAt orders the results by the seen_at field.
+func BySeenAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSeenAt, opts...).ToFunc()
+}
+
+// BySeenActionID orders the results by the seen_action_id field.
+func BySeenActionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSeenActionID, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

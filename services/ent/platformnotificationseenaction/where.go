@@ -84,6 +84,11 @@ func DeletedCount(v int) predicate.PlatformNotificationSeenAction {
 	return predicate.PlatformNotificationSeenAction(sql.FieldEQ(FieldDeletedCount, v))
 }
 
+// UndoneAt applies equality check predicate on the "undone_at" field. It's identical to UndoneAtEQ.
+func UndoneAt(v time.Time) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldEQ(FieldUndoneAt, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.PlatformNotificationSeenAction {
 	return predicate.PlatformNotificationSeenAction(sql.FieldEQ(FieldCreatedAt, v))
@@ -322,6 +327,56 @@ func DeletedCountLT(v int) predicate.PlatformNotificationSeenAction {
 // DeletedCountLTE applies the LTE predicate on the "deleted_count" field.
 func DeletedCountLTE(v int) predicate.PlatformNotificationSeenAction {
 	return predicate.PlatformNotificationSeenAction(sql.FieldLTE(FieldDeletedCount, v))
+}
+
+// UndoneAtEQ applies the EQ predicate on the "undone_at" field.
+func UndoneAtEQ(v time.Time) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldEQ(FieldUndoneAt, v))
+}
+
+// UndoneAtNEQ applies the NEQ predicate on the "undone_at" field.
+func UndoneAtNEQ(v time.Time) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldNEQ(FieldUndoneAt, v))
+}
+
+// UndoneAtIn applies the In predicate on the "undone_at" field.
+func UndoneAtIn(vs ...time.Time) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldIn(FieldUndoneAt, vs...))
+}
+
+// UndoneAtNotIn applies the NotIn predicate on the "undone_at" field.
+func UndoneAtNotIn(vs ...time.Time) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldNotIn(FieldUndoneAt, vs...))
+}
+
+// UndoneAtGT applies the GT predicate on the "undone_at" field.
+func UndoneAtGT(v time.Time) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldGT(FieldUndoneAt, v))
+}
+
+// UndoneAtGTE applies the GTE predicate on the "undone_at" field.
+func UndoneAtGTE(v time.Time) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldGTE(FieldUndoneAt, v))
+}
+
+// UndoneAtLT applies the LT predicate on the "undone_at" field.
+func UndoneAtLT(v time.Time) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldLT(FieldUndoneAt, v))
+}
+
+// UndoneAtLTE applies the LTE predicate on the "undone_at" field.
+func UndoneAtLTE(v time.Time) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldLTE(FieldUndoneAt, v))
+}
+
+// UndoneAtIsNil applies the IsNil predicate on the "undone_at" field.
+func UndoneAtIsNil() predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldIsNull(FieldUndoneAt))
+}
+
+// UndoneAtNotNil applies the NotNil predicate on the "undone_at" field.
+func UndoneAtNotNil() predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldNotNull(FieldUndoneAt))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

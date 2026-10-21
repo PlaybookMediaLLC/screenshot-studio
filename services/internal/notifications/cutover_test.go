@@ -64,8 +64,8 @@ func TestLegacyImportRequiresVerifiedMappingsAndNeverFansOut(t *testing.T) {
 		t.Fatal(err)
 	}
 	page, _ = f.s.List(ctx, f.owner, "")
-	if len(page.Items) != 0 {
-		t.Fatal("import recreated acknowledged content")
+	if len(page.Items) != 1 || page.Items[0].SeenAt == nil || page.UnseenCount != 0 {
+		t.Fatal("import changed retained seen content")
 	}
 	if err = f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_delivery WHERE "organizationId"=$1 AND channel<>'in_app'`, f.owner.OrganizationID).Scan(&external); err != nil || external != 0 {
 		t.Fatal("historical external fan-out", err)
@@ -86,7 +86,7 @@ func TestConcurrentMarkAllReusesCompletedAction(t *testing.T) {
 	for range 4 {
 		group.Go(func() {
 			result, err := f.s.Seen(ctx, f.owner, nil, true, key)
-			if err != nil || result.Deleted != 8 {
+			if err != nil || result.Updated != 8 {
 				t.Errorf("concurrent receipt=%+v err=%v", result, err)
 			}
 		})
@@ -97,7 +97,7 @@ func TestConcurrentMarkAllReusesCompletedAction(t *testing.T) {
 		t.Fatal(err)
 	}
 	result, err := f.s.Seen(ctx, f.owner, nil, true, key)
-	if err != nil || result.Deleted != 8 || result.UnseenCount != 1 {
+	if err != nil || result.Updated != 8 || result.UnseenCount != 1 {
 		t.Fatalf("retry consumed later arrival: %+v %v", result, err)
 	}
 }

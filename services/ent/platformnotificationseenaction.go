@@ -25,6 +25,8 @@ type PlatformNotificationSeenAction struct {
 	RequestKey string `json:"request_key,omitempty"`
 	// DeletedCount holds the value of the "deleted_count" field.
 	DeletedCount int `json:"deleted_count,omitempty"`
+	// UndoneAt holds the value of the "undone_at" field.
+	UndoneAt *time.Time `json:"undone_at,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt    time.Time `json:"created_at,omitempty"`
 	selectValues sql.SelectValues
@@ -39,7 +41,7 @@ func (*PlatformNotificationSeenAction) scanValues(columns []string) ([]any, erro
 			values[i] = new(sql.NullInt64)
 		case platformnotificationseenaction.FieldID, platformnotificationseenaction.FieldOrganizationID, platformnotificationseenaction.FieldUserID, platformnotificationseenaction.FieldRequestKey:
 			values[i] = new(sql.NullString)
-		case platformnotificationseenaction.FieldCreatedAt:
+		case platformnotificationseenaction.FieldUndoneAt, platformnotificationseenaction.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -85,6 +87,13 @@ func (_m *PlatformNotificationSeenAction) assignValues(columns []string, values 
 				return fmt.Errorf("unexpected type %T for field deleted_count", values[i])
 			} else if value.Valid {
 				_m.DeletedCount = int(value.Int64)
+			}
+		case platformnotificationseenaction.FieldUndoneAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field undone_at", values[i])
+			} else if value.Valid {
+				_m.UndoneAt = new(time.Time)
+				*_m.UndoneAt = value.Time
 			}
 		case platformnotificationseenaction.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -139,6 +148,11 @@ func (_m *PlatformNotificationSeenAction) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("deleted_count=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DeletedCount))
+	builder.WriteString(", ")
+	if v := _m.UndoneAt; v != nil {
+		builder.WriteString("undone_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

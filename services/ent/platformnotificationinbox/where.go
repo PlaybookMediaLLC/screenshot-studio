@@ -104,6 +104,16 @@ func Href(v string) predicate.PlatformNotificationInbox {
 	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldHref, v))
 }
 
+// SeenAt applies equality check predicate on the "seen_at" field. It's identical to SeenAtEQ.
+func SeenAt(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldSeenAt, v))
+}
+
+// SeenActionID applies equality check predicate on the "seen_action_id" field. It's identical to SeenActionIDEQ.
+func SeenActionID(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldSeenActionID, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.PlatformNotificationInbox {
 	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldCreatedAt, v))
@@ -627,6 +637,121 @@ func HrefEqualFold(v string) predicate.PlatformNotificationInbox {
 // HrefContainsFold applies the ContainsFold predicate on the "href" field.
 func HrefContainsFold(v string) predicate.PlatformNotificationInbox {
 	return predicate.PlatformNotificationInbox(sql.FieldContainsFold(FieldHref, v))
+}
+
+// SeenAtEQ applies the EQ predicate on the "seen_at" field.
+func SeenAtEQ(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldSeenAt, v))
+}
+
+// SeenAtNEQ applies the NEQ predicate on the "seen_at" field.
+func SeenAtNEQ(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNEQ(FieldSeenAt, v))
+}
+
+// SeenAtIn applies the In predicate on the "seen_at" field.
+func SeenAtIn(vs ...time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldIn(FieldSeenAt, vs...))
+}
+
+// SeenAtNotIn applies the NotIn predicate on the "seen_at" field.
+func SeenAtNotIn(vs ...time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNotIn(FieldSeenAt, vs...))
+}
+
+// SeenAtGT applies the GT predicate on the "seen_at" field.
+func SeenAtGT(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldGT(FieldSeenAt, v))
+}
+
+// SeenAtGTE applies the GTE predicate on the "seen_at" field.
+func SeenAtGTE(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldGTE(FieldSeenAt, v))
+}
+
+// SeenAtLT applies the LT predicate on the "seen_at" field.
+func SeenAtLT(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldLT(FieldSeenAt, v))
+}
+
+// SeenAtLTE applies the LTE predicate on the "seen_at" field.
+func SeenAtLTE(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldLTE(FieldSeenAt, v))
+}
+
+// SeenAtIsNil applies the IsNil predicate on the "seen_at" field.
+func SeenAtIsNil() predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldIsNull(FieldSeenAt))
+}
+
+// SeenAtNotNil applies the NotNil predicate on the "seen_at" field.
+func SeenAtNotNil() predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNotNull(FieldSeenAt))
+}
+
+// SeenActionIDEQ applies the EQ predicate on the "seen_action_id" field.
+func SeenActionIDEQ(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldSeenActionID, v))
+}
+
+// SeenActionIDNEQ applies the NEQ predicate on the "seen_action_id" field.
+func SeenActionIDNEQ(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNEQ(FieldSeenActionID, v))
+}
+
+// SeenActionIDIn applies the In predicate on the "seen_action_id" field.
+func SeenActionIDIn(vs ...string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldIn(FieldSeenActionID, vs...))
+}
+
+// SeenActionIDNotIn applies the NotIn predicate on the "seen_action_id" field.
+func SeenActionIDNotIn(vs ...string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNotIn(FieldSeenActionID, vs...))
+}
+
+// SeenActionIDGT applies the GT predicate on the "seen_action_id" field.
+func SeenActionIDGT(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldGT(FieldSeenActionID, v))
+}
+
+// SeenActionIDGTE applies the GTE predicate on the "seen_action_id" field.
+func SeenActionIDGTE(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldGTE(FieldSeenActionID, v))
+}
+
+// SeenActionIDLT applies the LT predicate on the "seen_action_id" field.
+func SeenActionIDLT(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldLT(FieldSeenActionID, v))
+}
+
+// SeenActionIDLTE applies the LTE predicate on the "seen_action_id" field.
+func SeenActionIDLTE(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldLTE(FieldSeenActionID, v))
+}
+
+// SeenActionIDContains applies the Contains predicate on the "seen_action_id" field.
+func SeenActionIDContains(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldContains(FieldSeenActionID, v))
+}
+
+// SeenActionIDHasPrefix applies the HasPrefix predicate on the "seen_action_id" field.
+func SeenActionIDHasPrefix(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldHasPrefix(FieldSeenActionID, v))
+}
+
+// SeenActionIDHasSuffix applies the HasSuffix predicate on the "seen_action_id" field.
+func SeenActionIDHasSuffix(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldHasSuffix(FieldSeenActionID, v))
+}
+
+// SeenActionIDEqualFold applies the EqualFold predicate on the "seen_action_id" field.
+func SeenActionIDEqualFold(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldEqualFold(FieldSeenActionID, v))
+}
+
+// SeenActionIDContainsFold applies the ContainsFold predicate on the "seen_action_id" field.
+func SeenActionIDContainsFold(v string) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldContainsFold(FieldSeenActionID, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

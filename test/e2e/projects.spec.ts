@@ -77,6 +77,7 @@ test('unsaved changes survive a reload before autosave runs', async ({ identity,
   await expect(projectButton(page, 'Interrupted', 'Offline, saved on this device')).toBeVisible({
     timeout: 30_000,
   })
+  await expect(page.getByText('Your project has not been saved', { exact: true })).toBeVisible()
   // Let the draft autosave (1 s) write the edit before reloading.
   await page.waitForTimeout(2_000)
   await page.reload()

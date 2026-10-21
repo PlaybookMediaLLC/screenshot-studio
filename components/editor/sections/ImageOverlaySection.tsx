@@ -1,5 +1,8 @@
 'use client';
 
+import { validateImageContents } from '@/lib/editor/import-images';
+import { toast } from 'sonner';
+
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
 import { SectionWrapper } from './SectionWrapper';
@@ -24,10 +27,14 @@ export function ImageOverlaySection() {
     useImageStore();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleAddImage = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddImage = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
-    Array.from(files).forEach((file) => {
+    const selected = Array.from(files);
+    e.target.value = '';
+    for (const file of selected) {
+      const error = await validateImageContents(file);
+      if (error) { toast.error(error); continue; }
       const url = URL.createObjectURL(file);
       addImageOverlay({
         src: url,
@@ -40,8 +47,7 @@ export function ImageOverlaySection() {
         isVisible: true,
         isCustom: true,
       });
-    });
-    e.target.value = '';
+    }
   }, [addImageOverlay]);
 
   const totalLayers =
@@ -56,7 +62,7 @@ export function ImageOverlaySection() {
         <Input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/webp"
           multiple
           className="hidden"
           onChange={handleAddImage}

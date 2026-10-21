@@ -39,6 +39,7 @@ test('a published design opens for anyone, previews, embeds, can be restricted, 
   await dialog.getByLabel('Title').fill('Launch preview')
   await dialog.getByLabel('Description').fill('The new dashboard, ready for review.')
   await dialog.getByLabel('Alt text').fill('A blue dashboard screenshot')
+  await dialog.getByRole('button', { name: 'Anyone with the link', exact: true }).click()
   await dialog.getByRole('button', { name: 'Publish link' }).click()
   const published = page.getByRole('dialog', { name: 'Published' })
   await expect(published).toBeVisible({ timeout: 60_000 })

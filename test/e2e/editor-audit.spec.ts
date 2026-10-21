@@ -208,7 +208,7 @@ test('editor sections preserve projects, selection, uploaded assets and independ
   await switchEditor(page, 'Screenshot editor')
   await expect(page.locator('[data-text-overlay-id]:visible')).toContainText('Main editor audit')
   expect(new URL(page.url()).searchParams.get('project')).toBe(projectId)
-  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await page.getByRole('button', { name: 'Export', exact: true }).click()
   await page.getByRole('button', { name: 'PNG', exact: true }).click()
   const mainDownload = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export as PNG', exact: true }).click()

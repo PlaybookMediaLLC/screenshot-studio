@@ -156,7 +156,7 @@ export function EditorAiPanel() {
       <Button
         aria-expanded={open}
         aria-label="Open the AI copilot"
-        className="fixed bottom-4 right-4 z-40 gap-1.5 rounded-full shadow-lg"
+        className="fixed bottom-4 right-4 lg:right-[276px] z-40 gap-1.5 rounded-full shadow-lg"
         onClick={() => (open ? setOpen(false) : openCopilot(false))}
         size="sm"
         type="button"

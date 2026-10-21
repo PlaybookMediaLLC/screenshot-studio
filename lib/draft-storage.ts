@@ -6,6 +6,7 @@ const DB_NAME = 'screenshotstudio-db';
 const DB_VERSION = 1;
 const STORE_NAME = 'drafts';
 const DRAFT_KEY = 'screenshotstudio-draft';
+let draftTimestamp: number | null | undefined;
 
 // Auto cleanup configuration
 const MAX_DRAFT_AGE_DAYS = 7;
@@ -36,7 +37,7 @@ export interface DraftStorage {
  */
 export type SaveDraftResult =
   | { ok: true }
-  | { ok: false; reason: 'quota' | 'error'; error?: unknown };
+  | { ok: false; reason: 'quota' | 'error' | 'conflict'; error?: unknown };
 
 function isQuotaExceeded(error: unknown): boolean {
   return (
@@ -125,7 +126,7 @@ export async function saveDraft(imageState: PersistedImageState): Promise<SaveDr
   const draft: DraftStorage = {
     id: DRAFT_KEY,
     imageState,
-    timestamp: Date.now(),
+    timestamp: Math.max(Date.now(), (draftTimestamp ?? 0) + 1),
   };
 
   return new Promise<SaveDraftResult>((resolve) => {
@@ -154,12 +155,30 @@ export async function saveDraft(imageState: PersistedImageState): Promise<SaveDr
         error: tx.error,
       });
 
-    tx.oncomplete = () => finish({ ok: true });
+    tx.oncomplete = () => {
+      if (settled) return;
+      draftTimestamp = draft.timestamp;
+      finish({ ok: true });
+    };
     tx.onabort = fail;
     tx.onerror = fail;
 
     try {
-      tx.objectStore(STORE_NAME).put(draft);
+      const store = tx.objectStore(STORE_NAME);
+      const current = store.get(DRAFT_KEY);
+      current.onsuccess = () => {
+        // The read and write share a transaction, so two tabs cannot both win.
+        if ((current.result?.timestamp ?? null) !== (draftTimestamp ?? null)) {
+          finish({ ok: false, reason: 'conflict' });
+          return;
+        }
+        try {
+          store.put(draft);
+        } catch (error) {
+          finish({ ok: false, reason: isQuotaExceeded(error) ? 'quota' : 'error', error });
+          tx.abort();
+        }
+      };
     } catch (error) {
       finish({ ok: false, reason: 'error', error });
     }
@@ -175,7 +194,10 @@ export async function getDraft(): Promise<DraftStorage | null> {
       const store = tx.objectStore(STORE_NAME);
       const request = store.get(DRAFT_KEY);
 
-      request.onsuccess = () => resolve(request.result as DraftStorage | null);
+      request.onsuccess = () => {
+        if (draftTimestamp === undefined) draftTimestamp = request.result?.timestamp ?? null;
+        resolve(request.result as DraftStorage | null);
+      };
       request.onerror = () => reject(request.error);
     });
   } catch {
@@ -192,7 +214,9 @@ export async function deleteDraft(): Promise<void> {
       const store = tx.objectStore(STORE_NAME);
       const request = store.delete(DRAFT_KEY);
 
-      request.onsuccess = () => resolve();
+      tx.oncomplete = () => { draftTimestamp = null; resolve(); };
+      tx.onabort = () => reject(tx.error);
+      tx.onerror = () => reject(tx.error);
       request.onerror = () => reject(request.error);
     });
   } catch {
@@ -209,7 +233,9 @@ export async function clearAllDrafts(): Promise<void> {
       const store = tx.objectStore(STORE_NAME);
       const request = store.clear();
 
-      request.onsuccess = () => resolve();
+      tx.oncomplete = () => { draftTimestamp = null; resolve(); };
+      tx.onabort = () => reject(tx.error);
+      tx.onerror = () => reject(tx.error);
       request.onerror = () => reject(request.error);
     });
   } catch {
@@ -224,8 +250,8 @@ export async function migrateFromLocalStorage(): Promise<void> {
     const oldData = localStorage.getItem('stage-draft');
     if (oldData) {
       const draft = JSON.parse(oldData) as DraftStorage;
-      await saveDraft(draft.imageState);
-      localStorage.removeItem('stage-draft');
+      const result = await saveDraft(draft.imageState);
+      if (result.ok) localStorage.removeItem('stage-draft');
     }
   } catch {
     try { localStorage.removeItem('stage-draft'); } catch { /* ignore */ }

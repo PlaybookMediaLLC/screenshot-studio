@@ -43,7 +43,7 @@ export function CleanUploadState() {
   const [colorScheme, setColorScheme] = React.useState<ColorScheme>('light')
   const [isCapturing, setIsCapturing] = React.useState(false)
 
-  const { setImage, setBrowserUrl, backgroundConfig, addTextOverlay } = useImageStore()
+  const { setBrowserUrl, backgroundConfig, addTextOverlay } = useImageStore()
   const containerRef = React.useRef<HTMLDivElement>(null)
 
   // Crossfade state
@@ -122,9 +122,13 @@ export function CleanUploadState() {
     }
   }, [backgroundConfig, backgroundStyle, activeLayer])
 
-  const handleFiles = React.useCallback((files: File[]) => {
-    const result = importImages(files)
-    setError(result.imported === 0 ? (result.rejected[0]?.reason ?? null) : null)
+  const handleFiles = React.useCallback(async (files: File[]) => {
+    try {
+      const result = await importImages(files)
+      setError(result.imported === 0 ? (result.rejected[0]?.reason ?? null) : null)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'The image could not be imported.')
+    }
   }, [])
 
   const onFileInputChange = React.useCallback(
@@ -197,8 +201,9 @@ export function CleanUploadState() {
       }
       const byteArray = new Uint8Array(byteNumbers)
       const blob = new Blob([byteArray], { type: 'image/png' })
-      const file = new File([blob], `screenshot-${colorScheme}.png`, { type: 'image/png' })
-      setImage(file)
+      const file = new File([blob], `${new URL(finalUrl).hostname}.png`, { type: 'image/png' })
+      const result = await importImages([file])
+      if (!result.imported) throw new Error(result.rejected[0]?.reason ?? 'The screenshot could not be imported.')
       // Show the captured page's address in the browser frame, not the default URL.
       setBrowserUrl(browserDisplayUrl(finalUrl))
       setScreenshotUrl('')

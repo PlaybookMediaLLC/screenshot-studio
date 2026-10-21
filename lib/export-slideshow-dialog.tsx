@@ -125,6 +125,12 @@ export function ExportSlideshowDialog({
   const { active: exporting, progress, abort } = useExportProgress();
   const [format, setFormat] = useState<VideoFormat>("mp4");
   const [quality, setQuality] = useState<VideoQuality>("high");
+  const [durationInput, setDurationInput] = useState(String(slideshow.defaultDuration));
+  const validDuration = durationInput.trim() !== '' && Number.isFinite(Number(durationInput)) &&
+    Number(durationInput) >= 0.5 && Number(durationInput) <= 30;
+  useEffect(() => {
+    if (open) setDurationInput(String(slideshow.defaultDuration));
+  }, [open, slideshow.defaultDuration]);
   const [mp4Supported, setMp4Supported] = useState(true);
 
   const hasMotion = useImageStore((state) => hasMotionContent(state.motion));
@@ -155,6 +161,10 @@ export function ExportSlideshowDialog({
   }, [open, hasAnimation]);
 
   const handleExport = async () => {
+    if (exportMode === 'slideshow') {
+      if (!validDuration) return;
+      setSlideshow({ defaultDuration: Number(durationInput) });
+    }
     try {
       const options: VideoExportOptions = { format, quality };
       let result;
@@ -334,14 +344,21 @@ export function ExportSlideshowDialog({
                       min={0.5}
                       max={30}
                       step={0.5}
-                      value={slideshow.defaultDuration}
-                      onChange={(e) =>
-                        setSlideshow({ defaultDuration: Number(e.target.value) || 3 })
-                      }
+                      aria-label="Slide Duration"
+                      aria-invalid={!validDuration}
+                      aria-describedby="slide-duration-help"
+                      value={durationInput}
+                      onChange={(e) => setDurationInput(e.target.value)}
+                      onBlur={() => {
+                        if (validDuration) setSlideshow({ defaultDuration: Number(durationInput) });
+                      }}
                       className="flex-1"
                     />
                     <span className="text-sm text-muted-foreground">seconds per slide</span>
                   </div>
+                  <p id="slide-duration-help" className={validDuration ? 'text-xs text-muted-foreground' : 'text-xs text-destructive'}>
+                    Enter a duration from 0.5 to 30 seconds.
+                  </p>
                 </div>
               )}
 
@@ -363,6 +380,7 @@ export function ExportSlideshowDialog({
               {/* Export Button */}
               <Button
                 onClick={handleExport}
+                disabled={exportMode === 'slideshow' && !validDuration}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                 size="lg"
               >

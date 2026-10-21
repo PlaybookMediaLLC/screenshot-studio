@@ -34,7 +34,7 @@ async function dropScreenshot(page: Page) {
 }
 
 async function exportCorner(page: Page) {
-  await page.getByRole('button', { exact: true, name: 'Save' }).click()
+  await page.getByRole('button', { exact: true, name: 'Export' }).click()
   await page.getByRole('button', { exact: true, name: 'PNG' }).click()
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export as PNG' }).click()

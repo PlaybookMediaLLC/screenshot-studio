@@ -46,7 +46,7 @@ import {
   updateScreenCode,
 } from '@/lib/frames/commands'
 import { useImageStore } from '@/lib/store'
-import { validateImageFile } from '@/lib/editor/import-images'
+import { validateImageContents } from '@/lib/editor/import-images'
 import { cn } from '@/lib/utils'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { screenshotFromAsset, screenshotFromUrl } from '@/lib/canvas/create'
@@ -324,10 +324,10 @@ function ScreenshotButtons({ disabled }: { disabled: boolean }) {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/png,image/jpeg,image/webp'
-    input.onchange = () => {
+    input.onchange = async () => {
       const file = input.files?.[0]
       if (!file) return
-      const problem = validateImageFile(file)
+      const problem = await validateImageContents(file)
       if (problem) toast.error(problem)
       else onFile(file)
     }

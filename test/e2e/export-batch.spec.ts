@@ -147,7 +147,7 @@ async function dropScreenshot(page: Page, size: Size) {
 }
 
 async function openSave(page: Page) {
-  await page.getByRole('button', { exact: true, name: 'Save' }).click()
+  await page.getByRole('button', { exact: true, name: 'Export' }).click()
   await expect(page.getByRole('group', { name: 'Format' })).toBeVisible()
 }
 

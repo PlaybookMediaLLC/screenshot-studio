@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useImageStore, withHistoryStep } from '@/lib/store';
 import { useDropzone } from 'react-dropzone';
 import { useResponsiveCanvasDimensions } from '@/hooks/useAspectRatioDimensions';
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from '@/lib/constants';
+import { MAX_IMAGE_SIZE } from '@/lib/constants';
 import {
   BACKGROUND_CATEGORY_LABELS,
   BACKGROUND_CATEGORY_ORDER,
@@ -13,6 +13,7 @@ import {
 } from '@/lib/r2-backgrounds';
 import { gradientColors, type GradientKey } from '@/lib/constants/gradient-colors';
 import { meshGradients, magicGradients, type MeshGradientKey, type MagicGradientKey } from '@/lib/constants/mesh-gradients';
+import { validateImageContents } from '@/lib/editor/import-images';
 import { ColorPicker } from '@/components/ui/color-picker'
 import { SectionWrapper } from './SectionWrapper';
 import { Cancel01Icon, Image01Icon, ShuffleIcon } from 'hugeicons-react';
@@ -90,7 +91,7 @@ function HexColorField({
           aria-label={`${label} gradient color`}
           type="color"
           value={value}
-          onChange={(event) => onChange(event.target.value.toUpperCase())}
+          onInput={(event) => onChange(event.currentTarget.value.toUpperCase())}
           className="size-5 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
         />
         <Input
@@ -159,21 +160,15 @@ export function BackgroundSection() {
     return null;
   }, [backgroundConfig]);
 
-  const validateFile = (file: File): string | null => {
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      return `File type not supported. Please use: PNG, JPG, WEBP`;
-    }
-    if (file.size > MAX_IMAGE_SIZE) {
-      return `File size too large. Maximum size is ${MAX_IMAGE_SIZE / 1024 / 1024}MB`;
-    }
-    return null;
-  };
-
+  const uploadSequence = React.useRef(0);
   const onBgDrop = React.useCallback(
-    (acceptedFiles: File[]) => {
+    async (acceptedFiles: File[]) => {
       if (acceptedFiles.length > 0) {
         const file = acceptedFiles[0];
-        const validationError = validateFile(file);
+        const sequence = ++uploadSequence.current;
+        const previous = useImageStore.getState().backgroundConfig;
+        const validationError = await validateImageContents(file);
+        if (sequence !== uploadSequence.current || previous !== useImageStore.getState().backgroundConfig) return;
         if (validationError) {
           setBgUploadError(validationError);
           return;
@@ -191,7 +186,7 @@ export function BackgroundSection() {
     getInputProps: getBgInputProps,
   } = useDropzone({
     onDrop: onBgDrop,
-    accept: { 'image/*': ALLOWED_IMAGE_TYPES.map((type) => type.split('/')[1]) },
+    accept: { 'image/png': ['.png'], 'image/jpeg': ['.jpg', '.jpeg'], 'image/webp': ['.webp'] },
     maxSize: MAX_IMAGE_SIZE,
     multiple: false,
   });
@@ -378,7 +373,7 @@ export function BackgroundSection() {
         <SectionWrapper
           key={category}
           title={BACKGROUND_CATEGORY_LABELS[category] || category}
-          defaultOpen={true}
+          defaultOpen={category === availableCategories[0]}
         >
           <div className="grid grid-cols-4 gap-2 p-1">
             {(backgroundCategories[category] || []).map((imagePath: string, idx: number) => (

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.32.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.0...v2.32.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **campaigns:** repair drafting, review, and campaign workflow ([#252](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/252)) ([bee52be](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/bee52be39b7dc019b8032a42399b712902681c87))
+
 ## [2.32.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.31.2...v2.32.0) (2026-10-21)
 
 

@@ -1,3 +1,5 @@
+import { draftCommentInputSchema, type DraftCommentInput } from './draft-comments.ts'
+export * from './draft-comments.ts'
 import { connectionAvailabilitySchema } from './social-availability.ts'
 import {
   workspaceCreationInputSchema,
@@ -2885,6 +2887,14 @@ export class ScreenshotStudioBackendSDK {
       body: input,
       method: 'POST',
     })
+  }
+
+  /** Apply a comment-only action with revision conflict protection. */
+  async mutateContentDraftComment(id: string, input: DraftCommentInput) {
+    return this.request<BackendContentDraft>(
+      `v1/content-drafts/${encodeURIComponent(id)}/comments`,
+      { body: draftCommentInputSchema.parse(input), method: 'POST' }
+    )
   }
 
   async shareContentDraft(id: string, enabled: boolean) {

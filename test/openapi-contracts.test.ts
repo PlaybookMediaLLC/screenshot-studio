@@ -15,6 +15,7 @@ import * as canvases from '@/lib/api/contracts/canvases'
 import * as contentDrafts from '@/lib/api/contracts/content-drafts'
 import * as contentDraftPlatform from '@/lib/api/contracts/content-draft-platform'
 import * as writeAi from '@/lib/api/contracts/write-ai'
+import * as draftComments from '@/lib/api/contracts/draft-comments'
 import * as draftTags from '@/lib/api/contracts/draft-tags'
 import * as integrations from '@/lib/api/contracts/integrations'
 import * as internal from '@/lib/api/contracts/internal'
@@ -57,6 +58,7 @@ const contracts = new Map<string, RouteContract>(
     writeAi,
     contentDrafts,
     draftTags,
+    draftComments,
     integrations,
     internal,
     linkPreview,

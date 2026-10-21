@@ -14,7 +14,7 @@ create a second membership or approval system.
 | `writer_publisher` | Write & Publish | Yes          | No      | Yes              | No                   | No             | No             |
 | `viewer`           | Read-only       | No           | No      | No               | No                   | No             | No             |
 
-Every role can read resources visible to that membership. Private social-set
+Every role can read and comment on resources visible to that membership. Private social-set
 ownership still restricts this access. `member` remains the legacy viewer alias;
 unknown roles never acquire writing or decision authority. Scheduling continues
 to require the current revision's approval when the workspace requires review.
@@ -71,8 +71,11 @@ and the local email sink. They never open Stripe or send public social posts.
 The auth helper supports production's separate sign-in and respects explicit
 429 responses without retrying unknown registration outcomes.
 
-T10 remains open: read-only/approver commenting still needs a dedicated authorized
-mutation path; the current discussion save shares draft-edit authority. T11's
+The dedicated [member-comment path](member-comments.md) now permits read-only,
+approver, and publisher discussions without document writes. Go validates the
+current human member, comment author, mentions, resource visibility, and version;
+comments preserve publication approval and existing content. T10 remains open
+for its broader invitation and collaboration contract. T11's
 complete acceptance/rejection/replay/revocation/expiry and concurrent seat checks
 remain separate work. T12 remains open until all other mutation, media,
 collaboration, notification, and delayed execution boundaries have been audited

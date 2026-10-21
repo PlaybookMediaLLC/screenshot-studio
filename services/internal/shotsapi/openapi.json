@@ -10465,6 +10465,119 @@
         ]
       }
     },
+    "/api/v1/content-drafts/{id}/comments": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Adds, replies, edits, deletes or resolves a comment on a visible draft. Every active member may comment; only its author may edit a comment, while owners/admins may also delete comments. Author identities and timestamps are server-owned. All changes require baseVersion. A repeated or stale action returns 409 without another mutation: read the draft to reconcile an uncertain outcome before submitting a new action. Comment-only changes preserve current approval and never change publication content. API keys are refused.",
+        "operationId": "mutateDraftComment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftCommentAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The committed discussion and draft version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftCommentResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid comment action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Draft or comment unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale draft version or reused comment identifier; reload before another action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The comment service is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Comment on an authorized draft",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
     "/openapi.json": {
       "get": {
         "operationId": "getOpenApiSpec",
@@ -17212,6 +17325,217 @@
           "organizations",
           "user",
           "workspace"
+        ],
+        "additionalProperties": false
+      },
+      "DraftCommentAction": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "const": "add"
+              },
+              "baseVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "commentId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "threadId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 5000
+              },
+              "mentionUserIds": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              }
+            },
+            "required": [
+              "action",
+              "baseVersion",
+              "commentId",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "const": "edit"
+              },
+              "baseVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "commentId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "threadId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 5000
+              },
+              "mentionUserIds": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              }
+            },
+            "required": [
+              "action",
+              "baseVersion",
+              "commentId",
+              "threadId",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "const": "delete"
+              },
+              "baseVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "commentId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "threadId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              }
+            },
+            "required": [
+              "action",
+              "baseVersion",
+              "commentId",
+              "threadId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "const": "resolve"
+              },
+              "baseVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "threadId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "resolved": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "action",
+              "baseVersion",
+              "threadId",
+              "resolved"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "DraftCommentResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "discussions": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "approvedVersion": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reviewStatus": {
+            "type": "string",
+            "enum": [
+              "none",
+              "pending",
+              "approved",
+              "changes_requested"
+            ]
+          },
+          "reviewNote": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewedByUserId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "discussions",
+          "approvedVersion",
+          "reviewStatus",
+          "reviewNote",
+          "reviewedByUserId"
         ],
         "additionalProperties": false
       },

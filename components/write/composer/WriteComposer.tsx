@@ -67,6 +67,7 @@ import { useKeys, useShortcuts } from '../shortcuts'
 import { DraftsDrawerButton } from '../WriteFrame'
 import { useWrite, type WriteSet } from '../write-context'
 import { CommentsPanel } from './comments'
+import { MemberComments } from './member-comments'
 import {
   CompareDialog,
   ManagePlatformsDialog,
@@ -530,6 +531,8 @@ export function WriteComposer({
       />
     ) : panel === 'preview' ? (
       <PreviewPanel items={items} target={document.target} />
+    ) : panel === 'comments' && !canEdit ? (
+      <MemberComments draft={server} currentUserId={user.id} onDraft={setServer} />
     ) : panel === 'comments' ? (
       <CommentsPanel
         draft={server}

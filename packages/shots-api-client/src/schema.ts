@@ -1104,6 +1104,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/content-drafts/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Comment on an authorized draft
+         * @description Adds, replies, edits, deletes or resolves a comment on a visible draft. Every active member may comment; only its author may edit a comment, while owners/admins may also delete comments. Author identities and timestamps are server-owned. All changes require baseVersion. A repeated or stale action returns 409 without another mutation: read the draft to reconcile an uncertain outcome before submitting a new action. Comment-only changes preserve current approval and never change publication content. API keys are refused.
+         */
+        post: operations["mutateDraftComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/openapi.json": {
         parameters: {
             query?: never;
@@ -2613,6 +2633,47 @@ export interface components {
                 locale: string;
                 timeZone: string;
             };
+        };
+        DraftCommentAction: {
+            /** @constant */
+            action: "add";
+            baseVersion: number;
+            commentId: string;
+            threadId?: string;
+            text: string;
+            mentionUserIds?: string[];
+        } | {
+            /** @constant */
+            action: "edit";
+            baseVersion: number;
+            commentId: string;
+            threadId: string;
+            text: string;
+            mentionUserIds?: string[];
+        } | {
+            /** @constant */
+            action: "delete";
+            baseVersion: number;
+            commentId: string;
+            threadId: string;
+        } | {
+            /** @constant */
+            action: "resolve";
+            baseVersion: number;
+            threadId: string;
+            resolved: boolean;
+        };
+        DraftCommentResult: {
+            id: string;
+            version: number;
+            discussions: {
+                [key: string]: unknown;
+            };
+            approvedVersion: number | null;
+            /** @enum {string} */
+            reviewStatus: "none" | "pending" | "approved" | "changes_requested";
+            reviewNote: string | null;
+            reviewedByUserId: string | null;
         };
         /** @description Every failing request returns this envelope. `code` is stable and safe to branch on; `error` and `message` carry the same human-readable text. */
         Error: {
@@ -7730,6 +7791,86 @@ export interface operations {
                 };
             };
             /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    mutateDraftComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftCommentAction"];
+            };
+        };
+        responses: {
+            /** @description The committed discussion and draft version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftCommentResult"];
+                };
+            };
+            /** @description Invalid comment action. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Draft or comment unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Stale draft version or reused comment identifier; reload before another action. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The comment service is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

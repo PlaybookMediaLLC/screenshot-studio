@@ -1,3 +1,4 @@
+import { mutateDraftCommentContract } from '@/lib/api/contracts/draft-comments'
 import {
   decideCampaignApprovalContract,
   listApprovalsContract,
@@ -133,4 +134,5 @@ export const documentedContracts = [
   getOrganizationPermissionsContract,
   getOrganizationCapabilitiesContract,
   activateOrganizationContract,
+  mutateDraftCommentContract,
 ]

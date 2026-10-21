@@ -6,15 +6,16 @@ export const roleSummaries: Record<OrganizationRole, string> = {
   admin:
     'Manage members, accounts, brand, approvals, and publishing. Billing stays with the owner.',
   creator: 'Create and edit drafts; cannot approve or publish.',
-  approver: 'Review and approve content; cannot publish.',
+  approver: 'Comment, review and approve content; cannot edit or publish drafts.',
   publisher: 'Schedule and publish approved content.',
   writer_publisher:
     'Create and edit drafts, then schedule and publish approved content. Cannot approve.',
-  viewer: 'View content without making changes.',
+  viewer: 'View content and comment; cannot edit or publish drafts.',
 }
 
 /** Capabilities mapped to the same permissions used by the server. */
 export const roleCapabilities: { label: string; permission: Permission }[] = [
+  { label: 'Comment on visible drafts', permission: 'artifact:read' },
   { label: 'Create drafts', permission: 'artifact:edit' },
   { label: 'Approve', permission: 'release:approve' },
   { label: 'Publish', permission: 'publish:manage' },

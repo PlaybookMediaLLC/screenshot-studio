@@ -1,0 +1,268 @@
+package product
+
+import (
+	"context"
+	"encoding/json"
+	"regexp"
+	"strings"
+	"time"
+	"unicode/utf8"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+)
+
+// ContentDraftCommentInput changes comments only; author, timestamps and content
+// nodes come from the server. BaseVersion makes a replay a conflict, not a second
+// comment. Clients reconcile uncertain outcomes by reading the draft.
+type ContentDraftCommentInput struct {
+	Action         string   `json:"action"`
+	BaseVersion    int      `json:"baseVersion"`
+	CommentID      string   `json:"commentId,omitempty"`
+	ThreadID       string   `json:"threadId,omitempty"`
+	Text           string   `json:"text,omitempty"`
+	MentionUserIDs []string `json:"mentionUserIds,omitempty"`
+	Resolved       *bool    `json:"resolved,omitempty"`
+}
+
+var draftCommentID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
+
+func validateDraftComment(input ContentDraftCommentInput) error {
+	if input.BaseVersion < 1 {
+		return invalid("baseVersion is required.")
+	}
+	if input.ThreadID != "" && !draftCommentID.MatchString(input.ThreadID) {
+		return invalid("Invalid discussion ID.")
+	}
+	switch input.Action {
+	case "add", "edit":
+		if !draftCommentID.MatchString(input.CommentID) || strings.TrimSpace(input.Text) == "" || utf8.RuneCountInString(input.Text) > 5000 || len(input.MentionUserIDs) > 20 || input.Resolved != nil {
+			return invalid("Write a comment of 1–5,000 characters with a stable ID.")
+		}
+		if input.Action == "edit" && input.ThreadID == "" {
+			return invalid("Choose the discussion to edit.")
+		}
+	case "delete":
+		if !draftCommentID.MatchString(input.CommentID) || input.ThreadID == "" || input.Text != "" || len(input.MentionUserIDs) != 0 || input.Resolved != nil {
+			return invalid("Choose the comment to delete.")
+		}
+	case "resolve":
+		if input.ThreadID == "" || input.Resolved == nil || input.CommentID != "" || input.Text != "" || len(input.MentionUserIDs) != 0 {
+			return invalid("Choose the discussion and its resolved state.")
+		}
+	default:
+		return invalid("Unknown comment action.")
+	}
+	return nil
+}
+
+// MutateContentDraftComment allows every current human member to comment on a
+// visible draft without gaining document, publication or collaboration writes.
+// The draft lock and version compare preserve simultaneous editor/comment saves.
+func (c *Configuration) MutateContentDraftComment(ctx context.Context, actor Actor, id string, input ContentDraftCommentInput) (*ContentDraftRecord, error) {
+	if !actor.IsSession() {
+		return nil, publishing.ErrForbidden
+	}
+	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
+		return nil, err
+	}
+	if err := validateDraftComment(input); err != nil {
+		return nil, err
+	}
+	tx, err := c.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	// Hold the authority rows until commitment: removal, session revocation and
+	// workspace deletion cannot race past the final membership check.
+	for _, query := range []struct {
+		sql  string
+		args []any
+	}{
+		{`SELECT id FROM organization WHERE id=$1 FOR SHARE`, []any{actor.OrganizationID}},
+		{`SELECT id FROM member WHERE "organizationId"=$1 AND "userId"=$2 FOR SHARE`, []any{actor.OrganizationID, actor.UserID}},
+		{`SELECT id FROM session WHERE id=$1 FOR SHARE`, []any{actor.SessionID}},
+		{`SELECT "organizationId" FROM workspace_entitlement WHERE "organizationId"=$1 FOR SHARE`, []any{actor.OrganizationID}},
+	} {
+		if _, err = tx.PlatformExec(ctx, query.sql, query.args...); err != nil {
+			return nil, err
+		}
+	}
+	if err = NewConfiguration(tx.Client()).authorizeContentDrafts(ctx, actor, false); err != nil {
+		return nil, err
+	}
+	if _, err = tx.PlatformExec(ctx, `SELECT id FROM content_draft WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, id, actor.OrganizationID); err != nil {
+		return nil, err
+	}
+	draft, err := visibleContentDraft(ctx, tx.Client(), actor, id)
+	if err != nil {
+		return nil, err
+	}
+	if draft.SocialSetID != nil {
+		if _, err = tx.PlatformExec(ctx, `SELECT id FROM social_set WHERE id=$1 AND "organizationId"=$2 FOR SHARE`, *draft.SocialSetID, actor.OrganizationID); err != nil {
+			return nil, err
+		}
+		draft, err = visibleContentDraft(ctx, tx.Client(), actor, id)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if draft.Version != input.BaseVersion {
+		return nil, publishing.ErrConflict
+	}
+	if input.Action == "add" {
+		used, err := tx.OutboxEvent.Query().Where(outboxevent.OrganizationID(actor.OrganizationID), outboxevent.IdempotencyKey("activity:comment.created:"+id+":"+input.CommentID)).Exist(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if used {
+			return nil, publishing.ErrConflict
+		}
+	}
+	role, err := memberRole(ctx, tx.Client(), actor.OrganizationID, actor.UserID)
+	if err != nil {
+		return nil, err
+	}
+	next, err := applyDraftComment(ctx, tx, actor, draft.Discussions, role, input)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = contentDraftDiscussions(next); err != nil {
+		return nil, err
+	}
+	if err = recordDiscussionActivity(ctx, tx, actor, draft, next); err != nil {
+		return nil, err
+	}
+	// Adding canonical member display records can increase the stored JSON size.
+	if _, err = contentDraftDiscussions(next); err != nil {
+		return nil, err
+	}
+	update := tx.ContentDraft.Update().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID), contentdraft.Version(input.BaseVersion)).SetDiscussions(next).AddVersion(1)
+	// Comment-only changes do not alter the approved publication content.
+	if draft.ApprovedVersion != nil && *draft.ApprovedVersion == draft.Version {
+		update.SetApprovedVersion(draft.Version + 1)
+	}
+	if _, err = update.Save(ctx); err != nil {
+		return nil, err
+	}
+	row, err := tx.ContentDraft.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err = appendConfigurationAudit(ctx, tx, actor, "product.content_draft_comment_"+input.Action, "content_draft", id, map[string]any{"commentId": input.CommentID, "threadId": input.ThreadID}); err != nil {
+		return nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+	result := contentDraftRecord(row)
+	return &result, nil
+}
+
+func applyDraftComment(ctx context.Context, tx *ent.Tx, actor Actor, stored map[string]any, role string, input ContentDraftCommentInput) (map[string]any, error) {
+	// Clone JSON so activity compares the original, including rich content and
+	// anchor metadata from the existing editor. Do not introduce another model.
+	raw, err := json.Marshal(nonNilDiscussions(stored))
+	if err != nil {
+		return nil, err
+	}
+	var next map[string]any
+	if err = json.Unmarshal(raw, &next); err != nil {
+		return nil, err
+	}
+	threads, _ := next["threads"].([]any)
+	var thread map[string]any
+	threadIndex := -1
+	for i, value := range threads {
+		candidate, ok := value.(map[string]any)
+		if !ok {
+			return nil, invalid("Invalid discussion data.")
+		}
+		if candidate["id"] == input.ThreadID {
+			thread, threadIndex = candidate, i
+		}
+		comments, _ := candidate["comments"].([]any)
+		for _, value := range comments {
+			comment, ok := value.(map[string]any)
+			if !ok {
+				return nil, invalid("Invalid comment data.")
+			}
+			if input.Action == "add" && comment["id"] == input.CommentID {
+				return nil, publishing.ErrConflict
+			}
+		}
+		if input.Action == "add" && input.ThreadID == "" && candidate["id"] == input.CommentID {
+			return nil, publishing.ErrConflict
+		}
+	}
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	if input.Action == "add" && input.ThreadID == "" {
+		thread = map[string]any{"id": input.CommentID, "userId": actor.UserID, "createdAt": now, "isResolved": false, "scope": "draft", "comments": []any{}}
+		threads = append(threads, thread)
+		threadIndex = len(threads) - 1
+	}
+	if thread == nil {
+		return nil, publishing.ErrNotFound
+	}
+	comments, _ := thread["comments"].([]any)
+	if input.Action == "resolve" {
+		thread["isResolved"] = *input.Resolved
+	} else {
+		var rich []any
+		if input.Action == "add" || input.Action == "edit" {
+			children := []any{map[string]any{"text": strings.TrimSpace(input.Text)}}
+			seen := map[string]bool{}
+			for _, userID := range input.MentionUserIDs {
+				if seen[userID] {
+					continue
+				}
+				seen[userID] = true
+				if _, err = memberRole(ctx, tx.Client(), actor.OrganizationID, userID); err != nil {
+					return nil, invalid("Mention a current workspace member.")
+				}
+				person, err := tx.User.Get(ctx, userID)
+				if err != nil {
+					return nil, err
+				}
+				children = append(children, map[string]any{"text": " "}, map[string]any{"type": "mention", "key": userID, "value": person.Name, "children": []any{map[string]any{"text": ""}}})
+			}
+			rich = []any{map[string]any{"type": "p", "children": children}}
+		}
+		if input.Action == "add" {
+			comments = append(comments, map[string]any{"id": input.CommentID, "userId": actor.UserID, "createdAt": now, "contentRich": rich, "isEdited": false})
+		} else {
+			found := false
+			for i, value := range comments {
+				comment, ok := value.(map[string]any)
+				if !ok {
+					return nil, invalid("Invalid comment data.")
+				}
+				if comment["id"] != input.CommentID {
+					continue
+				}
+				found = true
+				if comment["userId"] != actor.UserID && !(input.Action == "delete" && (role == "owner" || role == "admin")) {
+					return nil, publishing.ErrForbidden
+				}
+				if input.Action == "delete" {
+					comments = append(comments[:i], comments[i+1:]...)
+				} else {
+					comment["contentRich"], comment["isEdited"], comment["updatedAt"] = rich, true, now
+				}
+				break
+			}
+			if !found {
+				return nil, publishing.ErrNotFound
+			}
+		}
+		thread["comments"] = comments
+		if len(comments) == 0 {
+			threads = append(threads[:threadIndex], threads[threadIndex+1:]...)
+		}
+	}
+	next["threads"] = threads
+	return next, nil
+}

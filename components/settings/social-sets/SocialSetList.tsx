@@ -2,7 +2,6 @@
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
-import { useState } from 'react'
 import { toast } from 'sonner'
 import { ChannelIcon } from '@/components/drafts/channel-meta'
 import { EmptyState, Group, Pill, Row } from '@/components/platform-ui'
@@ -10,9 +9,6 @@ import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 import { DeveloperId } from '@/components/settings/DeveloperId'
 import { socialSetHref } from '@/components/workspace/settings-sections'
 import { Button } from '@/components/ui/button'
-import { TimeZonePicker } from '@/components/settings/TimeZonePicker'
-import { Input } from '@/components/ui/input'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Select,
   SelectContent,
@@ -31,7 +27,7 @@ import { useSocialSetScope } from './scope'
 import { z } from 'zod'
 import { Layers } from 'lucide-react'
 import { type SocialSetRecord, useSocialSets, useStoreSocialSet } from './api'
-import { SET_COLORS } from './colors'
+import { ConnectionLauncher } from '@/components/social-connections/ConnectionLauncher'
 
 function Platforms({ set }: { set: SocialSetRecord }) {
   if (set.accounts.length === 0)
@@ -55,7 +51,7 @@ function Platforms({ set }: { set: SocialSetRecord }) {
   )
 }
 
-function SetRow({ set }: { set: SocialSetRecord }) {
+function SetRow({ set, canManage }: { set: SocialSetRecord; canManage: boolean }) {
   return (
     <Row
       description={
@@ -87,14 +83,20 @@ function SetRow({ set }: { set: SocialSetRecord }) {
             <Link href={socialSetHref(set.id)}>Manage platforms</Link>
           </Button>
         ) : null}
-        <Button asChild size="sm" variant="outline">
-          <Link
-            aria-label={`Add a platform to ${set.name}`}
-            href={`${socialSetHref(set.id)}#accounts`}
+        {canManage ? (
+          <ConnectionLauncher
+            intent={{
+              operation: 'ADD_ACCOUNT',
+              socialSetId: set.id,
+              returnPath: socialSetHref(set.id),
+            }}
+            target={set}
           >
-            Add platform
-          </Link>
-        </Button>
+            <Button aria-label={`Add a platform to ${set.name}`} size="sm" variant="outline">
+              Add platform
+            </Button>
+          </ConnectionLauncher>
+        ) : null}
         <Button asChild size="sm">
           <Link aria-label={`Settings for ${set.name}`} href={socialSetHref(set.id)}>
             Settings
@@ -106,97 +108,24 @@ function SetRow({ set }: { set: SocialSetRecord }) {
 }
 
 function CreateSet({ canManage }: { canManage: boolean }) {
-  const scope = useSocialSetScope()
-  const store = useStoreSocialSet()
-  const [name, setName] = useState('')
-  const [color, setColor] = useState<string>(SET_COLORS[0]!.value)
-  const [timeZone, setTimeZone] = useState('UTC')
-  const [visibility, setVisibility] = useState<'WORKSPACE' | 'PRIVATE'>('WORKSPACE')
-  const [creating, setCreating] = useState(false)
-  const valid = name.trim().length > 0 && name.trim().length <= 80
-
-  const create = async () => {
-    setCreating(true)
-    try {
-      const created = await scope.request('/api/v1/social-sets', socialSetSchema, {
-        body: { color, name: name.trim(), visibility, timeZone },
-        method: 'POST',
-      })
-      await store(created)
-      toast.success(`${created.name} is ready. Connect its accounts next.`)
-      window.location.assign(`${socialSetHref(created.id)}#accounts`)
-    } catch (error) {
-      toast.error(settingsErrorMessage(error))
-      setCreating(false)
-    }
-  }
-
   if (!canManage) return null
   return (
     <Group>
       <Row
-        description="A set is the accounts one person or brand posts from, with its own schedule and voice."
-        label="New brand"
+        description="Start with a connected account, then add the platforms this person or brand posts from."
+        label="New social set"
         layout="stacked"
       >
-        <form
-          className="grid gap-3"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (valid) void create()
-          }}
-        >
-          <div className="flex flex-wrap items-end gap-2">
-            <label className="grid min-w-56 flex-1 gap-1 text-sm">
-              <span className="text-xs text-muted-foreground">Name</span>
-              <Input
-                maxLength={80}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Person or brand"
-                value={name}
-              />
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span className="text-xs text-muted-foreground">Who can use it</span>
-              <Select
-                onValueChange={(next) =>
-                  setVisibility(z.enum(['WORKSPACE', 'PRIVATE']).parse(next))
-                }
-                value={visibility}
-              >
-                <SelectTrigger aria-label="Who can use it" className="bg-card text-foreground">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="WORKSPACE">Everyone in the workspace</SelectItem>
-                  <SelectItem value="PRIVATE">Only me</SelectItem>
-                </SelectContent>
-              </Select>
-            </label>
-            <Button disabled={!valid || creating} type="submit">
-              {creating ? 'Creating…' : 'Create brand'}
+        <div className="flex flex-wrap gap-2">
+          <ConnectionLauncher intent={{ operation: 'CREATE_SET', creationVisibility: 'PRIVATE' }}>
+            <Button aria-label="Add social set to your personal workspace">
+              New private social set
             </Button>
-          </div>
-          <TimeZonePicker label="Scheduling time zone" value={timeZone} onChange={setTimeZone} />
-          <RadioGroup
-            aria-label="Colour"
-            className="flex flex-wrap items-center gap-2"
-            name="new-set-color"
-            onValueChange={setColor}
-            value={color}
-          >
-            {SET_COLORS.map((option) => (
-              <RadioGroupItem
-                aria-label={option.label}
-                className="size-6 cursor-pointer border-0 shadow-none ring-2 ring-transparent ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring data-[state=checked]:ring-foreground [&_svg]:hidden"
-                key={option.value}
-                style={{ backgroundColor: option.value }}
-                title={option.label}
-                value={option.value}
-              />
-            ))}
-          </RadioGroup>
-        </form>
+          </ConnectionLauncher>
+          <ConnectionLauncher intent={{ operation: 'CREATE_SET', creationVisibility: 'WORKSPACE' }}>
+            <Button variant="outline">New workspace social set</Button>
+          </ConnectionLauncher>
+        </div>
       </Row>
     </Group>
   )
@@ -402,7 +331,7 @@ export function SocialSetList({ canManage }: { canManage: boolean }) {
       ) : (
         <Group>
           {sets.map((set) => (
-            <SetRow key={set.id} set={set} />
+            <SetRow canManage={canManage} key={set.id} set={set} />
           ))}
         </Group>
       )}

@@ -9,7 +9,8 @@ import {
 } from './framework/content-drafts'
 import { chooseOption } from './framework/controls'
 import { configureE2EFlow, expect, test } from './framework/flow'
-import { unbindTestGoOrganization } from './framework/publishing'
+import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
+import { socialSetSchema } from '../../lib/api/contracts/social-sets'
 import { createE2EDatabase, queryRow } from './framework/services'
 
 configureE2EFlow()
@@ -153,11 +154,12 @@ test('social sets keep their own names, schedules and settings beside the compos
     // Two sets may share a name; each is its own by ID.
     const ids: string[] = []
     for (let i = 0; i < 2; i++) {
-      await page.goto('/workspace/social-sets')
-      await page.getByPlaceholder('Person or brand').fill('Brand')
-      await page.getByRole('button', { name: 'Create brand' }).click()
-      await page.waitForURL(/\/workspace\/social-sets\/[a-z0-9]+/)
-      ids.push(new URL(page.url()).pathname.split('/')[3] ?? '')
+      const created = await apiRequest(page, '/api/v1/social-sets', {
+        method: 'POST',
+        body: { name: 'Brand', visibility: 'PRIVATE' },
+      })
+      expect(created.status).toBe(201)
+      ids.push(socialSetSchema.parse(created.body).id)
     }
     expect(ids[0]).not.toEqual(ids[1])
     const setId = ids[1] ?? ''

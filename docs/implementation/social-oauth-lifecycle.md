@@ -14,7 +14,7 @@ An attempt records an immutable `CREATE_SET`, `ADD_ACCOUNT`, or `RECONNECT` oper
 
 Channel capacity is checked again inside that transaction, under the same workspace lock used by connection writers and billing updates. A downgrade or full plan leaves the exchange receipt recoverable without creating an empty set. Restoring entitlement allows the same saved exchange to complete. Reconnecting an active account consumes no additional slot; restoring a disabled account does.
 
-`POST /api/v1/social-connection-attempts` exposes the explicit operation through the member-only Zod REST contract and SDK. Owner/admin authorization and fresh sensitive-action authentication run before beginning the provider handoff. Callers must not automatically retry a lost begin response; each begin creates a new attempt. Listing social sets no longer creates an empty default brand. Legacy unassigned accounts are still adopted into the default set. Existing explicit set-creation and draft-writing compatibility paths remain available while the new picker is implemented.
+`POST /api/v1/social-connection-attempts` exposes the explicit operation through the member-only Zod REST contract and SDK. Owner/admin authorization and fresh sensitive-action authentication run before beginning the provider handoff. Callers must not automatically retry a lost begin response; each begin creates a new attempt. Listing social sets no longer creates an empty default brand. Legacy unassigned accounts are still adopted into the default set. Existing explicit set-creation and draft-writing compatibility paths remain available for compatibility. The new picker begins from the sidebar, private/workspace list actions, existing-set rows, and General settings without navigating the current page.
 
 ## Migration and retention
 
@@ -30,4 +30,4 @@ Deploy the Go migration/backend before the web facade. A rollout interrupted aft
 
 Creation integration tests add eight concurrent callbacks, private and workspace ownership, abandoned and expired starts, duplicate-account rollback, role downgrade, and entitlement recovery. PostgreSQL integration, race detection, Go vet, SDK compilation, and REST/OpenAPI contract checks pass locally.
 
-These checks use local fixtures, not live provider accounts. The provider-first UI, canonical external identity/capability verification, and original-workspace success screen remain tracked in the 60-criterion coverage matrix.
+These checks use local fixtures, not live provider accounts. The picker now has production browser proof for cancellation, focus/URL preservation, first-account creation, callback replay and occupied provider slots. Canonical external identity/capability verification, Bluesky/custom Mastodon flows, and the original-workspace success screen remain tracked in the 60-criterion coverage matrix.

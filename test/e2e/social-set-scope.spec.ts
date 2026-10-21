@@ -1,4 +1,11 @@
 import { randomUUID } from 'node:crypto'
+import { startHttpMockServer } from './framework/http-server'
+import { socialMockPort } from './framework/content-drafts'
+import {
+  bindTestGoOrganization,
+  enablePublishingTwoFactor,
+  unbindTestGoOrganization,
+} from './framework/publishing'
 import { z } from 'zod'
 import { signUpViaApi } from './framework/auth'
 import { browserJson, browserRequest, requestJson } from './framework/browser'
@@ -68,6 +75,15 @@ test('private social-set caches and delayed mutations stay in their original wor
       })
     ).status
   ).toBe(200)
+  await enablePublishingTwoFactor(page, identity.password)
+  await bindTestGoOrganization(page)
+  const provider = await startHttpMockServer((request) => {
+    if (request.url === '/api/public/v1/me')
+      return { body: { organization: { id: `go-${alpha.workspace.id}` } } }
+    if (request.url === '/api/public/v1/social/x')
+      return { body: { url: `https://api.x.com/oauth/authenticate?oauth_token=${randomUUID()}` } }
+    return { status: 404 }
+  }, socialMockPort)
   const loadAlpha = page.waitForRequest(
     (request) => request.url().endsWith('/api/v1/social-sets') && request.method() === 'GET'
   )
@@ -82,8 +98,8 @@ test('private social-set caches and delayed mutations stay in their original wor
     page.getByRole('link', { name: 'Settings for Private Beta', exact: true })
   ).toHaveCount(0)
 
-  // The server may commit before another tab switches the workspace. Hold
-  // its response to prove the old caller cannot populate the new cache or navigate.
+  // An attempt may persist before another tab switches the workspace. Hold
+  // its response to prove the old caller cannot navigate to provider authorization.
   let releaseResponse = () => {}
   let recordCommit = () => {}
   let recordDelivery = () => {}
@@ -96,7 +112,7 @@ test('private social-set caches and delayed mutations stay in their original wor
   const delivered = new Promise<void>((resolve) => {
     recordDelivery = resolve
   })
-  await page.route('**/api/v1/social-sets', async (route) => {
+  await page.route('**/api/v1/social-connection-attempts', async (route) => {
     if (route.request().method() !== 'POST') return route.continue()
     const response = await route.fetch()
     expect(response.ok()).toBe(true)
@@ -108,12 +124,14 @@ test('private social-set caches and delayed mutations stay in their original wor
       recordDelivery()
     }
   })
-  await page.getByPlaceholder('Person or brand').fill('Delayed Alpha creation')
+  await page.getByRole('button', { name: 'Add social set to your personal workspace' }).click()
+  await page.getByRole('button', { name: 'X / Twitter', exact: true }).click()
   const cancelledCreation = page.waitForEvent(
     'requestfailed',
-    (request) => request.method() === 'POST' && request.url().endsWith('/api/v1/social-sets')
+    (request) =>
+      request.method() === 'POST' && request.url().endsWith('/api/v1/social-connection-attempts')
   )
-  await page.getByRole('button', { name: 'Create brand', exact: true }).click()
+  await page.getByRole('button', { name: 'Connect X account', exact: true }).click()
   await committed
 
   const sibling = await context.newPage()
@@ -157,7 +175,7 @@ test('private social-set caches and delayed mutations stay in their original wor
     releaseResponse()
     await delivered
     await expect(page).toHaveURL(/\/workspace\/social-sets$/)
-    await expect(page.getByPlaceholder('Person or brand')).toHaveValue('')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(
       page.getByRole('link', { name: 'Settings for Delayed Alpha creation', exact: true })
     ).toHaveCount(0)
@@ -204,5 +222,7 @@ test('private social-set caches and delayed mutations stay in their original wor
   } finally {
     releaseResponse()
     await sibling.close()
+    await provider.close()
+    await unbindTestGoOrganization(alpha.workspace.id)
   }
 })

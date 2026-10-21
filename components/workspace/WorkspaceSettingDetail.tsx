@@ -52,7 +52,6 @@ function getDetailContent({
   userId,
 }: WorkspaceSettingContentProps): Record<SettingId, ReactNode> {
   const canManage = hasPermission(role, 'workspace:update')
-  const canPublish = hasPermission(role, 'publish:manage')
   return {
     appearance: <AppearanceSettings />,
     experimental: <ExperimentalSettings canManage={canManage} />,
@@ -64,13 +63,13 @@ function getDetailContent({
         key={`${socialSet.id}:${socialSet.page}`}
         page={socialSet.page}
         permissions={{
-          canManage: canPublish,
+          canManage,
           canWrite: hasPermission(role, 'artifact:edit'),
           isAdmin: canManage,
         }}
       />
     ) : (
-      <SocialSetList canManage={canPublish} />
+      <SocialSetList canManage={canManage} />
     ),
     agents: (
       <WorkspaceAgentSettings canManage={hasPermission(role, 'brand:manage')} mcpUrl={mcpUrl} />

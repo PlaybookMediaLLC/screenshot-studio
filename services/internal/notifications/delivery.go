@@ -150,7 +150,7 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 					return false, e2
 				}
 				if channel == "in_app" {
-					_, e2 = tx.ExecContext(ctx, `INSERT INTO platform_notification_inbox(id,"organizationId","userId",event_id,kind,resource_type,resource_id,description,href) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, id, e.org, user, e.id, e.kind, e.resourceType, e.resourceID, def.Label, href(e.resourceType, e.resourceID, row))
+					_, e2 = tx.ExecContext(ctx, `INSERT INTO platform_notification_inbox(id,"organizationId","userId",event_id,kind,resource_type,resource_id,description,href,category) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, id, e.org, user, e.id, e.kind, e.resourceType, e.resourceID, def.Label, href(e.resourceType, e.resourceID, row), notificationCategory(def))
 					if e2 != nil {
 						return false, e2
 					}

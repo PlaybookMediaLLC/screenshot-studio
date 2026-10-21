@@ -64,8 +64,8 @@ func TestLegacyImportRequiresVerifiedMappingsAndNeverFansOut(t *testing.T) {
 		t.Fatal(err)
 	}
 	page, _ = f.s.List(ctx, f.owner, "")
-	if len(page.Items) != 0 {
-		t.Fatal("import recreated acknowledged content")
+	if len(page.Items) != 1 || page.Items[0].ReadAt == nil || page.UnseenCount != 0 {
+		t.Fatal("import reset acknowledged receipt")
 	}
 	if err = f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_delivery WHERE "organizationId"=$1 AND channel<>'in_app'`, f.owner.OrganizationID).Scan(&external); err != nil || external != 0 {
 		t.Fatal("historical external fan-out", err)

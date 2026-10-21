@@ -1,4 +1,10 @@
 import type {
+  NotificationView,
+  NotificationStateInput,
+  NotificationStateResult,
+} from './notification-state.js'
+export * from './notification-state.ts'
+import type {
   NotificationSettings,
   NotificationPolicy,
   NotificationPreferences,
@@ -3282,16 +3288,24 @@ export class ScreenshotStudioBackendSDK {
     })
   }
   /** Read-only inbox page. */
-  notificationInbox(cursor = '') {
+  notificationInbox(cursor = '', view: NotificationView = 'all') {
     return this.request<NotificationPage>(
-      `v1/workspace/notifications/inbox?cursor=${encodeURIComponent(cursor)}`
+      `v1/workspace/notifications/inbox?cursor=${encodeURIComponent(cursor)}&view=${view}`
     )
   }
   /** Read-only unseen count. */
   notificationCount() {
     return this.request<{ unseenCount: number }>('v1/workspace/notifications/count')
   }
-  /** Delete displayed rows, or mark a transaction snapshot seen with a stable key. */
+  /** Persist read, unread, archive or restore state for the current recipient. */
+  changeNotificationState(input: NotificationStateInput) {
+    return this.request<NotificationStateResult>('v1/workspace/notifications/state', {
+      method: 'POST',
+      body: input,
+    })
+  }
+
+  /** Mark receipts read while preserving their feed and archive state. */
   acknowledgeNotifications(body: { ids?: string[]; all?: boolean; key?: string }) {
     return this.request<NotificationSeen>('v1/workspace/notifications/seen', {
       method: 'POST',

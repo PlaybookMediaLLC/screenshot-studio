@@ -23,6 +23,8 @@ type PlatformNotificationSeenAction struct {
 	UserID string `json:"user_id,omitempty"`
 	// RequestKey holds the value of the "request_key" field.
 	RequestKey string `json:"request_key,omitempty"`
+	// RequestFingerprint holds the value of the "request_fingerprint" field.
+	RequestFingerprint string `json:"request_fingerprint,omitempty"`
 	// DeletedCount holds the value of the "deleted_count" field.
 	DeletedCount int `json:"deleted_count,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -37,7 +39,7 @@ func (*PlatformNotificationSeenAction) scanValues(columns []string) ([]any, erro
 		switch columns[i] {
 		case platformnotificationseenaction.FieldDeletedCount:
 			values[i] = new(sql.NullInt64)
-		case platformnotificationseenaction.FieldID, platformnotificationseenaction.FieldOrganizationID, platformnotificationseenaction.FieldUserID, platformnotificationseenaction.FieldRequestKey:
+		case platformnotificationseenaction.FieldID, platformnotificationseenaction.FieldOrganizationID, platformnotificationseenaction.FieldUserID, platformnotificationseenaction.FieldRequestKey, platformnotificationseenaction.FieldRequestFingerprint:
 			values[i] = new(sql.NullString)
 		case platformnotificationseenaction.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -79,6 +81,12 @@ func (_m *PlatformNotificationSeenAction) assignValues(columns []string, values 
 				return fmt.Errorf("unexpected type %T for field request_key", values[i])
 			} else if value.Valid {
 				_m.RequestKey = value.String
+			}
+		case platformnotificationseenaction.FieldRequestFingerprint:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field request_fingerprint", values[i])
+			} else if value.Valid {
+				_m.RequestFingerprint = value.String
 			}
 		case platformnotificationseenaction.FieldDeletedCount:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -136,6 +144,9 @@ func (_m *PlatformNotificationSeenAction) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("request_key=")
 	builder.WriteString(_m.RequestKey)
+	builder.WriteString(", ")
+	builder.WriteString("request_fingerprint=")
+	builder.WriteString(_m.RequestFingerprint)
 	builder.WriteString(", ")
 	builder.WriteString("deleted_count=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DeletedCount))

@@ -3,6 +3,7 @@
 package platformnotificationinbox
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -29,6 +30,12 @@ const (
 	FieldDescription = "description"
 	// FieldHref holds the string denoting the href field in the database.
 	FieldHref = "href"
+	// FieldCategory holds the string denoting the category field in the database.
+	FieldCategory = "category"
+	// FieldReadAt holds the string denoting the read_at field in the database.
+	FieldReadAt = "read_at"
+	// FieldArchivedAt holds the string denoting the archived_at field in the database.
+	FieldArchivedAt = "archived_at"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// Table holds the table name of the platformnotificationinbox in the database.
@@ -46,6 +53,9 @@ var Columns = []string{
 	FieldResourceID,
 	FieldDescription,
 	FieldHref,
+	FieldCategory,
+	FieldReadAt,
+	FieldArchivedAt,
 	FieldCreatedAt,
 }
 
@@ -63,6 +73,32 @@ var (
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 )
+
+// Category defines the type for the "category" enum field.
+type Category string
+
+// CategoryActivity is the default value of the Category enum.
+const DefaultCategory = CategoryActivity
+
+// Category values.
+const (
+	CategoryInbox    Category = "inbox"
+	CategoryActivity Category = "activity"
+)
+
+func (c Category) String() string {
+	return string(c)
+}
+
+// CategoryValidator is a validator for the "category" field enum values. It is called by the builders before save.
+func CategoryValidator(c Category) error {
+	switch c {
+	case CategoryInbox, CategoryActivity:
+		return nil
+	default:
+		return fmt.Errorf("platformnotificationinbox: invalid enum value for category field: %q", c)
+	}
+}
 
 // OrderOption defines the ordering options for the PlatformNotificationInbox queries.
 type OrderOption func(*sql.Selector)
@@ -110,6 +146,21 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByHref orders the results by the href field.
 func ByHref(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldHref, opts...).ToFunc()
+}
+
+// ByCategory orders the results by the category field.
+func ByCategory(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCategory, opts...).ToFunc()
+}
+
+// ByReadAt orders the results by the read_at field.
+func ByReadAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReadAt, opts...).ToFunc()
+}
+
+// ByArchivedAt orders the results by the archived_at field.
+func ByArchivedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldArchivedAt, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

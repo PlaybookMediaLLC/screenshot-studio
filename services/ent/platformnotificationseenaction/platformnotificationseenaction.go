@@ -19,6 +19,8 @@ const (
 	FieldUserID = "userId"
 	// FieldRequestKey holds the string denoting the request_key field in the database.
 	FieldRequestKey = "request_key"
+	// FieldRequestFingerprint holds the string denoting the request_fingerprint field in the database.
+	FieldRequestFingerprint = "request_fingerprint"
 	// FieldDeletedCount holds the string denoting the deleted_count field in the database.
 	FieldDeletedCount = "deleted_count"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -33,6 +35,7 @@ var Columns = []string{
 	FieldOrganizationID,
 	FieldUserID,
 	FieldRequestKey,
+	FieldRequestFingerprint,
 	FieldDeletedCount,
 	FieldCreatedAt,
 }
@@ -48,6 +51,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultRequestFingerprint holds the default value on creation for the "request_fingerprint" field.
+	DefaultRequestFingerprint string
 	// DefaultDeletedCount holds the default value on creation for the "deleted_count" field.
 	DefaultDeletedCount int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -75,6 +80,11 @@ func ByUserID(opts ...sql.OrderTermOption) OrderOption {
 // ByRequestKey orders the results by the request_key field.
 func ByRequestKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRequestKey, opts...).ToFunc()
+}
+
+// ByRequestFingerprint orders the results by the request_fingerprint field.
+func ByRequestFingerprint(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRequestFingerprint, opts...).ToFunc()
 }
 
 // ByDeletedCount orders the results by the deleted_count field.

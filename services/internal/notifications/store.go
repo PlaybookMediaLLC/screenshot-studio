@@ -1,10 +1,9 @@
-// Package notifications owns workspace activity policy, unseen inboxes and delivery.
+// Package notifications owns workspace activity policy, recipient inbox state and delivery.
 package notifications
 
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,7 +18,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/lucsky/cuid"
 )
 
@@ -69,13 +67,16 @@ type Settings struct {
 	Connections    []SlackConnection                     `json:"connections"`
 }
 type Item struct {
-	ID                       string    `json:"id"`
-	Kind                     string    `json:"kind"`
-	Description              string    `json:"description"`
-	Href                     string    `json:"href"`
-	WorkspaceID              string    `json:"workspaceId"`
-	WorkspaceName            string    `json:"workspaceName"`
-	CreatedAt                time.Time `json:"createdAt"`
+	Category                 string     `json:"category"`
+	ReadAt                   *time.Time `json:"readAt"`
+	ArchivedAt               *time.Time `json:"archivedAt"`
+	ID                       string     `json:"id"`
+	Kind                     string     `json:"kind"`
+	Description              string     `json:"description"`
+	Href                     string     `json:"href"`
+	WorkspaceID              string     `json:"workspaceId"`
+	WorkspaceName            string     `json:"workspaceName"`
+	CreatedAt                time.Time  `json:"createdAt"`
 	resourceType, resourceID string
 }
 type Page struct {
@@ -314,142 +315,6 @@ func (s *Service) SavePreferences(ctx context.Context, p Principal, input Prefer
 	}
 	return s.Settings(ctx, p)
 }
-func (s *Service) Count(ctx context.Context, p Principal) (int, error) {
-	if err := s.Authorize(ctx, p, false); err != nil {
-		return 0, err
-	}
-	return count(ctx, s.DB, p)
-}
-func count(ctx context.Context, db queryer, p Principal) (int, error) {
-	var n int
-	err := db.QueryRowContext(ctx, `SELECT count(*) FROM platform_notification_inbox WHERE "organizationId"=$1 AND "userId"=$2`, p.OrganizationID, p.UserID).Scan(&n)
-	return n, err
-}
-func (s *Service) List(ctx context.Context, p Principal, cursor string) (*Page, error) {
-	if err := s.Authorize(ctx, p, false); err != nil {
-		return nil, err
-	}
-	before := time.Now().Add(24 * time.Hour)
-	beforeID := "~"
-	if cursor != "" {
-		b, e := base64.RawURLEncoding.DecodeString(cursor)
-		if e != nil {
-			return nil, ErrInvalid
-		}
-		parts := strings.SplitN(string(b), "|", 2)
-		if len(parts) != 2 {
-			return nil, ErrInvalid
-		}
-		before, e = time.Parse(time.RFC3339Nano, parts[0])
-		if e != nil {
-			return nil, ErrInvalid
-		}
-		beforeID = parts[1]
-	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT i.id,i.kind,i.description,i.href,i.created_at,i.resource_type,i.resource_id,o.name FROM platform_notification_inbox i JOIN organization o ON o.id=i."organizationId" WHERE i."organizationId"=$1 AND i."userId"=$2 AND (i.created_at,i.id)<($3,$4) ORDER BY i.created_at DESC,i.id DESC LIMIT 21`, p.OrganizationID, p.UserID, before, beforeID)
-	if err != nil {
-		return nil, err
-	}
-	items := []Item{}
-	for rows.Next() {
-		var i Item
-		i.WorkspaceID = p.OrganizationID
-		if err = rows.Scan(&i.ID, &i.Kind, &i.Description, &i.Href, &i.CreatedAt, &i.resourceType, &i.resourceID, &i.WorkspaceName); err != nil {
-			rows.Close()
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	err = rows.Err()
-	rows.Close()
-	if err != nil {
-		return nil, err
-	}
-	page := &Page{Items: items}
-	if len(items) > 20 {
-		page.Items = items[:20]
-		last := page.Items[19]
-		page.NextCursor = base64.RawURLEncoding.EncodeToString([]byte(last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID))
-	}
-	for idx := range page.Items {
-		item := &page.Items[idx]
-		ok, _, e := s.resource(ctx, p.OrganizationID, p.UserID, item.resourceType, item.resourceID)
-		if e != nil {
-			return nil, e
-		}
-		if !ok {
-			item.Description = "This activity is no longer available."
-			item.Href = ""
-		}
-	}
-	page.UnseenCount, err = count(ctx, s.DB, p)
-	return page, err
-}
-func (s *Service) Seen(ctx context.Context, p Principal, ids []string, all bool, key string) (*SeenResult, error) {
-	if err := s.Authorize(ctx, p, false); err != nil {
-		return nil, err
-	}
-	if len(ids) > 100 || all && (len(key) < 16 || len(key) > 128) || !all && len(ids) == 0 {
-		return nil, ErrInvalid
-	}
-	for attempt := 0; attempt < 5; attempt++ {
-		result, err := s.seenTx(ctx, p, ids, all, key)
-		var pg *pgconn.PgError
-		if !errors.As(err, &pg) || pg.Code != "40001" {
-			return result, err
-		}
-	}
-	return nil, errors.New("concurrent acknowledgment; retry the same request")
-}
-
-func (s *Service) seenTx(ctx context.Context, p Principal, ids []string, all bool, key string) (*SeenResult, error) {
-	tx, err := s.DB.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-	result := &SeenResult{}
-	if all {
-		var id string
-		err = tx.QueryRowContext(ctx, `INSERT INTO platform_notification_seen_action(id,"organizationId","userId",request_key) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING RETURNING id`, cuid.New(), p.OrganizationID, p.UserID, key).Scan(&id)
-		if errors.Is(err, sql.ErrNoRows) {
-			err = tx.QueryRowContext(ctx, `SELECT deleted_count FROM platform_notification_seen_action WHERE "organizationId"=$1 AND "userId"=$2 AND request_key=$3`, p.OrganizationID, p.UserID, key).Scan(&result.Deleted)
-		} else if err == nil {
-			// One statement snapshot excludes concurrent arrivals; the action receipt makes retry stable.
-			var res sql.Result
-			res, err = tx.ExecContext(ctx, `DELETE FROM platform_notification_inbox WHERE "organizationId"=$1 AND "userId"=$2`, p.OrganizationID, p.UserID)
-			if err == nil {
-				n, e := res.RowsAffected()
-				err = e
-				result.Deleted = int(n)
-			}
-			if err == nil {
-				_, err = tx.ExecContext(ctx, `UPDATE platform_notification_seen_action SET deleted_count=$2 WHERE id=$1`, id, result.Deleted)
-			}
-		}
-	} else {
-		raw, _ := json.Marshal(ids)
-		var res sql.Result
-		res, err = tx.ExecContext(ctx, `DELETE FROM platform_notification_inbox WHERE "organizationId"=$1 AND "userId"=$2 AND id IN (SELECT jsonb_array_elements_text($3::jsonb))`, p.OrganizationID, p.UserID, raw)
-		if err == nil {
-			n, e := res.RowsAffected()
-			err = e
-			result.Deleted = int(n)
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	result.UnseenCount, err = count(ctx, tx, p)
-	if err != nil {
-		return nil, err
-	}
-	if err = tx.Commit(); err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
 func audit(ctx context.Context, tx *sql.Tx, p Principal, action, id string) error {
 	auditID := cuid.New()
 	_, err := tx.ExecContext(ctx, `INSERT INTO audit_log(id,"organizationId","requestId","actorType","actorUserId","actorDisplay",action,outcome,"entityType","entityId",metadata,"searchText") VALUES($1,$2,$1,'USER',NULLIF($3,''),'workspace member',$4,'SUCCEEDED','notification',$5,'{}',$4)`, auditID, p.OrganizationID, p.UserID, action, id)

@@ -70,6 +70,20 @@ func (_u *PlatformNotificationSeenActionUpdate) SetNillableRequestKey(v *string)
 	return _u
 }
 
+// SetRequestFingerprint sets the "request_fingerprint" field.
+func (_u *PlatformNotificationSeenActionUpdate) SetRequestFingerprint(v string) *PlatformNotificationSeenActionUpdate {
+	_u.mutation.SetRequestFingerprint(v)
+	return _u
+}
+
+// SetNillableRequestFingerprint sets the "request_fingerprint" field if the given value is not nil.
+func (_u *PlatformNotificationSeenActionUpdate) SetNillableRequestFingerprint(v *string) *PlatformNotificationSeenActionUpdate {
+	if v != nil {
+		_u.SetRequestFingerprint(*v)
+	}
+	return _u
+}
+
 // SetDeletedCount sets the "deleted_count" field.
 func (_u *PlatformNotificationSeenActionUpdate) SetDeletedCount(v int) *PlatformNotificationSeenActionUpdate {
 	_u.mutation.ResetDeletedCount()
@@ -155,6 +169,9 @@ func (_u *PlatformNotificationSeenActionUpdate) sqlSave(ctx context.Context) (_n
 	if value, ok := _u.mutation.RequestKey(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldRequestKey, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.RequestFingerprint(); ok {
+		_spec.SetField(platformnotificationseenaction.FieldRequestFingerprint, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.DeletedCount(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldDeletedCount, field.TypeInt, value)
 	}
@@ -222,6 +239,20 @@ func (_u *PlatformNotificationSeenActionUpdateOne) SetRequestKey(v string) *Plat
 func (_u *PlatformNotificationSeenActionUpdateOne) SetNillableRequestKey(v *string) *PlatformNotificationSeenActionUpdateOne {
 	if v != nil {
 		_u.SetRequestKey(*v)
+	}
+	return _u
+}
+
+// SetRequestFingerprint sets the "request_fingerprint" field.
+func (_u *PlatformNotificationSeenActionUpdateOne) SetRequestFingerprint(v string) *PlatformNotificationSeenActionUpdateOne {
+	_u.mutation.SetRequestFingerprint(v)
+	return _u
+}
+
+// SetNillableRequestFingerprint sets the "request_fingerprint" field if the given value is not nil.
+func (_u *PlatformNotificationSeenActionUpdateOne) SetNillableRequestFingerprint(v *string) *PlatformNotificationSeenActionUpdateOne {
+	if v != nil {
+		_u.SetRequestFingerprint(*v)
 	}
 	return _u
 }
@@ -340,6 +371,9 @@ func (_u *PlatformNotificationSeenActionUpdateOne) sqlSave(ctx context.Context) 
 	}
 	if value, ok := _u.mutation.RequestKey(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldRequestKey, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.RequestFingerprint(); ok {
+		_spec.SetField(platformnotificationseenaction.FieldRequestFingerprint, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.DeletedCount(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldDeletedCount, field.TypeInt, value)

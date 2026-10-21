@@ -79,6 +79,11 @@ func RequestKey(v string) predicate.PlatformNotificationSeenAction {
 	return predicate.PlatformNotificationSeenAction(sql.FieldEQ(FieldRequestKey, v))
 }
 
+// RequestFingerprint applies equality check predicate on the "request_fingerprint" field. It's identical to RequestFingerprintEQ.
+func RequestFingerprint(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldEQ(FieldRequestFingerprint, v))
+}
+
 // DeletedCount applies equality check predicate on the "deleted_count" field. It's identical to DeletedCountEQ.
 func DeletedCount(v int) predicate.PlatformNotificationSeenAction {
 	return predicate.PlatformNotificationSeenAction(sql.FieldEQ(FieldDeletedCount, v))
@@ -282,6 +287,71 @@ func RequestKeyEqualFold(v string) predicate.PlatformNotificationSeenAction {
 // RequestKeyContainsFold applies the ContainsFold predicate on the "request_key" field.
 func RequestKeyContainsFold(v string) predicate.PlatformNotificationSeenAction {
 	return predicate.PlatformNotificationSeenAction(sql.FieldContainsFold(FieldRequestKey, v))
+}
+
+// RequestFingerprintEQ applies the EQ predicate on the "request_fingerprint" field.
+func RequestFingerprintEQ(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldEQ(FieldRequestFingerprint, v))
+}
+
+// RequestFingerprintNEQ applies the NEQ predicate on the "request_fingerprint" field.
+func RequestFingerprintNEQ(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldNEQ(FieldRequestFingerprint, v))
+}
+
+// RequestFingerprintIn applies the In predicate on the "request_fingerprint" field.
+func RequestFingerprintIn(vs ...string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldIn(FieldRequestFingerprint, vs...))
+}
+
+// RequestFingerprintNotIn applies the NotIn predicate on the "request_fingerprint" field.
+func RequestFingerprintNotIn(vs ...string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldNotIn(FieldRequestFingerprint, vs...))
+}
+
+// RequestFingerprintGT applies the GT predicate on the "request_fingerprint" field.
+func RequestFingerprintGT(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldGT(FieldRequestFingerprint, v))
+}
+
+// RequestFingerprintGTE applies the GTE predicate on the "request_fingerprint" field.
+func RequestFingerprintGTE(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldGTE(FieldRequestFingerprint, v))
+}
+
+// RequestFingerprintLT applies the LT predicate on the "request_fingerprint" field.
+func RequestFingerprintLT(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldLT(FieldRequestFingerprint, v))
+}
+
+// RequestFingerprintLTE applies the LTE predicate on the "request_fingerprint" field.
+func RequestFingerprintLTE(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldLTE(FieldRequestFingerprint, v))
+}
+
+// RequestFingerprintContains applies the Contains predicate on the "request_fingerprint" field.
+func RequestFingerprintContains(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldContains(FieldRequestFingerprint, v))
+}
+
+// RequestFingerprintHasPrefix applies the HasPrefix predicate on the "request_fingerprint" field.
+func RequestFingerprintHasPrefix(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldHasPrefix(FieldRequestFingerprint, v))
+}
+
+// RequestFingerprintHasSuffix applies the HasSuffix predicate on the "request_fingerprint" field.
+func RequestFingerprintHasSuffix(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldHasSuffix(FieldRequestFingerprint, v))
+}
+
+// RequestFingerprintEqualFold applies the EqualFold predicate on the "request_fingerprint" field.
+func RequestFingerprintEqualFold(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldEqualFold(FieldRequestFingerprint, v))
+}
+
+// RequestFingerprintContainsFold applies the ContainsFold predicate on the "request_fingerprint" field.
+func RequestFingerprintContainsFold(v string) predicate.PlatformNotificationSeenAction {
+	return predicate.PlatformNotificationSeenAction(sql.FieldContainsFold(FieldRequestFingerprint, v))
 }
 
 // DeletedCountEQ applies the EQ predicate on the "deleted_count" field.

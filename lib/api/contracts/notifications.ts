@@ -5,6 +5,9 @@ import {
   notificationPolicySchema,
   notificationPreferencesSchema,
   notificationPageSchema,
+  notificationViewSchema,
+  notificationStateInputSchema,
+  notificationStateResultSchema,
   notificationSeenSchema,
   notificationConnectionSchema,
   notificationSlackChannelsSchema,
@@ -51,7 +54,10 @@ export const getNotificationInboxContract = defineContract({
   summary: 'getNotificationInbox',
   shell: true,
   output: notificationPageSchema,
-  query: z.object({ cursor: z.string().max(1024).default('') }),
+  query: z.object({
+    cursor: z.string().max(2048).default(''),
+    view: notificationViewSchema.default('all'),
+  }),
 })
 
 /** `GET /api/workspace/notifications/count`: session-scoped workspace activity. */
@@ -182,4 +188,15 @@ export const getNotificationDeliveryContract = defineContract({
   shell: true,
   params: z.object({ id: z.string().min(1).max(128) }),
   output: notificationDeliverySchema,
+})
+
+/** Persist read or archive state for the authenticated recipient. */
+export const changeNotificationStateContract = defineContract({
+  method: 'POST',
+  name: 'notifications.changestate',
+  path: '/api/workspace/notifications/state',
+  summary: 'Update notification read and archive state',
+  shell: true,
+  body: notificationStateInputSchema,
+  output: notificationStateResultSchema,
 })

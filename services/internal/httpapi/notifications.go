@@ -11,6 +11,7 @@ func (s *Server) registerNotifications(mux *http.ServeMux) {
 	for _, pattern := range []string{
 		"GET /v1/workspace/notifications", "PUT /v1/workspace/notifications/policy", "PUT /v1/workspace/notifications/preferences",
 		"POST /v1/workspace/notifications/test", "GET /v1/workspace/notifications/resolve/{id}", "GET /v1/workspace/notifications/inbox", "GET /v1/workspace/notifications/count", "POST /v1/workspace/notifications/seen",
+		"POST /v1/workspace/notifications/state",
 		"POST /v1/workspace/notifications/slack/connect", "POST /v1/workspace/notifications/slack/callback", "GET /v1/workspace/notifications/slack/channels",
 		"DELETE /v1/workspace/notifications/slack/{id}", "GET /v1/workspace/notifications/deliveries", "GET /v1/workspace/notifications/deliveries/{id}", "POST /v1/workspace/notifications/deliveries/{id}/recover",
 	} {
@@ -62,7 +63,18 @@ func (s *Server) workspaceNotifications(w http.ResponseWriter, r *http.Request) 
 			err = notifications.ErrInvalid
 		}
 	case "GET /v1/workspace/notifications/inbox":
-		result, err = service.List(r.Context(), p, r.URL.Query().Get("cursor"))
+		view := r.URL.Query().Get("view")
+		if view == "" {
+			view = "all"
+		}
+		result, err = service.ListFeed(r.Context(), p, view, r.URL.Query().Get("cursor"))
+	case "POST /v1/workspace/notifications/state":
+		var input notifications.StateInput
+		if err = decodeJSON(r, &input); err == nil {
+			result, err = service.ChangeState(r.Context(), p, input)
+		} else {
+			err = notifications.ErrInvalid
+		}
 	case "GET /v1/workspace/notifications/count":
 		var count int
 		count, err = service.Count(r.Context(), p)

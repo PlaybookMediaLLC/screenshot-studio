@@ -925,7 +925,7 @@ func init() {
 	platformnotificationinboxFields := schema.PlatformNotificationInbox{}.Fields()
 	_ = platformnotificationinboxFields
 	// platformnotificationinboxDescCreatedAt is the schema descriptor for created_at field.
-	platformnotificationinboxDescCreatedAt := platformnotificationinboxFields[9].Descriptor()
+	platformnotificationinboxDescCreatedAt := platformnotificationinboxFields[12].Descriptor()
 	// platformnotificationinbox.DefaultCreatedAt holds the default value on creation for the created_at field.
 	platformnotificationinbox.DefaultCreatedAt = platformnotificationinboxDescCreatedAt.Default.(func() time.Time)
 	platformnotificationpolicyFields := schema.PlatformNotificationPolicy{}.Fields()
@@ -982,12 +982,16 @@ func init() {
 	platformnotificationpreference.DefaultUpdatedAt = platformnotificationpreferenceDescUpdatedAt.Default.(func() time.Time)
 	platformnotificationseenactionFields := schema.PlatformNotificationSeenAction{}.Fields()
 	_ = platformnotificationseenactionFields
+	// platformnotificationseenactionDescRequestFingerprint is the schema descriptor for request_fingerprint field.
+	platformnotificationseenactionDescRequestFingerprint := platformnotificationseenactionFields[4].Descriptor()
+	// platformnotificationseenaction.DefaultRequestFingerprint holds the default value on creation for the request_fingerprint field.
+	platformnotificationseenaction.DefaultRequestFingerprint = platformnotificationseenactionDescRequestFingerprint.Default.(string)
 	// platformnotificationseenactionDescDeletedCount is the schema descriptor for deleted_count field.
-	platformnotificationseenactionDescDeletedCount := platformnotificationseenactionFields[4].Descriptor()
+	platformnotificationseenactionDescDeletedCount := platformnotificationseenactionFields[5].Descriptor()
 	// platformnotificationseenaction.DefaultDeletedCount holds the default value on creation for the deleted_count field.
 	platformnotificationseenaction.DefaultDeletedCount = platformnotificationseenactionDescDeletedCount.Default.(int)
 	// platformnotificationseenactionDescCreatedAt is the schema descriptor for created_at field.
-	platformnotificationseenactionDescCreatedAt := platformnotificationseenactionFields[5].Descriptor()
+	platformnotificationseenactionDescCreatedAt := platformnotificationseenactionFields[6].Descriptor()
 	// platformnotificationseenaction.DefaultCreatedAt holds the default value on creation for the created_at field.
 	platformnotificationseenaction.DefaultCreatedAt = platformnotificationseenactionDescCreatedAt.Default.(func() time.Time)
 	platformslackconnectionFields := schema.PlatformSlackConnection{}.Fields()

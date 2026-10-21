@@ -60,22 +60,14 @@ export const notificationSettingsSchema = z.object({
     z.record(z.string(), z.object({ enabled: z.boolean(), reason: z.string() }))
   ),
 })
-/** An unseen recipient row; acknowledging it removes it from storage. */
-export const notificationItemSchema = z.object({
-  id: z.string(),
-  kind: z.string(),
-  description: z.string(),
-  href: z.string(),
-  workspaceId: z.string(),
-  workspaceName: z.string(),
-  createdAt: z.string(),
-})
-/** Read-only, cursor-paginated inbox. */
-export const notificationPageSchema = z.object({
-  items: z.array(notificationItemSchema),
-  nextCursor: z.string(),
-  unseenCount: z.number().int().nonnegative(),
-})
+/** Shared receipt contracts used by both the SDK and web facade. */
+export {
+  notificationItemSchema,
+  notificationPageSchema,
+  notificationViewSchema,
+  notificationStateInputSchema,
+  notificationStateResultSchema,
+} from 'screenshot-studio-backend-sdk'
 /** Acknowledgment confirmation. */
 export const notificationSeenSchema = z.object({
   deleted: z.number().int().nonnegative(),
@@ -110,7 +102,11 @@ export const notificationDeliverySchema = z.object({
   updatedAt: z.string(),
 })
 /** A rendered recipient row. */
-export type NotificationItem = z.infer<typeof notificationItemSchema>
+export type {
+  NotificationItem,
+  NotificationView,
+  NotificationStateInput,
+} from 'screenshot-studio-backend-sdk'
 /** The current workspace and member configuration. */
 export type NotificationSettings = z.infer<typeof notificationSettingsSchema>
 /** An immutable delivery receipt or pending job. */

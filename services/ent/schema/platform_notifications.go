@@ -61,6 +61,9 @@ func (PlatformNotificationInbox) Fields() []ent.Field {
 		field.String("resource_id"),
 		field.String("description"),
 		field.String("href"),
+		field.Enum("category").Values("inbox", "activity").Default("activity"),
+		field.Time("read_at").Optional().Nillable(),
+		field.Time("archived_at").Optional().Nillable(),
 		field.Time("created_at").Default(time.Now)}
 }
 
@@ -110,6 +113,7 @@ func (PlatformNotificationSeenAction) Fields() []ent.Field {
 		field.String("organization_id").StorageKey("organizationId"),
 		field.String("user_id").StorageKey("userId"),
 		field.String("request_key"),
+		field.String("request_fingerprint").Default(""),
 		field.Int("deleted_count").Default(0),
 		field.Time("created_at").Default(time.Now)}
 }

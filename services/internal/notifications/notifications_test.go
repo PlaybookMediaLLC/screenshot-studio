@@ -339,8 +339,8 @@ func TestInboxIsolationAcknowledgmentReplayAndMarkAll(t *testing.T) {
 		t.Fatalf("seen=%+v %v", result, err)
 	}
 	var present int
-	if err = f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_inbox WHERE id=$1`, page.Items[0].ID).Scan(&present); err != nil || present != 0 {
-		t.Fatal("seen content remains in database")
+	if err = f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_inbox WHERE id=$1`, page.Items[0].ID).Scan(&present); err != nil || present != 1 {
+		t.Fatal("read receipt was removed from database")
 	}
 	if _, err = f.s.DB.Exec(`UPDATE outbox_event SET notification_fanned=false WHERE id=$1`, event); err != nil {
 		t.Fatal(err)
@@ -350,7 +350,7 @@ func TestInboxIsolationAcknowledgmentReplayAndMarkAll(t *testing.T) {
 	}
 	n, err := f.s.Count(ctx, f.owner)
 	if err != nil || n != 0 {
-		t.Fatalf("replay recreated deleted content: %d %v", n, err)
+		t.Fatalf("replay reset read state: %d %v", n, err)
 	}
 	f.event(t, "generation.completed", f.creator.UserID)
 	if err = f.s.Process(ctx); err != nil {

@@ -38,6 +38,20 @@ func (_c *PlatformNotificationSeenActionCreate) SetRequestKey(v string) *Platfor
 	return _c
 }
 
+// SetRequestFingerprint sets the "request_fingerprint" field.
+func (_c *PlatformNotificationSeenActionCreate) SetRequestFingerprint(v string) *PlatformNotificationSeenActionCreate {
+	_c.mutation.SetRequestFingerprint(v)
+	return _c
+}
+
+// SetNillableRequestFingerprint sets the "request_fingerprint" field if the given value is not nil.
+func (_c *PlatformNotificationSeenActionCreate) SetNillableRequestFingerprint(v *string) *PlatformNotificationSeenActionCreate {
+	if v != nil {
+		_c.SetRequestFingerprint(*v)
+	}
+	return _c
+}
+
 // SetDeletedCount sets the "deleted_count" field.
 func (_c *PlatformNotificationSeenActionCreate) SetDeletedCount(v int) *PlatformNotificationSeenActionCreate {
 	_c.mutation.SetDeletedCount(v)
@@ -107,6 +121,10 @@ func (_c *PlatformNotificationSeenActionCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *PlatformNotificationSeenActionCreate) defaults() {
+	if _, ok := _c.mutation.RequestFingerprint(); !ok {
+		v := platformnotificationseenaction.DefaultRequestFingerprint
+		_c.mutation.SetRequestFingerprint(v)
+	}
 	if _, ok := _c.mutation.DeletedCount(); !ok {
 		v := platformnotificationseenaction.DefaultDeletedCount
 		_c.mutation.SetDeletedCount(v)
@@ -127,6 +145,9 @@ func (_c *PlatformNotificationSeenActionCreate) check() error {
 	}
 	if _, ok := _c.mutation.RequestKey(); !ok {
 		return &ValidationError{Name: "request_key", err: errors.New(`ent: missing required field "PlatformNotificationSeenAction.request_key"`)}
+	}
+	if _, ok := _c.mutation.RequestFingerprint(); !ok {
+		return &ValidationError{Name: "request_fingerprint", err: errors.New(`ent: missing required field "PlatformNotificationSeenAction.request_fingerprint"`)}
 	}
 	if _, ok := _c.mutation.DeletedCount(); !ok {
 		return &ValidationError{Name: "deleted_count", err: errors.New(`ent: missing required field "PlatformNotificationSeenAction.deleted_count"`)}
@@ -180,6 +201,10 @@ func (_c *PlatformNotificationSeenActionCreate) createSpec() (*PlatformNotificat
 	if value, ok := _c.mutation.RequestKey(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldRequestKey, field.TypeString, value)
 		_node.RequestKey = value
+	}
+	if value, ok := _c.mutation.RequestFingerprint(); ok {
+		_spec.SetField(platformnotificationseenaction.FieldRequestFingerprint, field.TypeString, value)
+		_node.RequestFingerprint = value
 	}
 	if value, ok := _c.mutation.DeletedCount(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldDeletedCount, field.TypeInt, value)

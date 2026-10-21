@@ -49,22 +49,7 @@ export type NotificationSettings = {
   connections: NotificationConnection[]
   effective: Record<string, Record<string, { enabled: boolean; reason: string }>>
 }
-/** An unseen inbox row. */
-export type NotificationItem = {
-  id: string
-  kind: string
-  description: string
-  href: string
-  workspaceId: string
-  workspaceName: string
-  createdAt: string
-}
-/** An inbox page; reading it never acknowledges rows. */
-export type NotificationPage = {
-  items: NotificationItem[]
-  nextCursor: string
-  unseenCount: number
-}
+export type { NotificationItem, NotificationPage } from './notification-state.js'
 /** Confirmed acknowledgment. */
 export type NotificationSeen = { deleted: number; unseenCount: number }
 /** A Slack discovery page; follow nextCursor even when channels is empty. */

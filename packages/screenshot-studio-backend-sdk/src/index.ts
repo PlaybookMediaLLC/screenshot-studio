@@ -1,4 +1,4 @@
-import { socialOAuthContextSchema, socialOAuthExchangeSchema } from './social-oauth.ts'
+import { socialOAuthBeginRequestSchema, socialOAuthBeginResponseSchema, socialOAuthContextSchema, socialOAuthExchangeSchema } from './social-oauth.ts'
 import type { OAuthProvider, SocialOAuthStartOptions } from './social-oauth.js'
 export * from './social-oauth.ts'
 import type {
@@ -2046,10 +2046,10 @@ export class ScreenshotStudioBackendSDK {
 
   /** Begins a provider connection; with a set, the account joins that set (RFC 043). */
   async beginSocialOAuth(provider: OAuthProvider, socialSetId?: string, options: SocialOAuthStartOptions = {}) {
-    return this.request<{ url: string }>('v1/social-oauth/begin', {
-      body: { provider, ...(socialSetId ? { socialSetId } : {}), ...options },
+    return socialOAuthBeginResponseSchema.parse(await this.request('v1/social-oauth/begin', {
+      body: socialOAuthBeginRequestSchema.parse({ provider, socialSetId, ...options }),
       method: 'POST',
-    })
+    }))
   }
 
   /** Resolve a session-bound attempt independently of the selected workspace. */

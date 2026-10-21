@@ -112,6 +112,134 @@ func TestOAuthReceiptsKeepOriginalContextAndIdentity(t *testing.T) {
 	finish := func(state, external string) (*ent.ChannelConnection, error) {
 		return repo.FinishOAuth(ctx, actor, sessionID, state, "x", external)
 	}
+	beginCreation := func(visibility string) string {
+		t.Helper()
+		exec(`UPDATE session SET "activeOrganizationId"=$2 WHERE id=$1`, sessionID, org)
+		state := cuid.New()
+		if err := repo.StartOAuth(ctx, actor, sessionID, state, "x", "SOCIAL_OAUTH_FIXTURE", OAuthStartOptions{
+			Operation: "CREATE_SET", CreationVisibility: visibility,
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return state
+	}
+	setCount := func() int {
+		t.Helper()
+		count, err := db.Client.SocialSet.Query().Where(socialset.OrganizationID(org)).Count(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return count
+	}
+
+	t.Run("first connection creates one private set only at commitment", func(t *testing.T) {
+		before := setCount()
+		state := beginCreation("PRIVATE")
+		external := "external-" + state
+		exchange(state, external)
+		if setCount() != before {
+			t.Fatal("starting or exchanging created an empty set")
+		}
+		exec(`UPDATE session SET "activeOrganizationId"=$2 WHERE id=$1`, sessionID, other)
+		results := make(chan *ent.ChannelConnection, 8)
+		failures := make(chan error, 8)
+		var wait sync.WaitGroup
+		for range 8 {
+			wait.Add(1)
+			go func() {
+				defer wait.Done()
+				connection, err := finish(state, external)
+				if err != nil {
+					failures <- err
+				} else {
+					results <- connection
+				}
+			}()
+		}
+		wait.Wait()
+		close(results)
+		close(failures)
+		for err := range failures {
+			t.Fatal(err)
+		}
+		var createdID string
+		for connection := range results {
+			if connection.OrganizationID != org || connection.SocialSetID == nil {
+				t.Fatalf("connection lost the original ownership context: %+v", connection)
+			}
+			if createdID != "" && createdID != *connection.SocialSetID {
+				t.Fatal("callback replay created another set")
+			}
+			createdID = *connection.SocialSetID
+		}
+		if setCount() != before+1 {
+			t.Fatal("expected one new set")
+		}
+		created, err := db.Client.SocialSet.Get(ctx, createdID)
+		if err != nil || created.Visibility != socialset.VisibilityPRIVATE || created.OwnerUserID == nil || *created.OwnerUserID != user ||
+			len(created.PostingSlots) != 5 || len(created.DefaultPlatforms) != 1 || created.DefaultPlatforms[0] != "x" ||
+			created.PrimaryPlatform == nil || *created.PrimaryPlatform != "x" || created.PublicProfile {
+			t.Fatalf("invalid new publishing identity: %+v %v", created, err)
+		}
+		var audits int
+		if err := db.SQL.QueryRowContext(ctx, `SELECT count(*) FROM audit_log WHERE "entityId"=$1 AND action='product.social_set_created'`, createdID).Scan(&audits); err != nil || audits != 1 {
+			t.Fatalf("creation audits=%d %v", audits, err)
+		}
+		target, err := repo.ResolveOAuthContext(ctx, user, sessionID, state, "x")
+		if err != nil || target.OrganizationID != org || target.SocialSetID == nil || *target.SocialSetID != createdID ||
+			target.Operation != "CREATE_SET" || target.ReturnPath != "/workspace/social-sets/"+createdID {
+			t.Fatalf("wrong creation receipt: %+v %v", target, err)
+		}
+		duplicate := beginCreation("WORKSPACE")
+		exchange(duplicate, external)
+		if _, err := finish(duplicate, external); !errors.Is(err, ErrAccountInAnotherSet) {
+			t.Fatalf("already linked account created another set: %v", err)
+		}
+		if setCount() != before+1 {
+			t.Fatal("duplicate identity left an empty set")
+		}
+	})
+	t.Run("cancelled and expired first connections leave no set", func(t *testing.T) {
+		before := setCount()
+		state := beginCreation("WORKSPACE")
+		if setCount() != before {
+			t.Fatal("abandoned authorization created a set")
+		}
+		exec(`UPDATE social_oauth_start SET "expiresAt"=now()-interval '1 minute' WHERE state=$1`, state)
+		if _, err := finish(state, "not-verified"); !errors.Is(err, ErrNotFound) {
+			t.Fatalf("expired first connection completed: %v", err)
+		}
+		if setCount() != before {
+			t.Fatal("expired authorization created a set")
+		}
+	})
+	t.Run("first connection rechecks membership and subscription before creating anything", func(t *testing.T) {
+		before := setCount()
+		state := beginCreation("WORKSPACE")
+		external := "external-" + state
+		exchange(state, external)
+		exec(`UPDATE member SET role='publisher' WHERE "organizationId"=$1 AND "userId"=$2`, org, user)
+		if _, err := finish(state, external); !errors.Is(err, ErrForbidden) {
+			t.Fatalf("non-admin created a set: %v", err)
+		}
+		exec(`UPDATE member SET role='admin' WHERE "organizationId"=$1 AND "userId"=$2`, org, user)
+		exec(`UPDATE workspace_entitlement SET status='suspended' WHERE "organizationId"=$1`, org)
+		if _, err := finish(state, external); err == nil {
+			t.Fatal("suspended plan created a set")
+		}
+		if setCount() != before {
+			t.Fatal("failed commitment left an empty set")
+		}
+		exec(`UPDATE workspace_entitlement SET status='active' WHERE "organizationId"=$1`, org)
+		connection, err := finish(state, external)
+		if err != nil || connection.SocialSetID == nil || setCount() != before+1 {
+			t.Fatalf("restored subscription could not recover the saved exchange: %+v %v", connection, err)
+		}
+		created, err := db.Client.SocialSet.Get(ctx, *connection.SocialSetID)
+		if err != nil || created.Visibility != socialset.VisibilityWORKSPACE {
+			t.Fatalf("lost explicit workspace ownership: %+v %v", created, err)
+		}
+	})
 
 	t.Run("workspace switches and duplicate completions preserve one original connection", func(t *testing.T) {
 		set := makeSet(true)

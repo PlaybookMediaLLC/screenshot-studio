@@ -10,14 +10,43 @@ export const socialOAuthProviderSchema = z.enum([
   'mastodon',
 ])
 
+/** Intent is immutable even when the active workspace changes during authorization. */
+export const socialOAuthOperationSchema = z.enum(['CREATE_SET', 'ADD_ACCOUNT', 'RECONNECT'])
+
 /** Safe routing and reconnect context persisted with the authorization attempt. */
-export const socialOAuthStartOptionsSchema = z.object({
+export const socialOAuthStartOptionsSchema = z.strictObject({
+  operation: socialOAuthOperationSchema.optional(),
+  creationVisibility: z.enum(['PRIVATE', 'WORKSPACE']).optional(),
   expectedConnectionId: z.string().min(1).max(160).optional(),
   returnPath: z
     .string()
     .regex(/^\/(?:workspace\/social-sets|write)\/[a-z0-9]{10,32}$/)
     .optional(),
 })
+
+/** A first connection requires explicit ownership and cannot also target an existing set. */
+export const socialOAuthBeginRequestSchema = socialOAuthStartOptionsSchema
+  .extend({
+    provider: socialOAuthProviderSchema,
+    socialSetId: z.string().min(1).max(160).optional(),
+  })
+  .superRefine((input, context) => {
+    const operation = input.operation ?? (input.expectedConnectionId ? 'RECONNECT' : 'ADD_ACCOUNT')
+    const valid =
+      operation === 'CREATE_SET'
+        ? !!input.creationVisibility && !input.socialSetId && !input.expectedConnectionId
+        : operation === 'RECONNECT'
+          ? !input.creationVisibility && !!input.socialSetId && !!input.expectedConnectionId
+          : !input.creationVisibility && !input.expectedConnectionId
+    if (!valid)
+      context.addIssue({
+        code: 'custom',
+        message: 'Choose one connection operation and its owner or target.',
+      })
+  })
+
+/** A provider URL that the backend has checked before persisting the attempt. */
+export const socialOAuthBeginResponseSchema = z.object({ url: z.url({ protocol: /^https$/ }) })
 
 /** The provider's credential-free exchange receipt. */
 export const socialOAuthExchangeSchema = z.object({
@@ -37,6 +66,7 @@ export const socialOAuthExchangeSchema = z.object({
 
 /** Original context, resolved by the backend using the current session and state. */
 export const socialOAuthContextSchema = z.object({
+  operation: socialOAuthOperationSchema.default('ADD_ACCOUNT'),
   organizationId: z.string().min(1),
   socialSetId: z.string().nullable(),
   returnPath: z.union([z.literal(''), socialOAuthStartOptionsSchema.shape.returnPath.unwrap()]),

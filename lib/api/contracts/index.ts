@@ -26,6 +26,7 @@ import {
   updateContentDraftContract,
 } from '@/lib/api/contracts/content-drafts'
 import { getLinkPreviewContract } from '@/lib/api/contracts/link-preview'
+import { createSocialConnectionAttemptContract } from '@/lib/api/contracts/social-connections'
 import {
   cancelOnboardingRunContract,
   createOnboardingRunContract,
@@ -69,6 +70,7 @@ import {
 
 /** Every contract in the public OpenAPI spec, in the order the spec lists them. */
 export const documentedContracts = [
+  createSocialConnectionAttemptContract,
   listReleasesContract,
   createReleaseContract,
   createSourceAppContract,

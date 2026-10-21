@@ -471,8 +471,17 @@ func (c *Configuration) ListSocialSets(ctx context.Context, actor Actor) (*Socia
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
-	if _, err := c.defaultSocialSet(ctx, actor.OrganizationID); err != nil {
+	// Keep legacy unassigned accounts usable without creating an empty brand
+	// merely because someone opens the provider picker or settings list.
+	legacyAccounts, err := c.client.ChannelConnection.Query().Where(channelconnection.OrganizationID(actor.OrganizationID),
+		channelconnection.SocialSetIDIsNil(), channelconnection.StatusEQ(channelconnection.StatusACTIVE)).Exist(ctx)
+	if err != nil {
 		return nil, err
+	}
+	if legacyAccounts {
+		if _, err := c.defaultSocialSet(ctx, actor.OrganizationID); err != nil {
+			return nil, err
+		}
 	}
 	sets, err := c.visibleSocialSets(ctx, c.client, actor)
 	if err != nil {

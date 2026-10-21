@@ -29,6 +29,10 @@ func (SocialOAuthStart) Fields() []ent.Field {
 		field.String("integration_id").StorageKey("integrationId").Optional().Nillable(),
 		// The social set the account joins when the callback completes (RFC 043).
 		field.String("social_set_id").StorageKey("socialSetId").Optional().Nillable().Immutable(),
+		field.Enum("operation").Values("CREATE_SET", "ADD_ACCOUNT", "RECONNECT").Default("ADD_ACCOUNT").Immutable(),
+		// Creation binds visibility now; the owner is the initiating user above.
+		field.String("creation_visibility").StorageKey("creationVisibility").Default("").Immutable(),
+		field.String("created_social_set_id").StorageKey("createdSocialSetId").Optional().Nillable(),
 		// Only safe provider identities and page labels are retained, never credentials.
 		field.Enum("exchange_status").StorageKey("exchangeStatus").Values("PENDING", "EXCHANGING", "EXCHANGED", "COMPLETED").Default("PENDING"),
 		field.JSON("exchange_receipt", SocialOAuthExchange{}).StorageKey("exchangeReceipt").Optional(),

@@ -74333,6 +74333,9 @@ type SocialOAuthStartMutation struct {
 	secret_reference        *string
 	integration_id          *string
 	social_set_id           *string
+	operation               *socialoauthstart.Operation
+	creation_visibility     *string
+	created_social_set_id   *string
 	exchange_status         *socialoauthstart.ExchangeStatus
 	exchange_receipt        *schema.SocialOAuthExchange
 	expected_connection_id  *string
@@ -74729,6 +74732,127 @@ func (m *SocialOAuthStartMutation) ResetSocialSetID() {
 	delete(m.clearedFields, socialoauthstart.FieldSocialSetID)
 }
 
+// SetOperation sets the "operation" field.
+func (m *SocialOAuthStartMutation) SetOperation(s socialoauthstart.Operation) {
+	m.operation = &s
+}
+
+// Operation returns the value of the "operation" field in the mutation.
+func (m *SocialOAuthStartMutation) Operation() (r socialoauthstart.Operation, exists bool) {
+	v := m.operation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOperation returns the old "operation" field's value of the SocialOAuthStart entity.
+// If the SocialOAuthStart object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialOAuthStartMutation) OldOperation(ctx context.Context) (v socialoauthstart.Operation, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOperation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOperation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOperation: %w", err)
+	}
+	return oldValue.Operation, nil
+}
+
+// ResetOperation resets all changes to the "operation" field.
+func (m *SocialOAuthStartMutation) ResetOperation() {
+	m.operation = nil
+}
+
+// SetCreationVisibility sets the "creation_visibility" field.
+func (m *SocialOAuthStartMutation) SetCreationVisibility(s string) {
+	m.creation_visibility = &s
+}
+
+// CreationVisibility returns the value of the "creation_visibility" field in the mutation.
+func (m *SocialOAuthStartMutation) CreationVisibility() (r string, exists bool) {
+	v := m.creation_visibility
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreationVisibility returns the old "creation_visibility" field's value of the SocialOAuthStart entity.
+// If the SocialOAuthStart object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialOAuthStartMutation) OldCreationVisibility(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreationVisibility is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreationVisibility requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreationVisibility: %w", err)
+	}
+	return oldValue.CreationVisibility, nil
+}
+
+// ResetCreationVisibility resets all changes to the "creation_visibility" field.
+func (m *SocialOAuthStartMutation) ResetCreationVisibility() {
+	m.creation_visibility = nil
+}
+
+// SetCreatedSocialSetID sets the "created_social_set_id" field.
+func (m *SocialOAuthStartMutation) SetCreatedSocialSetID(s string) {
+	m.created_social_set_id = &s
+}
+
+// CreatedSocialSetID returns the value of the "created_social_set_id" field in the mutation.
+func (m *SocialOAuthStartMutation) CreatedSocialSetID() (r string, exists bool) {
+	v := m.created_social_set_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedSocialSetID returns the old "created_social_set_id" field's value of the SocialOAuthStart entity.
+// If the SocialOAuthStart object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialOAuthStartMutation) OldCreatedSocialSetID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedSocialSetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedSocialSetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedSocialSetID: %w", err)
+	}
+	return oldValue.CreatedSocialSetID, nil
+}
+
+// ClearCreatedSocialSetID clears the value of the "created_social_set_id" field.
+func (m *SocialOAuthStartMutation) ClearCreatedSocialSetID() {
+	m.created_social_set_id = nil
+	m.clearedFields[socialoauthstart.FieldCreatedSocialSetID] = struct{}{}
+}
+
+// CreatedSocialSetIDCleared returns if the "created_social_set_id" field was cleared in this mutation.
+func (m *SocialOAuthStartMutation) CreatedSocialSetIDCleared() bool {
+	_, ok := m.clearedFields[socialoauthstart.FieldCreatedSocialSetID]
+	return ok
+}
+
+// ResetCreatedSocialSetID resets all changes to the "created_social_set_id" field.
+func (m *SocialOAuthStartMutation) ResetCreatedSocialSetID() {
+	m.created_social_set_id = nil
+	delete(m.clearedFields, socialoauthstart.FieldCreatedSocialSetID)
+}
+
 // SetExchangeStatus sets the "exchange_status" field.
 func (m *SocialOAuthStartMutation) SetExchangeStatus(ss socialoauthstart.ExchangeStatus) {
 	m.exchange_status = &ss
@@ -75103,7 +75227,7 @@ func (m *SocialOAuthStartMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SocialOAuthStartMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 18)
 	if m.organization_id != nil {
 		fields = append(fields, socialoauthstart.FieldOrganizationID)
 	}
@@ -75124,6 +75248,15 @@ func (m *SocialOAuthStartMutation) Fields() []string {
 	}
 	if m.social_set_id != nil {
 		fields = append(fields, socialoauthstart.FieldSocialSetID)
+	}
+	if m.operation != nil {
+		fields = append(fields, socialoauthstart.FieldOperation)
+	}
+	if m.creation_visibility != nil {
+		fields = append(fields, socialoauthstart.FieldCreationVisibility)
+	}
+	if m.created_social_set_id != nil {
+		fields = append(fields, socialoauthstart.FieldCreatedSocialSetID)
 	}
 	if m.exchange_status != nil {
 		fields = append(fields, socialoauthstart.FieldExchangeStatus)
@@ -75171,6 +75304,12 @@ func (m *SocialOAuthStartMutation) Field(name string) (ent.Value, bool) {
 		return m.IntegrationID()
 	case socialoauthstart.FieldSocialSetID:
 		return m.SocialSetID()
+	case socialoauthstart.FieldOperation:
+		return m.Operation()
+	case socialoauthstart.FieldCreationVisibility:
+		return m.CreationVisibility()
+	case socialoauthstart.FieldCreatedSocialSetID:
+		return m.CreatedSocialSetID()
 	case socialoauthstart.FieldExchangeStatus:
 		return m.ExchangeStatus()
 	case socialoauthstart.FieldExchangeReceipt:
@@ -75210,6 +75349,12 @@ func (m *SocialOAuthStartMutation) OldField(ctx context.Context, name string) (e
 		return m.OldIntegrationID(ctx)
 	case socialoauthstart.FieldSocialSetID:
 		return m.OldSocialSetID(ctx)
+	case socialoauthstart.FieldOperation:
+		return m.OldOperation(ctx)
+	case socialoauthstart.FieldCreationVisibility:
+		return m.OldCreationVisibility(ctx)
+	case socialoauthstart.FieldCreatedSocialSetID:
+		return m.OldCreatedSocialSetID(ctx)
 	case socialoauthstart.FieldExchangeStatus:
 		return m.OldExchangeStatus(ctx)
 	case socialoauthstart.FieldExchangeReceipt:
@@ -75283,6 +75428,27 @@ func (m *SocialOAuthStartMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSocialSetID(v)
+		return nil
+	case socialoauthstart.FieldOperation:
+		v, ok := value.(socialoauthstart.Operation)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOperation(v)
+		return nil
+	case socialoauthstart.FieldCreationVisibility:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreationVisibility(v)
+		return nil
+	case socialoauthstart.FieldCreatedSocialSetID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedSocialSetID(v)
 		return nil
 	case socialoauthstart.FieldExchangeStatus:
 		v, ok := value.(socialoauthstart.ExchangeStatus)
@@ -75376,6 +75542,9 @@ func (m *SocialOAuthStartMutation) ClearedFields() []string {
 	if m.FieldCleared(socialoauthstart.FieldSocialSetID) {
 		fields = append(fields, socialoauthstart.FieldSocialSetID)
 	}
+	if m.FieldCleared(socialoauthstart.FieldCreatedSocialSetID) {
+		fields = append(fields, socialoauthstart.FieldCreatedSocialSetID)
+	}
 	if m.FieldCleared(socialoauthstart.FieldExchangeReceipt) {
 		fields = append(fields, socialoauthstart.FieldExchangeReceipt)
 	}
@@ -75407,6 +75576,9 @@ func (m *SocialOAuthStartMutation) ClearField(name string) error {
 		return nil
 	case socialoauthstart.FieldSocialSetID:
 		m.ClearSocialSetID()
+		return nil
+	case socialoauthstart.FieldCreatedSocialSetID:
+		m.ClearCreatedSocialSetID()
 		return nil
 	case socialoauthstart.FieldExchangeReceipt:
 		m.ClearExchangeReceipt()
@@ -75448,6 +75620,15 @@ func (m *SocialOAuthStartMutation) ResetField(name string) error {
 		return nil
 	case socialoauthstart.FieldSocialSetID:
 		m.ResetSocialSetID()
+		return nil
+	case socialoauthstart.FieldOperation:
+		m.ResetOperation()
+		return nil
+	case socialoauthstart.FieldCreationVisibility:
+		m.ResetCreationVisibility()
+		return nil
+	case socialoauthstart.FieldCreatedSocialSetID:
+		m.ResetCreatedSocialSetID()
 		return nil
 	case socialoauthstart.FieldExchangeStatus:
 		m.ResetExchangeStatus()

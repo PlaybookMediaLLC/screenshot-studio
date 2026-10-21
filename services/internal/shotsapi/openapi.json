@@ -550,6 +550,118 @@
         }
       }
     },
+    "/api/v1/social-connection-attempts": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Starts a provider authorization for the signed-in owner or admin in the active workspace. CREATE_SET requires PRIVATE or WORKSPACE visibility; no set exists until the verified first account commits. ADD_ACCOUNT targets an existing social set, and RECONNECT also binds the existing connection. The attempt retains its original user, session, workspace, and target across workspace switches. Each call starts a new authorization; do not automatically retry a lost begin response. Provider callbacks recover their persisted result instead of exchanging the code twice. API keys cannot connect accounts.",
+        "operationId": "createSocialConnectionAttempt",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SocialConnectionAttemptRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Authorization URL, with a persisted session-bound attempt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocialConnectionAttemptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The operation and owner or target are inconsistent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target does not exist or is private to another person.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The account, provider slot, or subscription cannot accept this connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The workspace write quota is exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceQuotaError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The provider or a required connection service is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Start a social account connection",
+        "tags": [
+          "Publishing"
+        ]
+      }
+    },
     "/api/v1/releases": {
       "get": {
         "x-shots-entitlement": {
@@ -10020,6 +10132,69 @@
       }
     },
     "schemas": {
+      "SocialConnectionAttemptRequest": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "CREATE_SET",
+              "ADD_ACCOUNT",
+              "RECONNECT"
+            ]
+          },
+          "creationVisibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "WORKSPACE"
+            ]
+          },
+          "expectedConnectionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "returnPath": {
+            "type": "string",
+            "pattern": "^\\/(?:workspace\\/social-sets|write)\\/[a-z0-9]{10,32}$"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "x",
+              "instagram",
+              "instagram-standalone",
+              "linkedin",
+              "threads",
+              "mastodon"
+            ]
+          },
+          "socialSetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "operation",
+          "provider"
+        ],
+        "additionalProperties": false
+      },
+      "SocialConnectionAttemptResponse": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
+      },
       "ReleaseListResponse": {
         "type": "object",
         "properties": {

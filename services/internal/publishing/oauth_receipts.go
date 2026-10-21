@@ -24,6 +24,8 @@ type OAuthStartOptions struct {
 	SocialSetID          *string
 	ExpectedConnectionID *string
 	ReturnPath           string
+	Operation            string
+	CreationVisibility   string
 }
 
 // OAuthContext contains only safe routing information for an authenticated callback.
@@ -31,6 +33,7 @@ type OAuthContext struct {
 	OrganizationID string  `json:"organizationId"`
 	SocialSetID    *string `json:"socialSetId"`
 	ReturnPath     string  `json:"returnPath"`
+	Operation      string  `json:"operation"`
 }
 
 // ResolveOAuthContext ignores the selected workspace, not the authenticated
@@ -48,7 +51,18 @@ func (r *Repository) ResolveOAuthContext(ctx context.Context, userID, sessionID,
 	if _, err := r.OAuthStart(ctx, actor, sessionID, state, provider, nil); err != nil {
 		return nil, err
 	}
-	return &OAuthContext{OrganizationID: start.OrganizationID, SocialSetID: start.SocialSetID, ReturnPath: start.ReturnPath}, nil
+	path := start.ReturnPath
+	if start.CreatedSocialSetID != nil {
+		path = "/workspace/social-sets/" + *start.CreatedSocialSetID
+	}
+	return &OAuthContext{OrganizationID: start.OrganizationID, SocialSetID: oauthTargetSet(start), ReturnPath: path, Operation: string(start.Operation)}, nil
+}
+
+func oauthTargetSet(start *ent.SocialOAuthStart) *string {
+	if start.Operation == socialoauthstart.OperationCREATE_SET {
+		return start.CreatedSocialSetID
+	}
+	return start.SocialSetID
 }
 
 func authorizeOAuthTarget(ctx context.Context, client *ent.Client, actor Actor, setID *string) error {
@@ -136,14 +150,20 @@ func lockOAuthStart(ctx context.Context, tx *ent.Tx, actor Actor, sessionID, sta
 	if !oauthAttemptCurrent(start) {
 		return nil, ErrNotFound
 	}
-	if start.SocialSetID != nil {
+	setID := oauthTargetSet(start)
+	if setID != nil {
 		// Settings edits and ownership changes take the same row lock.
-		if err := tx.PlatformQuery(ctx, `SELECT id FROM social_set WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, []any{*start.SocialSetID, actor.Organization}, func(row entsql.ColumnScanner) error { var id string; return row.Scan(&id) }); err != nil {
+		if err := tx.PlatformQuery(ctx, `SELECT id FROM social_set WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, []any{*setID, actor.Organization}, func(row entsql.ColumnScanner) error { var id string; return row.Scan(&id) }); err != nil {
 			return nil, err
 		}
 	}
-	if err := authorizeOAuthTarget(ctx, tx.Client(), actor, start.SocialSetID); err != nil {
+	if err := authorizeOAuthTarget(ctx, tx.Client(), actor, setID); err != nil {
 		return nil, err
+	}
+	if start.Operation == socialoauthstart.OperationCREATE_SET {
+		if err := authorizeOAuthCreation(ctx, tx.Client(), actor); err != nil {
+			return nil, err
+		}
 	}
 	return start, nil
 }

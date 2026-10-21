@@ -79,6 +79,48 @@ func (_c *SocialOAuthStartCreate) SetNillableSocialSetID(v *string) *SocialOAuth
 	return _c
 }
 
+// SetOperation sets the "operation" field.
+func (_c *SocialOAuthStartCreate) SetOperation(v socialoauthstart.Operation) *SocialOAuthStartCreate {
+	_c.mutation.SetOperation(v)
+	return _c
+}
+
+// SetNillableOperation sets the "operation" field if the given value is not nil.
+func (_c *SocialOAuthStartCreate) SetNillableOperation(v *socialoauthstart.Operation) *SocialOAuthStartCreate {
+	if v != nil {
+		_c.SetOperation(*v)
+	}
+	return _c
+}
+
+// SetCreationVisibility sets the "creation_visibility" field.
+func (_c *SocialOAuthStartCreate) SetCreationVisibility(v string) *SocialOAuthStartCreate {
+	_c.mutation.SetCreationVisibility(v)
+	return _c
+}
+
+// SetNillableCreationVisibility sets the "creation_visibility" field if the given value is not nil.
+func (_c *SocialOAuthStartCreate) SetNillableCreationVisibility(v *string) *SocialOAuthStartCreate {
+	if v != nil {
+		_c.SetCreationVisibility(*v)
+	}
+	return _c
+}
+
+// SetCreatedSocialSetID sets the "created_social_set_id" field.
+func (_c *SocialOAuthStartCreate) SetCreatedSocialSetID(v string) *SocialOAuthStartCreate {
+	_c.mutation.SetCreatedSocialSetID(v)
+	return _c
+}
+
+// SetNillableCreatedSocialSetID sets the "created_social_set_id" field if the given value is not nil.
+func (_c *SocialOAuthStartCreate) SetNillableCreatedSocialSetID(v *string) *SocialOAuthStartCreate {
+	if v != nil {
+		_c.SetCreatedSocialSetID(*v)
+	}
+	return _c
+}
+
 // SetExchangeStatus sets the "exchange_status" field.
 func (_c *SocialOAuthStartCreate) SetExchangeStatus(v socialoauthstart.ExchangeStatus) *SocialOAuthStartCreate {
 	_c.mutation.SetExchangeStatus(v)
@@ -224,6 +266,14 @@ func (_c *SocialOAuthStartCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *SocialOAuthStartCreate) defaults() {
+	if _, ok := _c.mutation.Operation(); !ok {
+		v := socialoauthstart.DefaultOperation
+		_c.mutation.SetOperation(v)
+	}
+	if _, ok := _c.mutation.CreationVisibility(); !ok {
+		v := socialoauthstart.DefaultCreationVisibility
+		_c.mutation.SetCreationVisibility(v)
+	}
 	if _, ok := _c.mutation.ExchangeStatus(); !ok {
 		v := socialoauthstart.DefaultExchangeStatus
 		_c.mutation.SetExchangeStatus(v)
@@ -254,6 +304,17 @@ func (_c *SocialOAuthStartCreate) check() error {
 	}
 	if _, ok := _c.mutation.SecretReference(); !ok {
 		return &ValidationError{Name: "secret_reference", err: errors.New(`ent: missing required field "SocialOAuthStart.secret_reference"`)}
+	}
+	if _, ok := _c.mutation.Operation(); !ok {
+		return &ValidationError{Name: "operation", err: errors.New(`ent: missing required field "SocialOAuthStart.operation"`)}
+	}
+	if v, ok := _c.mutation.Operation(); ok {
+		if err := socialoauthstart.OperationValidator(v); err != nil {
+			return &ValidationError{Name: "operation", err: fmt.Errorf(`ent: validator failed for field "SocialOAuthStart.operation": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.CreationVisibility(); !ok {
+		return &ValidationError{Name: "creation_visibility", err: errors.New(`ent: missing required field "SocialOAuthStart.creation_visibility"`)}
 	}
 	if _, ok := _c.mutation.ExchangeStatus(); !ok {
 		return &ValidationError{Name: "exchange_status", err: errors.New(`ent: missing required field "SocialOAuthStart.exchange_status"`)}
@@ -334,6 +395,18 @@ func (_c *SocialOAuthStartCreate) createSpec() (*SocialOAuthStart, *sqlgraph.Cre
 	if value, ok := _c.mutation.SocialSetID(); ok {
 		_spec.SetField(socialoauthstart.FieldSocialSetID, field.TypeString, value)
 		_node.SocialSetID = &value
+	}
+	if value, ok := _c.mutation.Operation(); ok {
+		_spec.SetField(socialoauthstart.FieldOperation, field.TypeEnum, value)
+		_node.Operation = value
+	}
+	if value, ok := _c.mutation.CreationVisibility(); ok {
+		_spec.SetField(socialoauthstart.FieldCreationVisibility, field.TypeString, value)
+		_node.CreationVisibility = value
+	}
+	if value, ok := _c.mutation.CreatedSocialSetID(); ok {
+		_spec.SetField(socialoauthstart.FieldCreatedSocialSetID, field.TypeString, value)
+		_node.CreatedSocialSetID = &value
 	}
 	if value, ok := _c.mutation.ExchangeStatus(); ok {
 		_spec.SetField(socialoauthstart.FieldExchangeStatus, field.TypeEnum, value)

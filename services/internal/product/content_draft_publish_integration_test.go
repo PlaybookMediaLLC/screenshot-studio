@@ -39,7 +39,7 @@ func TestWritePublishing(t *testing.T) {
 	subscribe(t, ctx, repo, w.org, "business")
 	// The Premium account has a set of its own: one X account per set. The
 	// workspace's default set is its oldest, so it comes first.
-	if _, err := repo.ListSocialSets(ctx, owner); err != nil {
+	if _, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: "Acme"}); err != nil {
 		t.Fatal(err)
 	}
 	premiumSet, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: "Premium"})

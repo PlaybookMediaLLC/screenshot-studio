@@ -26,6 +26,7 @@ type fakeStore struct {
 	oauthProvider string
 	oauthReceipt  *schema.SocialOAuthExchange
 	oauthStatus   socialoauthstart.ExchangeStatus
+	oauthOptions  publishing.OAuthStartOptions
 	authError     error
 	bindingError  error
 	keyScope      string
@@ -34,6 +35,7 @@ type fakeStore struct {
 
 type fakeVerifier struct {
 	input         socialapi.VerifyDestinationInput
+	beginCalls    int
 	exchangeCalls int
 	pageCalls     int
 }
@@ -47,6 +49,7 @@ func (f *fakeVerifier) VerifyDestination(_ context.Context, input socialapi.Veri
 	return nil
 }
 func (f *fakeVerifier) BeginOAuth(context.Context, socialapi.BeginOAuthInput) (string, error) {
+	f.beginCalls++
 	return "https://api.x.com/oauth/authorize?oauth_token=test-state", nil
 }
 func (f *fakeVerifier) ExchangeOAuth(_ context.Context, provider, code, state string) (socialapi.OAuthExchange, error) {
@@ -90,11 +93,47 @@ func (f *fakeStore) Binding(context.Context, string) (*ent.SocialTenantBinding, 
 	}
 	return &ent.SocialTenantBinding{GoOrganizationID: "go-org-1", SecretReference: "SOCIAL_API_KEY"}, nil
 }
-func (f *fakeStore) StartOAuth(_ context.Context, _ publishing.Actor, session, state, provider, _ string, _ publishing.OAuthStartOptions) error {
+func (f *fakeStore) StartOAuth(_ context.Context, _ publishing.Actor, session, state, provider, _ string, options publishing.OAuthStartOptions) error {
 	f.oauthState = state
 	f.oauthSession = session
 	f.oauthProvider = provider
+	f.oauthOptions = options
 	return nil
+}
+
+func TestSocialOAuthCreationBindsOwnerAndRejectsMixedIntent(t *testing.T) {
+	for _, test := range []struct {
+		body, visibility string
+		status           int
+	}{
+		{`{"provider":"x","operation":"CREATE_SET","creationVisibility":"PRIVATE"}`, "PRIVATE", http.StatusCreated},
+		{`{"provider":"x","operation":"CREATE_SET","creationVisibility":"WORKSPACE"}`, "WORKSPACE", http.StatusCreated},
+		{`{"provider":"x","operation":"CREATE_SET"}`, "", http.StatusBadRequest},
+		{`{"provider":"x","operation":"CREATE_SET","creationVisibility":"PRIVATE","expectedConnectionId":"existing"}`, "", http.StatusBadRequest},
+		{`{"provider":"x","operation":"ADD_ACCOUNT","creationVisibility":"PRIVATE"}`, "", http.StatusBadRequest},
+		{`{"provider":"x","operation":"REPLACE"}`, "", http.StatusBadRequest},
+	} {
+		t.Run(test.body, func(t *testing.T) {
+			store, verifier := &fakeStore{}, &fakeVerifier{}
+			request := httptest.NewRequest(http.MethodPost, "/v1/social-oauth/begin", strings.NewReader(test.body))
+			request.Header.Set("Authorization", "Bearer secret")
+			request.Header.Set("X-Organization-ID", "original-workspace")
+			request.Header.Set("X-User-ID", "original-user")
+			request.Header.Set("X-Session-ID", "original-session")
+			response := httptest.NewRecorder()
+			New(store, &fakeScheduler{}, verifier, "secret").ServeHTTP(response, request)
+			if response.Code != test.status {
+				t.Fatalf("status=%d body=%s", response.Code, response.Body)
+			}
+			if test.status == http.StatusCreated {
+				if store.oauthOptions.Operation != "CREATE_SET" || store.oauthOptions.CreationVisibility != test.visibility || store.oauthSession != "original-session" {
+					t.Fatalf("lost creation context: %+v", store.oauthOptions)
+				}
+			} else if verifier.beginCalls != 0 || store.oauthState != "" {
+				t.Fatal("invalid intent reached the provider")
+			}
+		})
+	}
 }
 func (f *fakeStore) OAuthStart(_ context.Context, _ publishing.Actor, session, state, provider string, _ *string) (*ent.SocialOAuthStart, error) {
 	if state != f.oauthState || session != f.oauthSession || provider != f.oauthProvider {

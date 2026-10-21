@@ -33,6 +33,12 @@ type SocialOAuthStart struct {
 	IntegrationID *string `json:"integration_id,omitempty"`
 	// SocialSetID holds the value of the "social_set_id" field.
 	SocialSetID *string `json:"social_set_id,omitempty"`
+	// Operation holds the value of the "operation" field.
+	Operation socialoauthstart.Operation `json:"operation,omitempty"`
+	// CreationVisibility holds the value of the "creation_visibility" field.
+	CreationVisibility string `json:"creation_visibility,omitempty"`
+	// CreatedSocialSetID holds the value of the "created_social_set_id" field.
+	CreatedSocialSetID *string `json:"created_social_set_id,omitempty"`
 	// ExchangeStatus holds the value of the "exchange_status" field.
 	ExchangeStatus socialoauthstart.ExchangeStatus `json:"exchange_status,omitempty"`
 	// ExchangeReceipt holds the value of the "exchange_receipt" field.
@@ -59,7 +65,7 @@ func (*SocialOAuthStart) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case socialoauthstart.FieldExchangeReceipt:
 			values[i] = new([]byte)
-		case socialoauthstart.FieldID, socialoauthstart.FieldOrganizationID, socialoauthstart.FieldUserID, socialoauthstart.FieldSessionID, socialoauthstart.FieldProvider, socialoauthstart.FieldSecretReference, socialoauthstart.FieldIntegrationID, socialoauthstart.FieldSocialSetID, socialoauthstart.FieldExchangeStatus, socialoauthstart.FieldExpectedConnectionID, socialoauthstart.FieldReturnPath, socialoauthstart.FieldCompletedConnectionID:
+		case socialoauthstart.FieldID, socialoauthstart.FieldOrganizationID, socialoauthstart.FieldUserID, socialoauthstart.FieldSessionID, socialoauthstart.FieldProvider, socialoauthstart.FieldSecretReference, socialoauthstart.FieldIntegrationID, socialoauthstart.FieldSocialSetID, socialoauthstart.FieldOperation, socialoauthstart.FieldCreationVisibility, socialoauthstart.FieldCreatedSocialSetID, socialoauthstart.FieldExchangeStatus, socialoauthstart.FieldExpectedConnectionID, socialoauthstart.FieldReturnPath, socialoauthstart.FieldCompletedConnectionID:
 			values[i] = new(sql.NullString)
 		case socialoauthstart.FieldCompletedAt, socialoauthstart.FieldExpiresAt, socialoauthstart.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -127,6 +133,25 @@ func (_m *SocialOAuthStart) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.SocialSetID = new(string)
 				*_m.SocialSetID = value.String
+			}
+		case socialoauthstart.FieldOperation:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field operation", values[i])
+			} else if value.Valid {
+				_m.Operation = socialoauthstart.Operation(value.String)
+			}
+		case socialoauthstart.FieldCreationVisibility:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field creation_visibility", values[i])
+			} else if value.Valid {
+				_m.CreationVisibility = value.String
+			}
+		case socialoauthstart.FieldCreatedSocialSetID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field created_social_set_id", values[i])
+			} else if value.Valid {
+				_m.CreatedSocialSetID = new(string)
+				*_m.CreatedSocialSetID = value.String
 			}
 		case socialoauthstart.FieldExchangeStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -238,6 +263,17 @@ func (_m *SocialOAuthStart) String() string {
 	builder.WriteString(", ")
 	if v := _m.SocialSetID; v != nil {
 		builder.WriteString("social_set_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("operation=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Operation))
+	builder.WriteString(", ")
+	builder.WriteString("creation_visibility=")
+	builder.WriteString(_m.CreationVisibility)
+	builder.WriteString(", ")
+	if v := _m.CreatedSocialSetID; v != nil {
+		builder.WriteString("created_social_set_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

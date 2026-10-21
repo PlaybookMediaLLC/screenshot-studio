@@ -28,11 +28,10 @@ func TestWriteWorkspace(t *testing.T) {
 		ExperimentDraftTags: true}}); err != nil {
 		t.Fatal(err)
 	}
-	sets, err := repo.ListSocialSets(ctx, owner)
-	if err != nil || len(sets.Items) != 1 {
-		t.Fatalf("default sets=%+v err=%v", sets, err)
+	defaultSet, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: "Acme"})
+	if err != nil {
+		t.Fatal(err)
 	}
-	defaultSet := sets.Items[0]
 	brand, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: defaultSet.Name, Visibility: "PRIVATE"})
 	if err != nil {
 		t.Fatal(err)

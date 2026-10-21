@@ -2424,6 +2424,9 @@ var (
 		{Name: "secretReference", Type: field.TypeString},
 		{Name: "integrationId", Type: field.TypeString, Nullable: true},
 		{Name: "socialSetId", Type: field.TypeString, Nullable: true},
+		{Name: "operation", Type: field.TypeEnum, Enums: []string{"CREATE_SET", "ADD_ACCOUNT", "RECONNECT"}, Default: "ADD_ACCOUNT"},
+		{Name: "creationVisibility", Type: field.TypeString, Default: ""},
+		{Name: "createdSocialSetId", Type: field.TypeString, Nullable: true},
 		{Name: "exchangeStatus", Type: field.TypeEnum, Enums: []string{"PENDING", "EXCHANGING", "EXCHANGED", "COMPLETED"}, Default: "PENDING"},
 		{Name: "exchangeReceipt", Type: field.TypeJSON, Nullable: true},
 		{Name: "expectedConnectionId", Type: field.TypeString, Nullable: true},
@@ -2442,7 +2445,7 @@ var (
 			{
 				Name:    "socialoauthstart_expiresAt",
 				Unique:  false,
-				Columns: []*schema.Column{SocialOauthStartColumns[14]},
+				Columns: []*schema.Column{SocialOauthStartColumns[17]},
 			},
 		},
 	}

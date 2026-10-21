@@ -52,7 +52,7 @@ func TestUnverifiedSocialCredentialsCannotSchedule(t *testing.T) {
 	w := newTestWorkspace(t)
 	ctx, repo, owner := w.ctx, w.repo.WithMonthlyMeter(&recordingMonthlyMeter{}), w.owner
 	subscribe(t, ctx, repo, w.org, "pro")
-	if _, err := repo.ListSocialSets(ctx, owner); err != nil {
+	if _, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: "Acme"}); err != nil {
 		t.Fatal(err)
 	}
 	external := "x-" + w.id

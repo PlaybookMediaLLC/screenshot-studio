@@ -99,6 +99,16 @@ func SocialSetID(v string) predicate.SocialOAuthStart {
 	return predicate.SocialOAuthStart(sql.FieldEQ(FieldSocialSetID, v))
 }
 
+// CreationVisibility applies equality check predicate on the "creation_visibility" field. It's identical to CreationVisibilityEQ.
+func CreationVisibility(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldCreationVisibility, v))
+}
+
+// CreatedSocialSetID applies equality check predicate on the "created_social_set_id" field. It's identical to CreatedSocialSetIDEQ.
+func CreatedSocialSetID(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldCreatedSocialSetID, v))
+}
+
 // ExpectedConnectionID applies equality check predicate on the "expected_connection_id" field. It's identical to ExpectedConnectionIDEQ.
 func ExpectedConnectionID(v string) predicate.SocialOAuthStart {
 	return predicate.SocialOAuthStart(sql.FieldEQ(FieldExpectedConnectionID, v))
@@ -602,6 +612,166 @@ func SocialSetIDEqualFold(v string) predicate.SocialOAuthStart {
 // SocialSetIDContainsFold applies the ContainsFold predicate on the "social_set_id" field.
 func SocialSetIDContainsFold(v string) predicate.SocialOAuthStart {
 	return predicate.SocialOAuthStart(sql.FieldContainsFold(FieldSocialSetID, v))
+}
+
+// OperationEQ applies the EQ predicate on the "operation" field.
+func OperationEQ(v Operation) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldOperation, v))
+}
+
+// OperationNEQ applies the NEQ predicate on the "operation" field.
+func OperationNEQ(v Operation) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNEQ(FieldOperation, v))
+}
+
+// OperationIn applies the In predicate on the "operation" field.
+func OperationIn(vs ...Operation) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIn(FieldOperation, vs...))
+}
+
+// OperationNotIn applies the NotIn predicate on the "operation" field.
+func OperationNotIn(vs ...Operation) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotIn(FieldOperation, vs...))
+}
+
+// CreationVisibilityEQ applies the EQ predicate on the "creation_visibility" field.
+func CreationVisibilityEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldCreationVisibility, v))
+}
+
+// CreationVisibilityNEQ applies the NEQ predicate on the "creation_visibility" field.
+func CreationVisibilityNEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNEQ(FieldCreationVisibility, v))
+}
+
+// CreationVisibilityIn applies the In predicate on the "creation_visibility" field.
+func CreationVisibilityIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIn(FieldCreationVisibility, vs...))
+}
+
+// CreationVisibilityNotIn applies the NotIn predicate on the "creation_visibility" field.
+func CreationVisibilityNotIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotIn(FieldCreationVisibility, vs...))
+}
+
+// CreationVisibilityGT applies the GT predicate on the "creation_visibility" field.
+func CreationVisibilityGT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGT(FieldCreationVisibility, v))
+}
+
+// CreationVisibilityGTE applies the GTE predicate on the "creation_visibility" field.
+func CreationVisibilityGTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGTE(FieldCreationVisibility, v))
+}
+
+// CreationVisibilityLT applies the LT predicate on the "creation_visibility" field.
+func CreationVisibilityLT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLT(FieldCreationVisibility, v))
+}
+
+// CreationVisibilityLTE applies the LTE predicate on the "creation_visibility" field.
+func CreationVisibilityLTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLTE(FieldCreationVisibility, v))
+}
+
+// CreationVisibilityContains applies the Contains predicate on the "creation_visibility" field.
+func CreationVisibilityContains(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContains(FieldCreationVisibility, v))
+}
+
+// CreationVisibilityHasPrefix applies the HasPrefix predicate on the "creation_visibility" field.
+func CreationVisibilityHasPrefix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasPrefix(FieldCreationVisibility, v))
+}
+
+// CreationVisibilityHasSuffix applies the HasSuffix predicate on the "creation_visibility" field.
+func CreationVisibilityHasSuffix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasSuffix(FieldCreationVisibility, v))
+}
+
+// CreationVisibilityEqualFold applies the EqualFold predicate on the "creation_visibility" field.
+func CreationVisibilityEqualFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEqualFold(FieldCreationVisibility, v))
+}
+
+// CreationVisibilityContainsFold applies the ContainsFold predicate on the "creation_visibility" field.
+func CreationVisibilityContainsFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContainsFold(FieldCreationVisibility, v))
+}
+
+// CreatedSocialSetIDEQ applies the EQ predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldCreatedSocialSetID, v))
+}
+
+// CreatedSocialSetIDNEQ applies the NEQ predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDNEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNEQ(FieldCreatedSocialSetID, v))
+}
+
+// CreatedSocialSetIDIn applies the In predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIn(FieldCreatedSocialSetID, vs...))
+}
+
+// CreatedSocialSetIDNotIn applies the NotIn predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDNotIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotIn(FieldCreatedSocialSetID, vs...))
+}
+
+// CreatedSocialSetIDGT applies the GT predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDGT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGT(FieldCreatedSocialSetID, v))
+}
+
+// CreatedSocialSetIDGTE applies the GTE predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDGTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGTE(FieldCreatedSocialSetID, v))
+}
+
+// CreatedSocialSetIDLT applies the LT predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDLT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLT(FieldCreatedSocialSetID, v))
+}
+
+// CreatedSocialSetIDLTE applies the LTE predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDLTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLTE(FieldCreatedSocialSetID, v))
+}
+
+// CreatedSocialSetIDContains applies the Contains predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDContains(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContains(FieldCreatedSocialSetID, v))
+}
+
+// CreatedSocialSetIDHasPrefix applies the HasPrefix predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDHasPrefix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasPrefix(FieldCreatedSocialSetID, v))
+}
+
+// CreatedSocialSetIDHasSuffix applies the HasSuffix predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDHasSuffix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasSuffix(FieldCreatedSocialSetID, v))
+}
+
+// CreatedSocialSetIDIsNil applies the IsNil predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDIsNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIsNull(FieldCreatedSocialSetID))
+}
+
+// CreatedSocialSetIDNotNil applies the NotNil predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDNotNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotNull(FieldCreatedSocialSetID))
+}
+
+// CreatedSocialSetIDEqualFold applies the EqualFold predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDEqualFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEqualFold(FieldCreatedSocialSetID, v))
+}
+
+// CreatedSocialSetIDContainsFold applies the ContainsFold predicate on the "created_social_set_id" field.
+func CreatedSocialSetIDContainsFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContainsFold(FieldCreatedSocialSetID, v))
 }
 
 // ExchangeStatusEQ applies the EQ predicate on the "exchange_status" field.

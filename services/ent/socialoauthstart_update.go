@@ -49,6 +49,26 @@ func (_u *SocialOAuthStartUpdate) ClearIntegrationID() *SocialOAuthStartUpdate {
 	return _u
 }
 
+// SetCreatedSocialSetID sets the "created_social_set_id" field.
+func (_u *SocialOAuthStartUpdate) SetCreatedSocialSetID(v string) *SocialOAuthStartUpdate {
+	_u.mutation.SetCreatedSocialSetID(v)
+	return _u
+}
+
+// SetNillableCreatedSocialSetID sets the "created_social_set_id" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdate) SetNillableCreatedSocialSetID(v *string) *SocialOAuthStartUpdate {
+	if v != nil {
+		_u.SetCreatedSocialSetID(*v)
+	}
+	return _u
+}
+
+// ClearCreatedSocialSetID clears the value of the "created_social_set_id" field.
+func (_u *SocialOAuthStartUpdate) ClearCreatedSocialSetID() *SocialOAuthStartUpdate {
+	_u.mutation.ClearCreatedSocialSetID()
+	return _u
+}
+
 // SetExchangeStatus sets the "exchange_status" field.
 func (_u *SocialOAuthStartUpdate) SetExchangeStatus(v socialoauthstart.ExchangeStatus) *SocialOAuthStartUpdate {
 	_u.mutation.SetExchangeStatus(v)
@@ -186,6 +206,12 @@ func (_u *SocialOAuthStartUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.SocialSetIDCleared() {
 		_spec.ClearField(socialoauthstart.FieldSocialSetID, field.TypeString)
 	}
+	if value, ok := _u.mutation.CreatedSocialSetID(); ok {
+		_spec.SetField(socialoauthstart.FieldCreatedSocialSetID, field.TypeString, value)
+	}
+	if _u.mutation.CreatedSocialSetIDCleared() {
+		_spec.ClearField(socialoauthstart.FieldCreatedSocialSetID, field.TypeString)
+	}
 	if value, ok := _u.mutation.ExchangeStatus(); ok {
 		_spec.SetField(socialoauthstart.FieldExchangeStatus, field.TypeEnum, value)
 	}
@@ -247,6 +273,26 @@ func (_u *SocialOAuthStartUpdateOne) SetNillableIntegrationID(v *string) *Social
 // ClearIntegrationID clears the value of the "integration_id" field.
 func (_u *SocialOAuthStartUpdateOne) ClearIntegrationID() *SocialOAuthStartUpdateOne {
 	_u.mutation.ClearIntegrationID()
+	return _u
+}
+
+// SetCreatedSocialSetID sets the "created_social_set_id" field.
+func (_u *SocialOAuthStartUpdateOne) SetCreatedSocialSetID(v string) *SocialOAuthStartUpdateOne {
+	_u.mutation.SetCreatedSocialSetID(v)
+	return _u
+}
+
+// SetNillableCreatedSocialSetID sets the "created_social_set_id" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdateOne) SetNillableCreatedSocialSetID(v *string) *SocialOAuthStartUpdateOne {
+	if v != nil {
+		_u.SetCreatedSocialSetID(*v)
+	}
+	return _u
+}
+
+// ClearCreatedSocialSetID clears the value of the "created_social_set_id" field.
+func (_u *SocialOAuthStartUpdateOne) ClearCreatedSocialSetID() *SocialOAuthStartUpdateOne {
+	_u.mutation.ClearCreatedSocialSetID()
 	return _u
 }
 
@@ -416,6 +462,12 @@ func (_u *SocialOAuthStartUpdateOne) sqlSave(ctx context.Context) (_node *Social
 	}
 	if _u.mutation.SocialSetIDCleared() {
 		_spec.ClearField(socialoauthstart.FieldSocialSetID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CreatedSocialSetID(); ok {
+		_spec.SetField(socialoauthstart.FieldCreatedSocialSetID, field.TypeString, value)
+	}
+	if _u.mutation.CreatedSocialSetIDCleared() {
+		_spec.ClearField(socialoauthstart.FieldCreatedSocialSetID, field.TypeString)
 	}
 	if value, ok := _u.mutation.ExchangeStatus(); ok {
 		_spec.SetField(socialoauthstart.FieldExchangeStatus, field.TypeEnum, value)

@@ -17,6 +17,9 @@ const oauthLifetime = time.Hour
 
 // StartOAuth records an authorization attempt and its immutable target.
 func (r *Repository) StartOAuth(ctx context.Context, actor Actor, sessionID, state, provider, secretReference string, options OAuthStartOptions) error {
+	if err := ValidateOAuthStartOptions(options); err != nil {
+		return err
+	}
 	if options.ReturnPath != "" && !oauthReturnPath.MatchString(options.ReturnPath) {
 		return ErrConflict
 	}
@@ -34,6 +37,15 @@ func (r *Repository) StartOAuth(ctx context.Context, actor Actor, sessionID, sta
 	if err := authorizeOAuthTarget(ctx, tx.Client(), actor, options.SocialSetID); err != nil {
 		return err
 	}
+	operation := oauthOperation(options)
+	if operation == socialoauthstart.OperationCREATE_SET {
+		if err := authorizeOAuthCreation(ctx, tx.Client(), actor); err != nil {
+			return err
+		}
+		if err := workspaceplan.RequireChannel(ctx, tx.Client(), actor.Organization, ""); err != nil {
+			return err
+		}
+	}
 	if options.ExpectedConnectionID != nil {
 		connection, err := tx.ChannelConnection.Query().Where(channelconnection.ID(*options.ExpectedConnectionID), channelconnection.OrganizationID(actor.Organization)).Only(ctx)
 		if ent.IsNotFound(err) {
@@ -49,6 +61,7 @@ func (r *Repository) StartOAuth(ctx context.Context, actor Actor, sessionID, sta
 	_, err = tx.SocialOAuthStart.Create().
 		SetID(state).SetOrganizationID(actor.Organization).SetUserID(actor.UserID).SetSessionID(sessionID).
 		SetProvider(provider).SetSecretReference(secretReference).SetNillableSocialSetID(options.SocialSetID).
+		SetOperation(operation).SetCreationVisibility(options.CreationVisibility).
 		SetNillableExpectedConnectionID(options.ExpectedConnectionID).SetReturnPath(options.ReturnPath).
 		SetExpiresAt(time.Now().UTC().Add(oauthLifetime)).Save(ctx)
 	if ent.IsConstraintError(err) {
@@ -84,8 +97,13 @@ func (r *Repository) OAuthStart(ctx context.Context, actor Actor, sessionID, sta
 	if !oauthAttemptCurrent(start) {
 		return nil, ErrNotFound
 	}
-	if err := authorizeOAuthTarget(ctx, r.client, actor, start.SocialSetID); err != nil {
+	if err := authorizeOAuthTarget(ctx, r.client, actor, oauthTargetSet(start)); err != nil {
 		return nil, err
+	}
+	if start.Operation == socialoauthstart.OperationCREATE_SET {
+		if err := authorizeOAuthCreation(ctx, r.client, actor); err != nil {
+			return nil, err
+		}
 	}
 	return start, nil
 }
@@ -136,7 +154,7 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 		if err != nil {
 			return nil, err
 		}
-		if start.SocialSetID != nil && (connection.SocialSetID == nil || *connection.SocialSetID != *start.SocialSetID) {
+		if target := oauthTargetSet(start); target != nil && (connection.SocialSetID == nil || *connection.SocialSetID != *target) {
 			return nil, ErrConflict
 		}
 		if err := tx.Commit(); err != nil {
@@ -159,7 +177,12 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 		if start.ExpectedConnectionID != nil {
 			return nil, ErrOAuthIdentityMismatch
 		}
-		setID, err := targetSocialSet(ctx, tx, actor.Organization, provider, start.SocialSetID)
+		var setID *string
+		if start.Operation == socialoauthstart.OperationCREATE_SET {
+			setID, err = createOAuthSocialSet(ctx, tx, actor, start)
+		} else {
+			setID, err = targetSocialSet(ctx, tx, actor.Organization, provider, start.SocialSetID)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -195,6 +218,8 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 		}
 	} else if err != nil {
 		return nil, err
+	} else if start.Operation == socialoauthstart.OperationCREATE_SET {
+		return nil, ErrAccountInAnotherSet
 	} else if start.ExpectedConnectionID != nil && connection.ID != *start.ExpectedConnectionID {
 		return nil, ErrOAuthIdentityMismatch
 	} else if connection.Platform != provider || connection.SecretReference != start.SecretReference {
@@ -202,8 +227,12 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 	} else if connection, err = reconnect(ctx, tx, actor, connection, start.SocialSetID); err != nil {
 		return nil, err
 	}
-	if err := tx.SocialOAuthStart.UpdateOneID(state).SetExchangeStatus(socialoauthstart.ExchangeStatusCOMPLETED).
-		SetCompletedConnectionID(connection.ID).SetCompletedAt(time.Now().UTC()).Exec(ctx); err != nil {
+	completed := tx.SocialOAuthStart.UpdateOneID(state).SetExchangeStatus(socialoauthstart.ExchangeStatusCOMPLETED).
+		SetCompletedConnectionID(connection.ID).SetCompletedAt(time.Now().UTC())
+	if start.Operation == socialoauthstart.OperationCREATE_SET {
+		completed.SetNillableCreatedSocialSetID(connection.SocialSetID)
+	}
+	if err := completed.Exec(ctx); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

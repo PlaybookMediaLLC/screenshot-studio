@@ -20,6 +20,14 @@ type QueueSlot struct {
 	Weekday int    `json:"weekday"`
 }
 
+// DefaultQueueSlots gives each new publishing identity its own weekday schedule.
+func DefaultQueueSlots() []QueueSlot {
+	return []QueueSlot{
+		{Weekday: 1, Time: "09:00"}, {Weekday: 2, Time: "09:00"}, {Weekday: 3, Time: "09:00"},
+		{Weekday: 4, Time: "09:00"}, {Weekday: 5, Time: "09:00"},
+	}
+}
+
 func (ContentDraftSettings) Annotations() []schema.Annotation {
 	return []schema.Annotation{entsql.Annotation{Table: "content_draft_settings"}}
 }

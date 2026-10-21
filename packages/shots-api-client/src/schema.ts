@@ -92,6 +92,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/social-connection-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a social account connection
+         * @description Starts a provider authorization for the signed-in owner or admin in the active workspace. CREATE_SET requires PRIVATE or WORKSPACE visibility; no set exists until the verified first account commits. ADD_ACCOUNT targets an existing social set, and RECONNECT also binds the existing connection. The attempt retains its original user, session, workspace, and target across workspace switches. Each call starts a new authorization; do not automatically retry a lost begin response. Provider callbacks recover their persisted result instead of exchanging the code twice. API keys cannot connect accounts.
+         */
+        post: operations["createSocialConnectionAttempt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/releases": {
         parameters: {
             query?: never;
@@ -1068,6 +1088,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SocialConnectionAttemptRequest: {
+            /** @enum {string} */
+            operation: "CREATE_SET" | "ADD_ACCOUNT" | "RECONNECT";
+            /** @enum {string} */
+            creationVisibility?: "PRIVATE" | "WORKSPACE";
+            expectedConnectionId?: string;
+            returnPath?: string;
+            /** @enum {string} */
+            provider: "x" | "instagram" | "instagram-standalone" | "linkedin" | "threads" | "mastodon";
+            socialSetId?: string;
+        };
+        SocialConnectionAttemptResponse: {
+            /** Format: uri */
+            url: string;
+        };
         ReleaseListResponse: {
             releases: {
                 id: string;
@@ -2942,6 +2977,93 @@ export interface operations {
             };
             /** @description The upstream host refused the request. */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createSocialConnectionAttempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SocialConnectionAttemptRequest"];
+            };
+        };
+        responses: {
+            /** @description Authorization URL, with a persisted session-bound attempt. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialConnectionAttemptResponse"];
+                };
+            };
+            /** @description The operation and owner or target are inconsistent. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The target does not exist or is private to another person. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The account, provider slot, or subscription cannot accept this connection. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The workspace write quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description The provider or a required connection service is unavailable. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

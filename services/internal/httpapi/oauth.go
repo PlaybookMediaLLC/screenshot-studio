@@ -21,6 +21,8 @@ type oauthRequest struct {
 	SocialSetID          string `json:"socialSetId"`
 	ExpectedConnectionID string `json:"expectedConnectionId"`
 	ReturnPath           string `json:"returnPath"`
+	Operation            string `json:"operation"`
+	CreationVisibility   string `json:"creationVisibility"`
 }
 
 func (s *Server) authenticateOAuthCallback(next http.Handler) http.Handler {
@@ -220,6 +222,21 @@ func (s *Server) beginSocialOAuth(w http.ResponseWriter, r *http.Request) {
 		}
 		socialSetID = &input.SocialSetID
 	}
+	options := publishing.OAuthStartOptions{SocialSetID: socialSetID, ReturnPath: input.ReturnPath,
+		Operation: input.Operation, CreationVisibility: input.CreationVisibility}
+	if input.ExpectedConnectionID != "" {
+		options.ExpectedConnectionID = &input.ExpectedConnectionID
+	}
+	if err := publishing.ValidateOAuthStartOptions(options); err != nil {
+		writeError(w, http.StatusBadRequest, "choose one connection operation and its owner or target")
+		return
+	}
+	if options.Operation == "CREATE_SET" && s.configuration != nil {
+		if err := s.configuration.RequireChannel(r.Context(), actor.Organization, ""); err != nil {
+			writeStoreError(w, err)
+			return
+		}
+	}
 	binding, err := s.store.Binding(r.Context(), actor.Organization)
 	if err != nil {
 		writeStoreError(w, err)
@@ -241,10 +258,6 @@ func (s *Server) beginSocialOAuth(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "social provider returned an invalid authorization URL")
 		return
-	}
-	options := publishing.OAuthStartOptions{SocialSetID: socialSetID, ReturnPath: input.ReturnPath}
-	if input.ExpectedConnectionID != "" {
-		options.ExpectedConnectionID = &input.ExpectedConnectionID
 	}
 	if err := s.store.StartOAuth(r.Context(), actor, sessionID, state, input.Provider, binding.SecretReference, options); err != nil {
 		writeStoreError(w, err)

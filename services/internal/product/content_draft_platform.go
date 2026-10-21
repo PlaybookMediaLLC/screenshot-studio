@@ -31,10 +31,7 @@ import (
 // resuming a thread that stopped, and engagement on live posts.
 
 // defaultQueueSlots are a new workspace's posting times: weekdays at 9:00.
-var defaultQueueSlots = []schema.QueueSlot{
-	{Weekday: 1, Time: "09:00"}, {Weekday: 2, Time: "09:00"}, {Weekday: 3, Time: "09:00"},
-	{Weekday: 4, Time: "09:00"}, {Weekday: 5, Time: "09:00"},
-}
+var defaultQueueSlots = schema.DefaultQueueSlots()
 
 // ContentDraftSettings is a workspace's drafts preferences.
 type ContentDraftSettings struct {

@@ -47,16 +47,25 @@ func TestOAuthReceiptUpgradePreservesPendingStarts(t *testing.T) {
 	for _, provider := range []string{"x", "platform-slack"} {
 		exec(`INSERT INTO social_oauth_start(state,"organizationId","userId","sessionId",provider,"secretReference","expiresAt","createdAt","socialSetId") VALUES($1,'oauth-upgrade-org','original-user','original-session',$1,'FIXTURE_ONLY',now()+interval '1 hour',now(),'original-target')`, provider)
 	}
+	if err := applyOne(ctx, db.SQL, "20261031100000_social_oauth_receipts.sql"); err != nil {
+		t.Fatal(err)
+	}
+	exec(`INSERT INTO social_oauth_start(state,"organizationId","userId","sessionId",provider,"secretReference","expiresAt","createdAt","socialSetId","expectedConnectionId")
+	    VALUES('reconnect','oauth-upgrade-org','original-user','original-session','x','FIXTURE_ONLY',now()+interval '1 hour',now(),'original-target','original-connection')`)
 	if err := Apply(ctx, db.SQL); err != nil {
 		t.Fatal(err)
 	}
 	for _, provider := range []string{"x", "platform-slack"} {
-		var status, user, session, target string
+		var status, user, session, target, operation string
 		var receiptMissing bool
-		err := db.SQL.QueryRow(`SELECT "exchangeStatus","userId","sessionId","socialSetId","exchangeReceipt" IS NULL FROM social_oauth_start WHERE state=$1`, provider).Scan(&status, &user, &session, &target, &receiptMissing)
-		if err != nil || status != "PENDING" || user != "original-user" || session != "original-session" || target != "original-target" || !receiptMissing {
+		err := db.SQL.QueryRow(`SELECT "exchangeStatus","userId","sessionId","socialSetId","exchangeReceipt" IS NULL,operation FROM social_oauth_start WHERE state=$1`, provider).Scan(&status, &user, &session, &target, &receiptMissing, &operation)
+		if err != nil || status != "PENDING" || user != "original-user" || session != "original-session" || target != "original-target" || !receiptMissing || operation != "ADD_ACCOUNT" {
 			t.Fatalf("upgrade changed pending %s: %s %s %s %s %v %v", provider, status, user, session, target, receiptMissing, err)
 		}
+	}
+	var reconnects int
+	if err := db.SQL.QueryRow(`SELECT count(*) FROM social_oauth_start WHERE state='reconnect' AND operation='RECONNECT' AND "expectedConnectionId"='original-connection' AND "socialSetId"='original-target'`).Scan(&reconnects); err != nil || reconnects != 1 {
+		t.Fatalf("upgrade lost reconnect identity: %d %v", reconnects, err)
 	}
 	exec(`UPDATE social_oauth_start SET "exchangeStatus"='COMPLETED',"exchangeReceipt"='{"id":"verified-account"}',"completedConnectionId"='connection',"completedAt"=now() WHERE state='x'`)
 	if err := Apply(ctx, db.SQL); err != nil {

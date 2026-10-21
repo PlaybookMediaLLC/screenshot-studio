@@ -5,10 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
@@ -21,10 +21,22 @@ import (
 var creationSlugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 func normalizeWorkspaceCreation(input CreateWorkspaceInput) (CreateWorkspaceInput, string, string, error) {
-	input.Name, input.Slug = strings.TrimSpace(input.Name), strings.TrimSpace(input.Slug)
-	if !utf8.ValidString(input.Name) || utf8.RuneCountInString(input.Name) < 2 || utf8.RuneCountInString(input.Name) > 100 ||
-		len(input.Slug) < 2 || len(input.Slug) > 100 || !creationSlugPattern.MatchString(input.Slug) {
+	name, err := NormalizeWorkspaceName(input.Name)
+	input.Name, input.Slug = name, strings.TrimSpace(input.Slug)
+	if err != nil || len(input.Slug) < 2 || len(input.Slug) > 100 || !creationSlugPattern.MatchString(input.Slug) {
 		return input, "", "", ErrInvalidInput
+	}
+	if input.Logo != nil {
+		parsed, err := url.Parse(*input.Logo)
+		if err != nil || len(*input.Logo) > 2048 || parsed.Host == "" || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.User != nil {
+			return input, "", "", ErrInvalidInput
+		}
+	}
+	if input.Metadata != nil {
+		encoded, err := json.Marshal(input.Metadata)
+		if err != nil || len(encoded) > 8192 || !validWorkspaceMetadata(input.Metadata, 0) {
+			return input, "", "", ErrInvalidInput
+		}
 	}
 	// Older clients have a stable, caller-chosen slug. Preserve their retry
 	// identity independently of subsequent changes to the organization's slug.
@@ -36,13 +48,48 @@ func normalizeWorkspaceCreation(input CreateWorkspaceInput) (CreateWorkspaceInpu
 		}
 		key = "key:" + parsed.String()
 	}
-	input.IdempotencyKey = ""
-	encoded, err := json.Marshal(input)
+	hash, err := workspaceCreationFingerprint(input)
 	if err != nil {
 		return input, "", "", err
 	}
+	return input, key, hash, nil
+}
+
+func workspaceCreationFingerprint(input CreateWorkspaceInput) (string, error) {
+	input.IdempotencyKey = ""
+	encoded, err := json.Marshal(input)
+	if err != nil {
+		return "", err
+	}
 	hash := sha256.Sum256(encoded)
-	return input, key, hex.EncodeToString(hash[:]), nil
+	return hex.EncodeToString(hash[:]), nil
+}
+
+func validWorkspaceMetadata(value any, depth int) bool {
+	switch value := value.(type) {
+	case map[string]any:
+		if depth >= 3 {
+			return false
+		}
+		for _, child := range value {
+			if !validWorkspaceMetadata(child, depth+1) {
+				return false
+			}
+		}
+	case []any:
+		if depth >= 3 {
+			return false
+		}
+		for _, child := range value {
+			if !validWorkspaceMetadata(child, depth+1) {
+				return false
+			}
+		}
+	case string, float32, float64, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, bool, nil:
+	default:
+		return false
+	}
+	return true
 }
 
 // CreateWorkspace commits the organization, owner, settings, audit, and retry
@@ -53,6 +100,14 @@ func (c *Configuration) CreateWorkspace(ctx context.Context, actor Actor, input 
 	}
 	if err := c.AuthorizeSession(ctx, actor); err != nil {
 		return nil, err
+	}
+	// Keep the pre-NFC fingerprint for receipts written before the name-policy
+	// upgrade. The web validates creation names without rewriting retry payloads.
+	legacy := input
+	legacy.Name, legacy.Slug = strings.TrimSpace(legacy.Name), strings.TrimSpace(legacy.Slug)
+	legacyHash, err := workspaceCreationFingerprint(legacy)
+	if err != nil {
+		return nil, ErrInvalidInput
 	}
 	input, key, hash, err := normalizeWorkspaceCreation(input)
 	if err != nil {
@@ -82,21 +137,30 @@ func (c *Configuration) CreateWorkspace(ctx context.Context, actor Actor, input 
 		return nil, err
 	}
 	if receipt != nil {
-		if receipt.RequestHash != hash {
+		if receipt.RequestHash != hash && receipt.RequestHash != legacyHash {
 			return nil, conflict("This creation request was already used with different details.")
 		}
 		return replayWorkspaceCreation(ctx, tx, actor, receipt.OrganizationID)
 	}
 	now := time.Now().UTC()
-	org, err := tx.Organization.Create().SetID(uuid.NewString()).SetName(input.Name).SetSlug(input.Slug).SetCreatedAt(now).Save(ctx)
+	create := tx.Organization.Create().SetID(uuid.NewString()).SetName(input.Name).SetSlug(input.Slug).SetCreatedAt(now).SetNillableLogo(input.Logo)
+	if len(input.Metadata) > 0 {
+		metadata, err := json.Marshal(input.Metadata)
+		if err != nil {
+			return nil, err
+		}
+		create.SetMetadata(string(metadata))
+	}
+	org, err := create.Save(ctx)
 	if ent.IsConstraintError(err) {
 		return nil, conflict("This workspace slug is already taken.")
 	}
 	if err != nil {
 		return nil, err
 	}
-	if _, err := tx.Member.Create().SetID(uuid.NewString()).SetOrganizationID(org.ID).
-		SetUserID(actor.UserID).SetRole("owner").SetCreatedAt(now).Save(ctx); err != nil {
+	owner, err := tx.Member.Create().SetID(uuid.NewString()).SetOrganizationID(org.ID).
+		SetUserID(actor.UserID).SetRole("owner").SetCreatedAt(now).Save(ctx)
+	if err != nil {
 		return nil, err
 	}
 	settings, err := tx.WorkspaceSettings.Create().SetID(org.ID).Save(ctx)
@@ -123,7 +187,7 @@ func (c *Configuration) CreateWorkspace(ctx context.Context, actor Actor, input 
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	return &Workspace{ID: org.ID, CreatedAt: org.CreatedAt, Name: org.Name, Slug: org.Slug, WorkspaceSettings: settings.Unwrap()}, nil
+	return createdWorkspaceResult(org, owner, settings.Unwrap()), nil
 }
 
 func replayWorkspaceCreation(ctx context.Context, tx *ent.Tx, actor Actor, organizationID string) (*Workspace, error) {
@@ -135,12 +199,12 @@ func replayWorkspaceCreation(ctx context.Context, tx *ent.Tx, actor Actor, organ
 	if _, err := tx.PlatformExec(ctx, `SELECT id FROM member WHERE "organizationId"=$1 AND "userId"=$2 FOR SHARE`, organizationID, actor.UserID); err != nil {
 		return nil, err
 	}
-	allowed, err := tx.Member.Query().Where(member.OrganizationID(organizationID), member.UserID(actor.UserID)).Exist(ctx)
+	membership, err := tx.Member.Query().Where(member.OrganizationID(organizationID), member.UserID(actor.UserID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, publishing.ErrForbidden
+	}
 	if err != nil {
 		return nil, err
-	}
-	if !allowed {
-		return nil, publishing.ErrForbidden
 	}
 	if err := publishing.NewRepository(tx.Client()).AuthorizeWorkspace(ctx, organizationID); err != nil {
 		return nil, err
@@ -158,5 +222,10 @@ func replayWorkspaceCreation(ctx context.Context, tx *ent.Tx, actor Actor, organ
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	return &Workspace{ID: org.ID, CreatedAt: org.CreatedAt, Logo: org.Logo, Name: org.Name, Slug: org.Slug, WorkspaceSettings: settings.Unwrap()}, nil
+	return createdWorkspaceResult(org, membership, settings.Unwrap()), nil
+}
+
+func createdWorkspaceResult(org *ent.Organization, membership *ent.Member, settings *ent.WorkspaceSettings) *Workspace {
+	return &Workspace{ID: org.ID, CreatedAt: org.CreatedAt, Logo: org.Logo, Metadata: org.Metadata, Name: org.Name, Slug: org.Slug, WorkspaceSettings: settings,
+		CreationMember: &WorkspaceCreationMember{ID: membership.ID, OrganizationID: membership.OrganizationID, UserID: membership.UserID, Role: membership.Role, CreatedAt: membership.CreatedAt}}
 }

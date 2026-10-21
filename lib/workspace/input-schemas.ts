@@ -1,6 +1,7 @@
 import { z } from 'zod'
+import { workspaceNameInputSchema, workspaceNameSchema } from 'screenshot-studio-backend-sdk'
 
-export const workspaceNameSchema = z.string().trim().min(2, 'Enter a workspace name.').max(100)
+export { workspaceNameSchema }
 
 export const workspaceSlugSchema = z
   .string()
@@ -10,7 +11,7 @@ export const workspaceSlugSchema = z
   .max(100)
 
 export const workspaceCreateSchema = z.object({
-  name: workspaceNameSchema,
+  name: workspaceNameInputSchema,
   slug: workspaceSlugSchema,
   idempotencyKey: z.uuid().optional(),
   keepCurrentActiveOrganization: z.boolean().optional(),

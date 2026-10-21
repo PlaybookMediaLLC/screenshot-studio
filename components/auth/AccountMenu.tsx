@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { WorkspaceCreationDialog } from '@/components/workspace/WorkspaceCreationDialog'
 import { authClient, useHydratedSession } from '@/lib/auth/client'
 import { resetUser } from '@/lib/analytics'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -35,6 +36,9 @@ export function AccountMenu({
   const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false)
   const [workspaceError, setWorkspaceError] = useState<string | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [creationOpen, setCreationOpen] = useState(false)
+  const trigger = useRef<HTMLButtonElement>(null)
   const { data: session, isPending } = useHydratedSession()
 
   useEffect(() => {
@@ -56,7 +60,7 @@ export function AccountMenu({
     return () => {
       active = false
     }
-  }, [session, trpcClient])
+  }, [session, trpcClient, menuOpen])
 
   async function handleSignOut() {
     setIsSigningOut(true)
@@ -103,79 +107,119 @@ export function AccountMenu({
   const canSwitchWorkspace = workspaces.length > 1 || hasUnavailableActiveWorkspace
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="custom" size={null}
-          aria-label="Open account menu"
-          className={
-            triggerClassName ??
-            'flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background transition-opacity hover:opacity-80'
-          }
-          type="button"
+    <>
+      <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="custom"
+            size={null}
+            aria-label="Open account menu"
+            ref={trigger}
+            className={
+              triggerClassName ??
+              'flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background transition-opacity hover:opacity-80'
+            }
+            type="button"
+          >
+            {children ?? getInitial(session.user.name, session.user.email)}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align={align}
+          className="w-64 p-2"
+          side={side}
+          onCloseAutoFocus={(event) => {
+            if (creationOpen) event.preventDefault()
+          }}
         >
-          {children ?? getInitial(session.user.name, session.user.email)}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align={align} className="w-64 p-2" side={side}>
-        <div className="border-b px-2 py-2.5">
-          <p className="truncate text-sm font-medium">{name}</p>
-          <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>
-          {workspaceName ? (
-            <p className="mt-1.5 truncate text-xs text-muted-foreground">
-              Workspace: <span className="text-foreground">{workspaceName}</span>
-            </p>
-          ) : null}
-        </div>
-        {canSwitchWorkspace ? (
-          <div className="grid gap-1 border-b py-2">
-            <p className="px-2 text-xs font-medium text-muted-foreground">Workspaces</p>
-            {workspaces.map((workspace) => {
-              const isActive = workspace.id === session.session.activeOrganizationId
-              return (
-                <Button variant="custom" size={null}
-                  aria-current={isActive ? 'page' : undefined}
-                  aria-label={`Switch to ${workspace.name}`}
-                  className="w-full rounded-md px-2 py-2 text-left text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isActive || isSwitchingWorkspace}
-                  key={workspace.id}
-                  onClick={() => void handleWorkspaceSwitch(workspace.id)}
-                  type="button"
-                >
-                  <span className="block truncate">{workspace.name}</span>
-                  {workspace.isScheduledForDeletion ? (
-                    <span className="block text-xs text-destructive">Deletion scheduled</span>
-                  ) : null}
-                </Button>
-              )
-            })}
+          <div className="border-b px-2 py-2.5">
+            <p className="truncate text-sm font-medium">{name}</p>
+            <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>
+            {workspaceName ? (
+              <p className="mt-1.5 truncate text-xs text-muted-foreground">
+                Workspace: <span className="text-foreground">{workspaceName}</span>
+              </p>
+            ) : null}
           </div>
-        ) : null}
-        {workspaceError ? (
-          <p className="px-2 pb-2 text-xs text-destructive">{workspaceError}</p>
-        ) : null}
-        <div className="grid gap-1 py-2">
-          <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/workspace/new-team">
-            Create workspace
-          </Link>
-          <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/assets">
-            Assets
-          </Link>
-          <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/activity">
-            Activity
-          </Link>
-          <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/workspace">
-            Workspace settings
-          </Link>
-        </div>
-        <Button variant="custom" size={null}
-          className="w-full rounded-md px-2 py-2 text-left text-sm text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isSigningOut}
-          onClick={handleSignOut}
-          type="button"
-        >
-          {isSigningOut ? 'Signing out…' : 'Sign out'}
-        </Button>
-      </PopoverContent>
-    </Popover>
+          {canSwitchWorkspace ? (
+            <div className="grid gap-1 border-b py-2">
+              <p className="px-2 text-xs font-medium text-muted-foreground">Workspaces</p>
+              {workspaces.map((workspace) => {
+                const isActive = workspace.id === session.session.activeOrganizationId
+                return (
+                  <Button
+                    variant="custom"
+                    size={null}
+                    aria-current={isActive ? 'page' : undefined}
+                    aria-label={`Switch to ${workspace.name}`}
+                    className="w-full rounded-md px-2 py-2 text-left text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isActive || isSwitchingWorkspace}
+                    key={workspace.id}
+                    onClick={() => void handleWorkspaceSwitch(workspace.id)}
+                    type="button"
+                  >
+                    <span className="block truncate">{workspace.name}</span>
+                    {workspace.isScheduledForDeletion ? (
+                      <span className="block text-xs text-destructive">Deletion scheduled</span>
+                    ) : null}
+                  </Button>
+                )
+              })}
+            </div>
+          ) : null}
+          {workspaceError ? (
+            <p className="px-2 pb-2 text-xs text-destructive">{workspaceError}</p>
+          ) : null}
+          <div className="grid gap-1 py-2">
+            <Button
+              variant="custom"
+              size={null}
+              className="rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
+              onClick={() => {
+                setMenuOpen(false)
+                setCreationOpen(true)
+              }}
+            >
+              Create workspace
+            </Button>
+            <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/assets">
+              Assets
+            </Link>
+            <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/activity">
+              Activity
+            </Link>
+            <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/workspace">
+              Workspace settings
+            </Link>
+          </div>
+          <Button
+            variant="custom"
+            size={null}
+            className="w-full rounded-md px-2 py-2 text-left text-sm text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSigningOut}
+            onClick={handleSignOut}
+            type="button"
+          >
+            {isSigningOut ? 'Signing out…' : 'Sign out'}
+          </Button>
+        </PopoverContent>
+      </Popover>
+      {creationOpen ? (
+        <WorkspaceCreationDialog
+          key={session.user.id}
+          email={session.user.email}
+          userId={session.user.id}
+          onClose={() => setCreationOpen(false)}
+          returnFocusRef={trigger}
+          onCreated={(organization) =>
+            setWorkspaces((current) =>
+              current.some((item) => item.id === organization.id)
+                ? current
+                : [...current, { ...organization, isScheduledForDeletion: false }]
+            )
+          }
+        />
+      ) : null}
+    </>
   )
 }

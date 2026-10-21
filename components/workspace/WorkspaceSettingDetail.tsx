@@ -56,7 +56,7 @@ function getDetailContent({
     appearance: <AppearanceSettings />,
     experimental: <ExperimentalSettings canManage={canManage} />,
     install: <InstallSettings />,
-    'new-team': <NewTeamSettings email={email} />,
+    'new-team': <NewTeamSettings email={email} userId={userId} />,
     'social-sets': socialSet ? (
       <SocialSetSettings
         id={socialSet.id}

@@ -88,19 +88,33 @@ func (c *Configuration) AuthorizeSensitive(ctx context.Context, actor Actor) err
 }
 
 type CreateWorkspaceInput struct {
-	Name                          string `json:"name"`
-	Slug                          string `json:"slug"`
-	IdempotencyKey                string `json:"idempotencyKey,omitempty"`
-	KeepCurrentActiveOrganization bool   `json:"keepCurrentActiveOrganization,omitempty"`
+	Name                          string         `json:"name"`
+	Slug                          string         `json:"slug"`
+	IdempotencyKey                string         `json:"idempotencyKey,omitempty"`
+	KeepCurrentActiveOrganization bool           `json:"keepCurrentActiveOrganization,omitempty"`
+	Logo                          *string        `json:"logo,omitempty"`
+	Metadata                      map[string]any `json:"metadata,omitempty"`
+}
+
+// WorkspaceCreationMember is the actual membership returned by atomic creation
+// or authorized replay, including a role changed after the original request.
+type WorkspaceCreationMember struct {
+	ID             string    `json:"id"`
+	OrganizationID string    `json:"organizationId"`
+	UserID         string    `json:"userId"`
+	Role           string    `json:"role"`
+	CreatedAt      time.Time `json:"createdAt"`
 }
 
 type Workspace struct {
-	ID                string                 `json:"id"`
-	CreatedAt         time.Time              `json:"createdAt"`
-	Logo              *string                `json:"logo"`
-	Name              string                 `json:"name"`
-	Slug              string                 `json:"slug"`
-	WorkspaceSettings *ent.WorkspaceSettings `json:"workspaceSettings"`
+	ID                string                   `json:"id"`
+	CreatedAt         time.Time                `json:"createdAt"`
+	Logo              *string                  `json:"logo"`
+	Name              string                   `json:"name"`
+	Slug              string                   `json:"slug"`
+	WorkspaceSettings *ent.WorkspaceSettings   `json:"workspaceSettings"`
+	Metadata          *string                  `json:"metadata,omitempty"`
+	CreationMember    *WorkspaceCreationMember `json:"creationMember,omitempty"`
 }
 
 type ListedWorkspaceDeletion struct {
@@ -222,6 +236,11 @@ type UpdateWorkspaceInput struct {
 }
 
 func (c *Configuration) UpdateWorkspace(ctx context.Context, actor Actor, input UpdateWorkspaceInput) (*Workspace, error) {
+	name, err := NormalizeWorkspaceName(input.Name)
+	if err != nil {
+		return nil, err
+	}
+	input.Name = name
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err

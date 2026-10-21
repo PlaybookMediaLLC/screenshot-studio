@@ -2,6 +2,9 @@ package product
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"os"
 	"strings"
@@ -330,4 +333,83 @@ func TestWorkspaceCreationRequestKeysAreActorScoped(t *testing.T) {
 	}
 	assertCreationCount(t, db, actor, 1)
 	assertCreationCount(t, otherDB, other, 1)
+}
+
+func TestWorkspaceCreationPreNormalizationReceiptReplay(t *testing.T) {
+	db, repo, actor := workspaceCreationFixture(t)
+	input := creationInput()
+	input.Name = " Cafe\u0301 "
+	created, err := repo.CreateWorkspace(context.Background(), actor, input)
+	if err != nil || created.Name != "Café" {
+		t.Fatalf("normalized creation=%+v err=%v", created, err)
+	}
+	// Reproduce the exact v1 payload, independent of today's fingerprint helper.
+	legacy, err := json.Marshal(struct {
+		Name                          string `json:"name"`
+		Slug                          string `json:"slug"`
+		IdempotencyKey                string `json:"idempotencyKey,omitempty"`
+		KeepCurrentActiveOrganization bool   `json:"keepCurrentActiveOrganization,omitempty"`
+	}{Name: strings.TrimSpace(input.Name), Slug: input.Slug})
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash := sha256.Sum256(legacy)
+	execCreationSQL(t, db, `UPDATE platform_workspace_creation SET "requestHash"=$2 WHERE "organizationId"=$1`, created.ID, hex.EncodeToString(hash[:]))
+	execCreationSQL(t, db, `UPDATE organization SET name='Renamed after creation',slug=$2 WHERE id=$1`, created.ID, "renamed-"+uuid.NewString())
+	replay, err := repo.CreateWorkspace(context.Background(), actor, input)
+	if err != nil || replay.ID != created.ID || replay.Name != "Renamed after creation" {
+		t.Fatalf("pre-normalization retry=%+v err=%v", replay, err)
+	}
+	assertCreationCount(t, db, actor, 1)
+}
+
+func TestWorkspaceCreationReturnsDurableMetadataAndCurrentMember(t *testing.T) {
+	db, repo, actor := workspaceCreationFixture(t)
+	input := creationInput()
+	logo := "https://example.test/logo.png"
+	input.Logo = &logo
+	input.Metadata = map[string]any{"source": "test", "nested": map[string]any{"count": 2, "enabled": true}}
+	created, err := repo.CreateWorkspace(context.Background(), actor, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.Logo == nil || *created.Logo != logo || created.Metadata == nil || created.CreationMember == nil {
+		t.Fatalf("missing persisted creation fields: %+v", created)
+	}
+	var metadata map[string]any
+	if err := json.Unmarshal([]byte(*created.Metadata), &metadata); err != nil || metadata["source"] != "test" {
+		t.Fatalf("metadata=%v err=%v", metadata, err)
+	}
+	owner := created.CreationMember
+	if owner.ID == "" || owner.UserID != actor.UserID || owner.OrganizationID != created.ID || owner.Role != "owner" || owner.CreatedAt.IsZero() {
+		t.Fatalf("wrong owner projection: %+v", owner)
+	}
+	execCreationSQL(t, db, `UPDATE member SET role='viewer' WHERE id=$1`, owner.ID)
+	replay, err := repo.CreateWorkspace(context.Background(), actor, input)
+	if err != nil || replay.CreationMember == nil || replay.CreationMember.ID != owner.ID || replay.CreationMember.Role != "viewer" {
+		t.Fatalf("stale membership on replay=%+v err=%v", replay, err)
+	}
+	assertCreationCount(t, db, actor, 1)
+}
+
+func TestWorkspaceCreationRejectsInvalidMetadataAndLogo(t *testing.T) {
+	for _, value := range []string{"file:///tmp/logo.png", "https://user:password@example.test/logo.png", "https://example.test/" + strings.Repeat("x", 2048)} {
+		input := creationInput()
+		input.Logo = &value
+		if _, _, _, err := normalizeWorkspaceCreation(input); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("accepted invalid logo: %v", err)
+		}
+	}
+	for _, value := range []map[string]any{
+		{"large": strings.Repeat("x", 8193)},
+		{"escaped": strings.Repeat("<", 1500)},
+		{"nested": map[string]any{"nested": map[string]any{"nested": map[string]any{}}}},
+		{"invalid": make(chan string)},
+	} {
+		input := creationInput()
+		input.Metadata = value
+		if _, _, _, err := normalizeWorkspaceCreation(input); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("accepted invalid metadata: %v", err)
+		}
+	}
 }

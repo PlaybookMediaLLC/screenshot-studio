@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -300,7 +301,8 @@ func workspaceActor(r *http.Request) product.Actor {
 }
 
 func validWorkspaceNameAndSlug(name, slug string) bool {
-	return utf8.RuneCountInString(name) >= 2 && utf8.RuneCountInString(name) <= 100 &&
+	_, err := product.NormalizeWorkspaceName(name)
+	return err == nil &&
 		len(slug) >= 2 && len(slug) <= 100 && workspaceSlugPattern.MatchString(slug)
 }
 
@@ -418,10 +420,20 @@ func workspaceResponse(workspace *product.Workspace) map[string]any {
 }
 
 func workspaceMutationResponse(workspace *product.Workspace) map[string]any {
-	return map[string]any{
-		"organization": map[string]any{"id": workspace.ID, "logo": workspace.Logo, "name": workspace.Name, "slug": workspace.Slug},
+	organization := map[string]any{"id": workspace.ID, "logo": workspace.Logo, "name": workspace.Name, "slug": workspace.Slug}
+	response := map[string]any{
+		"organization": organization,
 		"settings":     workspaceSettingsResponse(workspace.WorkspaceSettings),
 	}
+	if workspace.CreationMember != nil {
+		var metadata json.RawMessage
+		if workspace.Metadata != nil {
+			metadata = json.RawMessage(*workspace.Metadata)
+		}
+		organization["createdAt"], organization["metadata"] = workspace.CreatedAt, metadata
+		response["creationMember"] = workspace.CreationMember
+	}
+	return response
 }
 
 func workspaceSettingsResponse(settings *ent.WorkspaceSettings) any {

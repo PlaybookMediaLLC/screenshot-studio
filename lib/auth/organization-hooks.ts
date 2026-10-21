@@ -3,12 +3,11 @@ import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import { WORKSPACE_INVITATION_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import { serviceBackend } from '@/lib/backend/sdk'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { workspaceCreateSchema, workspaceOrganizationPatchSchema } from '@/lib/workspace/schemas'
+import { workspaceOrganizationPatchSchema } from '@/lib/workspace/schemas'
 import { isSupportedOrganizationRole } from './permissions'
 
 type OrganizationHook = { organization: { id: string } }
 type MemberHook = OrganizationHook & { member: { organizationId: string; role: string } }
-type OrganizationCreateHook = { organization: { name?: string; slug?: string } }
 type OrganizationUpdateHook = {
   member: { organizationId: string }
   organization: { logo?: string | null; name?: string; slug?: string }
@@ -25,11 +24,6 @@ type InvitationHook = {
   invitation: { email: string; id?: string; organizationId: string; role: string }
   inviter: { id: string }
 } & OrganizationHook
-type OrganizationCreatedHook = {
-  member: { id: string }
-  organization: { id: string }
-  user: { email: string; id: string }
-}
 type InvitationCreatedHook = {
   invitation: { email: string; id: string; organizationId: string; role: string }
   inviter: { email: string; id: string }
@@ -112,24 +106,6 @@ function parseWorkspaceInput<T>(result: { data?: T; success: boolean }): T {
 }
 
 export const organizationHooks = {
-  beforeCreateOrganization: async ({ organization }: OrganizationCreateHook) => ({
-    data: {
-      ...organization,
-      ...parseWorkspaceInput(workspaceCreateSchema.safeParse(organization)),
-    },
-  }),
-  afterCreateOrganization: async ({ member, organization, user }: OrganizationCreatedHook) => {
-    // The backend provisions the workspace settings and entitlement rows.
-    await recordAuthEvent({
-      action: 'product.workspace_created',
-      actorDisplay: user.email,
-      actorUserId: user.id,
-      entityId: organization.id,
-      entityType: 'organization',
-      organizationId: organization.id,
-      requestId: member.id,
-    })
-  },
   afterAcceptInvitation: async ({ invitation, member, user }: InvitationAcceptedHook) => {
     await recordAuthEvent({
       action: 'product.member_invitation_accepted',

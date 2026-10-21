@@ -63,6 +63,7 @@ jobs:
           tags: ghcr.io/playbookmediallc/screenshot-studio:web-${{ github.sha }}
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           build-args: |
+            NEXT_DEPLOYMENT_ID=${{ github.sha }}
             NEXT_PUBLIC_POSTHOG_HOST=${{ vars.NEXT_PUBLIC_POSTHOG_HOST }}
             NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
             NEXT_PUBLIC_R2_PUBLIC_URL=${{ vars.NEXT_PUBLIC_R2_PUBLIC_URL }}

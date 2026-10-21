@@ -118,6 +118,11 @@ export function NewCanvas({
     setBusy(true)
     setError(null)
     try {
+      if (source.project) {
+        const opened = await client.canvas.openProject.mutate({ projectId: source.project })
+        router.replace(`/canvas/${opened.id}`)
+        return
+      }
       if (intent.current?.key !== key) {
         const { name, artboards } = await plan()
         intent.current = { key, intent: canvasIntent(name, artboards) }

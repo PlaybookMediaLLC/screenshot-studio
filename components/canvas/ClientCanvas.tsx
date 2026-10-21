@@ -725,7 +725,7 @@ export default function ClientCanvas({
   useEffect(() => {
     setLoadError(false);
 
-    if (!hasContent) {
+    if (!hasContent && !embedded) {
       setImage(null);
       return;
     }
@@ -764,7 +764,7 @@ export default function ClientCanvas({
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasContent, hasSourceImage, uploadedImageUrl]);
+  }, [embedded, hasContent, hasSourceImage, uploadedImageUrl]);
 
   useEffect(() => {
     if (image) {
@@ -772,7 +772,7 @@ export default function ClientCanvas({
     }
   }, [image, onReady]);
 
-  if (loadError || !hasContent) {
+  if (loadError || (!hasContent && !embedded)) {
     return null;
   }
 

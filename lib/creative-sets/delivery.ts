@@ -6,6 +6,8 @@ import { trackEvent } from '@/lib/analytics'
 import { fetchDesignSources } from '@/lib/design/open-design'
 import { getDesignAssetIds, mapDesignSources } from '@/lib/design/document'
 import { renderDocument } from '@/lib/render/scene-renderer'
+import { resolvedDocumentHash } from '@/lib/design/document-hash'
+export { resolvedDocumentHash } from '@/lib/design/document-hash'
 import {
   materializeOutput,
   outputDimensions,
@@ -25,13 +27,6 @@ export function outputFileName(name: string, output: CreativeOutput, revision: n
   const size = outputDimensions(output)
   const format = output.format
   return `${slug}-${format}-${size.width}x${size.height}-r${revision}.png`
-}
-
-/** A hash of the exact resolved native document before asset URLs become temporary local URLs. */
-export async function resolvedDocumentHash(document: unknown): Promise<string> {
-  const bytes = new TextEncoder().encode(JSON.stringify(document))
-  const digest = await crypto.subtle.digest('SHA-256', bytes)
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 export async function renderStoryOutput(

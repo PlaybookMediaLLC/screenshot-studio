@@ -20,6 +20,7 @@ function handler(request: Request): Promise<Response> {
     responseMeta: () => ({ headers: { 'cache-control': 'private, no-store' } }),
     req: request,
     router: appRouter,
+    responseMeta: () => ({ headers: { 'Cache-Control': 'private, no-store' } }),
   })
 }
 

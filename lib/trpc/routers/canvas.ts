@@ -3,6 +3,7 @@ import 'server-only'
 import { TRPCError } from '@trpc/server'
 import type { TenantAccessRequirement } from '@/lib/api/access-requirements'
 import {
+  canvasArchiveInputSchema,
   canvasCreateInputSchema,
   canvasDocumentInputSchema,
   canvasDuplicateInputSchema,
@@ -31,6 +32,8 @@ import {
 } from '@/lib/tenant/canvases'
 import { router } from '../init'
 import { organizationProcedure, tenantProcedure } from '../procedures'
+import { projectRefInputSchema } from '@/lib/projects/schema'
+import { openProjectCanvas } from '@/lib/tenant/project-canvas'
 
 const READ: TenantAccessRequirement = { apiKeyScope: 'artifact:read', permission: 'artifact:read' }
 const EDIT: TenantAccessRequirement = { apiKeyScope: 'asset:write', permission: 'artifact:edit' }
@@ -46,6 +49,9 @@ function found<T>(value: T | null | false, what = 'Canvas'): T {
  * revision fails with `CONFLICT`.
  */
 export const canvasRouter = router({
+  openProject: tenantProcedure(EDIT)
+    .input(projectRefInputSchema)
+    .mutation(({ ctx, input }) => openProjectCanvas(ctx.tenant, input.projectId)),
   list: tenantProcedure(READ)
     .input(canvasListInputSchema)
     .query(({ ctx, input }) => listCanvases(ctx.tenant, input)),
@@ -75,10 +81,10 @@ export const canvasRouter = router({
       found(await duplicateCanvas(ctx.tenant, input.canvasId, input.name))
     ),
   archive: tenantProcedure(EDIT)
-    .input(canvasRefInputSchema)
+    .input(canvasArchiveInputSchema)
     .mutation(async ({ ctx, input }) => {
-      found(await archiveCanvas(ctx.tenant, input.canvasId))
-      return { archived: true as const }
+      found(await archiveCanvas(ctx.tenant, input.canvasId, input.archived))
+      return { archived: input.archived }
     }),
   versions: tenantProcedure(READ)
     .input(canvasRefInputSchema)

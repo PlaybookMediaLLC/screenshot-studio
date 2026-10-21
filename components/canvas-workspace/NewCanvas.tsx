@@ -118,6 +118,11 @@ export function NewCanvas({
     setBusy(true)
     setError(null)
     try {
+      if (source.project) {
+        const opened = await client.canvas.openProject.mutate({ projectId: source.project })
+        router.replace(`/canvas/${opened.id}`)
+        return
+      }
       if (intent.current?.key !== key) {
         const { name, artboards } = await plan()
         intent.current = { key, intent: canvasIntent(name, artboards) }
@@ -568,6 +573,7 @@ export function RecipeForm({
           <Input
             type="file"
             accept="image/png,image/jpeg,image/webp"
+            className="h-auto file:mr-3 file:rounded file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-secondary-foreground"
             multiple
             onChange={async (event) => {
               const files = Array.from(event.target.files ?? []).slice(0, 6)

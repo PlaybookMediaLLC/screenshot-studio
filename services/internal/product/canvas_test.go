@@ -60,6 +60,44 @@ func TestCanvasValidation(t *testing.T) {
 	}
 }
 
+func TestCanvasArchiveRecovery(t *testing.T) {
+	w, foreign := newTestWorkspace(t), newTestWorkspace(t)
+	subscribe(t, w.ctx, w.repo, w.org, "pro")
+	subscribe(t, foreign.ctx, foreign.repo, foreign.org, "pro")
+	w.addMember(t, "viewer", "viewer")
+	id := cuid.New()
+	created, err := w.repo.CreateCreativeSet(w.ctx, w.owner, id, "Recoverable", canvasFixture())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := w.repo.ArchiveCreativeSet(w.ctx, w.owner, id); err != nil {
+		t.Fatal(err)
+	}
+	if page, err := w.repo.ListCreativeSets(w.ctx, w.owner, CreativeSetListQuery{Kind: "canvas"}); err != nil || len(page.Items) != 0 {
+		t.Fatalf("active list=%+v err=%v", page, err)
+	}
+	if page, err := w.repo.ListCreativeSets(w.ctx, w.owner, CreativeSetListQuery{Kind: "canvas", Archived: true}); err != nil || len(page.Items) != 1 || page.Items[0].ID != id {
+		t.Fatalf("archive list=%+v err=%v", page, err)
+	}
+	if page, err := w.repo.ListCreativeSets(w.ctx, foreign.owner, CreativeSetListQuery{Kind: "canvas", Archived: true}); err != nil || len(page.Items) != 0 {
+		t.Fatalf("foreign archive list=%+v err=%v", page, err)
+	}
+	if err := w.repo.ArchiveCreativeSet(w.ctx, foreign.owner, id, false); !errors.Is(err, publishing.ErrNotFound) {
+		t.Fatalf("cross-tenant restore=%v", err)
+	}
+	if err := w.repo.ArchiveCreativeSet(w.ctx, w.actor("viewer"), id, false); err == nil {
+		t.Fatal("viewer restored an archived canvas")
+	}
+	for range 2 {
+		if err := w.repo.ArchiveCreativeSet(w.ctx, w.owner, id, false); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if page, err := w.repo.ListCreativeSets(w.ctx, w.owner, CreativeSetListQuery{Kind: "canvas"}); err != nil || len(page.Items) != 1 || page.Items[0].ID != id || page.Items[0].Revision != created.Revision {
+		t.Fatalf("restored list=%+v err=%v", page, err)
+	}
+}
+
 // A canvas uses the Story Set lifecycle, but never without its own kind and never across workspaces.
 func TestCanvasLifecycleAndHandoff(t *testing.T) {
 	w, foreign := newTestWorkspace(t), newTestWorkspace(t)

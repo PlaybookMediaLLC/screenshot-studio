@@ -6,7 +6,7 @@ import {
   storyForOutput,
   type CreativeSetDocument,
 } from '@/lib/creative-sets/document'
-import { resolvedDocumentHash } from '@/lib/creative-sets/delivery'
+import { resolvedDocumentHash } from '@/lib/design/document-hash'
 import { documentCanvasSize } from '@/lib/export/adapt'
 import { artboardSchema, type Artboard } from './document'
 import { ARTBOARD_GAP } from './layout'

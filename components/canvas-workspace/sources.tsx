@@ -222,7 +222,10 @@ export function ReleasePicker({
 }) {
   const client = useTRPCClient()
   const releases = useLoaded(
-    () => client.release.list.query({ limit: 50 }).then((result) => result.releases),
+    () =>
+      client.release.list
+        .query({ limit: 100 })
+        .then((result) => result.releases.filter((release) => release.status === 'READY')),
     [client]
   )
   const [releaseId, setReleaseId] = useState<string | null>(null)
@@ -232,7 +235,7 @@ export function ReleasePicker({
       <List
         state={releases}
         label="Releases"
-        empty="No releases yet. Connect GitHub or add a release to quote its features."
+        empty="No ready releases yet. Mark a shipped release ready to quote its features."
         render={(item) => ({
           title: item.title,
           detail: `${item.status.toLowerCase()} · ${item.features?.length ?? 0} features · ${item.screenshotAssetIds?.length ?? 0} screenshots`,

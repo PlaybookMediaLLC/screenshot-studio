@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.32.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.3...v2.32.4) (2026-10-21)
+
+
+### Bug Fixes
+
+* **canvas:** preserve edits and repair export and library workflows ([002ecab](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/002ecabd1b3ec94b5e7e215953694c31f033462c))
+
+## [2.32.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.2...v2.32.3) (2026-10-21)
+
+
+### Bug Fixes
+
+* **projects:** isolate previews and recover library workflows ([#258](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/258)) ([d0e8cea](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/d0e8cea893d71049f82a2a2aa579720e0d3ff6f5))
+* **ui:** improve muted text, input, and keyboard focus visibility ([93397ca](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/93397ca63bc38e40d1401f70713a4173d3fb2ac9))
+* **write:** preserve edits and repair draft controls ([#259](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/259)) ([32d219f](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/32d219f85b53d8f784c9d3c480b19ce48561053a))
+
 ## [2.32.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.1...v2.32.2) (2026-10-21)
 
 

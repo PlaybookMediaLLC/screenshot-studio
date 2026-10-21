@@ -82,11 +82,12 @@ type CreativeSetPage struct {
 // (newest first, the default) or "name" (A to Z). Kind is "story-set" (the
 // default) or "canvas".
 type CreativeSetListQuery struct {
-	Cursor string
-	Kind   string
-	Limit  int
-	Search string
-	Sort   string
+	Archived bool
+	Cursor   string
+	Kind     string
+	Limit    int
+	Search   string
+	Sort     string
 }
 
 // CreativeSetDocumentWrite is a document written against the revision it was based on.
@@ -267,7 +268,7 @@ func (c *Configuration) ListCreativeSets(ctx context.Context, actor Actor, query
 			return nil, invalid("List story-set or canvas documents.")
 		}
 	}
-	rows := c.client.PlatformCreativeSet.Query().Where(platformcreativeset.OrganizationID(actor.OrganizationID), platformcreativeset.Archived(false), platformcreativeset.KindEQ(kind))
+	rows := c.client.PlatformCreativeSet.Query().Where(platformcreativeset.OrganizationID(actor.OrganizationID), platformcreativeset.Archived(query.Archived), platformcreativeset.KindEQ(kind))
 	if search := strings.TrimSpace(query.Search); search != "" {
 		rows.Where(platformcreativeset.NameContainsFold(search))
 	}
@@ -503,7 +504,8 @@ func (c *Configuration) DuplicateCreativeSet(ctx context.Context, actor Actor, i
 	return &result, nil
 }
 
-func (c *Configuration) ArchiveCreativeSet(ctx context.Context, actor Actor, id string) error {
+func (c *Configuration) ArchiveCreativeSet(ctx context.Context, actor Actor, id string, state ...bool) error {
+	archived := len(state) == 0 || state[0]
 	if err := c.authorizeRoles(ctx, actor, creativeSetEditRoles...); err != nil {
 		return err
 	}
@@ -520,10 +522,17 @@ func (c *Configuration) ArchiveCreativeSet(ctx context.Context, actor Actor, id 
 	if err != nil {
 		return err
 	}
-	if err := tx.PlatformCreativeSet.UpdateOne(current).SetArchived(true).Exec(ctx); err != nil {
+	if current.Archived == archived {
+		return nil
+	}
+	if err := tx.PlatformCreativeSet.UpdateOne(current).SetArchived(archived).Exec(ctx); err != nil {
 		return err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(current.Kind, "archived"), "creativeSet", id); err != nil {
+	action := "archived"
+	if !archived {
+		action = "unarchived"
+	}
+	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(current.Kind, action), "creativeSet", id); err != nil {
 		return err
 	}
 	return tx.Commit()

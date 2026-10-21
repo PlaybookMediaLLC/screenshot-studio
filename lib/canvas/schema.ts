@@ -19,8 +19,14 @@ export const canvasIdSchema = creativeSetIdSchema
 /** Input naming one canvas. */
 export const canvasRefInputSchema = z.object({ canvasId: canvasIdSchema })
 
+/** Archive a canvas or return it to the active library. */
+export const canvasArchiveInputSchema = canvasRefInputSchema.extend({
+  archived: z.boolean().default(true),
+})
+
 /** Input of `canvas.list`. */
 export const canvasListInputSchema = z.object({
+  archived: z.boolean().optional(),
   cursor: z.string().max(500).optional(),
   limit: z.number().int().min(1).max(100).optional(),
   search: z.string().trim().max(200).optional(),

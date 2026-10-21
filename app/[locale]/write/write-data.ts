@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { contentDraftSchema } from '@/lib/api/contracts/content-drafts'
+import { libraryDraft } from '@/lib/write/library'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import type { OrganizationAccess } from '@/lib/auth/access'
@@ -68,7 +70,6 @@ export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<str
     listContentDrafts(tenant, {
       kind: query.kind,
       limit: 100,
-      search: query.q,
       socialSetId: activeSet?.id,
       sort: query.sort,
       tagId: experiments.tags ? query.tag : undefined,
@@ -78,24 +79,7 @@ export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<str
     listPlannedContentDrafts(tenant, now, horizon, activeSet?.id),
     activeSet && experiments.tags ? listDraftTags(tenant, activeSet.id) : Promise.resolve([]),
   ])
-  const library = [...page.pinned, ...page.items].map((draft) => ({
-    attentionPosts: draft.attentionPosts,
-    channelConnectionIds: draft.channelConnectionIds,
-    excerpt: (draft.plainText || draftPlainText(draft.body)).slice(0, 180),
-    id: draft.id,
-    kind: draft.kind,
-    nextPostAt: draft.nextPostAt?.toISOString() ?? null,
-    pinned: draft.pinnedAt !== null,
-    plannedFor: draft.plannedFor?.toISOString() ?? null,
-    publishedPosts: draft.publishedPosts,
-    queuedPosts: draft.queuedPosts,
-    reviewStatus: draft.reviewStatus,
-    shared: draft.shareToken !== null,
-    status: draft.status,
-    tagIds: draft.tagIds,
-    title: draft.title,
-    updatedAt: draft.updatedAt.toISOString(),
-  }))
+  const library = [...page.pinned, ...page.items].map((draft) => libraryDraft(contentDraftSchema.parse(draft)))
   const queue = [
     ...posts
       .filter((post) => post.status === 'SCHEDULED' || post.status === 'PROCESSING')
@@ -120,6 +104,7 @@ export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<str
     activeSet: activeSet ?? null,
     experiments,
     library,
+    hasMore: page.nextCursor !== null,
     query: { ...query, tab },
     queue,
     sets,

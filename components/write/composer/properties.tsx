@@ -1,7 +1,8 @@
 'use client'
 
+import { useWriteRouter } from '@/components/write/write-context'
+
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -94,7 +95,7 @@ export function PropertiesPanel({
   title: string
   onTitle: (title: string) => void
 }) {
-  const router = useRouter()
+  const router = useWriteRouter()
   const { data } = useWrite()
   const [scratchpad, setScratchpad] = React.useState(draft.scratchpad)
   const [tagIds, setTagIds] = React.useState(draft.tagIds)

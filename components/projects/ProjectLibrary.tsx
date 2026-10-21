@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Folder01Icon, MoreHorizontalIcon, Search01Icon } from 'hugeicons-react'
 import { toast } from 'sonner'
 import { EmptyState } from '@/components/platform-ui'
@@ -53,6 +53,10 @@ type Page = { error: string | null; items: LibraryProject[]; loading: boolean; n
 const PAGE_SIZE = 24
 const SORT_LABELS: Record<ProjectSort, string> = { name: 'Name', updated: 'Last edited' }
 
+function shortName(name: string): string {
+  return name.length > 60 ? `${name.slice(0, 57)}…` : name
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'The request could not be completed.'
 }
@@ -65,9 +69,10 @@ function editorHref(projectId: string): string {
 export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
   const trpcClient = useTRPCClient()
   const router = useRouter()
-  const [search, setSearch] = React.useState('')
-  const [query, setQuery] = React.useState('')
-  const [sort, setSort] = React.useState<ProjectSort>('updated')
+  const params = useSearchParams()
+  const query = (params.get('search') ?? '').trim().slice(0, 200)
+  const sort = projectSortSchema.safeParse(params.get('sort')).data ?? 'updated'
+  const [search, setSearch] = React.useState(query)
   const [page, setPage] = React.useState<Page>({
     error: null,
     items: [],
@@ -78,11 +83,35 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
   const [renaming, setRenaming] = React.useState<LibraryProject | null>(null)
   const [deleting, setDeleting] = React.useState<LibraryProject | null>(null)
   const [deletePending, setDeletePending] = React.useState(false)
+  const searchRef = React.useRef<HTMLInputElement>(null)
+  const actionButtons = React.useRef(new Map<string, HTMLButtonElement>())
+  const returnFocus = React.useRef<HTMLElement | null>(null)
+
+  function restoreFocus(event: Event) {
+    event.preventDefault()
+    requestAnimationFrame(() => {
+      const target = returnFocus.current
+      if (target?.isConnected) target.focus()
+      else searchRef.current?.focus()
+    })
+  }
+
+  function updateFilters(nextSearch: string, nextSort: ProjectSort) {
+    const url = new URL(window.location.href)
+    if (nextSearch) url.searchParams.set('search', nextSearch)
+    else url.searchParams.delete('search')
+    if (nextSort === 'updated') url.searchParams.delete('sort')
+    else url.searchParams.set('sort', nextSort)
+    window.history.replaceState(null, '', url)
+  }
+
+  React.useEffect(() => setSearch(query), [query])
 
   React.useEffect(() => {
-    const timer = setTimeout(() => setQuery(search.trim()), 250)
+    if (search.trim() === query) return
+    const timer = setTimeout(() => updateFilters(search.trim(), sort), 250)
     return () => clearTimeout(timer)
-  }, [search])
+  }, [query, search, sort])
 
   // Only the newest request may write, so a slow earlier search cannot win.
   const requestRef = React.useRef(0)
@@ -114,13 +143,17 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
 
   React.useEffect(() => {
     void load(null)
+    const requests = requestRef
+    return () => {
+      requests.current++
+    }
   }, [load])
 
   async function duplicate(project: LibraryProject) {
     try {
       const copy = await trpcClient.project.duplicate.mutate({ projectId: project.id })
-      setPage((current) => ({ ...current, items: [copy, ...current.items] }))
-      toast.success(`Duplicated as “${copy.name}”`)
+      await load(null)
+      toast.success(`Duplicated as “${shortName(copy.name)}”`)
     } catch (error) {
       toast.error('Could not duplicate the project', { description: errorMessage(error) })
     }
@@ -136,8 +169,9 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
         ...current,
         items: current.items.filter((item) => item.id !== deleting.id),
       }))
-      toast.success(`Deleted “${deleting.name}”`)
+      toast.success(`Deleted “${shortName(deleting.name)}”`)
       setDeleting(null)
+      void load(null)
     } catch (error) {
       toast.error('Could not delete the project', { description: errorMessage(error) })
     } finally {
@@ -157,6 +191,8 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
             size={15}
           />
           <Input
+            ref={searchRef}
+            maxLength={200}
             aria-label="Search projects"
             className="pl-9"
             onChange={(event) => setSearch(event.target.value)}
@@ -168,10 +204,15 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
         <Label className="flex items-center gap-2 text-sm text-foreground/65">
           Sort
           <Select
-            onValueChange={(nextValue) => setSort(projectSortSchema.parse(nextValue))}
+            onValueChange={(nextValue) =>
+              updateFilters(search.trim(), projectSortSchema.parse(nextValue))
+            }
             value={sort}
           >
-            <SelectTrigger className="h-9 rounded-md border border-foreground/10 bg-transparent px-2 text-sm text-foreground">
+            <SelectTrigger
+              aria-label="Sort projects"
+              className="h-9 rounded-md border border-foreground/10 bg-transparent px-2 text-sm text-foreground"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -183,14 +224,29 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
             </SelectContent>
           </Select>
         </Label>
-        {canEdit ? <Button onClick={() => setCreating(true)}>New project</Button> : null}
+        {canEdit ? (
+          <Button
+            onClick={(event) => {
+              returnFocus.current = event.currentTarget
+              setCreating(true)
+            }}
+          >
+            New project
+          </Button>
+        ) : null}
       </div>
 
       {page.error ? (
         <Alert variant="destructive">
           <AlertDescription>
             {page.error}{' '}
-            <Button variant="custom" size={null} className="underline" onClick={() => void load(null)} type="button">
+            <Button
+              variant="custom"
+              size={null}
+              className="underline"
+              onClick={() => void load(null)}
+              type="button"
+            >
               Try again
             </Button>
           </AlertDescription>
@@ -201,7 +257,14 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
         <EmptyState
           action={
             canEdit && !query ? (
-              <Button onClick={() => setCreating(true)}>New project</Button>
+              <Button
+                onClick={(event) => {
+                  returnFocus.current = event.currentTarget
+                  setCreating(true)
+                }}
+              >
+                New project
+              </Button>
             ) : undefined
           }
           description={
@@ -221,7 +284,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
             >
               <Link
                 aria-label={`Open ${project.name}`}
-                className="block aspect-video"
+                className="block aspect-video focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-foreground"
                 href={editorHref(project.id)}
               >
                 <ProjectPreview alt={`Preview of ${project.name}`} document={project.document} />
@@ -231,6 +294,8 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
                   <Link
                     className="block truncate text-sm font-medium text-foreground hover:underline"
                     href={editorHref(project.id)}
+                    tabIndex={-1}
+                    title={project.name}
                   >
                     {project.name}
                   </Link>
@@ -243,9 +308,17 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
                   </p>
                 </div>
                 {canEdit ? (
-                  <DropdownMenu>
+                  <DropdownMenu
+                    onOpenChange={(open) => {
+                      if (open) returnFocus.current = actionButtons.current.get(project.id) ?? null
+                    }}
+                  >
                     <DropdownMenuTrigger asChild>
                       <Button
+                        ref={(button) => {
+                          if (button) actionButtons.current.set(project.id, button)
+                          else actionButtons.current.delete(project.id)
+                        }}
                         aria-label={`Actions for ${project.name}`}
                         size="icon"
                         variant="ghost"
@@ -253,7 +326,13 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
                         <MoreHorizontalIcon size={16} />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent
+                      align="end"
+                      onCloseAutoFocus={(event) => {
+                        if (renaming || deleting) event.preventDefault()
+                        else restoreFocus(event)
+                      }}
+                    >
                       <DropdownMenuItem onSelect={() => router.push(editorHref(project.id))}>
                         Open
                       </DropdownMenuItem>
@@ -291,6 +370,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
       ) : null}
 
       <ProjectNameDialog
+        onCloseAutoFocus={restoreFocus}
         description="Start from a blank canvas. It saves as you work."
         label="Project name"
         maxLength={200}
@@ -307,19 +387,15 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
         title="New project"
       />
       <ProjectNameDialog
+        onCloseAutoFocus={restoreFocus}
         initialName={renaming?.name ?? ''}
         label="Project name"
         maxLength={200}
         onOpenChange={(open) => !open && setRenaming(null)}
         onSubmit={async (name) => {
           if (!renaming) return
-          const project = await trpcClient.project.rename.mutate({ name, projectId: renaming.id })
-          setPage((current) => ({
-            ...current,
-            items: current.items.map((item) =>
-              item.id === project.id ? { ...item, name: project.name } : item
-            ),
-          }))
+          await trpcClient.project.rename.mutate({ name, projectId: renaming.id })
+          await load(null)
         }}
         open={renaming !== null}
         submitLabel="Rename"
@@ -330,12 +406,18 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
         onOpenChange={(open) => !open && !deletePending && setDeleting(null)}
         open={deleting !== null}
       >
-        <AlertDialogContent className="sm:max-w-[420px]">
+        <AlertDialogContent className="sm:max-w-[420px]" onCloseAutoFocus={restoreFocus}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete “{deleting?.name}”?</AlertDialogTitle>
+            <AlertDialogTitle className="break-words">Delete “{deleting?.name}”?</AlertDialogTitle>
             <AlertDialogDescription>
               The project and its whole version history are deleted for everyone in the workspace.
               This cannot be undone. Images saved to Assets stay.
+              {deleting ? (
+                <>
+                  {' '}
+                  Last edited {deleting.updatedAt.toLocaleString()}. Project ID: {deleting.id}.
+                </>
+              ) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

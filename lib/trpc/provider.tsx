@@ -6,6 +6,7 @@ import { createTRPCClient, httpBatchLink } from '@trpc/client'
 import superjson from 'superjson'
 import type { AppRouter } from '@/lib/trpc/router'
 import { TRPCProvider } from './react'
+import { browserTRPCFetch } from './browser-fetch'
 
 function getBaseUrl(): string {
   if (typeof window !== 'undefined') return ''
@@ -18,6 +19,7 @@ export function TRPCReactProvider({ children }: { children: React.ReactNode }) {
     createTRPCClient<AppRouter>({
       links: [
         httpBatchLink({
+          fetch: browserTRPCFetch,
           transformer: superjson,
           // Also bypass previously cached responses from before the no-store policy.
           fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }),

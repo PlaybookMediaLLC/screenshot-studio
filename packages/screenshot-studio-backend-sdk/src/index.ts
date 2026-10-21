@@ -1238,6 +1238,7 @@ export type BackendCreativeSetVersion = {
 
 /** Filters for a creativeSet list; `cursor` comes from the previous page. `kind` defaults to Story Sets. */
 export type BackendCreativeSetListQuery = {
+  archived?: boolean
   cursor?: string
   kind?: BackendCreativeSetKind
   limit?: number
@@ -3169,8 +3170,8 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  async archiveCreativeSet(id: string) {
-    return this.request<{ archived: true }>(`v1/creative-sets/${encodeURIComponent(id)}/archive`, {
+  async archiveCreativeSet(id: string, archived = true) {
+    return this.request<{ archived: boolean }>(`v1/creative-sets/${encodeURIComponent(id)}/archive?archived=${archived}`, {
       method: 'POST',
     })
   }

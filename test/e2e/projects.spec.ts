@@ -153,6 +153,9 @@ test('the library searches, duplicates, and deletes, and other workspaces see no
       otherPage
     )
     expect((await trpcQuery(otherPage, 'project.get', { projectId })).status).toBe(404)
+    expect((await trpcMutation(otherPage, 'canvas.openProject', { projectId })).status).toBe(404)
+    const canvases = await trpcQuery(otherPage, 'canvas.list', {})
+    expect((canvases.body as { items: unknown[] }).items).toHaveLength(0)
     const list = await trpcQuery(otherPage, 'project.list', {})
     expect((list.body as { items: unknown[] }).items).toHaveLength(0)
     const write = await trpcMutation(otherPage, 'project.updateDocument', {

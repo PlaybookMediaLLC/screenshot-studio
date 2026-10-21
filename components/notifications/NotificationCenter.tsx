@@ -291,6 +291,7 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
     queryKey: [...identity.key, 'count'],
     queryFn: ({ signal }) => notificationRequest(identity, '/count', countSchema, { signal }),
     enabled: identity.ready && visible,
+    staleTime: 30_000,
     refetchInterval: visible ? 30_000 : false,
     refetchIntervalInBackground: false,
   })

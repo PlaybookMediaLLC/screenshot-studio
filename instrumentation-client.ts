@@ -1,6 +1,30 @@
 import posthog from 'posthog-js'
 import { scrubEvent } from '@/lib/analytics-scrub'
 import { CONSENT_CHANGE_EVENT, readConsent, type Consent } from '@/lib/consent'
+import { canvasNavigationFailure } from '@/lib/canvas/navigation-diagnostics'
+
+// Observe the request without changing Next's fetch or deployment-skew handling.
+try {
+  if (
+    typeof PerformanceObserver !== 'undefined' &&
+    PerformanceObserver.supportedEntryTypes.includes('resource')
+  ) {
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const failure = canvasNavigationFailure(
+          entry as PerformanceResourceTiming,
+          window.location.origin
+        )
+        if (!failure) continue
+        console.warn('[Canvas navigation] Page data request failed', failure)
+        if (process.env.NEXT_PUBLIC_POSTHOG_KEY && readConsent()?.analytics)
+          posthog.capture('canvas_navigation_failed', failure)
+      }
+    }).observe({ type: 'resource', buffered: true })
+  }
+} catch {
+  // Monitoring must never prevent the editor from loading.
+}
 
 // Deployments without analytics leave the key unset. Initializing with
 // an empty token makes PostHog log a misconfiguration error on every

@@ -149,6 +149,7 @@ export function useCanvasActions(session: CanvasSession, flush: () => void) {
           if (ids.includes(ui().activeId ?? '')) ui().activate(null)
           ui().select([])
           toast(`${removed === 1 ? 'Artboard' : `${removed} artboards`} deleted`, {
+            duration: 10000,
             action: { label: 'Undo', onClick: () => actions.undo() },
           })
         }

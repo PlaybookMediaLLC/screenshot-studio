@@ -396,7 +396,7 @@ export function LayerSelection({
 /**
  * Typing into a text layer on the stage. The text is edited in place, in
  * the layer's own font and size; Enter adds a line, ⌘/Ctrl+Enter or a click
- * elsewhere keeps it, and Escape puts the old text back. Emptying it deletes
+ * elsewhere or Escape keeps it. Emptying it deletes
  * the layer.
  */
 function InlineText({
@@ -427,7 +427,7 @@ function InlineText({
         else useCanvasUi.getState().editText(null)
         return
       }
-      clearEditorSelection()
+      selectInEditor({ kind: 'text', id })
       const rect = node.getBoundingClientRect()
       const scale = rect.width / (node.offsetWidth || 1) || 1
       const box = map(rect.left, rect.top, rect.width, rect.height)
@@ -478,11 +478,11 @@ function InlineText({
     selection?.addRange(range)
   }, [style])
 
-  const finish = (keep: boolean) => {
+  const finish = () => {
     if (done.current) return
     done.current = true
     const text = (field.current?.innerText ?? '').replace(/\n$/, '')
-    if (keep && text !== original.current) void actions.writeText(id, text)
+    if (text !== original.current) void actions.writeText(id, text)
     useCanvasUi.getState().editText(null)
   }
 
@@ -498,15 +498,15 @@ function InlineText({
       data-testid="inline-text-editor"
       className="pointer-events-auto absolute whitespace-pre-wrap break-words bg-transparent outline outline-2 outline-offset-2 outline-blue-500"
       style={style}
-      onBlur={() => finish(true)}
+      onBlur={finish}
       onKeyDown={(event) => {
         event.stopPropagation()
         if (event.key === 'Escape') {
           event.preventDefault()
-          finish(false)
+          finish()
         } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
           event.preventDefault()
-          finish(true)
+          finish()
         }
       }}
       onPaste={(event) => {

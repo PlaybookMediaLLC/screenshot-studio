@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.31.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.31.0...v2.31.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **story-sets:** resolve library and detail usability bugs ([#245](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/245)) ([594a85d](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/594a85dee991478bb079bf37d88baaa5151f2012))
+
 ## [2.31.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.30.1...v2.31.0) (2026-10-21)
 
 

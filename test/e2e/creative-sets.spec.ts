@@ -8,6 +8,7 @@ import type { CreativeSetDocument } from '@/lib/creative-sets/document'
 import { getE2EUrl, signUpViaApi, getActiveOrganizationId } from './framework/auth'
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
 import { trpcMutation, trpcQuery } from './framework/trpc'
+import { chooseOption } from './framework/controls'
 import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
 
 configureE2EFlow()
@@ -166,8 +167,11 @@ test('create, customize, replace evidence, reopen, restore and deliver three nat
   const campaignId = (createdCampaign.body as { campaign: { id: string } }).campaign.id
   await page.getByRole('button', { name: 'Campaign…', exact: true }).click()
   const handoff = page.getByRole('dialog', { name: 'Attach delivered creative' })
-  await handoff.getByLabel('Campaign').selectOption(campaignId)
-  await handoff.getByLabel('Immutable delivered file').selectOption(delivered[0]!.id)
+  await chooseOption(handoff.getByLabel('Campaign'), 'Approvals release')
+  await chooseOption(
+    handoff.getByLabel('Immutable delivered file'),
+    `${delivered[0]!.fileName} · r${delivered[0]!.revision}`
+  )
   await handoff.getByLabel('Draft post').fill('See your next decision in one place.')
   await handoff.getByRole('button', { name: 'Attach for campaign review' }).click()
   await expect(handoff.getByText(/delivered revision is attached/)).toBeVisible()
@@ -380,7 +384,7 @@ test('multiple stories, reusable versions and proposals remain editable through 
     )
   ).toBe(true)
   await page.getByRole('tab', { name: 'Layout', exact: true }).click()
-  await page.getByLabel('Motion · this format').selectOption('proof-reveal')
+  await chooseOption(page.getByLabel('Motion · this format'), 'Proof reveal')
   await saved(page)
   expect(
     (await record(page, id)).document.outputs.some(
@@ -506,9 +510,10 @@ test('store migration preserves originals and delivers native edits and motion',
         )
     )
     .toBe(true)
-  await page
-    .getByLabel('Story for selected store slide')
-    .selectOption((await record(page, id)).document.stories[0]!.id)
+  await chooseOption(
+    page.getByLabel('Story for selected store slide'),
+    (await record(page, id)).document.stories[0]!.headline
+  )
   await page.getByRole('button', { name: 'Link slide to story' }).click()
   await saved(page)
   const heading = canvas.getByText('Decide with confidence', { exact: true })

@@ -10,6 +10,7 @@ import { SaveStatus, useSaveState } from '@/components/settings/controls'
 import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { deleteWritingSampleContract, listWritingSamplesContract, socialSetSchema, type styleGuideSchema, writingSampleSchema } from '@/lib/api/contracts/social-sets'
 import { settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
@@ -284,24 +285,20 @@ function WritingSamples({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
           </form>
           <label className="grid gap-1 text-sm">
             <span className="text-xs text-muted-foreground">Import a draft of this set</span>
-            <select
-              className="h-9 rounded-lg border border-border bg-card px-2 text-sm"
-              defaultValue=""
-              disabled={items.length >= 20}
-              onChange={(event) => {
-                if (event.target.value) void add({ draftId: event.target.value })
-                event.target.value = ''
-              }}
-            >
-              <option value="">Choose a draft…</option>
-              {(drafts.data?.items ?? [])
-                .filter((draft) => draft.plainText.trim())
-                .map((draft) => (
-                  <option key={draft.id} value={draft.id}>
-                    {draft.title}
-                  </option>
-                ))}
-            </select>
+            <Select disabled={items.length >= 20} onValueChange={(draftId) => void add({ draftId })} value="">
+              <SelectTrigger aria-label="Import a draft of this set" className="w-full bg-card">
+                <SelectValue placeholder="Choose a draft…" />
+              </SelectTrigger>
+              <SelectContent>
+                {(drafts.data?.items ?? [])
+                  .filter((draft) => draft.plainText.trim())
+                  .map((draft) => (
+                    <SelectItem key={draft.id} value={draft.id}>
+                      {draft.title}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </label>
         </div>
       ) : null}

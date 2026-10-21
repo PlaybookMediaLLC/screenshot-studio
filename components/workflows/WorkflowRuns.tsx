@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -88,10 +88,15 @@ export function WorkflowRuns() {
     return () => clearInterval(timer)
   }, [load, before])
 
-  function setFilter(key: keyof AutomationHistoryFilter, value: string) {
+  function setFilter(
+    keys: keyof AutomationHistoryFilter | (keyof AutomationHistoryFilter)[],
+    value: string
+  ) {
     const next = new URLSearchParams(params.toString())
-    if (value && value !== ALL) next.set(key, value)
-    else next.delete(key)
+    for (const key of [keys].flat()) {
+      if (value && value !== ALL) next.set(key, value)
+      else next.delete(key)
+    }
     setCursor([])
     router.replace(`${pathname}?${next}`)
   }
@@ -155,22 +160,25 @@ export function WorkflowRuns() {
         {(['since', 'until'] as const).map((key) => (
           <Label className="grid gap-1 text-xs text-neutral-400" key={key}>
             {key === 'since' ? 'From' : 'Before'}
-            <Input
+            <DatePicker
               aria-label={key === 'since' ? 'Runs from date' : 'Runs before date'}
               className="h-9 w-40"
-              onChange={(event) =>
-                setFilter(
-                  key,
-                  event.target.value
-                    ? new Date(`${event.target.value}T00:00:00Z`).toISOString()
-                    : ''
-                )
-              }
-              type="date"
+              onChange={(day) => setFilter(key, new Date(`${day}T00:00:00Z`).toISOString())}
+              placeholder="Any day"
               value={filter[key]?.slice(0, 10) ?? ''}
             />
           </Label>
         ))}
+        {filter.since || filter.until ? (
+          <Button
+            onClick={() => setFilter(['since', 'until'], '')}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            Clear dates
+          </Button>
+        ) : null}
         {filter.versionId ? (
           <Button
             onClick={() => setFilter('versionId', '')}

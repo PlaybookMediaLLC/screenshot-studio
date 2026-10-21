@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { newCreativeSetId, type CreativeSetDocument } from '@/lib/creative-sets/document'
@@ -129,7 +130,7 @@ export function ImportProject({
         </DialogDescription>
         <label className="grid gap-2 text-sm">
           Import a design JSON file
-          <input
+          <Input
             type="file"
             accept=".json,application/json"
             disabled={busy}

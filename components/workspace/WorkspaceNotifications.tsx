@@ -7,6 +7,14 @@ import { z } from 'zod'
 import { Group, Section } from '@/components/platform-ui'
 import { EmailSwitch, SocialSetNotifications } from '@/components/settings/NotificationExtras'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   notificationRequest,
   useNotificationIdentity,
@@ -241,19 +249,17 @@ function SettingsForm({
                             return (
                               <td className="px-3 py-3" key={channel}>
                                 <label className="flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    className="size-4 accent-violet-500"
+                                  <Checkbox
                                     aria-label={`${event.label}: your ${channel === 'inApp' ? 'in-app' : 'email'} preference`}
                                     checked={preferences.events[event.id]?.[channel] ?? true}
-                                    onChange={(e) =>
+                                    onCheckedChange={(checked) =>
                                       setPreferences((current) => ({
                                         ...current,
                                         events: {
                                           ...current.events,
                                           [event.id]: {
                                             ...current.events[event.id],
-                                            [channel]: e.target.checked,
+                                            [channel]: checked === true,
                                           },
                                         },
                                       }))
@@ -326,26 +332,28 @@ function SettingsForm({
                 ) : null}
                 <label className="grid gap-2 text-sm">
                   Slack workspace
-                  <select
-                    aria-label="Slack workspace"
-                    className="rounded-md border border-border bg-background p-2"
+                  <Select
                     value={policy.slackConnectionId}
-                    onChange={(event) =>
+                    onValueChange={(slackConnectionId) =>
                       setPolicy((current) => ({
                         ...current,
-                        slackConnectionId: event.target.value,
+                        slackConnectionId,
                         slackChannelId: '',
                         slackChannelName: '',
                       }))
                     }
                   >
-                    <option value="">Select a connection</option>
-                    {settings.connections.map((connection) => (
-                      <option key={connection.id} value={connection.id}>
-                        {connection.teamName} · {connection.teamId}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger aria-label="Slack workspace" className="w-full">
+                      <SelectValue placeholder="Select a connection" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {settings.connections.map((connection) => (
+                        <SelectItem key={connection.id} value={connection.id}>
+                          {connection.teamName} · {connection.teamId}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </label>
                 {selected ? (
                   <p className="text-xs text-muted-foreground">
@@ -355,28 +363,30 @@ function SettingsForm({
                 ) : null}
                 <label className="grid gap-2 text-sm">
                   Channel
-                  <select
-                    aria-label="Slack channel"
-                    className="rounded-md border border-border bg-background p-2"
+                  <Select
                     disabled={!policy.slackConnectionId || channels.isPending}
                     value={policy.slackChannelId}
-                    onChange={(event) =>
-                      setPolicy((current) => ({ ...current, slackChannelId: event.target.value }))
+                    onValueChange={(slackChannelId) =>
+                      setPolicy((current) => ({ ...current, slackChannelId }))
                     }
                   >
-                    <option value="">Select a channel</option>
-                    {channels.data?.map((channel) => (
-                      <option
-                        key={channel.id}
-                        value={channel.id}
-                        disabled={!channel.isMember || channel.isArchived}
-                      >
-                        {channel.isPrivate ? 'Private: ' : '#'}
-                        {channel.name}
-                        {!channel.isMember ? ' — invite the app first' : ''}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger aria-label="Slack channel" className="w-full">
+                      <SelectValue placeholder="Select a channel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {channels.data?.map((channel) => (
+                        <SelectItem
+                          key={channel.id}
+                          value={channel.id}
+                          disabled={!channel.isMember || channel.isArchived}
+                        >
+                          {channel.isPrivate ? 'Private: ' : '#'}
+                          {channel.name}
+                          {!channel.isMember ? ' — invite the app first' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </label>
                 {policy.slackConnectionId && channels.isPending ? (
                   <p role="status" className="text-sm text-muted-foreground">
@@ -440,14 +450,12 @@ function SettingsForm({
               <legend className="mb-3 text-sm font-medium">Available channels</legend>
               {(['inApp', 'email', 'slack'] as const).map((channel) => (
                 <label key={channel} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-violet-500"
+                  <Checkbox
                     checked={policy.availability[channel]}
-                    onChange={(event) =>
+                    onCheckedChange={(checked) =>
                       setPolicy((current) => ({
                         ...current,
-                        availability: { ...current.availability, [channel]: event.target.checked },
+                        availability: { ...current.availability, [channel]: checked === true },
                       }))
                     }
                   />
@@ -494,9 +502,7 @@ function SettingsForm({
                               </th>
                               {(['inApp', 'email', 'slack'] as const).map((channel) => (
                                 <td className="px-3 py-3" key={channel}>
-                                  <input
-                                    type="checkbox"
-                                    className="size-4 accent-violet-500"
+                                  <Checkbox
                                     aria-label={`${event.label}: workspace ${channel === 'inApp' ? 'in-app' : channel}`}
                                     disabled={
                                       !!busy ||
@@ -504,14 +510,14 @@ function SettingsForm({
                                       (channel === 'slack' && event.restricted)
                                     }
                                     checked={policy.events[event.id]?.[channel] ?? false}
-                                    onChange={(e) =>
+                                    onCheckedChange={(checked) =>
                                       setPolicy((current) => ({
                                         ...current,
                                         events: {
                                           ...current.events,
                                           [event.id]: {
                                             ...current.events[event.id],
-                                            [channel]: e.target.checked,
+                                            [channel]: checked === true,
                                           },
                                         },
                                       }))

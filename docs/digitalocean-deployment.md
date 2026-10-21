@@ -152,8 +152,9 @@ a separate operation; rolling back an app deployment does not undo migrations.
 ## Verification and rollback
 
 IndexNow's public ownership key is shipped as `public/indexnow-key.txt`; it
-requires no runtime secret. Both the container smoke test and web deployment
-check that `/indexnow-key.txt` serves the committed file before succeeding.
+requires no runtime secret. The container smoke test and each completed web
+deployment check that `/indexnow-key.txt` serves the committed file. Runs skipped
+because production already has a newer image do not repeat that verification.
 
 Wait for `ACTIVE`, then check public web health, session handling, unauthenticated
 API rejection, and an authenticated social connection read through the web SDK.

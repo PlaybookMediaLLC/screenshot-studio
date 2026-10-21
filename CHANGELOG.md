@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.33.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.1...v2.33.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* restore production releases and failing draft workflows ([#266](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/266)) ([80a2c4b](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/80a2c4be38cb404a5568a1e5e1bbb8d950f4b12a))
+
 ## [2.33.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.0...v2.33.1) (2026-10-21)
 
 

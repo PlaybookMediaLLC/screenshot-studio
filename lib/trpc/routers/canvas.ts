@@ -3,6 +3,7 @@ import 'server-only'
 import { TRPCError } from '@trpc/server'
 import type { TenantAccessRequirement } from '@/lib/api/access-requirements'
 import {
+  canvasArchiveInputSchema,
   canvasCreateInputSchema,
   canvasDocumentInputSchema,
   canvasDuplicateInputSchema,
@@ -75,10 +76,10 @@ export const canvasRouter = router({
       found(await duplicateCanvas(ctx.tenant, input.canvasId, input.name))
     ),
   archive: tenantProcedure(EDIT)
-    .input(canvasRefInputSchema)
+    .input(canvasArchiveInputSchema)
     .mutation(async ({ ctx, input }) => {
-      found(await archiveCanvas(ctx.tenant, input.canvasId))
-      return { archived: true as const }
+      found(await archiveCanvas(ctx.tenant, input.canvasId, input.archived))
+      return { archived: input.archived }
     }),
   versions: tenantProcedure(READ)
     .input(canvasRefInputSchema)

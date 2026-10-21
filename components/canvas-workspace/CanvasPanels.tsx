@@ -712,10 +712,14 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
             maxLength={120}
             disabled={!canEdit}
             aria-label="Artboard name"
-            onBlur={(event) =>
-              event.target.value.trim() !== artboard.name &&
-              actions.rename(artboard.id, event.target.value)
-            }
+            onBlur={(event) => {
+              const name = event.currentTarget.value.trim()
+              if (!name) {
+                event.currentTarget.value = artboard.name
+                toast.error('Enter an artboard name. The previous name has been kept.')
+              } else if (name !== artboard.name) actions.rename(artboard.id, name)
+              else event.currentTarget.value = name
+            }}
             onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
           />
         </label>

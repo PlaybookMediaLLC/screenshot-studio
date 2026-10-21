@@ -172,6 +172,16 @@ test('A: a manual product announcement survives reload and exports what was comp
   await page.getByRole('button', { name: 'Subheadline', exact: true }).click()
   await page.locator('#image-render-card [data-text-overlay-id]').nth(1).click()
   await page.getByLabel('Text content').fill('Review every launch from one queue.')
+  // Leave room for the headline to wrap when the artboard becomes portrait.
+  const supporting = (await page
+    .locator('#image-render-card [data-text-overlay-id]')
+    .nth(1)
+    .boundingBox())!
+  const stage = (await page.locator('#image-render-card').boundingBox())!
+  await page.mouse.move(supporting.x + supporting.width / 2, supporting.y + supporting.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(stage.x + stage.width / 2, stage.y + stage.height * 0.8, { steps: 8 })
+  await page.mouse.up()
   await saved(page)
   await page.screenshot({ path: path.join(out, 'a-composed.png') })
 

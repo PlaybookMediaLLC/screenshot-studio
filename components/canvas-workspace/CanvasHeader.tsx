@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { CanvasSession, CanvasSessionState } from '@/lib/canvas/session'
@@ -41,22 +43,46 @@ export function CanvasHeader({
 }) {
   const [name, setName] = useState(session.record.name)
   const [renaming, setRenaming] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const router = useRouter()
   const leftOpen = useCanvasUi((ui) => ui.leftOpen)
   const rightOpen = useCanvasUi((ui) => ui.rightOpen)
   const togglePanel = useCanvasUi((ui) => ui.togglePanel)
   const status = STATUS[state.status]
+  useEffect(() => {
+    const previous = document.title
+    document.title = `${name} · Canvas`
+    return () => {
+      document.title = previous
+    }
+  }, [name])
   return (
-    <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
+    <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2 lg:flex-nowrap">
       <Link
         href="/canvas"
         aria-label="Back to Canvas"
-        className="rounded px-1 text-sm text-muted-foreground hover:text-foreground"
-        onClick={(event) => {
-          try {
-            actions.exitEdit()
-          } catch {
-            event.preventDefault()
-          }
+        className="shrink-0 rounded px-1 text-sm text-muted-foreground hover:text-foreground"
+        aria-busy={leaving}
+        onNavigate={(event) => {
+          event.preventDefault()
+          if (leaving) return
+          setLeaving(true)
+          void (async () => {
+            try {
+              actions.exitEdit()
+              if (canEdit && !(await session.save())) {
+                toast.error(
+                  'The canvas could not be saved. Resolve the save problem before leaving.'
+                )
+                return
+              }
+              router.push('/canvas')
+            } catch (failure) {
+              toast.error(failure instanceof Error ? failure.message : 'Could not save the canvas.')
+            } finally {
+              setLeaving(false)
+            }
+          })()
         }}
       >
         ← Canvas
@@ -64,7 +90,7 @@ export function CanvasHeader({
       <Button
         variant="ghost"
         size="sm"
-        className="max-w-[40vw] truncate font-semibold"
+        className="min-w-0 max-w-[40vw] shrink truncate font-semibold lg:flex-1"
         disabled={!canEdit}
         onClick={() => setRenaming(true)}
         title="Rename canvas"
@@ -76,7 +102,7 @@ export function CanvasHeader({
         data-testid="canvas-save-status"
         title={`Revision ${state.revision}`}
         className={cn(
-          'rounded-full px-2 py-0.5 text-xs',
+          'shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs',
           state.status === 'saved' && 'text-muted-foreground',
           (state.status === 'unsaved' || state.status === 'saving') &&
             'bg-foreground/[0.05] text-muted-foreground',
@@ -87,7 +113,7 @@ export function CanvasHeader({
         {status}
       </span>
       {presence}
-      <div className="ml-auto flex flex-wrap items-center gap-1">
+      <div className="ml-auto flex shrink-0 flex-wrap items-center gap-1">
         <Button
           variant="ghost"
           size="sm"
@@ -95,7 +121,7 @@ export function CanvasHeader({
           className="hidden md:inline-flex"
           onClick={() => togglePanel('left')}
         >
-          Tools
+          Artboards & tools
         </Button>
         <Button
           variant="ghost"
@@ -163,6 +189,7 @@ export function CanvasHeader({
               name: next,
             })
             setName(record.name)
+            session.record.name = record.name
             setRenaming(false)
           }}
         />

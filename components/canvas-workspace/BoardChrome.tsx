@@ -33,7 +33,7 @@ export function ZoomBar({ actions }: { actions: CanvasActions }) {
     <div
       data-board-control
       data-board-ignore-wheel
-      className="absolute bottom-3 left-3 z-30 flex items-center gap-1 rounded-lg border bg-background/95 p-1 shadow-sm"
+      className="absolute bottom-3 left-3 z-30 flex max-w-[calc(100%-1.5rem)] items-center gap-1 overflow-x-auto rounded-lg border bg-background/95 p-1 shadow-sm"
     >
       <Button
         size="sm"
@@ -193,7 +193,7 @@ export function Minimap({ artboards }: { artboards: Artboard[] }) {
     <div
       data-board-control
       data-board-ignore-wheel
-      className="absolute bottom-3 right-3 z-30 hidden rounded-lg border bg-background/95 p-1 shadow-sm md:block"
+      className="absolute bottom-16 right-3 z-30 hidden rounded-lg border bg-background/95 p-1 shadow-sm md:block"
     >
       <svg
         role="img"

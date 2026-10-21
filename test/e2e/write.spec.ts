@@ -86,8 +86,8 @@ test('a thread is written once, adapted per platform, planned, scheduled, backed
     const draftId = await newDraft(page)
 
     // The composer says who it publishes as, and every post shows its account.
-    await expect(page.getByTestId('platform-tab-x')).toContainText('primary')
-    await expect(page.getByTestId('platform-tab-linkedin')).toContainText('synced')
+    await expect(page.getByTestId('platform-tab-x')).toContainText('Main version')
+    await expect(page.getByTestId('platform-tab-linkedin')).toContainText('Use main version')
 
     const editor = draftEditor(page)
     await editor.click()
@@ -146,7 +146,7 @@ test('a thread is written once, adapted per platform, planned, scheduled, backed
     await snap(page, 'write-preview-linkedin')
 
     // Properties: an internal title and scratchpad that are never posted, and counts.
-    await page.getByRole('button', { name: 'Properties', exact: true }).click()
+    await page.getByRole('button', { name: 'Draft details', exact: true }).click()
     const properties = page.getByTestId('properties-panel')
     await properties.getByLabel('Internal title').fill('Launch thread')
     await properties.getByRole('textbox', { name: /Scratchpad/ }).fill('Ask legal about the claim')
@@ -243,7 +243,7 @@ test('refine previews and applies only on accept, the assistant adds a post, fol
     await expectSaved(page)
 
     // Refine: the answer is previewed; Reject leaves the text as it was.
-    await page.getByRole('button', { name: 'Refine', exact: true }).click()
+    await page.getByRole('button', { name: 'Rewrite', exact: true }).click()
     await page.getByTestId('refine-menu').getByRole('button', { name: 'Fix grammar' }).click()
     const review = page.getByTestId('refine-review')
     await expect(review).toContainText('(refined)', { timeout: 60_000 })
@@ -253,7 +253,7 @@ test('refine previews and applies only on accept, the assistant adds a post, fol
     await expect(editor).not.toContainText('(refined)')
 
     // Accept applies it as one change, and Undo takes it back.
-    await page.getByRole('button', { name: 'Refine', exact: true }).click()
+    await page.getByRole('button', { name: 'Rewrite', exact: true }).click()
     await page.getByTestId('refine-menu').getByRole('button', { name: 'Make it punchier' }).click()
     await expect(review).toContainText('(refined)', { timeout: 60_000 })
     await review.getByRole('button', { name: 'Accept' }).click()
@@ -438,9 +438,9 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     // A second set with the same name as the default stays a separate identity.
     // Sets are made in workspace settings (RFC 043); the switcher links there.
     const setName =
-      (await page.getByRole('button', { name: /^Social set: / }).textContent())?.trim() ?? ''
-    await page.getByRole('button', { name: /^Social set: / }).click()
-    await expect(page.getByRole('menuitem', { name: 'New social set…' })).toHaveAttribute(
+      (await page.getByRole('button', { name: /^Brand: / }).textContent())?.trim() ?? ''
+    await page.getByRole('button', { name: /^Brand: / }).click()
+    await expect(page.getByRole('menuitem', { name: 'New brand…' })).toHaveAttribute(
       'href',
       /\/workspace\/social-sets$/
     )
@@ -456,7 +456,7 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     // Open the new set, then switch back to the default (listed first).
     const switchSet = async (index: number) => {
       await page.waitForLoadState('networkidle')
-      await page.getByRole('button', { name: /^Social set: / }).click()
+      await page.getByRole('button', { name: /^Brand: / }).click()
       const item = page
         .getByRole('menuitem')
         .filter({ hasText: setName.replace(/▾$/, '').trim() })
@@ -469,7 +469,7 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     await expect(page.getByText('No drafts in this set.')).toBeVisible()
     await switchSet(0)
     await rowMenu('Pricing')
-    await page.getByRole('menuitem', { name: 'Copy to social set' }).click()
+    await page.getByRole('menuitem', { name: 'Copy to brand' }).click()
     await page.getByRole('menu').last().getByRole('menuitem').first().click()
     await page.getByRole('button', { name: 'Copy without tags' }).click()
     await expect(page.getByText(/Copied/).first()).toBeVisible()
@@ -531,6 +531,105 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
       timeout: 30_000,
     })
     await snap(page, 'write-plan')
+  } finally {
+    await workspace?.provider.close()
+    await unbindTestGoOrganization(workspace?.organizationId ?? null)
+  }
+})
+
+test('draft text survives replacement and navigation; details, filters, archive and calendar remain actionable', async ({
+  identity,
+  page,
+}) => {
+  test.setTimeout(240_000)
+  let workspace: DraftWorkspace | null = null
+  try {
+    workspace = await createDraftWorkspace(identity, page)
+    const draftId = await newDraft(page)
+    const editor = draftEditor(page)
+    await expect(editor).toBeFocused()
+    await expect(editor.locator('[placeholder="What would you like to share?"]')).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Add another post', exact: true })
+    ).toBeInViewport()
+    await editor.fill('QA persistence check two')
+    await expect(page.getByTestId('post-length-1')).toHaveText('24 / 280')
+    await expectSaved(page)
+    await page.reload()
+    await expect(editor).toContainText('QA persistence check two')
+    await editor.click()
+    await page.keyboard.press('ControlOrMeta+End')
+    await page.getByRole('button', { name: 'Emoji', exact: true }).click()
+    await page.getByRole('button', { name: 'Insert 🚀', exact: true }).click()
+    await expect(editor).toBeFocused()
+    await page.keyboard.type(' after emoji')
+    await expect(editor).toContainText('🚀 after emoji')
+    await expectSaved(page)
+    await page.reload()
+    await expect(editor).toContainText('🚀 after emoji')
+    await editor.click()
+    await settle(page)
+    await page.keyboard.press('ControlOrMeta+a')
+    await page.keyboard.type('Replacement text')
+    await expect(editor).toContainText('Replacement text')
+    await expect(page.getByTestId('post-header')).toHaveCount(1)
+    await page.getByRole('textbox', { name: 'Draft title' }).fill('Persistence regression')
+    await expectSaved(page)
+    await expect(
+      page.getByRole('button', { name: 'Actions for Persistence regression', exact: true })
+    ).toHaveCount(1)
+
+    await page.getByRole('button', { name: 'Draft details', exact: true }).click()
+    await expect(page.getByTestId('word-count')).toHaveText('2')
+    await page.setViewportSize({ width: 1280, height: 900 })
+    const panel = await page
+      .getByRole('complementary', { name: 'Draft details', exact: true })
+      .boundingBox()
+    const publish = await page.getByTestId('publish-button').boundingBox()
+    expect(panel && publish && publish.x + publish.width <= panel.x).toBeTruthy()
+    await page.getByRole('button', { name: 'Add post', exact: true }).click()
+    await page.keyboard.type('Second post')
+    await expect(page.getByTestId('post-header')).toHaveCount(2)
+    await expect(page.getByTestId('post-length-2')).toHaveText('11 / 280')
+
+    // Leave during the debounce, through an in-app link.
+    await page.getByRole('link', { name: 'Calendar', exact: true }).click()
+    await expect
+      .poll(async () => {
+        const result = await apiRequest(page, `/api/v1/content-drafts/${draftId}`)
+        return (result.body as { plainText: string }).plainText
+      })
+      .toContain('Second post')
+    await page.goto(`/write/${draftId}`)
+    await expect(editor).toContainText('Second post')
+    await page.getByTestId('schedule-button').click()
+    const schedule = page.getByTestId('schedule-dialog')
+    await expect(schedule.getByLabel('Time', { exact: true })).toBeVisible()
+    await expect(schedule.getByLabel('When, in words')).toBeHidden()
+    await schedule.getByText('Advanced scheduling', { exact: true }).click()
+    await schedule.getByLabel('When, in words').fill('definitely not a time')
+    await expect(schedule.getByTestId('when-reading')).toContainText('Still selected:')
+    await schedule.getByRole('button', { name: /^Tomorrow 9:00/ }).click()
+    await schedule.getByRole('button', { name: 'Save as planned' }).click()
+    await page.getByRole('button', { name: 'More draft actions' }).click()
+    await page.getByRole('menuitem', { name: 'Archive draft' }).click()
+    await expect(page.getByRole('button', { name: 'Restore draft', exact: true })).toBeVisible()
+    await expect(page.getByTestId('publish-button')).toHaveCount(0)
+    await page.goto('/write?tab=archived')
+    const archived = page.getByTestId('draft-row').filter({ hasText: 'Persistence regression' })
+    await expect(archived).toContainText('Previously planned')
+    await archived.getByRole('button', { name: 'Actions for Persistence regression' }).click()
+    await page.getByRole('menuitem', { name: 'Restore draft', exact: true }).click()
+    await expect(archived).toHaveCount(0)
+
+    await page.goto('/write?kind=article')
+    await expect(page.getByRole('button', { name: 'Remove Article filter' })).toBeVisible()
+    await page.getByRole('button', { name: 'Clear filters', exact: true }).first().click()
+    await expect(page.getByRole('button', { name: 'Remove Article filter' })).toHaveCount(0)
+    await page.goto('/write/plan')
+    await page.getByRole('button', { name: 'Plan a post', exact: true }).last().click()
+    await expect(page.getByTestId('schedule-dialog')).toBeVisible()
+    expect(await draftPosts(draftId)).toEqual([])
   } finally {
     await workspace?.provider.close()
     await unbindTestGoOrganization(workspace?.organizationId ?? null)

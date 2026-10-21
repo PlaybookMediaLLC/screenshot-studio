@@ -69,7 +69,7 @@ export function PdfCarousel({ assetId }: { assetId: string }) {
   return (
     <div className="grid gap-2" data-testid="pdf-carousel">
       <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-lg bg-white/5">
-        {pdf ? null : <p className="p-8 text-center text-sm text-neutral-500">Reading the PDF…</p>}
+        {pdf ? null : <p className="p-8 text-center text-sm text-neutral-400">Reading the PDF…</p>}
         <canvas aria-label={`Page ${page}`} className="block w-full" ref={canvas} role="img" />
         {pdf ? (
           <>

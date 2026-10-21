@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { socialSetHref } from '@/components/workspace/settings-sections'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -79,7 +80,7 @@ const KIND_LABELS: Record<DraftKind, string> = {
 }
 
 /**
- * The left rail: the social set, the lifecycle tabs, search and filters,
+ * The left rail: the brand, the lifecycle tabs, search and filters,
  * new drafts, and the draft list with its actions. Every action that
  * changes access (a public link) asks first.
  */
@@ -111,14 +112,14 @@ export function WriteRail() {
           <SocialSetSwitcher />
         </div>
         <Link
-          className="rounded-md px-2 py-1 text-xs text-neutral-500 hover:text-white"
+          className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
           href={data.activeSet ? `/write/plan?set=${data.activeSet.id}` : '/write/plan'}
         >
-          Plan
+          Calendar
         </Link>
         <Link
-          className="rounded-md px-2 py-1 text-xs text-neutral-500 hover:text-white"
-          href="/write/settings"
+          className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
+          href={data.activeSet ? socialSetHref(data.activeSet.id, 'scheduling') : '/write/settings'}
         >
           Settings
         </Link>
@@ -132,7 +133,7 @@ export function WriteRail() {
                 'rounded-md px-1 py-1 text-[11px] transition-colors',
                 tab === item.tab
                   ? 'bg-white/[0.08] text-white'
-                  : 'text-neutral-500 hover:text-neutral-300'
+                  : 'text-neutral-400 hover:text-neutral-300'
               )}
               key={item.tab}
               onClick={() => {
@@ -146,13 +147,27 @@ export function WriteRail() {
             >
               {item.label}
               {item.tab === 'queue' && data.queue.length > 0 ? (
-                <span className="ml-1 text-neutral-500">{data.queue.length}</span>
+                <span className="ml-1 text-neutral-400">{data.queue.length}</span>
               ) : null}
             </Button>
           ))}
         </div>
       </div>
       {tab === 'queue' ? null : <LibraryFilters onManageTags={() => setManagingTags(true)} />}
+      {tab !== 'queue' && (data.query.q || data.query.kind || data.query.tag) ? (
+        <div aria-label="Active filters" className="flex flex-wrap gap-1 px-3 pt-2">
+          {([
+            { key: 'q', label: data.query.q },
+            { key: 'kind', label: data.query.kind ? KIND_LABELS[data.query.kind] : undefined },
+            { key: 'tag', label: data.query.tag ? data.tags.find((tag) => tag.id === data.query.tag)?.name ?? 'Tag' : undefined },
+          ] as const).filter((filter) => filter.label).map((filter) => (
+            <Button key={filter.key} aria-label={`Remove ${filter.label} filter`} size="sm" variant="outline" onClick={() => setQuery({ [filter.key]: undefined })}>
+              {filter.label} ×
+            </Button>
+          ))}
+          <Button size="sm" variant="ghost" onClick={() => setQuery({ q: undefined, tag: undefined, kind: undefined })}>Clear filters</Button>
+        </div>
+      ) : null}
       {canEdit && tab !== 'queue' ? <NewDraftMenu /> : null}
       {selected.length > 0 ? <BulkBar onDone={() => setSelected([])} selected={selected} /> : null}
       <nav
@@ -162,7 +177,7 @@ export function WriteRail() {
         {tab === 'queue' ? (
           <QueueList />
         ) : data.library.length === 0 ? (
-          <p className="px-4 py-6 text-xs text-neutral-500">
+          <div className="px-4 py-6 text-xs text-neutral-400">
             {data.query.q || data.query.tag || data.query.kind
               ? 'No drafts match these filters.'
               : {
@@ -171,7 +186,8 @@ export function WriteRail() {
                   posted: 'Nothing posted from this set yet.',
                   queue: '',
                 }[tab]}
-          </p>
+            {data.query.q || data.query.tag || data.query.kind ? <Button className="mt-2 block" size="sm" variant="outline" onClick={() => setQuery({ q: undefined, tag: undefined, kind: undefined })}>Clear filters</Button> : null}
+          </div>
         ) : (
           <ul>
             {data.library.map((draft) => (
@@ -200,6 +216,10 @@ function LibraryFilters({ onManageTags }: { onManageTags: () => void }) {
   const [search, setSearch] = React.useState(data.query.q ?? '')
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   React.useEffect(() => () => void (timer.current && clearTimeout(timer.current)), [])
+  React.useEffect(() => {
+    if (timer.current) clearTimeout(timer.current)
+    setSearch(data.query.q ?? '')
+  }, [data.query.q])
   const activeTag = data.tags.find((tag) => tag.id === data.query.tag)
   return (
     <div className="flex items-center gap-1.5 px-3 pt-2">
@@ -284,7 +304,7 @@ function LibraryFilters({ onManageTags }: { onManageTags: () => void }) {
       {activeTag ? (
         <Button
           aria-label={`Clear the ${activeTag.name} filter`}
-          className="text-xs text-neutral-500 hover:text-white"
+          className="text-xs text-neutral-400 hover:text-white"
           onClick={() => setQuery({ tag: undefined })}
           size={null}
           type="button"
@@ -545,10 +565,10 @@ function DraftRow({
             <PinIcon aria-label="Pinned" className="mt-0.5 size-3.5 shrink-0 text-sky-300" />
           ) : null}
           <span className="line-clamp-2 text-[13px] leading-snug text-neutral-200">
-            {shown.excerpt || <span className="text-neutral-500">Empty draft</span>}
+            {shown.excerpt || <span className="text-neutral-400">Empty draft</span>}
           </span>
         </p>
-        <p className="mt-1.5 flex items-center gap-2 text-[11px] text-neutral-500">
+        <p className="mt-1.5 flex items-center gap-2 text-[11px] text-neutral-400">
           <span className="min-w-0 flex-1 truncate">
             {draft.kind !== 'standard' ? (
               <span className="mr-1 text-neutral-400">{KIND_LABELS[draft.kind]} ·</span>
@@ -572,7 +592,7 @@ function DraftRow({
         ) : null}
       </Link>
       <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover/row:opacity-100 focus-within:opacity-100">
-        <DraftRowMenu draft={draft} onSelect={() => onSelect(draft.id, false)} />
+        <DraftRowMenu draft={shown} onSelect={() => onSelect(draft.id, false)} />
       </div>
     </li>
   )
@@ -603,7 +623,7 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
   } else if (draft.plannedFor) {
     parts.push(
       <span className="text-violet-300" key="planned">
-        Planned{' '}
+        {draft.status === 'archived' ? 'Previously planned' : 'Planned'}{' '}
         <LocalTime
           options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short', timeZone }}
           value={draft.plannedFor}
@@ -621,7 +641,7 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
   if (draft.shared) parts.push(<span key="shared">Public link on</span>)
   if (parts.length === 0) return null
   return (
-    <p className="mt-1 flex flex-wrap gap-x-2 text-[11px] text-neutral-500">
+    <p className="mt-1 flex flex-wrap gap-x-2 text-[11px] text-neutral-400">
       {parts.map((part, index) => (
         <React.Fragment key={index}>{part}</React.Fragment>
       ))}
@@ -677,7 +697,7 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
                 Duplicate
               </DropdownMenuItem>
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger>Copy to social set</DropdownMenuSubTrigger>
+                <DropdownMenuSubTrigger>Copy to brand</DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-60">
                   {data.sets
                     .filter((set) => set.id !== data.activeSet?.id)
@@ -768,6 +788,14 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
           {canEdit ? (
             <>
               <DropdownMenuSeparator />
+              {draft.status === 'archived' ? (
+                <DropdownMenuItem onSelect={() => void act(async () => {
+                  const current = await draftsApi.get(draft.id)
+                  await draftsApi.save(draft.id, { baseVersion: current.version, status: 'draft' })
+                }, 'Restored to drafts.')}>
+                  Restore draft
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem className="text-red-300" onSelect={() => setConfirm('delete')}>
                 Delete…
               </DropdownMenuItem>
@@ -974,7 +1002,7 @@ function QueueList() {
   const { data } = useWrite()
   if (data.queue.length === 0) {
     return (
-      <p className="px-4 py-6 text-xs text-neutral-500">
+      <p className="px-4 py-6 text-xs text-neutral-400">
         Nothing queued or planned for this set. Schedule a draft, add it to the queue, or plan it.
       </p>
     )

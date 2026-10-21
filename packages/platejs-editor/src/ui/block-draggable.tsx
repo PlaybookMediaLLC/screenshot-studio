@@ -429,6 +429,7 @@ const DraggableInsertHandle = () => {
 
   return (
     <Button
+      aria-label="Insert block below (Option-click to insert above)"
       className="size-6 shrink-0 p-1"
       onClick={(event) => {
         event.stopPropagation();

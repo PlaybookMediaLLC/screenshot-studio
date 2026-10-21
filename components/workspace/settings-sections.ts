@@ -2,7 +2,7 @@
  * Settings sections, each its own route under /workspace; shared by the
  * sidebar, the in-page settings navigation and the page (RFC 043). Sections
  * are grouped by who owns what they change: the person, the workspace, or a
- * publishing identity (a social set).
+ * publishing identity (a brand).
  */
 
 import { z } from 'zod'
@@ -210,7 +210,7 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     group: 'publishing',
     id: 'social-sets',
     slug: 'social-sets',
-    title: 'Social sets',
+    title: 'Brands',
   },
   {
     description: 'Every connected account in the workspace and the set it belongs to.',
@@ -221,7 +221,7 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
   },
 ]
 
-/** The pages of one social set's settings, in display order. */
+/** The pages of one brand's settings, in display order. */
 export const SOCIAL_SET_PAGES = [
   { slug: 'general', title: 'General' },
   { slug: 'scheduling', title: 'Scheduling' },
@@ -237,7 +237,7 @@ export function settingsHref(section: SettingSection): string {
   return section.slug ? `/workspace/${section.slug}` : '/workspace'
 }
 
-/** The address of one social set's settings page. */
+/** The address of one brand's settings page. */
 export function socialSetHref(id: string, page: SocialSetPage = 'general'): string {
   return `/workspace/social-sets/${encodeURIComponent(id)}${page === 'general' ? '' : `/${page}`}`
 }
@@ -246,7 +246,7 @@ export function findSettingsSection(slug: string | undefined): SettingSection | 
   return SETTINGS_SECTIONS.find((section) => section.slug === (slug ?? ''))
 }
 
-/** A social set settings page by its slug; General when omitted. */
+/** A brand settings page by its slug; General when omitted. */
 export function findSocialSetPage(slug: string | undefined): SocialSetPage | undefined {
   return SOCIAL_SET_PAGES.find((page) => page.slug === (slug ?? 'general'))?.slug
 }

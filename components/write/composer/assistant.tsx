@@ -84,7 +84,7 @@ export function AssistantPanel({
   }
   return (
     <div className="flex h-full flex-col gap-3 p-4 text-sm" data-testid="assistant-panel">
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-neutral-400">
         Writing in {set?.name ?? 'this set'}’s voice
         {configured ? '' : ' (no style guide yet)'}.{' '}
         <Button
@@ -159,7 +159,7 @@ export function AssistantPanel({
               ) : null}
             </li>
           ))}
-          {busy ? <li className="text-xs text-neutral-500">Writing…</li> : null}
+          {busy ? <li className="text-xs text-neutral-400">Writing…</li> : null}
         </ol>
       )}
       <form
@@ -182,7 +182,7 @@ export function AssistantPanel({
           rows={3}
           value={message}
         />
-        <span className="flex items-center justify-between text-[11px] text-neutral-500">
+        <span className="flex items-center justify-between text-[11px] text-neutral-400">
           Uses your workspace’s AI credits.
           <Button disabled={busy || !message.trim()} size="sm" type="submit">
             Send
@@ -195,7 +195,7 @@ export function AssistantPanel({
 
 /**
  * Where a set's Writing Assistant is set up: its style guide and samples
- * live in the set's settings (RFC 043), and the assistant and Refine follow
+ * live in the set's settings (RFC 043), and the assistant and Rewrite follow
  * them.
  */
 function AssistantSetup({ onDone, set }: { onDone: () => void; set: WriteSet | null }) {
@@ -203,8 +203,8 @@ function AssistantSetup({ onDone, set }: { onDone: () => void; set: WriteSet | n
   return (
     <div className="grid gap-3 p-4 text-sm" data-testid="assistant-setup">
       <p className="text-neutral-300">Set up the assistant for {set?.name ?? 'this set'}</p>
-      <p className="text-xs text-neutral-500">
-        The assistant and Refine write in the set&rsquo;s voice: its style guide and writing
+      <p className="text-xs text-neutral-400">
+        The assistant and Rewrite write in the brand&rsquo;s voice: its style guide and writing
         samples. Everyone who writes in the set shares it.
       </p>
       {set && canManageSets ? (

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Dialog,
   DialogContent,
@@ -105,7 +106,10 @@ export function ScheduleDialog({
       ? (post.creativeVariantId ?? '')
       : (post.visuals[0]?.id ?? '')
   )
-  const [time, setTime] = useState('')
+  const [day, setDay] = useState('')
+  const [clock, setClock] = useState('')
+  // A datetime-local value, empty until both halves are set.
+  const time = day && clock ? `${day}T${clock}` : ''
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const usable = connections ? (connectionsForChannel(post.channel, connections) ?? []) : null
@@ -244,13 +248,22 @@ export function ScheduleDialog({
               <Label className="text-xs font-medium text-foreground/65" htmlFor={ids.time}>
                 Publish at
               </Label>
-              <Input
-                className={fieldClass}
-                id={ids.time}
-                onChange={(event) => setTime(event.target.value)}
-                type="datetime-local"
-                value={time}
-              />
+              <div className="grid grid-cols-[1fr_8rem] gap-2">
+                <DatePicker
+                  aria-label="Publish day"
+                  className="h-10 w-full rounded-lg"
+                  id={ids.time}
+                  onChange={setDay}
+                  value={day}
+                />
+                <Input
+                  aria-label="Publish time"
+                  className={fieldClass}
+                  onChange={(event) => setClock(event.target.value)}
+                  type="time"
+                  value={clock}
+                />
+              </div>
               <p className="text-xs text-muted-foreground">
                 Leave empty to publish at the workspace&apos;s next default publish time.
               </p>

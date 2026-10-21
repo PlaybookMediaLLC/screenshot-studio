@@ -30,6 +30,7 @@ import { forkVersion, primaryChanged, resyncVersion, versionFor } from '@/lib/wr
 import { cn } from '@/lib/utils'
 import { healthLabel } from '../sets'
 import type { WriteSet } from '../write-context'
+import { CONNECT_PROVIDERS } from '@/components/settings/social-sets/api'
 
 /** A set's account as the composer shows it. */
 export type ComposerAccount = WriteSet['accounts'][number]
@@ -94,9 +95,9 @@ export function PlatformTabs({
                       : 'bg-white/[0.06] text-neutral-400'
                 )}
               >
-                {mode === 'primary' ? 'primary' : mode === 'manual' ? 'own text' : 'synced'}
+                {mode === 'primary' ? 'Main version' : mode === 'manual' ? 'Own text' : 'Use main version'}
               </span>
-              {!publishing ? <span className="text-[10px] text-neutral-500">· off</span> : null}
+              {!publishing ? <span className="text-[10px] text-neutral-400">· off</span> : null}
               {account && account.health !== 'connected' ? (
                 <span className="text-amber-300" title={healthLabel(account.health)}>
                   ⚠
@@ -108,7 +109,7 @@ export function PlatformTabs({
       </div>
       {onManage ? (
         <Button
-          className="ml-1 text-xs text-neutral-500 hover:text-white"
+          className="ml-1 text-xs text-neutral-400 hover:text-white"
           onClick={onManage}
           size={null}
           type="button"
@@ -147,6 +148,7 @@ export function ManagePlatformsDialog({
   kind,
   onChange,
   onClose,
+  onConnect,
   primary,
   value,
   versions,
@@ -161,6 +163,7 @@ export function ManagePlatformsDialog({
     versions?: PlatformVersions
   }) => void
   onClose: () => void
+  onConnect?: (provider: string) => Promise<void>
   primary: DraftChannel
   value: PlateBody
   versions: PlatformVersions
@@ -187,14 +190,13 @@ export function ManagePlatformsDialog({
             <DialogTitle>Draft platforms</DialogTitle>
             <DialogDescription>
               Choose where this draft publishes, and which platforms write their own version. The
-              primary is the text you write first; synced versions follow it.
+              main version is the text you write first; other platforms can use it.
               {exclusive ? ' An article or a reply publishes to one X account only.' : ''}
             </DialogDescription>
           </DialogHeader>
           {accounts.length === 0 ? (
             <p className="text-sm text-neutral-400">
-              This social set has no accounts. Add one to the set, or connect one in workspace
-              settings, Channels.
+              Connect an account to publish. You can write your draft now.
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
@@ -212,7 +214,7 @@ export function ManagePlatformsDialog({
                             account.handle ??
                             CHANNEL_META[account.channel].label}
                         </span>
-                        <span className="block text-[11px] text-neutral-500">
+                        <span className="block text-[11px] text-neutral-400">
                           {account.handle ? `@${account.handle} · ` : ''}
                           {healthLabel(account.health)}
                           {account.channel === 'x'
@@ -230,7 +232,7 @@ export function ManagePlatformsDialog({
                       />
                     </div>
                     {!supported ? (
-                      <p className="mt-1 text-[11px] text-neutral-500">
+                      <p className="mt-1 text-[11px] text-neutral-400">
                         {CHANNEL_META[account.channel].label} does not take this kind of draft.
                       </p>
                     ) : null}
@@ -244,7 +246,7 @@ export function ManagePlatformsDialog({
                     ) : null}
                     {on && account.channel !== primary ? (
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                        <span className="text-neutral-500">Text:</span>
+                        <span className="text-neutral-400">Text:</span>
                         <Button
                           aria-pressed={version.mode === 'synced'}
                           className={cn(
@@ -258,7 +260,7 @@ export function ManagePlatformsDialog({
                           type="button"
                           variant="custom"
                         >
-                          Synced with {CHANNEL_META[primary].label}
+                          Use main version ({CHANNEL_META[primary].label})
                         </Button>
                         <Button
                           aria-pressed={version.mode === 'manual'}
@@ -289,7 +291,7 @@ export function ManagePlatformsDialog({
                         {versionFor(versions, account.channel).mode === 'synced' &&
                         CAPABILITIES[account.channel].kinds.includes(kind) ? (
                           <Button
-                            className="ml-auto text-neutral-500 hover:text-white"
+                            className="ml-auto text-neutral-400 hover:text-white"
                             onClick={() => onChange({ primaryPlatform: account.channel })}
                             size={null}
                             type="button"
@@ -305,6 +307,15 @@ export function ManagePlatformsDialog({
               })}
             </ul>
           )}
+          {onConnect ? (
+            <div className="flex flex-wrap gap-2" aria-label="Connect an account">
+              {CONNECT_PROVIDERS.filter((provider) => !accounts.some((account) => account.platform === provider.platform && account.health === 'connected')).map((provider) => (
+                <Button key={provider.provider} size="sm" variant="outline" onClick={() => void onConnect(provider.provider)}>
+                  Connect {provider.label}
+                </Button>
+              ))}
+            </div>
+          ) : accounts.length === 0 ? <p className="text-sm text-neutral-400">Ask an admin or publisher to connect an account.</p> : null}
           <DialogFooter>
             <Button onClick={onClose} type="button">
               Done
@@ -375,7 +386,7 @@ export function SyncedVersion({
           </Button>
         ) : null}
       </div>
-      {posts.length === 0 ? <p className="text-sm text-neutral-500">Nothing written yet.</p> : null}
+      {posts.length === 0 ? <p className="text-sm text-neutral-400">Nothing written yet.</p> : null}
       {posts.map((post, index) => (
         <article
           className="mb-3 whitespace-pre-wrap rounded-lg border border-white/[0.04] p-3 text-[15px] leading-relaxed text-neutral-200"
@@ -460,13 +471,13 @@ export function CompareDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Label className="grid gap-1 text-xs text-neutral-500">
+          <Label className="grid gap-1 text-xs text-neutral-400">
             From {CHANNEL_META[primary].label}
             <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white/[0.03] p-3 font-sans text-sm text-neutral-200">
               {fromPrimary || ' '}
             </pre>
           </Label>
-          <Label className="grid gap-1 text-xs text-neutral-500">
+          <Label className="grid gap-1 text-xs text-neutral-400">
             {CHANNEL_META[channel].label}’s own (publishes)
             <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white/[0.03] p-3 font-sans text-sm text-neutral-200">
               {own || ' '}

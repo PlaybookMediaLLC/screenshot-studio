@@ -7,6 +7,7 @@ import {
   expectSaved,
   openNewDraft,
 } from './framework/content-drafts'
+import { chooseOption } from './framework/controls'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { unbindTestGoOrganization } from './framework/publishing'
 import { createE2EDatabase, queryRow } from './framework/services'
@@ -91,14 +92,15 @@ test('personal settings are addressable, saved on the server and survive a reloa
 
   await openWorkspaceSetting(page, 'Account')
   await page.getByLabel('Search display time zone').fill('Tokyo')
-  await page
-    .getByRole('combobox', { exact: true, name: 'Display time zone' })
-    .selectOption('Asia/Tokyo')
+  await chooseOption(
+    page.getByRole('combobox', { exact: true, name: 'Display time zone' }),
+    /^Tokyo · Asia\/Tokyo · /
+  )
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
   await page.reload()
-  await expect(page.getByRole('combobox', { exact: true, name: 'Display time zone' })).toHaveValue(
-    'Asia/Tokyo'
-  )
+  await expect(
+    page.getByRole('combobox', { exact: true, name: 'Display time zone' })
+  ).toContainText('Asia/Tokyo')
 
   // The registry says what each experiment is, and promoted or unavailable
   // ones cannot be switched.
@@ -146,16 +148,14 @@ test('social sets keep their own names, schedules and settings beside the compos
 }) => {
   await withDraftWorkspace(identity, page, async () => {
     await page.goto('/workspace/social-sets')
-    await expect(
-      page.getByRole('heading', { exact: true, level: 2, name: 'Social sets' })
-    ).toBeVisible()
+    await expect(page.getByRole('heading', { exact: true, level: 2, name: 'Brands' })).toBeVisible()
 
     // Two sets may share a name; each is its own by ID.
     const ids: string[] = []
     for (let i = 0; i < 2; i++) {
       await page.goto('/workspace/social-sets')
       await page.getByPlaceholder('Person or brand').fill('Brand')
-      await page.getByRole('button', { name: 'Create social set' }).click()
+      await page.getByRole('button', { name: 'Create brand' }).click()
       await page.waitForURL(/\/workspace\/social-sets\/[a-z0-9]+/)
       ids.push(new URL(page.url()).pathname.split('/')[3] ?? '')
     }
@@ -167,11 +167,12 @@ test('social sets keep their own names, schedules and settings beside the compos
     await page.goto(`/workspace/social-sets/${setId}/scheduling`)
     await expect(page.getByTestId('weekly-slot-count')).toHaveText('5 weekly posting slots')
     await page.getByLabel('Search scheduling time zone').fill('Paris')
-    await page
-      .getByRole('combobox', { exact: true, name: 'Scheduling time zone' })
-      .selectOption('Europe/Paris')
+    await chooseOption(
+      page.getByRole('combobox', { exact: true, name: 'Scheduling time zone' }),
+      /^Paris · Europe\/Paris · /
+    )
     await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
-    await page.getByLabel('Time to add').selectOption('13:00')
+    await chooseOption(page.getByLabel('Time to add'), /^1:00\sPM$/)
     await page.getByRole('button', { name: 'Add time' }).click()
     await expect(page.getByTestId('weekly-slot-count')).toHaveText('10 weekly posting slots')
     await expect.poll(() => slotCount(setId)).toBe(10)
@@ -179,7 +180,7 @@ test('social sets keep their own names, schedules and settings beside the compos
     await expect(page.getByTestId('weekly-slot-count')).toHaveText('10 weekly posting slots')
     await expect(
       page.getByRole('combobox', { exact: true, name: 'Scheduling time zone' })
-    ).toHaveValue('Europe/Paris')
+    ).toContainText('Europe/Paris')
 
     await page.goto('/workspace/brand-kit')
     await page

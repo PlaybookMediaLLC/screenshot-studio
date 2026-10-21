@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { RenderProvider } from '@/components/store-screenshots/render/RenderProvider'
 import { ActiveSceneProvider } from '@/components/store-screenshots/studio/active-scene'
 import {
@@ -223,18 +231,22 @@ export function StoreGroupEditor({
                 </span>
                 {canEdit ? (
                   <>
-                    <select
-                      aria-label="Story for selected store slide"
-                      value={storyId}
-                      onChange={(event) => setStoryId(event.target.value)}
-                      className="max-w-48 rounded border bg-background p-1 text-xs"
-                    >
-                      {session.snapshot().document.stories.map((story) => (
-                        <option key={story.id} value={story.id}>
-                          {story.headline}
-                        </option>
-                      ))}
-                    </select>
+                    <Select value={storyId} onValueChange={setStoryId}>
+                      <SelectTrigger
+                        aria-label="Story for selected store slide"
+                        size="sm"
+                        className="max-w-48 text-xs"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {session.snapshot().document.stories.map((story) => (
+                          <SelectItem key={story.id} value={story.id}>
+                            {story.headline}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Button
                       size="sm"
                       variant="outline"
@@ -375,7 +387,7 @@ export function StoreGroupEditor({
                 {canEdit ? <Inspector /> : null}
               </div>
             </div>
-            <input
+            <Input
               ref={input}
               type="file"
               accept="image/png,image/jpeg,image/webp"

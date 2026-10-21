@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { Group, Pill, Row, Section } from '@/components/platform-ui'
 import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { deleteWebhookContract, listWebhookDeliveriesContract, listWebhooksContract, webhookDeliverySchema, webhookEventSchema, webhookSchema, webhookWithSecretSchema } from '@/lib/api/contracts/outbound-webhooks'
@@ -144,11 +145,10 @@ function AddWebhook({ onCreated }: { onCreated: (secret: string) => void }) {
         </legend>
         {all.map((value) => (
           <label className="flex items-start gap-2 text-sm" key={value}>
-            <input
+            <Checkbox
               checked={events.includes(value)}
-              className="mt-1"
-              onChange={(event) => setEvents(event.target.checked ? [...events, value] : events.filter((item) => item !== value))}
-              type="checkbox"
+              className="mt-0.5"
+              onCheckedChange={(checked) => setEvents(checked === true ? [...events, value] : events.filter((item) => item !== value))}
             />
             <span>
               <span className="font-medium text-foreground">{EVENT_LABELS[value].label}</span>{' '}

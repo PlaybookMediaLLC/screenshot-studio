@@ -242,11 +242,11 @@ export function PropertiesPanel({
         />
       </Label>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
-        <dt className="text-neutral-500">Words</dt>
+        <dt className="text-neutral-400">Words</dt>
         <dd data-testid="word-count">{words}</dd>
-        <dt className="text-neutral-500">Characters</dt>
+        <dt className="text-neutral-400">Characters</dt>
         <dd data-testid="character-count">{[...plainText].length}</dd>
-        <dt className="text-neutral-500">Reading time</dt>
+        <dt className="text-neutral-400">Reading time</dt>
         <dd>{seconds < 60 ? `${seconds} seconds` : `${Math.round(seconds / 60)} min`}</dd>
         {publications.map(({ channel, publication }) => {
           const over = publication.serialized.posts.some(
@@ -254,7 +254,7 @@ export function PropertiesPanel({
           )
           return (
             <React.Fragment key={channel}>
-              <dt className="flex items-center gap-1 text-neutral-500">
+              <dt className="flex items-center gap-1 text-neutral-400">
                 <ChannelIcon channel={channel} /> {CHANNEL_META[channel].label}
               </dt>
               <dd className={cn(over && 'text-red-300')} data-testid={`platform-count-${channel}`}>
@@ -266,7 +266,7 @@ export function PropertiesPanel({
             </React.Fragment>
           )
         })}
-        <dt className="text-neutral-500">Draft id</dt>
+        <dt className="text-neutral-400">Draft id</dt>
         <dd className="flex items-center gap-1">
           <code className="truncate text-[11px] text-neutral-300">{draft.id}</code>
           <Button
@@ -283,15 +283,15 @@ export function PropertiesPanel({
             Copy
           </Button>
         </dd>
-        <dt className="text-neutral-500">Created</dt>
+        <dt className="text-neutral-400">Created</dt>
         <dd>
           <LocalTime value={draft.createdAt} />
         </dd>
-        <dt className="text-neutral-500">Updated</dt>
+        <dt className="text-neutral-400">Updated</dt>
         <dd>
           <LocalTime value={draft.updatedAt} />
         </dd>
-        <dt className="text-neutral-500">Status</dt>
+        <dt className="text-neutral-400">Status</dt>
         <dd>
           {draft.status === 'archived'
             ? 'Archived'
@@ -303,18 +303,18 @@ export function PropertiesPanel({
         </dd>
       </dl>
       <section>
-        <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
           Activity
         </h3>
-        {activity === null ? <p className="text-xs text-neutral-500">Loading…</p> : null}
+        {activity === null ? <p className="text-xs text-neutral-400">Loading…</p> : null}
         <ol className="grid gap-2" data-testid="activity">
           {activity?.map((item) => (
             <li className="text-xs" key={item.id}>
               <p className="text-neutral-200">
                 {ACTIONS[item.action] ?? item.action.replace(/^product\./, '').replaceAll('_', ' ')}
-                {detail(item) ? <span className="text-neutral-500"> · {detail(item)}</span> : null}
+                {detail(item) ? <span className="text-neutral-400"> · {detail(item)}</span> : null}
               </p>
-              <p className="text-[11px] text-neutral-500">
+              <p className="text-[11px] text-neutral-400">
                 {item.actorName ?? (item.actorType === 'SERVICE' ? 'Publishing' : 'Someone')} ·{' '}
                 <LocalTime value={item.at} />
               </p>

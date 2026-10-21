@@ -10,6 +10,7 @@ import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/fl
 import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
 import { trpcMutation, trpcQuery } from './framework/trpc'
 import { requestJson, uploadSignedAsset } from './framework/browser'
+import { chooseOption } from './framework/controls'
 
 configureE2EFlow()
 test.setTimeout(600_000)
@@ -332,7 +333,7 @@ test('H: App Store screenshot groups sit on the canvas, edit in the store editor
   await expect(page.getByTestId('store-group-panel')).toBeVisible()
 
   // The device size sets how the slides sit on the plane.
-  await page.getByLabel('Store device size').selectOption('ios-ipad-13')
+  await chooseOption(page.getByLabel('Store device size'), 'App Store · iPad 13"')
   await saved(page)
   expect((await stored(page)).storeGroups[0]!.targetId).toBe('ios-ipad-13')
 
@@ -502,7 +503,7 @@ test('J: a canvas exports a PDF whose pages keep real text and vector shapes', a
   await page.getByRole('button', { name: 'Export', exact: true }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Export artboards' })
   await dialog.getByRole('checkbox', { name: /^All/ }).check()
-  await dialog.getByLabel('Export format').selectOption('pdf-text')
+  await chooseOption(dialog.getByLabel('Export format'), 'PDF · selectable text and vector shapes')
   await dialog.getByRole('button', { name: /^Render \d+/ }).click()
   const download = dialog.getByRole('button', { name: 'Download PDF' })
   const refused = dialog.getByRole('alert')

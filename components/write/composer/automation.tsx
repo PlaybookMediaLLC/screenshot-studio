@@ -15,6 +15,13 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { serializeDraft } from '@/lib/content-drafts/serialize'
@@ -176,7 +183,7 @@ function Row({
     >
       <span className="min-w-0 flex-1">
         <span className="text-neutral-200">{label}</span>
-        <span className="block text-neutral-500">{detail}</span>
+        <span className="block text-neutral-400">{detail}</span>
       </span>
       {on && onEdit ? (
         <Button
@@ -309,17 +316,20 @@ function RetweetDialog({
                 key={index}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    aria-label="Rule type"
-                    className="h-8 rounded-md border border-white/10 bg-transparent px-2 text-sm"
-                    onChange={(event) =>
-                      set(index, { kind: event.target.value === 'dayAt' ? 'dayAt' : 'after' })
+                  <Select
+                    onValueChange={(value) =>
+                      set(index, { kind: value === 'dayAt' ? 'dayAt' : 'after' })
                     }
                     value={rule.kind}
                   >
-                    <option value="after">After</option>
-                    <option value="dayAt">Days later at</option>
-                  </select>
+                    <SelectTrigger aria-label="Rule type" size="sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="after">After</SelectItem>
+                      <SelectItem value="dayAt">Days later at</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {rule.kind === 'after' ? (
                     <>
                       <Input
@@ -330,17 +340,20 @@ function RetweetDialog({
                         type="number"
                         value={rule.amount}
                       />
-                      <select
-                        aria-label="Unit"
-                        className="h-8 rounded-md border border-white/10 bg-transparent px-2 text-sm"
-                        onChange={(event) =>
-                          set(index, { unit: event.target.value === 'days' ? 'days' : 'hours' })
+                      <Select
+                        onValueChange={(value) =>
+                          set(index, { unit: value === 'days' ? 'days' : 'hours' })
                         }
                         value={rule.unit}
                       >
-                        <option value="hours">hours</option>
-                        <option value="days">days</option>
-                      </select>
+                        <SelectTrigger aria-label="Unit" size="sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hours">hours</SelectItem>
+                          <SelectItem value="days">days</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </>
                   ) : (
                     <>
@@ -373,7 +386,7 @@ function RetweetDialog({
                     Remove
                   </Button>
                 </div>
-                <p className="text-xs text-neutral-500" data-testid="retweet-projection">
+                <p className="text-xs text-neutral-400" data-testid="retweet-projection">
                   {at
                     ? `If published ${publishAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone })}: reposts ${at.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone })}`
                     : 'Set a time between one minute and 30 days after publishing.'}
@@ -483,15 +496,18 @@ function PlugDialog({
             type="number"
             value={threshold}
           />
-          <select
-            aria-label="Metric"
-            className="h-8 rounded-md border border-white/10 bg-transparent px-2 text-sm"
-            onChange={(event) => setMetric(event.target.value === 'reposts' ? 'reposts' : 'likes')}
+          <Select
+            onValueChange={(value) => setMetric(value === 'reposts' ? 'reposts' : 'likes')}
             value={metric}
           >
-            <option value="likes">likes</option>
-            <option value="reposts">reposts</option>
-          </select>
+            <SelectTrigger aria-label="Metric" size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="likes">likes</SelectItem>
+              <SelectItem value="reposts">reposts</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <Label className="grid gap-1 text-xs text-neutral-400">
           Reply
@@ -511,7 +527,7 @@ function PlugDialog({
             className="rounded-lg border border-white/[0.06] p-3 text-sm"
             data-testid="plug-preview"
           >
-            <p className="text-xs text-neutral-500">Reply preview — not published</p>
+            <p className="text-xs text-neutral-400">Reply preview — not published</p>
             <p className="mt-1 whitespace-pre-wrap text-neutral-200">{text}</p>
           </div>
         ) : null}

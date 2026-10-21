@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { format } from 'date-fns'
 import {
   chooseChannels,
   createDraftWorkspace,
@@ -135,8 +136,14 @@ test('the queue takes the next slot, and the calendar moves a post to another da
     const pad = (value: number) => String(value).padStart(2, '0')
     const local = `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T10:00`
     const scheduleDialog = await openSchedule(page)
-    await scheduleDialog.getByLabel('Day', { exact: true }).fill(local.slice(0, 10))
-    await scheduleDialog.getByLabel('Time', { exact: true }).selectOption(local.slice(11))
+    await scheduleDialog.getByLabel('Day', { exact: true }).click()
+    // react-day-picker names each day button with its full date.
+    const nextMonth = page.getByRole('button', { name: 'Go to the Next Month' })
+    await expect(nextMonth).toBeVisible()
+    const dayButton = page.getByRole('button', { name: format(at, 'PPPP') })
+    if (!(await dayButton.isVisible())) await nextMonth.click()
+    await dayButton.click()
+    await scheduleDialog.getByLabel('Time', { exact: true }).fill(local.slice(11))
     await scheduleDialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
 
@@ -310,7 +317,7 @@ test('writing tools: history, per-post tools, channel text, AI, hashtags and pla
     await draftEditor(page).getByText('Second post', { exact: true }).selectText()
     await page.waitForTimeout(300)
     await page.keyboard.type('A longer note for LinkedIn readers.')
-    await expect(page.getByTestId('platform-tab-linkedin')).toContainText('own text')
+    await expect(page.getByTestId('platform-tab-linkedin')).toContainText('Own text')
     await inPreview(page, async () => {
       await expect(await previewOf(page, 'linkedin')).toContainText(
         'A longer note for LinkedIn readers.'
@@ -320,7 +327,7 @@ test('writing tools: history, per-post tools, channel text, AI, hashtags and pla
 
     // AI: the scripted model answers, Accept puts the answer in, and Undo takes it back.
     await page.getByTestId('platform-tab-x').click()
-    await page.getByRole('button', { name: 'Refine', exact: true }).click()
+    await page.getByRole('button', { name: 'Rewrite', exact: true }).click()
     await page
       .getByTestId('refine-menu')
       .getByRole('button', { name: 'Rewrite as a thread start' })

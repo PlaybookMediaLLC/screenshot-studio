@@ -94,8 +94,10 @@ function verifyChoice(value: string, secret: string): z.infer<typeof pageChoiceS
 /** The cookie naming the social set settings page a connection started from. */
 export const SOCIAL_OAUTH_RETURN_COOKIE = 'shots-oauth-return'
 
-/** Only a social set's own settings page can be returned to. */
-const socialSetReturnSchema = z.string().regex(/^\/workspace\/social-sets\/[a-z0-9]{10,32}$/)
+/** Only local brand settings or a draft can be an OAuth return destination. */
+export const socialOAuthReturnSchema = z
+  .string()
+  .regex(/^\/(?:workspace\/social-sets|write)\/[a-z0-9]{10,32}$/)
 
 /**
  * Back to where the connection started, which confirms it: the social set's
@@ -107,7 +109,13 @@ function connectedRedirect(provider: SocialOAuthProvider, request: Request): Res
     ?.split(/;\s*/)
     .find((part) => part.startsWith(`${SOCIAL_OAUTH_RETURN_COOKIE}=`))
     ?.slice(SOCIAL_OAUTH_RETURN_COOKIE.length + 1)
-  const back = socialSetReturnSchema.safeParse(cookie ? decodeURIComponent(cookie) : undefined)
+  let decoded: string | undefined
+  try {
+    decoded = cookie ? decodeURIComponent(cookie) : undefined
+  } catch {
+    /* Ignore malformed cookies. */
+  }
+  const back = socialOAuthReturnSchema.safeParse(decoded)
   const headers = new Headers({
     'Cache-Control': 'no-store',
     Location: `${back.success ? back.data : '/workspace/channels'}?${new URLSearchParams({ connected: provider })}`,

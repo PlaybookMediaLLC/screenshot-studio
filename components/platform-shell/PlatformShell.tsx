@@ -39,6 +39,9 @@ export async function PlatformShell({
   return (
     <PreferencesProvider>
       <div
+        // Pages show at 80% on wider screens (app/globals.css); the editors'
+        // artboards stay at their real size.
+        data-app-zoom={variant === 'page' ? '' : undefined}
         className={cn(
           'flex min-h-screen flex-col text-foreground md:flex-row',
           variant === 'editor' &&

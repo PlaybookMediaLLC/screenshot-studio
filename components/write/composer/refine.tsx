@@ -111,7 +111,7 @@ export function RefineButton({
     setOpen(true)
   }
   useShortcuts([
-    { inEditor: true, key: 'e', label: 'Refine', mod: true, run: openMenu, shift: true },
+    { inEditor: true, key: 'e', label: 'Rewrite', mod: true, run: openMenu, shift: true },
   ])
   const run = async (action: RefineAction) => {
     const current = editor.current
@@ -207,15 +207,15 @@ export function RefineButton({
       <Popover onOpenChange={(next) => (next ? openMenu() : setOpen(false))} open={open}>
         <PopoverTrigger asChild>
           <Button
-            aria-label="Refine"
+            aria-label="Rewrite"
             className="h-7 rounded-md px-2 text-xs"
             disabled={busy}
             size={null}
-            title={`Refine (${mod}⇧E)`}
+            title={`Rewrite (${mod}⇧E)`}
             type="button"
             variant="ghost"
           >
-            {busy ? 'Refining…' : 'Refine'}
+            {busy ? 'Rewriting…' : 'Rewrite'}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="grid w-80 gap-2 p-3" data-testid="refine-menu" side="top">
@@ -276,7 +276,7 @@ export function RefineButton({
                 </Button>
               ))}
           </div>
-          <p className="text-[11px] text-neutral-500">
+          <p className="text-[11px] text-neutral-400">
             Uses your workspace’s AI credits. You see the result before anything changes.
           </p>
         </PopoverContent>
@@ -307,7 +307,7 @@ export function RefineButton({
                 return (
                   <li className="grid gap-1" key={index}>
                     {review.request.kind === 'posts' ? (
-                      <p className="text-xs text-neutral-500">
+                      <p className="text-xs text-neutral-400">
                         Post {review.request.numbers[index]}
                       </p>
                     ) : null}
@@ -332,7 +332,7 @@ export function RefineButton({
                       <p
                         className={cn(
                           'text-right text-xs',
-                          length > limit ? 'text-red-300' : 'text-neutral-500'
+                          length > limit ? 'text-red-300' : 'text-neutral-400'
                         )}
                       >
                         {length} / {limit}

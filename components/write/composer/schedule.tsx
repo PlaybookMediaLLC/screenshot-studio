@@ -1,8 +1,11 @@
 'use client'
 
 import * as React from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { socialSetKey, type SocialSetRecord } from '@/components/settings/social-sets/api'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Dialog,
   DialogContent,
@@ -13,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
 import { LocalTime } from '@/components/drafts/local-time'
@@ -22,18 +26,12 @@ import { followUpLines } from '@/lib/write/automation'
 import { writeApi } from '@/lib/write/client'
 import type { Automation } from '@/lib/write/document'
 import { offsetLabel, readWhen, resolveLocalTime, wallTime } from '@/lib/write/zoned-time'
+import { browserTimeZone } from '@/components/settings/TimeZonePicker'
 import { cn } from '@/lib/utils'
 import { AutomationControls } from './automation'
 import type { PreviewItem } from './preview'
 import { healthLabel, SetDot } from '../sets'
 import { useWrite } from '../write-context'
-
-/** Quarter hours of a day as HH:MM. */
-const QUARTERS = Array.from(
-  { length: 96 },
-  (_, index) =>
-    `${String(Math.floor(index / 4)).padStart(2, '0')}:${String((index % 4) * 15).padStart(2, '0')}`
-)
 
 /** A date's YYYY-MM-DD in a zone. */
 function dayIn(at: Date, zone: string): string {
@@ -63,6 +61,8 @@ export type ScheduleContext = {
 /** Problems that block every destination, collected for the dialogs. */
 function blocking(context: ScheduleContext): string[] {
   const problems: string[] = []
+  if (context.draft.status === 'archived')
+    problems.push('Restore this draft before scheduling or publishing.')
   if (context.items.length === 0) problems.push('Turn on at least one platform.')
   for (const item of context.items) {
     if (item.account.health !== 'connected') {
@@ -87,21 +87,34 @@ function blocking(context: ScheduleContext): string[] {
 export function ScheduleDialog({
   context,
   initialQueue,
+  initialDay,
+  initialTime,
   onClose,
 }: {
   context: ScheduleContext
   initialQueue?: boolean
+  initialDay?: string
+  initialTime?: string
   onClose: () => void
 }) {
   const { data } = useWrite()
   // The draft's set owns the queue: its weekly slots in its zone (RFC 043).
   const setId =
     context.draft.socialSetId ?? data.sets.find((item) => item.visibility === 'WORKSPACE')?.id
-  const set = data.sets.find((item) => item.id === setId)
-  const zone = context.setTimeZone ?? set?.timeZone ?? 'UTC'
+  const cachedSet = useQueryClient().getQueryData<SocialSetRecord>(socialSetKey(setId ?? ''))
+  const set = cachedSet ?? data.sets.find((item) => item.id === setId)
+  const zone = set?.timeZone ?? context.setTimeZone ?? 'UTC'
+  const [localZone, setLocalZone] = React.useState<string | null>(null)
+  React.useEffect(() => setLocalZone(browserTimeZone()), [])
   const now = new Date()
-  const [day, setDay] = React.useState(() => dayIn(new Date(now.getTime() + 86_400_000), zone))
-  const [time, setTime] = React.useState('09:00')
+  const [day, setDay] = React.useState(() =>
+    initialDay && /^\d{4}-\d{2}-\d{2}$/.test(initialDay)
+      ? initialDay
+      : dayIn(new Date(now.getTime() + 86_400_000), zone)
+  )
+  const [time, setTime] = React.useState(
+    initialTime && /^([01]\d|2[0-3]):[0-5]\d$/.test(initialTime) ? initialTime : '09:00'
+  )
   const [queue, setQueue] = React.useState(Boolean(initialQueue))
   // The draft's own choice, copied from its set when it was created (RFC 043).
   const [natural, setNatural] = React.useState(context.draft.naturalPostingTime)
@@ -128,8 +141,7 @@ export function ScheduleDialog({
   const problems = blocking(context)
   const today = dayIn(now, zone)
   const setInstant = (at: Date) => {
-    // The picker works in quarter hours; a typed time rounds up to the next.
-    const wall = wallTime(nextQuarter(at), zone)
+    const wall = wallTime(at, zone)
     setDay(wall.slice(0, 10))
     setTime(wall.slice(11))
     setQueue(false)
@@ -209,6 +221,84 @@ export function ScheduleDialog({
             the calendar without publishing.
           </DialogDescription>
         </DialogHeader>
+        <Button
+          className="justify-start px-0 text-xs underline"
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            onClose()
+            const url = new URL(window.location.href)
+            url.searchParams.set('settings', 'scheduling')
+            window.history.pushState(null, '', url)
+          }}
+        >
+          Time zone: {zone} · Change brand settings
+        </Button>
+        {queue ? null : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Label className="grid content-start gap-1 text-xs text-neutral-400">
+              Day
+              <DatePicker
+                aria-label="Day"
+                min={today}
+                onChange={(value) => {
+                  if (value >= today) {
+                    setDay(value)
+                    setDisambiguation(null)
+                  }
+                }}
+                value={day}
+              />
+            </Label>
+            <div className="grid content-start gap-2">
+              <Label className="grid gap-1 text-xs text-neutral-400">
+                Time
+                <Input
+                  aria-label="Time"
+                  onChange={(event) => {
+                    setTime(event.target.value)
+                    setDisambiguation(null)
+                  }}
+                  type="time"
+                  value={time}
+                />
+              </Label>
+              {resolution.kind === 'ambiguous' ? (
+                <fieldset className="grid gap-1 text-xs" data-testid="ambiguous-time">
+                  <legend className="text-amber-300">
+                    {time} happens twice that day. Which one?
+                  </legend>
+                  <RadioGroup
+                    className="gap-1"
+                    onValueChange={(value) =>
+                      setDisambiguation(value === 'later' ? 'later' : 'earlier')
+                    }
+                    value={disambiguation ?? ''}
+                  >
+                    {(['earlier', 'later'] as const).map((option) => (
+                      <label className="flex items-center gap-2" key={option}>
+                        <RadioGroupItem value={option} />
+                        {option === 'earlier' ? 'The first' : 'The second'} (
+                        {resolution[option].toLocaleTimeString(undefined, {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          timeZoneName: 'short',
+                        })}
+                        )
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </fieldset>
+              ) : null}
+              {resolution.kind === 'gap' ? (
+                <p className="text-xs text-red-300" role="alert">
+                  {time} does not exist on that day in {zone}: the clocks skip it. Pick another
+                  time.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap gap-1.5">
           {[
             { at: nextQuarter(new Date(Date.now() + 15 * 60_000)), label: 'Today' },
@@ -236,195 +326,136 @@ export function ScheduleDialog({
           >
             Next free slot
           </Button>
-          <Button
-            className="rounded-full"
-            onClick={() => setBrowsing(!browsing)}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            {browsing ? 'Hide queue' : 'Browse queue'}
-          </Button>
         </div>
-        {browsing ? (
-          <ul
-            className="grid max-h-40 gap-1 overflow-y-auto rounded-md border border-white/[0.06] p-2 text-xs"
-            data-testid="queue-slots"
-          >
-            {slots.length === 0 ? (
-              <li className="text-neutral-500">
-                No weekly slots: add them in the set’s scheduling settings.
-              </li>
+        <details className="rounded-lg border border-white/10 p-3" open={initialQueue || undefined}>
+          <summary className="cursor-pointer text-sm text-neutral-300">Advanced scheduling</summary>
+          <div className="mt-3 grid gap-3">
+            <Input
+              aria-label="When, in words"
+              onChange={(event) => {
+                setWhen(event.target.value)
+                const wall = readWhen(event.target.value, zone)
+                if (wall) {
+                  setDay(wall.slice(0, 10))
+                  setTime(wall.slice(11))
+                  setQueue(false)
+                  setDisambiguation(null)
+                }
+              }}
+              placeholder='Type a time: "tomorrow 9am", "in 3 hours", "fri 2pm"'
+              value={when}
+            />
+            {when ? (
+              <p className="text-xs text-neutral-400" data-testid="when-reading">
+                {readWhen(when, zone)
+                  ? `→ ${summary}`
+                  : `Could not read that time. Still selected: ${summary}.`}
+              </p>
             ) : null}
-            {slots.map((slot) => (
-              <li className="flex items-center justify-between" key={slot.at.toISOString()}>
-                <LocalTime
-                  options={{
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    month: 'short',
-                    timeZone: zone,
-                    weekday: 'short',
-                  }}
-                  value={slot.at.toISOString()}
-                />
-                {slot.busy ? (
-                  <span className="text-neutral-500">taken</span>
-                ) : (
+            {bestTimes.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-neutral-400">Suggested times</span>
+                {bestTimes.map((best) => (
                   <Button
-                    onClick={() => setInstant(slot.at)}
+                    className="rounded-full border-emerald-400/30 text-emerald-200"
+                    key={best.at}
+                    onClick={() => setInstant(new Date(best.at))}
                     size="sm"
+                    title={best.reason}
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                   >
-                    Schedule here
+                    {new Date(best.at).toLocaleString(undefined, {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      timeZone: zone,
+                      weekday: 'short',
+                    })}
+                    <span className="ml-1 text-xs text-neutral-300">· {best.reason}</span>
                   </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        <Input
-          aria-label="When, in words"
-          onChange={(event) => {
-            setWhen(event.target.value)
-            const wall = readWhen(event.target.value, zone)
-            if (wall) {
-              setDay(wall.slice(0, 10))
-              setTime(wall.slice(11))
-              setQueue(false)
-              setDisambiguation(null)
-            }
-          }}
-          placeholder='Type a time: "tomorrow 9am", "in 3 hours", "fri 2pm"'
-          value={when}
-        />
-        {when ? (
-          <p className="text-xs text-neutral-500" data-testid="when-reading">
-            {readWhen(when, zone) ? `→ ${summary}` : 'Not a time this reads yet.'}
-          </p>
-        ) : null}
-        {queue ? null : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Label className="grid content-start gap-1 text-xs text-neutral-400">
-              Day
-              <Input
-                aria-label="Day"
-                min={today}
-                onChange={(event) => event.target.value >= today && setDay(event.target.value)}
-                type="date"
-                value={day}
-              />
-            </Label>
-            <div className="grid content-start gap-2">
-              <Label className="grid gap-1 text-xs text-neutral-400">
-                Time
-                <select
-                  aria-label="Time"
-                  className="h-9 rounded-md border border-white/10 bg-transparent px-2 text-sm"
-                  onChange={(event) => setTime(event.target.value)}
-                  value={time}
-                >
-                  {QUARTERS.map((quarter) => {
-                    const candidate = resolveLocalTime(`${day}T${quarter}`, zone)
-                    const passed =
-                      candidate.kind === 'exact' && candidate.at.getTime() <= Date.now()
-                    return (
-                      <option disabled={passed} key={quarter} value={quarter}>
-                        {quarter}
-                      </option>
-                    )
-                  })}
-                </select>
-              </Label>
-              <Label className="grid gap-1 text-xs text-neutral-400">
-                Or type a time
-                <Input
-                  aria-label="Exact time"
-                  onChange={(event) =>
-                    /^\d{2}:\d{2}$/.test(event.target.value) && setTime(event.target.value)
-                  }
-                  type="time"
-                  value={time}
-                />
-              </Label>
-              {resolution.kind === 'ambiguous' ? (
-                <fieldset className="grid gap-1 text-xs" data-testid="ambiguous-time">
-                  <legend className="text-amber-300">
-                    {time} happens twice that day. Which one?
-                  </legend>
-                  {(['earlier', 'later'] as const).map((option) => (
-                    <label className="flex items-center gap-2" key={option}>
-                      <input
-                        checked={disambiguation === option}
-                        name="disambiguation"
-                        onChange={() => setDisambiguation(option)}
-                        type="radio"
-                      />
-                      {option === 'earlier' ? 'The first' : 'The second'} (
-                      {resolution[option].toLocaleTimeString(undefined, {
+                ))}
+              </div>
+            ) : null}
+            <Button
+              className="rounded-full"
+              onClick={() => setBrowsing(!browsing)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {browsing ? 'Hide queue' : 'Browse queue'}
+            </Button>
+            {browsing ? (
+              <ul
+                className="grid max-h-40 gap-1 overflow-y-auto rounded-md border border-white/[0.06] p-2 text-xs"
+                data-testid="queue-slots"
+              >
+                {slots.length === 0 ? (
+                  <li className="text-neutral-400">
+                    No weekly slots: add them in the set’s scheduling settings.
+                  </li>
+                ) : null}
+                {slots.map((slot) => (
+                  <li className="flex items-center justify-between" key={slot.at.toISOString()}>
+                    <LocalTime
+                      options={{
+                        day: 'numeric',
                         hour: 'numeric',
                         minute: '2-digit',
-                        timeZoneName: 'short',
-                      })}
-                      )
-                    </label>
-                  ))}
-                </fieldset>
-              ) : null}
-              {resolution.kind === 'gap' ? (
-                <p className="text-xs text-red-300" role="alert">
-                  {time} does not exist on that day in {zone}: the clocks skip it. Pick another
-                  time.
-                </p>
-              ) : null}
-            </div>
+                        month: 'short',
+                        timeZone: zone,
+                        weekday: 'short',
+                      }}
+                      value={slot.at.toISOString()}
+                    />
+                    {slot.busy ? (
+                      <span className="text-neutral-400">taken</span>
+                    ) : (
+                      <Button
+                        onClick={() => setInstant(slot.at)}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        Schedule here
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <Label className="flex items-center justify-between gap-3 text-sm">
+              <span>
+                Natural posting time
+                <span className="block text-[11px] text-neutral-400">
+                  Shifts this post by up to four minutes either way so it does not land on the
+                  minute; a retry keeps the same time.
+                </span>
+              </span>
+              <Switch
+                aria-label="Natural posting time"
+                checked={natural}
+                onCheckedChange={(checked) => setNatural(checked === true)}
+              />
+            </Label>
           </div>
-        )}
-        {bestTimes.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-neutral-500">Best times</span>
-            {bestTimes.map((best) => (
-              <Button
-                className="rounded-full border-emerald-400/30 text-emerald-200"
-                key={best.at}
-                onClick={() => setInstant(new Date(best.at))}
-                size="sm"
-                title={best.reason}
-                type="button"
-                variant="outline"
-              >
-                {new Date(best.at).toLocaleString(undefined, {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  timeZone: zone,
-                  weekday: 'short',
-                })}
-              </Button>
-            ))}
-          </div>
-        ) : null}
+        </details>
         <Destinations context={context} publishAt={instant ?? now} timeZone={zone} />
-        <Label className="flex items-center justify-between gap-3 text-sm">
-          <span>
-            Natural posting time
-            <span className="block text-[11px] text-neutral-500">
-              Shifts this post by up to four minutes either way so it does not land on the minute; a
-              retry keeps the same time.
-            </span>
-          </span>
-          <Switch
-            aria-label="Natural posting time"
-            checked={natural}
-            onCheckedChange={(checked) => setNatural(checked === true)}
-          />
-        </Label>
         <p
           className="rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white"
           data-testid="schedule-summary"
         >
           {summary}
+          {!queue && instant && localZone && localZone !== zone ? (
+            <span className="block text-xs text-neutral-300">
+              {instant.toLocaleString(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+                timeZone: localZone,
+              })}{' '}
+              · {localZone.replaceAll('_', ' ')}
+            </span>
+          ) : null}
           {natural && instant ? <span className="text-neutral-400"> ± up to 4 minutes</span> : null}
         </p>
         {past && !queue ? <p className="text-xs text-red-300">That time has passed.</p> : null}
@@ -442,7 +473,7 @@ export function ScheduleDialog({
             </Button>
           ) : null}
           <Button
-            disabled={busy || queue || !instant || past}
+            disabled={busy || context.draft.status === 'archived' || queue || !instant || past}
             onClick={() => void plan()}
             type="button"
             variant="outline"
@@ -538,7 +569,7 @@ function Destinations({
           <span className="min-w-0 flex-1 truncate">
             {account.displayName ?? account.handle ?? CHANNEL_META[account.channel].label}
             {account.handle ? (
-              <span className="ml-1.5 text-neutral-500">@{account.handle}</span>
+              <span className="ml-1.5 text-neutral-400">@{account.handle}</span>
             ) : null}
             {account.health !== 'connected' ? (
               <span className="ml-1.5 text-amber-300">
@@ -670,7 +701,7 @@ export function PublishReview({
                   <ChannelIcon channel={account.channel} />
                   {account.displayName ?? CHANNEL_META[account.channel].label}
                   {account.handle ? (
-                    <span className="text-neutral-500">@{account.handle}</span>
+                    <span className="text-neutral-400">@{account.handle}</span>
                   ) : null}
                 </p>
                 <p className="mt-1 text-xs text-neutral-400">
@@ -718,7 +749,7 @@ export function PublishReview({
             </ul>
           </div>
         ) : null}
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-neutral-400">
           {context.requireApproval
             ? context.approved
               ? 'Approved at this version.'

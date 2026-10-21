@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { z } from 'zod'
+import { chooseOption } from './framework/controls'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { signUpViaApi } from './framework/auth'
 import { browserJson, browserRequest, requestJson } from './framework/browser'
@@ -135,8 +136,8 @@ test('workspace activity goes through controlled providers and deletes only seen
     await expect(page.getByRole('heading', { name: 'Local Slack fixture' })).toBeVisible()
     await page.getByRole('link', { name: 'Allow selected workspace' }).click()
     await expect(page.getByLabel('Slack workspace')).toBeVisible()
-    await page.getByLabel('Slack workspace').selectOption({ label: 'Fixture team' })
-    await page.getByLabel('Slack channel').selectOption('C012345')
+    await chooseOption(page.getByLabel('Slack workspace'), 'Fixture team')
+    await chooseOption(page.getByLabel('Slack channel'), '#workspace-activity')
     expect((await sink()).channelPages).toContain('page-two')
     await page.getByRole('button', { name: /^Workspace rules/ }).click()
     const workspaceEmail = page.getByLabel('Source connected: workspace email', { exact: true })

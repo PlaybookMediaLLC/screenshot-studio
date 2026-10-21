@@ -7,6 +7,7 @@ import { Eye, MessageSquare, PanelRight, Share2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Value } from '@shots/platejs-editor/platejs'
 import type { PlateEditor } from '@shots/platejs-editor/platejs/react'
+import { connectHref } from '@/components/settings/social-sets/api'
 import { Pill } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
 import {
@@ -88,7 +89,7 @@ import { VersionOptionsBar } from './version-options'
 
 // The editor kit is heavy; only the composer loads it, after the page renders.
 const DraftEditor = dynamic(() => import('@/components/drafts/DraftEditor'), {
-  loading: () => <div className="min-h-[420px] p-6 text-sm text-neutral-500">Loading editor…</div>,
+  loading: () => <div className="min-h-[420px] p-6 text-sm text-neutral-400">Loading editor…</div>,
   ssr: false,
 })
 
@@ -212,7 +213,7 @@ export function WriteComposer({
       : null
   })
   const [dialog, setDialog] = React.useState<Dialog>(() =>
-    params.get('panel') === 'backups' ? 'backups' : null
+    params.get('panel') === 'backups' ? 'backups' : params.get('panel') === 'schedule' ? 'schedule' : params.has('connected') ? 'manage' : null
   )
   const [focus, setFocus] = React.useState(false)
   const [compact, setCompact] = React.useState(false)
@@ -291,7 +292,7 @@ export function WriteComposer({
     update((current) => ({ versions: withOptions(current.versions, channel, options) }))
   const context: ScheduleContext = {
     approved,
-    canPublish,
+    canPublish: canPublish && server.status !== 'archived',
     draft: server,
     flush,
     items,
@@ -321,7 +322,7 @@ export function WriteComposer({
   useShortcuts([
     {
       key: '\\',
-      label: 'Properties',
+      label: 'Draft details',
       mod: true,
       run: () => togglePanel('properties'),
       inEditor: true,
@@ -468,11 +469,11 @@ export function WriteComposer({
           <span className="font-medium text-white">
             {account?.displayName ?? set?.name ?? 'Draft'}
           </span>
-          <span className="ml-1.5 text-neutral-500">
+          <span className="ml-1.5 text-neutral-400">
             {account?.handle ? `@${account.handle}` : CHANNEL_META[active].label}
           </span>
         </p>
-        <span className="flex shrink-0 items-center gap-2 text-xs text-neutral-500">
+        <span className="flex shrink-0 items-center gap-2 text-xs text-neutral-400">
           {post ? (
             <span
               className={cn(post.length > limit && 'text-red-400')}
@@ -559,7 +560,7 @@ export function WriteComposer({
   return (
     <div className={cn('flex min-h-full', compact && 'write-compact')} data-testid="write-composer">
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-2 border-b border-white/[0.06] bg-[#111111]/90 px-3 backdrop-blur">
+        <header className="sticky top-0 z-20 flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-white/[0.06] bg-[#111111]/90 px-3 py-2 backdrop-blur">
           <DraftsDrawerButton />
           {set ? (
             <span
@@ -587,13 +588,13 @@ export function WriteComposer({
             placeholder="Untitled draft"
             value={document.title}
           />
-          <div className="ml-auto flex shrink-0 items-center gap-1">
+          <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-1">
             <span
               className={cn(
                 'text-xs',
                 saveState === 'error' || saveState === 'offline'
                   ? 'text-amber-300'
-                  : 'text-neutral-500'
+                  : 'text-neutral-400'
               )}
               data-testid="save-state"
               role="status"
@@ -643,7 +644,7 @@ export function WriteComposer({
                 <PanelButton
                   active={panel === 'properties'}
                   icon={<PanelRight aria-hidden className="size-4" />}
-                  label="Properties"
+                  label="Draft details"
                   onClick={() => togglePanel('properties')}
                   shortcut={`${mod}\\`}
                 />
@@ -677,7 +678,7 @@ export function WriteComposer({
             >
               {panel ? <Share2 aria-hidden className="size-4" /> : 'Share'}
             </Button>
-            {canPublish ? (
+            {canPublish && server.status !== 'archived' ? (
               <>
                 <Button
                   className="hidden sm:inline-flex"
@@ -708,12 +709,12 @@ export function WriteComposer({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60">
-                {canPublish ? (
+                {canPublish && server.status !== 'archived' ? (
                   <DropdownMenuItem className="sm:hidden" onSelect={() => setDialog('schedule')}>
                     Schedule…
                   </DropdownMenuItem>
                 ) : null}
-                {canPublish ? (
+                {canPublish && server.status !== 'archived' ? (
                   <DropdownMenuItem onSelect={() => setDialog('queue')}>
                     Add to queue
                     <DropdownMenuShortcut>{mod}⌥↵</DropdownMenuShortcut>
@@ -755,6 +756,18 @@ export function WriteComposer({
             </DropdownMenu>
           </div>
         </header>
+        {server.status === 'archived' ? (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-neutral-300">
+            <span>Archived draft. Restore it before scheduling or publishing.</span>
+            {canEdit ? <Button size="sm" variant="outline" onClick={() => void archive('draft')}>Restore draft</Button> : null}
+          </div>
+        ) : null}
+        {accounts.length === 0 ? (
+          <div className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-neutral-300">
+            <span>Connect an account to publish. You can write your draft now.</span>
+            <Button size="sm" variant="outline" onClick={() => setDialog('manage')}>Connect account</Button>
+          </div>
+        ) : null}
         <PlatformTabs
           accounts={accounts}
           active={active}
@@ -886,7 +899,7 @@ export function WriteComposer({
                 <span
                   className={cn(
                     'flex items-center gap-1 text-xs',
-                    over ? 'text-red-400' : 'text-neutral-500'
+                    over ? 'text-red-400' : 'text-neutral-400'
                   )}
                   data-testid={`counter-${item.account.channel}`}
                   key={item.account.id}
@@ -949,6 +962,8 @@ export function WriteComposer({
       {dialog === 'schedule' || dialog === 'queue' ? (
         <ScheduleDialog
           context={context}
+          initialDay={params.get('day') ?? undefined}
+          initialTime={params.get('time') ?? undefined}
           initialQueue={dialog === 'queue'}
           onClose={() => setDialog(null)}
         />
@@ -966,6 +981,14 @@ export function WriteComposer({
       {dialog === 'manage' ? (
         <ManagePlatformsDialog
           accounts={accounts}
+          onConnect={canPublish && set ? async (provider) => {
+            try {
+              await flush()
+              window.location.assign(`${connectHref(provider, set.id)}&${new URLSearchParams({ returnTo: `/write/${initial.id}` })}`)
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : 'Save the draft before connecting an account.')
+            }
+          } : undefined}
           draftVersion={version.current}
           enabled={enabled}
           kind={server.kind}
@@ -1018,7 +1041,7 @@ const PANEL_TITLES: Record<Panel, string> = {
   assistant: 'Writing assistant',
   comments: 'Comments',
   preview: 'Preview',
-  properties: 'Draft properties',
+  properties: 'Draft details',
 }
 
 /** The stored discussions, read once for the editor's first render. */
@@ -1163,7 +1186,14 @@ function ToolbarExtras({
             ☺
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="grid w-64 grid-cols-8 gap-1 p-2" side="top">
+        <PopoverContent
+          className="grid w-64 grid-cols-8 gap-1 p-2"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            editor.current?.tf.focus()
+          }}
+          side="top"
+        >
           {EMOJI.map((emoji) => (
             <Button
               aria-label={`Insert ${emoji}`}
@@ -1185,7 +1215,7 @@ function ToolbarExtras({
               {emoji}
             </Button>
           ))}
-          <p className="col-span-8 text-[10px] text-neutral-500">
+          <p className="col-span-8 text-[10px] text-neutral-400">
             More: your system’s emoji picker.
           </p>
         </PopoverContent>

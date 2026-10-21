@@ -104,7 +104,7 @@ export function ShareDialog({
           <Label className="flex items-center justify-between gap-3 text-sm text-neutral-200">
             <span>
               Public link
-              <span className="block text-[11px] text-neutral-500">
+              <span className="block text-[11px] text-neutral-400">
                 Anyone with the link can read this draft and comment, without signing in.
               </span>
             </span>
@@ -133,7 +133,7 @@ export function ShareDialog({
               </Button>
             </span>
           ) : (
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-400">
               Off: nobody outside the workspace can open this draft.
             </p>
           )}
@@ -265,9 +265,9 @@ export function BackupsBrowser({
             year. Recovering makes a new draft; this one stays as it is.
           </DialogDescription>
         </DialogHeader>
-        {items === null ? <p className="text-sm text-neutral-500">Loading…</p> : null}
+        {items === null ? <p className="text-sm text-neutral-400">Loading…</p> : null}
         {items?.length === 0 ? (
-          <p className="text-sm text-neutral-500">No backups yet: they start with edits.</p>
+          <p className="text-sm text-neutral-400">No backups yet: they start with edits.</p>
         ) : null}
         {items && items.length > 0 ? (
           <>
@@ -356,7 +356,7 @@ export function BackupsBrowser({
                 </pre>
               )
             ) : (
-              <p className="text-sm text-neutral-500">Loading this version…</p>
+              <p className="text-sm text-neutral-400">Loading this version…</p>
             )}
           </>
         ) : null}

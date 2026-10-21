@@ -68,6 +68,11 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
   await expect(page.getByText('#1 billing tool')).toHaveCount(0)
   await expect(page.getByText('customer list')).toHaveCount(0)
   await expect(page.getByText('What measurable result can we cite?')).toBeVisible()
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('confirm')
+    expect(dialog.message()).toContain('questions are unanswered')
+    await dialog.accept()
+  })
   await page.getByRole('button', { name: 'Approve spec' }).click()
   await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible()
 

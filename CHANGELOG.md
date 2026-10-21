@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.32.5](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.4...v2.32.5) (2026-10-21)
+
+
+### Bug Fixes
+
+* **assets:** correct library freshness, pagination, and previews ([#262](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/262)) ([74750cc](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/74750cc199af4bda7845ea75cda409ebdad69351))
+
 ## [2.32.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.3...v2.32.4) (2026-10-21)
 
 

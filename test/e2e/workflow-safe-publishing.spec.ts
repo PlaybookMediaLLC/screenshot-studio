@@ -37,6 +37,7 @@ test('Workflow D: redacted work publishes without the sensitive text or face', a
   await page.getByRole('button', { exact: true, name: 'Share' }).click()
   const share = page.getByRole('dialog', { name: 'Share design' })
   await share.getByLabel('Title').fill('Redacted dashboard')
+  await share.getByRole('button', { name: 'Anyone with the link', exact: true }).click()
   await share.getByRole('button', { name: 'Publish link' }).click()
   const published = page.getByRole('dialog', { name: 'Published' })
   await expect(published).toBeVisible({ timeout: 60_000 })

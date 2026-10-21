@@ -48,6 +48,8 @@ import { AspectRatioPicker } from '@/components/aspect-ratio/aspect-ratio-picker
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { CopyProgressDialog } from '@/components/canvas/dialogs/CopyProgressDialog'
 import { ExportSlideshowDialog } from '@/lib/export-slideshow-dialog'
+import { useExportSettings } from '@/lib/export/use-export-settings'
+import { formatHasControl } from '@/lib/export/formats'
 import { ExportPanel } from '@/components/export/ExportPanel'
 import { BatchWorkspace } from '@/components/export/batch/BatchWorkspace'
 import { useLibraryStyleSources } from '@/components/export/batch/use-library-styles'
@@ -59,7 +61,7 @@ import { AccountMenu } from '@/components/auth/AccountMenu'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { hasVisibleMockups, shouldRenderSourceImage } from '@/lib/device-mockups/layouts'
 import { removeScreenshot } from '@/lib/editor/remove-screenshot'
-import { validateImageFile } from '@/lib/editor/import-images'
+import { importImages } from '@/lib/editor/import-images'
 import { hasMotionContent } from '@/lib/animation/motion-schema'
 import { hasCanvasContent } from '@/lib/editor/canvas-content'
 import {
@@ -69,7 +71,6 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -112,6 +113,8 @@ function ToolDivider() {
 
 export function EditorHeader() {
   const isMobile = useIsMobile()
+  const [exportSettings] = useExportSettings()
+  const addSlideInputRef = React.useRef<HTMLInputElement>(null)
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false)
   const screenshot = useImageStore(useShallow(selectScreenshot))
   const {
@@ -201,10 +204,10 @@ export function EditorHeader() {
       <header
         className={cn(
           'grid shrink-0 items-center gap-2 border-b border-foreground/[0.06] bg-background',
-          isMobile ? 'grid-cols-[1fr_auto] px-2 py-2' : 'h-12 grid-cols-[1fr_auto_1fr] px-3'
+          isMobile ? 'grid-cols-[1fr_auto] px-2 py-2' : 'h-12 grid-cols-[minmax(0,1fr)_auto_auto] px-3'
         )}
       >
-        <div className="flex min-w-0 items-center gap-1 justify-self-start">
+        <div className="flex min-w-0 items-center gap-1 overflow-hidden justify-self-stretch">
           {/* On desktop the logo lives in the sidebar rail. */}
           {isMobile ? (
             <Link
@@ -331,30 +334,31 @@ export function EditorHeader() {
             </PopoverContent>
           </Popover>
 
-          {slides.length > 0 && !isMobile ? (
-            <Label className="inline-flex shrink-0 cursor-pointer">
+          {!isMobile || !hasImage ? (
+            <div className="inline-flex shrink-0">
               <Input
+                ref={addSlideInputRef}
                 accept="image/png,image/jpeg,image/webp"
                 aria-label="Add slides"
                 className="hidden"
                 multiple
-                onChange={(e) => {
+                onChange={async (e) => {
                   const files = Array.from(e.target.files ?? [])
                   e.target.value = ''
-                  const accepted = files.filter((file) => {
-                    const error = validateImageFile(file)
-                    if (error) toast.error(error)
-                    return !error
-                  })
-                  if (accepted.length) useImageStore.getState().addImages(accepted)
+                  try {
+                    const result = await importImages(files, true)
+                    for (const rejected of result.rejected) toast.error(rejected.reason)
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : 'The image could not be imported.')
+                  }
                 }}
                 type="file"
               />
-              <span className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium leading-none text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground">
+              <Button variant="custom" size={null} type="button" onClick={() => addSlideInputRef.current?.click()} className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium leading-none text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground">
                 <Add01Icon size={14} />
-                <span>Add Slide</span>
-              </span>
-            </Label>
+                <span>{hasImage ? 'Add slide from image…' : 'Upload image…'}</span>
+              </Button>
+            </div>
           ) : null}
         </div>
 
@@ -394,7 +398,7 @@ export function EditorHeader() {
           <Popover onOpenChange={exportBusy ? undefined : setExportOpen} open={exportOpen}>
             <PopoverTrigger asChild>
               <Button variant="custom" size={null}
-                aria-label="Save"
+                aria-label="Export"
                 className={cn(
                   'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-foreground text-[13px] font-medium text-background',
                   'transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-[0.98]',
@@ -405,7 +409,7 @@ export function EditorHeader() {
                 type="button"
               >
                 <Download04Icon size={15} />
-                {!isMobile ? <span>Save</span> : null}
+                {!isMobile ? <span>Export{exportSettings.transparent && formatHasControl(exportSettings.format, 'transparency') ? ' · Transparent' : ''}</span> : null}
               </Button>
             </PopoverTrigger>
             <PopoverContent

@@ -186,13 +186,13 @@ export function CanvasWorkspace({
   const addScreenshots = useCallback(
     async (files: File[], at?: Point) => {
       if (!files.length || !canEdit) return
-      if (useCanvasUi.getState().activeId && native.ready) {
-        const result = importImages(files)
-        if (result.rejected.length)
-          toast.error(`${result.rejected[0]!.name}: ${result.rejected[0]!.reason}`)
-        return
-      }
       try {
+        if (useCanvasUi.getState().activeId && native.ready) {
+          const result = await importImages(files)
+          if (result.rejected.length)
+            toast.error(`${result.rejected[0]!.name}: ${result.rejected[0]!.reason}`)
+          return
+        }
         const shots = await Promise.all(files.slice(0, 6).map(screenshotFromFile))
         const made = shots.flatMap((shot) =>
           buildRecipe('feature-announcement', { screenshots: [shot] })

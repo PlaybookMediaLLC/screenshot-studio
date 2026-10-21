@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useImageStore } from '@/lib/store'
+import { importImages } from '@/lib/editor/import-images'
 import { browserDisplayUrl } from '@/lib/browser-url'
 import { Loading03Icon, Globe02Icon, ComputerIcon, SmartPhone01Icon } from 'hugeicons-react'
 
@@ -16,7 +17,7 @@ export function WebsiteScreenshotInput() {
   const [deviceType, setDeviceType] = React.useState<DeviceType>('desktop')
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const { setImage, setBrowserUrl } = useImageStore()
+  const { setBrowserUrl } = useImageStore()
 
   const normalizeUrl = (urlString: string): string => {
     let normalized = urlString.trim()
@@ -121,9 +122,10 @@ export function WebsiteScreenshotInput() {
       const blob = new Blob([byteArray], { type: 'image/png' })
 
       // Create a File object from the blob
-      const file = new File([blob], 'screenshot.png', { type: 'image/png' })
+      const file = new File([blob], `${new URL(finalUrl).hostname}.png`, { type: 'image/png' })
 
-      setImage(file)
+      const result = await importImages([file])
+      if (!result.imported) throw new Error(result.rejected[0]?.reason ?? 'The screenshot could not be imported.')
       // Show the captured page's address in the browser frame, not the default URL.
       setBrowserUrl(browserDisplayUrl(finalUrl))
 

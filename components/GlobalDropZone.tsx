@@ -25,22 +25,27 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
   const editorPath = locale ? `/${locale}` : '/';
   const isEditorPage = pathname === editorPath;
 
-  // Imports apply immediately: deciding the target after a delay let two quick
-  // pastes both see an empty canvas and each become a main image.
+  // Import validation finishes before the command chooses a target and writes it.
   const handleFiles = React.useCallback(
-    (files: File[]) => {
+    async (files: File[]) => {
       if (files.length === 0) return;
-      const result = importImages(files);
-      const firstRejection = result.rejected[0];
-      if (firstRejection) {
-        setError(firstRejection.reason);
-        toast.error(firstRejection.reason);
-        setTimeout(() => setError(null), 3000);
-      }
-      if (result.imported > 0) {
-        setError(null);
-        setIsDraggingOver(false);
-        if (!isEditorPage) router.push(editorPath);
+      try {
+        const result = await importImages(files);
+        const firstRejection = result.rejected[0];
+        if (firstRejection) {
+          setError(firstRejection.reason);
+          toast.error(firstRejection.reason);
+          setTimeout(() => setError(null), 3000);
+        }
+        if (result.imported > 0) {
+          setError(null);
+          setIsDraggingOver(false);
+          if (!isEditorPage) router.push(editorPath);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'The image could not be imported.';
+        setError(message);
+        toast.error(message);
       }
     },
     [isEditorPage, editorPath, router]

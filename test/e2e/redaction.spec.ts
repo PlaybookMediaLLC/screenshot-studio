@@ -29,7 +29,7 @@ test('detected emails, keys, cards, and faces are reviewed, applied, and absent 
   await dialog.getByRole('button', { name: /^Apply \d+ redactions?$/ }).click()
   await expect(dialog).toBeHidden()
 
-  await page.getByRole('button', { exact: true, name: 'Save' }).click()
+  await page.getByRole('button', { exact: true, name: 'Export' }).click()
   await page.getByRole('button', { exact: true, name: 'PNG' }).click()
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export as PNG' }).click()

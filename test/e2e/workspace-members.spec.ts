@@ -40,7 +40,7 @@ test('an owner can invite a viewer and remove their workspace access', async ({
     await expect.poll(() => new URL(memberPage.url()).pathname).toBe('/workspace')
 
     await memberPage.goto(getE2EUrl('/'))
-    await expect(memberPage.getByRole('button', { exact: true, name: 'Save' })).toBeVisible()
+    await expect(memberPage.getByRole('button', { exact: true, name: 'Export' })).toBeVisible()
     expect((await trpcQuery(memberPage, 'apiKey.list')).status).toBe(403)
 
     await openWorkspaceSetting(page, 'Members')

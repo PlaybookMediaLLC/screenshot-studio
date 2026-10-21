@@ -247,7 +247,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         // Don't deselect when interacting with editor panel controls
         // (sliders, inputs, buttons, etc.) so users can tweak selected items
         const el = target as HTMLElement;
-        if (el.closest?.('[data-slot="slider"], input, button, [role="button"], [role="listbox"], [data-radix-collection-item], .moveable-control-box, [data-resize-handle], [data-keep-selection]')) return;
+        if (el.closest?.('[data-slot="slider"], input, textarea, select, label, [contenteditable="true"], button, [role="button"], [role="listbox"], [data-radix-collection-item], .moveable-control-box, [data-resize-handle], [data-keep-selection]')) return;
 
         setSelectedOverlayId(null);
         setIsMainImageSelected(false);

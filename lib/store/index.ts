@@ -476,6 +476,15 @@ export interface ImageState extends ElementsSlice, FramesSlice, MotionSlice {
   setSelectedBlurId: (id: string | null) => void
 }
 
+/** Keep every slide and animation on the timeline without retaining deleted slide time. */
+function slideTimelineDuration(state: ImageState, slides: ImageState['slides']): number {
+  return lastingMotion(Math.max(
+    slides.length ? slides.reduce((sum, slide) => sum + slide.duration * 1000, 0) : DEFAULT_TIMELINE_STATE.duration,
+    ...state.animationClips.map((clip) => clip.startTime + clip.duration),
+    ...state.timeline.tracks.flatMap((track) => track.keyframes.map((keyframe) => keyframe.time)),
+  ), state.motion)
+}
+
 export const useImageStore = create<ImageState>()(
   temporal(
     (set, get) => ({
@@ -491,9 +500,21 @@ export const useImageStore = create<ImageState>()(
         animation: 'fade', // 'none' | 'fade' | 'slide'
       },
       setSlideshow: (updates) => {
-        set((state) => ({
-          slideshow: { ...state.slideshow, ...updates },
-        }))
+        if (updates.defaultDuration !== undefined &&
+            (!Number.isFinite(updates.defaultDuration) || updates.defaultDuration < 0.5 || updates.defaultDuration > 30)) return
+        set((state) => {
+          const slides = updates.defaultDuration === undefined ||
+            state.slides.every((slide) => slide.duration === updates.defaultDuration) ? state.slides :
+            state.slides.map((slide) => ({ ...slide, duration: updates.defaultDuration! }))
+          if (slides === state.slides && Object.entries(updates).every(([key, value]) =>
+            state.slideshow[key as keyof ImageState['slideshow']] === value)) return state
+          return {
+            slideshow: { ...state.slideshow, ...updates },
+            slides,
+            timeline: updates.defaultDuration === undefined ? state.timeline :
+              { ...state.timeline, duration: slideTimelineDuration(state, slides) },
+          }
+        })
       },
       isPreviewing: false,
       previewIndex: 0,
@@ -878,13 +899,13 @@ export const useImageStore = create<ImageState>()(
           fontSize: 32,
           fontWeight: 'normal',
           fontFamily: 'inter',
-          color: '#ffffff',
+          color: '#171717',
           opacity: 1,
           isVisible: true,
           orientation: 'horizontal',
           textShadow: {
             enabled: true,
-            color: 'rgba(0, 0, 0, 0.5)',
+            color: 'rgba(255, 255, 255, 0.8)',
             blur: 4,
             offsetX: 2,
             offsetY: 2,
@@ -1472,7 +1493,7 @@ export const useImageStore = create<ImageState>()(
       },
 
       addImages: (files: File[]) => {
-        const { slides, slideshow, timeline } = get()
+        const { slides, slideshow, timeline, uploadedImageUrl, imageName } = get()
 
         const newSlides = files.map((file) => ({
           id: `slide-${crypto.randomUUID()}`,
@@ -1481,12 +1502,15 @@ export const useImageStore = create<ImageState>()(
           duration: slideshow.defaultDuration,
         }))
 
-        const allSlides = [...slides, ...newSlides]
+        const existing = slides.length || !uploadedImageUrl ? slides : [{
+          id: `slide-${crypto.randomUUID()}`, src: uploadedImageUrl,
+          name: imageName ?? 'Screenshot', duration: slideshow.defaultDuration,
+        }]
+        const allSlides = [...existing, ...newSlides]
         const activeSlide = allSlides.find((slide) => slide.id === get().activeSlideId) ?? allSlides[0]
 
         // Calculate total slideshow duration based on slides and their durations
-        const totalSlideDuration = allSlides.reduce((sum, slide) => sum + slide.duration * 1000, 0)
-        const newTimelineDuration = Math.max(timeline.duration, totalSlideDuration)
+        const newTimelineDuration = Math.max(timeline.duration, slideTimelineDuration(get(), allSlides))
 
         set({
           slides: allSlides,
@@ -1507,16 +1531,20 @@ export const useImageStore = create<ImageState>()(
         const slide = get().slides.find((s) => s.id === id)
         if (!slide) return
 
-        set({
-          activeSlideId: id,
-          uploadedImageUrl: slide.src,
-          imageName: slide.name,
-        })
+        const history = useImageStore.temporal.getState()
+        const tracking = history.isTracking
+        if (tracking) history.pause()
+        try {
+          set({ activeSlideId: id, uploadedImageUrl: slide.src, imageName: slide.name })
+        } finally {
+          if (tracking) history.resume()
+        }
       },
 
       removeSlide: (id) => {
         const { slides, activeSlideId } = get()
         const remaining = slides.filter((s) => s.id !== id)
+        if (remaining.length === slides.length) return
         const nextActive = activeSlideId === id ? (remaining[0]?.id ?? null) : activeSlideId
         const nextSlide = remaining.find((s) => s.id === nextActive)
 
@@ -1525,7 +1553,10 @@ export const useImageStore = create<ImageState>()(
           activeSlideId: nextActive,
           uploadedImageUrl: nextSlide?.src ?? null,
           imageName: nextSlide?.name ?? null,
+          timeline: { ...get().timeline, duration: slideTimelineDuration(get(), remaining) },
         })
+        usePlaybackStore.getState().pause()
+        usePlaybackStore.getState().seek(usePlaybackStore.getState().playhead)
       },
 
       startPreview: () => {
@@ -1957,6 +1988,14 @@ export const useImageStore = create<ImageState>()(
         selectedElementId: _element,
         activeAnnotationTool: _tool,
         canvasDimensions: _dimensions,
+        showTemplates: _templates,
+        showTimeline: _timeline,
+        showRulers: _rulers,
+        showGrid: _grid,
+        rulerInterval: _rulerInterval,
+        isPreviewing: _previewing,
+        previewIndex: _previewIndex,
+        previewStartedAt: _previewStartedAt,
         ...state
       }) => state,
       equality: shallow,
@@ -1974,7 +2013,17 @@ export const useImageStore = create<ImageState>()(
 
 // Selection is transient: deleting, resetting, restoring, or undoing layers must
 // never leave controls or keyboard shortcuts targeting a removed image.
-useImageStore.subscribe((state) => {
+useImageStore.subscribe((state, previous) => {
+  if (state.activeSlideId !== previous.activeSlideId || state.slides !== previous.slides) {
+    const index = state.slides.findIndex((slide) => slide.id === state.activeSlideId)
+    if (index >= 0) {
+      const start = state.slides.slice(0, index).reduce((sum, slide) => sum + slide.duration * 1000, 0)
+      const time = usePlaybackStore.getState().playhead
+      if (time < start || time >= start + state.slides[index].duration * 1000) {
+        usePlaybackStore.getState().seek(start)
+      }
+    }
+  }
   if (
     state.selectedOverlayId &&
     !state.imageOverlays.some((overlay) => overlay.id === state.selectedOverlayId)
@@ -2010,6 +2059,24 @@ export function selectScreenshot(state: ImageState) {
 export type ScreenshotView = ReturnType<typeof selectScreenshot>
 
 type HistoryEntry = ReturnType<typeof useImageStore.temporal.getState>['pastStates'][number]
+
+let typingHistory: { key: string; time: number; state: ImageState; past: HistoryEntry[] } | null = null
+
+/** Consecutive keystrokes in one field undo together, until a pause or another edit. */
+export function withTypingHistory(key: string, change: () => void): void {
+  const history = useImageStore.temporal.getState()
+  const time = Date.now()
+  const group = history.isTracking && typingHistory?.key === key &&
+    time - typingHistory.time < 750 && typingHistory.state === useImageStore.getState() &&
+    typingHistory.past === history.pastStates && history.futureStates.length === 0
+  if (group) history.pause()
+  try {
+    change()
+  } finally {
+    if (group) history.resume()
+  }
+  typingHistory = { key, time, state: useImageStore.getState(), past: useImageStore.temporal.getState().pastStates }
+}
 
 /** An open undo step: the newest history entry before it began, or null when history was empty. */
 export type HistoryStep = { anchor: HistoryEntry | null }

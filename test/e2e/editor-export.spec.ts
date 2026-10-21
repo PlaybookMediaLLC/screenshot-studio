@@ -18,14 +18,14 @@ async function uploadImage(page: Parameters<typeof signUpAndCreateWorkspace>[1])
     mimeType: 'image/png',
     name: 'editor-e2e.png',
   })
-  await expect(page.getByRole('button', { exact: true, name: 'Save' })).toBeEnabled()
+  await expect(page.getByRole('button', { exact: true, name: 'Export' })).toBeEnabled()
 }
 
 test('an authenticated user can upload an image and export a PNG', async ({ identity, page }) => {
   await signUpAndCreateWorkspace(identity, page)
   await uploadImage(page)
 
-  const save = page.getByRole('button', { exact: true, name: 'Save' })
+  const save = page.getByRole('button', { exact: true, name: 'Export' })
   await save.click()
   await page.getByRole('button', { exact: true, name: 'PNG' }).click()
   const exportButton = page.getByRole('button', { name: 'Export as PNG' })

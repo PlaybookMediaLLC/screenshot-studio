@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, closed]
   push:
     branches: [main]
 
@@ -14,6 +15,7 @@ concurrency:
 
 jobs:
   publishing-services:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -80,6 +82,7 @@ jobs:
         run: docker build --tag screenshot-studio-backend:${{ github.sha }} services
 
   validate:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # The collaboration server's replica test relays edits through a real Redis.
@@ -158,6 +161,7 @@ jobs:
   # match the zod contracts, and a pull request may not break the document
   # unless the break is listed in breaking-changes-allowed.txt (RFC 034).
   openapi:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -198,6 +202,7 @@ jobs:
   # duration to every release. The cost is integration runner minutes
   # on changes that fail validation.
   integration:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     # Stack start, route warm-up, a third of the suite with retries, and on
     # the last shard the recovery check; 30 minutes no longer covered it.
@@ -280,6 +285,7 @@ jobs:
         run: ./bin/studio down --purge --yes
 
   social-gate:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

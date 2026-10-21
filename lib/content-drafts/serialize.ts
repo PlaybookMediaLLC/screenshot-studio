@@ -290,6 +290,7 @@ function inlineText(nodes: PlateNode[] | undefined, context: Context): string {
           const url = String(node.url ?? '')
           return !label || label === url ? url : `${label} (${url})`
         }
+        case 'mention_input':
         case 'mention':
           return `@${String(node.value ?? '')}`
         case SOCIAL_MENTION:

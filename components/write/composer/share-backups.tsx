@@ -1,7 +1,8 @@
 'use client'
 
+import { useWriteRouter } from '@/components/write/write-context'
+
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -208,7 +209,7 @@ export function BackupsBrowser({
   draftId: string
   onClose: () => void
 }) {
-  const router = useRouter()
+  const router = useWriteRouter()
   const { data } = useWrite()
   const [items, setItems] = React.useState<RevisionWire[] | null>(null)
   const [index, setIndex] = React.useState(0)

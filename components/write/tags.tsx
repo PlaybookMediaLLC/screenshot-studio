@@ -1,7 +1,8 @@
 'use client'
 
+import { useWriteRouter } from '@/components/write/write-context'
+
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -48,7 +49,7 @@ export function TagChip({ tag }: { tag: { color: DraftTagWire['color']; name: st
 
 /** The set's tags: create with a colour and preview, rename, recolour, delete. Each set has its own. */
 export function TagManager({ onClose, setId }: { onClose: () => void; setId: string }) {
-  const router = useRouter()
+  const router = useWriteRouter()
   const { data } = useWrite()
   const [tags, setTags] = React.useState(data.tags)
   const [name, setName] = React.useState('')

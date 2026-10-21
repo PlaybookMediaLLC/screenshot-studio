@@ -1,8 +1,10 @@
 'use client'
 
+import { useWriteRouter } from '@/components/write/write-context'
+
 import * as React from 'react'
 import dynamic from 'next/dynamic'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Eye, MessageSquare, PanelRight, Share2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Value } from '@shots/platejs-editor/platejs'
@@ -165,12 +167,12 @@ export function WriteComposer({
   user: DraftEditorUser
   vocabulary: { handles: string[]; hashtags: string[] }
 }) {
-  const router = useRouter()
+  const router = useWriteRouter()
   const params = useSearchParams()
   const { mod } = useKeys()
   const narrow = useIsMobile()
   const trpcClient = useTRPCClient()
-  const { canEdit, canPublish, showSaved } = useWrite()
+  const { beforeLeaveRef, canEdit, canPublish, showSaved } = useWrite()
   const services = React.useMemo(
     () => platformEditorServices(trpcClient, aiEnabled),
     [trpcClient, aiEnabled]
@@ -201,6 +203,17 @@ export function WriteComposer({
         updatedAt: saved.updatedAt,
       }),
   })
+  React.useEffect(() => {
+    beforeLeaveRef.current = async () => {
+      try {
+        await flush()
+      } catch (error) {
+        toast.error('Your changes are not saved. Retry saving before leaving this draft.')
+        throw error
+      }
+    }
+    return () => { beforeLeaveRef.current = null }
+  }, [beforeLeaveRef, flush])
   const textDirection = usePreferences().preferences?.textDirection ?? 'ltr'
   const [tab, setTab] = React.useState<DraftChannel>(() => primaryChannel(initial.primaryPlatform))
   const [panel, setPanel] = React.useState<Panel | null>(() => {
@@ -217,6 +230,7 @@ export function WriteComposer({
   )
   const [focus, setFocus] = React.useState(false)
   const [compact, setCompact] = React.useState(false)
+  const shareButton = React.useRef<HTMLButtonElement>(null)
   const [posts, setPosts] = React.useState(initialPosts)
   const editor = React.useRef<PlateEditor | null>(null)
   const [editorInstance, setEditorInstance] = React.useState<PlateEditor | null>(null)
@@ -488,6 +502,7 @@ export function WriteComposer({
     )
   }
   const editorProps = {
+    draftId: initial.id,
     extraPlugins: WRITE_PLUGINS,
     handles: vocabulary.handles,
     hashtags: vocabulary.hashtags,
@@ -523,7 +538,14 @@ export function WriteComposer({
         title={document.title}
       />
     ) : panel === 'preview' ? (
-      <PreviewPanel items={items} target={document.target} />
+      <PreviewPanel items={items.length ? items : [{
+        account: {
+          id: 'preview', channel: active, platform: active, displayName: set?.name ?? user.name,
+          avatarUrl: null, handle: null, premium: false, socialSetId: set?.id ?? null,
+          health: 'connected', createdAt: initial.createdAt,
+        },
+        publication: activePublication,
+      }]} target={document.target} />
     ) : panel === 'comments' ? (
       <CommentsPanel
         draft={server}
@@ -601,6 +623,9 @@ export function WriteComposer({
             >
               {SAVE_LABELS[saveState]}
             </span>
+            {saveState === 'error' || saveState === 'offline' ? (
+              <Button size="sm" variant="ghost" onClick={() => void flush().catch((error: unknown) => toast.error(error instanceof Error ? error.message : 'Could not save.'))}>Retry save</Button>
+            ) : null}
             {status ? (
               <Pill
                 tone={
@@ -669,6 +694,7 @@ export function WriteComposer({
             )}
             {/* With a panel open, Share shows as an icon so the header stays in its column. */}
             <Button
+              ref={shareButton}
               aria-label="Share"
               className={panel ? 'size-8 px-0' : 'hidden sm:inline-flex'}
               onClick={() => setDialog('share')}
@@ -935,7 +961,7 @@ export function WriteComposer({
           <div className="h-32" />
         </div>
       </div>
-      {panel && !focus && !narrow ? (
+      {panel && !focus && !narrow && !params.has('settings') ? (
         <aside
           aria-label={PANEL_TITLES[panel]}
           className="w-80 shrink-0 overflow-y-auto border-l border-white/[0.06]"
@@ -944,7 +970,7 @@ export function WriteComposer({
           {panelContent}
         </aside>
       ) : null}
-      {panel && !focus && narrow ? (
+      {panel && !focus && narrow && !params.has('settings') ? (
         <>
           <Sheet onOpenChange={(open) => !open && setPanel(null)} open>
             <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-md" side="right">
@@ -1011,7 +1037,10 @@ export function WriteComposer({
         <ShareDialog
           canEdit={canEdit}
           draft={server}
-          onClose={() => setDialog(null)}
+          onClose={() => {
+            setDialog(null)
+            requestAnimationFrame(() => shareButton.current?.focus())
+          }}
           onDraft={setServer}
         />
       ) : null}

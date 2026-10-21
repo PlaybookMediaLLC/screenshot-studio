@@ -10,6 +10,16 @@ import {
 const p = (...children: object[]) => ({ type: 'p', children })
 const text = (value: string, marks: object = {}) => ({ text: value, ...marks })
 
+test('an open mention picker counts and preserves the text already typed', () => {
+  const body = [
+    p(text('Hello '), { type: 'mention_input', value: 'padding', children: [text('')] }),
+  ]
+  const result = serializeDraft(body, 'x')
+  assert.equal(result.caption, 'Hello @padding')
+  assert.equal(result.length, 14)
+  assert.equal(draftPlainText(body), 'Hello @padding')
+})
+
 test('paragraphs, headings and soft breaks become plain text', () => {
   const result = serializeDraft(
     [

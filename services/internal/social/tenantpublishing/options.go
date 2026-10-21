@@ -110,10 +110,8 @@ func pollFor(poll *postoptions.Poll, options *postoptions.PublishOptions) *integ
 	return details
 }
 
-// AccountStanding reads an account's standing as its platform reported it
-// when connected: X's Premium is its "Verified" setting, read from X's
-// users/me. It is the account's own, never the workspace's plan; a setting
-// that is missing or unreadable is standard.
+// AccountStanding projects verified account capabilities. Editable settings
+// and workspace plans never establish account-specific publishing access.
 func (p *Publisher) AccountStanding(ctx context.Context, organizationID, destinationID, platform, secretReference string) (product.AccountStanding, error) {
 	if platform != "x" {
 		return product.AccountStanding{}, nil
@@ -122,7 +120,9 @@ func (p *Publisher) AccountStanding(ctx context.Context, organizationID, destina
 	if err != nil {
 		return product.AccountStanding{}, err
 	}
-	return product.AccountStanding{Premium: premium(account.AdditionalSettings)}, nil
+	caps := account.VerifiedCapabilities.X
+	limit := caps.PostTextLimit()
+	return product.AccountStanding{Premium: caps.LongPostMaxWeightedCharacters != nil, XCaptionLimit: &limit, XArticles: caps.Articles}, nil
 }
 
 // Mentions looks a mention up with the account (RFC 042): an X user by
@@ -159,22 +159,4 @@ func (p *Publisher) Mentions(ctx context.Context, organizationID, destinationID,
 		mentions = append(mentions, mention)
 	}
 	return mentions, nil
-}
-
-// premium reads the "Verified" additional setting the X adapter stores.
-func premium(raw *string) bool {
-	if raw == nil {
-		return false
-	}
-	var settings []integrations.AdditionalSetting
-	if json.Unmarshal([]byte(*raw), &settings) != nil {
-		return false
-	}
-	for _, setting := range settings {
-		if setting.Title == "Verified" {
-			value, ok := setting.Value.(bool)
-			return ok && value
-		}
-	}
-	return false
 }

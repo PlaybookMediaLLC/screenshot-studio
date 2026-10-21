@@ -192,6 +192,10 @@ export function buildPublication(
   const problems = [...serialized.errors]
   const availability = kindAvailability(channel, draft.kind, account.standing)
   if (!availability.available) problems.push(availability.reason)
+  if (channel === 'x' && settings.some((setting, index) => index > 0 && setting.quoteFirstPost)) {
+    const quote = kindAvailability(channel, 'quote', account.standing)
+    if (!quote.available) problems.push(quote.reason)
+  }
 
   const documentMedia = channel === 'linkedin' && options.document ? 1 : 0
   if (documentMedia && (first?.images ?? 0) > 0) {

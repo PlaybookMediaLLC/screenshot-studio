@@ -66,7 +66,7 @@ func TestConnectionRequiresActualGrantAndIdentity(t *testing.T) {
 			})
 			auth, err := newClient("access:secret").verifiedIdentity(context.Background(), "1")
 			if tc.valid {
-				if err != nil || auth == nil || auth.Verification.Validate("x", "1") != nil || !auth.NonExpiring || auth.ExpiresIn != 0 || auth.Verification.Capabilities.X.LongPostMaxWeightedCharacters != nil {
+				if err != nil || auth == nil || auth.Verification.Validate("x", "1") != nil || !auth.NonExpiring || auth.ExpiresIn != 0 || (auth.Verification.Capabilities.X.LongPostMaxWeightedCharacters == nil || *auth.Verification.Capabilities.X.LongPostMaxWeightedCharacters != 25000) {
 					t.Fatalf("verified connection missing or invented capability: %v", err)
 				}
 			} else if auth != nil || err == nil || strings.Contains(err.Error(), "secret-canary") || errors.Is(err, integrations.ErrRefreshUnavailable) != tc.transient {

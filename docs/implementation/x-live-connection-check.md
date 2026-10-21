@@ -182,3 +182,104 @@ existing restriction, and the complete rerun passes.
 Evidence: `.context/social-proof-health-{go,vet,race,build}.log`,
 `.context/social-proof-health-review-final.ndjson`,
 `.context/x-proof-live-verification.json`, and the two inspected health screenshots.
+
+## X account limits and queue validation — 2026-10-21
+
+The signed, authenticated `users/me` response now provides subscription facts for
+new connections. Recognized values map to documented account features: `None`
+uses standard posts; `Basic`, `Premium`, and `PremiumPlus` support 25,000 weighted
+characters. Articles are a separate capability, enabled only for `Premium` and
+`PremiumPlus`. Unknown or absent subscription values retain unknown optional
+capabilities. Legacy snapshots with null optional fields remain readable and do
+not acquire permissions from their subscription label. They require reconnect
+for the new facts. Neither the editable `Verified` setting nor the workspace plan
+can grant long posts or Articles.
+
+The account list, composer, and server-side draft serializer use explicit
+`xCaptionLimit` and `xArticles` values. Go independently reads the tenant-bound
+stored proof inside the scheduling transaction. It validates root and reply text,
+including canonical URL weighting, NFC normalization, emoji sequences, invalid
+characters, and the applicable account limit. The frontend now uses the pinned
+`twitter-text` 3.1.0 parser, matching the existing Go port, instead of its approximate
+URL/emoji counter.
+
+Scheduling checks uploaded workspace asset MIME types and byte sizes before
+creating any posts. It rejects extra X images instead of dropping the fifth image,
+GIF/video combinations, unsupported files, oversized files, and video with unknown
+account limits. Article covers receive the same tenant and image checks. Shots'
+existing four-attachment and 100,000-character article bounds are application
+limits, not claims about X's full Articles contract. Quote posts and quote-thread
+finishers remain unavailable because this connection has no verified Enterprise
+API access. Rejected multi-target schedules create no partial posts.
+
+Primary references checked on 2026-10-21:
+
+- [X data dictionary](https://docs.x.com/x-api/fundamentals/data-dictionary):
+  `subscription_type` is meaningful for the authenticated user; recognized values
+  are None, Basic, Premium and PremiumPlus.
+- [X Premium features](https://help.x.com/en/using-x/x-premium) and
+  [Articles](https://help.x.com/en/using-x/articles): longer posts and Articles
+  have different eligible subscription tiers. New subscription names remain
+  unknown until their API mapping is established.
+- [Create post](https://docs.x.com/x-api/posts/create-post): quote posts require
+  Enterprise API access. Documented video maxima are 8 GB/20 minutes for standard
+  accounts and 16 GB/125 minutes for Premium accounts. These facts do not establish
+  successful media processing, paid API quota, or publication permission.
+- [Media best practices](https://docs.x.com/x-api/media/quickstart/best-practices):
+  image/GIF formats, size limits, and additional dimensions/duration constraints.
+
+No DDL is needed. Deploy compatible proof readers (product API, social API, and
+workers) before allowing the new adapter to emit non-null optional capabilities.
+Use a coordinated cutover with connection/callback traffic drained if old and new
+adapter instances would otherwise overlap: older validators reject these newly
+populated facts. Keep the compatible validator on rollback. Deploy the SDK/web
+after the product API; missing fields from an older API remain conservative.
+Existing connected records retain their null optional facts until reconnect.
+
+This increment establishes queue validation, not complete execution-time content
+eligibility. The X adapter still needs fresh account capability checks before
+publication, source-byte/media dimension and duration validation, removal of its
+implicit image transformations, and full handling of its legacy post paths.
+Other provider live checks and remote revocation detection remain open. The real
+approved account remains connected with its prior standard-only proof; synthetic
+subscription fixtures do not verify that account's paid subscription. No public
+post, live Article, or live video upload was performed.
+
+### Account-limit verification evidence
+
+All 124 Go packages pass against the migrated disposable database, as do full
+`go vet` and five race suites (product, shared identity, direct publishing, X
+adapter, and text helpers). The SDK build, TypeScript, lint, formatting, RFC checks,
+936 root JavaScript tests and workspace suites pass; the existing opt-in Redis
+replication test remains skipped. After the browser import correction, all 24
+focused serializer/publication tests and the final production build pass.
+
+The production browser regression writes and adapts a thread, plans and schedules
+it against fixture accounts, and recovers a backup (18.5 seconds). A new browser
+journey verifies legacy editable metadata stays at 280, Basic proof changes the
+counter to 25,000 without changing persisted text, and a Basic Article is rejected
+by the server with no scheduled post (5.3 seconds). These are local protocol/database
+fixtures, not live paid-account publishing. Both populated capability screenshots
+were captured and inspected. The real approved account was separately reloaded in
+Chrome and remains connected.
+
+The first production browser run exposed a module-export mismatch in twitter-text:
+its CommonJS entry supports named properties while the browser ESM entry exports
+a default object. Using the default import fixes the runtime failure. Later test
+assertions were corrected to target the editor's text leaf and validate the HTTP
+receipt fields independently of in-memory Date schemas; exact text and durable
+no-post assertions remain in place. Initial Go media fixtures also required valid,
+unique asset IDs; the final complete suite passes. CodeRabbit reviewed all 33
+changed files with zero findings; subsequent test-only assertion corrections were
+inspected and passed in the browser rerun.
+
+Evidence: `.context/x-content-{go,vet,race,js,build-final}.log`,
+`.context/x-content-browser-final.log` (thread regression),
+`.context/x-content-capability-browser-final.log`,
+`.context/x-content-review-final.ndjson`, `.context/x-content-basic-long-post.png`,
+`.context/x-content-basic-article.png`, and `.context/x-authorized-confirmed.png`.
+
+A final incremental TypeScript invocation hit an internal compiler stack overflow.
+The clean `npx tsc --noEmit --incremental false` check passed with no diagnostics
+(`.context/x-content-typecheck-clean.log`); the production build's TypeScript
+check also passed. This did not require a source change.

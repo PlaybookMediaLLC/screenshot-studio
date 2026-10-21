@@ -195,8 +195,9 @@ test('images past the channel limit are reported, not dropped from the draft', (
   }))
   const x = serializeDraft([p(text('Look')), ...images], 'x')
   assert.equal(x.assetIds.length, 5)
-  assert.deepEqual(x.degradations, [
-    { kind: 'extra-images', message: 'Only the first 4 images are attached.' },
+  assert.deepEqual(x.degradations, [])
+  assert.deepEqual(x.errors, [
+    'Choose up to four images, one GIF, or one MP4 video for each X post.',
   ])
   assert.deepEqual(serializeDraft([p(text('Look')), ...images], 'linkedin').degradations, [])
 })
@@ -225,8 +226,12 @@ test('channel limits and requirements block scheduling', () => {
     'x'
   )
   assert.deepEqual(external.errors, ['Upload every image to the workspace before scheduling.'])
-  // UTF-16, as X and the backend count: one emoji is two units.
+  // twitter-text weights one emoji sequence as two characters.
   assert.equal(serializeDraft([p(text('🚀'))], 'x').length, 2)
+  assert.equal(serializeDraft([p(text('👨‍👩‍👧‍👦'))], 'x').length, 2)
+  assert.equal(serializeDraft([p(text('🇫🇷🇺🇸'))], 'x').length, 4)
+  assert.equal(serializeDraft([p(text('cafe\u0301'))], 'x').length, 4)
+  assert.equal(serializeDraft([p(text('example.com'))], 'x').length, 23)
 })
 
 test('connection platforms map to draft channels', () => {

@@ -93,8 +93,12 @@ export const socialAccountSchema = z.object({
   health: socialAccountHealthSchema,
   id: z.string(),
   platform: z.string(),
-  /** X Premium comes from the account, never the workspace plan. */
+  /** Legacy display field; never authorizes long posts or Articles. */
   premium: z.boolean(),
+  /** Verified X weighted text limit; older API responses remain unknown. */
+  xCaptionLimit: z.union([z.literal(280), z.literal(25_000)]).nullish(),
+  /** Verified Articles access, separate from long-post access. */
+  xArticles: z.boolean().nullish(),
   socialSetId: z.string().nullable(),
 })
 

@@ -17,7 +17,6 @@ import (
 // Documents APIs (visibility, poll, document), and X's article endpoints.
 
 const (
-	xPremiumLimit            = 25_000
 	linkedInPollQuestion     = 140
 	linkedInPollOptionLength = 30
 	xPollOptionLength        = 25

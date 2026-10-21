@@ -116,7 +116,7 @@ func (c *client) verifiedIdentity(ctx context.Context, expectedID string) (*inte
 		return nil, errIdentity
 	}
 	level := strings.TrimSpace(levels[0])
-	capabilities := socialidentity.XStandardPostLimits(level, result.Data.SubscriptionType)
+	capabilities := socialidentity.XVerifiedAccountLimits(level, result.Data.SubscriptionType)
 	proof := &socialidentity.Verification{AccountKey: "x:" + result.Data.ID, AccountKind: "profile", GrantedScopes: []string{level},
 		Capabilities: socialidentity.Capabilities{Version: 1, X: &capabilities}}
 	if proof.Validate(identifier, result.Data.ID) != nil {

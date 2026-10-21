@@ -63,3 +63,38 @@ func TestXUnknownCapabilitiesRemainUnknown(t *testing.T) {
 		t.Fatal("X proof accepted for another adapter")
 	}
 }
+
+func TestXVerifiedSubscriptionCapabilities(t *testing.T) {
+	for _, subscription := range []string{"None", "Basic", "Premium", "PremiumPlus", "FuturePlan"} {
+		t.Run(subscription, func(t *testing.T) {
+			caps := XVerifiedAccountLimits("read-write", &subscription)
+			if err := caps.Validate(); err != nil {
+				t.Fatal(err)
+			}
+			long := subscription == "Basic" || subscription == "Premium" || subscription == "PremiumPlus"
+			if (caps.LongPostMaxWeightedCharacters != nil) != long {
+				t.Fatal("wrong long-post capability")
+			}
+			if subscription == "FuturePlan" {
+				if caps.Articles != nil || caps.VideoMaxBytes != nil || caps.PostTextLimit() != 280 {
+					t.Fatal("unknown subscription invented capabilities")
+				}
+				return
+			}
+			if caps.Articles == nil || *caps.Articles != (subscription == "Premium" || subscription == "PremiumPlus") || caps.VideoMaxBytes == nil || caps.VideoMaxDurationSeconds == nil {
+				t.Fatal("known authenticated subscription capabilities lost")
+			}
+			if long && (caps.PostTextLimit() != 25000 || *caps.VideoMaxDurationSeconds != 7500) {
+				t.Fatal("premium limits differ from documented contract")
+			}
+			if !long && (caps.PostTextLimit() != 280 || *caps.VideoMaxDurationSeconds != 1200) {
+				t.Fatal("standard limits differ from documented contract")
+			}
+			bad := 100000
+			caps.LongPostMaxWeightedCharacters = &bad
+			if caps.Validate() == nil {
+				t.Fatal("invented text allowance accepted")
+			}
+		})
+	}
+}

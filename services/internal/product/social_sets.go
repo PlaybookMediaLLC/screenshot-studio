@@ -69,9 +69,11 @@ type SocialAccount struct {
 	ID          string  `json:"id"`
 	Platform    string  `json:"platform"`
 	SocialSetID *string `json:"socialSetId"`
-	// Premium is X Premium, read from the account (RFC 042): it raises the
-	// caption limit and allows articles. Never the workspace's plan.
-	Premium bool `json:"premium"`
+	// Premium is retained for display compatibility; explicit capabilities
+	// govern text length and Articles independently.
+	Premium       bool  `json:"premium"`
+	XCaptionLimit *int  `json:"xCaptionLimit"`
+	XArticles     *bool `json:"xArticles"`
 }
 
 // WritingAssistantRecord is a set's assistant with its derived status:
@@ -430,7 +432,8 @@ func (c *Configuration) socialSetRecords(ctx context.Context, actor Actor, sets 
 	for _, connection := range connections {
 		account := socialAccount(connection, health[connection.ID])
 		if connection.Platform == "x" && account.Health == AccountConnected {
-			account.Premium = c.accountStanding(ctx, connection).Premium
+			standing := c.accountStanding(ctx, connection)
+			account.Premium, account.XCaptionLimit, account.XArticles = standing.Premium, standing.XCaptionLimit, standing.XArticles
 		}
 		accounts[*connection.SocialSetID] = append(accounts[*connection.SocialSetID], account)
 	}

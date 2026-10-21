@@ -578,8 +578,12 @@ export function serializeDraft(
     errors.push('Instagram needs an image.')
   }
   if (posts.some((post) => post.images > imageLimit)) {
-    if (channel === 'bluesky') {
-      errors.push('Choose up to four images or one MP4 video for each Bluesky post.')
+    if (channel === 'bluesky' || channel === 'x') {
+      errors.push(
+        channel === 'x'
+          ? 'Choose up to four images, one GIF, or one MP4 video for each X post.'
+          : 'Choose up to four images or one MP4 video for each Bluesky post.'
+      )
     } else {
       degrade(
         context,

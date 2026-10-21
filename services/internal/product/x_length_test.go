@@ -14,6 +14,9 @@ func TestXLengthMatchesTheComposer(t *testing.T) {
 		"👨‍👩‍👧":           2,
 		"🇫🇷":              2,
 		"café — “quoted”": 15,
+		"cafe\u0301":      4,
+		"example.com":     23,
+		"🇫🇷🇺🇸":            4,
 	}
 	for text, want := range cases {
 		if got := xLength(text); got != want {

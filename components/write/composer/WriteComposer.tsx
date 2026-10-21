@@ -261,7 +261,7 @@ export function WriteComposer({
         {
           channel: account.channel,
           connectionId: account.id,
-          standing: { premium: account.premium },
+          standing: { maxWeightedCharacters: account.xCaptionLimit, articles: account.xArticles },
         },
         pendingBlocks
       ),

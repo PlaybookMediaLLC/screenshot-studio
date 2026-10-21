@@ -190,17 +190,20 @@ export const CAPABILITIES: Record<DraftChannel, PlatformCapabilities> = {
   x: X,
 }
 
-/** An account's own standing on its platform, as the platform reports it. */
-export type AccountStanding = {
-  /** X Premium, read from X; never the workspace's plan. Unknown is standard. */
-  premium: boolean
-}
+/** Publishing capabilities verified for the connected account. */
+export const accountStandingSchema = z.object({
+  maxWeightedCharacters: z.union([z.literal(280), z.literal(25_000)]).nullish(),
+  articles: z.boolean().nullish(),
+})
 
-/** The caption limit for one account: Premium only when the platform says so. */
+/** One verified account's capabilities; absent fields remain unknown. */
+export type AccountStanding = z.infer<typeof accountStandingSchema>
+
+/** The caption limit for one account, independent of an editable Premium label. */
 export function captionLimit(channel: DraftChannel, account?: AccountStanding): number {
   const capabilities = CAPABILITIES[channel]
-  return account?.premium && capabilities.premiumCaptionLimit
-    ? capabilities.premiumCaptionLimit
+  return channel === 'x' && account?.maxWeightedCharacters
+    ? account.maxWeightedCharacters
     : capabilities.captionLimit
 }
 
@@ -217,12 +220,22 @@ export function kindAvailability(
       reason: `${CAPABILITIES[channel].label} does not take ${kind} drafts.`,
     }
   }
-  if (kind === 'article' && !account?.premium) {
+  if (channel === 'x' && kind === 'quote') {
     return {
-      action: 'upgrade-account',
+      action: 'none',
       available: false,
       reason:
-        'X publishes articles only from X Premium accounts. This account is not Premium on X.',
+        'X quote posts require Enterprise API access, which this connection has not verified.',
+    }
+  }
+  if (kind === 'article' && account?.articles !== true) {
+    return {
+      action: account?.articles === false ? 'upgrade-account' : 'reconnect',
+      available: false,
+      reason:
+        account?.articles === false
+          ? 'This X account does not have verified Articles access. Connect an eligible account.'
+          : 'Reconnect X to check this account’s Articles access.',
     }
   }
   return AVAILABLE

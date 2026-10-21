@@ -22,6 +22,31 @@ import {
 /** The suite's social API mock port; the stack's SOCIAL_API_URL points at it. */
 export const socialMockPort = Number(process.env.E2E_SOCIAL_MOCK_PORT ?? 5679)
 
+/** Credential-free standard X identity supplied only by the local protocol fixture. */
+const xVerification = {
+  accountKey: 'x:123456789',
+  accountKind: 'profile',
+  grantedScopes: ['read-write'],
+  capabilities: {
+    version: 1,
+    x: {
+      oauth1AccessLevel: 'read-write',
+      subscriptionType: null,
+      standardMaxWeightedCharacters: 280,
+      charactersReservedPerUrl: 23,
+      maxImages: 4,
+      maxGifs: 1,
+      maxVideos: 1,
+      imageMaxBytes: 5000000,
+      gifMaxBytes: 15000000,
+      longPostMaxWeightedCharacters: null,
+      articles: null,
+      videoMaxBytes: null,
+      videoMaxDurationSeconds: null,
+    },
+  },
+}
+
 export type DraftWorkspace = {
   channels: Record<string, string>
   organizationId: string
@@ -37,6 +62,20 @@ export async function createDraftWorkspace(
   const provider = await startHttpMockServer((request) => {
     if (request.url === '/api/public/v1/me') {
       return { body: { organization: { id: `go-${organizationId}` } } }
+    }
+    if (request.url === `/api/public/v1/integrations/social-${organizationId}-x/identity`) {
+      return {
+        body: {
+          id: `social-${organizationId}-x`,
+          provider: 'x',
+          nativeId: '123456789',
+          name: 'Shots on X',
+          handle: 'shots_x',
+          active: true,
+          verifiedAt: new Date().toISOString(),
+          verification: xVerification,
+        },
+      }
     }
     if (request.url === '/api/public/v1/integrations') {
       return {
@@ -70,6 +109,20 @@ export async function createDraftWorkspace(
          VALUES ($1,$1,$2,$3,$3,'social','fixture-only-credential')`,
         [`social-${organizationId}-${platform}`, `go-${organizationId}`, platform]
       )
+      if (platform === 'x') {
+        await database.query(
+          `UPDATE "Integration" SET "internalId"='123456789', "verifiedAccountKey"=$2,
+          "verifiedAccountKind"=$3, "verifiedScopes"=$4, "verifiedCapabilities"=$5, "identityVerifiedAt"=now()
+          WHERE id=$1`,
+          [
+            `social-${organizationId}-x`,
+            xVerification.accountKey,
+            xVerification.accountKind,
+            JSON.stringify(xVerification.grantedScopes),
+            JSON.stringify(xVerification.capabilities),
+          ]
+        )
+      }
     }
   } finally {
     await database.end()

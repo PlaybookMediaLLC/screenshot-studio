@@ -93,6 +93,13 @@ func WeightedLength(text string) int {
 	return weighted
 }
 
+// ValidTweetText applies twitter-text's invalid-character and weighted-length
+// rules together. Empty text is handled separately by media-only publishers.
+func ValidTweetText(text string, limit int) bool {
+	_, valid, _ := parseTweet(text, limit)
+	return valid
+}
+
 // CountLength counts the length of text for a provider.
 func CountLength(integrationType, text string) int {
 	if integrationType == "x" {

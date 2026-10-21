@@ -109,11 +109,12 @@ func naturalOffset(draftID string, version int, base time.Time) int {
 	return int(binary.BigEndian.Uint32(sum[:4])%(2*naturalOffsetLimit+1)) - naturalOffsetLimit
 }
 
-// AccountStanding is an account's standing on its platform, as the platform
-// reports it: X Premium raises the caption limit and allows articles. It is
-// the account's, never the workspace plan's.
+// AccountStanding is a display projection of verified connection capabilities.
+// Scheduling independently rechecks the current proof in its transaction.
 type AccountStanding struct {
-	Premium bool `json:"premium"`
+	Premium       bool  `json:"premium"`
+	XCaptionLimit *int  `json:"xCaptionLimit"`
+	XArticles     *bool `json:"xArticles"`
 }
 
 // AccountStandingReader reads an account's standing from its platform
@@ -274,10 +275,21 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 		if target.AssetIDs != nil {
 			ids = target.AssetIDs
 		}
+		if err := checkPostOptions(channel, target.Options, true); err != nil {
+			return nil, nil, err
+		}
 		if channel == "bluesky" {
 			if err := checkBlueskyTarget(ctx, tx, connection, target, ids); err != nil {
 				return nil, nil, err
 			}
+		}
+		limit := draftChannelLimits[channel]
+		if channel == "x" && connection.Platform != "e2e" {
+			caps, err := checkXTarget(ctx, tx, connection, target, ids, draft.Kind == contentdraft.KindArticle)
+			if err != nil {
+				return nil, nil, err
+			}
+			limit = caps.PostTextLimit()
 		}
 		ids = ids[:min(len(ids), draftChannelImageLimits[channel])]
 		if target.AssetIDs != nil {
@@ -288,15 +300,8 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 		if channel == "instagram" && len(ids) == 0 {
 			return nil, nil, conflict("Instagram needs an image. Add one to the draft first.")
 		}
-		standing := c.accountStanding(ctx, connection)
-		limit := draftChannelLimits[channel]
-		if channel == "x" && standing.Premium {
-			limit = xPremiumLimit
-		}
 		if draft.Kind == contentdraft.KindArticle {
-			if !standing.Premium {
-				return nil, nil, conflict("X publishes articles only from X Premium accounts, and this account is not Premium on X.")
-			}
+			// This is the application's article-size bound, not an X entitlement.
 			limit = 100_000
 		}
 		if length := draftPostLength(channel, target.Caption); length > limit {
@@ -314,9 +319,6 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 				return nil, nil, invalid("A LinkedIn document goes alone: remove the images or the document.")
 			}
 			media++
-		}
-		if err := checkPostOptions(channel, target.Options, true); err != nil {
-			return nil, nil, err
 		}
 		if err := checkPoll(channel, target.Poll, target.Options, media); err != nil {
 			return nil, nil, err

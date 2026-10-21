@@ -2,21 +2,25 @@ package product
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/lucsky/cuid"
+
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 )
 
-// standings is a fake account standing reader: Premium by external id.
+// standings supplies display metadata; it cannot authorize scheduling.
 type standings map[string]bool
 
 func (s standings) AccountStanding(_ context.Context, _, destinationID, _, _ string) (AccountStanding, error) {
@@ -35,7 +39,7 @@ func (s standings) Mentions(_ context.Context, _, destinationID, platform, _, qu
 func TestWritePublishing(t *testing.T) {
 	w := newTestWorkspace(t)
 	ctx, owner := w.ctx, w.owner
-	repo := w.repo.WithAccountStanding(standings{"x-premium-" + w.id: true}).WithMonthlyMeter(&recordingMonthlyMeter{})
+	repo := w.repo.WithAccountStanding(standings{"x-premium-" + w.id: true, "x-standard-" + w.id: true}).WithMonthlyMeter(&recordingMonthlyMeter{})
 	subscribe(t, ctx, repo, w.org, "business")
 	// The Premium account has a set of its own: one X account per set. The
 	// workspace's default set is its oldest, so it comes first.
@@ -60,6 +64,13 @@ func TestWritePublishing(t *testing.T) {
 	}
 	x, linkedin := connect("x", "x-standard-"+w.id, nil), connect("linkedin", "li-"+w.id, nil)
 	premium, premiumLinkedIn := connect("x", "x-premium-"+w.id, &premiumSet.ID), connect("linkedin", "li-premium-"+w.id, &premiumSet.ID)
+	subscription := "Premium"
+	premiumCaps := socialidentity.XVerifiedAccountLimits("read-write", &subscription)
+	proofJSON, err := json.Marshal(socialidentity.Capabilities{Version: 1, X: &premiumCaps})
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.exec(t, `UPDATE "Integration" SET "verifiedCapabilities"=$2 WHERE id=$1`, "x-premium-"+w.id, string(proofJSON))
 	draft := func(input ContentDraftInput) *ContentDraftRecord {
 		t.Helper()
 		created, err := repo.CreateContentDraft(ctx, owner, input)
@@ -228,11 +239,11 @@ func TestWritePublishing(t *testing.T) {
 			Options: &postoptions.PublishOptions{PollQuestion: "Which?"}, Poll: &postoptions.Poll{DurationMinutes: 7 * 24 * 60, Options: []string{"a", "b"}}}}); err != nil {
 			t.Fatalf("a valid LinkedIn poll: %v", err)
 		}
-		// A reply in a thread may quote the first post; the first may not.
+		// Quoting requires separately verified Enterprise API access.
 		quoting := []ContentDraftScheduleTarget{{Caption: "Root", ChannelConnectionID: x,
 			Replies: []thread.Reply{{Caption: "Finisher", Options: &postoptions.PublishOptions{QuoteFirstPost: true}}}}}
-		if _, err := schedule("standard", quoting); err != nil {
-			t.Fatalf("a finisher quoting the first post: %v", err)
+		if _, err := schedule("standard", quoting); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("an unverified Enterprise quote was accepted: %v", err)
 		}
 	})
 
@@ -280,6 +291,95 @@ func TestWritePublishing(t *testing.T) {
 		fromPremium := draft(ContentDraftInput{SocialSetID: premiumSet.ID})
 		if _, err := repo.ScheduleContentDraft(ctx, owner, fromPremium.ID, ScheduleContentDraftInput{PublishNow: true, Targets: target(long, premium), Version: 1}); err != nil {
 			t.Fatalf("a Premium account: %v", err)
+		}
+	})
+
+	t.Run("authenticated subscription facts distinguish long posts from Articles", func(t *testing.T) {
+		defer w.exec(t, `UPDATE "Integration" SET "verifiedCapabilities"=$2 WHERE id=$1`, "x-premium-"+w.id, string(proofJSON))
+		for _, subscription := range []string{"None", "Basic", "Premium", "PremiumPlus", "FutureTier"} {
+			caps := socialidentity.XVerifiedAccountLimits("read-write", &subscription)
+			encoded, err := json.Marshal(socialidentity.Capabilities{Version: 1, X: &caps})
+			if err != nil {
+				t.Fatal(err)
+			}
+			w.exec(t, `UPDATE "Integration" SET "verifiedCapabilities"=$2 WHERE id=$1`, "x-premium-"+w.id, string(encoded))
+			for _, kind := range []string{"standard", "article"} {
+				d := draft(ContentDraftInput{SocialSetID: premiumSet.ID, Kind: kind})
+				targets := target(strings.Repeat("a", 281), premium)
+				allowed := caps.LongPostMaxWeightedCharacters != nil
+				if kind == "article" {
+					targets[0].Options = &postoptions.PublishOptions{ArticleTitle: "Verified eligibility"}
+					allowed = caps.Articles != nil && *caps.Articles
+				}
+				_, err := repo.ScheduleContentDraft(ctx, owner, d.ID, ScheduleContentDraftInput{PublishNow: true, Targets: targets, Version: 1})
+				if allowed && err != nil || !allowed && !errors.Is(err, publishing.ErrConflict) {
+					t.Fatalf("%s %s allowed=%v: %v", subscription, kind, allowed, err)
+				}
+				if !allowed && len(posts(d.ID)) != 0 {
+					t.Fatal("denied content created a scheduled post")
+				}
+			}
+		}
+	})
+
+	t.Run("X validates media metadata on roots, replies, and article covers", func(t *testing.T) {
+		assetIDs := map[string]string{}
+		assets := map[string]struct {
+			mime  string
+			bytes int
+		}{
+			"png": {"image/png", 5_000_000}, "oversized": {"image/png", 5_000_001},
+			"gif": {"image/gif", 15_000_000}, "video": {"video/mp4", 1_000}, "pdf": {"application/pdf", 100},
+		}
+		for name, info := range assets {
+			id := cuid.New()
+			assetIDs[name] = id
+			w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,'UPLOADED',now(),now())`,
+				id, w.org, "org/"+w.org+"/"+name, info.mime, info.bytes)
+		}
+		for _, item := range []struct {
+			name, kind      string
+			selected, reply []string
+			cover           string
+			allowed         bool
+		}{
+			{name: "image exact bound", selected: []string{"png"}, allowed: true},
+			{name: "GIF exact bound", selected: []string{"gif"}, allowed: true},
+			{name: "oversized image", selected: []string{"oversized"}},
+			{name: "mixed GIF", selected: []string{"gif", "png"}},
+			{name: "unsupported PDF", selected: []string{"pdf"}},
+			{name: "unknown video entitlement", selected: []string{"video"}},
+			{name: "oversized reply", reply: []string{"oversized"}},
+			{name: "article GIF", kind: "article", selected: []string{"gif"}},
+			{name: "article invalid cover", kind: "article", cover: "pdf"},
+			{name: "article image cover", kind: "article", cover: "png", allowed: true},
+		} {
+			draftInput := ContentDraftInput{Kind: item.kind}
+			channel := x
+			if item.kind == "article" {
+				draftInput.SocialSetID, channel = premiumSet.ID, premium
+			}
+			d := draft(draftInput)
+			targets := target("Media selection", channel)
+			for _, name := range item.selected {
+				targets[0].AssetIDs = append(targets[0].AssetIDs, assetIDs[name])
+			}
+			for _, name := range item.reply {
+				targets[0].Replies = append(targets[0].Replies, thread.Reply{Caption: "Reply", AssetIDs: []string{assetIDs[name]}})
+			}
+			if item.kind == "article" {
+				targets[0].Options = &postoptions.PublishOptions{ArticleTitle: "Title"}
+			}
+			if item.cover != "" {
+				targets[0].Options.ArticleCoverAssetID = assetIDs[item.cover]
+			}
+			_, err := repo.ScheduleContentDraft(ctx, owner, d.ID, ScheduleContentDraftInput{PublishNow: true, Targets: targets, Version: 1})
+			if item.allowed && err != nil || !item.allowed && !errors.Is(err, publishing.ErrConflict) {
+				t.Fatalf("%s allowed=%v: %v", item.name, item.allowed, err)
+			}
+			if !item.allowed && len(posts(d.ID)) != 0 {
+				t.Fatal("invalid media created a scheduled post")
+			}
 		}
 	})
 

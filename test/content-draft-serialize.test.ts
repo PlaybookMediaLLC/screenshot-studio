@@ -10,6 +10,30 @@ import {
 const p = (...children: object[]) => ({ type: 'p', children })
 const text = (value: string, marks: object = {}) => ({ text: value, ...marks })
 
+test('Bluesky counts graphemes and rejects its independent byte limit', () => {
+  const valid = serializeDraft([p(text('👍🏽'.repeat(300)))], 'bluesky')
+  assert.equal(valid.length, 300)
+  assert.deepEqual(valid.errors, [])
+  const overBytes = serializeDraft([p(text('👩‍💻'.repeat(300)))], 'bluesky')
+  assert.equal(overBytes.length, 300)
+  assert.deepEqual(overBytes.errors, ["Post 1 exceeds Bluesky's 3,000-byte text limit."])
+})
+
+test('Bluesky blocks excess images without dropping the selected attachments', () => {
+  const images = Array.from({ length: 5 }, (_, index) => ({
+    type: 'img',
+    assetId: `asset-${index}`,
+    url: `/api/v1/assets/asset-${index}/content`,
+    children: [text('')],
+  }))
+  const result = serializeDraft([p(text('Look')), ...images], 'bluesky')
+  assert.equal(result.assetIds.length, 5)
+  assert.deepEqual(result.degradations, [])
+  assert.deepEqual(result.errors, [
+    'Choose up to four images or one MP4 video for each Bluesky post.',
+  ])
+})
+
 test('paragraphs, headings and soft breaks become plain text', () => {
   const result = serializeDraft(
     [

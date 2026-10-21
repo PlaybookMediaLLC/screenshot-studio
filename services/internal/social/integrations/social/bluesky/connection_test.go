@@ -106,6 +106,8 @@ func newConnectionFixture(t *testing.T) *connectionFixture {
 			s := f.session
 			s.DidDoc, _ = json.Marshal(f.document)
 			_ = json.NewEncoder(w).Encode(s)
+		case "/xrpc/com.atproto.server.getServiceAuth":
+			w.WriteHeader(http.StatusServiceUnavailable) // Optional video permission remains unknown.
 		case "/xrpc/app.bsky.actor.getProfile":
 			if r.URL.Host != "pds.example.social" || r.URL.Query().Get("actor") != connectionDID || !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
 				t.Error("profile lookup escaped the authenticated account")
@@ -278,5 +280,49 @@ func TestCredentialRenewalKeepsStoredAccountAndActualExpiry(t *testing.T) {
 	f.session.Did = "did:plc:other"
 	if _, err := f.provider.RefreshIntegration(context.Background(), in); !errors.Is(err, errAccountMismatch) || temporalx.FailureType(err) != temporalx.TypeDisconnect {
 		t.Fatal("renewal changed the original account")
+	}
+}
+
+func TestConnectionCapturesVideoPermissionAndRefreshClearsStalePermission(t *testing.T) {
+	t.Setenv("PLATFORM_SOCIAL_ENCRYPTION_KEY", "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=")
+	for _, allowed := range []bool{true, false} {
+		f := newConnectionFixture(t)
+		outage := false
+		f.override = func(w http.ResponseWriter, r *http.Request) bool {
+			switch r.URL.Path {
+			case "/xrpc/com.atproto.server.getServiceAuth":
+				if r.URL.Query().Get("aud") != "did:web:video.bsky.app" || r.URL.Query().Get("lxm") != "app.bsky.video.getUploadLimits" {
+					t.Error("wrong permission grant")
+				}
+				_, _ = io.WriteString(w, `{"token":"limits-token"}`)
+				return true
+			case "/xrpc/app.bsky.video.getUploadLimits":
+				if r.URL.Host != "video.bsky.app" || r.Header.Get("Authorization") != "Bearer limits-token" {
+					t.Error("permission lookup escaped video service")
+				}
+				if outage {
+					w.WriteHeader(503)
+				} else {
+					_ = json.NewEncoder(w).Encode(map[string]bool{"canUpload": allowed})
+				}
+				return true
+			}
+			return false
+		}
+		auth := f.connect(t)
+		permission := auth.Verification.Capabilities.Bluesky.VideoCanUpload
+		if permission == nil || *permission != allowed {
+			t.Fatal("provider permission was not captured")
+		}
+		sealed, err := credentialcipher.Seal(*auth.CredentialDetails, "custom-instance")
+		if err != nil {
+			t.Fatal(err)
+		}
+		in := &ent.Integration{InternalID: connectionDID, Token: auth.AccessToken, RefreshToken: &auth.RefreshToken, CustomInstanceDetails: &sealed, VerifiedCapabilities: &auth.Verification.Capabilities}
+		outage = true
+		refreshed, err := f.provider.RefreshIntegration(context.Background(), in)
+		if err != nil || refreshed.Verification.Capabilities.Bluesky.VideoCanUpload != nil {
+			t.Fatalf("unavailable permission stayed stale: %v", err)
+		}
 	}
 }

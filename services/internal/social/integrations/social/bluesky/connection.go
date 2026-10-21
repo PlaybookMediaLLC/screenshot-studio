@@ -45,7 +45,8 @@ func (p *Provider) authenticateAppPassword(ctx context.Context, params integrati
 	if err := p.connectionJSON(ctx, origin+"/xrpc/com.atproto.server.describeServer", &server); err != nil || !socialidentity.BlueskyDID(server.DID) {
 		return nil, errConnection
 	}
-	capabilities := socialidentity.BlueskyCapabilities{MaxTextGraphemes: 300, MaxTextBytes: 3000, MaxImages: 4, ImageMaxBytes: 2000000, MaxVideos: 1, VideoMaxBytes: 300000000, BlobUploadLimit: server.BlobUploadLimit}
+	capabilities := socialidentity.BlueskyLexiconLimits()
+	capabilities.BlobUploadLimit = server.BlobUploadLimit
 	if capabilities.Validate() != nil {
 		return nil, errConnection
 	}
@@ -63,6 +64,7 @@ func (p *Provider) authenticateAppPassword(ctx context.Context, params integrati
 	if err != nil || profile.Did != did || profile.Handle != handle {
 		return nil, errConnection
 	}
+	p.captureVideoPermission(ctx, a, &capabilities)
 	auth, err := verifiedSessionResult(*a.session, stored, capabilities)
 	if err != nil {
 		return nil, err
@@ -93,7 +95,7 @@ func (p *Provider) credentialAgent(c credentials, handle string) (*agent, error)
 	if err != nil {
 		return nil, errConnection
 	}
-	a := &agent{service: u, client: connectionHTTP(p.connectionClient, origin)}
+	a := &agent{service: u, serverDID: c.ServerDID, client: connectionHTTP(p.connectionClient, origin)}
 	a.validateCredentialSession = func(s session) error {
 		if s.Did != c.Identifier {
 			return errAccountMismatch
@@ -158,5 +160,7 @@ func (p *Provider) RefreshIntegration(ctx context.Context, in *ent.Integration) 
 	if err := a.refreshSession(ctx); err != nil {
 		return nil, err
 	}
-	return verifiedSessionResult(*a.session, c, *in.VerifiedCapabilities.Bluesky)
+	caps := *in.VerifiedCapabilities.Bluesky
+	p.captureVideoPermission(ctx, a, &caps)
+	return verifiedSessionResult(*a.session, c, caps)
 }

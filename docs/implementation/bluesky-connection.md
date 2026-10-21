@@ -4,7 +4,8 @@ Bluesky now has a dedicated product form and a scoped, durable credential
 connection API. The existing social adapter authenticates and publishes through
 XRPC. The backend requires `PLATFORM_SOCIAL_BLUESKY_ENABLED=true`; deployments
 default to disabled until a harmless disposable account check is completed.
-Capability enforcement and live account checks remain incomplete.
+Publishing now enforces the verified text/media limits described below. Live
+account checks and global native-account ownership remain incomplete.
 The user asked to focus on other providers and defer Mastodon login.
 
 ## Account identity checks implemented
@@ -52,8 +53,9 @@ The callback encrypts the provider's canonical credential document, including
 the verified PDS, server DID, immutable account DID and app password. It never
 stores the caller's arbitrary server as the credential destination. This
 storage-only document is omitted from JSON responses and workflow payloads.
-Existing unversioned encrypted credentials keep their legacy publishing path
-until reconnect; only new authentication writes the verified version.
+Existing unversioned encrypted credentials remain readable. Publishing requires
+the verified identity/capability snapshot, so legacy accounts without proof must
+reconnect before creating new posts; historical publication records remain intact.
 
 Session renewal uses the stored refresh token at the original PDS and retains
 the original account identity. The repository saves tokens, actual expiry and
@@ -64,9 +66,41 @@ Expired/rejected grants still require reconnect. Publishing currently performs
 a fresh app-password login and verifies the saved DID before its first write.
 
 The persisted capability snapshot records the current post/image/video lexicon
-limits and the PDS's optional blob limit. Unknown account video permission stays
-null. These facts do not yet enforce all publishing media limits or claim that
-an account can upload video.
+limits and the PDS's optional blob limit. Connection and renewal request a
+separate video-service grant to read account upload permission. An unavailable
+permission check leaves that fact null, including after renewal; it does not
+prevent text/image connection or retain an old affirmative permission.
+
+## Publishing limits
+
+Scheduling checks native proof against the original tenant binding, then checks
+every post and reply before creating scheduled work. Text must fit both 300
+grapheme clusters and 3,000 UTF-8 bytes. The editor counts graphemes with
+`Intl.Segmenter`; the Go validator uses `rivo/uniseg` v0.4.7 (Unicode 15.0).
+Backend validation remains authoritative. Newer Unicode segmentation edge cases
+can differ from the browser runtime and need alignment before a universal count
+equivalence can be claimed.
+
+Each post accepts up to four PNG/JPEG/GIF/WebP images, each at most 2,000,000
+bytes and within an advertised PDS blob bound, or one MP4 up to 300,000,000
+bytes. Other image encodings are explicitly unsupported by this adapter.
+Mixed media and excess attachments fail instead of being truncated. Video
+scheduling requires affirmative account permission; the adapter rechecks live
+permission and remaining video/byte allowance immediately before uploading.
+
+Media reads bound actual bytes, including chunked responses. Images retain
+their original bytes and dimensions. All selected images are prepared before
+the first upload. A video uses a bounded private temporary file, verifies MIME
+and exact size, then uploads unchanged without a preliminary HEAD request.
+Temporary files are removed on completion/error. The video service can process
+the source; its returned blob must satisfy both embed and PDS limits. Video
+job ID/account mismatches and invalid returned blobs cannot create a post.
+Signed URL queries and private directory paths never become video filenames.
+Video-service requests do not follow redirects with credentials.
+
+The existing arm/witness/publish handshake still protects uncertain creates.
+The shared publisher now accepts Bluesky's confirmed `completed` receipt.
+No actual public post or real account authorization was performed for this work.
 
 Protocol fixtures and migrated PostgreSQL tests cover handle and DID boundaries,
 primary-password grants, mismatched subjects/audiences, wrong accounts, unsafe
@@ -134,8 +168,9 @@ provider tests only; the ordinary Compose default remains false.
 
 - Complete native account ownership conflict handling across workspaces and
   legacy adapters; product connection IDs alone are not global native identity.
-- Check account video-upload permission and enforce verified publishing limits;
-  do not inherit the legacy adapter's silent image resizing as a capability policy.
+- Align grapheme segmentation versions across browser, backend and provider.
+- Verify live video-service processing, quota behavior and previously uploaded
+  media responses; protocol fixtures are not evidence of live video support.
 - Reflect runtime provider availability in the picker before accepting inputs.
 - Complete a harmless authorized disposable account connection and record live
   identity/capability evidence before enabling Bluesky for customers.
@@ -171,6 +206,31 @@ CodeRabbit initially reviewed all 42 code files with zero findings; the follow-u
 review of all 44 files, including the reconnect fix and richer provider fixture,
 also reported zero findings.
 
+## Publishing-capability verification — 2026-10-21
+
+Publishing-capability verification also passed: 124 Go packages with serialized
+execution, full Go vet, and focused race suites for socialidentity, Bluesky,
+product scheduling and tenant publishing. All 904 root JavaScript tests plus
+workspace suites, SDK build, TypeScript, lint, formatting, RFC checks and the
+production build passed. The first new media fixture lacked its stored asset ID;
+correcting that fixture made the intended attachment assertion pass. A protocol
+test exposed wrong-job IDs being polled as transient failures; they now fail
+immediately. The follow-up cancellation regression passes after separating the
+eight-minute video upload timeout from two-minute JSON requests.
+
+The production browser reran both Bluesky journeys and the provider picker:
+three passed in 11.9 seconds. The populated connected-account screenshot was
+inspected. Evidence is under `.context/bluesky-caps-*` and
+`.context/bluesky-connected-account.png`. CodeRabbit reviewed 21 changed files;
+its upload-timeout finding was fixed, and follow-up review reported zero
+findings. These remain protocol-fixture/local integration results.
+
+The next live account selected by the user is X. The running disposable adapter
+has neither `X_API_KEY` nor `X_API_SECRET`. Live X authorization is pending that
+local app configuration, with the callback generated as
+`http://localhost:3460/integrations/social/x`. Provider account credentials stay
+in the browser; no live X authorization has occurred.
+
 ## Primary references checked on 2026-10-21
 
 [Handle specification](https://atproto.com/specs/handle) defines ASCII hostname
@@ -197,5 +257,7 @@ allows one MP4 up to 300,000,000 bytes. PDS
 [describeServer](https://github.com/bluesky-social/atproto/blob/main/lexicons/com/atproto/server/describeServer.json)
 can report a separate blob limit. Account-specific
 [getUploadLimits](https://github.com/bluesky-social/atproto/blob/main/lexicons/app/bsky/video/getUploadLimits.json)
-reports video permission and optional remaining quotas; this account check is
-not implemented yet.
+reports video permission and optional remaining quotas. The
+[official client](https://github.com/bluesky-social/social-app/blob/main/src/lib/media/video/upload.shared.ts)
+uses distinct service grants for the permission query and video upload, which
+this adapter now follows.

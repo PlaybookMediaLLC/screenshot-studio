@@ -20,13 +20,17 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/helpers"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
+
+var testMP4 = []byte{0, 0, 0, 24, 'f', 't', 'y', 'p', 'm', 'p', '4', '2', 0, 0, 0, 0, 'm', 'p', '4', '2', 'i', 's', 'o', 'm'}
 
 type fakePDS struct {
 	*httptest.Server
-	mu      sync.Mutex
-	records []map[string]any
-	uploads int
+	mu       sync.Mutex
+	records  []map[string]any
+	uploads  int
+	override func(http.ResponseWriter, *http.Request) bool
 }
 
 func newFakePDS(t *testing.T) *fakePDS {
@@ -40,6 +44,9 @@ func newFakePDS(t *testing.T) *fakePDS {
 
 	f.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		if f.override != nil && f.override(w, r) {
+			return
+		}
 		body, _ := io.ReadAll(r.Body)
 		switch r.URL.Path {
 		case "/xrpc/com.atproto.server.createSession":
@@ -50,10 +57,10 @@ func newFakePDS(t *testing.T) *fakePDS {
 				_, _ = w.Write([]byte(`{"error":"AuthenticationRequired","message":"Invalid identifier or password"}`))
 				return
 			}
-			_, _ = w.Write([]byte(`{"accessJwt":"access","refreshJwt":"refresh","handle":"me.bsky.social","did":"did:plc:me",
-				"didDoc":{"id":"did:plc:me","service":[{"id":"#atproto_pds","type":"AtprotoPersonalDataServer","serviceEndpoint":"` + f.URL + `/pds"}]}}`))
+			_, _ = w.Write([]byte(`{"accessJwt":"access","refreshJwt":"refresh","handle":"me.bsky.social","did":"did:plc:abcdefghijklmnopqrstuvwx",
+				"didDoc":{"id":"did:plc:abcdefghijklmnopqrstuvwx","service":[{"id":"#atproto_pds","type":"AtprotoPersonalDataServer","serviceEndpoint":"` + f.URL + `/pds"}]}}`))
 		case "/xrpc/app.bsky.actor.getProfile":
-			_, _ = w.Write([]byte(`{"did":"did:plc:me","handle":"me.bsky.social","displayName":"Me","avatar":"https://cdn/avatar.jpg"}`))
+			_, _ = w.Write([]byte(`{"did":"did:plc:abcdefghijklmnopqrstuvwx","handle":"me.bsky.social","displayName":"Me","avatar":"https://cdn/avatar.jpg"}`))
 		case "/xrpc/com.atproto.identity.resolveHandle":
 			if r.URL.Query().Get("handle") != "alice.bsky.social" {
 				w.WriteHeader(400)
@@ -81,31 +88,37 @@ func newFakePDS(t *testing.T) *fakePDS {
 			f.mu.Lock()
 			f.records = append(f.records, in)
 			f.mu.Unlock()
-			_, _ = w.Write([]byte(`{"uri":"at://did:plc:me/app.bsky.feed.post/3kpost","cid":"bafypost"}`))
+			_, _ = w.Write([]byte(`{"uri":"at://did:plc:abcdefghijklmnopqrstuvwx/app.bsky.feed.post/3kpost","cid":"bafypost"}`))
 		case "/xrpc/app.bsky.feed.getPostThread":
 			_, _ = w.Write([]byte(`{"thread":{"post":{"uri":"` + r.URL.Query().Get("uri") + `","cid":"bafyparent","likeCount":5,
-				"record":{"reply":{"root":{"uri":"at://did:plc:me/app.bsky.feed.post/root","cid":"bafyroot"}}}}}}`))
+				"record":{"reply":{"root":{"uri":"at://did:plc:abcdefghijklmnopqrstuvwx/app.bsky.feed.post/root","cid":"bafyroot"}}}}}}`))
 		case "/xrpc/com.atproto.server.getServiceAuth":
 			_, _ = w.Write([]byte(`{"token":"service-token"}`))
+		case "/xrpc/app.bsky.video.getUploadLimits":
+			_, _ = w.Write([]byte(`{"canUpload":true,"remainingDailyVideos":10,"remainingDailyBytes":1000000000}`))
 		case "/xrpc/app.bsky.video.uploadVideo":
-			if r.Header.Get("Authorization") != "Bearer service-token" || r.URL.Query().Get("did") != "did:plc:me" || len(body) != 3 {
+			if r.Header.Get("Authorization") != "Bearer service-token" || r.URL.Query().Get("did") != "did:plc:abcdefghijklmnopqrstuvwx" || !bytes.Equal(body, testMP4) {
 				w.WriteHeader(400)
 				return
 			}
-			_, _ = w.Write([]byte(`{"jobId":"job1","did":"did:plc:me","state":"JOB_STATE_CREATED"}`))
+			_, _ = w.Write([]byte(`{"jobId":"job1","did":"did:plc:abcdefghijklmnopqrstuvwx","state":"JOB_STATE_CREATED"}`))
 		case "/xrpc/app.bsky.video.getJobStatus":
-			_, _ = w.Write([]byte(`{"jobStatus":{"jobId":"job1","did":"did:plc:me","state":"JOB_STATE_COMPLETED","blob":{"$type":"blob","ref":{"$link":"bafkvideo"},"mimeType":"video/mp4","size":3}}}`))
+			_, _ = w.Write([]byte(`{"jobStatus":{"jobId":"job1","did":"did:plc:abcdefghijklmnopqrstuvwx","state":"JOB_STATE_COMPLETED","blob":{"$type":"blob","ref":{"$link":"bafkvideo"},"mimeType":"video/mp4","size":3}}}`))
 		case "/media/image.png":
 			w.Header().Set("Content-Type", "image/png")
 			_, _ = w.Write(pngBytes)
 		case "/media/video.mp4":
 			w.Header().Set("Content-Type", "video/mp4")
-			_, _ = w.Write([]byte("mp4"))
+			_, _ = w.Write(testMP4)
 		default:
 			w.WriteHeader(404)
 		}
 	}))
 	t.Cleanup(f.Close)
+	oldVideo, oldPoll, oldVideoPoll, oldPlug := videoServiceURL, pollInterval, videoPollInterval, plugDelay
+	t.Cleanup(func() {
+		videoServiceURL, pollInterval, videoPollInterval, plugDelay = oldVideo, oldPoll, oldVideoPoll, oldPlug
+	})
 	videoServiceURL = f.URL
 	pollInterval, videoPollInterval, plugDelay = time.Millisecond, time.Millisecond, time.Millisecond
 	return f
@@ -121,12 +134,19 @@ func (f *fakePDS) integration(t *testing.T, password string) *ent.Integration {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &ent.Integration{InternalID: "did:plc:me", CustomInstanceDetails: &encrypted}
+	caps := socialidentity.BlueskyLexiconLimits()
+	allowed := true
+	caps.VideoCanUpload = &allowed
+	proof := socialidentity.Capabilities{Version: 1, Bluesky: &caps}
+	key, kind, verifiedAt := "bluesky:did:plc:abcdefghijklmnopqrstuvwx", "profile", time.Now()
+	return &ent.Integration{InternalID: "did:plc:abcdefghijklmnopqrstuvwx", CustomInstanceDetails: &encrypted,
+		VerifiedAccountKey: &key, VerifiedAccountKind: &kind, VerifiedCapabilities: &proof,
+		VerifiedScopes: []string{"com.atproto.appPass"}, IdentityVerifiedAt: &verifiedAt}
 }
 
 func TestPostWithImageFacetsAndHandshake(t *testing.T) {
 	f := newFakePDS(t)
-	p := New()
+	p := newProvider(f.Client())
 	integration := f.integration(t, "app-password")
 	posts := []integrations.PostDetails{{
 		ID:      "post1",
@@ -134,18 +154,18 @@ func TestPostWithImageFacetsAndHandshake(t *testing.T) {
 		Media:   []integrations.MediaContent{{Type: "image", Path: f.URL + "/media/image.png", Alt: "a picture"}},
 	}}
 
-	res, err := p.Post(context.Background(), "did:plc:me", "", posts, integration)
+	res, err := p.Post(context.Background(), "did:plc:abcdefghijklmnopqrstuvwx", "", posts, integration)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res[0].PostID != "at://did:plc:me/app.bsky.feed.post/3kpost" || res[0].ReleaseURL != "https://bsky.app/profile/did:plc:me/post/3kpost" || res[0].Status != "completed" {
+	if res[0].PostID != "at://did:plc:abcdefghijklmnopqrstuvwx/app.bsky.feed.post/3kpost" || res[0].ReleaseURL != "https://bsky.app/profile/did:plc:abcdefghijklmnopqrstuvwx/post/3kpost" || res[0].Status != "completed" {
 		t.Fatalf("unexpected response %+v", res[0])
 	}
 	if len(f.records) != 1 || f.uploads != 1 {
 		t.Fatalf("want one record and one upload, got %d and %d", len(f.records), f.uploads)
 	}
 	rec := f.records[0]
-	if rec["repo"] != "did:plc:me" || rec["collection"] != "app.bsky.feed.post" {
+	if rec["repo"] != "did:plc:abcdefghijklmnopqrstuvwx" || rec["collection"] != "app.bsky.feed.post" {
 		t.Fatalf("unexpected createRecord %v", rec)
 	}
 	record := rec["record"].(map[string]any)
@@ -167,7 +187,7 @@ func TestPostWithImageFacetsAndHandshake(t *testing.T) {
 
 func TestVideoPendingFlow(t *testing.T) {
 	f := newFakePDS(t)
-	p := New()
+	p := newProvider(f.Client())
 	integration := f.integration(t, "app-password")
 	ctx := context.Background()
 	res, err := p.PostPending(ctx, "", "", []integrations.PostDetails{{ID: "p", Message: "video", Media: []integrations.MediaContent{{Type: "video", Path: f.URL + "/media/video.mp4"}}}}, integration)
@@ -209,7 +229,7 @@ func TestVideoPendingFlow(t *testing.T) {
 
 func TestErrorClassification(t *testing.T) {
 	f := newFakePDS(t)
-	p := New()
+	p := newProvider(f.Client())
 	ctx := context.Background()
 
 	// a 4xx login is broken credentials: refresh-token flow
@@ -228,15 +248,15 @@ func TestErrorClassification(t *testing.T) {
 
 func TestCommentRepliesToThread(t *testing.T) {
 	f := newFakePDS(t)
-	res, err := New().Comment(context.Background(), "did:plc:me", "at://did:plc:me/app.bsky.feed.post/root", "at://did:plc:me/app.bsky.feed.post/last", "", []integrations.PostDetails{{ID: "c", Message: "reply"}}, f.integration(t, "app-password"))
+	res, err := newProvider(f.Client()).Comment(context.Background(), "did:plc:abcdefghijklmnopqrstuvwx", "at://did:plc:abcdefghijklmnopqrstuvwx/app.bsky.feed.post/root", "at://did:plc:abcdefghijklmnopqrstuvwx/app.bsky.feed.post/last", "", []integrations.PostDetails{{ID: "c", Message: "reply"}}, f.integration(t, "app-password"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res[0].ReleaseURL != "https://bsky.app/profile/did:plc:me/post/3kpost" {
+	if res[0].ReleaseURL != "https://bsky.app/profile/did:plc:abcdefghijklmnopqrstuvwx/post/3kpost" {
 		t.Fatalf("unexpected %+v", res[0])
 	}
 	reply, _ := json.Marshal(f.records[0]["record"].(map[string]any)["reply"])
-	want := `{"parent":{"cid":"bafyparent","uri":"at://did:plc:me/app.bsky.feed.post/last"},"root":{"cid":"bafyroot","uri":"at://did:plc:me/app.bsky.feed.post/root"}}`
+	want := `{"parent":{"cid":"bafyparent","uri":"at://did:plc:abcdefghijklmnopqrstuvwx/app.bsky.feed.post/last"},"root":{"cid":"bafyroot","uri":"at://did:plc:abcdefghijklmnopqrstuvwx/app.bsky.feed.post/root"}}`
 	if string(reply) != want {
 		t.Fatalf("reply\n got %s\nwant %s", reply, want)
 	}
@@ -244,9 +264,9 @@ func TestCommentRepliesToThread(t *testing.T) {
 
 func TestAutoRepostPlug(t *testing.T) {
 	f := newFakePDS(t)
-	p := New()
+	p := newProvider(f.Client())
 	plug := p.Plugs()[0]
-	ok, err := plug.Run(context.Background(), f.integration(t, "app-password"), "at://did:plc:me/app.bsky.feed.post/x", map[string]string{"likesAmount": "3"})
+	ok, err := plug.Run(context.Background(), f.integration(t, "app-password"), "at://did:plc:abcdefghijklmnopqrstuvwx/app.bsky.feed.post/x", map[string]string{"likesAmount": "3"})
 	if err != nil || !ok {
 		t.Fatalf("run: %v %v", ok, err)
 	}
@@ -255,30 +275,32 @@ func TestAutoRepostPlug(t *testing.T) {
 	}
 }
 
-func TestReduceImageBySize(t *testing.T) {
+func TestImagesRemainUnchangedAndOversizeRejected(t *testing.T) {
 	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
 	r := rand.New(rand.NewPCG(1, 2))
 	for i := range img.Pix {
 		img.Pix[i] = byte(r.UintN(256))
 	}
 	var buf bytes.Buffer
-	_ = png.Encode(&buf, img)
-	path := t.TempDir() + "/noise.png"
-	if err := os.WriteFile(path, buf.Bytes(), 0o600); err != nil {
+	if err := png.Encode(&buf, img); err != nil {
 		t.Fatal(err)
 	}
-	width, height, out, err := New().reduceImageBySize(context.Background(), path, 2)
+	path := t.TempDir() + "/noise.png"
+	if err := os.WriteFile(path, buf.Bytes(), 0600); err != nil {
+		t.Fatal(err)
+	}
+	media := []integrations.MediaContent{{Path: path, Type: "image"}}
+	caps := socialidentity.BlueskyLexiconLimits()
+	images, err := prepareImages(context.Background(), media, caps)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if float64(len(out))/1024 > 2 && width >= 10 && height >= 10 {
-		t.Fatalf("not reduced: %d bytes at %dx%d", len(out), width, height)
+	if len(images) != 1 || images[0].width != 100 || images[0].height != 50 || !bytes.Equal(images[0].data, buf.Bytes()) {
+		t.Fatal("selected image was changed")
 	}
-	if width >= 100 || height >= 50 {
-		t.Fatalf("unexpected dimensions %dx%d", width, height)
-	}
-	cfg, format, err := image.DecodeConfig(bytes.NewReader(out))
-	if err != nil || format != "png" || cfg.Width != width || cfg.Height != height {
-		t.Fatalf("re-encoded as %s %dx%d (%v)", format, cfg.Width, cfg.Height, err)
+	limit := int64(2048)
+	caps.BlobUploadLimit = &limit
+	if _, err := prepareImages(context.Background(), media, caps); temporalx.FailureType(err) != temporalx.TypeBadBody {
+		t.Fatalf("oversized image was not rejected: %v", err)
 	}
 }

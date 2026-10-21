@@ -129,6 +129,17 @@ func TestDirectPublisherAcceptsConfirmedInstagramReceipt(t *testing.T) {
 	}
 }
 
+func TestDirectPublisherAcceptsCompletedBlueskyReceipt(t *testing.T) {
+	p, _, poster, input := directFixture()
+	input.Platform = "bluesky"
+	p.integrations = fakeIntegrations{&socialent.Integration{ID: "destination", OrganizationID: "social-org", ProviderIdentifier: input.Platform, InternalID: "remote-user", Token: "private-token"}}
+	poster.status = "completed"
+	id, err := p.Publish(context.Background(), input)
+	if err != nil || id != "remote-post-1" || poster.calls != 1 {
+		t.Fatalf("id=%q err=%v providerCalls=%d", id, err, poster.calls)
+	}
+}
+
 func TestDirectPublisherRejectsExpiredCredentialsBeforeMediaOrProviderCall(t *testing.T) {
 	p, signer, poster, input := directFixture()
 	expired := p.integrations.(fakeIntegrations)

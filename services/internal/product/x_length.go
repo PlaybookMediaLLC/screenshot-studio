@@ -1,6 +1,7 @@
 package product
 
 import (
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	"regexp"
 	"strings"
 	"unicode/utf16"
@@ -71,10 +72,13 @@ func xModifier(code rune) bool {
 }
 
 // draftPostLength is a draft post's length on its channel: X's own count on
-// X, UTF-16 units elsewhere (as the campaign path counts).
+// X, grapheme clusters on Bluesky, and UTF-16 units elsewhere.
 func draftPostLength(channel, text string) int {
 	if channel == "x" {
 		return xLength(strings.TrimSpace(text))
+	}
+	if channel == "bluesky" {
+		return socialidentity.BlueskyTextLength(text)
 	}
 	return len(utf16.Encode([]rune(text)))
 }

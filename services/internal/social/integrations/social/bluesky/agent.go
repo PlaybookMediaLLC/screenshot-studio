@@ -14,6 +14,7 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ssrf"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // The parts of @atproto/api's AtpAgent (CredentialSession + XrpcClient) the
@@ -86,6 +87,8 @@ type session struct {
 }
 
 type agent struct {
+	limits                    socialidentity.BlueskyCapabilities
+	serverDID                 string
 	service                   *url.URL
 	pds                       *url.URL
 	session                   *session
@@ -396,11 +399,11 @@ func (a *agent) resolveHandle(ctx context.Context, handle string) (string, error
 }
 
 // uploadBlob returns the blob ref exactly as the PDS serialized it.
-func (a *agent) uploadBlob(ctx context.Context, data []byte) (json.RawMessage, error) {
+func (a *agent) uploadBlob(ctx context.Context, data []byte, mime string) (json.RawMessage, error) {
 	var out struct {
 		Blob json.RawMessage `json:"blob"`
 	}
-	return out.Blob, a.call(ctx, xrpcRequest{nsid: "com.atproto.repo.uploadBlob", body: data, contentType: "application/octet-stream"}, &out)
+	return out.Blob, a.call(ctx, xrpcRequest{nsid: "com.atproto.repo.uploadBlob", body: data, contentType: mime}, &out)
 }
 
 type createdRecord struct {

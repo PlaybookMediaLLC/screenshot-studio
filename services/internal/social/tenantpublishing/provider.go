@@ -192,7 +192,7 @@ func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishIn
 		return socialapi.Receipt{}, publicationOutcome(err)
 	}
 	if len(response) != 1 || response[0].PostID == "" ||
-		response[0].Status != "posted" && response[0].Status != "success" {
+		response[0].Status != "posted" && response[0].Status != "success" && response[0].Status != "completed" {
 		return socialapi.Receipt{}, socialapi.NewError(http.StatusBadGateway, true, "provider returned no confirmed post receipt")
 	}
 	progress := p.postReplies(ctx, provider, account, input, settings, response[0].PostID)

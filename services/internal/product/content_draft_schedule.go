@@ -274,6 +274,11 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 		if target.AssetIDs != nil {
 			ids = target.AssetIDs
 		}
+		if channel == "bluesky" {
+			if err := checkBlueskyTarget(ctx, tx, connection, target, ids); err != nil {
+				return nil, nil, err
+			}
+		}
 		ids = ids[:min(len(ids), draftChannelImageLimits[channel])]
 		if target.AssetIDs != nil {
 			if ids, err = contentDraftAssets(ctx, tx, organizationID, ids); err != nil {

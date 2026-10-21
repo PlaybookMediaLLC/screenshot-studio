@@ -596,3 +596,100 @@ func TestAutomationCreateCanvasNeedsABuilder(t *testing.T) {
 		t.Fatalf("built without a release: %v", err)
 	}
 }
+
+func TestAutomationArchiveRetainsHistoryAndEnforcesOwnership(t *testing.T) {
+	f := newAutomationFixture(t)
+	active := f.activate(t)
+	if _, err := f.repo.AcceptGitHubEvent(f.ctx, f.delivery(730, "archive-queued")); err != nil {
+		t.Fatal(err)
+	}
+	other := newTestWorkspace(t)
+	if err := f.repo.ArchiveReleaseAutomation(f.ctx, other.owner, active.ID, active.Revision, true); err == nil {
+		t.Fatal("foreign archive accepted")
+	}
+	f.addMember(t, "member", "member")
+	if err := f.repo.ArchiveReleaseAutomation(f.ctx, f.actor("member"), active.ID, active.Revision, true); !errors.Is(err, publishing.ErrForbidden) {
+		t.Fatalf("member archive: %v", err)
+	}
+	machine := f.owner
+	machine.Kind = "api_key"
+	if err := f.repo.ArchiveReleaseAutomation(f.ctx, machine, active.ID, active.Revision, true); !errors.Is(err, publishing.ErrForbidden) {
+		t.Fatalf("API key archive: %v", err)
+	}
+	if err := f.repo.ArchiveReleaseAutomation(f.ctx, f.owner, active.ID, active.Revision-1, true); !errors.Is(err, publishing.ErrConflict) {
+		t.Fatalf("stale archive: %v", err)
+	}
+	if err := f.repo.ArchiveReleaseAutomation(f.ctx, f.owner, active.ID, active.Revision, true); err != nil {
+		t.Fatal(err)
+	}
+	definitions, err := f.repo.ListReleaseAutomations(f.ctx, f.owner)
+	if err != nil || len(definitions) != 1 || !definitions[0].Archived || definitions[0].Enabled {
+		t.Fatalf("archived definitions: %+v %v", definitions, err)
+	}
+	history, err := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{})
+	if err != nil || len(history) != 1 || !history[0].Run.CancelRequested {
+		t.Fatalf("pending cancellation: %+v %v", history, err)
+	}
+	versions, err := f.repo.ListReleaseAutomationVersions(f.ctx, f.owner, active.ID)
+	if err != nil || len(versions) != 1 {
+		t.Fatalf("history lost: %+v %v", versions, err)
+	}
+	archived := definitions[0]
+	if _, err := f.repo.ActivateReleaseAutomation(f.ctx, f.owner, archived.ID, archived.Revision); !errors.Is(err, publishing.ErrConflict) {
+		t.Fatalf("archived activation: %v", err)
+	}
+	if _, err := f.repo.SaveReleaseAutomation(f.ctx, f.owner, SaveAutomationInput{ID: archived.ID, SourceAppID: f.source.ID, Name: "Stale edit", ExpectedRevision: archived.Revision, Graph: f.graph}); !errors.Is(err, publishing.ErrConflict) {
+		t.Fatalf("archived edit: %v", err)
+	}
+	if err := f.repo.ArchiveReleaseAutomation(f.ctx, f.owner, archived.ID, archived.Revision, false); err != nil {
+		t.Fatal(err)
+	}
+	restored, _ := f.repo.ListReleaseAutomations(f.ctx, f.owner)
+	if restored[0].Archived || restored[0].Enabled {
+		t.Fatal("restore activated a workflow")
+	}
+}
+
+func TestAutomationHistorySeparatesLegacyAndRejectsInvalidDates(t *testing.T) {
+	f := newAutomationFixture(t)
+	if _, err := f.repo.AcceptGitHubEvent(f.ctx, f.delivery(731, "legacy-summary")); err != nil {
+		t.Fatal(err)
+	}
+	f.activate(t)
+	if _, err := f.repo.AcceptGitHubEvent(f.ctx, f.delivery(732, "automation-summary")); err != nil {
+		t.Fatal(err)
+	}
+	for _, mode := range []string{"legacy", "automation"} {
+		items, err := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{Mode: mode})
+		if err != nil || len(items) != 1 || items[0].Event.Mode != mode {
+			t.Fatalf("mode %s: %+v %v", mode, items, err)
+		}
+	}
+	overview, err := f.repo.ReleaseAutomationOverview(f.ctx, f.owner)
+	if err != nil || overview.RunCounts["queued"] != 1 || overview.LegacyRunCounts["queued"] != 1 {
+		t.Fatalf("summary: %+v %v", overview, err)
+	}
+	now, before := time.Now(), time.Now().Add(-time.Hour)
+	if _, err := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{Since: &now, Until: &before}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("inverted range accepted: %v", err)
+	}
+}
+
+func TestAutomationArchivingUnusedDraftDoesNotCancelOtherWorkflows(t *testing.T) {
+	f := newAutomationFixture(t)
+	f.activate(t)
+	if _, err := f.repo.AcceptGitHubEvent(f.ctx, f.delivery(733, "unrelated-queued")); err != nil {
+		t.Fatal(err)
+	}
+	draft, err := f.repo.SaveReleaseAutomation(f.ctx, f.owner, SaveAutomationInput{SourceAppID: f.source.ID, Name: "Unused copy", Graph: f.graph})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.repo.ArchiveReleaseAutomation(f.ctx, f.owner, draft.ID, draft.Revision, true); err != nil {
+		t.Fatal(err)
+	}
+	history, err := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{})
+	if err != nil || len(history) != 1 || history[0].Run.CancelRequested {
+		t.Fatalf("unrelated run cancelled: %+v %v", history, err)
+	}
+}

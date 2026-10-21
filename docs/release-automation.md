@@ -44,7 +44,7 @@ string, and GitHub connection callbacks return to `/workflows`.
    chooses repositories under **Event sources**. One installation may serve
    several workspaces. Each watched repository has a watched branch for merged
    pull requests (the default branch when empty).
-2. Create a definition from a template, or duplicate one, for one independent
+2. Create a definition from a template, a blank workflow, or an unsaved duplicate, for one independent
    event family: published release, merged pull request, or successful
    deployment. Set qualification and priority.
 3. Edit the graph with the canvas or labeled node/connection controls. Save an
@@ -56,6 +56,18 @@ string, and GitHub connection callbacks return to `/workflows`.
 6. Inspect the run history, selected definition and revision, node decisions,
    attempts, failure reasons, credits, and links to the resulting release and
    campaign drafts, including the campaign's own review state.
+
+Owners and admins can archive a workflow after confirmation and restore it from the
+Archived filter. Archiving disables the definition and requests cancellation of
+pending runs; immutable versions, run history, and completed outputs remain.
+Restoring leaves it inactive. Apply `20261102090000_workflow_archive.sql` before
+deploying the updated backend and web.
+
+Dashboard run counts cover automation-mode events; legacy intake is counted and
+linked separately. Run-history filters include the intake mode. Date pickers use
+local midnight and an inclusive To day (the backend receives the next local
+midnight as the exclusive upper bound). Filters and page cursors stay in the URL,
+and run details link back to that filtered page.
 
 Templates build ordinary drafts; every condition and action stays editable
 before activation. `lib/workflows/templates.ts` generates them and the shared

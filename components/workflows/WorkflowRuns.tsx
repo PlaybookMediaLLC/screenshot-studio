@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -34,6 +34,7 @@ import {
   type AutomationHistoryFilter,
 } from '@/lib/api/contracts/workflow-runs'
 import { useTRPCClient } from '@/lib/trpc/react'
+import { runDateBoundary, runDateDay, runHandler } from '@/lib/workflows/history'
 import { FAMILY_NAMES } from './workflow-canvas'
 import {
   duration,
@@ -46,45 +47,56 @@ import {
 
 const ALL = 'all'
 
-/** Filters live in the URL, so a filtered view can be linked and reloaded. */
-function filterFrom(params: URLSearchParams): AutomationHistoryFilter {
-  const parsed = automationHistoryFilterSchema.safeParse(
-    Object.fromEntries([...params].filter(([, value]) => value))
-  )
-  return parsed.success ? parsed.data : {}
-}
-
 /** Persisted run history with workflow, event, repository, status, and date filters. */
 export function WorkflowRuns() {
   const client = useTRPCClient()
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
-  const filter = useMemo(() => filterFrom(new URLSearchParams(params.toString())), [params])
+  const parsed = useMemo(
+    () =>
+      automationHistoryFilterSchema.safeParse(
+        Object.fromEntries([...params].filter(([, value]) => value))
+      ),
+    [params]
+  )
+  const filter: AutomationHistoryFilter = useMemo(
+    () => (parsed.success ? parsed.data : {}),
+    [parsed]
+  )
+  const filterError = parsed.success
+    ? null
+    : parsed.error.issues.map((issue) => issue.message).join(' ')
   const [overview, setOverview] = useState<AutomationOverview | null>(null)
   const [items, setItems] = useState<AutomationHistoryItem[] | null>(null)
-  const [cursor, setCursor] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
-  const before = cursor.at(-1)
+  const before = filter.before
+  const request = useRef(0)
 
   const load = useCallback(async () => {
+    const current = ++request.current
+    if (filterError) {
+      setError(`${filterError} Clear filters to choose a valid range.`)
+      setItems([])
+      return
+    }
     try {
       const [next, history] = await Promise.all([
         client.releaseAutomation.overview.query(),
         client.releaseAutomation.history.query({ ...filter, before }),
       ])
+      if (current !== request.current) return
       setOverview(next)
       setItems(history.items)
       setError(null)
     } catch (failure) {
-      setError(getErrorMessage(failure))
+      if (current === request.current) setError(getErrorMessage(failure))
     }
-  }, [client, filter, before])
+  }, [client, filter, before, filterError])
   useEffect(() => {
     void load()
     // Refresh the newest page while it is open; older pages are stable.
-    if (before) return
-    const timer = setInterval(() => void load(), 10_000)
+    const timer = before ? undefined : setInterval(() => void load(), 10_000)
     return () => clearInterval(timer)
   }, [load, before])
 
@@ -97,8 +109,8 @@ export function WorkflowRuns() {
       if (value && value !== ALL) next.set(key, value)
       else next.delete(key)
     }
-    setCursor([])
-    router.replace(`${pathname}?${next}`)
+    if (keys !== 'before') next.delete('before')
+    router.push(`${pathname}?${next}`, { scroll: false })
   }
 
   const definitionName = (id: string | null) =>
@@ -130,6 +142,14 @@ export function WorkflowRuns() {
       label: 'Status',
       options: automationRunStatusSchema.options.map((status) => [status, runStatusLabel(status)]),
     },
+    {
+      key: 'mode',
+      label: 'Handled by',
+      options: [
+        ['automation', 'Workflows'],
+        ['legacy', 'Legacy intake'],
+      ],
+    },
   ]
 
   return (
@@ -146,10 +166,14 @@ export function WorkflowRuns() {
               <SelectTrigger aria-label={`Filter by ${label.toLowerCase()}`} className="h-9 w-48">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent
+                position="popper"
+                align="start"
+                className="max-w-[min(24rem,calc(100vw-2rem))]"
+              >
                 <SelectItem value={ALL}>All</SelectItem>
                 {options.map(([value, text]) => (
-                  <SelectItem key={value} value={value}>
+                  <SelectItem className="break-words whitespace-normal" key={value} value={value}>
                     {text}
                   </SelectItem>
                 ))}
@@ -159,13 +183,15 @@ export function WorkflowRuns() {
         ))}
         {(['since', 'until'] as const).map((key) => (
           <Label className="grid gap-1 text-xs text-neutral-400" key={key}>
-            {key === 'since' ? 'From' : 'Before'}
+            {key === 'since' ? 'From' : 'To (inclusive)'}
             <DatePicker
-              aria-label={key === 'since' ? 'Runs from date' : 'Runs before date'}
+              aria-label={key === 'since' ? 'Runs from date' : 'Runs through date'}
               className="h-9 w-40"
-              onChange={(day) => setFilter(key, new Date(`${day}T00:00:00Z`).toISOString())}
+              onChange={(day) => setFilter(key, runDateBoundary(day, key === 'until'))}
+              min={key === 'until' ? runDateDay(filter.since) : undefined}
+              max={key === 'since' ? runDateDay(filter.until, true) : undefined}
               placeholder="Any day"
-              value={filter[key]?.slice(0, 10) ?? ''}
+              value={runDateDay(filter[key], key === 'until')}
             />
           </Label>
         ))}
@@ -187,6 +213,14 @@ export function WorkflowRuns() {
             variant="ghost"
           >
             Clear version filter
+          </Button>
+        ) : null}
+        <p className="w-full text-xs text-neutral-500">
+          Dates and times use your local timezone. To includes the entire selected day.
+        </p>
+        {params.size ? (
+          <Button size="sm" variant="ghost" onClick={() => router.push(pathname)}>
+            Clear filters
           </Button>
         ) : null}
       </form>
@@ -224,7 +258,7 @@ export function WorkflowRuns() {
                   <TableCell className="max-w-80 whitespace-normal">
                     <Link
                       className="font-medium hover:underline"
-                      href={`/workflows/runs/${item.run.id}`}
+                      href={`/workflows/runs/${item.run.id}?${new URLSearchParams({ returnTo: `${pathname}?${params}` })}`}
                     >
                       {item.event.snapshot.title}
                     </Link>
@@ -235,7 +269,7 @@ export function WorkflowRuns() {
                   </TableCell>
                   <TableCell className="whitespace-normal">
                     {definitionName(item.run.definitionId) ?? (
-                      <span className="text-neutral-500">None selected</span>
+                      <span className="text-neutral-500">{runHandler(item)}</span>
                     )}
                     {item.run.versionRevision ? (
                       <p className="text-xs text-neutral-500">
@@ -279,14 +313,14 @@ export function WorkflowRuns() {
         </div>
       )}
       <nav aria-label="Run pages" className="flex justify-end gap-2">
-        {cursor.length ? (
-          <Button onClick={() => setCursor([])} size="sm" variant="outline">
+        {before ? (
+          <Button onClick={() => setFilter('before', '')} size="sm" variant="outline">
             Newest runs
           </Button>
         ) : null}
         {items?.length === 50 ? (
           <Button
-            onClick={() => setCursor([...cursor, items[items.length - 1]?.run.id ?? ''])}
+            onClick={() => setFilter('before', items[items.length - 1]?.run.id ?? '')}
             size="sm"
             variant="outline"
           >

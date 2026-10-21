@@ -169,6 +169,7 @@ function ConnectionRow({
 }) {
   const trpcClient = useTRPCClient()
   const [repositories, setRepositories] = useState<Repository[] | null>(null)
+  const [watched, setWatched] = useState<string[]>([])
   const [selected, setSelected] = useState('')
   const [branch, setBranch] = useState('')
   const [message, setMessage] = useState<string | null>(null)
@@ -179,7 +180,15 @@ function ConnectionRow({
   async function loadRepositories(): Promise<void> {
     setError(null)
     try {
-      const result = await trpcClient.github.repositories.query({ connectionId: connection.id })
+      const [result, overview] = await Promise.all([
+        trpcClient.github.repositories.query({ connectionId: connection.id }),
+        trpcClient.releaseAutomation.overview.query().catch(() => null),
+      ])
+      setWatched(
+        (overview?.sources ?? [])
+          .filter((source) => source.connectionState === 'connected')
+          .map((source) => source.repositoryId)
+      )
       setRepositories(result.repositories)
     } catch (requestError) {
       setError(getErrorMessage(requestError))
@@ -188,7 +197,7 @@ function ConnectionRow({
 
   async function watch(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
-    if (!repository) return
+    if (!repository || watched.includes(String(repository.id))) return
     setBusy(true)
     setError(null)
     try {
@@ -203,6 +212,7 @@ function ConnectionRow({
       setMessage(
         `Watching ${repository.fullName}. New sources import recent history without running marketing workflows. Reconnected sources keep their existing rules and history.`
       )
+      setWatched((items) => [...items, String(repository.id)])
       setSelected('')
       setBranch('')
     } catch (requestError) {
@@ -221,7 +231,19 @@ function ConnectionRow({
             {connection.status.toLowerCase()}
           </Pill>
         </div>
-        <Button onClick={onDisconnect} size="sm" type="button" variant="ghost">
+        <Button
+          onClick={() => {
+            if (
+              window.confirm(
+                `Disconnect ${connection.accountLogin}? Its repositories will stop receiving events in this workspace.`
+              )
+            )
+              onDisconnect()
+          }}
+          size="sm"
+          type="button"
+          variant="destructive"
+        >
           Disconnect {connection.accountLogin}
         </Button>
       </div>
@@ -252,8 +274,13 @@ function ConnectionRow({
             <SelectContent>
               <SelectItem value={'__empty_option__'}>Select a repository</SelectItem>
               {repositories.map((candidate) => (
-                <SelectItem key={candidate.id} value={String(candidate.id)}>
+                <SelectItem
+                  disabled={watched.includes(String(candidate.id))}
+                  key={candidate.id}
+                  value={String(candidate.id)}
+                >
                   {candidate.fullName}
+                  {watched.includes(String(candidate.id)) ? ' (already watched)' : ''}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -265,7 +292,11 @@ function ConnectionRow({
             placeholder={repository ? repository.defaultBranch : 'Default branch'}
             value={branch}
           />
-          <Button className="rounded-lg" disabled={!repository || busy} type="submit">
+          <Button
+            className="rounded-lg"
+            disabled={!repository || busy || watched.includes(String(repository.id))}
+            type="submit"
+          >
             {busy ? 'Watching…' : 'Watch'}
           </Button>
         </form>

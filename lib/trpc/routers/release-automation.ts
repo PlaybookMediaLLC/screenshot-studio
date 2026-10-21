@@ -13,6 +13,7 @@ import {
   automationSaveSchema,
 } from '@/lib/api/contracts/release-automation'
 import {
+  automationArchiveSchema,
   automationHistoryFilterSchema,
   automationSourceModeSchema,
   automationVersionSchema,
@@ -63,6 +64,11 @@ export const releaseAutomationRouter = router({
     .output(automationDefinitionSchema)
     .mutation(({ ctx, input }) =>
       backendSDK(ctx.access).activateReleaseAutomation(input.id, input.revision)
+    ),
+  archive: organizationProcedure('workspace:update')
+    .input(automationArchiveSchema)
+    .mutation(({ ctx, input }) =>
+      backendSDK(ctx.access).archiveReleaseAutomation(input.id, input.revision, input.archived)
     ),
   disable: organizationProcedure('workspace:update')
     .input(automationRevisionSchema)

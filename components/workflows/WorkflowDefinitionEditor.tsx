@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { Page } from '@/components/platform-ui'
@@ -17,7 +17,10 @@ import { WorkflowEditor } from './WorkflowEditor'
 export function WorkflowDefinitionEditor({ canManage, id }: { canManage: boolean; id: string }) {
   const client = useTRPCClient()
   const router = useRouter()
+  const params = useSearchParams()
+  const copy = params.get('copy') === '1'
   const [state, setState] = useState<{
+    key: string
     definition: AutomationDefinition
     history: AutomationHistoryItem[]
     overview: AutomationOverview
@@ -25,11 +28,13 @@ export function WorkflowDefinitionEditor({ canManage, id }: { canManage: boolean
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     void (async () => {
       try {
         const overview = await client.releaseAutomation.overview.query()
         const definition = overview.definitions.find((candidate) => candidate.id === id)
         if (!definition) {
+          if (cancelled) return
           setError('This workflow does not exist in this workspace.')
           return
         }
@@ -37,14 +42,50 @@ export function WorkflowDefinitionEditor({ canManage, id }: { canManage: boolean
           sourceAppId: definition.sourceAppId,
           family: definition.draft.family,
         })
-        setState({ definition, history: history.items, overview })
+        if (cancelled) return
+        setError(null)
+        setState({
+          key: `${id}:${copy}`,
+          definition: copy
+            ? {
+                ...definition,
+                id: '',
+                name: `${definition.name} (copy)`.slice(0, 160),
+                revision: 0,
+                enabled: false,
+                archived: false,
+                activeVersionId: null,
+                lastRun: null,
+                recentRuns: 0,
+                updatedAt: '',
+              }
+            : definition,
+          history: history.items,
+          overview,
+        })
       } catch (failure) {
-        setError(getErrorMessage(failure))
+        if (!cancelled) setError(getErrorMessage(failure))
       }
     })()
-  }, [client, id])
+    return () => {
+      cancelled = true
+    }
+  }, [client, id, copy])
 
-  if (!state) {
+  useEffect(() => {
+    const refresh = () => {
+      void client.releaseAutomation.overview
+        .query()
+        .then((overview) =>
+          setState((previous) => (previous ? { ...previous, overview } : previous))
+        )
+        .catch((failure) => setError(getErrorMessage(failure)))
+    }
+    window.addEventListener('focus', refresh)
+    return () => window.removeEventListener('focus', refresh)
+  }, [client])
+
+  if (!state || state.key !== `${id}:${copy}`) {
     return (
       <Page
         actions={
@@ -65,12 +106,16 @@ export function WorkflowDefinitionEditor({ canManage, id }: { canManage: boolean
   }
   return (
     <WorkflowEditor
+      key={`${id}:${copy}`}
+      initialNode={params.get('node') ?? undefined}
       definition={state.definition}
       history={state.history}
       onClose={() => router.push('/workflows')}
-      onSaved={() => undefined}
+      onSaved={(saved) => {
+        if (copy) router.replace(`/workflows/${saved.id}`)
+      }}
       overview={state.overview}
-      readOnly={!canManage}
+      readOnly={!canManage || !!state.definition.archived}
     />
   )
 }

@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { automationFamilySchema, automationGraphSchema } from './release-automation'
+import {
+  automationFamilySchema,
+  automationGraphSchema,
+  automationRevisionSchema,
+} from './release-automation'
 
 /** Persisted run states; review and publishing state belong to the campaign. */
 export const automationRunStatusSchema = z.enum([
@@ -13,16 +17,25 @@ export const automationRunStatusSchema = z.enum([
 ])
 
 /** Optional run-history filters; tenant scope always comes from the session. */
-export const automationHistoryFilterSchema = z.strictObject({
-  before: z.string().max(64).optional(),
-  definitionId: z.string().max(64).optional(),
-  versionId: z.string().max(64).optional(),
-  sourceAppId: z.string().max(64).optional(),
-  family: automationFamilySchema.optional(),
-  status: automationRunStatusSchema.optional(),
-  since: z.iso.datetime().optional(),
-  until: z.iso.datetime().optional(),
-})
+export const automationHistoryFilterSchema = z
+  .strictObject({
+    mode: z.enum(['automation', 'legacy']).optional(),
+    before: z.string().max(64).optional(),
+    definitionId: z.string().max(64).optional(),
+    versionId: z.string().max(64).optional(),
+    sourceAppId: z.string().max(64).optional(),
+    family: automationFamilySchema.optional(),
+    status: automationRunStatusSchema.optional(),
+    since: z.iso.datetime().optional(),
+    until: z.iso.datetime().optional(),
+  })
+  .refine(
+    (value) => !value.since || !value.until || Date.parse(value.since) < Date.parse(value.until),
+    {
+      message: 'From must be on or before To.',
+      path: ['until'],
+    }
+  )
 
 /** An immutable activated revision of a definition. */
 export const automationVersionSchema = z.object({
@@ -53,3 +66,6 @@ export type AutomationRunStatus = z.infer<typeof automationRunStatusSchema>
 export type AutomationHistoryFilter = z.infer<typeof automationHistoryFilterSchema>
 /** An immutable activated version. */
 export type AutomationVersion = z.infer<typeof automationVersionSchema>
+
+/** Archive or restore the last saved revision without deleting run history. */
+export const automationArchiveSchema = automationRevisionSchema.extend({ archived: z.boolean() })

@@ -98,6 +98,7 @@ func automationEvent(row *ent.ReleaseSourceEvent) AutomationEvent {
 // AutomationHistoryFilter narrows persisted run history. Every field is
 // optional; tenant scope always comes from the actor, never the filter.
 type AutomationHistoryFilter struct {
+	Mode         string            `json:"mode"`
 	Before       string            `json:"before"`
 	DefinitionID string            `json:"definitionId"`
 	VersionID    string            `json:"versionId"`
@@ -114,7 +115,7 @@ func (c *Configuration) ListAutomationHistory(ctx context.Context, actor Actor, 
 	if err := c.AuthorizeRead(ctx, actor); err != nil {
 		return nil, err
 	}
-	if len(filter.Before) > 64 || len(filter.DefinitionID) > 64 || len(filter.VersionID) > 64 || len(filter.SourceAppID) > 64 ||
+	if (filter.Mode != "" && filter.Mode != "automation" && filter.Mode != "legacy") || (filter.Since != nil && filter.Until != nil && !filter.Since.Before(*filter.Until)) || len(filter.Before) > 64 || len(filter.DefinitionID) > 64 || len(filter.VersionID) > 64 || len(filter.SourceAppID) > 64 ||
 		(filter.Family != "" && !automation.ValidFamily(filter.Family)) || (filter.Status != "" && !slices.Contains(automationRunStatuses, filter.Status)) {
 		return nil, ErrInvalidInput
 	}
@@ -138,10 +139,13 @@ func (c *Configuration) ListAutomationHistory(ctx context.Context, actor Actor, 
 	if filter.Until != nil {
 		query.Where(releaseautomationrun.CreatedAtLT(*filter.Until))
 	}
-	if filter.SourceAppID != "" || filter.Family != "" {
+	if filter.SourceAppID != "" || filter.Family != "" || filter.Mode != "" {
 		query.Where(func(s *sql.Selector) {
 			events := sql.Table(releasesourceevent.Table)
 			matching := sql.Select(events.C(releasesourceevent.FieldID)).From(events).Where(sql.EQ(events.C(releasesourceevent.FieldOrganizationID), org))
+			if filter.Mode != "" {
+				matching.Where(sql.EQ(events.C(releasesourceevent.FieldMode), filter.Mode))
+			}
 			if filter.SourceAppID != "" {
 				matching.Where(sql.EQ(events.C(releasesourceevent.FieldSourceAppID), filter.SourceAppID))
 			}
@@ -203,13 +207,16 @@ func (c *Configuration) automationRevisions(ctx context.Context, org string, ids
 	return result, err
 }
 
-// automationRunCounts counts every persisted run of the workspace by status.
-func (c *Configuration) automationRunCounts(ctx context.Context, org string) (map[string]int, error) {
+// automationRunCounts separates automation events from legacy intake by admission mode.
+func (c *Configuration) automationRunCounts(ctx context.Context, org, mode string) (map[string]int, error) {
 	var rows []struct {
 		Status string `json:"status"`
 		Count  int    `json:"count"`
 	}
-	err := c.client.ReleaseAutomationRun.Query().Where(releaseautomationrun.OrganizationID(org)).GroupBy(releaseautomationrun.FieldStatus).Aggregate(ent.Count()).Scan(ctx, &rows)
+	err := c.client.ReleaseAutomationRun.Query().Where(releaseautomationrun.OrganizationID(org), func(s *sql.Selector) {
+		events := sql.Table(releasesourceevent.Table)
+		s.Where(sql.In(s.C(releaseautomationrun.FieldEventID), sql.Select(events.C(releasesourceevent.FieldID)).From(events).Where(sql.And(sql.EQ(events.C(releasesourceevent.FieldOrganizationID), org), sql.EQ(events.C(releasesourceevent.FieldMode), mode)))))
+	}).GroupBy(releaseautomationrun.FieldStatus).Aggregate(ent.Count()).Scan(ctx, &rows)
 	result := map[string]int{}
 	for _, status := range automationRunStatuses {
 		result[status] = 0
@@ -342,10 +349,57 @@ func (c *Configuration) DisableReleaseAutomation(ctx context.Context, actor Acto
 	if err != nil {
 		return err
 	}
-	if err := cancelAutomationRuns(ctx, tx, actor.OrganizationID, definition.SourceAppID, versions); err != nil {
-		return err
+	if len(versions) > 0 {
+		if err := cancelAutomationRuns(ctx, tx, actor.OrganizationID, definition.SourceAppID, versions); err != nil {
+			return err
+		}
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.release_automation_disabled", "release_automation", id); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// ArchiveReleaseAutomation hides a definition and cancels pending work while retaining history.
+// Restoring leaves the definition inactive; activation is always explicit.
+func (c *Configuration) ArchiveReleaseAutomation(ctx context.Context, actor Actor, id string, revision int, archived bool) error {
+	if err := c.authorizeAutomationAdmin(ctx, actor); err != nil {
+		return err
+	}
+	definition, err := c.client.ReleaseAutomation.Query().Where(releaseautomation.ID(id), releaseautomation.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return publishing.ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	tx, err := c.client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := lockAutomationSource(ctx, tx, actor.OrganizationID, definition.SourceAppID); err != nil {
+		return err
+	}
+	n, err := tx.ReleaseAutomation.Update().Where(releaseautomation.ID(id), releaseautomation.OrganizationID(actor.OrganizationID), releaseautomation.Revision(revision)).SetArchived(archived).SetEnabled(false).AddRevision(1).SetModifiedBy(actor.UserID).Save(ctx)
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return publishing.ErrConflict
+	}
+	if archived {
+		versions, err := tx.ReleaseAutomationVersion.Query().Where(releaseautomationversion.OrganizationID(actor.OrganizationID), releaseautomationversion.DefinitionID(id)).IDs(ctx)
+		if err != nil {
+			return err
+		}
+		if len(versions) > 0 {
+			if err := cancelAutomationRuns(ctx, tx, actor.OrganizationID, definition.SourceAppID, versions); err != nil {
+				return err
+			}
+		}
+	}
+	if err := appendConfigurationAudit(ctx, tx, actor, "product.release_automation_archived", "release_automation", id, map[string]any{"archived": archived}); err != nil {
 		return err
 	}
 	return tx.Commit()

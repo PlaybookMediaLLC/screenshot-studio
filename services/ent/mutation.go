@@ -61569,6 +61569,7 @@ type ReleaseAutomationMutation struct {
 	revision           *int
 	addrevision        *int
 	enabled            *bool
+	archived           *bool
 	active_priority    *int
 	addactive_priority *int
 	active_version_id  *string
@@ -62015,6 +62016,42 @@ func (m *ReleaseAutomationMutation) ResetEnabled() {
 	m.enabled = nil
 }
 
+// SetArchived sets the "archived" field.
+func (m *ReleaseAutomationMutation) SetArchived(b bool) {
+	m.archived = &b
+}
+
+// Archived returns the value of the "archived" field in the mutation.
+func (m *ReleaseAutomationMutation) Archived() (r bool, exists bool) {
+	v := m.archived
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArchived returns the old "archived" field's value of the ReleaseAutomation entity.
+// If the ReleaseAutomation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseAutomationMutation) OldArchived(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArchived is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArchived requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArchived: %w", err)
+	}
+	return oldValue.Archived, nil
+}
+
+// ResetArchived resets all changes to the "archived" field.
+func (m *ReleaseAutomationMutation) ResetArchived() {
+	m.archived = nil
+}
+
 // SetActivePriority sets the "active_priority" field.
 func (m *ReleaseAutomationMutation) SetActivePriority(i int) {
 	m.active_priority = &i
@@ -62334,7 +62371,7 @@ func (m *ReleaseAutomationMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ReleaseAutomationMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 16)
 	if m.organization_id != nil {
 		fields = append(fields, entreleaseautomation.FieldOrganizationID)
 	}
@@ -62358,6 +62395,9 @@ func (m *ReleaseAutomationMutation) Fields() []string {
 	}
 	if m.enabled != nil {
 		fields = append(fields, entreleaseautomation.FieldEnabled)
+	}
+	if m.archived != nil {
+		fields = append(fields, entreleaseautomation.FieldArchived)
 	}
 	if m.active_priority != nil {
 		fields = append(fields, entreleaseautomation.FieldActivePriority)
@@ -62404,6 +62444,8 @@ func (m *ReleaseAutomationMutation) Field(name string) (ent.Value, bool) {
 		return m.Revision()
 	case entreleaseautomation.FieldEnabled:
 		return m.Enabled()
+	case entreleaseautomation.FieldArchived:
+		return m.Archived()
 	case entreleaseautomation.FieldActivePriority:
 		return m.ActivePriority()
 	case entreleaseautomation.FieldActiveVersionID:
@@ -62443,6 +62485,8 @@ func (m *ReleaseAutomationMutation) OldField(ctx context.Context, name string) (
 		return m.OldRevision(ctx)
 	case entreleaseautomation.FieldEnabled:
 		return m.OldEnabled(ctx)
+	case entreleaseautomation.FieldArchived:
+		return m.OldArchived(ctx)
 	case entreleaseautomation.FieldActivePriority:
 		return m.OldActivePriority(ctx)
 	case entreleaseautomation.FieldActiveVersionID:
@@ -62521,6 +62565,13 @@ func (m *ReleaseAutomationMutation) SetField(name string, value ent.Value) error
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEnabled(v)
+		return nil
+	case entreleaseautomation.FieldArchived:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArchived(v)
 		return nil
 	case entreleaseautomation.FieldActivePriority:
 		v, ok := value.(int)
@@ -62691,6 +62742,9 @@ func (m *ReleaseAutomationMutation) ResetField(name string) error {
 		return nil
 	case entreleaseautomation.FieldEnabled:
 		m.ResetEnabled()
+		return nil
+	case entreleaseautomation.FieldArchived:
+		m.ResetArchived()
 		return nil
 	case entreleaseautomation.FieldActivePriority:
 		m.ResetActivePriority()

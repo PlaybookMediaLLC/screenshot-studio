@@ -3,6 +3,8 @@
 import { Background, Controls, ReactFlow } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { runHandler } from '@/lib/workflows/history'
 import { useCallback, useEffect, useState } from 'react'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { Group, Page, Pill, Row, Section } from '@/components/platform-ui'
@@ -39,6 +41,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 /** One persisted run: its evidence, pinned version, path, receipts, and outputs. */
 export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: string }) {
   const client = useTRPCClient()
+  const params = useSearchParams()
+  const returnTo = params.get('returnTo') ?? ''
+  const historyHref = /^\/(?:[a-z]{2}\/)?workflows\/runs(?:\?|$)/.test(returnTo)
+    ? returnTo
+    : '/workflows/runs'
   const [detail, setDetail] = useState<AutomationRunDetail | null>(null)
   const [version, setVersion] = useState<AutomationVersion | null>(null)
   const [overview, setOverview] = useState<AutomationOverview | null>(null)
@@ -122,7 +129,7 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
     <Page
       actions={
         <>
-          <ButtonLink href="/workflows/runs" variant="outline">
+          <ButtonLink href={historyHref} variant="outline">
             Run history
           </ButtonLink>
           {canManage && canCancel ? (
@@ -172,7 +179,7 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
                 {definition.name}
               </Link>
             ) : (
-              'No workflow selected'
+              runHandler(detail)
             )}
           </Field>
           <Field label="Version">
@@ -466,9 +473,12 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
           </table>
         </div>
         {event.snapshot.notes ? (
-          <pre className="max-h-64 overflow-auto rounded-2xl p-4 text-xs whitespace-pre-wrap text-neutral-400 ring-1 ring-white/[0.08]">
-            {event.snapshot.notes}
-          </pre>
+          <div>
+            <h3 className="mb-2 text-sm font-medium">Release notes (Markdown source)</h3>
+            <pre className="max-h-64 overflow-auto rounded-2xl p-4 text-xs whitespace-pre-wrap text-neutral-400 ring-1 ring-white/[0.08]">
+              {event.snapshot.notes}
+            </pre>
+          </div>
         ) : null}
       </Section>
     </Page>

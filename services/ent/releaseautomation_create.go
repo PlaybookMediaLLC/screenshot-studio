@@ -101,6 +101,20 @@ func (_c *ReleaseAutomationCreate) SetNillableEnabled(v *bool) *ReleaseAutomatio
 	return _c
 }
 
+// SetArchived sets the "archived" field.
+func (_c *ReleaseAutomationCreate) SetArchived(v bool) *ReleaseAutomationCreate {
+	_c.mutation.SetArchived(v)
+	return _c
+}
+
+// SetNillableArchived sets the "archived" field if the given value is not nil.
+func (_c *ReleaseAutomationCreate) SetNillableArchived(v *bool) *ReleaseAutomationCreate {
+	if v != nil {
+		_c.SetArchived(*v)
+	}
+	return _c
+}
+
 // SetActivePriority sets the "active_priority" field.
 func (_c *ReleaseAutomationCreate) SetActivePriority(v int) *ReleaseAutomationCreate {
 	_c.mutation.SetActivePriority(v)
@@ -232,6 +246,10 @@ func (_c *ReleaseAutomationCreate) defaults() {
 		v := entreleaseautomation.DefaultEnabled
 		_c.mutation.SetEnabled(v)
 	}
+	if _, ok := _c.mutation.Archived(); !ok {
+		v := entreleaseautomation.DefaultArchived
+		_c.mutation.SetArchived(v)
+	}
 	if _, ok := _c.mutation.ActivePriority(); !ok {
 		v := entreleaseautomation.DefaultActivePriority
 		_c.mutation.SetActivePriority(v)
@@ -275,6 +293,9 @@ func (_c *ReleaseAutomationCreate) check() error {
 	}
 	if _, ok := _c.mutation.Enabled(); !ok {
 		return &ValidationError{Name: "enabled", err: errors.New(`ent: missing required field "ReleaseAutomation.enabled"`)}
+	}
+	if _, ok := _c.mutation.Archived(); !ok {
+		return &ValidationError{Name: "archived", err: errors.New(`ent: missing required field "ReleaseAutomation.archived"`)}
 	}
 	if _, ok := _c.mutation.ActivePriority(); !ok {
 		return &ValidationError{Name: "active_priority", err: errors.New(`ent: missing required field "ReleaseAutomation.active_priority"`)}
@@ -360,6 +381,10 @@ func (_c *ReleaseAutomationCreate) createSpec() (*ReleaseAutomation, *sqlgraph.C
 	if value, ok := _c.mutation.Enabled(); ok {
 		_spec.SetField(entreleaseautomation.FieldEnabled, field.TypeBool, value)
 		_node.Enabled = value
+	}
+	if value, ok := _c.mutation.Archived(); ok {
+		_spec.SetField(entreleaseautomation.FieldArchived, field.TypeBool, value)
+		_node.Archived = value
 	}
 	if value, ok := _c.mutation.ActivePriority(); ok {
 		_spec.SetField(entreleaseautomation.FieldActivePriority, field.TypeInt, value)

@@ -61,6 +61,7 @@ export type AutomationDefinition = {
   description: string
   priority: number
   revision: number
+  archived?: boolean
   enabled: boolean
   activeVersionId: string | null
   activePriority: number
@@ -134,6 +135,7 @@ export type AutomationOverview = {
   executor?: { available: boolean; schemaVersion: number; capabilities: string[] }
   actions?: { type: AutomationAction['type'] | 'classify'; available: boolean; reason: string }[]
   runCounts?: Record<string, number>
+  legacyRunCounts?: Record<string, number>
 }
 export type AutomationOutputs = {
   releaseId?: string
@@ -203,6 +205,7 @@ export type AutomationVersion = {
 }
 /** Optional run-history filters; the backend scopes them to the caller's workspace. */
 export type AutomationHistoryFilter = {
+  mode?: 'automation' | 'legacy'
   before?: string
   definitionId?: string
   versionId?: string

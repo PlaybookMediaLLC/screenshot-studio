@@ -44,8 +44,9 @@ browser authorization. No live account has been authorized yet. The credential
 storage prerequisite now has PostgreSQL, race-detector and non-root container
 verification: authenticated encryption, legacy backfill/key rotation, state-bound
 custom OAuth secrets and scoped linked-account refresh propagation. These checks
-do not mark a provider acceptance criterion complete. Legacy Temporal payloads
-and the remaining provider flows must be finished before browser handoff.
+do not mark a provider acceptance criterion complete. Credential-free social
+workflow payloads now have local Temporal history/replay proof and stale-account
+activity tests; remaining provider flows must be finished before browser handoff.
 
 ## Coverage matrix
 

@@ -17,12 +17,15 @@ import (
 	"github.com/lucsky/cuid"
 )
 
+func init() {
+	// Set once before test workers start; rewriting time.Local during gRPC polling races.
+	time.Local = time.UTC
+}
+
 // Open creates a fresh database for the test, applies the social migrations,
 // and drops it when the test ends.
 func Open(t *testing.T) *ent.Client {
 	t.Helper()
-	// The original app runs with TZ=UTC: timestamp columns hold UTC wall time.
-	time.Local = time.UTC
 	base := os.Getenv("SOCIAL_TEST_DATABASE_URL")
 	if base == "" {
 		t.Skip("SOCIAL_TEST_DATABASE_URL is not set")

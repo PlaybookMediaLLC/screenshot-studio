@@ -128,10 +128,20 @@ OAuth states (one hour) have expired. Keep historical keys with backups for the
 backup retention period. Never rotate the legacy `JWT_SECRET` before the custom
 credential backfill completes.
 
-This protects database credentials and temporary custom OAuth client state.
-Legacy social Temporal activity payloads still need their separate token-removal
-cutover before live-account verification; encryption here does not rewrite
-existing workflow history.
+Social Temporal payloads now omit access tokens, refresh tokens and custom
+credentials. Activities reload the current account and reject removed, disabled,
+reconnect-required, changed-identity or wrong-workspace accounts before provider
+calls. Refresh results contain a fixed non-secret success marker for frozen
+workflow versions; the next activity reloads the committed token. Retire all old
+Go/TypeScript social workers that depend on payload credentials during the
+coordinated rollout. Existing workflow names and activity names remain unchanged.
+
+This change does not erase prior workflow history. Restrict access to historical
+runs and retain the configured history expiration policy; rotate any credentials
+previously exposed through an unauthorized history read. New live-account checks
+must use the updated API and workers. A local real-Temporal refresh/publish probe
+verifies absence of credential values in durable history and successful replay;
+frozen V101 and V112 refresh paths are also covered by workflow tests.
 
 The [DigitalOcean guide](digitalocean-deployment.md) describes the App
 Platform renderer and release commands. The intended order is database backup,

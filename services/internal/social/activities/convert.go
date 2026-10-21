@@ -23,7 +23,7 @@ func timePtr(d *JSDate) *time.Time {
 	return &d.Time
 }
 
-// toIntegration is the full Prisma row, token included; nil stays null.
+// toIntegration retains credentials only in activity memory; JSON excludes them.
 func toIntegration(i *ent.Integration) *Integration {
 	if i == nil {
 		return nil

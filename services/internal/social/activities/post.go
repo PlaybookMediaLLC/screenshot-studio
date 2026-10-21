@@ -175,6 +175,10 @@ func (a *PostActivities) IsCommentable(ctx context.Context, in *Integration) (bo
 }
 
 func (a *PostActivities) PostComment(ctx context.Context, postID string, lastPostID *string, in *Integration, list []Post) ([]integrations.PostResponse, error) {
+	in, err := a.currentIntegration(ctx, in)
+	if err != nil {
+		return nil, err
+	}
 	// kept only for in-flight postWorkflowV108 runs, which set a
 	// heartbeatTimeout on this activity - removing the sender would kill
 	// them. Under V109+ (no heartbeatTimeout) this is a no-op and can be
@@ -202,6 +206,10 @@ func (a *PostActivities) PostComment(ctx context.Context, postID string, lastPos
 			last := ""
 			if lastPostID != nil {
 				last = *lastPostID
+			}
+			in, err = a.currentIntegration(ctx, in)
+			if err != nil {
+				return nil, err
 			}
 			return commenter.Comment(ctx, in.InternalID, postID, last, in.Token, mapped, entIntegration(in))
 		})
@@ -239,6 +247,10 @@ func handleDisconnect[T any](ctx context.Context, a *PostActivities, in *Integra
 }
 
 func (a *PostActivities) postSocialInternal(ctx context.Context, in *Integration, list []Post, allowPending bool) ([]integrations.PostResponse, error) {
+	in, err := a.currentIntegration(ctx, in)
+	if err != nil {
+		return nil, err
+	}
 	// kept only for in-flight postWorkflowV108 runs, which set a
 	// heartbeatTimeout on this activity - removing the sender would kill
 	// them. Under V109+ (no heartbeatTimeout) this is a no-op and can be
@@ -284,6 +296,10 @@ func (a *PostActivities) postSocialBody(ctx context.Context, in *Integration, li
 	}
 
 	temporalx.SetHeartbeatDetails(ctx, in.ProviderIdentifier+": publish")
+	in, err = a.currentIntegration(ctx, in)
+	if err != nil {
+		return nil, err
+	}
 	var postNow []integrations.PostResponse
 	if pending, ok := provider.(integrations.PendingPoster); allowPending && ok {
 		postNow, err = pending.PostPending(ctx, in.InternalID, in.Token, mapped, entIntegration(in))
@@ -392,6 +408,10 @@ func mediaContent(list []map[string]any) ([]integrations.MediaContent, error) {
 }
 
 func (a *PostActivities) CheckPostStatus(ctx context.Context, in *Integration, pendingData json.RawMessage) (*integrations.PendingCheckResponse, error) {
+	in, err := a.currentIntegration(ctx, in)
+	if err != nil {
+		return nil, err
+	}
 	provider, err := a.provider(in.ProviderIdentifier)
 	if err != nil {
 		return nil, err
@@ -402,6 +422,10 @@ func (a *PostActivities) CheckPostStatus(ctx context.Context, in *Integration, p
 }
 
 func (a *PostActivities) FinalizePost(ctx context.Context, in *Integration, pendingData json.RawMessage) (*integrations.PendingCheckResponse, error) {
+	in, err := a.currentIntegration(ctx, in)
+	if err != nil {
+		return nil, err
+	}
 	provider, err := a.provider(in.ProviderIdentifier)
 	if err != nil {
 		return nil, err
@@ -439,6 +463,10 @@ func (a *PostActivities) ChangeState(ctx context.Context, id, state string, errV
 }
 
 func (a *PostActivities) InternalPlugs(ctx context.Context, in *Integration, settings json.RawMessage) ([]InternalPlug, error) {
+	in, err := a.currentIntegration(ctx, in)
+	if err != nil {
+		return nil, err
+	}
 	list, err := a.posts.CheckInternalPlug(entIntegration(in), in.OrganizationID, in.ID, settings)
 	if err != nil {
 		return nil, err
@@ -547,6 +575,10 @@ func (a *PostActivities) RefreshToken(ctx context.Context, in *Integration) (OrF
 // RefreshTokenWithCause also serves refreshToken (cause ""): there the
 // between-steps message is err.message, here cause || err.message.
 func (a *PostActivities) RefreshTokenWithCause(ctx context.Context, in *Integration, cause string) (OrFalse[integrations.AuthTokenDetails], error) {
+	in, err := a.currentIntegration(ctx, in)
+	if err != nil {
+		return OrFalse[integrations.AuthTokenDetails]{}, err
+	}
 	row := entIntegration(in)
 	refresh, err := a.refresh.Refresh(ctx, row, cause)
 	if err != nil {
@@ -568,5 +600,9 @@ func (a *PostActivities) RefreshTokenWithCause(ctx context.Context, in *Integrat
 			t.Stop()
 		}
 	}
-	return OrFalse[integrations.AuthTokenDetails]{V: refresh}, nil
+	// Frozen workflows use a nonempty accessToken as their success signal.
+	// This marker is not a credential; the next activity reloads the saved token.
+	safe := *refresh
+	safe.AccessToken, safe.RefreshToken = "backend-owned", ""
+	return OrFalse[integrations.AuthTokenDetails]{V: &safe}, nil
 }

@@ -131,14 +131,25 @@ func (f *fixture) list(t *testing.T) []Post {
 	return list
 }
 
-func TestIntegrationWireIncludesToken(t *testing.T) {
+func TestIntegrationWireExcludesCredentials(t *testing.T) {
 	f := setup(t)
+	refresh, custom := "private-refresh", "private-custom"
+	f.in.RefreshToken, f.in.CustomInstanceDetails = &refresh, &custom
 	data, err := json.Marshal(f.in)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), `"token":"secret-token"`) || !strings.Contains(string(data), `"refreshToken":null`) {
-		t.Fatalf("integration = %s", data)
+	for _, forbidden := range []string{"secret-token", "private-refresh", "private-custom", `"token"`, `"refreshToken"`, `"customInstanceDetails"`} {
+		if strings.Contains(string(data), forbidden) {
+			t.Fatal("credential field appeared in workflow payload")
+		}
+	}
+	var legacy Integration
+	if err := json.Unmarshal([]byte(`{"id":"account","organizationId":"org","token":"old-access","refreshToken":"old-refresh","customInstanceDetails":"old-custom"}`), &legacy); err != nil {
+		t.Fatal(err)
+	}
+	if legacy.ID != "account" || legacy.OrganizationID != "org" || legacy.Token != "" || legacy.RefreshToken != nil || legacy.CustomInstanceDetails != nil {
+		t.Fatal("legacy payload did not retain identity while discarding credentials")
 	}
 
 	list := f.list(t)
@@ -195,6 +206,7 @@ func TestPostSocialDisconnectBecomesBadBody(t *testing.T) {
 	}
 
 	// other provider failures surface unchanged
+	f.client.Integration.UpdateOneID(f.in.ID).SetRefreshNeeded(false).ExecX(f.ctx)
 	f.provider.err = temporalx.RefreshToken("fake", "{}", "{}", "expired")
 	if _, err := f.a.PostSocial(f.ctx, f.in, f.list(t)[:1]); temporalx.FailureType(err) != temporalx.TypeRefreshToken {
 		t.Fatalf("err = %v", err)

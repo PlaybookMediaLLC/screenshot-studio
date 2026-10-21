@@ -42,8 +42,14 @@ is restricted to the same workspace and provider and preserves a refresh token
 when a provider returns no replacement. The social database/API/provider,
 notification, publishing, and product suites pass; the affected storage/controller
 packages also pass the race detector. The production non-root image builds and
-its social API health and migration/backfill commands pass locally. Live-account
-verification still waits for the legacy Temporal payload and provider-flow work.
+its social API health and migration/backfill commands pass locally. Social workflow
+payloads now omit credentials; provider activities reload the account and verify
+its current workspace, identity and usable state before external calls. A real
+local Temporal refresh/publish probe confirms that durable history contains no
+fixture credentials and replays successfully. V101/V112 refresh workflows keep
+their existing names and sequence, using a non-secret success marker instead of
+a returned access token. Live-account verification still waits for provider-flow
+work and deployment of the updated local API/worker image.
 
 `20261031100000_social_oauth_receipts.sql` is additive. Existing social and Slack starts remain pending with the same original identities, set, and expiry. Pending starts expire after one hour. Completed receipts can replay for 24 hours, subject to current authorization. Maintenance removes completed receipts after that window and other expired social starts after another 24 hours. Shared Slack starts retain their existing single-use deletion and expiry behavior.
 

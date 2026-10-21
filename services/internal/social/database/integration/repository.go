@@ -484,6 +484,8 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 			}
 			if expiresIn != 0 {
 				u.SetTokenExpiration(time.Now().Add(time.Duration(expiresIn) * time.Second))
+			} else {
+				u.ClearTokenExpiration()
 			}
 			u.SetInternalID(p.InternalID)
 			u.SetOrganizationID(p.Org)
@@ -518,6 +520,8 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 		}
 		if expiresIn != 0 {
 			u.SetTokenExpiration(time.Now().Add(time.Duration(expiresIn) * time.Second))
+		} else {
+			u.ClearTokenExpiration()
 		}
 		if err := u.Exec(ctx); err != nil {
 			return nil, err

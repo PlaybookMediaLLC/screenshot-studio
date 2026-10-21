@@ -39,6 +39,7 @@ var (
 type Provider struct {
 	*integrations.Base
 	identifier string
+	client     *http.Client
 }
 
 var (
@@ -53,6 +54,27 @@ func New() *Provider { return NewFor(identifier) }
 // fetch failures carry it the way `this.identifier` does in TypeScript.
 func NewFor(id string) *Provider {
 	return &Provider{Base: integrations.NewBase(id, handleErrors), identifier: id}
+}
+
+// NewForWithClient keeps custom-instance credential requests on the supplied
+// transport, including media uploads and delayed publishing activities.
+func NewForWithClient(id string, client *http.Client) *Provider {
+	p := NewFor(id)
+	p.client = client
+	return p
+}
+
+func (p *Provider) instanceClient() *http.Client {
+	if p.client != nil {
+		return p.client
+	}
+	return ssrf.Client()
+}
+
+// Fetch applies the instance transport to requests made by the shared adapter.
+func (p *Provider) Fetch(ctx context.Context, url string, req integrations.Request) (*integrations.Response, error) {
+	req.Client = p.instanceClient()
+	return p.Base.Fetch(ctx, url, req)
 }
 
 func (p *Provider) Info() integrations.Info {
@@ -199,7 +221,11 @@ func (p *Provider) UploadFile(ctx context.Context, instanceURL, fileURL, accessT
 		}
 		// identity encoding so content-length matches the streamed bytes
 		fileReq.Header.Set("Accept-Encoding", "identity")
-		fileRes, err := ssrf.Client().Do(fileReq)
+		mediaClient := ssrf.Client()
+		if p.client != nil {
+			mediaClient = ssrf.PublicClient()
+		}
+		fileRes, err := mediaClient.Do(fileReq)
 		if err != nil {
 			return "", err
 		}
@@ -250,7 +276,7 @@ func (p *Provider) UploadFile(ctx context.Context, instanceURL, fileURL, accessT
 		}
 		req.Header.Set("Content-Type", w.FormDataContentType())
 		req.Header.Set("Authorization", "Bearer "+accessToken)
-		res, err := ssrf.Client().Do(req)
+		res, err := p.instanceClient().Do(req)
 		if err != nil {
 			return "", err
 		}
@@ -346,7 +372,7 @@ func (p *Provider) CheckPostStatus(ctx context.Context, accessToken string, raw 
 			return pendingResponse("pending", raw), nil
 		}
 		req.Header.Set("Authorization", "Bearer "+accessToken)
-		res, err := ssrf.Client().Do(req)
+		res, err := p.instanceClient().Do(req)
 		if err != nil {
 			// Transient status-check error: the media may finish processing
 			// just fine, keep polling - if the instance stays broken the

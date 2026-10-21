@@ -2,84 +2,300 @@ package mastodoncustom
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/helpers"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/mastodon"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
 	"go.temporal.io/sdk/temporal"
 )
 
-func TestCustomInstance(t *testing.T) {
-	t.Setenv("DISABLE_SSRF_PROTECTION", "true")
-	t.Setenv("JWT_SECRET", "secret")
-	t.Setenv("FRONTEND_URL", "https://app.example.com")
-	t.Setenv("MASTODON_URL", "")
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = r.ParseMultipartForm(1 << 20)
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func fixtureProvider(handler http.HandlerFunc) *Provider {
+	return newProvider(&http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		recorder := httptest.NewRecorder()
+		handler(recorder, r)
+		return recorder.Result(), nil
+	})})
+}
+
+func clientInfo(origin string) *integrations.ClientInformation {
+	return &integrations.ClientInformation{ClientID: "client+id", ClientSecret: "secret-canary", InstanceURL: origin}
+}
+
+func authParams() integrations.AuthenticateParams {
+	return integrations.AuthenticateParams{Code: "code-canary", CodeVerifier: strings.Repeat("v", 64)}
+}
+
+func storedIntegration(t *testing.T, origin string) *ent.Integration {
+	t.Helper()
+	t.Setenv("PLATFORM_SOCIAL_ENCRYPTION_KEY", "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=")
+	data, err := json.Marshal(clientInfo(origin))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sealed, err := credentialcipher.Seal(string(data), "custom-instance")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &ent.Integration{CustomInstanceDetails: &sealed}
+}
+
+func TestCustomInstanceAuthorization(t *testing.T) {
+	t.Setenv("FRONTEND_URL", "https://app.example.com/")
+	calls := 0
+	p := fixtureProvider(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.URL.Scheme != "https" || r.URL.Host != "example.social" {
+			t.Errorf("wrong instance %s", r.URL)
+		}
+		_ = r.ParseForm()
 		switch r.URL.Path {
 		case "/api/v1/apps":
-			if r.FormValue("client_name") != "Shots" || r.FormValue("redirect_uris") != "https://app.example.com/integrations/social/mastodon" ||
-				r.FormValue("scopes") != "write:statuses profile write:media" || r.FormValue("website") != "https://app.example.com" {
-				w.WriteHeader(400)
-				return
+			if r.Form.Get("redirect_uris") != "https://app.example.com/integrations/social/mastodon-custom" || r.Form.Get("scopes") != strings.Join(scopes, " ") {
+				t.Errorf("incorrect registration fields")
 			}
-			_, _ = w.Write([]byte(`{"client_id":"cid","client_secret":"secret","name":"Shots"}`))
+			_, _ = io.WriteString(w, `{"client_id":"client+id","client_secret":"secret-canary"}`)
 		case "/oauth/token":
-			_, _ = w.Write([]byte(`{"access_token":"tok"}`))
+			if r.Form.Get("redirect_uri") != "https://app.example.com/integrations/social/mastodon-custom" ||
+				r.Form.Get("code_verifier") != authParams().CodeVerifier || r.Form.Get("code") != "code-canary" || r.Form.Get("client_secret") != "secret-canary" {
+				t.Errorf("incorrect token exchange fields")
+			}
+			_, _ = io.WriteString(w, `{"access_token":"token-canary","token_type":"Bearer","scope":"read:accounts write:media write:statuses"}`)
 		case "/api/v1/accounts/verify_credentials":
-			_, _ = w.Write([]byte(`{"id":"7","acct":"me","username":"me"}`))
-		case "/api/v1/statuses":
-			if r.FormValue("in_reply_to_id") != "parent" {
-				w.WriteHeader(500)
+			if r.Header.Get("Authorization") != "Bearer token-canary" {
+				t.Error("missing bearer")
+			}
+			_, _ = io.WriteString(w, `{"id":"7","acct":"me","username":"me","avatar":"https://cdn.example.com/me.png"}`)
+		default:
+			t.Fatalf("unexpected request %s", r.URL.Path)
+		}
+	})
+	client, err := p.ExternalURL(context.Background(), "EXAMPLE.social/")
+	if err != nil || client.InstanceURL != "https://example.social" {
+		t.Fatalf("registration: %v", err)
+	}
+	generated, err := p.GenerateAuthURL(context.Background(), client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, err := url.Parse(generated.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	challenge := sha256.Sum256([]byte(generated.CodeVerifier))
+	q := u.Query()
+	if u.Host != "example.social" || u.Path != "/oauth/authorize" || q.Get("client_id") != "client+id" ||
+		q.Get("redirect_uri") != "https://app.example.com/integrations/social/mastodon-custom" || q.Get("state") != generated.State || len(generated.State) < 32 ||
+		q.Get("code_challenge_method") != "S256" || q.Get("code_challenge") != base64.RawURLEncoding.EncodeToString(challenge[:]) || q.Has("client_secret") {
+		t.Fatalf("invalid authorization URL")
+	}
+	auth, err := p.Authenticate(context.Background(), authParams(), client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if auth.ID != "mastodon:example.social:7" || auth.Username != "me@example.social" || auth.Name != "me" ||
+		auth.AccessToken != "token-canary" || auth.RefreshToken != "" || !auth.NonExpiring || auth.ExpiresIn != 0 || calls != 3 {
+		t.Fatal("account identity or token semantics were not verified")
+	}
+}
+
+func TestCustomInstanceIdentityAndPermissions(t *testing.T) {
+	for _, tc := range []struct {
+		name, token, account       string
+		wantError, wantAccountCall bool
+	}{
+		{"broad grants", `{"access_token":"tok","token_type":"bearer","scope":"read write"}`, `{"id":"7","username":"me","acct":"me"}`, false, true},
+		{"missing media grant", `{"access_token":"tok","token_type":"Bearer","scope":"read:accounts write:statuses"}`, "{}", true, false},
+		{"missing scopes", `{"access_token":"tok","token_type":"Bearer"}`, "{}", true, false},
+		{"missing token", `{"token_type":"Bearer","scope":"read write"}`, "{}", true, false},
+		{"wrong token type", `{"access_token":"tok","token_type":"MAC","scope":"read write"}`, "{}", true, false},
+		{"header injection", `{"access_token":"tok\r\nsecret","token_type":"Bearer","scope":"read write"}`, "{}", true, false},
+		{"missing identity", `{"access_token":"tok","token_type":"Bearer","scope":"read write"}`, `{"username":"me","acct":"me"}`, true, true},
+		{"remote identity", `{"access_token":"tok","token_type":"Bearer","scope":"read write"}`, `{"id":"7","username":"me","acct":"me@other.social"}`, true, true},
+		{"path identity", `{"access_token":"tok","token_type":"Bearer","scope":"read write"}`, `{"id":"../7","username":"me","acct":"me"}`, true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			accountCalled := false
+			p := fixtureProvider(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/oauth/token" {
+					_, _ = io.WriteString(w, tc.token)
+				} else {
+					accountCalled = true
+					_, _ = io.WriteString(w, tc.account)
+				}
+			})
+			first, err := p.Authenticate(context.Background(), authParams(), clientInfo("one.social"))
+			if (err != nil) != tc.wantError || accountCalled != tc.wantAccountCall {
+				t.Fatalf("verification mismatch: %v", err)
+			}
+			if tc.wantError {
 				return
 			}
-			w.WriteHeader(401)
-		default:
-			w.WriteHeader(404)
+			second, err := p.Authenticate(context.Background(), authParams(), clientInfo("two.social"))
+			if err != nil || first.ID == second.ID {
+				t.Fatal("numeric account IDs collided across servers")
+			}
+		})
+	}
+}
+
+func TestCustomInstanceFailsClosed(t *testing.T) {
+	t.Setenv("DISABLE_SSRF_PROTECTION", "true")
+	calls := 0
+	p := fixtureProvider(func(w http.ResponseWriter, r *http.Request) { calls++ })
+	for _, origin := range []string{"", "http://example.social", "https://127.0.0.1", "https://localhost", "https://user:pass@example.social", "https://example.social/path", "https://example.social:443"} {
+		if _, err := p.ExternalURL(context.Background(), origin); err == nil {
+			t.Errorf("accepted %s", origin)
 		}
-	}))
-	defer server.Close()
-
-	p := New()
-	if info := p.Info(); info.Identifier != "mastodon-custom" || info.Name != "M. Instance" || info.MaxConcurrentJob != 5 {
-		t.Fatalf("info %+v", info)
+		if _, err := p.GenerateAuthURL(context.Background(), clientInfo(origin)); err == nil {
+			t.Errorf("authorized %s", origin)
+		}
+		if _, err := p.Authenticate(context.Background(), authParams(), clientInfo(origin)); err == nil {
+			t.Errorf("exchanged %s", origin)
+		}
 	}
-	var _ integrations.ExternalURLer = p
-
-	client, err := p.ExternalURL(context.Background(), server.URL)
-	if err != nil || client.ClientID != "cid" || client.ClientSecret != "secret" {
-		t.Fatalf("external url: %v %+v", err, client)
+	if _, err := p.GenerateAuthURL(context.Background(), nil); err == nil {
+		t.Error("accepted missing client")
 	}
-
-	auth, err := p.GenerateAuthURL(context.Background(), &integrations.ClientInformation{ClientID: "cid", InstanceURL: server.URL})
-	if err != nil || auth.URL[:len(server.URL)+32] != server.URL+"/oauth/authorize?client_id=cid&r" {
-		t.Fatalf("auth url %v %+v", err, auth)
+	if _, err := p.Authenticate(context.Background(), integrations.AuthenticateParams{Code: "code"}, clientInfo("example.social")); err == nil {
+		t.Error("accepted missing verifier")
 	}
-
-	// no refresh token: "" rather than upstream's stored string "null"
-	token, err := p.Authenticate(context.Background(), integrations.AuthenticateParams{Code: "c"}, &integrations.ClientInformation{ClientID: "cid", ClientSecret: "secret", InstanceURL: server.URL})
-	if err != nil || token.AccessToken != "tok" || token.RefreshToken != "" {
-		t.Fatalf("authenticate %v %+v", err, token)
+	if calls != 0 {
+		t.Fatalf("invalid connection reached provider %d times", calls)
 	}
+}
 
-	// the stored instance URL is used, and failures carry the subclass id
-	details, _ := helpers.FixedEncryption(`{"instanceUrl":"` + server.URL + `"}`)
-	_, err = p.Comment(context.Background(), "", "parent", "", "tok", []integrations.PostDetails{{ID: "c", Message: "hi"}}, &ent.Integration{CustomInstanceDetails: &details})
+func TestCustomInstanceRejectsProviderFailuresWithoutSecretsOrRetries(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		status int
+		body   string
+	}{
+		{"denied", 400, `{"error":"secret-canary code-canary token-canary"}`},
+		{"rate limited", 429, `secret-canary`},
+		{"server failure", 500, `secret-canary`},
+		{"redirect", 302, `secret-canary`},
+		{"invalid json", 200, `secret-canary`},
+		{"oversized", 200, strings.Repeat(" ", responseLimit) + `{}`},
+		{"empty credentials", 200, `{}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := 0
+			p := fixtureProvider(func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				w.Header().Set("Location", "https://other.social/steal")
+				w.WriteHeader(tc.status)
+				_, _ = io.WriteString(w, tc.body)
+			})
+			_, err := p.ExternalURL(context.Background(), "example.social")
+			if err == nil || strings.Contains(err.Error(), "canary") || calls != 1 {
+				t.Fatalf("unsafe registration failure: %v, %d calls", err, calls)
+			}
+			calls = 0
+			_, err = p.Authenticate(context.Background(), authParams(), clientInfo("example.social"))
+			if err == nil || strings.Contains(err.Error(), "canary") || calls != 1 {
+				t.Fatalf("unsafe exchange failure: %v, %d calls", err, calls)
+			}
+		})
+	}
+}
+
+func TestCustomInstancePublishingBindsStoredOrigin(t *testing.T) {
+	integration := storedIntegration(t, "example.social")
+	calls := 0
+	p := fixtureProvider(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.URL.Host != "example.social" || r.Header.Get("Authorization") != "Bearer token-canary" {
+			t.Error("wrong token destination")
+		}
+		if r.URL.Path == "/api/v1/statuses" {
+			_, _ = io.WriteString(w, `{"id":"42"}`)
+		} else {
+			_, _ = io.WriteString(w, `{"id":"9"}`)
+		}
+	})
+	posts := []integrations.PostDetails{{ID: "post", Message: "test"}}
+	pending, err := p.PostPending(context.Background(), "account", "token-canary", posts, integration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.CheckPostStatus(context.Background(), "token-canary", pending[0].PendingData, integration); err != nil {
+		t.Fatal(err)
+	}
+	result, err := p.FinalizePost(context.Background(), "token-canary", pending[0].PendingData, integration)
+	if err != nil || result.PostID != "42" {
+		t.Fatalf("finalize: %v", err)
+	}
+	if _, err := p.Post(context.Background(), "account", "token-canary", posts, integration); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.Comment(context.Background(), "account", "42", "", "token-canary", posts, integration); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 3 {
+		t.Fatalf("expected three publications, got %d", calls)
+	}
+	bad := "invalid-encrypted-details"
+	for _, stored := range []*ent.Integration{nil, {}, {CustomInstanceDetails: &bad}} {
+		if _, err := p.Post(context.Background(), "", "token-canary", posts, stored); err == nil {
+			t.Error("post accepted missing origin")
+		}
+		if _, err := p.PostPending(context.Background(), "", "token-canary", posts, stored); err == nil {
+			t.Error("pending accepted missing origin")
+		}
+		if _, err := p.Comment(context.Background(), "", "42", "", "token-canary", posts, stored); err == nil {
+			t.Error("comment accepted missing origin")
+		}
+	}
+	for _, origin := range []string{"https://other.social", "https://127.0.0.1", "https://example.social/path", "https://example.social/"} {
+		raw, _ := json.Marshal(mastodon.PendingData{URL: origin, MediaIDs: []string{"9"}})
+		if _, err := p.CheckPostStatus(context.Background(), "token-canary", raw, integration); err == nil {
+			t.Errorf("poll accepted %s", origin)
+		}
+		if _, err := p.FinalizePost(context.Background(), "token-canary", raw, integration); err == nil {
+			t.Errorf("finalize accepted %s", origin)
+		}
+	}
+	if _, err := p.Post(context.Background(), "", "token-canary", nil, integration); err == nil {
+		t.Error("empty post accepted")
+	}
+	if calls != 3 {
+		t.Fatalf("rejected operation reached provider, calls %d", calls)
+	}
+}
+
+func TestCustomInstancePublishingFailureRedactsServerEchoes(t *testing.T) {
+	integration := storedIntegration(t, "example.social")
+	p := fixtureProvider(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(401)
+		_, _ = io.WriteString(w, `{"error":"token-canary secret-canary"}`)
+	})
+	_, err := p.Comment(context.Background(), "", "parent", "", "token-canary", []integrations.PostDetails{{ID: "comment", Message: "hi"}}, integration)
 	if temporalx.FailureType(err) != temporalx.TypeRefreshToken {
-		t.Fatalf("want refresh_token, got %v", err)
+		t.Fatalf("wrong failure: %v", err)
 	}
 	var app *temporal.ApplicationError
-	var d temporalx.FailureDetails
-	if !errors.As(err, &app) || app.Details(&d) != nil || d.Identifier != "mastodon-custom" {
-		t.Fatalf("identifier %q", d.Identifier)
+	var details temporalx.FailureDetails
+	if !errors.As(err, &app) || app.Details(&details) != nil || details.Identifier != identifier {
+		t.Fatal("missing provider failure context")
 	}
-
-	if got := instanceURL(nil); got != "https://mastodon.social" {
-		t.Fatalf("fallback %s", got)
+	encoded, _ := json.Marshal(details)
+	if strings.Contains(string(encoded), "canary") {
+		t.Fatal("provider echoed a credential into durable failure details")
 	}
 }

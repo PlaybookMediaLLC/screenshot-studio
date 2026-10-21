@@ -237,7 +237,10 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 		Timezone:              int(timezone),
 		CustomInstanceDetails: customInstanceDetails,
 	}
-	if auth.ExpiresIn != 0 {
+	if auth.NonExpiring {
+		zero := int64(0)
+		params.ExpiresIn = &zero
+	} else if auth.ExpiresIn != 0 {
 		params.ExpiresIn = &auth.ExpiresIn
 	}
 	createUpdate, err := h.integrations.CreateOrUpdateIntegration(ctx, params)
@@ -477,7 +480,10 @@ func (h *noAuthIntegrationsController) extensionRefreshCookies(c *httpx.Ctx) (an
 		Token:                 authResult.AccessToken,
 		CustomInstanceDetails: signed,
 	}
-	if authResult.ExpiresIn != 0 {
+	if authResult.NonExpiring {
+		zero := int64(0)
+		params.ExpiresIn = &zero
+	} else if authResult.ExpiresIn != 0 {
 		params.ExpiresIn = &authResult.ExpiresIn
 	}
 	if _, err := h.integrations.CreateOrUpdateIntegration(ctx, params); err != nil {

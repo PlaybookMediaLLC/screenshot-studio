@@ -46,7 +46,8 @@ type AuthTokenDetails struct {
 	Error              string              `json:"error,omitempty"`
 	AccessToken        string              `json:"accessToken"`
 	RefreshToken       string              `json:"refreshToken,omitempty"`
-	ExpiresIn          int64               `json:"expiresIn,omitempty"` // seconds
+	ExpiresIn          int64               `json:"expiresIn,omitempty"`   // seconds
+	NonExpiring        bool                `json:"nonExpiring,omitempty"` // verified provider contract; clears any previous expiry
 	Picture            string              `json:"picture,omitempty"`
 	Username           string              `json:"username"`
 	AdditionalSettings []AdditionalSetting `json:"additionalSettings,omitempty"`

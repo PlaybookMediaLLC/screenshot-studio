@@ -208,6 +208,34 @@ func TestMigrateIntegrationOnConnect(t *testing.T) {
 	}
 }
 
+func TestRefreshPreservesVerifiedTokenLifetime(t *testing.T) {
+	f := setup(t, "fake")
+	connected := f.connect(t, CreateOrUpdateIntegrationParams{Name: "Account", InternalID: "account", Provider: "fake", Token: "old", RefreshToken: "refresh"})
+	f.providers["fake"].refresh = func() (*integrations.AuthTokenDetails, error) {
+		return &integrations.AuthTokenDetails{AccessToken: "new", NonExpiring: true}, nil
+	}
+	if _, err := f.service.RefreshIntegrationService().Refresh(f.ctx, connected, "expired"); err != nil {
+		t.Fatal(err)
+	}
+	stored := f.client.Integration.GetX(f.ctx, connected.ID)
+	if stored.TokenExpiration != nil || stored.Token != "new" {
+		t.Fatal("refresh ignored the verified non-expiring lifetime")
+	}
+	for _, tc := range []struct {
+		base, override  integrations.AuthTokenDetails
+		wantNonExpiring bool
+		wantSeconds     int64
+	}{
+		{integrations.AuthTokenDetails{ExpiresIn: 60}, integrations.AuthTokenDetails{NonExpiring: true}, true, 0},
+		{integrations.AuthTokenDetails{NonExpiring: true}, integrations.AuthTokenDetails{ExpiresIn: 60}, false, 60},
+	} {
+		merged := mergeAuth(tc.base, &tc.override)
+		if merged.NonExpiring != tc.wantNonExpiring || merged.ExpiresIn != tc.wantSeconds {
+			t.Fatal("reconnect merged contradictory token lifetimes")
+		}
+	}
+}
+
 func TestGetIntegrationsListAndChannels(t *testing.T) {
 	f := setup(t, "x")
 	a := f.connect(t, CreateOrUpdateIntegrationParams{Name: "A", InternalID: "a", Provider: "x", Token: "t"})

@@ -57,6 +57,49 @@ work and deployment of the updated local API/worker image.
 
 Deploy the Go migration/backend before the web facade. A rollout interrupted after a provider consumed a pre-upgrade code can require a fresh authorization; never assume it is safe to exchange that code again. Rolling the application back may consume pending rows using the earlier deletion semantics; retain the additive columns and connection records when rolling back. No provider tokens are copied into receipts.
 
+## Custom Mastodon adapter preparation
+
+The `mastodon-custom` adapter remains outside the production provider registry
+until its product callback path and a real disposable-account connection are
+verified. Its protocol implementation now registers a confidential client on
+the normalized public HTTPS origin, uses the matching
+`/integrations/social/mastodon-custom` callback in all three OAuth steps, and
+binds a 64-character verifier to an S256 PKCE challenge. The instance client
+ignores the self-hosted SSRF bypass, rejects redirects, checks the actual dialed
+IP, times out after ten seconds, and bounds JSON responses to 1 MiB. App
+registration and code exchange do not automatically retry unknown outcomes.
+Provider error bodies are removed before shared publishing errors can enter
+logs or Temporal history. Public profile-image downloads use the same strict
+public transport so an avatar cannot bypass the instance boundary.
+
+The requested permissions are `read:accounts write:statuses write:media`.
+`read:accounts` supports account verification on instances older than the
+`profile` scope; broader `read`/`write` grants also satisfy these permissions.
+A connection fails before account lookup when any required grant, bearer token,
+or token type is missing. Verified identity uses `mastodon:<server>:<account-id>`;
+handles are display metadata. Equal numeric IDs from different servers remain
+distinct. Missing or corrupt stored instance details fail closed, and delayed
+status/finalize calls reject a pending origin that differs from the encrypted
+connection origin.
+
+Mastodon tokens have no automatic expiry or refresh token. The explicit
+`NonExpiring` result stores a NULL expiry and clears a legacy invented expiry on
+reconnection. This is distinct from an unspecified lifetime on another adapter.
+No database migration is needed for this nullable existing column.
+
+The shared publisher still supplies text/media posting, replies and pending-media
+polling. Status finalization retains its existing idempotency key. Per-instance
+media/length capability discovery, canonical slot aliases with legacy Mastodon
+connections, product start/callback plumbing, and live account verification are
+remaining work; this adapter preparation does not prove those capabilities.
+
+Primary protocol references: [app registration](https://docs.joinmastodon.org/methods/apps),
+[OAuth and PKCE](https://docs.joinmastodon.org/methods/oauth/),
+[granted token fields](https://docs.joinmastodon.org/entities/Token),
+[hierarchical scopes](https://docs.joinmastodon.org/api/oauth-scopes),
+[account verification](https://docs.joinmastodon.org/methods/accounts), and
+[token lifetime](https://docs.joinmastodon.org/api/oauth-tokens).
+
 ## Verification and remaining work
 
 `TestOAuthReceiptsKeepOriginalContextAndIdentity` uses real PostgreSQL for concurrent completion, workspace switching, uncertain exchange, wrong-account reconnect, expiration, role downgrade, private ownership changes, target deletion, and removed-account replay. HTTP tests check one adapter exchange despite callback replay. Web tests cover bound return navigation and completed Instagram callbacks. The fresh-database upgrade test preserves pending X/Slack starts and completed receipts across migration replay.

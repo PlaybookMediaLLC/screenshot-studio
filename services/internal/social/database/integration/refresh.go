@@ -41,7 +41,10 @@ func (r *RefreshIntegrationService) Refresh(ctx context.Context, integration *en
 		picture = *integration.Picture
 	}
 	var expiresIn *int64
-	if refresh.ExpiresIn != 0 {
+	if refresh.NonExpiring {
+		zero := int64(0)
+		expiresIn = &zero
+	} else if refresh.ExpiresIn != 0 {
 		expiresIn = &refresh.ExpiresIn
 	}
 	if _, err := r.service.CreateOrUpdateIntegration(ctx, CreateOrUpdateIntegrationParams{
@@ -151,7 +154,11 @@ func mergeAuth(out integrations.AuthTokenDetails, over *integrations.AuthTokenDe
 	if over.RefreshToken != "" {
 		out.RefreshToken = over.RefreshToken
 	}
-	if over.ExpiresIn != 0 {
+	if over.NonExpiring {
+		out.NonExpiring = true
+		out.ExpiresIn = 0
+	} else if over.ExpiresIn != 0 {
+		out.NonExpiring = false
 		out.ExpiresIn = over.ExpiresIn
 	}
 	if over.Picture != "" {

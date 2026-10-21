@@ -1,5 +1,6 @@
 'use client'
 
+import { useUnsavedCampaignChanges } from '@/components/campaigns/useUnsavedCampaignChanges'
 import { useState } from 'react'
 import { Group, Section } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,8 @@ export function OpenQuestions({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const changed = answers.some((answer, position) => answer.trim() !== questions[position]?.answer)
+
+  useUnsavedCampaignChanges(changed && !saving)
 
   async function save() {
     setSaving(true)

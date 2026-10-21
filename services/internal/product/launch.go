@@ -259,6 +259,9 @@ func (c *Configuration) SaveLaunchSpec(ctx context.Context, actor Actor, release
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := mutableReleaseCampaigns(ctx, tx, actor, releaseID); err != nil {
+		return nil, err
+	}
 	exists, err := tx.Release.Query().Where(release.ID(releaseID), release.OrganizationID(actor.OrganizationID)).Exist(ctx)
 	if err != nil {
 		return nil, err
@@ -318,6 +321,9 @@ func (c *Configuration) ApproveLaunchSpec(ctx context.Context, actor Actor, id s
 		return nil, launchNotFound("Spec")
 	}
 	if err != nil {
+		return nil, err
+	}
+	if err := mutableReleaseCampaigns(ctx, tx, actor, spec.ReleaseID); err != nil {
 		return nil, err
 	}
 	if spec.Status == releasespec.StatusAPPROVED {
@@ -426,6 +432,9 @@ func (c *Configuration) SaveLaunchPlan(ctx context.Context, actor Actor, campaig
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := mutableCampaign(ctx, tx, actor, campaignID); err != nil {
+		return nil, err
+	}
 	exists, err := tx.Campaign.Query().Where(campaign.ID(campaignID), campaign.OrganizationID(actor.OrganizationID)).Exist(ctx)
 	if err != nil {
 		return nil, err
@@ -494,6 +503,9 @@ func (c *Configuration) ApproveLaunchPlan(ctx context.Context, actor Actor, id s
 		return nil, launchNotFound("Plan")
 	}
 	if err != nil {
+		return nil, err
+	}
+	if err := mutableCampaign(ctx, tx, actor, plan.CampaignID); err != nil {
 		return nil, err
 	}
 	if plan.Status == campaignplan.StatusAPPROVED {
@@ -576,6 +588,9 @@ func (c *Configuration) SaveLaunchPosts(ctx context.Context, actor Actor, campai
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := mutableCampaign(ctx, tx, actor, campaignID); err != nil {
+		return nil, err
+	}
 	exists, err := tx.Campaign.Query().Where(campaign.ID(campaignID), campaign.OrganizationID(actor.OrganizationID)).Exist(ctx)
 	if err != nil {
 		return nil, err
@@ -723,6 +738,9 @@ func (c *Configuration) CreateLaunchRevision(ctx context.Context, actor Actor, c
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := mutableCampaign(ctx, tx, actor, campaignID); err != nil {
+		return nil, err
+	}
 	exists, err := tx.Campaign.Query().Where(campaign.ID(campaignID), campaign.OrganizationID(actor.OrganizationID)).Exist(ctx)
 	if err != nil {
 		return nil, err
@@ -792,6 +810,9 @@ func decideLaunchRevision(ctx context.Context, tx *ent.Tx, actor Actor, id strin
 		return nil, launchNotFound("Revision")
 	}
 	if err != nil {
+		return nil, err
+	}
+	if err := mutableCampaign(ctx, tx, actor, row.CampaignID); err != nil {
 		return nil, err
 	}
 	if row.Status != campaignrevision.StatusPROPOSED {
@@ -1289,6 +1310,11 @@ func (c *Configuration) startLaunchRun(ctx context.Context, actor Actor, campaig
 		return nil, err
 	}
 	defer tx.Rollback()
+	if campaignID != nil && kind != "conversation" {
+		if err := mutableCampaign(ctx, tx, actor, *campaignID); err != nil {
+			return nil, err
+		}
+	}
 	now := time.Now().UTC()
 	if campaignID != nil {
 		exists, err := tx.Campaign.Query().Where(campaign.ID(*campaignID), campaign.OrganizationID(actor.OrganizationID)).Exist(ctx)

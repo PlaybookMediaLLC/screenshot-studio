@@ -1,3 +1,4 @@
+import { PlanCampaignAction } from '@/components/launch/PlanCampaignAction'
 import { Tick02Icon } from 'hugeicons-react'
 import Link from 'next/link'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
@@ -53,6 +54,7 @@ function versionStep(versions: Versions, run: LaunchRunView | undefined, running
  */
 export function PipelineSteps({
   campaignId,
+  canEdit = false,
   hasRelease,
   plan,
   produced,
@@ -61,6 +63,7 @@ export function PipelineSteps({
   spec,
 }: {
   campaignId: string
+  canEdit?: boolean
   hasRelease: boolean
   plan: Versions
   produced: { designs: number; posts: number }
@@ -99,12 +102,14 @@ export function PipelineSteps({
     },
     {
       action: {
-        href: `${base}/plan`,
-        label: planStep.latest
-          ? planStep.approved
-            ? 'View plan'
-            : 'Review plan'
-          : 'Plan campaign',
+        href: `${base}/${specStep.latest ? 'plan' : 'spec'}`,
+        label: !specStep.latest
+          ? 'Draft the spec first'
+          : planStep.latest
+            ? planStep.approved
+              ? 'View plan'
+              : 'Review plan'
+            : 'Plan campaign',
       },
       description: 'Channels, angles, assets, and a launch timeline.',
       done: Boolean(planStep.approved),
@@ -113,7 +118,16 @@ export function PipelineSteps({
       title: 'Plan',
     },
     {
-      action: { href: `${base}/assets`, label: madeSomething ? 'Open assets' : 'Produce' },
+      action: {
+        href: `${base}/${!specStep.latest ? 'spec' : !planStep.latest ? 'plan' : 'assets'}`,
+        label: madeSomething
+          ? 'Open assets'
+          : !specStep.latest
+            ? 'Draft the spec first'
+            : !planStep.latest
+              ? 'Plan campaign'
+              : 'Produce',
+      },
       description: 'On-brand visuals and channel copy from the plan.',
       done: madeSomething,
       note: produceError ? { text: `Failed: ${produceError}`, tone: 'red' } : undefined,
@@ -197,7 +211,12 @@ export function PipelineSteps({
               </p>
             ) : null}
             <div className="mt-auto pt-1">
-              {index === next ? (
+              {step.title === 'Plan' && canEdit && specStep.latest && !planStep.latest ? (
+                <PlanCampaignAction
+                  campaignId={campaignId}
+                  activeRunId={runs.plan?.status === 'RUNNING' ? runs.plan.id : null}
+                />
+              ) : index === next ? (
                 <ButtonLink className="rounded-lg" href={step.action.href} size="sm">
                   {step.action.label}
                 </ButtonLink>

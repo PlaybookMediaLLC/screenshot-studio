@@ -320,6 +320,9 @@ func (c *Configuration) UpdateRelease(ctx context.Context, actor Actor, id strin
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := mutableReleaseCampaigns(ctx, tx, actor, id); err != nil {
+		return nil, err
+	}
 	current, err := tx.Release.Query().Where(release.ID(id), release.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return nil, publishing.ErrNotFound

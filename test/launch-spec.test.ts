@@ -80,7 +80,7 @@ test('every text section round-trips through the editing format', () => {
 test('the editing format names the line that is missing a citation', () => {
   const result = parseSection('problem', 'Cited line [S1]\nUncited line')
   assert.equal(result.ok, false)
-  assert.match((result as { errors: string[] }).errors[0]!, /^Line 2: end it with its sources/)
+  assert.match((result as { errors: string[] }).errors[0]!, /^Line 2: add sources/)
   const bad = parseSection('capabilities', 'No separator here [S1]')
   assert.equal(bad.ok, false)
   const invalid = parseSection('whatChanged', 'Claim [S1, website]')

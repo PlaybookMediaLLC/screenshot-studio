@@ -38,6 +38,7 @@ test('campaign studio SDK sends scoped requests to the campaign asset routes', a
     angles: [{ hook: 'Fast', title: 'Speed' }],
     posts: [{ angleIndex: 0, channel: 'x', copy: 'Ship faster' }],
   })
+  await sdk.approveCampaignAsset('campaign-1', 'asset/1')
   await sdk.replaceDesign('design-1', { document: { version: 1 }, variantLabel: 'B' })
   await assert.rejects(
     sdk.getCampaignAsset('campaign-1', 'missing'),
@@ -50,6 +51,7 @@ test('campaign studio SDK sends scoped requests to the campaign asset routes', a
       'GET /v1/campaigns/campaign-1/assets/asset%2F1',
       'PUT /v1/campaigns/campaign-1/assets/asset-1',
       'POST /v1/campaigns/campaign-1/copy',
+      'POST /v1/campaigns/campaign-1/assets/asset%2F1/approval',
       'PUT /v1/designs/design-1',
       'GET /v1/campaigns/campaign-1/assets/missing',
     ]
@@ -59,5 +61,5 @@ test('campaign studio SDK sends scoped requests to the campaign asset routes', a
     angles: [{ hook: 'Fast', title: 'Speed' }],
     posts: [{ angleIndex: 0, channel: 'x', copy: 'Ship faster' }],
   })
-  assert.deepEqual(requests[3].body, { document: { version: 1 }, variantLabel: 'B' })
+  assert.deepEqual(requests[4].body, { document: { version: 1 }, variantLabel: 'B' })
 })

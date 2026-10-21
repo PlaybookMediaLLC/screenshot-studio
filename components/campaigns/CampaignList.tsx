@@ -3,6 +3,8 @@
 import type { CampaignStatus } from '@/lib/tenant/campaign-status'
 import { ArrowRight01Icon, Search01Icon } from 'hugeicons-react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import { useMemo, useState } from 'react'
 import { Group } from '@/components/platform-ui'
 import { CAMPAIGN_STATUSES, CampaignStatusPill, campaignStatusLabel } from './CampaignStatusPill'
@@ -21,6 +23,7 @@ export type CampaignListItem = {
   name: string
   objective: string | null
   releaseTitle: string | null
+  productName?: string | null
   status: CampaignStatus
   updatedAt: string
 }
@@ -35,15 +38,27 @@ function updatedLabel(iso: string): string {
 /** Polar-style list: a toolbar to narrow it down, then one quiet row per campaign. */
 export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState<CampaignStatus | 'ALL'>('ALL')
+  const searchParams = useSearchParams()
+  const rawStatus = searchParams.get('status')
+  const status =
+    rawStatus === 'ALL' || CAMPAIGN_STATUSES.includes(rawStatus as CampaignStatus)
+      ? (rawStatus as CampaignStatus | 'ALL')
+      : 'ACTIVE'
+  function setStatus(next: string) {
+    const params = new URLSearchParams(searchParams.toString())
+    if (next === 'ACTIVE') params.delete('status')
+    else params.set('status', next)
+    window.history.replaceState(null, '', `${location.pathname}${params.size ? `?${params}` : ''}`)
+  }
 
   const visible = useMemo(() => {
     const search = query.trim().toLowerCase()
     return campaigns.filter(
       (campaign) =>
-        (status === 'ALL' || campaign.status === status) &&
+        (status === 'ALL' ||
+          (status === 'ACTIVE' ? campaign.status !== 'ARCHIVED' : campaign.status === status)) &&
         (!search ||
-          `${campaign.name} ${campaign.releaseTitle ?? ''} ${campaign.objective ?? ''}`
+          `${campaign.name} ${campaign.productName ?? ''} ${campaign.releaseTitle ?? ''} ${campaign.objective ?? ''}`
             .toLowerCase()
             .includes(search))
     )
@@ -76,6 +91,7 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="ACTIVE">Active campaigns</SelectItem>
               <SelectItem value="ALL">All statuses</SelectItem>
               {CAMPAIGN_STATUSES.map((value) => (
                 <SelectItem key={value} value={value}>
@@ -88,7 +104,18 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <p className="py-16 text-center text-sm text-muted-foreground">No campaigns match.</p>
+        <div className="py-16 text-center text-sm text-muted-foreground">
+          <p>No campaigns match.</p>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setQuery('')
+              setStatus('ACTIVE')
+            }}
+          >
+            Clear filters
+          </Button>
+        </div>
       ) : (
         <Group>
           {visible.map((campaign) => (
@@ -103,9 +130,10 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
                     {campaign.name}
                   </span>
                   <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                    {campaign.releaseTitle
-                      ? `Release · ${campaign.releaseTitle}`
-                      : (campaign.objective ?? 'No release linked')}
+                    {campaign.productName ??
+                      (campaign.releaseTitle
+                        ? `Release · ${campaign.releaseTitle}`
+                        : (campaign.objective ?? 'No release linked'))}
                   </span>
                 </span>
               </span>

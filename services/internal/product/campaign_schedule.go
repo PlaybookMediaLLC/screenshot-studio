@@ -37,7 +37,7 @@ var campaignChannelPlatforms = map[string][]string{
 
 // campaignChannelLimits mirrors bodyMax in CHANNEL_RULES (lib/launch/guards.ts):
 // the copy plus the call to action, as posted. Other channels keep 3000.
-var campaignChannelLimits = map[string]int{"x": 280, "linkedin": 3000, "instagram": 2200}
+var campaignChannelLimits = map[string]int{"x": 280, "linkedin": 3000, "instagram": 2200, "email": 5000, "changelog": 4000, "product_hunt": 260, "threads": 500, "bluesky": 300}
 
 func campaignChannelLimit(channel string) int {
 	if limit, ok := campaignChannelLimits[channel]; ok {
@@ -105,6 +105,9 @@ func (c *Configuration) ScheduleCampaignPost(ctx context.Context, actor Actor, c
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := mutableCampaign(ctx, tx, actor, campaignID); err != nil {
+		return nil, err
+	}
 	post, err := tx.CampaignPost.Query().Where(campaignpost.ID(postID), campaignpost.CampaignID(campaignID),
 		campaignpost.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {

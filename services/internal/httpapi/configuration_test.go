@@ -709,3 +709,7 @@ func TestWritingDefaultsRejectMachineCredentials(t *testing.T) {
 		t.Fatalf("machine read allowed: %d %s", response.Code, response.Body)
 	}
 }
+
+func (f *fakeConfiguration) ApproveCampaignAsset(ctx context.Context, actor product.Actor, campaignID, assetID string) (*product.CreativeApprovalDecision, error) {
+	return f.ApproveCampaignDesign(ctx, actor, campaignID, assetID)
+}

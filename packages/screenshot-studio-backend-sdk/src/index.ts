@@ -2493,6 +2493,14 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
+  /** Approves a campaign product shot through the design/render approval flow. */
+  async approveCampaignAsset(campaignId: string, assetId: string) {
+    return this.request<{ approval: BackendCreativeApproval; variant: BackendCreativeVariant }>(
+      `v1/campaigns/${encodeURIComponent(campaignId)}/assets/${encodeURIComponent(assetId)}/approval`,
+      { method: 'POST' }
+    )
+  }
+
   async createDesign(input: BackendCreateDesignInput) {
     return this.request<BackendDesign>('v1/designs', { body: input, method: 'POST' })
   }

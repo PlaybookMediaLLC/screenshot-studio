@@ -271,7 +271,7 @@ export function PlatformSidebar({
           <Brand collapsed={collapsed} />
         </div>
 
-        <div className="mt-5 min-h-0 flex-1 overflow-y-auto px-1 [scrollbar-width:none]">
+        <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-1 pt-1 [scrollbar-width:none]">
           <Navigation
             campaignsEnabled={campaignsEnabled}
             collapsed={collapsed}

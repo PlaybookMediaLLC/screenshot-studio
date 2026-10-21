@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 /** A person's preferences (RFC 043); they follow the person across workspaces. */
 export type UserPreferences = {
   developerMode: boolean
@@ -68,23 +70,36 @@ export type AccountDeletionStatus = {
   } | null
 }
 
-/** An account's state, read from the social service. */
-export type SocialAccountHealth =
-  'connected' | 'reconnect_required' | 'expired' | 'revoked' | 'removed' | 'permission_required'
+/** An account's state, verified against its tenant-bound provider record. */
+export const socialAccountHealthSchema = z.enum([
+  'connected',
+  'unverified',
+  'reconnect_required',
+  'expired',
+  'revoked',
+  'removed',
+  'permission_required',
+])
+
+/** An account's verified health. */
+export type SocialAccountHealth = z.output<typeof socialAccountHealthSchema>
+
+/** A provider account and its durable social-set association. */
+export const socialAccountSchema = z.object({
+  avatarUrl: z.string().nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+  displayName: z.string().nullable(),
+  handle: z.string().nullable(),
+  health: socialAccountHealthSchema,
+  id: z.string(),
+  platform: z.string(),
+  /** X Premium comes from the account, never the workspace plan. */
+  premium: z.boolean(),
+  socialSetId: z.string().nullable(),
+})
 
 /** One connected account in a social set. */
-export type SocialAccount = {
-  avatarUrl: string | null
-  createdAt: string
-  displayName: string | null
-  handle: string | null
-  health: SocialAccountHealth
-  id: string
-  platform: string
-  /** X Premium, read from the account (RFC 042); never the workspace's plan. */
-  premium: boolean
-  socialSetId: string | null
-}
+export type SocialAccount = z.output<typeof socialAccountSchema>
 
 /** One X follow-up a new draft starts with. */
 export type EngagementRule = { atLikes: number; enabled: boolean; text?: string }

@@ -63,8 +63,10 @@ func TestContentDraftScheduling(t *testing.T) {
 		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM "user" WHERE id IN ($1,$2)`, "user_"+org, "user_"+other)
 	})
 	owner, foreign := actors[org], actors[other]
+	addCredential := socialCredentialFixture(t, ctx, db.SQL, org)
 	connect := func(platform string) string {
 		t.Helper()
+		addCredential(platform+"-"+id, platform)
 		connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: org, UserID: owner.UserID, RequestID: owner.RequestID, Type: "USER"},
 			publishing.CreateConnectionInput{ExternalAccountID: platform + "-" + id, Platform: platform, ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
 		if err != nil {

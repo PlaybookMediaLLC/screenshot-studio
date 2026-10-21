@@ -50,6 +50,7 @@ import type {
   WritingSample,
 } from './settings-platform.js'
 export type * from './settings-platform.js'
+export { socialAccountHealthSchema, socialAccountSchema } from './settings-platform.ts'
 
 /**
  * Who the web facade acts for. The backend rechecks the principal on every

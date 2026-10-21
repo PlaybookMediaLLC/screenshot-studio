@@ -84,7 +84,7 @@ func TestAccountHealth(t *testing.T) {
 	active := channelconnection.StatusACTIVE
 	cases := [][2]string{
 		{accountHealth(active, true, false, false, false, false, nil, now), AccountConnected},
-		{accountHealth(active, false, false, false, false, false, nil, now), AccountConnected},
+		{accountHealth(active, false, false, false, false, false, nil, now), AccountUnverified},
 		{accountHealth(channelconnection.StatusDISABLED, true, false, false, false, false, nil, now), AccountRemoved},
 		{accountHealth(channelconnection.StatusREVOKED, true, false, false, false, false, nil, now), AccountRevoked},
 		{accountHealth(active, true, true, false, false, false, nil, now), AccountRevoked},
@@ -92,6 +92,9 @@ func TestAccountHealth(t *testing.T) {
 		{accountHealth(active, true, false, true, false, false, nil, now), AccountReconnectRequired},
 		{accountHealth(active, true, false, false, false, true, nil, now), AccountPermissionRequired},
 		{accountHealth(active, true, false, false, false, false, &past, now), AccountExpired},
+		{accountHealth(active, true, false, false, false, false, &now, now), AccountExpired},
+		{accountHealth(channelconnection.StatusDISABLED, false, false, false, false, false, nil, now), AccountRemoved},
+		{accountHealth(channelconnection.StatusREVOKED, false, false, false, false, false, nil, now), AccountRevoked},
 	}
 	for index, tc := range cases {
 		if tc[0] != tc[1] {

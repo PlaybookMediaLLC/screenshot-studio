@@ -47,6 +47,7 @@ const (
 // AccountHealth is an account's state, read from the social service.
 const (
 	AccountConnected          = "connected"
+	AccountUnverified         = "unverified"
 	AccountReconnectRequired  = "reconnect_required"
 	AccountExpired            = "expired"
 	AccountRevoked            = "revoked"
@@ -60,7 +61,7 @@ type SocialAccount struct {
 	CreatedAt   time.Time `json:"createdAt"`
 	DisplayName *string   `json:"displayName"`
 	Handle      *string   `json:"handle"`
-	// Health is connected, reconnect_required, expired, revoked, removed or permission_required.
+	// Health is connected, unverified, reconnect_required, expired, revoked, removed or permission_required.
 	Health      string  `json:"health"`
 	ID          string  `json:"id"`
 	Platform    string  `json:"platform"`
@@ -296,22 +297,22 @@ func accountHealth(status channelconnection.Status, exists, deleted, disabled, r
 	case status == channelconnection.StatusDISABLED:
 		return AccountRemoved
 	case status == channelconnection.StatusREVOKED, exists && deleted:
-		// A missing row is unknown, not revoked: the social API may keep its
-		// own database, and then the provider reports health at publish time.
 		return AccountRevoked
+	case !exists:
+		return AccountUnverified
 	case disabled, refresh:
 		return AccountReconnectRequired
 	case between:
 		return AccountPermissionRequired
-	case expires != nil && expires.Before(now):
+	case expires != nil && !expires.After(now):
 		return AccountExpired
 	}
 	return AccountConnected
 }
 
-// connectionHealth reads the health of the given connections. Without the
-// social service's tables (a deployment that does not run it) every active
-// account reads as connected, which is what the product status says.
+// connectionHealth requires a provider record in the bound social tenant.
+// An active product row alone is not proof of usable provider credentials.
+// Missing provider tables, bindings, or records leave the account unverified.
 func connectionHealth(ctx context.Context, client *ent.Client, organizationID string, connections []*ent.ChannelConnection) (map[string]string, error) {
 	health := make(map[string]string, len(connections))
 	if len(connections) == 0 {
@@ -320,7 +321,7 @@ func connectionHealth(ctx context.Context, client *ent.Client, organizationID st
 	ids := make([]string, 0, len(connections))
 	for _, connection := range connections {
 		ids = append(ids, connection.ID)
-		health[connection.ID] = accountHealth(connection.Status, true, false, false, false, false, nil, time.Now())
+		health[connection.ID] = accountHealth(connection.Status, false, false, false, false, false, nil, time.Now())
 	}
 	var social bool
 	if err := client.PlatformQuery(ctx, `SELECT to_regclass('public."Integration"') IS NOT NULL`, nil, func(row entsql.ColumnScanner) error {
@@ -332,7 +333,8 @@ func connectionHealth(ctx context.Context, client *ent.Client, organizationID st
 	for _, connection := range connections {
 		statuses[connection.ID] = connection.Status
 	}
-	query := `SELECT c.id, i.id IS NOT NULL, coalesce(i."deletedAt" IS NOT NULL, false), coalesce(i.disabled, false),
+	query := `SELECT c.id, coalesce(i.id IS NOT NULL AND length(trim(i.token)) > 0
+        AND (CASE i."providerIdentifier" WHEN 'twitter' THEN 'x' WHEN 'mastodoncustom' THEN 'mastodon' ELSE i."providerIdentifier" END) = c.platform, false), coalesce(i."deletedAt" IS NOT NULL, false), coalesce(i.disabled, false),
 		coalesce(i."refreshNeeded", false), coalesce(i."inBetweenSteps", false), i."tokenExpiration"
 		FROM channel_connection c
 		LEFT JOIN social_tenant_binding b ON b."organizationId" = c."organizationId"

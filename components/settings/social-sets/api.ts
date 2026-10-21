@@ -104,6 +104,7 @@ export const CONNECT_PROVIDERS = [
 /** What to tell someone about an account that is not connected. */
 export const HEALTH_GUIDANCE: Record<SocialSetRecord['accounts'][number]['health'], string> = {
   connected: 'Connected and ready to publish.',
+  unverified: 'The account’s credentials could not be verified. Reconnect it before publishing.',
   expired: "The account's access expired. Reconnect it to publish again.",
   permission_required: 'The platform needs one more step, such as choosing a page. Reconnect to finish it.',
   reconnect_required: 'The platform asked for this account to be connected again. Reconnect it to keep publishing.',

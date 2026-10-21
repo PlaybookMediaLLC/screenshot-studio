@@ -46,8 +46,10 @@ func TestWritePublishing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	addCredential := socialCredentialFixture(t, ctx, w.db.SQL, w.org)
 	connect := func(platform, external string, setID *string) string {
 		t.Helper()
+		addCredential(external, platform)
 		connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: w.org, UserID: owner.UserID, RequestID: owner.RequestID, Type: "USER"},
 			publishing.CreateConnectionInput{ExternalAccountID: external, Platform: platform, ProviderSettings: map[string]any{},
 				SecretReference: "SOCIAL_API_KEY", SocialSetID: setID})

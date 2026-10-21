@@ -71,10 +71,13 @@ func TestSocialSetsPlatform(t *testing.T) {
 		t.Fatalf("default set=%+v err=%v", listed, err)
 	}
 	defaultSet := listed.Items[0]
+	addCredential := socialCredentialFixture(t, ctx, db.SQL, org)
 	connect := func(platform string, setID *string) *publishing.Actor {
 		t.Helper()
 		actor := publishing.Actor{Organization: org, UserID: owner.UserID, RequestID: owner.RequestID, Type: "USER"}
-		if _, err := repo.auth.CreateConnection(ctx, actor, publishing.CreateConnectionInput{ExternalAccountID: platform + "-" + cuid.New(),
+		external := platform + "-" + cuid.New()
+		addCredential(external, platform)
+		if _, err := repo.auth.CreateConnection(ctx, actor, publishing.CreateConnectionInput{ExternalAccountID: external,
 			Platform: platform, ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY", SocialSetID: setID}); err != nil {
 			t.Fatal(err)
 		}

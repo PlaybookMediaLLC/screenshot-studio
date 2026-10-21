@@ -183,6 +183,9 @@ type PlatformSlackInstallation func(*sql.Selector)
 // PlatformSlackPacing is the predicate function for platformslackpacing builders.
 type PlatformSlackPacing func(*sql.Selector)
 
+// PlatformWorkspaceCreation is the predicate function for platformworkspacecreation builders.
+type PlatformWorkspaceCreation func(*sql.Selector)
+
 // PostAutomationRun is the predicate function for postautomationrun builders.
 type PostAutomationRun func(*sql.Selector)
 

@@ -15,7 +15,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
-	"github.com/google/uuid"
 )
 
 var ErrInvalidInput = errors.New("invalid workspace input")
@@ -89,8 +88,10 @@ func (c *Configuration) AuthorizeSensitive(ctx context.Context, actor Actor) err
 }
 
 type CreateWorkspaceInput struct {
-	Name string `json:"name"`
-	Slug string `json:"slug"`
+	Name                          string `json:"name"`
+	Slug                          string `json:"slug"`
+	IdempotencyKey                string `json:"idempotencyKey,omitempty"`
+	KeepCurrentActiveOrganization bool   `json:"keepCurrentActiveOrganization,omitempty"`
 }
 
 type Workspace struct {
@@ -100,41 +101,6 @@ type Workspace struct {
 	Name              string                 `json:"name"`
 	Slug              string                 `json:"slug"`
 	WorkspaceSettings *ent.WorkspaceSettings `json:"workspaceSettings"`
-}
-
-func (c *Configuration) CreateWorkspace(ctx context.Context, actor Actor, input CreateWorkspaceInput) (*Workspace, error) {
-	tx, err := c.client.Tx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-	now := time.Now().UTC()
-	org, err := tx.Organization.Create().SetID(uuid.NewString()).SetName(input.Name).SetSlug(input.Slug).SetCreatedAt(now).Save(ctx)
-	if ent.IsConstraintError(err) {
-		return nil, conflict("This workspace slug is already taken.")
-	}
-	if err != nil {
-		return nil, err
-	}
-	if _, err := tx.Member.Create().SetID(uuid.NewString()).SetOrganizationID(org.ID).
-		SetUserID(actor.UserID).SetRole("owner").SetCreatedAt(now).Save(ctx); err != nil {
-		return nil, err
-	}
-	settings, err := tx.WorkspaceSettings.Create().SetID(org.ID).Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := tx.Session.UpdateOneID(actor.SessionID).SetActiveOrganizationID(org.ID).Save(ctx); err != nil {
-		return nil, err
-	}
-	actor.OrganizationID = org.ID
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.workspace_created", "organization", org.ID); err != nil {
-		return nil, err
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-	return &Workspace{ID: org.ID, CreatedAt: org.CreatedAt, Name: org.Name, Slug: org.Slug, WorkspaceSettings: settings.Unwrap()}, nil
 }
 
 type ListedWorkspaceDeletion struct {

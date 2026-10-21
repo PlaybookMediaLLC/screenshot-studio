@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Group, Row } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { settingsErrorMessage } from '@/lib/settings/client'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { workspaceNameSchema } from '@/lib/workspace/input-schemas'
+import type { WorkspaceCreateInput } from '@/lib/workspace/schemas'
 
 /** A slug from a name, with a short suffix so two teams named alike never collide. */
 function slugFor(name: string): string {
@@ -23,29 +24,37 @@ function slugFor(name: string): string {
 /**
  * New team (RFC 043). A team is a workspace: its own members, roles, billing
  * and social sets. You become its owner, and it needs its own plan before it
- * can publish. Shared sets reach it by copying them in; accounts are
- * connected again there, because credentials stay with their workspace.
+ * can publish. Creating it does not move existing accounts or social sets.
  */
 export function NewTeamSettings({ email }: { email: string }) {
   const trpcClient = useTRPCClient()
   const [name, setName] = useState('')
   const [creating, setCreating] = useState(false)
+  const attempt = useRef<WorkspaceCreateInput | null>(null)
+  const pending = useRef(false)
   const parsed = workspaceNameSchema.safeParse(name)
 
   const create = async () => {
-    if (!parsed.success) return
-    setCreating(true)
-    try {
-      const { organization } = await trpcClient.workspace.create.mutate({
+    if (!parsed.success || pending.current) return
+    if (attempt.current?.name !== parsed.data) {
+      attempt.current = {
         name: parsed.data,
         slug: slugFor(parsed.data),
-      })
+        idempotencyKey: crypto.randomUUID(),
+      }
+    }
+    pending.current = true
+    setCreating(true)
+    try {
+      const { organization } = await trpcClient.workspace.create.mutate(attempt.current)
       await trpcClient.workspace.setActive.mutate({ organizationId: organization.id })
       toast.success(`${parsed.data} is ready. Invite people, then choose its plan in Billing.`)
       window.location.assign('/workspace/members')
     } catch (error) {
       toast.error(settingsErrorMessage(error))
       setCreating(false)
+    } finally {
+      pending.current = false
     }
   }
 

@@ -12,4 +12,6 @@ export const workspaceSlugSchema = z
 export const workspaceCreateSchema = z.object({
   name: workspaceNameSchema,
   slug: workspaceSlugSchema,
+  idempotencyKey: z.uuid().optional(),
+  keepCurrentActiveOrganization: z.boolean().optional(),
 })

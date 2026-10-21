@@ -717,6 +717,18 @@ func (f PlatformSlackPacingFunc) Mutate(ctx context.Context, m ent.Mutation) (en
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSlackPacingMutation", m)
 }
 
+// The PlatformWorkspaceCreationFunc type is an adapter to allow the use of ordinary
+// function as PlatformWorkspaceCreation mutator.
+type PlatformWorkspaceCreationFunc func(context.Context, *ent.PlatformWorkspaceCreationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformWorkspaceCreationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformWorkspaceCreationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformWorkspaceCreationMutation", m)
+}
+
 // The PostAutomationRunFunc type is an adapter to allow the use of ordinary
 // function as PostAutomationRun mutator.
 type PostAutomationRunFunc func(context.Context, *ent.PostAutomationRunMutation) (ent.Value, error)

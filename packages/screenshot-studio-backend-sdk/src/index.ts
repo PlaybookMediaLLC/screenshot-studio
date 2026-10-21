@@ -1,4 +1,6 @@
 import { connectionAvailabilitySchema } from './social-availability.ts'
+import { workspaceCreationInputSchema, type WorkspaceCreationInput } from './workspace-creation.ts'
+export * from './workspace-creation.ts'
 export * from './social-availability.ts'
 import {
   socialOAuthBeginRequestSchema,
@@ -2346,8 +2348,12 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  async createWorkspace(input: { name: string; slug: string }) {
-    return this.request<WorkspaceMutation>('v1/workspaces', { body: input, method: 'POST' })
+  /** Atomically creates a workspace and its owner, or returns an authorized retry. */
+  async createWorkspace(input: WorkspaceCreationInput) {
+    return this.request<WorkspaceMutation>('v1/workspaces', {
+      body: workspaceCreationInputSchema.parse(input),
+      method: 'POST',
+    })
   }
 
   async listWorkspaces() {

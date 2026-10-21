@@ -64,6 +64,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationseenaction"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformworkspacecreation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
@@ -1026,6 +1027,20 @@ func init() {
 	platformslackinstallationDescUpdatedAt := platformslackinstallationFields[13].Descriptor()
 	// platformslackinstallation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	platformslackinstallation.DefaultUpdatedAt = platformslackinstallationDescUpdatedAt.Default.(func() time.Time)
+	platformworkspacecreationFields := schema.PlatformWorkspaceCreation{}.Fields()
+	_ = platformworkspacecreationFields
+	// platformworkspacecreationDescRequestKey is the schema descriptor for request_key field.
+	platformworkspacecreationDescRequestKey := platformworkspacecreationFields[3].Descriptor()
+	// platformworkspacecreation.RequestKeyValidator is a validator for the "request_key" field. It is called by the builders before save.
+	platformworkspacecreation.RequestKeyValidator = platformworkspacecreationDescRequestKey.Validators[0].(func(string) error)
+	// platformworkspacecreationDescRequestHash is the schema descriptor for request_hash field.
+	platformworkspacecreationDescRequestHash := platformworkspacecreationFields[4].Descriptor()
+	// platformworkspacecreation.RequestHashValidator is a validator for the "request_hash" field. It is called by the builders before save.
+	platformworkspacecreation.RequestHashValidator = platformworkspacecreationDescRequestHash.Validators[0].(func(string) error)
+	// platformworkspacecreationDescCreatedAt is the schema descriptor for created_at field.
+	platformworkspacecreationDescCreatedAt := platformworkspacecreationFields[5].Descriptor()
+	// platformworkspacecreation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	platformworkspacecreation.DefaultCreatedAt = platformworkspacecreationDescCreatedAt.Default.(func() time.Time)
 	postautomationrunFields := schema.PostAutomationRun{}.Fields()
 	_ = postautomationrunFields
 	// postautomationrunDescAttempts is the schema descriptor for attempts field.

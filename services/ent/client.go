@@ -74,6 +74,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformworkspacecreation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
@@ -239,6 +240,8 @@ type Client struct {
 	PlatformSlackInstallation *PlatformSlackInstallationClient
 	// PlatformSlackPacing is the client for interacting with the PlatformSlackPacing builders.
 	PlatformSlackPacing *PlatformSlackPacingClient
+	// PlatformWorkspaceCreation is the client for interacting with the PlatformWorkspaceCreation builders.
+	PlatformWorkspaceCreation *PlatformWorkspaceCreationClient
 	// PostAutomationRun is the client for interacting with the PostAutomationRun builders.
 	PostAutomationRun *PostAutomationRunClient
 	// ProductProfile is the client for interacting with the ProductProfile builders.
@@ -389,6 +392,7 @@ func (c *Client) init() {
 	c.PlatformSlackConnection = NewPlatformSlackConnectionClient(c.config)
 	c.PlatformSlackInstallation = NewPlatformSlackInstallationClient(c.config)
 	c.PlatformSlackPacing = NewPlatformSlackPacingClient(c.config)
+	c.PlatformWorkspaceCreation = NewPlatformWorkspaceCreationClient(c.config)
 	c.PostAutomationRun = NewPostAutomationRunClient(c.config)
 	c.ProductProfile = NewProductProfileClient(c.config)
 	c.ProductSurface = NewProductSurfaceClient(c.config)
@@ -580,6 +584,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PlatformSlackConnection:        NewPlatformSlackConnectionClient(cfg),
 		PlatformSlackInstallation:      NewPlatformSlackInstallationClient(cfg),
 		PlatformSlackPacing:            NewPlatformSlackPacingClient(cfg),
+		PlatformWorkspaceCreation:      NewPlatformWorkspaceCreationClient(cfg),
 		PostAutomationRun:              NewPostAutomationRunClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
@@ -698,6 +703,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PlatformSlackConnection:        NewPlatformSlackConnectionClient(cfg),
 		PlatformSlackInstallation:      NewPlatformSlackInstallationClient(cfg),
 		PlatformSlackPacing:            NewPlatformSlackPacingClient(cfg),
+		PlatformWorkspaceCreation:      NewPlatformWorkspaceCreationClient(cfg),
 		PostAutomationRun:              NewPostAutomationRunClient(cfg),
 		ProductProfile:                 NewProductProfileClient(cfg),
 		ProductSurface:                 NewProductSurfaceClient(cfg),
@@ -784,14 +790,14 @@ func (c *Client) Use(hooks ...Hook) {
 		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
-		c.PlatformSlackInstallation, c.PlatformSlackPacing, c.PostAutomationRun,
-		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
-		c.PublicationAttempt, c.Release, c.ReleaseAutomation,
-		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
-		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
-		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
-		c.SocialOAuthStart, c.SocialSet, c.SocialSetWritingSample,
-		c.SocialTenantBinding, c.SourceApp, c.SourceChange,
+		c.PlatformSlackInstallation, c.PlatformSlackPacing,
+		c.PlatformWorkspaceCreation, c.PostAutomationRun, c.ProductProfile,
+		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
+		c.ReleaseAutomation, c.ReleaseAutomationExecutor, c.ReleaseAutomationNode,
+		c.ReleaseAutomationRun, c.ReleaseAutomationVersion, c.ReleaseDocument,
+		c.ReleaseSourceEvent, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
+		c.Session, c.ShareLink, c.SocialOAuthStart, c.SocialSet,
+		c.SocialSetWritingSample, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
 		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.UserPreference,
 		c.WebhookDelivery, c.WebhookDeliveryAttempt, c.WebhookSubscription,
@@ -823,14 +829,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
-		c.PlatformSlackInstallation, c.PlatformSlackPacing, c.PostAutomationRun,
-		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
-		c.PublicationAttempt, c.Release, c.ReleaseAutomation,
-		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
-		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
-		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
-		c.SocialOAuthStart, c.SocialSet, c.SocialSetWritingSample,
-		c.SocialTenantBinding, c.SourceApp, c.SourceChange,
+		c.PlatformSlackInstallation, c.PlatformSlackPacing,
+		c.PlatformWorkspaceCreation, c.PostAutomationRun, c.ProductProfile,
+		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
+		c.ReleaseAutomation, c.ReleaseAutomationExecutor, c.ReleaseAutomationNode,
+		c.ReleaseAutomationRun, c.ReleaseAutomationVersion, c.ReleaseDocument,
+		c.ReleaseSourceEvent, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
+		c.Session, c.ShareLink, c.SocialOAuthStart, c.SocialSet,
+		c.SocialSetWritingSample, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
 		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.UserPreference,
 		c.WebhookDelivery, c.WebhookDeliveryAttempt, c.WebhookSubscription,
@@ -962,6 +968,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PlatformSlackInstallation.mutate(ctx, m)
 	case *PlatformSlackPacingMutation:
 		return c.PlatformSlackPacing.mutate(ctx, m)
+	case *PlatformWorkspaceCreationMutation:
+		return c.PlatformWorkspaceCreation.mutate(ctx, m)
 	case *PostAutomationRunMutation:
 		return c.PostAutomationRun.mutate(ctx, m)
 	case *ProductProfileMutation:
@@ -8974,6 +8982,139 @@ func (c *PlatformSlackPacingClient) mutate(ctx context.Context, m *PlatformSlack
 	}
 }
 
+// PlatformWorkspaceCreationClient is a client for the PlatformWorkspaceCreation schema.
+type PlatformWorkspaceCreationClient struct {
+	config
+}
+
+// NewPlatformWorkspaceCreationClient returns a client for the PlatformWorkspaceCreation from the given config.
+func NewPlatformWorkspaceCreationClient(c config) *PlatformWorkspaceCreationClient {
+	return &PlatformWorkspaceCreationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformworkspacecreation.Hooks(f(g(h())))`.
+func (c *PlatformWorkspaceCreationClient) Use(hooks ...Hook) {
+	c.hooks.PlatformWorkspaceCreation = append(c.hooks.PlatformWorkspaceCreation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformworkspacecreation.Intercept(f(g(h())))`.
+func (c *PlatformWorkspaceCreationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformWorkspaceCreation = append(c.inters.PlatformWorkspaceCreation, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformWorkspaceCreation entity.
+func (c *PlatformWorkspaceCreationClient) Create() *PlatformWorkspaceCreationCreate {
+	mutation := newPlatformWorkspaceCreationMutation(c.config, OpCreate)
+	return &PlatformWorkspaceCreationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformWorkspaceCreation entities.
+func (c *PlatformWorkspaceCreationClient) CreateBulk(builders ...*PlatformWorkspaceCreationCreate) *PlatformWorkspaceCreationCreateBulk {
+	return &PlatformWorkspaceCreationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformWorkspaceCreationClient) MapCreateBulk(slice any, setFunc func(*PlatformWorkspaceCreationCreate, int)) *PlatformWorkspaceCreationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformWorkspaceCreationCreateBulk{err: fmt.Errorf("calling to PlatformWorkspaceCreationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformWorkspaceCreationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformWorkspaceCreationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformWorkspaceCreation.
+func (c *PlatformWorkspaceCreationClient) Update() *PlatformWorkspaceCreationUpdate {
+	mutation := newPlatformWorkspaceCreationMutation(c.config, OpUpdate)
+	return &PlatformWorkspaceCreationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformWorkspaceCreationClient) UpdateOne(_m *PlatformWorkspaceCreation) *PlatformWorkspaceCreationUpdateOne {
+	mutation := newPlatformWorkspaceCreationMutation(c.config, OpUpdateOne, withPlatformWorkspaceCreation(_m))
+	return &PlatformWorkspaceCreationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformWorkspaceCreationClient) UpdateOneID(id string) *PlatformWorkspaceCreationUpdateOne {
+	mutation := newPlatformWorkspaceCreationMutation(c.config, OpUpdateOne, withPlatformWorkspaceCreationID(id))
+	return &PlatformWorkspaceCreationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformWorkspaceCreation.
+func (c *PlatformWorkspaceCreationClient) Delete() *PlatformWorkspaceCreationDelete {
+	mutation := newPlatformWorkspaceCreationMutation(c.config, OpDelete)
+	return &PlatformWorkspaceCreationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformWorkspaceCreationClient) DeleteOne(_m *PlatformWorkspaceCreation) *PlatformWorkspaceCreationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformWorkspaceCreationClient) DeleteOneID(id string) *PlatformWorkspaceCreationDeleteOne {
+	builder := c.Delete().Where(platformworkspacecreation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformWorkspaceCreationDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformWorkspaceCreation.
+func (c *PlatformWorkspaceCreationClient) Query() *PlatformWorkspaceCreationQuery {
+	return &PlatformWorkspaceCreationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformWorkspaceCreation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformWorkspaceCreation entity by its id.
+func (c *PlatformWorkspaceCreationClient) Get(ctx context.Context, id string) (*PlatformWorkspaceCreation, error) {
+	return c.Query().Where(platformworkspacecreation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformWorkspaceCreationClient) GetX(ctx context.Context, id string) *PlatformWorkspaceCreation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformWorkspaceCreationClient) Hooks() []Hook {
+	return c.hooks.PlatformWorkspaceCreation
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformWorkspaceCreationClient) Interceptors() []Interceptor {
+	return c.inters.PlatformWorkspaceCreation
+}
+
+func (c *PlatformWorkspaceCreationClient) mutate(ctx context.Context, m *PlatformWorkspaceCreationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformWorkspaceCreationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformWorkspaceCreationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformWorkspaceCreationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformWorkspaceCreationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformWorkspaceCreation mutation op: %q", m.Op())
+	}
+}
+
 // PostAutomationRunClient is a client for the PostAutomationRun schema.
 type PostAutomationRunClient struct {
 	config
@@ -14360,17 +14501,17 @@ type (
 		PlatformNotificationDelivery, PlatformNotificationInbox,
 		PlatformNotificationPolicy, PlatformNotificationPreference,
 		PlatformNotificationSeenAction, PlatformSlackConnection,
-		PlatformSlackInstallation, PlatformSlackPacing, PostAutomationRun,
-		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
-		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
-		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
-		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
-		ShareLink, SocialOAuthStart, SocialSet, SocialSetWritingSample,
-		SocialTenantBinding, SourceApp, SourceChange, StorePublishingCredential,
-		StoreReview, StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
-		UserPreference, WebhookDelivery, WebhookDeliveryAttempt, WebhookSubscription,
-		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
-		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
+		PlatformSlackInstallation, PlatformSlackPacing, PlatformWorkspaceCreation,
+		PostAutomationRun, ProductProfile, ProductSurface, Project, ProjectVersion,
+		PublicationAttempt, Release, ReleaseAutomation, ReleaseAutomationExecutor,
+		ReleaseAutomationNode, ReleaseAutomationRun, ReleaseAutomationVersion,
+		ReleaseDocument, ReleaseSourceEvent, ReleaseSpec, ScheduledPost,
+		ScreenshotCache, Session, ShareLink, SocialOAuthStart, SocialSet,
+		SocialSetWritingSample, SocialTenantBinding, SourceApp, SourceChange,
+		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
+		SurfaceCapture, User, UserPreference, WebhookDelivery, WebhookDeliveryAttempt,
+		WebhookSubscription, WorkspaceCreditGrant, WorkspaceDeletion,
+		WorkspaceEntitlement, WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
 	}
 	inters struct {
 		AccountDeletionRequest, AgentAuthorization, Apikey, Approval, Asset,
@@ -14388,16 +14529,17 @@ type (
 		PlatformNotificationDelivery, PlatformNotificationInbox,
 		PlatformNotificationPolicy, PlatformNotificationPreference,
 		PlatformNotificationSeenAction, PlatformSlackConnection,
-		PlatformSlackInstallation, PlatformSlackPacing, PostAutomationRun,
-		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
-		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
-		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
-		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
-		ShareLink, SocialOAuthStart, SocialSet, SocialSetWritingSample,
-		SocialTenantBinding, SourceApp, SourceChange, StorePublishingCredential,
-		StoreReview, StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
-		UserPreference, WebhookDelivery, WebhookDeliveryAttempt, WebhookSubscription,
-		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
-		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Interceptor
+		PlatformSlackInstallation, PlatformSlackPacing, PlatformWorkspaceCreation,
+		PostAutomationRun, ProductProfile, ProductSurface, Project, ProjectVersion,
+		PublicationAttempt, Release, ReleaseAutomation, ReleaseAutomationExecutor,
+		ReleaseAutomationNode, ReleaseAutomationRun, ReleaseAutomationVersion,
+		ReleaseDocument, ReleaseSourceEvent, ReleaseSpec, ScheduledPost,
+		ScreenshotCache, Session, ShareLink, SocialOAuthStart, SocialSet,
+		SocialSetWritingSample, SocialTenantBinding, SourceApp, SourceChange,
+		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
+		SurfaceCapture, User, UserPreference, WebhookDelivery, WebhookDeliveryAttempt,
+		WebhookSubscription, WorkspaceCreditGrant, WorkspaceDeletion,
+		WorkspaceEntitlement, WorkspaceGitHubInstallation,
+		WorkspaceSettings []ent.Interceptor
 	}
 )

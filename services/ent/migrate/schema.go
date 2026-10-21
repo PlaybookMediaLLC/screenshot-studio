@@ -1778,6 +1778,33 @@ var (
 		Columns:    PlatformSlackPacingColumns,
 		PrimaryKey: []*schema.Column{PlatformSlackPacingColumns[0]},
 	}
+	// PlatformWorkspaceCreationColumns holds the columns for the "platform_workspace_creation" table.
+	PlatformWorkspaceCreationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "requestKey", Type: field.TypeString, Size: 128},
+		{Name: "requestHash", Type: field.TypeString, Size: 64},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// PlatformWorkspaceCreationTable holds the schema information for the "platform_workspace_creation" table.
+	PlatformWorkspaceCreationTable = &schema.Table{
+		Name:       "platform_workspace_creation",
+		Columns:    PlatformWorkspaceCreationColumns,
+		PrimaryKey: []*schema.Column{PlatformWorkspaceCreationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformworkspacecreation_userId_requestKey",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformWorkspaceCreationColumns[2], PlatformWorkspaceCreationColumns[3]},
+			},
+			{
+				Name:    "platformworkspacecreation_organizationId",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformWorkspaceCreationColumns[1]},
+			},
+		},
+	}
 	// PostAutomationRunColumns holds the columns for the "post_automation_run" table.
 	PostAutomationRunColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -3087,6 +3114,7 @@ var (
 		PlatformSlackConnectionTable,
 		PlatformSlackInstallationTable,
 		PlatformSlackPacingTable,
+		PlatformWorkspaceCreationTable,
 		PostAutomationRunTable,
 		ProductProfileTable,
 		ProductSurfaceTable,
@@ -3309,6 +3337,9 @@ func init() {
 	}
 	PlatformSlackPacingTable.Annotation = &entsql.Annotation{
 		Table: "platform_slack_pacing",
+	}
+	PlatformWorkspaceCreationTable.Annotation = &entsql.Annotation{
+		Table: "platform_workspace_creation",
 	}
 	PostAutomationRunTable.Annotation = &entsql.Annotation{
 		Table: "post_automation_run",

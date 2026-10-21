@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { Suspense, type ComponentProps } from 'react'
 import { ArrowDown01Icon, Image02Icon, PaintBoardIcon, SmartPhone01Icon } from 'hugeicons-react'
@@ -9,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { surface } from './shell-config'
 import { cn } from '@/lib/utils'
+import { SidebarLink } from './SidebarLink'
 
 type EditorSection = 'image' | 'app-store'
 
@@ -16,9 +16,9 @@ type EditorSection = 'image' | 'app-store'
 export function EditorSectionLink({
   section,
   ...props
-}: Omit<ComponentProps<typeof Link>, 'href'> & { section: EditorSection }) {
+}: Omit<ComponentProps<typeof SidebarLink>, 'href'> & { section: EditorSection }) {
   return (
-    <Link
+    <SidebarLink
       {...props}
       data-keep-selection
       href={section === 'app-store' ? '/?editor=app-store' : '/'}
@@ -140,9 +140,9 @@ export function EditorNavigation(props: { collapsed: boolean; onNavigate?: () =>
   return (
     <Suspense
       fallback={
-        <Link href="/" aria-label="Editor">
+        <SidebarLink href="/" aria-label="Editor">
           <PaintBoardIcon size={16} />
-        </Link>
+        </SidebarLink>
       }
     >
       <EditorNavigationContent {...props} />

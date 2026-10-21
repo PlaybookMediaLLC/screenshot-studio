@@ -15,7 +15,6 @@ import {
   WorkflowSquare03Icon,
 } from 'hugeicons-react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { type ComponentType, useEffect, useState } from 'react'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
@@ -33,6 +32,7 @@ import type { z } from 'zod'
 import { surface } from './shell-config'
 import { Button } from '@/components/ui/button'
 import { EditorNavigation } from './EditorNavigation'
+import { SidebarLink } from './SidebarLink'
 
 type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
 type NavItem = { href: string; icon: IconComponent; label: string }
@@ -101,7 +101,7 @@ function NavLink({
     collapsed && 'size-8 justify-center px-0'
   )
   const link = (
-    <Link
+    <SidebarLink
       aria-current={active ? 'page' : undefined}
       aria-label={collapsed ? label : undefined}
       className={rowClassName}
@@ -110,7 +110,7 @@ function NavLink({
     >
       <Icon className="shrink-0" size={16} strokeWidth={1.8} />
       {collapsed ? null : <span className="truncate">{label}</span>}
-    </Link>
+    </SidebarLink>
   )
   return collapsed ? (
     <Tooltip>
@@ -203,12 +203,12 @@ function WorkspaceSwitcher({
 
 function Brand({ collapsed }: { collapsed: boolean }) {
   return (
-    <Link className="flex min-w-0 items-center gap-2.5" href="/">
+    <SidebarLink className="flex min-w-0 items-center gap-2.5" href="/">
       <Image alt="" className="size-6 rounded-md" height={24} src="/logo-mark.png" width={24} />
       {collapsed ? null : (
         <span className="truncate text-sm font-semibold tracking-tight text-foreground">Shots</span>
       )}
-    </Link>
+    </SidebarLink>
   )
 }
 

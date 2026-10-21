@@ -20,7 +20,8 @@ import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { socialSetRemovalSchema, socialSetSchema } from '@/lib/api/contracts/social-sets'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
-import { settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
+import { settingsErrorMessage } from '@/lib/settings/client'
+import { useSocialSetScope } from './scope'
 import {
   CONNECT_PROVIDERS,
   connectHref,
@@ -106,6 +107,7 @@ function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRe
 }
 
 function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord }) {
+  const scope = useSocialSetScope()
   const store = useStoreSocialSet()
   const connected = new Set(set.accounts.map((account) => account.platform))
   return (
@@ -186,13 +188,13 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
                     destructive
                     onConfirm={async () => {
                       try {
-                        const removal = await settingsRequest(
+                        const removal = await scope.request(
                           `/api/v1/social-sets/${encodeURIComponent(set.id)}/accounts/${encodeURIComponent(account.id)}`,
                           socialSetRemovalSchema,
                           { method: 'DELETE' }
                         )
                         await store(
-                          await settingsRequest(
+                          await scope.request(
                             `/api/v1/social-sets/${encodeURIComponent(set.id)}`,
                             socialSetSchema
                           )
@@ -259,6 +261,7 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
 }
 
 function Ownership({ canManage, set }: { canManage: boolean; set: SocialSetRecord }) {
+  const scope = useSocialSetScope()
   const store = useStoreSocialSet()
   if (set.visibility === 'WORKSPACE') {
     return (
@@ -290,7 +293,7 @@ function Ownership({ canManage, set }: { canManage: boolean; set: SocialSetRecor
           onConfirm={async () => {
             try {
               await store(
-                await settingsRequest(
+                await scope.request(
                   `/api/v1/social-sets/${encodeURIComponent(set.id)}/share`,
                   socialSetSchema,
                   { method: 'POST' }
@@ -312,6 +315,7 @@ function Ownership({ canManage, set }: { canManage: boolean; set: SocialSetRecor
 }
 
 function DangerZone({ permissions, set }: { permissions: SetPermissions; set: SocialSetRecord }) {
+  const scope = useSocialSetScope()
   const allowed = set.visibility === 'PRIVATE' ? set.isOwner : permissions.isAdmin
   const list = SETTINGS_SECTIONS.find((section) => section.id === 'social-sets')!
   return (
@@ -328,7 +332,7 @@ function DangerZone({ permissions, set }: { permissions: SetPermissions; set: So
           disabled={!allowed}
           onConfirm={async (typed) => {
             try {
-              await settingsRequest(
+              await scope.request(
                 `/api/v1/social-sets/${encodeURIComponent(set.id)}`,
                 socialSetRemovalSchema,
                 {

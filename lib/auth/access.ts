@@ -13,6 +13,7 @@ import {
 } from './permissions'
 import { type Principal, type SessionPrincipal } from './principal'
 import { auth } from './server'
+import { matchesWorkspaceScope } from './request-scope'
 
 const freshSessionAgeMilliseconds = 15 * 60 * 1000
 
@@ -181,10 +182,22 @@ async function requireActiveSessionOrganization(
   session?: AuthSessionResult
 ): Promise<OrganizationAccess> {
   // The backend rechecks membership, role, and workspace deletion state.
-  return getBackendActiveOrganization(
+  const access = await getBackendActiveOrganization(
     session ?? (await requireAuthSession(headers)),
     getRequestId(headers)
   )
+  if (
+    !matchesWorkspaceScope(headers, {
+      userId: access.principal.userId,
+      workspaceId: access.organizationId,
+    })
+  ) {
+    throw new AuthorizationError(
+      'Your account or workspace changed. Reload this page to continue.',
+      403
+    )
+  }
+  return access
 }
 
 function assertPermission(access: OrganizationAccess, permission: Permission): void {

@@ -1,0 +1,208 @@
+import { randomUUID } from 'node:crypto'
+import { z } from 'zod'
+import { signUpViaApi } from './framework/auth'
+import { browserJson, browserRequest, requestJson } from './framework/browser'
+import { configureE2EFlow, expect, test } from './framework/flow'
+import { grantWorkspacePlan } from './framework/services'
+import { socialSetSchema } from '../../lib/api/contracts/social-sets'
+import { workspaceScopeHeaders } from '../../lib/auth/request-scope'
+
+configureE2EFlow()
+
+test('private social-set caches and delayed mutations stay in their original workspace', async ({
+  identity,
+  page,
+  context,
+}) => {
+  test.setTimeout(180_000)
+  await signUpViaApi(identity, page)
+  expect(
+    (
+      await requestJson(page, '/api/auth/sign-in/email', {
+        email: identity.email,
+        password: identity.password,
+      })
+    ).status
+  ).toBe(200)
+  const person = z
+    .object({ user: z.object({ id: z.string() }) })
+    .parse(await browserJson(page, '/api/auth/get-session')).user
+  const createWorkspace = async (name: string) => {
+    const workspace = z.object({ id: z.string() }).parse(
+      await browserJson(page, '/api/auth/organization/create', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: `${name} workspace`, slug: `scope-${randomUUID()}` }),
+      })
+    )
+    await grantWorkspacePlan(workspace.id, 'pro')
+    expect(
+      (
+        await requestJson(page, '/api/auth/organization/set-active', {
+          organizationId: workspace.id,
+        })
+      ).status
+    ).toBe(200)
+    const set = socialSetSchema.parse(
+      await browserJson(page, '/api/v1/social-sets', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name, visibility: 'PRIVATE' }),
+      })
+    )
+    await browserJson(page, `/api/v1/social-sets/${set.id}/writing-samples`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        text: `Private writing sample for ${name}. Keep this workspace's stories together.`,
+      }),
+    })
+    return { workspace, set }
+  }
+  const alpha = await createWorkspace('Private Alpha')
+  const beta = await createWorkspace('Private Beta')
+  expect(
+    (
+      await requestJson(page, '/api/auth/organization/set-active', {
+        organizationId: alpha.workspace.id,
+      })
+    ).status
+  ).toBe(200)
+  const loadAlpha = page.waitForRequest(
+    (request) => request.url().endsWith('/api/v1/social-sets') && request.method() === 'GET'
+  )
+  await page.goto('/workspace/social-sets')
+  await expect(
+    page.getByRole('link', { name: 'Settings for Private Alpha', exact: true })
+  ).toBeVisible()
+  const headers = (await loadAlpha).headers()
+  expect(headers['x-playbook-user']).toBe(person.id)
+  expect(headers['x-playbook-workspace']).toBe(alpha.workspace.id)
+  await expect(
+    page.getByRole('link', { name: 'Settings for Private Beta', exact: true })
+  ).toHaveCount(0)
+
+  // The server may commit before another tab switches the workspace. Hold
+  // its response to prove the old caller cannot populate the new cache or navigate.
+  let releaseResponse = () => {}
+  let recordCommit = () => {}
+  let recordDelivery = () => {}
+  const heldResponse = new Promise<void>((resolve) => {
+    releaseResponse = resolve
+  })
+  const committed = new Promise<void>((resolve) => {
+    recordCommit = resolve
+  })
+  const delivered = new Promise<void>((resolve) => {
+    recordDelivery = resolve
+  })
+  await page.route('**/api/v1/social-sets', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue()
+    const response = await route.fetch()
+    expect(response.ok()).toBe(true)
+    recordCommit()
+    await heldResponse
+    try {
+      await route.fulfill({ response })
+    } finally {
+      recordDelivery()
+    }
+  })
+  await page.getByPlaceholder('Person or brand').fill('Delayed Alpha creation')
+  const cancelledCreation = page.waitForEvent(
+    'requestfailed',
+    (request) => request.method() === 'POST' && request.url().endsWith('/api/v1/social-sets')
+  )
+  await page.getByRole('button', { name: 'Create brand', exact: true }).click()
+  await committed
+
+  const sibling = await context.newPage()
+  try {
+    await sibling.goto('/workspace/social-sets')
+    expect(
+      (
+        await requestJson(sibling, '/api/auth/organization/set-active', {
+          organizationId: beta.workspace.id,
+        })
+      ).status
+    ).toBe(200)
+    const stale = await browserRequest(page, `/api/v1/social-sets/${alpha.set.id}`, {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+        ...workspaceScopeHeaders({ userId: person.id, workspaceId: alpha.workspace.id }),
+      },
+      body: JSON.stringify({ baseVersion: alpha.set.version, name: 'Wrong workspace save' }),
+    })
+    expect(stale.status).toBe(403)
+    expect(JSON.stringify(stale.body)).not.toContain('Private Beta')
+    const wrongPerson = await browserRequest(page, '/api/v1/social-sets', {
+      headers: workspaceScopeHeaders({ userId: 'another-person', workspaceId: beta.workspace.id }),
+    })
+    expect(wrongPerson.status).toBe(403)
+
+    // Refocusing an already-mounted settings page rehydrates the shared
+    // session and must replace its private query cache without a page reload.
+    await page.bringToFront()
+    await expect(async () => {
+      await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+      await expect(
+        page.getByRole('link', { name: 'Settings for Private Beta', exact: true })
+      ).toBeVisible({ timeout: 1_000 })
+    }).toPass({ timeout: 30_000, intervals: [1_000, 5_000] })
+    await expect(
+      page.getByRole('link', { name: 'Settings for Private Alpha', exact: true })
+    ).toHaveCount(0)
+    await cancelledCreation
+    releaseResponse()
+    await delivered
+    await expect(page).toHaveURL(/\/workspace\/social-sets$/)
+    await expect(page.getByPlaceholder('Person or brand')).toHaveValue('')
+    await expect(
+      page.getByRole('link', { name: 'Settings for Delayed Alpha creation', exact: true })
+    ).toHaveCount(0)
+    const storedBeta = socialSetSchema.parse(
+      await browserJson(page, `/api/v1/social-sets/${beta.set.id}`)
+    )
+    expect(storedBeta.name).toBe('Private Beta')
+    expect(
+      (
+        await requestJson(sibling, '/api/auth/organization/set-active', {
+          organizationId: alpha.workspace.id,
+        })
+      ).status
+    ).toBe(200)
+    const storedAlpha = socialSetSchema.parse(
+      await browserJson(sibling, `/api/v1/social-sets/${alpha.set.id}`)
+    )
+    expect(storedAlpha.name).toBe('Private Alpha')
+    await page.bringToFront()
+    await expect(async () => {
+      await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+      await expect(
+        page.getByRole('link', { name: 'Settings for Private Alpha', exact: true })
+      ).toBeVisible({ timeout: 1_000 })
+    }).toPass({ timeout: 30_000, intervals: [1_000, 5_000] })
+    await expect(
+      page.getByRole('link', { name: 'Settings for Private Beta', exact: true })
+    ).toHaveCount(0)
+    await page.getByRole('link', { name: 'Settings for Private Alpha', exact: true }).click()
+    await expect(page.getByLabel('Brand name', { exact: true })).toHaveValue('Private Alpha')
+    await page.getByLabel('Brand name', { exact: true }).fill('Private Alpha saved')
+    await page.getByRole('button', { name: 'Save name', exact: true }).click()
+    await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
+    await page.reload()
+    await expect(page.getByLabel('Brand name', { exact: true })).toHaveValue('Private Alpha saved')
+    await page.goto(`/workspace/social-sets/${alpha.set.id}/writing-assistant`)
+    await expect(
+      page.locator('summary').filter({ hasText: 'Private writing sample for Private Alpha.' })
+    ).toBeVisible()
+    await page.screenshot({
+      path: '.context/social-set-scoped-settings.png',
+      animations: 'disabled',
+    })
+  } finally {
+    releaseResponse()
+    await sibling.close()
+  }
+})

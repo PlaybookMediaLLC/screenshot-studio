@@ -5,8 +5,15 @@ import { useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 import type { SaveResult } from '@/components/settings/PreferencesProvider'
-import { socialSetListSchema, socialSetSchema, type socialSetUpdateSchema } from '@/lib/api/contracts/social-sets'
-import { SettingsRequestError, settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
+import {
+  socialSetListSchema,
+  socialSetSchema,
+  type socialSetUpdateSchema,
+} from '@/lib/api/contracts/social-sets'
+import { SettingsRequestError, settingsErrorMessage } from '@/lib/settings/client'
+import { socialSetKey, useSocialSetScope } from './scope'
+
+export { socialSetKey, useSocialSetScope } from './scope'
 
 /** A social set as the API returns it. */
 export type SocialSetRecord = z.output<typeof socialSetSchema>
@@ -14,29 +21,29 @@ export type SocialSetRecord = z.output<typeof socialSetSchema>
 /** A set settings save, without the version the hook adds. */
 export type SocialSetChange = Omit<z.input<typeof socialSetUpdateSchema>, 'baseVersion'>
 
-/** The query key of the set list. */
-export const SOCIAL_SETS_KEY = ['social-sets'] as const
-
-/** The query key of one set. */
-export function socialSetKey(id: string) {
-  return ['social-sets', id] as const
-}
-
 /** The sets you can see, accounts in no set, and orphaned private sets. */
 export function useSocialSets() {
-  return useQuery({
-    queryFn: () => settingsRequest('/api/v1/social-sets', socialSetListSchema),
-    queryKey: SOCIAL_SETS_KEY,
+  const scope = useSocialSetScope()
+  const query = useQuery({
+    enabled: scope.ready,
+    queryFn: ({ signal }) => scope.request('/api/v1/social-sets', socialSetListSchema, { signal }),
+    queryKey: scope.key,
   })
+  return query.isError ? { ...query, data: undefined } : query
 }
 
 /** One set. */
 export function useSocialSet(id: string) {
-  return useQuery({
-    queryFn: () => settingsRequest(`/api/v1/social-sets/${encodeURIComponent(id)}`, socialSetSchema),
-    queryKey: socialSetKey(id),
-    retry: (count, error) => !(error instanceof SettingsRequestError && error.status === 404) && count < 2,
+  const scope = useSocialSetScope()
+  const query = useQuery({
+    enabled: scope.ready && !!id,
+    queryFn: ({ signal }) =>
+      scope.request(`/api/v1/social-sets/${encodeURIComponent(id)}`, socialSetSchema, { signal }),
+    queryKey: socialSetKey(scope, id),
+    retry: (count, error) =>
+      !(error instanceof SettingsRequestError && error.status === 404) && count < 2,
   })
+  return query.isError ? { ...query, data: undefined } : query
 }
 
 /**
@@ -46,23 +53,34 @@ export function useSocialSet(id: string) {
  */
 export function useSaveSocialSet(id: string): (change: SocialSetChange) => Promise<SaveResult> {
   const queryClient = useQueryClient()
+  const scope = useSocialSetScope()
   const queue = useRef<Promise<unknown>>(Promise.resolve())
   return useCallback(
     (change: SocialSetChange) => {
       const run = queue.current.then(async (): Promise<SaveResult> => {
-        const current = queryClient.getQueryData<SocialSetRecord>(socialSetKey(id))
+        if (!scope.ready) return { error: 'Your workspace is still loading.', ok: false }
+        const current = queryClient.getQueryData<SocialSetRecord>(socialSetKey(scope, id))
         if (!current) return { error: 'This social set is still loading.', ok: false }
         try {
-          const saved = await settingsRequest(`/api/v1/social-sets/${encodeURIComponent(id)}`, socialSetSchema, {
-            body: { ...change, baseVersion: current.version },
-            method: 'PATCH',
-          })
-          queryClient.setQueryData(socialSetKey(id), saved)
-          await queryClient.invalidateQueries({ exact: true, queryKey: SOCIAL_SETS_KEY })
+          const saved = await scope.request(
+            `/api/v1/social-sets/${encodeURIComponent(id)}`,
+            socialSetSchema,
+            {
+              body: { ...change, baseVersion: current.version },
+              method: 'PATCH',
+            }
+          )
+          queryClient.setQueryData(socialSetKey(scope, id), saved)
+          await queryClient.invalidateQueries({ exact: true, queryKey: scope.key })
+          scope.assertCurrent()
           return { ok: true }
         } catch (error) {
-          if (error instanceof SettingsRequestError && error.status === 409) {
-            await queryClient.invalidateQueries({ queryKey: socialSetKey(id) })
+          if (
+            error instanceof SettingsRequestError &&
+            error.status === 409 &&
+            error.code !== 'workspace_changed'
+          ) {
+            await queryClient.invalidateQueries({ queryKey: socialSetKey(scope, id) })
             toast.info('Someone else changed this social set. Showing the latest version.')
           }
           return { error: settingsErrorMessage(error), ok: false }
@@ -71,24 +89,31 @@ export function useSaveSocialSet(id: string): (change: SocialSetChange) => Promi
       queue.current = run.catch(() => undefined)
       return run
     },
-    [id, queryClient]
+    [id, queryClient, scope]
   )
 }
 
 /** Puts a fresh set into the cache after an action that returns one. */
 export function useStoreSocialSet() {
   const queryClient = useQueryClient()
+  const scope = useSocialSetScope()
   return useCallback(
     async (set: SocialSetRecord) => {
-      queryClient.setQueryData(socialSetKey(set.id), set)
-      await queryClient.invalidateQueries({ exact: true, queryKey: SOCIAL_SETS_KEY })
+      scope.assertCurrent()
+      queryClient.setQueryData(socialSetKey(scope, set.id), set)
+      await queryClient.invalidateQueries({ exact: true, queryKey: scope.key })
+      scope.assertCurrent()
     },
-    [queryClient]
+    [queryClient, scope]
   )
 }
 
 /** Where to send someone to connect an account on a platform to a set. */
-export function connectHref(provider: string, socialSetId: string, expectedConnectionId?: string): string {
+export function connectHref(
+  provider: string,
+  socialSetId: string,
+  expectedConnectionId?: string
+): string {
   const query = new URLSearchParams({ socialSet: socialSetId })
   if (expectedConnectionId) query.set('reconnect', expectedConnectionId)
   return `/integrations/social/${encodeURIComponent(provider)}/start?${query}`
@@ -108,13 +133,18 @@ export const HEALTH_GUIDANCE: Record<SocialSetRecord['accounts'][number]['health
   connected: 'Connected and ready to publish.',
   unverified: 'The account’s credentials could not be verified. Reconnect it before publishing.',
   expired: "The account's access expired. Reconnect it to publish again.",
-  permission_required: 'The platform needs one more step, such as choosing a page. Reconnect to finish it.',
-  reconnect_required: 'The platform asked for this account to be connected again. Reconnect it to keep publishing.',
+  permission_required:
+    'The platform needs one more step, such as choosing a page. Reconnect to finish it.',
+  reconnect_required:
+    'The platform asked for this account to be connected again. Reconnect it to keep publishing.',
   removed: 'This account was removed from the set and cannot publish.',
   revoked: 'Access was revoked on the platform. Reconnect it, or remove it from this set.',
 }
 
 /** The provider a connected platform reconnects through. */
 export function providerFor(platform: string): string | null {
-  return CONNECT_PROVIDERS.find((provider) => provider.platform === platform)?.provider ?? (platform === 'instagram' ? 'instagram' : null)
+  return (
+    CONNECT_PROVIDERS.find((provider) => provider.platform === platform)?.provider ??
+    (platform === 'instagram' ? 'instagram' : null)
+  )
 }

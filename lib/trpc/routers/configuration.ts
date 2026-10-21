@@ -1,6 +1,8 @@
 import 'server-only'
 
+import { TRPCError } from '@trpc/server'
 import { backendSDK } from '@/lib/backend/sdk'
+import { workspaceRequestScopeSchema } from '@/lib/auth/request-scope'
 import { refineTexts } from '@/lib/write/refine'
 import { allowAiAction } from './launch'
 import { hasPermission } from '@/lib/auth/permissions'
@@ -48,9 +50,21 @@ export const brandKitRouter = router({
 
 export const brandProfileRouter = router({
   /** Only the guidance that members inherit; profile management stays restricted. */
-  defaults: organizationProcedure('artifact:read').query(({ ctx }) =>
-    backendSDK(ctx.access).getWritingDefaults()
-  ),
+  defaults: organizationProcedure('artifact:read')
+    .input(workspaceRequestScopeSchema.optional())
+    .query(({ ctx, input }) => {
+      if (
+        input &&
+        (input.userId !== ctx.access.principal.userId ||
+          input.workspaceId !== ctx.access.organizationId)
+      ) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Your account or workspace changed. Reload this page to continue.',
+        })
+      }
+      return backendSDK(ctx.access).getWritingDefaults()
+    }),
   /** Preview unsaved voice settings without changing the profile or creating a draft. */
   preview: organizationProcedure('brand:manage')
     .input(brandProfileUpsertSchema)

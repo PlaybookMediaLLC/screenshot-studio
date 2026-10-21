@@ -180,17 +180,17 @@ test('plan allowances match the Go backend', () => {
 })
 
 test('plan seat and channel limits match the Go backend', () => {
-  const go = readFileSync('services/internal/product/plan_limits.go', 'utf8')
-  const names: Record<string, WorkspaceLimit> = { LimitChannels: 'channels', LimitSeats: 'seats' }
+  const go = readFileSync('services/internal/workspaceplan/capacity.go', 'utf8')
+  const names: Record<string, WorkspaceLimit> = { Channels: 'channels', Seats: 'seats' }
   for (const plan of workspacePlanSchema.options) {
     const block = go.match(new RegExp(`"${plan}": +\\{([^}]*)\\}`))?.[1]
-    assert.ok(block, `plan_limits.go has no ${plan} plan`)
-    const pairs = [...block.matchAll(/(\w+): (\w+)/g)]
-    assert.equal(pairs.length, Object.keys(names).length, `${plan} limits in plan_limits.go`)
+    assert.ok(block, `workspaceplan/capacity.go has no ${plan} plan`)
+    const pairs = [...block.matchAll(/(\w+): ([\w.]+)/g)]
+    assert.equal(pairs.length, Object.keys(names).length, `${plan} limits in workspaceplan`)
     for (const [, name, value] of pairs) {
       assert.equal(
         getWorkspaceLimit(plan, names[name]),
-        value === 'unlimited' ? null : Number(value),
+        value === 'math.MaxInt32' ? null : Number(value),
         `${plan} ${name}`
       )
     }

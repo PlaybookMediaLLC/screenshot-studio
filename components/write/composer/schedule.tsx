@@ -2,7 +2,11 @@
 
 import * as React from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { socialSetKey, type SocialSetRecord } from '@/components/settings/social-sets/api'
+import {
+  socialSetKey,
+  useSocialSetScope,
+  type SocialSetRecord,
+} from '@/components/settings/social-sets/api'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -98,10 +102,11 @@ export function ScheduleDialog({
   onClose: () => void
 }) {
   const { data } = useWrite()
+  const scope = useSocialSetScope()
   // The draft's set owns the queue: its weekly slots in its zone (RFC 043).
   const setId =
     context.draft.socialSetId ?? data.sets.find((item) => item.visibility === 'WORKSPACE')?.id
-  const cachedSet = useQueryClient().getQueryData<SocialSetRecord>(socialSetKey(setId ?? ''))
+  const cachedSet = useQueryClient().getQueryData<SocialSetRecord>(socialSetKey(scope, setId ?? ''))
   const set = cachedSet ?? data.sets.find((item) => item.id === setId)
   const zone = set?.timeZone ?? context.setTimeZone ?? 'UTC'
   const [localZone, setLocalZone] = React.useState<string | null>(null)

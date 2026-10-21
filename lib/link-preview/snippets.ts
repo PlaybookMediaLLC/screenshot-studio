@@ -1,3 +1,4 @@
+import { isHttpUrl } from '@/lib/link-preview/urls'
 import { z } from 'zod'
 import type { LinkPreview } from '@/lib/api/contracts/link-preview'
 import { issueSeveritySchema, type LinkPreviewIssue } from '@/lib/link-preview/audit'
@@ -51,7 +52,7 @@ function recommended(preview: LinkPreview) {
   // An image made in the browser has a blob: URL until it is uploaded somewhere public.
   const image = found?.startsWith('blob:')
     ? 'TODO: upload the generated image and use its https:// URL'
-    : found
+    : found && isHttpUrl(found) ? found : undefined
   return {
     title: preview.title || preview.ogTitle || 'TODO: a 30 to 60 character title',
     socialTitle: preview.ogTitle || preview.title || 'TODO: a title written for sharing',

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { characterCount, xCharacterCount } from '@/lib/link-preview/text'
 
 /**
  * Sharing a checked link: tracked (UTM) links per channel, the share-intent
@@ -147,10 +148,9 @@ export function trackedLink(
   const { medium, source } = CHANNELS[channel]
   tracked.searchParams.set('utm_source', source)
   tracked.searchParams.set('utm_medium', medium)
-  const tag = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '-')
-  if (campaign.trim()) tracked.searchParams.set('utm_campaign', tag(campaign))
+  if (campaign.trim()) tracked.searchParams.set('utm_campaign', campaign.trim())
   else tracked.searchParams.delete('utm_campaign')
-  if (content.trim()) tracked.searchParams.set('utm_content', tag(content))
+  if (content.trim()) tracked.searchParams.set('utm_content', content.trim())
   else tracked.searchParams.delete('utm_content')
   return tracked.toString()
 }
@@ -159,14 +159,13 @@ const URLS = /https?:\/\/\S+/g
 
 /**
  * A post's length as `channel` counts it, including the shared link when the
- * platform puts links in the text. Graphemes, so an emoji counts once.
+ * platform puts links in the text. X uses weighted characters; others use graphemes.
  */
-// ponytail: X weighs CJK and some emoji as 2; this counts each grapheme as 1.
 export function postLength(text: string, channel: ShareChannel, url: string): number {
   const { linkLength } = CHANNELS[channel]
-  const withLink = linkLength && !text.includes(url) ? `${text} ${url}` : text
+  const withLink = linkLength && !text.includes(url) ? [text, url].filter(Boolean).join(' ') : text
   const counted = linkLength ? withLink.replace(URLS, 'x'.repeat(linkLength)) : withLink
-  return [...new Intl.Segmenter().segment(counted)].length
+  return channel === C.x ? xCharacterCount(counted) : characterCount(counted)
 }
 
 /**

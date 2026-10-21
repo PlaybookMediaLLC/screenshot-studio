@@ -84,6 +84,8 @@ export type Transport = (request: {
 }) => Promise<TransportResponse>
 
 export type SafeFetchOptions = {
+  /** Read text error pages for diagnostics; redirects and SSRF checks still apply. */
+  acceptErrorStatus?: boolean
   /** Extra request headers (for example an Accept header for an API). */
   headers?: Record<string, string>
   /**
@@ -297,7 +299,7 @@ export async function safeFetchText(
   input: string,
   options: SafeFetchOptions = {}
 ): Promise<FetchedText> {
-  const requested = await safeRequest(input, options)
+  const requested = await safeRequest(input, options, options.acceptErrorStatus)
   if (!requested.ok) return requested
   const { hops, response, url } = requested
   const contentType = contentTypeOf(response)

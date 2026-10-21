@@ -144,6 +144,25 @@ const LOCALHOST_STEPS = [
   { label: 'Paste the https URL ngrok prints' },
 ]
 
+const shareDraftSchema = z.object({
+  post: z.string(),
+  campaign: z.string(),
+  content: z.string(),
+  tab: linkPreviewTabSchema,
+})
+const draftKey = (url: string) => `link-preview:draft:v1:${url}`
+function readDraft(url: string) {
+  try {
+    const parsed = shareDraftSchema.safeParse(
+      JSON.parse(sessionStorage.getItem(draftKey(url)) ?? 'null')
+    )
+    if (parsed.success) return parsed.data
+  } catch {
+    // Storage may be unavailable.
+  }
+  return { post: '', campaign: '', content: '', tab: TAB.overview }
+}
+
 const historyKey = (url: string) => `link-preview:history:${url}`
 
 /** Earlier checks of `url` in this browser, newest first. */
@@ -307,6 +326,9 @@ export function LinkPreviewApp() {
   const [preview, setPreview] = useState<LinkPreview | null>(null)
   const [edits, setEdits] = useState(NO_EDITS)
   const [post, setPost] = useState('')
+  const [campaign, setCampaign] = useState('')
+  const [content, setContent] = useState('')
+  const [compareOpened, setCompareOpened] = useState(false)
   const [theme, setTheme] = useState<PreviewTheme>(previewThemeSchema.enum.dark)
   const [device, setDevice] = useState<PreviewDevice>(previewDeviceSchema.enum.desktop)
   const [history, setHistory] = useState<LinkPreviewSnapshot[]>([])
@@ -322,10 +344,16 @@ export function LinkPreviewApp() {
   const edited = useMemo(() => preview && applyEdits(preview, edits), [preview, edits])
   const hasEdits = Object.values(edits).some((value) => value.trim())
 
-  const check = useCallback(async (value: string, as: LinkPreviewAgent) => {
+  const check = useCallback(async (value: string, as: LinkPreviewAgent, cached?: LinkPreview) => {
     const target = normalizeUrl(value)
     if (!target) {
       setError('Enter a valid http or https URL.')
+      return
+    }
+    if (['localhost', '127.0.0.1', '[::1]'].includes(new URL(target).hostname)) {
+      setError(
+        'Localhost is only reachable on your computer. Open a tunnel with ngrok http 3000, then preview its public https URL.'
+      )
       return
     }
     pending.current?.abort()
@@ -336,10 +364,17 @@ export function LinkPreviewApp() {
     setUrl(target)
     setPreview(null)
     setEdits(NO_EDITS)
+    const draft = readDraft(target)
+    setPost(draft.post)
+    setCampaign(draft.campaign)
+    setContent(draft.content)
+    setTab(draft.tab)
     setError('')
     setLoading(true)
     try {
-      const result = await requestPreview(target, as, controller.signal)
+      const result = cached ?? (await requestPreview(target, as, controller.signal))
+      if (controller.signal.aborted) return
+      setAgent(result.agent ?? as)
       setPreview(result)
       setHistory(
         recordHistory(
@@ -347,7 +382,6 @@ export function LinkPreviewApp() {
           snapshotOf(result, scoreLinkPreview(result).score, auditLinkPreview(result))
         )
       )
-      setTab(TAB.overview)
       window.history.replaceState(null, '', shareUrl(target, as))
       const next = [target, ...readRecent().filter((item) => item !== target)].slice(0, MAX_RECENT)
       writeRecent(next)
@@ -368,7 +402,20 @@ export function LinkPreviewApp() {
     setEdits(NO_EDITS)
     setError('')
     setLoading(false)
+    const address = new URL(window.location.href)
+    address.searchParams.delete('url')
+    address.searchParams.delete('agent')
+    window.history.replaceState(null, '', address)
   }, [])
+
+  useEffect(() => {
+    if (!url || !preview || loading) return
+    try {
+      sessionStorage.setItem(draftKey(url), JSON.stringify({ post, campaign, content, tab }))
+    } catch {
+      // Storage may be unavailable.
+    }
+  }, [url, preview, loading, post, campaign, content, tab])
 
   // Open a shared check: /link-preview?url=…&agent=…
   useEffect(() => {
@@ -385,7 +432,7 @@ export function LinkPreviewApp() {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         // Leave Escape to menus and dialogs that have focus.
-        if (event.target === document.body || event.target === inputRef.current) clear()
+        if (event.target === inputRef.current) clear()
         return
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'r' && url) {
@@ -397,6 +444,13 @@ export function LinkPreviewApp() {
       if (event.key === '/') {
         event.preventDefault()
         inputRef.current?.focus()
+        return
+      }
+      if (preview && (event.key === '[' || event.key === ']')) {
+        const views: string[] = [ALL, ...PLATFORMS.map((item) => item.id)]
+        const step = event.key === ']' ? 1 : views.length - 1
+        setPlatform((current) => views[(views.indexOf(current) + step) % views.length]!)
+        setTab(TAB.previews)
         return
       }
       const digit = Number(event.key)
@@ -418,7 +472,7 @@ export function LinkPreviewApp() {
     setTab(TAB.previews)
     setPlatform(ALL)
   }
-  const pick = (picked: string) => check(picked, agent)
+  const pick = (picked: string, cached?: LinkPreview) => check(picked, cached?.agent ?? agent, cached)
   const flagged = issues.filter((issue) => issue.severity !== issueSeveritySchema.enum.info).length
 
   return (
@@ -430,7 +484,10 @@ export function LinkPreviewApp() {
               key={option}
               type="button"
               aria-pressed={mode === option}
-              onClick={() => setMode(option)}
+              onClick={() => {
+                if (option === MODE.compare) setCompareOpened(true)
+                setMode(option)
+              }}
               className={cn(
                 'rounded-md px-3 py-1 text-sm font-medium text-muted-foreground transition-colors',
                 mode === option && 'bg-background text-foreground shadow-sm'
@@ -462,12 +519,13 @@ export function LinkPreviewApp() {
         </Label>
       </div>
 
-      {mode === MODE.batch ? (
+      <div hidden={mode !== MODE.batch}>
         <BatchCheck agent={agent} onOpen={pick} />
-      ) : mode === MODE.compare ? (
-        <CompareView agent={agent} />
-      ) : (
-        <>
+      </div>
+      <div hidden={mode !== MODE.compare}>
+        {compareOpened && <CompareView agent={agent} initialUrl={url} />}
+      </div>
+      <div hidden={mode !== MODE.single}>
           <form
             onSubmit={(event) => {
               event.preventDefault()
@@ -517,10 +575,10 @@ export function LinkPreviewApp() {
             </Button>
           </form>
           <p className="mt-3 hidden text-xs text-muted-foreground sm:block">
-            <kbd className="font-mono">/</kbd> focus · <kbd className="font-mono">Esc</kbd> clear ·{' '}
+            <kbd className="font-mono">/</kbd> focus · <kbd className="font-mono">Esc</kbd> clear focused URL ·{' '}
             <kbd className="font-mono">⌘/Ctrl R</kbd> check again ·{' '}
             <kbd className="font-mono">1</kbd> all previews · <kbd className="font-mono">2</kbd>–
-            <kbd className="font-mono">9</kbd> one platform
+            <kbd className="font-mono">9</kbd> one platform · <kbd className="font-mono">[ / ]</kbd> previous / next platform
           </p>
 
           {idle && (
@@ -599,8 +657,7 @@ export function LinkPreviewApp() {
               {url && (
                 <div className="mt-10 w-full text-left">
                   <p className="mb-3 text-sm text-muted-foreground">
-                    Blocked by bot protection or a firewall? See which platform crawlers get
-                    through.
+                    Check whether other platform crawlers can read this URL.
                   </p>
                   <CrawlerMatrix key={url} url={url} />
                 </div>
@@ -610,11 +667,17 @@ export function LinkPreviewApp() {
 
           {preview && edited && !loading && (
             <>
+              {preview.agent && preview.agent !== agent && (
+                <p role="status" className="mt-4 text-sm text-amber-300">
+                  Results are for {preview.agent === 'default' ? 'Preview bot' : CRAWLERS[preview.agent].name}. Fetch as has changed;{' '}
+                  <Button variant="link" onClick={() => check(url, agent)}>Re-run with {agent === 'default' ? 'Preview bot' : CRAWLERS[agent].name}</Button>
+                </p>
+              )}
               <div className="mt-8 flex flex-wrap items-center gap-2">
                 <CopyButton
                   icon={<Link2 />}
                   label="Copy share link"
-                  text={() => shareUrl(url, agent)}
+                  text={() => shareUrl(url, preview.agent ?? agent)}
                 />
                 <CopyButton
                   icon={<FileText />}
@@ -633,6 +696,7 @@ export function LinkPreviewApp() {
               </div>
               <Tabs value={tab} onValueChange={setTab} className="mt-6 gap-8">
                 <div className="overflow-x-auto">
+                  <p className="mb-2 text-xs text-muted-foreground sm:hidden">Swipe for more tabs →</p>
                   <TabsList className={TAB_LIST}>
                     {linkPreviewTabSchema.options.map((value) => (
                       <TabsTrigger key={value} value={value} className={TAB_TRIGGER}>
@@ -690,6 +754,7 @@ export function LinkPreviewApp() {
                   </div>
                   <Tabs value={platform} onValueChange={setPlatform} className="gap-8">
                     <div className="overflow-x-auto">
+                      <p className="mb-2 text-xs text-muted-foreground sm:hidden">Swipe for more platforms →</p>
                       <TabsList className={TAB_LIST}>
                         <TabsTrigger value={ALL} className={TAB_TRIGGER}>
                           All
@@ -748,6 +813,10 @@ export function LinkPreviewApp() {
                 </TabsContent>
                 <TabsContent value={TAB.share}>
                   <SharePanel
+                    campaign={campaign}
+                    content={content}
+                    onCampaignChange={setCampaign}
+                    onContentChange={setContent}
                     canonical={!!preview.canonical}
                     post={post}
                     url={preview.canonical || preview.url}
@@ -768,7 +837,7 @@ export function LinkPreviewApp() {
                 <TabsContent value={TAB.x}>
                   <XCardPanel preview={preview} />
                 </TabsContent>
-                <TabsContent value={TAB.images} className="space-y-6">
+                <TabsContent forceMount value={TAB.images} className="space-y-6 data-[state=inactive]:hidden">
                   <ImageStudio preview={preview} url={url} onUse={tryImage} />
                   <ImagesPanel preview={preview} onUse={tryImage} />
                 </TabsContent>
@@ -782,8 +851,7 @@ export function LinkPreviewApp() {
               </Tabs>
             </>
           )}
-        </>
-      )}
+      </div>
     </div>
   )
 }

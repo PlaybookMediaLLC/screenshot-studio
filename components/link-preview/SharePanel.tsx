@@ -101,16 +101,22 @@ export function PostComposer({
  */
 export function SharePanel({
   canonical,
+  campaign,
+  content,
+  onCampaignChange,
+  onContentChange,
   post,
   url,
 }: {
   /** Whether the page declares a canonical URL, so tracked links keep one search identity. */
   canonical: boolean
+  campaign: string
+  content: string
+  onCampaignChange: (value: string) => void
+  onContentChange: (value: string) => void
   post: string
   url: string
 }) {
-  const [campaign, setCampaign] = useState('')
-  const [content, setContent] = useState('')
   const rows = shareChannelSchema.options.map((channel) => ({
     channel,
     link: trackedLink(url, channel, { campaign, content }),
@@ -124,19 +130,21 @@ export function SharePanel({
           <span className="text-xs text-muted-foreground">Campaign (utm_campaign)</span>
           <Input
             value={campaign}
-            onChange={(event) => setCampaign(event.target.value)}
+            onChange={(event) => onCampaignChange(event.target.value)}
             placeholder="spring-launch"
             className={INPUT}
           />
+          <span className="block break-all text-xs text-muted-foreground">Final value: {campaign.trim() || '(none)'}</span>
         </Label>
         <Label className="block space-y-1.5">
           <span className="text-xs text-muted-foreground">Variant (utm_content, optional)</span>
           <Input
             value={content}
-            onChange={(event) => setContent(event.target.value)}
+            onChange={(event) => onContentChange(event.target.value)}
             placeholder="hero-image"
             className={INPUT}
           />
+          <span className="block break-all text-xs text-muted-foreground">Final value: {content.trim() || '(none)'}</span>
         </Label>
         <p
           className={cn(
@@ -159,9 +167,9 @@ export function SharePanel({
           {rows.map(({ channel, link }) => {
             const { intent, name } = CHANNELS[channel]
             return (
-              <li key={channel} className="flex items-center gap-3 px-4 py-2.5">
+              <li key={channel} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
                 <span className="w-20 shrink-0 text-sm font-medium text-foreground">{name}</span>
-                <code className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
+                <code className="order-last w-full break-all font-mono text-xs text-muted-foreground sm:order-none sm:w-auto sm:min-w-0 sm:flex-1">
                   {link}
                 </code>
                 <CopyIcon text={link} label={`Copy the ${name} link`} />

@@ -27,7 +27,7 @@ import { detectChallenge, userAgentFor } from '@/lib/link-preview/crawlers'
 import { oembedLink } from '@/lib/link-preview/extras'
 import { parseLinkPreview } from '@/lib/link-preview/metadata'
 import { crawlerAccess } from '@/lib/link-preview/robots'
-import { parseSitemap, robotsSitemaps } from '@/lib/link-preview/sitemap'
+import { discoverSitemap, parseSitemap, robotsSitemaps } from '@/lib/link-preview/sitemap'
 import { assertPublicCaptureUrl } from '@/lib/screenshot-service'
 
 const SIDE_TIMEOUT_MS = 5_000
@@ -178,7 +178,7 @@ export async function readLinkPreview(
     },
   }
   const startedAt = performance.now()
-  const page = await safeFetchText(url, options)
+  const page = await safeFetchText(url, { ...options, acceptErrorStatus: true })
   if (!page.ok) return page
   const durationMs = Math.round(performance.now() - startedAt)
 
@@ -192,9 +192,13 @@ export async function readLinkPreview(
   )
   const oembedUrl = oembedLink(parsed)
   const { canonical: CANONICAL } = linkTargetKindSchema.enum
+  const robotsRequest = safeFetchText(`${origin}/robots.txt`, { ...side, maxBytes: ROBOTS_MAX_BYTES })
+  const sitemapRequest = robotsRequest.then((robots) =>
+    discoverSitemap(robots.ok ? robots.body : '', origin, (url) => safeProbe(url, side))
+  )
   const [robots, sitemap, favicon, images, oembed, targets, tracking] = await Promise.all([
-    safeFetchText(`${origin}/robots.txt`, { ...side, maxBytes: ROBOTS_MAX_BYTES }),
-    found('/sitemap.xml'),
+    robotsRequest,
+    sitemapRequest,
     parsed.favicon ?? found('/favicon.ico'),
     Promise.all(imageUrls.map((imageUrl) => inspectImage(imageUrl, options))),
     oembedUrl ? readOembed(oembedUrl, side) : undefined,

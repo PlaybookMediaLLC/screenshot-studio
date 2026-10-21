@@ -87,9 +87,9 @@ function Summary({ side, url }: { side: Side; url: string }) {
       <div className="min-w-0">
         <p className="truncate text-sm text-foreground">{hostname(url)}</p>
         <div className="mt-1 flex gap-1.5">
-          <Pill tone="red">{issues.filter((issue) => issue.severity === ERROR).length} errors</Pill>
+          <Pill tone="red">{issues.filter((issue) => issue.severity === ERROR).length} error{issues.filter((issue) => issue.severity === ERROR).length === 1 ? '' : 's'}</Pill>
           <Pill tone="yellow">
-            {issues.filter((issue) => issue.severity === WARNING).length} warnings
+            {issues.filter((issue) => issue.severity === WARNING).length} warning{issues.filter((issue) => issue.severity === WARNING).length === 1 ? '' : 's'}
           </Pill>
         </div>
       </div>
@@ -98,10 +98,11 @@ function Summary({ side, url }: { side: Side; url: string }) {
 }
 
 /** Two links side by side: staging against production, before against after, or you against a competitor. */
-export function CompareView({ agent }: { agent: LinkPreviewAgent }) {
-  const [inputs, setInputs] = useState(['', ''])
+export function CompareView({ agent, initialUrl = '' }: { agent: LinkPreviewAgent; initialUrl?: string }) {
+  const [inputs, setInputs] = useState([initialUrl, ''])
   const [urls, setUrls] = useState(['', ''])
   const [sides, setSides] = useState<Side[]>([null, null])
+  const [checkedAgent, setCheckedAgent] = useState(agent)
   const [loading, setLoading] = useState(false)
   const [platform, setPlatform] = useState(PLATFORMS[3]!)
   const [onlyDifferences, setOnlyDifferences] = useState(false)
@@ -112,6 +113,7 @@ export function CompareView({ agent }: { agent: LinkPreviewAgent }) {
       setSides(targets.map((target) => (target ? null : { error: 'Enter a valid URL.' })))
       return
     }
+    setCheckedAgent(agent)
     setLoading(true)
     setUrls(targets as string[])
     const results = await Promise.allSettled(
@@ -140,6 +142,7 @@ export function CompareView({ agent }: { agent: LinkPreviewAgent }) {
 
   return (
     <div className="space-y-6">
+      {sides.some(Boolean) && checkedAgent !== agent && <p role="status">These results are for {checkedAgent}. Choose Compare to use {agent}.</p>}
       <form
         onSubmit={(event) => {
           event.preventDefault()
@@ -174,7 +177,12 @@ export function CompareView({ agent }: { agent: LinkPreviewAgent }) {
           size="icon-sm"
           aria-label="Swap"
           className="justify-self-center md:order-2"
-          onClick={() => setInputs(([first, second]) => [second!, first!])}
+          disabled={loading}
+          onClick={() => {
+            setInputs(([first, second]) => [second!, first!])
+            setUrls(([first, second]) => [second!, first!])
+            setSides(([first, second]) => [second!, first!])
+          }}
         >
           <ArrowLeftRight />
         </Button>

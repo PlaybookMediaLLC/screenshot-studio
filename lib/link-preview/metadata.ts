@@ -3,6 +3,7 @@ import {
   type LinkPreviewTag,
   linkPreviewTagAttributeSchema,
 } from '@/lib/api/contracts/link-preview'
+import { auditLinkPreview, type IssueSeverity } from '@/lib/link-preview/audit'
 import { decodeEntities } from '@/lib/launch/sanitize'
 
 /**
@@ -162,37 +163,28 @@ export function parseLinkPreview(html: string, pageUrl: string): ParsedLinkPrevi
   }
 }
 
-/** One scored check: what is checked, whether it passed, and how much it counts. */
-export type LinkPreviewCheck = { name: string; passed: boolean; weight: number }
+/** One audit finding and its score deduction, or the all-clear check. */
+export type LinkPreviewCheck = {
+  name: string
+  passed: boolean
+  weight: number
+  severity?: IssueSeverity
+  id: string
+}
 
-const within = (value: string | undefined, min: number, max: number) =>
-  !!value && value.length >= min && value.length <= max
-
-/** Weighted checks and a 0 to 100 score for how completely a page describes itself. */
-export function scoreLinkPreview(preview: LinkPreview): {
-  checks: LinkPreviewCheck[]
-  score: number
-} {
-  const checks: LinkPreviewCheck[] = [
-    { name: 'Title', passed: !!preview.title, weight: 10 },
-    { name: 'Description', passed: !!preview.description, weight: 10 },
-    { name: 'OG Title', passed: !!preview.ogTitle, weight: 8 },
-    { name: 'OG Description', passed: !!preview.ogDescription, weight: 8 },
-    { name: 'OG Image', passed: !!preview.ogImage, weight: 12 },
-    { name: 'Favicon', passed: !!preview.favicon, weight: 6 },
-    { name: 'Canonical', passed: !!preview.canonical, weight: 6 },
-    { name: 'Viewport', passed: !!preview.viewport, weight: 6 },
-    { name: 'X Card', passed: !!preview.twitterCard, weight: 8 },
-    { name: 'OG Type', passed: !!preview.ogType, weight: 6 },
-    { name: 'OG Locale', passed: !!preview.ogLocale, weight: 4 },
-    { name: 'robots.txt', passed: !!preview.robotsFile, weight: 2 },
-    { name: 'sitemap.xml', passed: !!preview.sitemap, weight: 2 },
-    { name: 'Title Length', passed: within(preview.title, 30, 60), weight: 4 },
-    { name: 'Desc Length', passed: within(preview.description, 120, 160), weight: 4 },
-  ]
-  const total = checks.reduce((sum, check) => sum + check.weight, 0)
-  const earned = checks.reduce((sum, check) => sum + (check.passed ? check.weight : 0), 0)
-  return { checks, score: Math.round((earned / total) * 100) }
+/** Audit-based score: errors cost 40, warnings up to 40 total, suggestions up to 9 total. */
+export function scoreLinkPreview(preview: LinkPreview): { checks: LinkPreviewCheck[]; score: number } {
+  const remaining = { error: Infinity, warning: 40, info: 9 }
+  const points = { error: 40, warning: 10, info: 1 }
+  const checks = auditLinkPreview(preview).map((issue) => {
+    const weight = Math.min(points[issue.severity], remaining[issue.severity])
+    remaining[issue.severity] -= weight
+    return { id: issue.id, name: issue.title, passed: false, severity: issue.severity, weight }
+  })
+  return {
+    checks: checks.length ? checks : [{ id: 'passed', name: 'All checks passed', passed: true, weight: 0 }],
+    score: Math.max(0, 100 - checks.reduce((sum, check) => sum + check.weight, 0)),
+  }
 }
 
 const ESCAPES: Record<string, string> = {

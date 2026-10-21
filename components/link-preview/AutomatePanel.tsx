@@ -11,7 +11,7 @@ import {
   nodeSnippet,
 } from '@/lib/link-preview/automation'
 import { cn } from '@/lib/utils'
-import { copyText, normalizeUrl } from './client'
+import { copyText, parseUrlLines } from './client'
 import { PANEL } from './MetadataPanels'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -38,20 +38,19 @@ const INPUT =
  */
 export function AutomatePanel({ url }: { url: string }) {
   const [urls, setUrls] = useState(url)
-  const [minScore, setMinScore] = useState(80)
+  const [minScore, setMinScore] = useState('80')
   const [failOnErrors, setFailOnErrors] = useState(true)
   const [target, setTarget] = useState(TARGETS[0]!)
   const [copied, setCopied] = useState(false)
+  const parsed = parseUrlLines(urls)
+  const valid = !parsed.invalid.length && parsed.urls.length > 0 && minScore.trim() !== '' && Number.isInteger(Number(minScore)) && Number(minScore) >= 0 && Number(minScore) <= 100
   const options: AutomationOptions = {
     apiOrigin: typeof window === 'undefined' ? '' : window.location.origin,
     failOnErrors,
-    minScore,
-    urls: urls
-      .split(/\s+/)
-      .map(normalizeUrl)
-      .filter((value): value is string => value !== null),
+    minScore: Number(minScore),
+    urls: parsed.urls,
   }
-  const code = target.render(options)
+  const code = valid ? target.render(options) : 'Enter valid URLs, one per line, and a whole-number score from 0 to 100.'
 
   return (
     <div className="space-y-6">
@@ -74,7 +73,7 @@ export function AutomatePanel({ url }: { url: string }) {
               max={100}
               value={minScore}
               onChange={(event) =>
-                setMinScore(Math.min(100, Math.max(0, Number(event.target.value) || 0)))
+                setMinScore(event.target.value)
               }
               className={INPUT}
             />
@@ -114,6 +113,7 @@ export function AutomatePanel({ url }: { url: string }) {
           <Button
             variant="outline"
             size="sm"
+            disabled={!valid}
             onClick={async () => {
               if (!(await copyText(code))) return
               setCopied(true)

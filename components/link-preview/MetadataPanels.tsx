@@ -1,6 +1,7 @@
 'use client'
 
-import { Check, Copy, Download, ExternalLink, Eye, Loader2, Wand2, XCircle } from 'lucide-react'
+import { characterCount } from '@/lib/link-preview/text'
+import { Check, Copy, Download, ExternalLink, Eye, Loader2, Wand2, XCircle, AlertTriangle, Info } from 'lucide-react'
 import { motion } from 'motion/react'
 import { type ReactNode, useState } from 'react'
 import { z } from 'zod'
@@ -111,29 +112,34 @@ export function OverviewPanel({ issues, preview }: PanelProps & { issues: LinkPr
         <div className="flex flex-col items-center gap-3">
           <ScoreRing score={score} />
           <div className="flex gap-1.5">
-            <Pill tone="red">{count(error)} errors</Pill>
-            <Pill tone="yellow">{count(warning)} warnings</Pill>
+            <Pill tone="red">{count(error)} error{count(error) === 1 ? '' : 's'}</Pill>
+            <Pill tone="yellow">{count(warning)} warning{count(warning) === 1 ? '' : 's'}</Pill>
           </div>
         </div>
         <ul className="grid flex-1 grid-cols-2 gap-x-6 gap-y-2 text-sm">
           {checks.map((check) => (
             <li
-              key={check.name}
+              key={check.id}
               className={cn(
                 'flex items-center gap-2',
-                check.passed ? 'text-emerald-400' : 'text-red-400'
+                check.passed ? 'text-emerald-400' : check.severity === error ? 'text-red-400' : check.severity === warning ? 'text-amber-400' : 'text-sky-400'
               )}
             >
               {check.passed ? (
                 <Check className="size-4 shrink-0" aria-label="Passed" />
+              ) : check.severity === error ? (
+                <XCircle className="size-4 shrink-0" aria-label="Error" />
+              ) : check.severity === warning ? (
+                <AlertTriangle className="size-4 shrink-0" aria-label="Warning" />
               ) : (
-                <XCircle className="size-4 shrink-0" aria-label="Missing" />
+                <Info className="size-4 shrink-0" aria-label="Suggestion" />
               )}
-              {check.name}
+              {check.name}{!check.passed && ` (−${check.weight})`}
             </li>
           ))}
         </ul>
       </div>
+      <p className="text-xs text-muted-foreground">Start at 100: each error deducts 40 points, warnings deduct 10 each (up to 40), and suggestions deduct 1 each (up to 9). The minimum score is 0.</p>
       <section className="space-y-3">
         <h3 className="text-sm font-medium text-foreground">
           What to fix{' '}
@@ -175,10 +181,10 @@ function counted(text: string | undefined, max: number): ReactNode {
       <span
         className={cn(
           'mt-1 block text-xs',
-          text.length > max ? 'text-amber-500' : 'text-muted-foreground'
+          characterCount(text) > max ? 'text-amber-500' : 'text-muted-foreground'
         )}
       >
-        {text.length} / {max} chars
+        {characterCount(text)} / {max} chars
       </span>
     </>
   )
@@ -281,7 +287,7 @@ export function BasicPanel({ preview }: PanelProps) {
       </Section>
       <Section title="SEO files">
         <Field label="robots.txt">{found(preview.robotsFile)}</Field>
-        <Field label="sitemap.xml">{found(preview.sitemap)}</Field>
+        <Field label="Sitemap">{found(preview.sitemap)}</Field>
       </Section>
     </div>
   )

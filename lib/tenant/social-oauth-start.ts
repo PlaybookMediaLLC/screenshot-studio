@@ -50,20 +50,6 @@ async function getMatchingStart(
   return backend
 }
 
-/** Return navigation belongs to the authorization attempt, never a shared tab cookie. */
-export async function socialOAuthReturnPath(
-  headers: Headers,
-  provider: SocialOAuthProvider,
-  state: string
-): Promise<string> {
-  const session = await requireSessionAccess(headers)
-  const context = await backendSDK({ ...session, organizationId: '' }).resolveSocialOAuthContext(
-    provider,
-    state
-  )
-  return context.returnPath
-}
-
 export async function exchangeSocialOAuthCallback(
   headers: Headers,
   provider: SocialOAuthProvider,

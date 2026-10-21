@@ -17,6 +17,7 @@ export type SocialOAuthCompletion = {
   exchange?: (state: string, code: string) => Promise<unknown>
   onConnected?: (state: string, integrationId: string) => Promise<void>
   returnTo?: (state: string) => Promise<string>
+  redirect?: (state: string) => Promise<Response>
   onPageChoice?: (state: string, integrationId: string) => Promise<void>
 }
 
@@ -24,6 +25,7 @@ export type InstagramSelection = {
   selectPage?: (choice: InstagramChoice) => Promise<void>
   onSelected?: (state: string, integrationId: string) => Promise<void>
   returnTo?: (state: string) => Promise<string>
+  redirect?: (state: string) => Promise<Response>
 }
 
 const pageChoiceSchema = z.object({
@@ -154,6 +156,7 @@ export async function completeSocialOAuth(
   if (!connected.success) return connectionFailed(providerName)
   if (providerName !== 'instagram' || connected.data.completed) {
     await completion.onConnected?.(state, connected.data.id)
+    if (completion.redirect) return completion.redirect(state)
     return connectedRedirect(providerName, request, await completion.returnTo?.(state))
   }
 
@@ -212,5 +215,6 @@ export async function selectInstagramAccount(
     return new Response('Social connection is not configured.', { status: 503 })
   await selection.selectPage(choice)
   await selection.onSelected?.(choice.state, choice.integrationId)
+  if (selection.redirect) return selection.redirect(choice.state)
   return connectedRedirect('instagram', request, await selection.returnTo?.(choice.state))
 }

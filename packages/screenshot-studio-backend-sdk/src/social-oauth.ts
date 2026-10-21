@@ -66,6 +66,7 @@ export const socialOAuthExchangeSchema = z.object({
 
 /** Original context, resolved by the backend using the current session and state. */
 export const socialOAuthContextSchema = z.object({
+  completed: z.boolean().default(false),
   operation: socialOAuthOperationSchema.default('ADD_ACCOUNT'),
   organizationId: z.string().min(1),
   socialSetId: z.string().nullable(),

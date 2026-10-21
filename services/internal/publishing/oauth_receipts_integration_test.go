@@ -187,7 +187,7 @@ func TestOAuthReceiptsKeepOriginalContextAndIdentity(t *testing.T) {
 		}
 		target, err := repo.ResolveOAuthContext(ctx, user, sessionID, state, "x")
 		if err != nil || target.OrganizationID != org || target.SocialSetID == nil || *target.SocialSetID != createdID ||
-			target.Operation != "CREATE_SET" || target.ReturnPath != "/workspace/social-sets/"+createdID {
+			target.Operation != "CREATE_SET" || !target.Completed || target.ReturnPath != "/workspace/social-sets/"+createdID {
 			t.Fatalf("wrong creation receipt: %+v %v", target, err)
 		}
 		duplicate := beginCreation("WORKSPACE")
@@ -247,7 +247,7 @@ func TestOAuthReceiptsKeepOriginalContextAndIdentity(t *testing.T) {
 		external := "external-" + state
 		exec(`UPDATE session SET "activeOrganizationId"=$2 WHERE id=$1`, sessionID, other)
 		target, err := repo.ResolveOAuthContext(ctx, user, sessionID, state, "x")
-		if err != nil || target.OrganizationID != org || target.SocialSetID == nil || *target.SocialSetID != set.ID || target.ReturnPath != "/workspace/social-sets/"+set.ID {
+		if err != nil || target.Completed || target.OrganizationID != org || target.SocialSetID == nil || *target.SocialSetID != set.ID || target.ReturnPath != "/workspace/social-sets/"+set.ID {
 			t.Fatalf("target=%+v %v", target, err)
 		}
 		if _, err := repo.ResolveOAuthContext(ctx, "another-user", sessionID, state, "x"); !errors.Is(err, ErrNotFound) {

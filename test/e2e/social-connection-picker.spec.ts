@@ -12,13 +12,15 @@ import {
   enablePublishingTwoFactor,
   unbindTestGoOrganization,
 } from './framework/publishing'
-import { createE2EDatabase } from './framework/services'
+import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
 
 configureE2EFlow()
 
 test('provider-first creation stays layered, commits once, and preserves its set target', async ({
   identity,
   page,
+  context,
+  browser,
 }) => {
   let organizationId: string | null = null
   const state = randomUUID()
@@ -106,7 +108,68 @@ test('provider-first creation stays layered, commits once, and preserves its set
     const callback = getE2EUrl(
       `/integrations/social/x?oauth_token=${state}&oauth_verifier=fixture-verifier`
     )
-    await page.goto(callback)
+    const completionURL = getE2EUrl(`/integrations/social/x/complete?state=${state}`)
+    const pending = await context.request.get(completionURL)
+    expect(await pending.text()).toContain('Connection confirmation unavailable')
+    // Switch in another tab while the first tab is still at the provider.
+    const otherTab = await context.newPage()
+    try {
+      await otherTab.goto('/workspace/social-sets')
+      const other = await apiRequest(otherTab, '/api/auth/organization/create', {
+        method: 'POST',
+        body: { name: 'Another product', slug: `callback-${randomUUID()}` },
+      })
+      expect(other.status).toBe(200)
+      const otherId = z.object({ id: z.string() }).parse(other.body).id
+      await grantWorkspacePlan(otherId, 'pro')
+      expect(
+        (
+          await apiRequest(otherTab, `/api/v1/organizations/${otherId}/activate`, {
+            method: 'POST',
+          })
+        ).status
+      ).toBe(200)
+      await page.goto(callback)
+      await expect(page).toHaveURL(completionURL)
+      await expect(
+        page.getByRole('heading', { name: 'Connection completed', exact: true })
+      ).toBeVisible()
+      await expect(page.getByText(identity.workspaceName, { exact: true })).toBeVisible()
+      expect(await list()).toHaveLength(0)
+      await page.screenshot({
+        path: '.context/social-connection-original-workspace.png',
+        animations: 'disabled',
+      })
+      await page.setViewportSize({ width: 390, height: 844 })
+      await expect(
+        page.getByRole('button', { name: `Open ${identity.workspaceName}`, exact: true })
+      ).toBeVisible()
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+      ).toBe(true)
+      await page.screenshot({
+        path: '.context/social-connection-original-workspace-mobile.png',
+        animations: 'disabled',
+      })
+      await page.setViewportSize({ width: 1280, height: 720 })
+      const anonymous = await browser.newContext()
+      try {
+        const hidden = await anonymous.request.get(completionURL)
+        const html = await hidden.text()
+        expect(html).toContain('Connection confirmation unavailable')
+        expect(html).not.toContain(identity.workspaceName)
+      } finally {
+        await anonymous.close()
+      }
+      await page.getByRole('link', { name: 'Stay in the current workspace' }).click()
+      expect(await list()).toHaveLength(0)
+      await page.goto(callback)
+      await page
+        .getByRole('button', { name: `Open ${identity.workspaceName}`, exact: true })
+        .click()
+    } finally {
+      await otherTab.close()
+    }
     await expect(page).toHaveURL(/\/workspace\/social-sets\/[a-z0-9]+\?connected=x$/)
     const sets = await list()
     expect(sets).toHaveLength(1)

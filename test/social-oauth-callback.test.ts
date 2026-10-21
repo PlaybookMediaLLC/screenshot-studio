@@ -1,9 +1,34 @@
 import assert from 'node:assert/strict'
 import { afterEach, test } from 'node:test'
 import { completeSocialOAuth, selectInstagramAccount } from '../lib/tenant/social-oauth-callback'
+import { socialOAuthCompletionRedirect } from '../lib/tenant/social-oauth-completion'
 
 afterEach(() => {
   delete process.env.BETTER_AUTH_SECRET
+})
+
+test('completion removes the provider code and redirects only after the connection commits', async () => {
+  let committed = false
+  const response = await completeSocialOAuth(
+    new Request(
+      'https://app.test/integrations/social/x?oauth_token=original&oauth_verifier=secret-code'
+    ),
+    'x',
+    {
+      exchange: async () => ({ id: 'account' }),
+      onConnected: async () => {
+        committed = true
+      },
+      redirect: async (state) => {
+        assert.equal(committed, true)
+        return socialOAuthCompletionRedirect('x', state)
+      },
+    }
+  )
+  assert.equal(response.status, 303)
+  assert.equal(response.headers.get('location'), '/integrations/social/x/complete?state=original')
+  assert.equal(response.headers.get('referrer-policy'), 'no-referrer')
+  assert.doesNotMatch(response.headers.get('location') ?? '', /secret-code/)
 })
 
 test('X maps its OAuth 1 callback fields to the backend exchange', async () => {

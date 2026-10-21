@@ -34,6 +34,7 @@ type OAuthContext struct {
 	SocialSetID    *string `json:"socialSetId"`
 	ReturnPath     string  `json:"returnPath"`
 	Operation      string  `json:"operation"`
+	Completed      bool    `json:"completed"`
 }
 
 // ResolveOAuthContext ignores the selected workspace, not the authenticated
@@ -55,7 +56,8 @@ func (r *Repository) ResolveOAuthContext(ctx context.Context, userID, sessionID,
 	if start.CreatedSocialSetID != nil {
 		path = "/workspace/social-sets/" + *start.CreatedSocialSetID
 	}
-	return &OAuthContext{OrganizationID: start.OrganizationID, SocialSetID: oauthTargetSet(start), ReturnPath: path, Operation: string(start.Operation)}, nil
+	return &OAuthContext{OrganizationID: start.OrganizationID, SocialSetID: oauthTargetSet(start), ReturnPath: path,
+		Operation: string(start.Operation), Completed: start.ExchangeStatus == socialoauthstart.ExchangeStatusCOMPLETED}, nil
 }
 
 func oauthTargetSet(start *ent.SocialOAuthStart) *string {

@@ -152,9 +152,13 @@ const CONNECTION_CHANNELS: Record<string, DraftChannel> = {
   instagram: 'instagram',
   'instagram-standalone': 'instagram',
   linkedin: 'linkedin',
+  'linkedin-page': 'linkedin',
   mastodon: 'mastodon',
+  'mastodon-custom': 'mastodon',
+  mastodoncustom: 'mastodon',
   threads: 'threads',
   x: 'x',
+  twitter: 'x',
 }
 
 /** The draft channel a connection platform publishes to, or null. */

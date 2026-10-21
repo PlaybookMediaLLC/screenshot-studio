@@ -23,6 +23,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialsetwritingsample"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialplatform"
 	"github.com/lucsky/cuid"
 )
 
@@ -273,13 +274,13 @@ func (c *Configuration) defaultSocialSet(ctx context.Context, organizationID str
 	}
 	platforms := []string{}
 	for _, connection := range orphans {
-		if oneOf(connection.Platform, platforms...) {
+		if oneOf(socialplatform.Canonical(connection.Platform), platforms...) {
 			continue
 		}
 		if _, err := tx.ChannelConnection.UpdateOneID(connection.ID).SetSocialSetID(created.ID).Save(ctx); err != nil {
 			return nil, err
 		}
-		platforms = append(platforms, connection.Platform)
+		platforms = append(platforms, socialplatform.Canonical(connection.Platform))
 	}
 	if len(platforms) > 0 {
 		if created, err = tx.SocialSet.UpdateOneID(created.ID).SetDefaultPlatforms(platforms).
@@ -334,7 +335,7 @@ func connectionHealth(ctx context.Context, client *ent.Client, organizationID st
 		statuses[connection.ID] = connection.Status
 	}
 	query := `SELECT c.id, coalesce(i.id IS NOT NULL AND length(trim(i.token)) > 0
-        AND (CASE i."providerIdentifier" WHEN 'twitter' THEN 'x' WHEN 'mastodoncustom' THEN 'mastodon' ELSE i."providerIdentifier" END) = c.platform, false), coalesce(i."deletedAt" IS NOT NULL, false), coalesce(i.disabled, false),
+        AND platform_social_channel_v1(i."providerIdentifier") = platform_social_channel_v1(c.platform), false), coalesce(i."deletedAt" IS NOT NULL, false), coalesce(i.disabled, false),
 		coalesce(i."refreshNeeded", false), coalesce(i."inBetweenSteps", false), i."tokenExpiration"
 		FROM channel_connection c
 		LEFT JOIN social_tenant_binding b ON b."organizationId" = c."organizationId"
@@ -643,7 +644,7 @@ func validDefaultPlatforms(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, 
 	}
 	available := map[string]bool{}
 	for _, connection := range connected {
-		available[connection.Platform] = true
+		available[socialplatform.Canonical(connection.Platform)] = true
 	}
 	seen := map[string]bool{}
 	out := make([]string, 0, len(platforms))
@@ -946,12 +947,12 @@ func (c *Configuration) RemoveSocialSetAccount(ctx context.Context, actor Actor,
 	}
 	defaults := make([]string, 0, len(set.DefaultPlatforms))
 	for _, platform := range set.DefaultPlatforms {
-		if platform != connection.Platform {
+		if socialplatform.Canonical(platform) != socialplatform.Canonical(connection.Platform) {
 			defaults = append(defaults, platform)
 		}
 	}
 	update := tx.SocialSet.UpdateOneID(set.ID).SetDefaultPlatforms(defaults).AddVersion(1)
-	if set.PrimaryPlatform != nil && *set.PrimaryPlatform == connection.Platform {
+	if set.PrimaryPlatform != nil && socialplatform.Canonical(*set.PrimaryPlatform) == socialplatform.Canonical(connection.Platform) {
 		if len(defaults) > 0 {
 			update.SetPrimaryPlatform(defaults[0])
 		} else {
@@ -995,7 +996,7 @@ func (c *Configuration) AssignSocialSetAccount(ctx context.Context, actor Actor,
 		return nil, err
 	}
 	taken, err := tx.ChannelConnection.Query().Where(channelconnection.SocialSetID(set.ID),
-		channelconnection.Platform(connection.Platform), channelconnection.StatusEQ(channelconnection.StatusACTIVE)).Exist(ctx)
+		channelconnection.PlatformIn(socialplatform.Aliases(connection.Platform)...), channelconnection.StatusEQ(channelconnection.StatusACTIVE)).Exist(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1008,10 +1009,11 @@ func (c *Configuration) AssignSocialSetAccount(ctx context.Context, actor Actor,
 		}
 		return nil, err
 	}
-	if !oneOf(connection.Platform, set.DefaultPlatforms...) {
-		update := tx.SocialSet.UpdateOneID(set.ID).SetDefaultPlatforms(append(nonNilStrings(set.DefaultPlatforms), connection.Platform)).AddVersion(1)
+	platform := socialplatform.Canonical(connection.Platform)
+	if !oneOf(platform, set.DefaultPlatforms...) {
+		update := tx.SocialSet.UpdateOneID(set.ID).SetDefaultPlatforms(append(socialplatform.Defaults(set.DefaultPlatforms), platform)).AddVersion(1)
 		if set.PrimaryPlatform == nil {
-			update.SetPrimaryPlatform(connection.Platform)
+			update.SetPrimaryPlatform(platform)
 		}
 		if _, err := update.Save(ctx); err != nil {
 			return nil, err

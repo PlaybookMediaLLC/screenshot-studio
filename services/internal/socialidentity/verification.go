@@ -41,6 +41,12 @@ var ErrInvalid = errors.New("provider identity or publishing capabilities could 
 var mastodonKey = regexp.MustCompile(`^mastodon:([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?:[0-9]{1,80}$`)
 var scopeName = regexp.MustCompile(`^[a-zA-Z0-9:._-]{1,100}$`)
 
+// RequiresVerification identifies adapters whose connection contract includes
+// native identity, observed grants and a validated capability snapshot.
+func RequiresVerification(provider string) bool {
+	return provider == "x" || provider == "twitter" || provider == "bluesky" || provider == "mastodon-custom"
+}
+
 // Validate binds a snapshot to the actual adapter and returned native identity.
 // Each additional provider must supply its own identity and grant rules here.
 func (v *Verification) Validate(provider, internalID string) error {

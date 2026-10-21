@@ -98,8 +98,8 @@ hold the proof. Roll out the social adapter before the product API. Existing X
 connections need a same-account reconnect to obtain proof; do not synthesize proof
 from settings or old tokens. In-flight legacy exchanged receipts without proof are
 rejected at completion and require a new authorization attempt. Completed historical
-receipts remain replayable. Listing health and execution-time enforcement still need
-the broader provider health/capability work; this change does not claim to solve them.
+receipts remain replayable. The follow-up below adds proof checks to listing health and provider handoff.
+Content eligibility and ongoing remote revocation detection remain separate work.
 
 ### Execution evidence
 
@@ -121,3 +121,64 @@ Evidence: `.context/x-proof-live-verification.json`,
 `.context/x-proof-connected-detail.jpg`, `.context/x-proof-go-final.log`,
 `.context/x-proof-race.log`, `.context/x-proof-browser.log`, and
 `.context/x-proof-review.ndjson`. The screenshot was inspected after reconnect.
+
+## Stored verification governs health and provider handoff
+
+X, Bluesky, and custom Mastodon now require a valid stored native identity, grant,
+capability snapshot, and verification timestamp before an otherwise active account
+reports connected. A legacy `twitter` adapter identifier remains unverified until
+reconnected through canonical X. Removed, revoked, expired, and permission-required
+states retain precedence. Invalid proof blocks draft scheduling without changing the
+draft or creating a scheduled post.
+
+Social workflow activities reload all five verification fields from the current
+credential row and pass them to the provider. Previously their conversion dropped
+these fields, including the Bluesky limits required by its publishing checks.
+Verification is excluded from serialized workflow snapshots: old history cannot
+supply a missing or superseded grant. Publication, pending publication, comments,
+status checks, and finalization are covered across the Temporal data converter.
+
+The direct publisher rejects missing proof, incomplete setup, deleted accounts,
+and mismatched tenant/destination/provider records before signing media. It reloads
+credentials and proof after signing and before each thread reply, checks identity
+continuity, and retains the last confirmed receipt if access is lost mid-thread.
+A media-signing failure now stops the reply instead of being overwritten by a
+successful settings conversion and producing a reply without its selected media.
+Custom Mastodon remains outside the direct publisher allowlist; this does not enable
+another publishing route.
+
+The updated local product API and existing production web bundle showed the approved
+X account connected. A controlled disposable-database fixture temporarily removed
+only verification metadata: the real UI showed unverified and instructed reconnect.
+Restoring the original metadata returned the same account to connected. Database
+verification confirmed the original identity, write grant, four completed attempts,
+one channel, null token expiry, and encrypted credentials remained intact. This is
+local missing-proof/recovery evidence, not a live provider revocation test. Screenshots
+were captured and inspected in `.context/x-health-unverified.jpg` and
+`.context/x-health-connected.jpg`. No public post was made.
+
+No new DDL is required. Apply existing social migration 0003 and deploy the proof-capable
+adapters before the updated product API and publishing workers. Legacy records for
+these adapters require reconnect; do not fabricate verification from editable settings.
+An in-flight workflow with missing proof stops and requires recovery after reconnect;
+check any existing remote outcome before retrying publication. Old workflow payloads
+remain compatible because current credentials and proof are loaded in activities.
+
+Remaining work includes remote revocation/health probes, native ownership conflicts,
+full X text/media eligibility at queue and handoff, and live publication verification.
+The separate legacy account-standing path still derives Premium/article allowances
+from editable settings and needs replacement with verified capability enforcement.
+This increment does not establish those allowances or complete S18/S20.
+
+Validation: all 124 Go packages passed with `go test -p 1 ./... -count=1` against
+migrated disposable PostgreSQL; full `go vet ./...` passed. The product, social
+activities, direct publisher, and shared identity packages passed `go test -race
+-p 1`. The local API build passed; no web application source changed, so its existing
+production build was reused. CodeRabbit reviewed all 13 changed source/test files
+with zero findings. The first new fixture expectation incorrectly assumed custom
+Mastodon was allowed for direct publishing; its corrected assertion preserves the
+existing restriction, and the complete rerun passes.
+
+Evidence: `.context/social-proof-health-{go,vet,race,build}.log`,
+`.context/social-proof-health-review-final.ndjson`,
+`.context/x-proof-live-verification.json`, and the two inspected health screenshots.

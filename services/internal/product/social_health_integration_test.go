@@ -3,7 +3,10 @@ package product
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"hash/fnv"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +15,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // socialCredentialFixture writes the same tenant binding and provider rows
@@ -44,7 +48,30 @@ func socialCredentialFixture(t *testing.T, ctx context.Context, db *sql.DB, org 
 	})
 	return func(id, platform string) {
 		t.Helper()
+		if platform == "twitter" {
+			platform = "x"
+		}
 		exec(`INSERT INTO "Integration" (id,"internalId","organizationId",name,"providerIdentifier",type,token) VALUES ($1,$1,$2,'Fixture',$3,'social','fixture-only-credential')`, id, remote, platform)
+		if platform == "x" || platform == "mastodon-custom" {
+			hash := fnv.New64a()
+			_, _ = hash.Write([]byte(id))
+			native := strconv.FormatUint(max(1, hash.Sum64()), 10)
+			caps := socialidentity.XStandardPostLimits("read-write", nil)
+			proof := socialidentity.Verification{AccountKey: "x:" + native, AccountKind: "profile", GrantedScopes: []string{"read-write"}, Capabilities: socialidentity.Capabilities{Version: 1, X: &caps}}
+			if platform == "mastodon-custom" {
+				native = "mastodon:fixture.social:" + native
+				proof = socialidentity.Verification{AccountKey: native, AccountKind: "profile", GrantedScopes: []string{"read", "write"},
+					Capabilities: socialidentity.Capabilities{Version: 1, MaxCharacters: 500, MaxMediaAttachments: 4, CharactersReservedPerURL: 23,
+						MediaMIMETypes: []string{"image/png", "video/mp4"}, ImageSizeLimit: 16000000, VideoSizeLimit: 99000000,
+						ImageMatrixLimit: 33000000, VideoMatrixLimit: 8200000, VideoFrameRateLimit: 60}}
+			}
+			if err := proof.Validate(platform, native); err != nil {
+				t.Fatal(err)
+			}
+			scopes, _ := json.Marshal(proof.GrantedScopes)
+			limits, _ := json.Marshal(proof.Capabilities)
+			exec(`UPDATE "Integration" SET "internalId"=$2,"verifiedAccountKey"=$3,"verifiedAccountKind"='profile',"verifiedScopes"=$4,"verifiedCapabilities"=$5,"identityVerifiedAt"=now() WHERE id=$1`, id, native, proof.AccountKey, string(scopes), string(limits))
+		}
 	}
 }
 
@@ -97,6 +124,25 @@ func TestUnverifiedSocialCredentialsCannotSchedule(t *testing.T) {
 	w.exec(t, `UPDATE social_tenant_binding SET "goOrganizationId"=$2 WHERE "organizationId"=$1`, w.org, "foreign-"+w.org)
 	expect(AccountUnverified)
 	w.exec(t, `UPDATE social_tenant_binding SET "goOrganizationId"=$2 WHERE "organizationId"=$1`, w.org, "social-"+w.org)
+	var native, key, kind string
+	var scopes, capabilities []byte
+	var verifiedAt time.Time
+	if err := w.db.SQL.QueryRowContext(ctx, `SELECT "internalId","verifiedAccountKey","verifiedAccountKind","verifiedScopes","verifiedCapabilities","identityVerifiedAt" FROM "Integration" WHERE id=$1`, external).
+		Scan(&native, &key, &kind, &scopes, &capabilities, &verifiedAt); err != nil {
+		t.Fatal(err)
+	}
+	for _, change := range []string{
+		`"verifiedAccountKey"=NULL,"verifiedAccountKind"=NULL,"verifiedScopes"=NULL,"verifiedCapabilities"=NULL,"identityVerifiedAt"=NULL`,
+		`"verifiedAccountKey"='x:999'`,
+		`"verifiedAccountKind"='page'`,
+		`"verifiedScopes"='["read"]'`,
+		`"verifiedCapabilities"=jsonb_set("verifiedCapabilities",'{x,maxImages}','5')`,
+		`"providerIdentifier"='twitter'`,
+	} {
+		w.exec(t, `UPDATE "Integration" SET `+change+` WHERE id=$1`, external)
+		expect(AccountUnverified)
+		w.exec(t, `UPDATE "Integration" SET "providerIdentifier"='x',"internalId"=$2,"verifiedAccountKey"=$3,"verifiedAccountKind"=$4,"verifiedScopes"=$5,"verifiedCapabilities"=$6,"identityVerifiedAt"=$7 WHERE id=$1`, external, native, key, kind, string(scopes), string(capabilities), verifiedAt)
+	}
 	for _, test := range []struct{ name, update string }{
 		{AccountUnverified, `"providerIdentifier"='linkedin'`},
 		{AccountUnverified, `"providerIdentifier"='x', token=''`},

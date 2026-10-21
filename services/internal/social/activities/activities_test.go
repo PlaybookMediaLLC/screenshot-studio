@@ -30,20 +30,26 @@ func TestMain(m *testing.M) {
 // fakeProvider records what the activities hand it.
 type fakeProvider struct {
 	integrations.Provider
-	err       error
-	posted    []integrations.PostDetails
-	pending   bool
-	token     string
-	commented []string // postID, lastCommentID
-	status    *integrations.PendingCheckResponse
-	onRefresh func()
+	providerID string
+	received   *ent.Integration
+	err        error
+	posted     []integrations.PostDetails
+	pending    bool
+	token      string
+	commented  []string // postID, lastCommentID
+	status     *integrations.PendingCheckResponse
+	onRefresh  func()
 }
 
 func (p *fakeProvider) Info() integrations.Info {
+	if p.providerID != "" {
+		return integrations.Info{Identifier: p.providerID, Editor: "normal"}
+	}
 	return integrations.Info{Identifier: "fake", Editor: "normal"}
 }
 
-func (p *fakeProvider) Post(_ context.Context, _, token string, list []integrations.PostDetails, _ *ent.Integration) ([]integrations.PostResponse, error) {
+func (p *fakeProvider) Post(_ context.Context, _, token string, list []integrations.PostDetails, in *ent.Integration) ([]integrations.PostResponse, error) {
+	p.received = in
 	p.token, p.posted = token, list
 	if p.err != nil {
 		return nil, p.err
@@ -51,7 +57,8 @@ func (p *fakeProvider) Post(_ context.Context, _, token string, list []integrati
 	return []integrations.PostResponse{{ID: list[0].ID, PostID: "platform-1", ReleaseURL: "https://fake/1", Status: "success"}}, nil
 }
 
-func (p *fakeProvider) PostPending(_ context.Context, _, token string, list []integrations.PostDetails, _ *ent.Integration) ([]integrations.PostResponse, error) {
+func (p *fakeProvider) PostPending(_ context.Context, _, token string, list []integrations.PostDetails, in *ent.Integration) ([]integrations.PostResponse, error) {
+	p.received = in
 	p.token, p.posted, p.pending = token, list, true
 	if p.err != nil {
 		return nil, p.err
@@ -59,12 +66,14 @@ func (p *fakeProvider) PostPending(_ context.Context, _, token string, list []in
 	return []integrations.PostResponse{{ID: list[0].ID, Status: "pending", PendingData: json.RawMessage(`{"job":1}`)}}, nil
 }
 
-func (p *fakeProvider) Comment(_ context.Context, _, postID, lastCommentID, token string, list []integrations.PostDetails, _ *ent.Integration) ([]integrations.PostResponse, error) {
+func (p *fakeProvider) Comment(_ context.Context, _, postID, lastCommentID, token string, list []integrations.PostDetails, in *ent.Integration) ([]integrations.PostResponse, error) {
+	p.received = in
 	p.token, p.posted, p.commented = token, list, []string{postID, lastCommentID}
 	return []integrations.PostResponse{{ID: list[0].ID, PostID: "comment-1", ReleaseURL: "https://fake/c1"}}, nil
 }
 
-func (p *fakeProvider) CheckPostStatus(_ context.Context, token string, pending json.RawMessage, _ *ent.Integration) (*integrations.PendingCheckResponse, error) {
+func (p *fakeProvider) CheckPostStatus(_ context.Context, token string, pending json.RawMessage, in *ent.Integration) (*integrations.PendingCheckResponse, error) {
+	p.received = in
 	p.token = token
 	if p.err != nil {
 		return nil, p.err

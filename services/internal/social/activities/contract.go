@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // PostActivity names the post activities. Every method runs on the queue the
@@ -301,6 +302,13 @@ type Integration struct {
 	CustomerID            *string `json:"customerId"`
 	RootInternalID        *string `json:"rootInternalId"`
 	AdditionalSettings    *string `json:"additionalSettings"`
+	// Verification is reloaded with credentials inside each activity. Workflow
+	// history must not become an authority for a stale account or grant.
+	VerifiedAccountKey   *string                      `json:"-"`
+	VerifiedAccountKind  *string                      `json:"-"`
+	VerifiedScopes       []string                     `json:"-"`
+	VerifiedCapabilities *socialidentity.Capabilities `json:"-"`
+	IdentityVerifiedAt   *time.Time                   `json:"-"`
 }
 
 // Post is a Prisma Post row as getPost / getPostsList return it. The root

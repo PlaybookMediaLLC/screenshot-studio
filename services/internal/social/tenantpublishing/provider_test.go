@@ -28,13 +28,27 @@ func (f fakeBindings) Binding(context.Context, string) (*productent.SocialTenant
 type fakeIntegrations struct{ item *socialent.Integration }
 
 func (f fakeIntegrations) FindIntegration(context.Context, string, string, string) (*socialent.Integration, error) {
-	return f.item, nil
+	if f.item == nil {
+		return nil, nil
+	}
+	row := *f.item
+	return &row, nil
 }
 
-type fakeSigner struct{ calls int }
+type fakeSigner struct {
+	calls     int
+	afterSign func()
+	err       error
+}
 
 func (f *fakeSigner) SignDelivery(_ context.Context, organizationID, key string) (string, error) {
 	f.calls++
+	if f.afterSign != nil {
+		f.afterSign()
+	}
+	if f.err != nil {
+		return "", f.err
+	}
 	if !strings.HasPrefix(key, "org/"+organizationID+"/") {
 		return "", errors.New("wrong tenant media")
 	}
@@ -45,16 +59,23 @@ type fakePoster struct {
 	calls int
 	media int
 	// replies records each reply as "message>answers", in order.
-	replies []string
-	poll    *integrations.PollDetails
-	path    string
-	err     error
-	status  string
+	replies          []string
+	poll             *integrations.PollDetails
+	path             string
+	err              error
+	status           string
+	expectedNativeID string
+	afterPost        func()
+	afterReply       func()
 }
 
 func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrations.PostDetails, _ *socialent.Integration) ([]integrations.PostResponse, error) {
 	f.calls++
-	if id != "remote-user" || token != "private-token" || len(posts) != 1 || posts[0].ID != "canonical-post-1" {
+	wantID := f.expectedNativeID
+	if wantID == "" {
+		wantID = "remote-user"
+	}
+	if id != wantID || token != "private-token" || len(posts) != 1 || posts[0].ID != "canonical-post-1" {
 		return nil, errors.New("incorrect provider input")
 	}
 	f.path, f.media, f.poll = posts[0].Media[0].Path, len(posts[0].Media), posts[0].Poll
@@ -65,6 +86,9 @@ func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrati
 	if status == "" {
 		status = "posted"
 	}
+	if f.afterPost != nil {
+		f.afterPost()
+	}
 	return []integrations.PostResponse{{PostID: "remote-post-1", Status: status}}, nil
 }
 
@@ -74,6 +98,9 @@ func (f *fakePoster) Comment(_ context.Context, _, postID, lastCommentID, _ stri
 		answers = postID
 	}
 	f.replies = append(f.replies, posts[0].Message+">"+answers)
+	if f.afterReply != nil {
+		f.afterReply()
+	}
 	return []integrations.PostResponse{{PostID: fmt.Sprintf("reply-%d", len(f.replies))}}, nil
 }
 
@@ -132,7 +159,9 @@ func TestDirectPublisherAcceptsConfirmedInstagramReceipt(t *testing.T) {
 func TestDirectPublisherAcceptsCompletedBlueskyReceipt(t *testing.T) {
 	p, _, poster, input := directFixture()
 	input.Platform = "bluesky"
-	p.integrations = fakeIntegrations{&socialent.Integration{ID: "destination", OrganizationID: "social-org", ProviderIdentifier: input.Platform, InternalID: "remote-user", Token: "private-token"}}
+	account := p.integrations.(fakeIntegrations).item
+	verifiedDirectAccount(t, account, input.Platform)
+	poster.expectedNativeID = account.InternalID
 	poster.status = "completed"
 	id, err := p.Publish(context.Background(), input)
 	if err != nil || id != "remote-post-1" || poster.calls != 1 {

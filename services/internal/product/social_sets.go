@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
@@ -23,6 +24,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialsetwritingsample"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialplatform"
 	"github.com/lucsky/cuid"
 )
@@ -336,7 +338,9 @@ func connectionHealth(ctx context.Context, client *ent.Client, organizationID st
 	}
 	query := `SELECT c.id, coalesce(i.id IS NOT NULL AND length(trim(i.token)) > 0
         AND platform_social_channel_v1(i."providerIdentifier") = platform_social_channel_v1(c.platform), false), coalesce(i."deletedAt" IS NOT NULL, false), coalesce(i.disabled, false),
-		coalesce(i."refreshNeeded", false), coalesce(i."inBetweenSteps", false), i."tokenExpiration"
+		coalesce(i."refreshNeeded", false), coalesce(i."inBetweenSteps", false), i."tokenExpiration",
+		coalesce(i."providerIdentifier", ''), coalesce(i."internalId", ''), i."verifiedAccountKey", i."verifiedAccountKind",
+		i."verifiedScopes", i."verifiedCapabilities", i."identityVerifiedAt"
 		FROM channel_connection c
 		LEFT JOIN social_tenant_binding b ON b."organizationId" = c."organizationId"
 		LEFT JOIN "Integration" i ON i.id = c."externalAccountId" AND i."organizationId" = b."goOrganizationId"
@@ -346,10 +350,24 @@ func connectionHealth(ctx context.Context, client *ent.Client, organizationID st
 		var id string
 		var exists, deleted, disabled, refresh, between bool
 		var expires *time.Time
-		if err := row.Scan(&id, &exists, &deleted, &disabled, &refresh, &between, &expires); err != nil {
+		var provider, native string
+		var key, kind *string
+		var scopes, capabilities []byte
+		var verified *time.Time
+		if err := row.Scan(&id, &exists, &deleted, &disabled, &refresh, &between, &expires, &provider, &native, &key, &kind, &scopes, &capabilities, &verified); err != nil {
 			return err
 		}
 		health[id] = accountHealth(statuses[id], exists, deleted, disabled, refresh, between, expires, now)
+		if health[id] == AccountConnected && socialidentity.RequiresVerification(provider) {
+			if key == nil || kind == nil || verified == nil {
+				health[id] = AccountUnverified
+				return nil
+			}
+			proof := socialidentity.Verification{AccountKey: *key, AccountKind: *kind}
+			if json.Unmarshal(scopes, &proof.GrantedScopes) != nil || json.Unmarshal(capabilities, &proof.Capabilities) != nil || proof.Validate(provider, native) != nil {
+				health[id] = AccountUnverified
+			}
+		}
 		return nil
 	})
 }

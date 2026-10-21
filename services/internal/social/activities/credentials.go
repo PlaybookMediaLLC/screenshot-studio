@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/organization"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
 	"go.temporal.io/sdk/temporal"
 )
@@ -29,6 +30,9 @@ func (a *PostActivities) currentIntegration(ctx context.Context, in *Integration
 	}
 	if !active {
 		return unavailable()
+	}
+	if integrations.RequireVerifiedIdentity(row) != nil {
+		return nil, temporal.NewNonRetryableApplicationError("Reconnect this account to verify its identity, publishing permissions and limits", temporalx.TypeBadBody, nil)
 	}
 	return toIntegration(row), nil
 }

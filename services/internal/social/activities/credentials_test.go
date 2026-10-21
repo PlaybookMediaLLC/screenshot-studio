@@ -36,7 +36,8 @@ func TestRefreshActivityDoesNotChangeRevokedAccountAfterRemoteCall(t *testing.T)
 	}
 }
 
-func (p *fakeProvider) FinalizePost(_ context.Context, token string, pending json.RawMessage, _ *ent.Integration) (*integrations.PendingCheckResponse, error) {
+func (p *fakeProvider) FinalizePost(_ context.Context, token string, pending json.RawMessage, in *ent.Integration) (*integrations.PendingCheckResponse, error) {
+	p.received = in
 	p.token = token
 	return &integrations.PendingCheckResponse{Status: "completed", PostID: "finalized", PendingData: pending}, nil
 }

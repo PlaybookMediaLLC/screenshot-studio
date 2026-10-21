@@ -36,11 +36,13 @@ func toIntegration(i *ent.Integration) *Integration {
 		CreatedAt: JSDate{i.CreatedAt}, UpdatedAt: jsDate(i.UpdatedAt), InBetweenSteps: i.InBetweenSteps,
 		RefreshNeeded: i.RefreshNeeded, PostingTimes: i.PostingTimes, CustomInstanceDetails: i.CustomInstanceDetails,
 		CustomerID: i.CustomerID, RootInternalID: i.RootInternalID, AdditionalSettings: i.AdditionalSettings,
+		VerifiedAccountKey: i.VerifiedAccountKey, VerifiedAccountKind: i.VerifiedAccountKind,
+		VerifiedScopes: i.VerifiedScopes, VerifiedCapabilities: i.VerifiedCapabilities, IdentityVerifiedAt: i.IdentityVerifiedAt,
 	}
 }
 
-// entIntegration is the row the workflow sent back, as the services and
-// providers take it.
+// entIntegration reconstructs the current row reloaded inside the activity.
+// Credential and verification fields are never taken from workflow history.
 func entIntegration(i *Integration) *ent.Integration {
 	return &ent.Integration{
 		ID: i.ID, InternalID: i.InternalID, OrganizationID: i.OrganizationID, Name: i.Name,
@@ -50,6 +52,8 @@ func entIntegration(i *Integration) *ent.Integration {
 		CreatedAt: i.CreatedAt.Time, UpdatedAt: timePtr(i.UpdatedAt), InBetweenSteps: i.InBetweenSteps,
 		RefreshNeeded: i.RefreshNeeded, PostingTimes: i.PostingTimes, CustomInstanceDetails: i.CustomInstanceDetails,
 		CustomerID: i.CustomerID, RootInternalID: i.RootInternalID, AdditionalSettings: i.AdditionalSettings,
+		VerifiedAccountKey: i.VerifiedAccountKey, VerifiedAccountKind: i.VerifiedAccountKind,
+		VerifiedScopes: i.VerifiedScopes, VerifiedCapabilities: i.VerifiedCapabilities, IdentityVerifiedAt: i.IdentityVerifiedAt,
 	}
 }
 

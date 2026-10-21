@@ -1,6 +1,6 @@
 {
   "name": "screenshot-studio",
-  "version": "2.32.7",
+  "version": "2.33.0",
   "private": true,
   "workspaces": [
     "packages/*"

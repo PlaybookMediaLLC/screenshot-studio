@@ -108,7 +108,7 @@ function AudienceTools({
             'flex h-6 items-center justify-center rounded-md px-1.5 text-[11px] hover:bg-white/[0.06]',
             replies !== 'everyone' || labelled
               ? 'text-sky-300'
-              : 'text-neutral-500 hover:text-white'
+              : 'text-neutral-400 hover:text-white'
           )}
           size={null}
           title="Audience & disclosures"
@@ -145,7 +145,7 @@ function AudienceTools({
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-[11px] text-neutral-500">
+            <p className="text-[11px] text-neutral-400">
               Who can reply never changes who can see the post.
             </p>
             {count > 1 ? (
@@ -200,7 +200,7 @@ function AudienceTools({
           <Label className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-sm">
             <span>
               Quote the first post
-              <span className="block text-[11px] text-neutral-500">
+              <span className="block text-[11px] text-neutral-400">
                 Resolved once the first post is live.
               </span>
             </span>
@@ -236,7 +236,7 @@ function PollTool({
           aria-label={poll ? 'Edit the poll' : 'Add a poll'}
           className={cn(
             'flex h-6 items-center justify-center rounded-md px-1.5 text-[11px] hover:bg-white/[0.06]',
-            poll ? 'text-sky-300' : 'text-neutral-500 hover:text-white'
+            poll ? 'text-sky-300' : 'text-neutral-400 hover:text-white'
           )}
           size={null}
           title={poll ? 'Edit poll' : 'Add poll'}
@@ -256,7 +256,7 @@ function PollTool({
         ) : (
           <div className="grid gap-2 text-sm">
             <p className="text-neutral-300">{CHANNEL_META[channel].label} poll</p>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-400">
               {rules.question === 'post-text'
                 ? 'The post’s text is the question.'
                 : `A question of up to ${rules.questionLimit} characters.`}{' '}
@@ -320,7 +320,7 @@ export function PollEditor({
           />
         </Label>
       ) : (
-        <p className="text-xs text-neutral-500">The post’s text is the question.</p>
+        <p className="text-xs text-neutral-400">The post’s text is the question.</p>
       )}
       {poll.options.map((option, index) => (
         <Label className="grid gap-1 text-xs text-neutral-400" key={index}>

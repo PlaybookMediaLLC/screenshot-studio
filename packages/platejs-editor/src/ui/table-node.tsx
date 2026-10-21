@@ -72,6 +72,7 @@ export const TableElement = withHOC(
                   onMouseDown={(e) => e.preventDefault()}
                   size="none"
                   tooltip="Add a new row"
+                  aria-label="Add a new row"
                   tooltipContentProps={{ side: "bottom" }}
                   variant="ghost"
                 >
@@ -95,6 +96,7 @@ export const TableElement = withHOC(
                   onMouseDown={(e) => e.preventDefault()}
                   size="none"
                   tooltip="Add a new column"
+                  aria-label="Add a new column"
                   tooltipContentProps={{ side: "bottom" }}
                   variant="ghost"
                 >
@@ -121,6 +123,7 @@ export const TableElement = withHOC(
                   onMouseDown={(e) => e.preventDefault()}
                   size="none"
                   tooltip="Add a new row and column"
+                  aria-label="Add a new row and column"
                   tooltipContentProps={{ side: "bottom" }}
                   variant="ghost"
                 >

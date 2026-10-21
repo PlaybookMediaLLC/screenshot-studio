@@ -104,7 +104,7 @@ export function VersionOptionsBar({
         type="button"
         variant="custom"
       >
-        Thread finisher
+        Closing-post templates
       </Button>
     )
   }
@@ -307,7 +307,7 @@ export function NumberingDialog({
               />
             </Label>
           </div>
-          <p className="text-xs text-neutral-500" data-testid="numbering-preview">
+          <p className="text-xs text-neutral-400" data-testid="numbering-preview">
             This thread: {labels.map((label) => label ?? '—').join('  ')}
           </p>
         </fieldset>
@@ -322,7 +322,7 @@ export function NumberingDialog({
 }
 
 /**
- * The set's thread finishers: browse, create, edit, preview, delete, and add
+ * The set's closing-post templates: browse, create, edit, preview, delete, and add
  * one to the end of the thread. One that quotes the first post is resolved
  * to that post only after it is live.
  */
@@ -382,10 +382,10 @@ export function FinisherDialog({
     <Dialog onOpenChange={(open) => !open && onClose()} open>
       <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Thread finisher</DialogTitle>
+          <DialogTitle>Closing-post templates</DialogTitle>
           <DialogDescription>
             A closing post that asks readers to follow or engage. Your finishers belong to this
-            social set. Nothing is ever added to a draft without you choosing it.
+            brand. Nothing is ever added to a draft without you choosing it.
           </DialogDescription>
         </DialogHeader>
         {editing ? (
@@ -414,7 +414,7 @@ export function FinisherDialog({
             <Label className="flex items-center justify-between text-sm">
               <span>
                 Quote the first post
-                <span className="block text-[11px] text-neutral-500">
+                <span className="block text-[11px] text-neutral-400">
                   Added once the first post is live.
                 </span>
               </span>
@@ -442,9 +442,9 @@ export function FinisherDialog({
           </div>
         ) : (
           <>
-            {items === null ? <p className="text-sm text-neutral-500">Loading…</p> : null}
+            {items === null ? <p className="text-sm text-neutral-400">Loading…</p> : null}
             {items?.length === 0 ? (
-              <p className="text-sm text-neutral-500">No finishers yet.</p>
+              <p className="text-sm text-neutral-400">No finishers yet.</p>
             ) : null}
             <ul className="grid gap-2">
               {items?.map((item) => (
@@ -518,7 +518,7 @@ function FinisherPreview({ quoteFirstPost, text }: { quoteFirstPost: boolean; te
     <div className="mt-2 rounded-lg bg-white/[0.03] p-2 text-sm text-neutral-200">
       <p className="whitespace-pre-wrap">{text || ' '}</p>
       {quoteFirstPost ? (
-        <p className="mt-2 rounded-md border border-dashed border-white/15 px-2 py-1 text-xs text-neutral-500">
+        <p className="mt-2 rounded-md border border-dashed border-white/15 px-2 py-1 text-xs text-neutral-400">
           First post quote… (linked once the first post is live)
         </p>
       ) : null}
@@ -645,7 +645,7 @@ function FirstComment({
             value={value}
           />
         </Label>
-        <p className="text-[11px] text-neutral-500">
+        <p className="text-[11px] text-neutral-400">
           Posted after the post is live. If it fails, the post stays published and the comment shows
           as failed.
         </p>

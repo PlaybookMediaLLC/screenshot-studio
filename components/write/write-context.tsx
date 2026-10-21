@@ -14,7 +14,7 @@ import { SOCIAL_SET_COOKIE } from '@/lib/settings/appearance'
 /** The library a Write page loaded. */
 export type WriteLibrary = WriteData
 
-/** A social set as the browser holds it. */
+/** A brand as the browser holds it. */
 export type WriteSet = WriteData['sets'][number]
 
 /** A draft row in the library. */

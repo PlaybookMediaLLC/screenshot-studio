@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 import { DeveloperId } from '@/components/settings/DeveloperId'
 import { socialSetHref } from '@/components/workspace/settings-sections'
 import { Button } from '@/components/ui/button'
+import { TimeZonePicker } from '@/components/settings/TimeZonePicker'
 import { Input } from '@/components/ui/input'
 import { copyableSocialSetSchema, socialSetRemovalSchema, socialSetSchema } from '@/lib/api/contracts/social-sets'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
@@ -45,7 +46,7 @@ function SetRow({ set }: { set: SocialSetRecord }) {
           <Platforms set={set} />
           <span>· {set.weeklySlotCount} weekly slots</span>
           <span>· {set.timeZone}</span>
-          <DeveloperId id={set.id} label="Social set" />
+          <DeveloperId id={set.id} label="Brand" />
         </span>
       }
       label={
@@ -84,6 +85,7 @@ function CreateSet({ canManage }: { canManage: boolean }) {
   const store = useStoreSocialSet()
   const [name, setName] = useState('')
   const [color, setColor] = useState<string>(SET_COLORS[0]!.value)
+  const [timeZone, setTimeZone] = useState('UTC')
   const [visibility, setVisibility] = useState<'WORKSPACE' | 'PRIVATE'>('WORKSPACE')
   const [creating, setCreating] = useState(false)
   const valid = name.trim().length > 0 && name.trim().length <= 80
@@ -92,7 +94,7 @@ function CreateSet({ canManage }: { canManage: boolean }) {
     setCreating(true)
     try {
       const created = await settingsRequest('/api/v1/social-sets', socialSetSchema, {
-        body: { color, name: name.trim(), visibility },
+        body: { color, name: name.trim(), visibility, timeZone },
         method: 'POST',
       })
       await store(created)
@@ -107,7 +109,7 @@ function CreateSet({ canManage }: { canManage: boolean }) {
   if (!canManage) return null
   return (
     <Group>
-      <Row description="A set is the accounts one person or brand posts from, with its own schedule and voice." label="New social set" layout="stacked">
+      <Row description="A set is the accounts one person or brand posts from, with its own schedule and voice." label="New brand" layout="stacked">
         <form
           className="grid gap-3"
           onSubmit={(event) => {
@@ -132,9 +134,10 @@ function CreateSet({ canManage }: { canManage: boolean }) {
               </select>
             </label>
             <Button disabled={!valid || creating} type="submit">
-              {creating ? 'Creating…' : 'Create social set'}
+              {creating ? 'Creating…' : 'Create brand'}
             </Button>
           </div>
+          <TimeZonePicker label="Scheduling time zone" value={timeZone} onChange={setTimeZone} />
           <fieldset className="flex flex-wrap items-center gap-2">
             <legend className="sr-only">Colour</legend>
             {SET_COLORS.map((option) => (
@@ -267,7 +270,7 @@ function CopyFromWorkspace({ canManage }: { canManage: boolean }) {
         label="Copy from another workspace"
       >
         <select
-          aria-label="Copy a social set from another workspace"
+          aria-label="Copy a brand from another workspace"
           className="h-9 rounded-lg border border-border bg-card px-2 text-sm"
           defaultValue=""
           onChange={async (event) => {
@@ -299,12 +302,12 @@ function CopyFromWorkspace({ canManage }: { canManage: boolean }) {
 }
 
 /**
- * Social sets (RFC 043): the people and brands this workspace posts as. Each
+ * Brands (RFC 043): the people and brands this workspace posts as. Each
  * row is one set by ID; two sets can share a name and stay apart.
  */
 export function SocialSetList({ canManage }: { canManage: boolean }) {
   const list = useSocialSets()
-  if (list.isPending) return <p className="text-sm text-muted-foreground">Loading social sets…</p>
+  if (list.isPending) return <p className="text-sm text-muted-foreground">Loading brands…</p>
   if (list.isError) {
     return (
       <p className="text-sm text-red-700 dark:text-red-300" role="alert">
@@ -316,7 +319,7 @@ export function SocialSetList({ canManage }: { canManage: boolean }) {
   return (
     <div className="grid gap-6">
       {sets.length === 0 ? (
-        <EmptyState description="Create a set for each person or brand you post as." icon={Layers} title="No social sets yet" />
+        <EmptyState description="Create a set for each person or brand you post as." icon={Layers} title="No brands yet" />
       ) : (
         <Group>
           {sets.map((set) => (

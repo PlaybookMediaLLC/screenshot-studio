@@ -79,10 +79,11 @@ export function useDraftDocument({
   const [server, setServer] = React.useState<DraftWire>(draft)
   const version = React.useRef(draft.version)
   const latest = React.useRef(document)
-  latest.current = document
+  const savedCallback = React.useRef(onSaved)
+  savedCallback.current = onSaved
   const discussions = React.useRef(readDiscussions(draft.discussions))
   const dirty = React.useRef(false)
-  const inFlight = React.useRef<Promise<void> | null>(null)
+  const inFlight = React.useRef<Promise<boolean> | null>(null)
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const legacyText = React.useRef(Object.keys(draft.channelText).length > 0)
 
@@ -90,13 +91,16 @@ export function useDraftDocument({
     const fresh = await draftsApi.get(draft.id)
     version.current = fresh.version
     setServer(fresh)
-    setDocument(documentOf(fresh))
+    latest.current = documentOf(fresh)
+    dirty.current = false
+    setDocument(latest.current)
     setEditorKey((key) => key + 1)
   }, [draft.id])
 
-  const save = React.useCallback(async (): Promise<void> => {
-    if (!canEdit) return
-    if (inFlight.current) await inFlight.current
+  const save = React.useCallback(async (): Promise<boolean> => {
+    if (!canEdit) return !dirty.current
+    if (inFlight.current) return inFlight.current
+    if (!dirty.current) return true
     const run = (async () => {
       setSaveState('saving')
       for (let attempt = 0; ; attempt += 1) {
@@ -121,9 +125,14 @@ export function useDraftDocument({
           legacyText.current = false
           version.current = saved.version
           setServer(saved)
-          setSaveState(dirty.current ? 'unsaved' : 'saved')
-          onSaved?.(saved)
-          return
+          savedCallback.current?.(saved)
+          // Drain edits made during this request before reporting Saved or leaving.
+          if (dirty.current) {
+            attempt = -1
+            continue
+          }
+          setSaveState('saved')
+          return true
         } catch (error) {
           if (
             error instanceof DraftRequestError &&
@@ -148,26 +157,35 @@ export function useDraftDocument({
             toast.info(
               'This draft was changed elsewhere. Showing the latest version; your last edit was not saved.'
             )
-            return
+            return false
           }
           if (
             error instanceof DraftRequestError &&
             (error.status === 404 || error.status === 403)
           ) {
+            dirty.current = true
             setSaveState('error')
             toast.error('You no longer have access to this draft; nothing more is saved.')
-            return
+            return false
           }
           dirty.current = true
           setSaveState(typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'error')
-          return
+          return false
         }
       }
-    })()
+    })().catch(() => {
+      // A failed conflict reload must keep the local revision dirty, too.
+      dirty.current = true
+      setSaveState(typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'error')
+      return false
+    })
     inFlight.current = run
-    await run
-    inFlight.current = null
-  }, [canEdit, collaborating, draft.id, onSaved, reloadLatest])
+    try {
+      return await run
+    } finally {
+      inFlight.current = null
+    }
+  }, [canEdit, collaborating, draft.id, reloadLatest])
 
   const scheduleSave = React.useCallback(() => {
     if (!canEdit) return
@@ -180,11 +198,9 @@ export function useDraftDocument({
   /** Change the document and save it shortly. */
   const update = React.useCallback(
     (change: Partial<DraftDocument> | ((current: DraftDocument) => Partial<DraftDocument>)) => {
-      setDocument((current) => {
-        const next = { ...current, ...(typeof change === 'function' ? change(current) : change) }
-        latest.current = next
-        return next
-      })
+      const current = latest.current
+      latest.current = { ...current, ...(typeof change === 'function' ? change(current) : change) }
+      setDocument(latest.current)
       scheduleSave()
     },
     [scheduleSave]
@@ -194,8 +210,8 @@ export function useDraftDocument({
   const flush = React.useCallback(async () => {
     if (timer.current) clearTimeout(timer.current)
     timer.current = null
-    if (dirty.current) await save()
-    else if (inFlight.current) await inFlight.current
+    if (!(await save()))
+      throw new Error('The latest changes could not be saved. Try again before continuing.')
   }, [save])
 
   const onDiscussionsChange = React.useCallback(
@@ -222,7 +238,13 @@ export function useDraftDocument({
     window.addEventListener('beforeunload', guard)
     return () => window.removeEventListener('beforeunload', guard)
   }, [])
-  React.useEffect(() => () => void (timer.current && clearTimeout(timer.current)), [])
+  React.useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current)
+      void save()
+    },
+    [save]
+  )
 
   // A draft the server sent back (scheduled, archived, reviewed): newer
   // saves build on its version; a late, older answer never moves it back.

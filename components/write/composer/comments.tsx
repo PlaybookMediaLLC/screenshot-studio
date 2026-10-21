@@ -87,7 +87,7 @@ export function CommentsPanel({
   const resolved = threads.filter((thread) => thread.isResolved)
   return (
     <div className="flex flex-col gap-4 p-4 text-sm" data-testid="comments-panel">
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-neutral-400">
         Select text and press {mod}⇧M to comment on it. Mention a teammate with @. You can edit and
         delete only your own comments.
       </p>
@@ -109,7 +109,7 @@ export function CommentsPanel({
       />
       {draft.guestComments.length > 0 ? (
         <section>
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
             From the public link
           </h3>
           <ul className="grid gap-2" data-testid="guest-comments">
@@ -118,7 +118,7 @@ export function CommentsPanel({
                 className="rounded-lg border border-white/[0.06] px-3 py-2"
                 key={`${comment.createdAt}-${comment.name}`}
               >
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-neutral-400">
                   <span className="text-neutral-200">{comment.name}</span> ·{' '}
                   <LocalTime value={comment.createdAt} />
                 </p>
@@ -152,7 +152,7 @@ function ThreadList({
   if (threads.length === 0) return null
   return (
     <section>
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
         {title} · {threads.length}
       </h3>
       <ul className="grid gap-2">
@@ -177,7 +177,7 @@ function ThreadList({
                 </p>
               ) : null}
               <p className="text-sm text-neutral-200">{commentText(first?.contentRich) || ' '}</p>
-              <p className="mt-1 flex items-center justify-between text-[11px] text-neutral-500">
+              <p className="mt-1 flex items-center justify-between text-[11px] text-neutral-400">
                 <span>
                   {users[first?.userId ?? ''] ?? 'Member'}
                   {thread.comments && thread.comments.length > 1

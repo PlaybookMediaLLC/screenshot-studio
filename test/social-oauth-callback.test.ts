@@ -140,3 +140,37 @@ test('page selection rejects cross-origin form submission', async () => {
   )
   assert.equal(result.status, 403)
 })
+
+for (const path of [
+  '/write/abcdefghij1234',
+  '/workspace/social-sets/abcdefghij1234',
+  '//evil.example',
+  '/write/abcdefghij1234?next=https://evil.example',
+  'https://evil.example',
+  '/write/../workspace',
+]) {
+  test(`OAuth return destination is confined to local drafts and brand settings: ${path}`, async () => {
+    const result = await completeSocialOAuth(
+      new Request('http://localhost/integrations/social/linkedin?code=code&state=state', {
+        headers: { cookie: `shots-oauth-return=${encodeURIComponent(path)}` },
+      }),
+      'linkedin',
+      { exchange: async () => ({ id: 'connected' }) }
+    )
+    assert.equal(
+      result.headers.get('Location'),
+      `${['/write/abcdefghij1234', '/workspace/social-sets/abcdefghij1234'].includes(path) ? path : '/workspace/channels'}?connected=linkedin`
+    )
+  })
+}
+
+test('malformed OAuth return cookie falls back to channels', async () => {
+  const result = await completeSocialOAuth(
+    new Request('http://localhost/integrations/social/linkedin?code=code&state=state', {
+      headers: { cookie: 'shots-oauth-return=%ZZ' },
+    }),
+    'linkedin',
+    { exchange: async () => ({ id: 'connected' }) }
+  )
+  assert.equal(result.headers.get('Location'), '/workspace/channels?connected=linkedin')
+})

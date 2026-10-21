@@ -23,7 +23,7 @@ import {
   usePluginOption,
 } from '@shots/platejs-editor/platejs/react'
 import { createYjsPlugin, YjsPlugin } from '@shots/platejs-editor/collaboration'
-import { commentPlugin, discussionPlugin, type TDiscussion } from '@shots/platejs-editor/plugins'
+import { BlockPlaceholderKit, BlockSelectionKit, commentPlugin, discussionPlugin, type TDiscussion } from '@shots/platejs-editor/plugins'
 import {
   Editor,
   EditorContainer,
@@ -41,10 +41,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { DraftDiscussions } from '@/lib/content-drafts/discussions'
+import { draftPlainText } from '@/lib/content-drafts/serialize'
 import { cn } from '@/lib/utils'
 import { POST_COLUMN } from './layout'
 import {
   insertPostBreak,
+  insertPostAfter,
+  postRanges,
   PostBreakPlugin,
   PostHeaderContext,
   type PostTools,
@@ -180,7 +183,7 @@ function CommentColumn({ children }: { children: React.ReactNode }) {
   const open = Boolean(activeId) || discussions.some((discussion) => !discussion.isResolved)
   return (
     <EditorContainer
-      className={cn('min-h-[240px] transition-[padding]', open && 'sm:pr-80')}
+      className={cn('h-auto min-h-[160px] transition-[padding]', open && 'sm:pr-80')}
       data-testid="draft-editor"
     >
       {children}
@@ -279,7 +282,7 @@ function FileButton({
   const input = inputRef ?? own
   return (
     <>
-      <ToolbarButton onClick={() => input.current?.click()} tooltip={label}>
+      <ToolbarButton aria-label={label} onClick={() => input.current?.click()} tooltip={label}>
         {children}
       </ToolbarButton>
       <Input
@@ -316,6 +319,7 @@ function InsertButton({
 }) {
   return (
     <ToolbarButton
+      aria-label={label}
       onClick={() => {
         insert()
         editor.tf.focus()
@@ -427,49 +431,25 @@ function DraftToolbar({
   }
 
   return (
-    <Toolbar className="flex items-center gap-0.5 rounded-full border border-foreground/[0.08] bg-secondary/95 px-1.5 py-1 shadow-xl shadow-black/40 backdrop-blur">
+    <Toolbar aria-label="Draft formatting" className="flex flex-wrap items-center justify-center gap-0.5 rounded-2xl border border-foreground/[0.08] bg-secondary/95 px-1.5 py-1 shadow-xl shadow-black/40 backdrop-blur">
       <ToolbarGroup>
-        <MarkToolbarButton nodeType={KEYS.bold} tooltip="Bold">
+        <MarkToolbarButton aria-label="Bold" nodeType={KEYS.bold} tooltip="Bold">
           <span className="font-bold">B</span>
         </MarkToolbarButton>
-        <MarkToolbarButton nodeType={KEYS.italic} tooltip="Italic">
+        <MarkToolbarButton aria-label="Italic" nodeType={KEYS.italic} tooltip="Italic">
           <span className="italic">I</span>
         </MarkToolbarButton>
       </ToolbarGroup>
       <ToolbarGroup>
-        <InsertButton editor={editor} insert={() => insertPostBreak(editor)} label="New post (⌘↵)">
+        <InsertButton editor={editor} insert={() => insertPostBreak(editor)} label="Add post">
           + Post
-        </InsertButton>
-        <InsertButton editor={editor} insert={() => splitPostAtCaret(editor)} label="Split post">
-          Split
         </InsertButton>
       </ToolbarGroup>
       <ToolbarGroup>
-        <InsertButton
-          editor={editor}
-          insert={() => insertBlock(editor, KEYS.table)}
-          label="Insert table"
-        >
-          Table
-        </InsertButton>
-        <InsertButton
-          editor={editor}
-          insert={() => insertBlock(editor, KEYS.equation)}
-          label="Insert math"
-        >
-          Math
-        </InsertButton>
-        <InsertButton
-          editor={editor}
-          insert={() => insertInlineElement(editor, KEYS.footnoteReference)}
-          label="Insert footnote"
-        >
-          Footnote
-        </InsertButton>
         <FileButton
           accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
           inputRef={imageInput}
-          label="Insert image"
+          label="Insert media"
           onFile={(file) => {
             // The media plugin takes a FileList, as from a drop or a picker.
             const files = new DataTransfer()
@@ -477,10 +457,30 @@ function DraftToolbar({
             editor.getTransforms(PlaceholderPlugin).insert.media(files.files)
           }}
         >
-          Image
+          Media
         </FileButton>
       </ToolbarGroup>
       {extras ? <ToolbarGroup>{extras}</ToolbarGroup> : null}
+      <ToolbarGroup>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <ToolbarButton aria-label="Insert" tooltip="Insert">Insert ▾</ToolbarButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top">
+            {[
+              { label: 'Table', insert: () => insertBlock(editor, KEYS.table) },
+              { label: 'Math', insert: () => insertBlock(editor, KEYS.equation) },
+              { label: 'Footnote', insert: () => insertInlineElement(editor, KEYS.footnoteReference) },
+              { label: 'Split post at caret', insert: () => splitPostAtCaret(editor) },
+            ].map((item) => (
+              <DropdownMenuItem key={item.label} onSelect={() => { item.insert(); editor.tf.focus() }}>
+                {item.label}
+              </DropdownMenuItem>
+            ))}
+            <p className="max-w-64 px-2 py-1 text-xs text-muted-foreground">Tables and math publish as images. Footnotes publish as text.</p>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </ToolbarGroup>
       <ToolbarGroup>
         <DocumentMenu
           files={[
@@ -544,6 +544,8 @@ export default function DraftEditor({
       // Comments and suggestions are authored by the signed-in member, not
       // the upstream demo users.
       overridePlugins: [
+        BlockSelectionKit[0].configure({ options: { disableSelectAll: true } }),
+        BlockPlaceholderKit[0].configure({ options: { placeholders: { [KEYS.p]: 'What would you like to share?' } } }),
         // Comments sit in a column beside the post; only a phone-narrow
         // editor falls back to opening them over the text.
         commentPlugin.configure({ options: { overlapWidth: 400 } }),
@@ -585,6 +587,11 @@ export default function DraftEditor({
   })
   React.useEffect(() => onEditor?.(editor), [editor, onEditor])
   const firstValue = React.useRef(initialValue)
+  React.useEffect(() => {
+    if (!collaboration && !readOnly && draftPlainText(firstValue.current).length === 0) {
+      editor.tf.select(editor.api.end([])!)
+    }
+  }, [collaboration, editor, readOnly])
   // Plate renders the editable only once the editor has content; a live
   // session gets it asynchronously, so the editable remounts when it arrives.
   const [live, setLive] = React.useState(false)
@@ -630,19 +637,26 @@ export default function DraftEditor({
             <CommentColumn key={live ? 'live' : 'local'}>
               <ThreadLine />
               <Editor
+                autoFocus={!readOnly && draftPlainText(initialValue).length === 0}
                 aria-label="Draft body"
-                className={cn(POST_COLUMN, 'pt-1 pb-12 text-[15px] leading-relaxed')}
+                className={cn(POST_COLUMN, 'min-h-0 pt-1 pb-4 text-[15px] leading-relaxed [&_[placeholder]]:before:pointer-events-none [&_[placeholder]]:before:absolute [&_[placeholder]]:before:text-neutral-400 [&_[placeholder]]:before:content-[attr(placeholder)]')}
                 dir={textDirection}
-                placeholder="What do you want to say?"
+                placeholder="What would you like to share?"
                 variant="default"
               />
             </CommentColumn>
+            {readOnly ? null : (
+              <div className={cn('pb-6', POST_COLUMN)}>
+                <Button variant="outline" size="sm" onClick={() => insertPostAfter(editor, postRanges(editor.children).length)}>
+                  Add another post
+                </Button>
+              </div>
+            )}
             {readOnly || hashtags.length === 0 ? null : <HashtagChips hashtags={hashtags} />}
             {readOnly ? null : (
               // The formatting bar floats at the bottom of the page, out of the text's way.
               <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center px-2">
-                {/* A narrow column scrolls the bar instead of clipping its start. */}
-                <div className="pointer-events-auto max-w-full overflow-x-auto rounded-full">
+                <div className="pointer-events-auto min-w-0 max-w-full">
                   <DraftToolbar
                     editor={editor}
                     extras={toolbarExtras}

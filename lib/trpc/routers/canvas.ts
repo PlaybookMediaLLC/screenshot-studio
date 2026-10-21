@@ -31,6 +31,8 @@ import {
 } from '@/lib/tenant/canvases'
 import { router } from '../init'
 import { organizationProcedure, tenantProcedure } from '../procedures'
+import { projectRefInputSchema } from '@/lib/projects/schema'
+import { openProjectCanvas } from '@/lib/tenant/project-canvas'
 
 const READ: TenantAccessRequirement = { apiKeyScope: 'artifact:read', permission: 'artifact:read' }
 const EDIT: TenantAccessRequirement = { apiKeyScope: 'asset:write', permission: 'artifact:edit' }
@@ -46,6 +48,9 @@ function found<T>(value: T | null | false, what = 'Canvas'): T {
  * revision fails with `CONFLICT`.
  */
 export const canvasRouter = router({
+  openProject: tenantProcedure(EDIT)
+    .input(projectRefInputSchema)
+    .mutation(({ ctx, input }) => openProjectCanvas(ctx.tenant, input.projectId)),
   list: tenantProcedure(READ)
     .input(canvasListInputSchema)
     .query(({ ctx, input }) => listCanvases(ctx.tenant, input)),

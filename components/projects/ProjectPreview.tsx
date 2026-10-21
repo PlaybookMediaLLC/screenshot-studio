@@ -6,6 +6,7 @@ import { type DesignDocument, mapDesignSources } from '@/lib/design/document'
 import { fetchDesignSources } from '@/lib/design/open-design'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
+import { isEmptyProject } from '@/lib/projects/empty'
 
 type Resolved = { document: DesignDocument | null; source: DesignDocument }
 
@@ -26,9 +27,10 @@ export function ProjectPreview({
   const trpcClient = useTRPCClient()
   const [ref, near] = useNearViewport<HTMLDivElement>()
   const [resolved, setResolved] = React.useState<Resolved | null>(null)
+  const empty = document !== null && isEmptyProject(document)
 
   React.useEffect(() => {
-    if (!near || !document) return
+    if (!near || !document || empty) return
     let active = true
     fetchDesignSources(trpcClient, document)
       .then((urls) => {
@@ -43,7 +45,7 @@ export function ProjectPreview({
     return () => {
       active = false
     }
-  }, [document, near, trpcClient])
+  }, [document, empty, near, trpcClient])
 
   const current = resolved?.source === document ? resolved : null
   return (
@@ -51,7 +53,11 @@ export function ProjectPreview({
       className={cn('relative h-full w-full overflow-hidden bg-foreground/[0.03]', className)}
       ref={ref}
     >
-      {current?.document ? (
+      {empty ? (
+        <p className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">
+          Empty project
+        </p>
+      ) : current?.document ? (
         <DocumentPreview alt={alt} document={current.document} />
       ) : !document || current ? (
         <p className="absolute inset-0 grid place-items-center text-[10px] text-muted-foreground">

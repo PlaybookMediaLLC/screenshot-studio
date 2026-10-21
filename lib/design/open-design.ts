@@ -80,8 +80,9 @@ async function applyNow(
   signal?.throwIfAborted()
   const resolve = (ref: string) => sources[ref] ?? ref
   const step = history === 'step' ? beginHistoryStep() : null
-  if (replace && !document.image.src) useImageStore.getState().clearImage()
-  applyDesignDocument(document, resolve, history)
+  // Layout application may keep the editor's screenshot; full documents never do.
+  const currentImage = !replace && !document.image.src ? useImageStore.getState().uploadedImageUrl : null
+  applyDesignDocument(currentImage ? { ...document, image: { ...document.image, src: currentImage } } : document, resolve, history)
   const canvas = await layoutCanvasSize()
   signal?.throwIfAborted()
   applyDesignLayout(document, resolve, canvas, history)

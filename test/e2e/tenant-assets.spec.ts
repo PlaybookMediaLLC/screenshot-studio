@@ -71,25 +71,28 @@ async function assertCrossTenantIsolation({
       },
       page
     )
-    const [download, completion, deletion, upload, invalid, oversized, unsafe] = await Promise.all([
-      browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`),
-      requestJson(page, `/api/tenant/assets/${signed.asset.id}/complete`, {}),
-      requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE'),
-      uploadSignedAsset(page, signed.uploadUrl, [...png], request.contentType),
-      requestJson(page, '/api/tenant/assets/upload-url', {
-        ...request,
-        contentType: 'text/plain',
-      }),
-      requestJson(page, '/api/tenant/assets/upload-url', {
-        ...request,
-        bytes: 50 * 1024 * 1024 + 1,
-      }),
-      requestJson(page, '/api/tenant/assets/upload-url', {
-        ...request,
-        fileName: '../unsafe.png',
-      }),
-    ])
+    const [download, completion, deletion, upload, invalid, oversized, unsafe, thumbnail] =
+      await Promise.all([
+        browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`),
+        requestJson(page, `/api/tenant/assets/${signed.asset.id}/complete`, {}),
+        requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE'),
+        uploadSignedAsset(page, signed.uploadUrl, [...png], request.contentType),
+        requestJson(page, '/api/tenant/assets/upload-url', {
+          ...request,
+          contentType: 'text/plain',
+        }),
+        requestJson(page, '/api/tenant/assets/upload-url', {
+          ...request,
+          bytes: 50 * 1024 * 1024 + 1,
+        }),
+        requestJson(page, '/api/tenant/assets/upload-url', {
+          ...request,
+          fileName: '../unsafe.png',
+        }),
+        browserRequest(page, `/api/v1/assets/${signed.asset.id}/content?variant=thumbnail`),
+      ])
     expect(download.status).toBe(404)
+    expect(thumbnail.status).toBe(404)
     expect(completion.status).toBe(404)
     expect(deletion.status).toBe(404)
     // Signed uploads are write-once, so a leaked URL cannot replace the bytes.

@@ -99,7 +99,7 @@ func (f *fakeConfiguration) VerifySupportGrant(_ context.Context, _ product.Acto
 func (f *fakeConfiguration) RequireEnterpriseFeature(context.Context, product.Actor, string) error {
 	return nil
 }
-func (f *fakeConfiguration) ListAssets(context.Context, product.Actor, int, string) (*product.AssetPage, error) {
+func (f *fakeConfiguration) ListAssets(context.Context, product.Actor, product.AssetListOptions) (*product.AssetPage, error) {
 	return &product.AssetPage{Assets: []product.AssetListItem{}}, nil
 }
 func (f *fakeConfiguration) DeleteAsset(context.Context, product.Actor, string) (product.AssetDeletionResult, error) {

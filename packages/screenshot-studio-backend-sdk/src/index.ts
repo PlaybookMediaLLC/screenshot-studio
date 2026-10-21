@@ -2301,9 +2301,11 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ enabled: true }>(`v1/enterprise-features/${feature}`)
   }
 
-  async listAssets(options: { cursor?: string; limit: number }) {
+  async listAssets(options: { cursor?: string; limit: number; type?: 'all' | 'image' | 'video'; sort?: 'newest' | 'oldest' }) {
     const parameters = new URLSearchParams({ limit: String(options.limit) })
     if (options.cursor) parameters.set('cursor', options.cursor)
+    if (options.type) parameters.set('type', options.type)
+    if (options.sort) parameters.set('sort', options.sort)
     return this.request<BackendAssetPage>(`v1/assets?${parameters}`)
   }
 

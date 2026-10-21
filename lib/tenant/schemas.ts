@@ -20,8 +20,14 @@ export const assetCompleteSchema = z.object({
 })
 
 export const assetListQuerySchema = z.object({
-  /** Opaque id of the last asset on the previous page. */
-  cursor: assetIdSchema.optional(),
+  /** Opaque, versioned keyset boundary returned by the previous page. */
+  cursor: z
+    .string()
+    .max(512)
+    .regex(/^v1\.[A-Za-z0-9_-]+$/)
+    .optional(),
+  type: z.enum(['all', 'image', 'video']).default('all'),
+  sort: z.enum(['newest', 'oldest']).default('newest'),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 })
 

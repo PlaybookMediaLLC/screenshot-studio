@@ -112,6 +112,7 @@ export const createAssetDownloadUrlContract = defineContract({
 export const assetContentContract = defineContract({
   method: 'GET',
   name: 'assets.content',
+  query: z.object({ variant: z.enum(['original', 'thumbnail']).default('original') }),
   output: z.never(),
   params: assetParamsSchema,
   path: '/api/v1/assets/{assetId}/content',

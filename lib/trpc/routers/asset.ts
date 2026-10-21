@@ -24,6 +24,8 @@ export const assetRouter = router({
       listAssets(ctx.tenant, {
         cursor: input?.cursor,
         take: input?.limit ?? 50,
+        type: input?.type,
+        sort: input?.sort,
       })
     ),
   signUpload: tenantProcedure({ apiKeyScope: 'upload:sign', permission: 'artifact:edit' })

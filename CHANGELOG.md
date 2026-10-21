@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.31.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.31.1...v2.31.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* prefetch sidebar links on intent ([#246](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/246)) ([9545bc0](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/9545bc08e79275a0128e96131dbc6da76747a070))
+
 ## [2.31.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.31.0...v2.31.1) (2026-10-21)
 
 

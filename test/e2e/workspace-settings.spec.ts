@@ -27,7 +27,7 @@ test('an owner can persist workspace, profile, and active brand-kit settings', a
   await page.getByLabel('Brand kit name').fill('Launch system')
   await chooseOption(page.getByLabel('Primary typeface'), 'Inter')
   await page.getByRole('button', { name: 'Publish brand kit' }).click()
-  await expect(page.getByText('Launch system')).toBeVisible()
+  await expect(page.getByText('Launch system', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('v1 · active')).toBeVisible()
 
   // Prohibited terms carry the reason an author sees when copy is refused.

@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { ProfileForm } from '@/components/auth/ProfileForm'
@@ -37,7 +38,10 @@ function Avatar({ image, name }: { image: string | null | undefined; name: strin
     // An avatar URL from the sign-in provider, any host: next/image would need each one allowed.
     <img alt="" className="size-12 rounded-full object-cover" src={image} />
   ) : (
-    <span aria-hidden className="grid size-12 place-items-center rounded-full bg-foreground/[0.08] text-sm font-medium text-foreground">
+    <span
+      aria-hidden
+      className="grid size-12 place-items-center rounded-full bg-foreground/[0.08] text-sm font-medium text-foreground"
+    >
       {initials || '?'}
     </span>
   )
@@ -53,7 +57,10 @@ function SignInEmail({ email }: { email: string }) {
   const change = async () => {
     if (!parsed.success) return
     setSending(true)
-    const { error } = await authClient.changeEmail({ callbackURL: '/workspace/account', newEmail: parsed.data })
+    const { error } = await authClient.changeEmail({
+      callbackURL: '/workspace/account',
+      newEmail: parsed.data,
+    })
     setSending(false)
     if (error) {
       toast.error(error.message ?? 'The email change could not start.')
@@ -132,8 +139,14 @@ function SignInMethods() {
   return (
     <Row description="The ways you can sign in to this account." label="Sign-in methods">
       <div className="flex flex-wrap gap-2">
-        {accounts.isPending ? <span className="text-sm text-muted-foreground">Loading…</span> : null}
-        {accounts.isError ? <span className="text-sm text-red-700 dark:text-red-300">{settingsErrorMessage(accounts.error)}</span> : null}
+        {accounts.isPending ? (
+          <span className="text-sm text-muted-foreground">Loading…</span>
+        ) : null}
+        {accounts.isError ? (
+          <span className="text-sm text-red-700 dark:text-red-300">
+            {settingsErrorMessage(accounts.error)}
+          </span>
+        ) : null}
         {accounts.data?.map((account) => (
           <Pill key={account.id}>{PROVIDER_NAMES[account.providerId] ?? account.providerId}</Pill>
         ))}
@@ -173,10 +186,14 @@ function Sessions() {
   const sessions = useQuery({
     queryFn: async () => {
       const { data, error } = await authClient.listSessions()
-      if (error) throw new Error(error.message ?? 'Sessions could not be loaded.')
+      if (error)
+        throw Object.assign(new Error(error.message ?? 'Sessions could not be loaded.'), {
+          code: error.code,
+        })
       return data
     },
     queryKey: ['auth', 'sessions'],
+    retry: false,
   })
 
   const revoke = async (token: string) => {
@@ -192,26 +209,57 @@ function Sessions() {
   return (
     <>
       <Row description="Devices signed in to your account." label="Sessions" layout="stacked">
-        {sessions.isPending ? <p className="text-sm text-muted-foreground">Loading sessions…</p> : null}
+        {sessions.isPending ? (
+          <p className="text-sm text-muted-foreground">Loading sessions…</p>
+        ) : null}
         {sessions.isError ? (
-          <p className="text-sm text-red-700 dark:text-red-300" role="alert">
-            {settingsErrorMessage(sessions.error)}
-          </p>
+          <div className="grid gap-2">
+            <p className="text-sm text-red-700 dark:text-red-300" role="alert">
+              {'code' in sessions.error && sessions.error.code === 'SESSION_NOT_FRESH'
+                ? 'Confirm your sign-in to view and manage your sessions.'
+                : settingsErrorMessage(sessions.error)}
+            </p>
+            <div className="flex gap-2">
+              <Button asChild variant="outline">
+                <Link href="/sign-in?reauthenticate=1&callbackURL=%2Fworkspace%2Faccount">
+                  Verify identity
+                </Link>
+              </Button>
+              <Button
+                disabled={sessions.isFetching}
+                onClick={() => void sessions.refetch()}
+                type="button"
+                variant="outline"
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
         ) : null}
         <ul className="grid gap-2">
           {sessions.data?.map((session) => {
             const isCurrent = session.id === current?.session.id
             return (
-              <li className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm" key={session.id}>
+              <li
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm"
+                key={session.id}
+              >
                 <span>
-                  <span className="font-medium text-foreground">{deviceName(session.userAgent)}</span>
+                  <span className="font-medium text-foreground">
+                    {deviceName(session.userAgent)}
+                  </span>
                   <span className="block text-xs text-muted-foreground">
                     Signed in {new Date(session.createdAt).toLocaleString()}
                     {isCurrent ? ' · This device' : ''}
                   </span>
                 </span>
                 {isCurrent ? null : (
-                  <Button onClick={() => void revoke(session.token)} size="sm" type="button" variant="outline">
+                  <Button
+                    onClick={() => void revoke(session.token)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
                     Sign out
                   </Button>
                 )}
@@ -237,7 +285,8 @@ function Sessions() {
             description="Every device signed in to your account, including this one, is signed out. You will sign in again here."
             onConfirm={async () => {
               const others = await authClient.revokeOtherSessions()
-              if (others.error) return others.error.message ?? 'The other sessions could not be signed out.'
+              if (others.error)
+                return others.error.message ?? 'The other sessions could not be signed out.'
               await authClient.signOut()
               window.location.assign('/sign-in?signedOut=everywhere')
               return null
@@ -266,7 +315,12 @@ function HelpTips() {
     >
       <div className="flex items-center gap-3">
         <SaveStatus state={state} />
-        <Button disabled={status !== 'ready' || count === 0} onClick={() => void run(() => save({ resetTips: true }))} type="button" variant="outline">
+        <Button
+          disabled={status !== 'ready' || count === 0}
+          onClick={() => void run(() => save({ resetTips: true }))}
+          type="button"
+          variant="outline"
+        >
           Reset help tips
         </Button>
       </div>
@@ -285,10 +339,14 @@ function AccountDeletion({ email }: { email: string }) {
 
   const ask = async (confirmation: string) => {
     try {
-      const next = await settingsRequest('/api/v1/me/account-deletion', accountDeletionStatusSchema, {
-        body: { confirmation },
-        method: 'POST',
-      })
+      const next = await settingsRequest(
+        '/api/v1/me/account-deletion',
+        accountDeletionStatusSchema,
+        {
+          body: { confirmation },
+          method: 'POST',
+        }
+      )
       queryClient.setQueryData(['me', 'account-deletion'], next)
       return null
     } catch (error) {
@@ -297,7 +355,11 @@ function AccountDeletion({ email }: { email: string }) {
   }
   const cancel = async () => {
     try {
-      const next = await settingsRequest('/api/v1/me/account-deletion', accountDeletionStatusSchema, { method: 'DELETE' })
+      const next = await settingsRequest(
+        '/api/v1/me/account-deletion',
+        accountDeletionStatusSchema,
+        { method: 'DELETE' }
+      )
       queryClient.setQueryData(['me', 'account-deletion'], next)
       toast.success('Your account will not be deleted.')
     } catch (error) {
@@ -339,7 +401,10 @@ function AccountDeletion({ email }: { email: string }) {
             description={
               <>
                 <p>Your account will be deleted in 14 days unless you cancel.</p>
-                <p>This needs a sign-in in the last 15 minutes with two-factor authentication on. If it is refused, sign in again and retry.</p>
+                <p>
+                  This needs a sign-in in the last 15 minutes with two-factor authentication on. If
+                  it is refused, sign in again and retry.
+                </p>
               </>
             }
             destructive
@@ -367,7 +432,9 @@ export function AccountSettings({ email, name }: { email: string; name: string }
         <Avatar image={session?.user.image} name={name || email} />
         <div>
           <p className="text-sm font-medium text-foreground">{name || email}</p>
-          <p className="text-xs text-muted-foreground">Your picture comes from the account you sign in with.</p>
+          <p className="text-xs text-muted-foreground">
+            Your picture comes from the account you sign in with.
+          </p>
         </div>
       </div>
       <ProfileForm email={email} name={name} />

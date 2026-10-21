@@ -212,3 +212,14 @@ export type AutomationHistoryFilter = {
   since?: string
   until?: string
 }
+
+/** List evidence without release notes or enrichment. */
+export type AutomationRunSummary = {
+  event: Pick<AutomationHistoryItem['event'], 'id' | 'sourceAppId' | 'receivedAt'> & {
+    snapshot: Pick<
+      AutomationEventSnapshot,
+      'family' | 'repositoryName' | 'objectId' | 'number' | 'title' | 'fields'
+    >
+  }
+  run: AutomationHistoryItem['run']
+}

@@ -97,6 +97,10 @@ export function AssistantPanel({
           Style guide and samples
         </Button>
       </p>
+      <p className="text-xs text-neutral-500">
+        Workspace defaults → Social-set overrides → Your instructions for this draft. Prohibited
+        terms always apply.
+      </p>
       {turns.length === 0 ? (
         <div className="grid gap-1.5">
           {STARTERS.map((starter) => (

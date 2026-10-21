@@ -18,6 +18,7 @@ import {
 } from '@/lib/canvas/viewport'
 import { useCanvasUi, useCanvasViewport } from '@/lib/canvas/ui-store'
 import { ARTBOARD_PRESETS, artboardPresetSchema } from '@/lib/canvas/recipes'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { ArtboardPreview } from './ArtboardPreview'
 import type { CanvasActions } from './use-canvas-actions'
@@ -723,13 +724,13 @@ function BoardOverlay({
           <div key={id}>
             {box.width >= 40 ? (
               renamingId === id ? (
-                <input
+                <Input
                   data-board-control
                   aria-label="Artboard name"
                   autoFocus
                   defaultValue={artboard.name}
                   maxLength={120}
-                  className="absolute z-30 h-6 rounded border bg-background px-1 text-xs"
+                  className="absolute z-30 h-6 rounded border bg-background px-1 py-0 text-xs md:text-xs dark:bg-background"
                   style={{
                     left: box.x,
                     top: box.y - 26,

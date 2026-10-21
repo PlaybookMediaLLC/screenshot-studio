@@ -6,6 +6,8 @@ import { SaveStatus, useSaveState } from '@/components/settings/controls'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { TimeZonePicker } from '@/components/settings/TimeZonePicker'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { type SocialSetRecord, useSaveSocialSet } from './api'
 
@@ -140,13 +142,11 @@ export function SchedulingPage({ canManage, set }: { canManage: boolean; set: So
                       </th>
                       {days.map((day) => (
                         <td className="py-2 text-center" key={day}>
-                          <input
+                          <Checkbox
                             aria-label={`${DAY_NAMES[day]} at ${readableTime(time)}`}
                             checked={enabled(day, time)}
-                            className="size-4 accent-current"
                             disabled={!canManage}
-                            onChange={(event) => toggle(day, time, event.target.checked)}
-                            type="checkbox"
+                            onCheckedChange={(checked) => toggle(day, time, checked === true)}
                           />
                         </td>
                       ))}
@@ -175,20 +175,18 @@ export function SchedulingPage({ canManage, set }: { canManage: boolean; set: So
                   addTime()
                 }}
               >
-                <select
-                  aria-label="Time to add"
-                  className="h-9 rounded-lg border border-border bg-card px-2 text-sm"
-                  disabled={!canManage}
-                  onChange={(event) => setAdding(event.target.value)}
-                  value={adding}
-                >
-                  <option value="">Choose a time…</option>
-                  {QUARTER_HOURS.filter((time) => !times.includes(time)).map((time) => (
-                    <option key={time} value={time}>
-                      {readableTime(time)}
-                    </option>
-                  ))}
-                </select>
+                <Select disabled={!canManage} onValueChange={setAdding} value={adding}>
+                  <SelectTrigger aria-label="Time to add" className="w-36 bg-card">
+                    <SelectValue placeholder="Choose a time…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {QUARTER_HOURS.filter((time) => !times.includes(time)).map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {readableTime(time)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button disabled={!canManage || !adding} type="submit" variant="outline">
                   Add time
                 </Button>

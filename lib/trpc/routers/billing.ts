@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { monthlyUsagePeriod } from '@/lib/billing/display'
 import { backendSDK } from '@/lib/backend/sdk'
 import { getWorkspaceQuota, type WorkspaceQuota, workspacePlanSchema } from '@/lib/billing/plans'
 import { workspaceSubscriptionCycle } from '@/lib/billing/stripe'
@@ -44,6 +45,7 @@ export const billingRouter = router({
         : null
     return {
       creditBalance,
+      usagePeriod: monthlyUsagePeriod(),
       cycle,
       credits: { ...credits, left: Math.max(credits.left - creditBalance, 0) },
       emails,

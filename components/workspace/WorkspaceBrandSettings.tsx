@@ -1,8 +1,11 @@
 'use client'
 
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
+import { WritingInheritance } from '@/components/settings/WritingInheritance'
+import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
+import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
+import { HandleRows, StyleChips, type HandleRow } from '@/components/settings/BrandVoiceFields'
 import { Group, Pill, Row, Section } from '@/components/platform-ui'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -14,6 +17,7 @@ import {
   prohibitedTermsForSave,
 } from '@/lib/launch/brand'
 import {
+  brandKitDefinitionSchema,
   BRAND_LOGO_MAX_BYTES,
   brandLogoContentTypeSchema,
   prohibitedTermMatchModeSchema,
@@ -31,7 +35,13 @@ import {
   SelectItem,
 } from '@/components/ui/select'
 
-type BrandKitSummary = { id: string; name: string; status: string; version: number }
+type BrandKitSummary = {
+  id: string
+  name: string
+  status: string
+  version: number
+  definition: unknown
+}
 
 /** The stored BrandProfile; the list and handle fields are JSON columns. */
 type BrandProfile = {
@@ -60,8 +70,33 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [colors, setColors] = useState(DEFAULT_COLORS)
+  const [voice, setVoice] = useState(() => voiceDraft())
+  const [name, setName] = useState('')
+  const [font, setFont] = useState('inter')
+  const [savedVisual, setSavedVisual] = useState('')
+  const [notice, setNotice] = useState('')
+  const [baseDefinition, setBaseDefinition] = useState<ReturnType<
+    typeof brandKitDefinitionSchema.parse
+  > | null>(null)
+  const [published, setPublished] = useState(false)
+  const [previewColors, setPreviewColors] = useState(DEFAULT_COLORS)
+  const [sample, setSample] = useState<{ voice: string; text: string } | null>(null)
+  const [sampling, setSampling] = useState(false)
+  const [sampleError, setSampleError] = useState('')
   const [logo, setLogo] = useState<{ assetId: string; previewUrl: string } | null>(null)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const generatedSample = sample?.voice === JSON.stringify(voice) ? sample.text : null
+  const visual = JSON.stringify({ colors, name, font, logo: logo?.assetId })
+  const visualDirty = savedVisual
+    ? visual !== savedVisual
+    : Boolean(
+        name ||
+        logo ||
+        font !== 'inter' ||
+        JSON.stringify(colors) !== JSON.stringify(DEFAULT_COLORS)
+      )
+  useUnsavedSettings(visualDirty)
+  const colorsValid = Object.values(colors).every((color) => HEX_COLOR.test(color))
   const contrast =
     HEX_COLOR.test(colors.text) && HEX_COLOR.test(colors.background)
       ? contrastRatio(colors.text, colors.background)
@@ -109,349 +144,535 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
+    if (isSaving || isUploadingLogo || !name.trim()) return
     setError(null)
-    const form = event.currentTarget
-    const data = Object.fromEntries(new FormData(form))
+    if (!colorsValid) {
+      setError('Correct the highlighted colors before publishing.')
+      return
+    }
+    const publish =
+      (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'publish'
     setIsSaving(true)
     try {
       await trpcClient.brandKit.create.mutate({
         definition: {
+          ...baseDefinition,
           colors,
-          ...(logo ? { logo: { primaryAssetId: logo.assetId } } : {}),
+          logo: logo ? { primaryAssetId: logo.assetId } : undefined,
           schemaVersion: 1,
-          typography: { headingFamily: String(data.headingFamily ?? '') },
+          typography: { ...baseDefinition?.typography, headingFamily: font },
         },
-        name: String(data.name ?? ''),
-        publish: true,
+        name,
+        publish,
       })
+      setSavedVisual(visual)
+      setPublished(publish)
+      setNotice(
+        publish
+          ? 'Brand kit published.'
+          : 'Brand kit draft saved. It is not active until published.'
+      )
       const result = await trpcClient.brandKit.list.query()
       setBrandKits(result.brandKits)
-      form.reset()
-      setColors(DEFAULT_COLORS)
-      setLogo(null)
     } catch (requestError) {
       setError(getErrorMessage(requestError))
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  function resume(kit: BrandKitSummary) {
+    if (visualDirty && !window.confirm('Discard unsaved visual changes and open this version?'))
+      return
+    const parsed = brandKitDefinitionSchema.safeParse(kit.definition)
+    if (!parsed.success) {
+      setError('This version cannot be opened in this form. Its saved definition has not changed.')
+      return
+    }
+    const definition = parsed.data
+    setBaseDefinition(definition)
+    setColors(definition.colors)
+    setPreviewColors(definition.colors)
+    setName(kit.name)
+    setFont(definition.typography.headingFamily)
+    setLogo(definition.logo ? { assetId: definition.logo.primaryAssetId, previewUrl: '' } : null)
+    setSavedVisual(
+      JSON.stringify({
+        colors: definition.colors,
+        name: kit.name,
+        font: definition.typography.headingFamily,
+        logo: definition.logo?.primaryAssetId,
+      })
+    )
+    setPublished(kit.status.toLowerCase() === 'active')
+    setError(null)
+    setNotice(`Opened ${kit.name} v${kit.version}. Saving or publishing creates a new version.`)
+  }
+
+  async function generateSample() {
+    if (sampling) return
+    setSampling(true)
+    setSampleError('')
+    const snapshot = JSON.stringify(voice)
+    try {
+      const result = await trpcClient.brandProfile.preview.mutate(voiceInput(voice))
+      setSample({ voice: snapshot, text: result.texts[0] ?? '' })
+    } catch (failure) {
+      setSampleError(getErrorMessage(failure))
+    } finally {
+      setSampling(false)
     }
   }
 
   return (
     <div className="flex flex-col gap-10">
-      <BrandVoiceSection canManage={canManage} />
-      <Section title="Saved brand kits">
-        <Group>
-          {brandKits.length === 0 ? (
-            <Row>
-              <p className="text-sm text-muted-foreground">No brand kits have been created.</p>
-            </Row>
-          ) : (
-            brandKits.map((brandKit) => (
-              <div className="flex items-center justify-between gap-4 px-5 py-4" key={brandKit.id}>
-                <span className="min-w-0 truncate text-sm text-foreground">{brandKit.name}</span>
-                <Pill tone={brandKit.status.toLowerCase() === 'active' ? 'green' : 'gray'}>
-                  v{brandKit.version} · {brandKit.status.toLowerCase()}
-                </Pill>
-              </div>
-            ))
-          )}
-        </Group>
-      </Section>
-      {canManage ? (
-        <Section title="Create a new active version">
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+      <WritingInheritance />
+      {error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+      <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <section
+          aria-label="Brand preview"
+          className="grid gap-3 rounded-2xl border border-border p-5 xl:sticky xl:top-6 xl:order-last"
+        >
+          <p className="text-xs font-medium text-muted-foreground">
+            Live sample · your copy and visual style
+          </p>
+          <div
+            className="rounded-xl border p-6"
+            style={{
+              background: previewColors.background,
+              color: previewColors.text,
+              fontFamily: fontFamilies.find((item) => item.id === font)?.cssVariable
+                ? `var(${fontFamilies.find((item) => item.id === font)?.cssVariable})`
+                : fontFamilies.find((item) => item.id === font)?.fallback,
+            }}
+          >
+            <div className="mb-4 h-1 w-12 rounded" style={{ background: previewColors.accent }} />
+            <p className="text-xl font-semibold">{name || 'Your next announcement'}</p>
+            <p className="mt-3 whitespace-pre-wrap text-sm">
+              {generatedSample
+                ? generatedSample
+                : voice.productDescription ||
+                  'Add your product description to preview a post here.'}
+            </p>
+            {!generatedSample ? (
+              <p className="mt-3 text-sm font-medium">{voice.ctaConventions}</p>
+            ) : null}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Audience: {voice.audience || 'Not set'} · Tone: {voice.tone || 'Not set'}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {voice.styles.join(' · ')}
+            {voice.terms.length
+              ? ` · Avoid: ${voice.terms
+                  .map((term) => term.term)
+                  .filter(Boolean)
+                  .join(', ')}`
+              : ''}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={
+              sampling ||
+              !voice.productDescription.trim() ||
+              !voice.audience.trim() ||
+              !voice.tone.trim()
+            }
+            onClick={() => void generateSample()}
+          >
+            {sampling ? 'Generating…' : 'Generate voice sample'}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Uses AI credits and the voice values above, including unsaved edits. Review generated
+            copy before using it. Changing voice settings clears the generated preview.
+          </p>
+          {sampleError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {sampleError}
+            </p>
+          ) : null}
+        </section>
+        <div className="flex min-w-0 flex-col gap-8">
+          <BrandVoiceSection canManage={canManage} onPreview={setVoice} />
+          <Section title="Saved brand kits">
             <Group>
-              <Row label={<Label htmlFor="brand-name">Brand kit name</Label>}>
-                <Input className="h-10 rounded-lg md:w-72" id="brand-name" name="name" required />
-              </Row>
-              <Row description="Hex values, like #6d5dfc." label="Colors" layout="stacked">
-                <div className="grid w-full gap-3 sm:grid-cols-3">
-                  {(['text', 'background', 'accent'] as const).map((key) => (
-                    <ColorField
-                      id={`brand-${key}`}
-                      key={key}
-                      label={key[0]!.toUpperCase() + key.slice(1)}
-                      onChange={(value) => setColors((current) => ({ ...current, [key]: value }))}
-                      value={colors[key]}
-                    />
-                  ))}
-                </div>
-                {contrast !== null && contrast < MIN_TEXT_CONTRAST ? (
-                  <p className="text-sm text-amber-700 dark:text-amber-400" role="status">
-                    Text on background contrast is {contrast.toFixed(1)}:1. Body text needs at least{' '}
-                    {MIN_TEXT_CONTRAST}:1 to stay readable.
+              {brandKits.length === 0 ? (
+                <Row>
+                  <p className="text-sm text-muted-foreground">No brand kits have been created.</p>
+                </Row>
+              ) : (
+                brandKits.map((brandKit) => (
+                  <div
+                    className="flex items-center justify-between gap-4 px-5 py-4"
+                    key={brandKit.id}
+                  >
+                    <span className="min-w-0 truncate text-sm text-foreground">
+                      {brandKit.name}
+                    </span>
+                    <Pill tone={brandKit.status.toLowerCase() === 'active' ? 'green' : 'gray'}>
+                      v{brandKit.version} · {brandKit.status.toLowerCase()}
+                    </Pill>
+                    {canManage ? (
+                      <Button
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                        disabled={isSaving || isUploadingLogo}
+                        onClick={() => resume(brandKit)}
+                      >
+                        {brandKit.status.toLowerCase() === 'draft'
+                          ? 'Resume draft'
+                          : 'Use as starting point'}
+                      </Button>
+                    ) : null}
+                  </div>
+                ))
+              )}
+            </Group>
+          </Section>
+          {canManage ? (
+            <Section
+              title="Visual brand kit"
+              description="Save a draft to review it. Publish creates an active version for future work; existing approved content keeps its original version."
+            >
+              <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+                <fieldset disabled={isSaving || isUploadingLogo}>
+                  <Group>
+                    <Row label={<Label htmlFor="brand-name">Brand kit name</Label>}>
+                      <Input
+                        className="h-10 rounded-lg md:w-72"
+                        id="brand-name"
+                        name="name"
+                        value={name}
+                        onChange={(event) => setName(event.target.value)}
+                        maxLength={100}
+                        required
+                      />
+                    </Row>
+                    <Row description="Hex values, like #6d5dfc." label="Colors" layout="stacked">
+                      <div className="grid w-full gap-3 sm:grid-cols-3">
+                        {(['text', 'background', 'accent'] as const).map((key) => (
+                          <ColorField
+                            id={`brand-${key}`}
+                            key={key}
+                            label={key[0]!.toUpperCase() + key.slice(1)}
+                            onChange={(value) => {
+                              setColors((current) => ({ ...current, [key]: value }))
+                              if (HEX_COLOR.test(value))
+                                setPreviewColors((current) => ({ ...current, [key]: value }))
+                            }}
+                            value={colors[key]}
+                          />
+                        ))}
+                      </div>
+                      {contrast !== null && contrast < MIN_TEXT_CONTRAST ? (
+                        <p className="text-sm text-amber-700 dark:text-amber-400" role="status">
+                          Text on background contrast is {contrast.toFixed(1)}:1. Body text needs at
+                          least {MIN_TEXT_CONTRAST}:1 to stay readable.
+                        </p>
+                      ) : null}
+                    </Row>
+                    <Row label={<Label htmlFor="brand-font-family">Primary typeface</Label>}>
+                      <Select value={font} onValueChange={setFont} name="headingFamily" required>
+                        <SelectTrigger
+                          className="h-10 rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none md:w-72"
+                          id="brand-font-family"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {fontFamilies.map((font) => (
+                            <SelectItem key={font.id} value={font.id}>
+                              {font.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Row>
+                    <Row
+                      description="PNG, WebP, or JPEG, up to 5 MB."
+                      label={<Label htmlFor="brand-logo">Logo</Label>}
+                    >
+                      <div className="flex items-center gap-3">
+                        {logo?.previewUrl ? (
+                          // A local object URL; next/image cannot optimize it.
+                          <img
+                            alt="Uploaded logo preview"
+                            className="h-10 w-10 rounded-lg bg-foreground/[0.03] object-contain ring-1 ring-foreground/[0.08]"
+                            src={logo.previewUrl}
+                          />
+                        ) : null}
+                        {logo && !logo.previewUrl ? (
+                          <span className="text-xs text-muted-foreground">Saved logo retained</span>
+                        ) : null}
+                        <Input
+                          accept={brandLogoContentTypeSchema.options.join(',')}
+                          className="h-10 rounded-lg md:w-60"
+                          disabled={isUploadingLogo}
+                          id="brand-logo"
+                          key={logo?.assetId ?? 'no-logo'}
+                          onChange={handleLogoChange}
+                          type="file"
+                        />
+                      </div>
+                    </Row>
+                  </Group>
+                </fieldset>
+                {!name.trim() && visualDirty ? (
+                  <p role="alert" className="text-sm text-destructive">
+                    Enter a brand kit name before saving or publishing.
                   </p>
                 ) : null}
-              </Row>
-              <Row label={<Label htmlFor="brand-font-family">Primary typeface</Label>}>
-                <Select defaultValue="inter" name="headingFamily" required>
-                  <SelectTrigger
-                    className="h-10 rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none md:w-72"
-                    id="brand-font-family"
+                {notice ? (
+                  <p role="status" className="text-sm">
+                    {notice}
+                  </p>
+                ) : null}
+                <div className="sticky bottom-4 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background p-3 shadow-sm">
+                  <p className="mr-auto text-sm" role="status">
+                    {visualDirty ? 'Unsaved changes' : notice || 'Start with a name and colors'}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isSaving || isUploadingLogo || !visualDirty}
+                    onClick={() => {
+                      const previous = savedVisual
+                        ? JSON.parse(savedVisual)
+                        : { name: '', font: 'inter', colors: DEFAULT_COLORS }
+                      setName(previous.name)
+                      setFont(previous.font)
+                      setColors(previous.colors)
+                      setPreviewColors(previous.colors)
+                      if (logo?.assetId !== previous.logo)
+                        setLogo(previous.logo ? { assetId: previous.logo, previewUrl: '' } : null)
+                      setError(null)
+                    }}
                   >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fontFamilies.map((font) => (
-                      <SelectItem key={font.id} value={font.id}>
-                        {font.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Row>
-              <Row
-                description="PNG, WebP, or JPEG, up to 5 MB."
-                label={<Label htmlFor="brand-logo">Logo</Label>}
-              >
-                <div className="flex items-center gap-3">
-                  {logo ? (
-                    // A local object URL; next/image cannot optimize it.
-                    <img
-                      alt="Uploaded logo preview"
-                      className="h-10 w-10 rounded-lg bg-foreground/[0.03] object-contain ring-1 ring-foreground/[0.08]"
-                      src={logo.previewUrl}
-                    />
-                  ) : null}
-                  <Input
-                    accept={brandLogoContentTypeSchema.options.join(',')}
-                    className="h-10 rounded-lg md:w-60"
-                    disabled={isUploadingLogo}
-                    id="brand-logo"
-                    onChange={handleLogoChange}
-                    type="file"
-                  />
+                    Discard
+                  </Button>
+                  <Button
+                    type="submit"
+                    value="draft"
+                    variant="outline"
+                    disabled={
+                      isSaving || isUploadingLogo || !colorsValid || !name.trim() || !visualDirty
+                    }
+                  >
+                    Save draft
+                  </Button>
+                  <Button
+                    className="rounded-lg"
+                    disabled={
+                      isSaving ||
+                      isUploadingLogo ||
+                      !colorsValid ||
+                      !name.trim() ||
+                      (published && !visualDirty)
+                    }
+                    type="submit"
+                    value="publish"
+                  >
+                    {isUploadingLogo
+                      ? 'Uploading logo…'
+                      : isSaving
+                        ? 'Saving…'
+                        : 'Publish brand kit'}
+                  </Button>
                 </div>
-              </Row>
-            </Group>
-            {error ? (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
-            <div className="flex justify-end">
-              <Button className="rounded-lg" disabled={isSaving || isUploadingLogo} type="submit">
-                {isUploadingLogo
-                  ? 'Uploading logo…'
-                  : isSaving
-                    ? 'Publishing…'
-                    : 'Publish brand kit'}
-              </Button>
-            </div>
-          </form>
-        </Section>
-      ) : null}
+              </form>
+            </Section>
+          ) : null}
+        </div>
+      </div>
     </div>
   )
 }
 
-/** "x: @acme" lines to { x: '@acme' }; null when a line is not "network: handle". */
-function parseHandles(value: string): Record<string, string> | null {
-  const handles: Record<string, string> = {}
-  for (const line of value.split(/\r?\n/)) {
-    if (!line.trim()) continue
-    const colon = line.indexOf(':')
-    const network = line.slice(0, Math.max(colon, 0)).trim()
-    const handle = line.slice(colon + 1).trim()
-    if (!network || !handle) return null
-    handles[network] = handle
+type VoiceDraft = {
+  productDescription: string
+  audience: string
+  tone: string
+  tagline: string
+  ctaConventions: string
+  styles: string[]
+  handles: HandleRow[]
+  terms: ProhibitedTermEntry[]
+}
+function voiceDraft(profile?: BrandProfile | null): VoiceDraft {
+  return {
+    productDescription: profile?.productDescription ?? '',
+    audience: profile?.audience ?? '',
+    tone: profile?.tone ?? '',
+    tagline: profile?.tagline ?? '',
+    ctaConventions: profile?.ctaConventions ?? '',
+    styles: Array.isArray(profile?.preferredStyles)
+      ? profile.preferredStyles.filter((item): item is string => typeof item === 'string')
+      : [],
+    handles:
+      profile?.socialHandles && typeof profile.socialHandles === 'object'
+        ? Object.entries(profile.socialHandles)
+            .filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+            .map(([platform, handle]) => ({ platform, handle }))
+        : [],
+    terms: prohibitedTermEntries(profile?.prohibitedTerms),
   }
-  return handles
 }
 
-function formatHandles(value: unknown): string {
-  return value && typeof value === 'object'
-    ? Object.entries(value as Record<string, string>)
-        .map(([network, handle]) => `${network}: ${handle}`)
-        .join('\n')
-    : ''
+function voiceInput(draft: VoiceDraft) {
+  return {
+    productDescription: draft.productDescription,
+    audience: draft.audience,
+    tone: draft.tone,
+    tagline: draft.tagline,
+    ctaConventions: draft.ctaConventions,
+    preferredStyles: draft.styles,
+    socialHandles: Object.fromEntries(
+      draft.handles.map((row) => [row.platform, row.handle.trim()])
+    ),
+    prohibitedTerms: prohibitedTermsForSave(draft.terms),
+  }
 }
 
-function formatList(value: unknown): string {
-  return Array.isArray(value) ? value.join(', ') : ''
-}
-
-function BrandVoiceSection({ canManage }: WorkspaceBrandSettingsProps) {
+function BrandVoiceSection({
+  canManage,
+  onPreview,
+}: WorkspaceBrandSettingsProps & { onPreview: (voice: VoiceDraft) => void }) {
   const trpcClient = useTRPCClient()
-  // undefined until loaded; null when the workspace has no brand voice yet.
-  const [profile, setProfile] = useState<BrandProfile | null>()
+  const [saved, setSaved] = useState<VoiceDraft | null>(null)
+  const [draft, setDraft] = useState(() => voiceDraft())
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  const [terms, setTerms] = useState<ProhibitedTermEntry[]>([])
-  const inputClassName = 'h-10 rounded-lg md:w-72'
-  const textareaClassName = 'min-h-24 rounded-lg'
-
+  const [notice, setNotice] = useState('')
+  const dirty = saved !== null && JSON.stringify(draft) !== JSON.stringify(saved)
+  useUnsavedSettings(dirty)
   useEffect(() => {
-    // Reading the brand voice takes the same permission as editing it.
     if (!canManage) return
     trpcClient.brandProfile.get
       .query()
       .then((result) => {
-        setProfile(result.brandProfile)
-        setTerms(prohibitedTermEntries(result.brandProfile?.prohibitedTerms))
+        const next = voiceDraft(result.brandProfile)
+        setSaved(next)
+        setDraft(next)
+        onPreview(next)
       })
-      .catch((requestError) => setError(getErrorMessage(requestError)))
-  }, [canManage, trpcClient])
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+      .catch((failure) => setError(getErrorMessage(failure)))
+  }, [canManage, trpcClient, onPreview])
+  const change = (patch: Partial<VoiceDraft>) => {
+    const next = { ...draft, ...patch }
+    setDraft(next)
+    onPreview(next)
+  }
+  const invalidHandles =
+    new Set(draft.handles.map((row) => row.platform)).size !== draft.handles.length ||
+    draft.handles.some((row) => !row.handle.trim())
+  const requiredMissing =
+    !draft.productDescription.trim() || !draft.audience.trim() || !draft.tone.trim()
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setError(null)
-    setMessage('')
-    const data = new FormData(event.currentTarget)
-    const text = (name: string) => String(data.get(name) ?? '').trim()
-    const list = (name: string) =>
-      text(name)
-        .split(',')
-        .map((entry) => entry.trim())
-        .filter(Boolean)
-    const socialHandles = parseHandles(text('socialHandles'))
-    if (!socialHandles) {
-      setError('Put one social handle per line, like x: @handle.')
-      return
-    }
+    if (!saved || isSaving || invalidHandles || requiredMissing) return
     setIsSaving(true)
+    setError(null)
     try {
-      await trpcClient.brandProfile.upsert.mutate({
-        audience: text('audience'),
-        ctaConventions: text('ctaConventions') || undefined,
-        preferredStyles: list('preferredStyles'),
-        productDescription: text('productDescription'),
-        prohibitedTerms: prohibitedTermsForSave(terms),
-        socialHandles,
-        tagline: text('tagline') || undefined,
-        tone: text('tone'),
-      })
-      setMessage('Brand voice saved.')
-    } catch (requestError) {
-      setError(getErrorMessage(requestError))
+      await trpcClient.brandProfile.upsert.mutate(voiceInput(draft))
+      setNotice('Brand voice saved.')
+      setSaved(draft)
+    } catch (failure) {
+      setError(getErrorMessage(failure))
     } finally {
       setIsSaving(false)
     }
   }
-
   return (
     <Section
-      description="The AI writes launch copy in this voice and never uses the terms you prohibit."
       title="Brand voice"
+      description="Workspace defaults for writing. Social-set instructions can refine these; prohibited terms always apply. Voice changes save separately from visual brand kits."
     >
-      {/* Remounts once loaded so the fields show the saved values. */}
-      <form key={profile === undefined ? 'loading' : 'loaded'} onSubmit={handleSubmit}>
-        {/* Locked until the saved voice loads, so a save never overwrites values it did not show. */}
-        <fieldset
-          className="flex min-w-0 flex-col gap-4"
-          disabled={!canManage || profile === undefined}
-        >
+      <form className="grid gap-4" onSubmit={handleSubmit}>
+        <fieldset disabled={!canManage || saved === null || isSaving} className="grid gap-4">
           <Group>
+            {(
+              [
+                ['productDescription', 'Product description', 2000],
+                ['audience', 'Audience', 1000],
+                ['tone', 'Tone', 500],
+                ['tagline', 'Tagline', 200],
+                ['ctaConventions', 'Call-to-action conventions', 1000],
+              ] as const
+            ).map(([key, label, limit]) => (
+              <Row
+                key={key}
+                label={<Label htmlFor={`brand-voice-${key}`}>{label}</Label>}
+                layout="stacked"
+              >
+                <Textarea
+                  id={`brand-voice-${key}`}
+                  value={draft[key]}
+                  maxLength={limit}
+                  required={['productDescription', 'audience', 'tone'].includes(key)}
+                  onChange={(event) => change({ [key]: event.target.value })}
+                />
+              </Row>
+            ))}
             <Row
-              label={<Label htmlFor="brand-voice-product">Product description</Label>}
-              layout="stacked"
-            >
-              <Textarea
-                className={textareaClassName}
-                defaultValue={profile?.productDescription}
-                id="brand-voice-product"
-                maxLength={2_000}
-                name="productDescription"
-                required
-              />
-            </Row>
-            <Row label={<Label htmlFor="brand-voice-audience">Audience</Label>} layout="stacked">
-              <Textarea
-                className={textareaClassName}
-                defaultValue={profile?.audience}
-                id="brand-voice-audience"
-                maxLength={1_000}
-                name="audience"
-                required
-              />
-            </Row>
-            <Row label={<Label htmlFor="brand-voice-tone">Tone</Label>}>
-              <Input
-                className={inputClassName}
-                defaultValue={profile?.tone}
-                id="brand-voice-tone"
-                maxLength={500}
-                name="tone"
-                placeholder="Plain, confident, specific; no hype"
-                required
-              />
-            </Row>
-            <Row label={<Label htmlFor="brand-voice-tagline">Tagline</Label>}>
-              <Input
-                className={inputClassName}
-                defaultValue={profile?.tagline ?? ''}
-                id="brand-voice-tagline"
-                maxLength={200}
-                name="tagline"
-              />
-            </Row>
-            <Row label={<Label htmlFor="brand-voice-cta">Call-to-action conventions</Label>}>
-              <Input
-                className={inputClassName}
-                defaultValue={profile?.ctaConventions ?? ''}
-                id="brand-voice-cta"
-                maxLength={1_000}
-                name="ctaConventions"
-              />
-            </Row>
-            <Row
-              description="Copy that uses one of these is refused, and the author sees your reason."
               label="Never use"
+              description="These rules apply to all writing, including social-set overrides."
               layout="stacked"
             >
-              <ProhibitedTermsEditor onChange={setTerms} value={terms} />
+              <ProhibitedTermsEditor value={draft.terms} onChange={(terms) => change({ terms })} />
             </Row>
-            <Row
-              description={<span id="brand-voice-styles-hint">Comma-separated.</span>}
-              label={<Label htmlFor="brand-voice-styles">Preferred styles</Label>}
-            >
-              <Input
-                aria-describedby="brand-voice-styles-hint"
-                className={inputClassName}
-                defaultValue={formatList(profile?.preferredStyles)}
-                id="brand-voice-styles"
-                name="preferredStyles"
-                placeholder="Short sentences, second person"
-              />
+            <Row label="Preferred styles" layout="stacked">
+              <StyleChips value={draft.styles} onChange={(styles) => change({ styles })} />
             </Row>
-            <Row
-              description={
-                <span id="brand-voice-handles-hint">One per line, like x: @handle.</span>
-              }
-              label={<Label htmlFor="brand-voice-handles">Social handles</Label>}
-              layout="stacked"
-            >
-              <Textarea
-                aria-describedby="brand-voice-handles-hint"
-                className={textareaClassName}
-                defaultValue={formatHandles(profile?.socialHandles)}
-                id="brand-voice-handles"
-                name="socialHandles"
-                placeholder={'x: @acme\nlinkedin: acme'}
-              />
+            <Row label="Social handles" layout="stacked">
+              <HandleRows value={draft.handles} onChange={(handles) => change({ handles })} />
+              {invalidHandles ? (
+                <p role="alert" className="text-sm text-destructive">
+                  Enter a handle for each row and use each platform only once.
+                </p>
+              ) : null}
             </Row>
           </Group>
-          {error ? (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-          {canManage ? (
-            <div className="flex items-center justify-end gap-4">
-              <p className="text-sm text-foreground/65" role="status">
-                {message}
-              </p>
-              <Button className="rounded-lg" disabled={isSaving} type="submit">
-                {isSaving ? 'Saving…' : 'Save brand voice'}
-              </Button>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Only workspace admins can view and change the brand voice.
-            </p>
-          )}
         </fieldset>
+        {notice && !dirty ? (
+          <p role="status" className="text-sm">
+            {notice}
+          </p>
+        ) : null}
+        {requiredMissing && dirty ? (
+          <p className="text-sm text-destructive" role="alert">
+            Product description, audience, and tone are required.
+          </p>
+        ) : null}
+        {error ? (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
+        {canManage ? (
+          <SettingsSaveBar
+            dirty={dirty}
+            busy={isSaving}
+            disabled={saved === null || invalidHandles || requiredMissing}
+            label="Save brand voice"
+            onDiscard={() => {
+              if (saved) {
+                setDraft(saved)
+                onPreview(saved)
+              }
+              setError(null)
+            }}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Ask an administrator to update the brand voice.
+          </p>
+        )}
       </form>
     </Section>
   )
@@ -557,6 +778,8 @@ function ColorField({
   value: string
 }) {
   const isValid = HEX_COLOR.test(value)
+  const [lastValid, setLastValid] = useState(value)
+  if (isValid && value !== lastValid) setLastValid(value)
   return (
     <div className="flex flex-col gap-1.5">
       <Label className="text-xs font-medium text-foreground/65" htmlFor={id}>
@@ -568,13 +791,14 @@ function ColorField({
           className="h-10 w-10 shrink-0 cursor-pointer rounded-lg bg-transparent"
           onChange={(event) => onChange(event.target.value)}
           type="color"
-          value={isValid ? value.toLowerCase() : '#000000'}
+          value={(isValid ? value : lastValid).toLowerCase()}
         />
         <Input
+          aria-describedby={!isValid ? `${id}-error` : undefined}
           aria-invalid={!isValid}
           className="h-10 rounded-lg font-mono"
           id={id}
-          onChange={(event) => onChange(event.target.value.trim())}
+          onChange={(event) => onChange(event.target.value)}
           pattern="#[0-9A-Fa-f]{6}"
           required
           title="A hex color, like #6d5dfc."
@@ -582,6 +806,11 @@ function ColorField({
           value={value}
         />
       </div>
+      {!isValid ? (
+        <p className="text-sm text-red-700 dark:text-red-300" id={`${id}-error`} role="alert">
+          Enter a six-digit hex color, like #6d5dfc.
+        </p>
+      ) : null}
     </div>
   )
 }

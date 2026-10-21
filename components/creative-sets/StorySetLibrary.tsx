@@ -1,9 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Search01Icon } from 'hugeicons-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { creativeSetSortSchema } from '@/lib/creative-sets/schema'
+import { StorySetAccess } from './StorySetAccess'
 import { ProjectPreview } from '@/components/projects/ProjectPreview'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { StorySetIntake } from './StorySetIntake'
@@ -21,43 +34,63 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
     [importing, setImporting] = useState(false)
   const [items, setItems] = useState<Item[]>([]),
     [cursor, setCursor] = useState<string | null>(null)
-  const [search, setSearch] = useState(''),
-    [creating, setCreating] = useState(false),
+  const params = useSearchParams()
+  const search = (params.get('search') ?? '').slice(0, 200)
+  const query = search.trim()
+  const sort = creativeSetSortSchema.catch('updated').parse(params.get('sort') ?? 'updated')
+  const [creating, setCreating] = useState(false),
     [refresh, setRefresh] = useState(0)
   const [error, setError] = useState<string | null>(null),
-    [busy, setBusy] = useState(false)
+    [actionError, setActionError] = useState<string | null>(null),
+    [busy, setBusy] = useState(true)
+  const request = useRef(0)
+  const load = useCallback(
+    async (next: string | null) => {
+      const current = ++request.current
+      setBusy(true)
+      setError(null)
+      try {
+        const result = await client.creativeSet.list.query({
+          cursor: next ?? undefined,
+          search: query || undefined,
+          sort,
+        })
+        if (current !== request.current) return
+        setItems((items) => (next ? [...items, ...result.items] : result.items))
+        setCursor(result.nextCursor)
+      } catch {
+        if (current === request.current)
+          setError('We couldn’t load your Story Sets. Please try again.')
+      } finally {
+        if (current === request.current) setBusy(false)
+      }
+    },
+    [client, query, sort]
+  )
   useEffect(() => {
     setReady(true)
-    let active = true
-    const timer = setTimeout(() => {
-      setBusy(true)
-      client.creativeSet.list
-        .query({ search })
-        .then(
-          (result) => {
-            if (active) {
-              setItems(result.items)
-              setCursor(result.nextCursor)
-              setError(null)
-            }
-          },
-          (error) => {
-            if (active) setError(error.message)
-          }
-        )
-        .finally(() => {
-          if (active) setBusy(false)
-        })
-    }, 200)
+    setBusy(true)
+    setError(null)
+    setItems([])
+    setCursor(null)
+    const timer = setTimeout(() => void load(null), 200)
     return () => {
-      active = false
+      // Invalidate in-flight requests; this counter is not a DOM ref.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      ++request.current
       clearTimeout(timer)
     }
-  }, [client, search, refresh])
+  }, [load, refresh])
+  function updateFilter(name: 'search' | 'sort', value: string) {
+    const url = new URL(window.location.href)
+    if (value) url.searchParams.set(name, value)
+    else url.searchParams.delete(name)
+    window.history.replaceState(null, '', url)
+  }
   if (creating) return <StorySetIntake onCancel={() => setCreating(false)} />
   return (
-    <main className="w-full space-y-8 p-8">
-      <header className="flex items-start justify-between gap-4">
+    <main className="w-full space-y-8 p-4 sm:p-8">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs uppercase tracking-[0.16em] text-emerald-400">
             Product evidence, connected
@@ -79,29 +112,84 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
           </div>
         ) : null}
       </header>
-      {!canCreate ? (
+      {!canCreate ? <StorySetAccess /> : null}
+      {canCreate && !canEdit ? (
         <p className="text-sm text-muted-foreground">
-          New Story Sets are available to design partners. Saved sets remain available here.
+          You have view-only access. Ask a workspace owner or admin for permission to create and
+          edit Story Sets.
         </p>
       ) : null}
-      <Input
-        type="search"
-        aria-label="Search Story Sets"
-        placeholder="Search Story Sets"
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        className="max-w-sm"
-      />
-      {error ? <p role="alert">{error}</p> : null}
-      {!busy && !items.length ? (
-        <p className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
-          Start with a screenshot and the benefit it proves.
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:max-w-sm">
+          <Search01Icon
+            aria-hidden
+            size={15}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            type="search"
+            aria-label="Search Story Sets"
+            placeholder="Search Story Sets"
+            maxLength={200}
+            value={search}
+            onChange={(event) => updateFilter('search', event.target.value.slice(0, 200))}
+            className="pl-9"
+          />
+        </div>
+        <Label className="flex items-center gap-2">
+          Sort
+          <Select value={sort} onValueChange={(value) => updateFilter('sort', value)}>
+            <SelectTrigger aria-label="Sort Story Sets">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="updated">Last edited</SelectItem>
+              <SelectItem value="name">Name</SelectItem>
+            </SelectContent>
+          </Select>
+        </Label>
+      </div>
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {error}
+            <Button variant="outline" onClick={() => void load(cursor)}>
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {actionError ? (
+        <Alert variant="destructive">
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
+      ) : null}
+      {busy ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Loading Story Sets…
         </p>
       ) : null}
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      {!busy && !error && !items.length ? (
+        <section className="space-y-3 rounded-xl border p-8 text-center">
+          <h2 className="font-medium">{query ? 'No matching Story Sets' : 'No Story Sets yet'}</h2>
+          <p className="break-words text-sm text-muted-foreground">
+            {query
+              ? `No Story Sets match “${query}”.`
+              : canCreate && canEdit
+                ? 'Start with a screenshot and the benefit it proves.'
+                : 'Your saved Story Sets will appear here.'}
+          </p>
+          {query ? (
+            <Button variant="outline" onClick={() => updateFilter('search', '')}>
+              Clear search
+            </Button>
+          ) : null}
+        </section>
+      ) : null}
+      <div aria-busy={busy} className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {items.map((item) => (
           <article className="overflow-hidden rounded-xl border bg-foreground/[0.02]" key={item.id}>
-            <Link href={`/creative-sets/${item.id}`} className="block">
+            <Link prefetch={false} href={`/creative-sets/${item.id}`} className="block">
               <div className="aspect-video">
                 <ProjectPreview
                   alt={item.name}
@@ -123,10 +211,13 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
                     variant="ghost"
                     size="sm"
                     onClick={() => {
+                      setActionError(null)
                       void client.creativeSet.duplicate
                         .mutate({ creativeSetId: item.id })
                         .then(() => setRefresh((value) => value + 1))
-                        .catch((error) => setError(error.message))
+                        .catch(() =>
+                          setActionError('Could not update this Story Set. Please try again.')
+                        )
                     }}
                   >
                     Duplicate
@@ -136,10 +227,13 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
                   variant="ghost"
                   size="sm"
                   onClick={() => {
+                    setActionError(null)
                     void client.creativeSet.archive
                       .mutate({ creativeSetId: item.id })
                       .then(() => setRefresh((value) => value + 1))
-                      .catch((error) => setError(error.message))
+                      .catch(() =>
+                        setActionError('Could not update this Story Set. Please try again.')
+                      )
                   }}
                 >
                   Archive
@@ -149,23 +243,8 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
           </article>
         ))}
       </div>
-      {cursor ? (
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true)
-            try {
-              const result = await client.creativeSet.list.query({ cursor, search })
-              setItems((items) => [...items, ...result.items])
-              setCursor(result.nextCursor)
-            } catch (error) {
-              setError(error instanceof Error ? error.message : 'Loading failed.')
-            } finally {
-              setBusy(false)
-            }
-          }}
-        >
+      {cursor && !error ? (
+        <Button variant="outline" disabled={busy} onClick={() => void load(cursor)}>
           Load more
         </Button>
       ) : null}

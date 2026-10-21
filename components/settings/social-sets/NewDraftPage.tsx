@@ -1,10 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChannelIcon } from '@/components/drafts/channel-meta'
 import { Group, Pill, Row } from '@/components/platform-ui'
 import { SaveStatus, useSaveState } from '@/components/settings/controls'
+import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
+import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { socialSetHref } from '@/components/workspace/settings-sections'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,16 +21,25 @@ function DefaultPlatforms({ canManage, set }: { canManage: boolean; set: SocialS
   const save = useSaveSocialSet(set.id)
   const [state, run] = useSaveState()
   const connected = set.accounts.filter((account) => account.health !== 'removed')
-  const enabled = set.defaultPlatforms.filter((platform) => connected.some((account) => account.platform === platform))
+  const enabled = set.defaultPlatforms.filter((platform) =>
+    connected.some((account) => account.platform === platform)
+  )
   const others = connected.filter((account) => !enabled.includes(account.platform))
-  const primary = set.primaryPlatform && enabled.includes(set.primaryPlatform) ? set.primaryPlatform : (enabled[0] ?? null)
+  const primary =
+    set.primaryPlatform && enabled.includes(set.primaryPlatform)
+      ? set.primaryPlatform
+      : (enabled[0] ?? null)
 
   const commit = (platforms: string[], nextPrimary: string | null = primary) =>
     run(() =>
       save({
         defaultPlatforms: platforms.map((platform) => draftPlatformSchema.parse(platform)),
         primaryPlatform:
-          nextPrimary && platforms.includes(nextPrimary) ? draftPlatformSchema.parse(nextPrimary) : platforms[0] ? draftPlatformSchema.parse(platforms[0]) : '',
+          nextPrimary && platforms.includes(nextPrimary)
+            ? draftPlatformSchema.parse(nextPrimary)
+            : platforms[0]
+              ? draftPlatformSchema.parse(platforms[0])
+              : '',
       })
     )
   const move = (index: number, by: number) => {
@@ -59,7 +70,10 @@ function DefaultPlatforms({ canManage, set }: { canManage: boolean; set: SocialS
           {enabled.map((platform, index) => {
             const channel = channelForPlatform(platform)
             return (
-              <li className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2" key={platform}>
+              <li
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
+                key={platform}
+              >
                 <span className="flex items-center gap-2 text-sm">
                   <span className="w-5 text-xs text-muted-foreground">{index + 1}.</span>
                   {channel ? <ChannelIcon channel={channel} className="size-4" /> : null}
@@ -68,7 +82,14 @@ function DefaultPlatforms({ canManage, set }: { canManage: boolean; set: SocialS
                   {platform === primary ? <Pill tone="blue">Primary</Pill> : null}
                 </span>
                 <span className="flex flex-wrap gap-1">
-                  <Button aria-label={`Move ${platform} up`} disabled={!canManage || index === 0} onClick={() => move(index, -1)} size="sm" type="button" variant="ghost">
+                  <Button
+                    aria-label={`Move ${platform} up`}
+                    disabled={!canManage || index === 0}
+                    onClick={() => move(index, -1)}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
                     ↑
                   </Button>
                   <Button
@@ -82,7 +103,13 @@ function DefaultPlatforms({ canManage, set }: { canManage: boolean; set: SocialS
                     ↓
                   </Button>
                   {platform === primary ? null : (
-                    <Button disabled={!canManage} onClick={() => void commit(enabled, platform)} size="sm" type="button" variant="outline">
+                    <Button
+                      disabled={!canManage}
+                      onClick={() => void commit(enabled, platform)}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
                       Make primary
                     </Button>
                   )}
@@ -100,11 +127,21 @@ function DefaultPlatforms({ canManage, set }: { canManage: boolean; set: SocialS
             )
           })}
           {others.map((account) => (
-            <li className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-2" key={account.id}>
+            <li
+              className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-2"
+              key={account.id}
+            >
               <span className="text-sm text-muted-foreground">
-                {account.displayName ?? account.handle ?? account.platform} · {account.platform} · off for new drafts
+                {account.displayName ?? account.handle ?? account.platform} · {account.platform} ·
+                off for new drafts
               </span>
-              <Button disabled={!canManage} onClick={() => void commit([...enabled, account.platform])} size="sm" type="button" variant="outline">
+              <Button
+                disabled={!canManage}
+                onClick={() => void commit([...enabled, account.platform])}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
                 Turn on
               </Button>
             </li>
@@ -122,11 +159,21 @@ function EngagementDefaults({ canManage, set }: { canManage: boolean; set: Socia
   const save = useSaveSocialSet(set.id)
   const [state, run] = useSaveState()
   const [draft, setDraft] = useState<Engagement>(set.engagementDefaults)
-  useEffect(() => setDraft(set.engagementDefaults), [set.engagementDefaults])
-  const hasX = set.accounts.some((account) => account.platform === 'x' && account.health === 'connected')
+  const previousValue = useRef(JSON.stringify(set.engagementDefaults))
+  useEffect(() => {
+    const previous = previousValue.current
+    previousValue.current = JSON.stringify(set.engagementDefaults)
+    setDraft((current) => (JSON.stringify(current) === previous ? set.engagementDefaults : current))
+  }, [set.engagementDefaults])
+  const dirty = JSON.stringify(draft) !== JSON.stringify(set.engagementDefaults)
+  useUnsavedSettings(dirty)
+  const hasX = set.accounts.some(
+    (account) => account.platform === 'x' && account.health === 'connected'
+  )
   const valid =
     (!draft.autoRepost.enabled || draft.autoRepost.atLikes >= 1) &&
-    (!draft.autoPlug.enabled || (draft.autoPlug.atLikes >= 1 && (draft.autoPlug.text ?? '').trim().length > 0))
+    (!draft.autoPlug.enabled ||
+      (draft.autoPlug.atLikes >= 1 && (draft.autoPlug.text ?? '').trim().length > 0))
 
   return (
     <Row
@@ -149,14 +196,23 @@ function EngagementDefaults({ canManage, set }: { canManage: boolean; set: Socia
           void run(() => save({ engagementDefaults: draft }))
         }}
       >
-        <fieldset className="grid gap-2" disabled={!canManage || !hasX}>
+        <fieldset className="grid gap-2" disabled={!canManage || !hasX || state === 'saving'}>
           <legend className="sr-only">Auto-Retweet</legend>
           <label className="flex items-center gap-3 text-sm">
             <Switch
               aria-label="Auto-Retweet"
               checked={draft.autoRepost.enabled}
-              disabled={!canManage || !hasX}
-              onCheckedChange={(enabled) => setDraft({ ...draft, autoRepost: { ...draft.autoRepost, atLikes: draft.autoRepost.atLikes || 50, enabled } })}
+              disabled={!canManage || !hasX || state === 'saving'}
+              onCheckedChange={(enabled) =>
+                setDraft({
+                  ...draft,
+                  autoRepost: {
+                    ...draft.autoRepost,
+                    atLikes: draft.autoRepost.atLikes || 50,
+                    enabled,
+                  },
+                })
+              }
             />
             <span className="font-medium text-foreground">Auto-Retweet</span>
             <span className="text-muted-foreground">Repost once a post has</span>
@@ -164,21 +220,31 @@ function EngagementDefaults({ canManage, set }: { canManage: boolean; set: Socia
               aria-label="Auto-Retweet likes"
               className="w-24"
               min={1}
-              onChange={(event) => setDraft({ ...draft, autoRepost: { ...draft.autoRepost, atLikes: Number(event.target.value) } })}
+              onChange={(event) =>
+                setDraft({
+                  ...draft,
+                  autoRepost: { ...draft.autoRepost, atLikes: Number(event.target.value) },
+                })
+              }
               type="number"
               value={draft.autoRepost.atLikes || ''}
             />
             <span className="text-muted-foreground">likes</span>
           </label>
         </fieldset>
-        <fieldset className="grid gap-2" disabled={!canManage || !hasX}>
+        <fieldset className="grid gap-2" disabled={!canManage || !hasX || state === 'saving'}>
           <legend className="sr-only">Auto-Plug</legend>
           <label className="flex flex-wrap items-center gap-3 text-sm">
             <Switch
               aria-label="Auto-Plug"
               checked={draft.autoPlug.enabled}
-              disabled={!canManage || !hasX}
-              onCheckedChange={(enabled) => setDraft({ ...draft, autoPlug: { ...draft.autoPlug, atLikes: draft.autoPlug.atLikes || 50, enabled } })}
+              disabled={!canManage || !hasX || state === 'saving'}
+              onCheckedChange={(enabled) =>
+                setDraft({
+                  ...draft,
+                  autoPlug: { ...draft.autoPlug, atLikes: draft.autoPlug.atLikes || 50, enabled },
+                })
+              }
             />
             <span className="font-medium text-foreground">Auto-Plug</span>
             <span className="text-muted-foreground">Reply once a post has</span>
@@ -186,7 +252,12 @@ function EngagementDefaults({ canManage, set }: { canManage: boolean; set: Socia
               aria-label="Auto-Plug likes"
               className="w-24"
               min={1}
-              onChange={(event) => setDraft({ ...draft, autoPlug: { ...draft.autoPlug, atLikes: Number(event.target.value) } })}
+              onChange={(event) =>
+                setDraft({
+                  ...draft,
+                  autoPlug: { ...draft.autoPlug, atLikes: Number(event.target.value) },
+                })
+              }
               type="number"
               value={draft.autoPlug.atLikes || ''}
             />
@@ -195,16 +266,20 @@ function EngagementDefaults({ canManage, set }: { canManage: boolean; set: Socia
           <Input
             aria-label="Auto-Plug reply text"
             maxLength={280}
-            onChange={(event) => setDraft({ ...draft, autoPlug: { ...draft.autoPlug, text: event.target.value } })}
+            onChange={(event) =>
+              setDraft({ ...draft, autoPlug: { ...draft.autoPlug, text: event.target.value } })
+            }
             placeholder="The reply, such as a link to your newsletter"
             value={draft.autoPlug.text ?? ''}
           />
         </fieldset>
-        <div>
-          <Button disabled={!canManage || !hasX || !valid} type="submit" variant="outline">
-            Save engagement defaults
-          </Button>
-        </div>
+        <SettingsSaveBar
+          dirty={dirty}
+          busy={state === 'saving'}
+          disabled={!canManage || !hasX || !valid}
+          label="Save engagement defaults"
+          onDiscard={() => setDraft(set.engagementDefaults)}
+        />
       </form>
     </Row>
   )
@@ -221,7 +296,8 @@ export function NewDraftPage({ canManage, set }: { canManage: boolean; set: Soci
         <EngagementDefaults canManage={canManage} set={set} />
       </Group>
       <p className="text-xs text-muted-foreground">
-        Defaults are copied into each new draft when it is created. Changing them later does not change drafts that already exist.
+        Defaults are copied into each new draft when it is created. Changing them later does not
+        change drafts that already exist.
       </p>
     </div>
   )

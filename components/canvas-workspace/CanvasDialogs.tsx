@@ -6,7 +6,16 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { CanvasSession } from '@/lib/canvas/session'
 import { artboardSize } from '@/lib/canvas/document'
@@ -250,12 +259,11 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
             <fieldset className="grid max-h-56 gap-1 overflow-y-auto rounded-md border p-2">
               <legend className="px-1 text-xs text-muted-foreground">Artboards</legend>
               <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={chosen.length === document.artboards.length}
-                  onChange={(event) =>
+                  onCheckedChange={(checked) =>
                     setChosen(
-                      event.target.checked ? document.artboards.map((artboard) => artboard.id) : []
+                      checked === true ? document.artboards.map((artboard) => artboard.id) : []
                     )
                   }
                 />
@@ -263,12 +271,11 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
               </label>
               {document.artboards.map((artboard) => (
                 <label key={artboard.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={chosen.includes(artboard.id)}
-                    onChange={(event) =>
+                    onCheckedChange={(checked) =>
                       setChosen((previous) =>
-                        event.target.checked
+                        checked === true
                           ? [...previous, artboard.id]
                           : previous.filter((id) => id !== artboard.id)
                       )
@@ -284,70 +291,69 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="grid gap-1 text-xs text-muted-foreground">
                 Format
-                <select
-                  aria-label="Export format"
+                <Select
                   value={format}
-                  onChange={(event) => setFormat(exportChoiceSchema.parse(event.target.value))}
-                  className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+                  onValueChange={(value) => setFormat(exportChoiceSchema.parse(value))}
                 >
-                  <option value="png">PNG</option>
-                  <option value="jpeg">JPEG</option>
-                  <option value="webp">WebP</option>
-                  <option value="pdf">PDF (one image page per artboard)</option>
-                  <option value="pdf-text">PDF · selectable text and vector shapes</option>
-                </select>
+                  <SelectTrigger aria-label="Export format" className="w-full text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="png">PNG</SelectItem>
+                    <SelectItem value="jpeg">JPEG</SelectItem>
+                    <SelectItem value="webp">WebP</SelectItem>
+                    <SelectItem value="pdf">PDF (one image page per artboard)</SelectItem>
+                    <SelectItem value="pdf-text">
+                      PDF · selectable text and vector shapes
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </label>
               <label className="grid gap-1 text-xs text-muted-foreground">
                 Scale
-                <select
-                  aria-label="Export scale"
-                  value={scale}
-                  onChange={(event) =>
-                    setScale(
-                      Number(event.target.value) === 3
-                        ? 3
-                        : Number(event.target.value) === 2
-                          ? 2
-                          : 1
-                    )
-                  }
-                  className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+                <Select
+                  value={String(scale)}
+                  onValueChange={(value) => setScale(value === '3' ? 3 : value === '2' ? 2 : 1)}
                 >
-                  <option value={1}>1× (exact size)</option>
-                  <option value={2}>2×</option>
-                  <option value={3}>3×</option>
-                </select>
+                  <SelectTrigger aria-label="Export scale" className="w-full text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1× (exact size)</SelectItem>
+                    <SelectItem value="2">2×</SelectItem>
+                    <SelectItem value="3">3×</SelectItem>
+                  </SelectContent>
+                </Select>
               </label>
               <label className="grid gap-1 text-xs text-muted-foreground">
                 Order
-                <select
-                  aria-label="Export order"
+                <Select
                   value={order}
-                  onChange={(event) =>
-                    setOrder(event.target.value === 'layers' ? 'layers' : 'reading')
-                  }
-                  className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+                  onValueChange={(value) => setOrder(value === 'layers' ? 'layers' : 'reading')}
                 >
-                  <option value="reading">Board reading order</option>
-                  <option value="layers">Artboard list order</option>
-                </select>
+                  <SelectTrigger aria-label="Export order" className="w-full text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="reading">Board reading order</SelectItem>
+                    <SelectItem value="layers">Artboard list order</SelectItem>
+                  </SelectContent>
+                </Select>
               </label>
             </div>
             <div className="flex flex-wrap gap-4 text-sm">
               <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={transparent}
                   disabled={format !== 'png' && format !== 'webp'}
-                  onChange={(event) => setTransparent(event.target.checked)}
+                  onCheckedChange={(checked) => setTransparent(checked === true)}
                 />
                 Transparent background
               </label>
               <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={includeHidden}
-                  onChange={(event) => setIncludeHidden(event.target.checked)}
+                  onCheckedChange={(checked) => setIncludeHidden(checked === true)}
                 />
                 Include hidden layers
               </label>
@@ -614,42 +620,40 @@ function BrandDialog({ onClose, session, actions }: Props) {
         ) : null}
         {kits?.length ? (
           <div className="grid gap-3">
-            <select
-              aria-label="Brand kit"
-              value={kitId}
-              onChange={(event) => setKitId(event.target.value)}
-              className="h-9 rounded-md border bg-background px-2 text-sm"
+            <Select value={kitId} onValueChange={setKitId}>
+              <SelectTrigger aria-label="Brand kit" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {kits.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name} · v{item.version}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <RadioGroup
+              value={scope}
+              onValueChange={(value) => setScope(value === 'all' ? 'all' : 'selection')}
+              className="flex gap-3 text-sm"
             >
-              {kits.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} · v{item.version}
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-3 text-sm">
               <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  checked={scope === 'selection'}
-                  disabled={!selection.length}
-                  onChange={() => setScope('selection')}
-                />
+                <RadioGroupItem value="selection" disabled={!selection.length} />
                 Selected ({selection.length})
               </label>
               <label className="flex items-center gap-2">
-                <input type="radio" checked={scope === 'all'} onChange={() => setScope('all')} />
+                <RadioGroupItem value="all" />
                 All artboards
               </label>
-            </div>
+            </RadioGroup>
             <fieldset className="flex flex-wrap gap-3 text-sm">
               {BRAND_CATEGORIES.map((category) => (
                 <label key={category} className="flex items-center gap-1.5 capitalize">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={categories.includes(category)}
-                    onChange={(event) =>
+                    onCheckedChange={(checked) =>
                       setCategories((previous) =>
-                        event.target.checked
+                        checked === true
                           ? [...previous, category]
                           : previous.filter((item) => item !== category)
                       )
@@ -660,11 +664,7 @@ function BrandDialog({ onClose, session, actions }: Props) {
               ))}
             </fieldset>
             <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={reset}
-                onChange={(event) => setReset(event.target.checked)}
-              />
+              <Checkbox checked={reset} onCheckedChange={(checked) => setReset(checked === true)} />
               Reset my overrides to the kit
             </label>
             {preview && preview.keptOverrides > 0 && !reset ? (
@@ -776,46 +776,49 @@ function HandoffDialog({ onClose, session, flush, canEdit }: Props) {
           >
             <label className="grid gap-1 text-xs text-muted-foreground">
               Delivered file
-              <select
-                aria-label="Delivered file"
-                value={deliveryId}
-                onChange={(event) => setDeliveryId(event.target.value)}
-                className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
-              >
-                {deliveries.map((delivery) => (
-                  <option key={delivery.id} value={delivery.id}>
-                    {name(delivery.outputId)} · revision {delivery.revision}
-                  </option>
-                ))}
-              </select>
+              <Select value={deliveryId} onValueChange={setDeliveryId}>
+                <SelectTrigger aria-label="Delivered file" className="w-full text-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {deliveries.map((delivery) => (
+                    <SelectItem key={delivery.id} value={delivery.id}>
+                      {name(delivery.outputId)} · revision {delivery.revision}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
             <label className="grid gap-1 text-xs text-muted-foreground">
               Campaign
-              <select
-                aria-label="Campaign"
-                value={campaignId}
-                onChange={(event) => setCampaignId(event.target.value)}
-                className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
-              >
-                {campaigns.map((campaign) => (
-                  <option key={campaign.id} value={campaign.id}>
-                    {campaign.name}
-                  </option>
-                ))}
-              </select>
+              <Select value={campaignId} onValueChange={setCampaignId}>
+                <SelectTrigger aria-label="Campaign" className="w-full text-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {campaigns.map((campaign) => (
+                    <SelectItem key={campaign.id} value={campaign.id}>
+                      {campaign.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
             <label className="grid gap-1 text-xs text-muted-foreground">
               Channel
-              <select
-                aria-label="Channel"
+              <Select
                 value={channel}
-                onChange={(event) => setChannel(channelSchema.parse(event.target.value))}
-                className="h-9 rounded-md border bg-background px-2 text-sm text-foreground"
+                onValueChange={(value) => setChannel(channelSchema.parse(value))}
               >
-                <option value="linkedin">LinkedIn</option>
-                <option value="x">X</option>
-                <option value="instagram">Instagram</option>
-              </select>
+                <SelectTrigger aria-label="Channel" className="w-full text-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                  <SelectItem value="x">X</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                </SelectContent>
+              </Select>
             </label>
             <label className="grid gap-1 text-xs text-muted-foreground">
               Post copy

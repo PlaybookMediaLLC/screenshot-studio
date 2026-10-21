@@ -5,8 +5,16 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { usePrivateCreativeSurface } from './use-private-surface'
 import { useRouter } from 'next/navigation'
+import { TRPCClientError } from '@trpc/client'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   DropdownMenu,
@@ -103,8 +111,14 @@ export function StorySetEditor({
   const client = useTRPCClient()
   const [session, setSession] = useState<CreativeSetSession | null>(null),
     [error, setError] = useState<string | null>(null)
+  const [openError, setOpenError] = useState<'missing' | 'failed' | null>(null)
+  const [retry, setRetry] = useState(0)
   const [recovery, setRecovery] = useState<SetRecovery | null>(null)
   useEffect(() => {
+    setOpenError(null)
+    setError(null)
+    setSession(null)
+    setRecovery(null)
     let active = true,
       instance: CreativeSetSession | null = null
     void (async () => {
@@ -125,17 +139,40 @@ export function StorySetEditor({
       }
     })().catch((error) => {
       if (active)
-        setError(
-          error instanceof Error
-            ? error.message
-            : 'Could not open this Story Set. Update the app if it was saved by a newer version.'
+        setOpenError(
+          error instanceof TRPCClientError && error.data?.code === 'NOT_FOUND'
+            ? 'missing'
+            : 'failed'
         )
     })
     return () => {
       active = false
       instance?.dispose()
     }
-  }, [client, setId, workspaceId, canEdit])
+  }, [client, setId, workspaceId, canEdit, retry])
+  if (!session && openError)
+    return (
+      <main className="space-y-4 p-8">
+        <h1 className="text-2xl font-semibold">
+          {openError === 'missing' ? 'Story Set not found' : 'Could not open this Story Set'}
+        </h1>
+        <p role="alert" className="text-sm text-muted-foreground">
+          {openError === 'missing'
+            ? 'This link is unavailable in your current workspace.'
+            : 'Please try again. If this set was saved by a newer version, update the app.'}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="outline">
+            <Link prefetch={false} href="/creative-sets">
+              Back to Story Sets
+            </Link>
+          </Button>
+          {openError === 'failed' ? (
+            <Button onClick={() => setRetry((value) => value + 1)}>Retry</Button>
+          ) : null}
+        </div>
+      </main>
+    )
   return (
     <>
       {error ? (
@@ -748,28 +785,31 @@ function SetWorkspace({
               <TabsContent value="layout">
                 <section className="space-y-4">
                   <h2 className="text-sm font-medium">Layout · this format</h2>
-                  <select
-                    aria-label="This format layout"
+                  <Select
                     value={active.composition.id}
                     disabled={!canEdit || !ready || active.format === 'original'}
-                    onChange={(event) =>
+                    onValueChange={(value) =>
                       run({
                         type: 'layout',
                         outputId: active.id,
-                        treatment: event.target.value as Treatment,
+                        treatment: value as Treatment,
                       })
                     }
-                    className="w-full rounded-md border bg-background p-2 text-sm"
                   >
-                    {!treatmentSchema.safeParse(active.composition.id).success ? (
-                      <option value={active.composition.id}>Imported composition</option>
-                    ) : null}
-                    {Object.entries(TREATMENTS).map(([id, label]) => (
-                      <option key={id} value={id}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger aria-label="This format layout" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {!treatmentSchema.safeParse(active.composition.id).success ? (
+                        <SelectItem value={active.composition.id}>Imported composition</SelectItem>
+                      ) : null}
+                      {Object.entries(TREATMENTS).map(([id, label]) => (
+                        <SelectItem key={id} value={id}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
                     Choosing a treatment rearranges managed layers. Custom copy and added layers
                     stay.
@@ -777,29 +817,32 @@ function SetWorkspace({
 
                   <label className="grid gap-1 text-xs">
                     Motion · this format
-                    <select
+                    <Select
                       disabled={!canEdit || !ready}
                       value=""
-                      className="rounded border bg-background p-2"
-                      onChange={(event) => {
+                      onValueChange={(value) => {
                         flushActive()
                         session.commit(
                           applyStoryMotion(
                             session.snapshot().document,
                             activeId,
-                            storyMotionSchema.parse(event.target.value)
+                            storyMotionSchema.parse(value)
                           )
                         )
                         useImageStore.setState({ showTimeline: true })
                       }}
                     >
-                      <option value="">Choose motion…</option>
-                      {storyMotionSchema.options.map((motion) => (
-                        <option key={motion} value={motion}>
-                          {STORY_MOTION[motion]}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger aria-label="Motion · this format" className="w-full">
+                        <SelectValue placeholder="Choose motion…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {storyMotionSchema.options.map((motion) => (
+                          <SelectItem key={motion} value={motion}>
+                            {STORY_MOTION[motion]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </label>
                   {active.document.timeline ? (
                     <Button
@@ -842,13 +885,12 @@ function SetWorkspace({
                       ? `${state.document.brand.name} · pinned v${state.document.brand.version}`
                       : 'Neutral bundled style'}
                   </p>
-                  <select
-                    aria-label="Preview workspace brand"
+                  <Select
                     value=""
                     disabled={!canEdit || !ready}
-                    onChange={(event) => {
+                    onValueChange={(value) => {
                       flushActive()
-                      const kit = kits.find((kit) => kit.id === event.target.value)
+                      const kit = kits.find((kit) => kit.id === value)
                       if (kit) {
                         const before = session.snapshot().document
                         void prepareSetBrand(session.client, before, kit)
@@ -856,15 +898,18 @@ function SetWorkspace({
                           .catch((error) => setError(error.message))
                       }
                     }}
-                    className="w-full rounded-md border bg-background p-2 text-sm"
                   >
-                    <option value="">Preview a brand kit…</option>
-                    {kits.map((kit) => (
-                      <option key={kit.id} value={kit.id}>
-                        {kit.name} · v{kit.version}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger aria-label="Preview workspace brand" className="w-full">
+                      <SelectValue placeholder="Preview a brand kit…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {kits.map((kit) => (
+                        <SelectItem key={kit.id} value={kit.id}>
+                          {kit.name} · v{kit.version}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </section>
               </TabsContent>
             </Tabs>

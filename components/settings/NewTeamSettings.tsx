@@ -36,7 +36,10 @@ export function NewTeamSettings({ email }: { email: string }) {
     if (!parsed.success) return
     setCreating(true)
     try {
-      const { organization } = await trpcClient.workspace.create.mutate({ name: parsed.data, slug: slugFor(parsed.data) })
+      const { organization } = await trpcClient.workspace.create.mutate({
+        name: parsed.data,
+        slug: slugFor(parsed.data),
+      })
       await trpcClient.workspace.setActive.mutate({ organizationId: organization.id })
       toast.success(`${parsed.data} is ready. Invite people, then choose its plan in Billing.`)
       window.location.assign('/workspace/members')
@@ -57,13 +60,13 @@ export function NewTeamSettings({ email }: { email: string }) {
       <Group>
         <Row
           description="Teams share social sets for writing, review and scheduling. Each team is a separate workspace with its own members and plan."
-          label="Team name"
+          label="Workspace name"
           layout="stacked"
         >
           <Input
             aria-describedby="new-team-owner"
             aria-invalid={name.length > 0 && !parsed.success}
-            aria-label="Team name"
+            aria-label="Workspace name"
             autoFocus
             maxLength={100}
             onChange={(event) => setName(event.target.value)}
@@ -72,13 +75,15 @@ export function NewTeamSettings({ email }: { email: string }) {
           />
           <p className="text-xs text-muted-foreground" id="new-team-owner">
             You will be its owner, as {email}.
-            {name.length > 0 && !parsed.success ? ' Use at least two characters that are not spaces.' : ''}
+            {name.length > 0 && !parsed.success
+              ? ' Use at least two characters that are not spaces.'
+              : ''}
           </p>
         </Row>
       </Group>
       <div>
         <Button disabled={!parsed.success || creating} type="submit">
-          {creating ? 'Creating…' : 'Create team'}
+          {creating ? 'Creating…' : 'Create workspace'}
         </Button>
       </div>
     </form>

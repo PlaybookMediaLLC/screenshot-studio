@@ -154,7 +154,7 @@ export function AccountMenu({
           <p className="px-2 pb-2 text-xs text-destructive">{workspaceError}</p>
         ) : null}
         <div className="grid gap-1 py-2">
-          <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/onboarding">
+          <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/workspace/new-team">
             Create workspace
           </Link>
           <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/assets">

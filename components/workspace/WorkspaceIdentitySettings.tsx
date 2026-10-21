@@ -2,6 +2,10 @@
 
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
+import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { useHydratedSession } from '@/lib/auth/client'
+import { useTRPCClient } from '@/lib/trpc/react'
 import { Group, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -47,6 +51,24 @@ export function WorkspaceIdentitySettings({
   isOwner,
   organizationId,
 }: WorkspaceIdentitySettingsProps) {
+  const trpcClient = useTRPCClient()
+  const { data: session } = useHydratedSession()
+  const billing = useQuery({
+    enabled: canManage,
+    queryFn: () => trpcClient.billing.summary.query(),
+    queryKey: ['billing', organizationId, 'summary'],
+  })
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(timer)
+  }, [])
+  const fresh = Boolean(
+    session && now - new Date(session.session.createdAt).getTime() < 15 * 60 * 1000
+  )
+  const twoFactor = session?.user.twoFactorEnabled === true
+  const enterprise = billing.data?.plan === 'enterprise' && billing.data.paid
+  const ready = canManage && enterprise && fresh && twoFactor
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState<string | null>(null)
   const [scimProviders, setScimProviders] = useState<ScimProvider[]>([])
@@ -71,11 +93,12 @@ export function WorkspaceIdentitySettings({
   }, [organizationId])
 
   useEffect(() => {
-    void loadProviders()
-  }, [loadProviders])
+    if (canManage) void loadProviders()
+  }, [canManage, loadProviders])
 
   async function registerSso(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
+    if (!ready) return
     setError(null)
     const form = event.currentTarget
     const input = ssoInputSchema.safeParse(Object.fromEntries(new FormData(form)))
@@ -108,6 +131,7 @@ export function WorkspaceIdentitySettings({
 
   async function generateScimToken(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
+    if (!ready) return
     setError(null)
     const form = event.currentTarget
     const providerId = String(new FormData(form).get('providerId') ?? '')
@@ -151,12 +175,44 @@ export function WorkspaceIdentitySettings({
     )
   return (
     <div className="flex flex-col gap-10">
-      <Alert className="border-foreground/[0.08] bg-foreground/[0.015] text-foreground/65">
-        <AlertDescription>
-          SSO and SCIM are enterprise features. Configuration requires a recent sign-in and
-          two-factor authentication.
-        </AlertDescription>
-      </Alert>
+      <Section title="Before you connect">
+        <ul className="grid gap-3 text-sm">
+          <li>
+            Enterprise plan:{' '}
+            {billing.isPending
+              ? 'Checking…'
+              : billing.isError
+                ? 'Could not verify'
+                : enterprise
+                  ? 'Active'
+                  : 'Required'}{' '}
+            ·{' '}
+            <Link className="underline" href="/workspace/billing">
+              View billing
+            </Link>
+          </li>
+          <li>
+            Two-factor authentication: {twoFactor ? 'Enabled' : 'Required'} ·{' '}
+            <Link className="underline" href="/workspace/security">
+              Security settings
+            </Link>
+          </li>
+          <li>
+            Sign-in within the last 15 minutes: {fresh ? 'Confirmed' : 'Required'} ·{' '}
+            <Link
+              className="underline"
+              href="/sign-in?reauthenticate=1&callbackURL=%2Fworkspace%2Fsso"
+            >
+              Verify identity
+            </Link>
+          </li>
+        </ul>
+        {!ready ? (
+          <p className="text-sm text-muted-foreground">
+            Complete these steps to enter your provider credentials.
+          </p>
+        ) : null}
+      </Section>
       {token ? <ScimTokenNotice onDismiss={() => setToken(null)} token={token} /> : null}
       <Section
         description="Connect Okta, Microsoft Entra ID, or another OIDC identity provider."
@@ -164,9 +220,11 @@ export function WorkspaceIdentitySettings({
       >
         <Group>
           <WorkspaceSsoList providers={ssoProviders} />
-          <Row>
-            <SsoForm isSubmitting={pending === 'sso'} onSubmit={registerSso} />
-          </Row>
+          {ready ? (
+            <Row>
+              <SsoForm isSubmitting={pending === 'sso'} onSubmit={registerSso} />
+            </Row>
+          ) : null}
         </Group>
       </Section>
       <Section
@@ -174,8 +232,13 @@ export function WorkspaceIdentitySettings({
         title="SCIM directory sync"
       >
         <Group>
-          <ScimList isDeleting={pending} onDelete={removeScimProvider} providers={scimProviders} />
-          {isOwner ? (
+          <ScimList
+            isDeleting={pending}
+            onDelete={removeScimProvider}
+            disabled={!ready}
+            providers={scimProviders}
+          />
+          {isOwner && ready ? (
             <Row>
               <ScimForm isSubmitting={pending === 'scim'} onSubmit={generateScimToken} />
             </Row>
@@ -332,10 +395,12 @@ function ScimTokenNotice({ onDismiss, token }: { onDismiss: () => void; token: s
 }
 
 function ScimList({
+  disabled,
   isDeleting,
   onDelete,
   providers,
 }: {
+  disabled: boolean
   isDeleting: string | null
   onDelete: (provider: ScimProvider) => Promise<void>
   providers: ScimProvider[]
@@ -354,7 +419,7 @@ function ScimList({
       </span>
       <Button
         className="text-red-700 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-        disabled={isDeleting === provider.id}
+        disabled={disabled || isDeleting === provider.id}
         onClick={() => void onDelete(provider)}
         size="sm"
         type="button"

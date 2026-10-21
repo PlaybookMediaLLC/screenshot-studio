@@ -84,9 +84,9 @@ test('settings sections are grouped and each has its own address', () => {
     ['install', 'personal'],
     ['billing', 'workspace'],
     ['members', 'workspace'],
-    ['integrations', 'workspace'],
-    ['developers', 'workspace'],
-    ['experimental', 'workspace'],
+    ['integrations', 'integrations'],
+    ['developers', 'advanced'],
+    ['experimental', 'advanced'],
     ['social-sets', 'publishing'],
   ]) {
     assert.equal(findSettingsSection(slug)?.group, group, slug)

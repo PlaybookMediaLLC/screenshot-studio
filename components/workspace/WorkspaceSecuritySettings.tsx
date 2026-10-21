@@ -3,6 +3,8 @@
 import { type FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
+import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { Group, Pill, Row } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -18,6 +20,14 @@ type WorkspaceSecuritySettingsProps = { twoFactorEnabled: boolean }
 
 export function WorkspaceSecuritySettings({ twoFactorEnabled }: WorkspaceSecuritySettingsProps) {
   const router = useRouter()
+  const accounts = useQuery({
+    queryKey: ['auth', 'accounts'],
+    queryFn: async () => {
+      const result = await authClient.listAccounts()
+      if (result.error) throw new Error(result.error.message ?? 'Could not load sign-in methods.')
+      return result.data
+    },
+  })
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [setup, setSetup] = useState<SetupState | null>(null)
@@ -74,6 +84,36 @@ export function WorkspaceSecuritySettings({ twoFactorEnabled }: WorkspaceSecurit
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (accounts.isPending) return <p role="status">Checking sign-in methods…</p>
+  if (accounts.isError)
+    return (
+      <div className="grid gap-2">
+        <p role="alert">Could not check your sign-in methods.</p>
+        <Button onClick={() => void accounts.refetch()} type="button" variant="outline">
+          Retry
+        </Button>
+      </div>
+    )
+  if (!accounts.data?.some((account) => account.providerId === 'credential')) {
+    return (
+      <Group>
+        <Row
+          label="Two-factor authentication"
+          layout="stacked"
+          description="Your sign-in provider does not give Shots a password. Authenticator settings currently require a Shots password."
+        >
+          <p className="text-sm text-muted-foreground">
+            Contact your administrator to arrange password sign-in before changing authenticator
+            settings. You can also protect your provider account with its own two-step verification.
+          </p>
+          <Link className="text-sm underline" href="/workspace/account">
+            View your sign-in methods
+          </Link>
+        </Row>
+      </Group>
+    )
   }
 
   if (twoFactorEnabled)

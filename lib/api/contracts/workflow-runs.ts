@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import { automationFamilySchema, automationGraphSchema } from './release-automation'
+import {
+  automationFamilySchema,
+  automationGraphSchema,
+  automationEventSchema,
+  automationHistoryItemSchema,
+} from './release-automation'
 
 /** Persisted run states; review and publishing state belong to the campaign. */
 export const automationRunStatusSchema = z.enum([
@@ -53,3 +58,22 @@ export type AutomationRunStatus = z.infer<typeof automationRunStatusSchema>
 export type AutomationHistoryFilter = z.infer<typeof automationHistoryFilterSchema>
 /** An immutable activated version. */
 export type AutomationVersion = z.infer<typeof automationVersionSchema>
+
+/** List evidence excludes release notes, enrichment, and unrelated GitHub fields. */
+export const automationRunSummarySchema = automationHistoryItemSchema.extend({
+  event: automationHistoryItemSchema.shape.event
+    .pick({ id: true, sourceAppId: true, receivedAt: true })
+    .extend({
+      snapshot: automationEventSchema.pick({
+        family: true,
+        repositoryName: true,
+        objectId: true,
+        number: true,
+        title: true,
+        fields: true,
+      }),
+    }),
+})
+
+/** A lightweight run for overview and history lists. */
+export type AutomationRunSummary = z.infer<typeof automationRunSummarySchema>

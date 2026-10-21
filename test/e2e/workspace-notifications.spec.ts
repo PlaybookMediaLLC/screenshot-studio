@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { z } from 'zod'
+import { chooseOption } from './framework/controls'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { signUpViaApi } from './framework/auth'
 import { browserJson, browserRequest, requestJson } from './framework/browser'
@@ -144,23 +145,27 @@ test('workspace activity persists read and archive state through controlled prov
     ).toBe(200)
 
     await page.goto('/workspace/notifications')
+    await page.getByRole('button', { name: 'Delivery & Slack', exact: true }).click()
     await page.getByRole('button', { name: 'Connect Slack', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Local Slack fixture' })).toBeVisible()
     await page.getByRole('link', { name: 'Allow selected workspace' }).click()
     await expect(page.getByLabel('Slack workspace')).toBeVisible()
-    await page.getByLabel('Slack workspace').selectOption({ label: 'Fixture team · T012345' })
-    await page.getByLabel('Slack channel').selectOption('C012345')
+    await chooseOption(page.getByLabel('Slack workspace'), 'Fixture team')
+    await chooseOption(page.getByLabel('Slack channel'), '#workspace-activity')
     expect((await sink()).channelPages).toContain('page-two')
+    await page.getByRole('button', { name: /^Workspace rules/ }).click()
     const workspaceEmail = page.getByLabel('Source connected: workspace email', { exact: true })
     await workspaceEmail.locator('xpath=ancestor::details').locator('summary').click()
     await workspaceEmail.check()
     await page.getByLabel('Source connected: workspace slack', { exact: true }).check()
     await page.getByRole('button', { name: 'Save workspace policy' }).click()
     await expect(page.getByText('Workspace policy saved.')).toBeVisible()
+    await page.getByRole('button', { name: 'My notifications', exact: true }).click()
     await page.getByRole('button', { name: 'Send test to my email' }).click()
     await expect(page.getByText('Test queued. Its status appears below.')).toBeVisible()
     dispatch()
     await expect(page.getByText('Test delivered.', { exact: false })).toBeVisible()
+    await page.getByRole('button', { name: 'Delivery & Slack', exact: true }).click()
     await page.getByRole('button', { name: 'Send test to selected channel' }).click()
     await expect(page.getByText('Test queued. Its status appears below.')).toBeVisible()
     dispatch()
@@ -333,6 +338,7 @@ test('workspace activity persists read and archive state through controlled prov
     await page.goto('/workspace/notifications')
     await peer.close()
 
+    await page.getByRole('button', { name: 'My notifications', exact: true }).click()
     const personalEmail = page.getByLabel('Source connected: your email preference', {
       exact: true,
     })
@@ -340,6 +346,7 @@ test('workspace activity persists read and archive state through controlled prov
     await personalEmail.uncheck()
     await page.getByRole('button', { name: 'Save my preferences' }).click()
     await expect(page.getByText('Your preferences are saved.')).toBeVisible()
+    await page.getByRole('button', { name: 'Delivery & Slack', exact: true }).click()
     await page.getByRole('button', { name: 'Disconnect', exact: true }).click()
     await expect(page.getByText('No Slack workspace is connected.')).toBeVisible()
     const before = await sink()

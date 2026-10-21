@@ -63,7 +63,11 @@ function getDetailContent({
         id={socialSet.id}
         key={`${socialSet.id}:${socialSet.page}`}
         page={socialSet.page}
-        permissions={{ canManage: canPublish, canWrite: hasPermission(role, 'artifact:edit'), isAdmin: canManage }}
+        permissions={{
+          canManage: canPublish,
+          canWrite: hasPermission(role, 'artifact:edit'),
+          isAdmin: canManage,
+        }}
       />
     ) : (
       <SocialSetList canManage={canPublish} />
@@ -93,6 +97,8 @@ function getDetailContent({
         canDelete={hasPermission(role, 'workspace:delete')}
         canManage={canManage}
         organization={organization}
+        userId={userId}
+        key={`${userId}:${organization.id}`}
       />
     ),
     integrations: (

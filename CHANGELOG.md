@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.32.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.31.2...v2.32.0) (2026-10-21)
+
+
+### Features
+
+* **settings:** complete workspace settings usability improvements ([#249](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/249)) ([772e2fd](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/772e2fd165b4cba8d79adaf91be58aa5c47514eb))
+
+
+### Bug Fixes
+
+* **workflows:** resolve save errors and reduce page requests [skip ci] ([94d28e1](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/94d28e1ecaa231e77f063c7f45846f8364c4d3ea))
+
+## [2.31.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.31.1...v2.31.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* prefetch sidebar links on intent ([#246](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/246)) ([9545bc0](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/9545bc08e79275a0128e96131dbc6da76747a070))
+
+## [2.31.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.31.0...v2.31.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **story-sets:** resolve library and detail usability bugs ([#245](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/245)) ([594a85d](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/594a85dee991478bb079bf37d88baaa5151f2012))
+
+## [2.31.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.30.1...v2.31.0) (2026-10-21)
+
+
+### Features
+
+* **shell:** show the signed-in pages at 80% zoom ([#240](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/240)) ([a6ac622](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/a6ac622c4eb2a8039d9e8281946ec67cc67e11c6))
+
 ## [2.30.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.30.0...v2.30.1) (2026-10-21)
 
 

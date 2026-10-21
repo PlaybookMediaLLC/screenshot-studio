@@ -74,6 +74,8 @@ export function WorkspaceAuditSettings({
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [pending, setPending] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
+  const loadSequence = useRef(0)
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [retention, setRetention] = useState<z.infer<typeof retentionSchema>>({
     legalHold: false,
@@ -82,6 +84,8 @@ export function WorkspaceAuditSettings({
 
   const loadData = useCallback(async (): Promise<void> => {
     if (!canRead) return
+    const sequence = ++loadSequence.current
+    setLoading(true)
     try {
       const query = new URLSearchParams({ organizationId })
       if (debouncedSearch) {
@@ -92,11 +96,16 @@ export function WorkspaceAuditSettings({
         requestJson(`/api/enterprise/audit-retention?${query}`, retentionSchema),
         requestJson(`/api/enterprise/audit-drains?${query}`, auditDrainsSchema),
       ])
+      if (sequence !== loadSequence.current) return
+      setError((current) => (current?.scope === 'load' ? null : current))
       setDrains(auditDrains.drains)
       setLogs(auditLogs.items)
       setRetention(auditRetention)
     } catch (requestError) {
-      setError({ message: getErrorMessage(requestError), scope: 'load' })
+      if (sequence === loadSequence.current)
+        setError({ message: getErrorMessage(requestError), scope: 'load' })
+    } finally {
+      if (sequence === loadSequence.current) setLoading(false)
     }
   }, [canRead, organizationId, debouncedSearch])
 
@@ -187,7 +196,23 @@ export function WorkspaceAuditSettings({
             type="search"
             value={search}
           />
-          <WorkspaceAuditLogList logs={logs} />
+          {search ? (
+            <Button
+              className="self-start"
+              onClick={() => setSearch('')}
+              type="button"
+              variant="outline"
+            >
+              Clear search
+            </Button>
+          ) : null}
+          {loading || search.trim() !== debouncedSearch ? (
+            <p className="text-sm text-muted-foreground" role="status">
+              Loading events…
+            </p>
+          ) : error?.scope !== 'load' ? (
+            <WorkspaceAuditLogList logs={logs} search={debouncedSearch} />
+          ) : null}
         </div>
       </Section>
       {canManage ? (

@@ -1,5 +1,8 @@
 import 'server-only'
 
+import { backendSDK } from '@/lib/backend/sdk'
+import { refineTexts } from '@/lib/write/refine'
+import { allowAiAction } from './launch'
 import { hasPermission } from '@/lib/auth/permissions'
 import {
   archiveBrandKit,
@@ -44,6 +47,47 @@ export const brandKitRouter = router({
 })
 
 export const brandProfileRouter = router({
+  /** Only the guidance that members inherit; profile management stays restricted. */
+  defaults: organizationProcedure('artifact:read').query(({ ctx }) =>
+    backendSDK(ctx.access).getWritingDefaults()
+  ),
+  /** Preview unsaved voice settings without changing the profile or creating a draft. */
+  preview: organizationProcedure('brand:manage')
+    .input(brandProfileUpsertSchema)
+    .mutation(async ({ ctx, input }) => {
+      await allowAiAction(ctx.access)
+      return refineTexts(
+        ctx.access,
+        {
+          action: 'custom',
+          channel: 'linkedin',
+          limit: 3000,
+          scope: 'post',
+          prompt:
+            'Write a representative social post from these product facts. Invent no claims. Use the supplied voice and call to action.',
+          texts: [
+            [input.tagline, input.productDescription, input.ctaConventions]
+              .filter(Boolean)
+              .join('\n\n'),
+          ],
+        },
+        {
+          tone: input.tone,
+          audience: input.audience,
+          formatting: input.preferredStyles.join(', '),
+          prohibitedPhrases: input.prohibitedTerms.map((term) =>
+            typeof term === 'string' ? term : term.term
+          ),
+          endings: input.ctaConventions ? [input.ctaConventions] : [],
+          openings: [],
+          terminology: [],
+          samples: [],
+          platformGuidance: '',
+          source: 'brand',
+          socialSetName: '',
+        }
+      )
+    }),
   get: organizationProcedure('brand:manage').query(async ({ ctx }) => {
     const brandProfile = await getBrandProfile(ctx.access)
     return { brandProfile }

@@ -7,8 +7,8 @@ import { isTemplateDemoMedia } from '@/lib/templates/demo-media'
 /**
  * The one command behind every paste, drop, and file pick in the editor.
  *
- * Each import decides its target from the store at the moment it runs, never
- * later, so two quick pastes cannot both see an empty canvas, and nothing else
+ * Each import decides its target from the store after validation, immediately
+ * before writing, so two quick pastes cannot both see an empty canvas, and nothing else
  * may also handle the same event: callers mark their drop roots
  * `data-local-dropzone` and stop the event once this has run.
  */
@@ -39,6 +39,34 @@ export function validateImageFile(file: { size: number; type: string }): string 
   return null
 }
 
+/** Check the bytes and decode before a local image can become part of a design. */
+export async function validateImageContents(file: File): Promise<string | null> {
+  const error = validateImageFile(file)
+  if (error) return error
+  try {
+    const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer())
+    const matches = (signature: number[], offset = 0) =>
+      signature.every((byte, index) => bytes[offset + index] === byte)
+    const valid = file.type === 'image/png'
+      ? matches([137, 80, 78, 71, 13, 10, 26, 10])
+      : file.type === 'image/jpeg'
+        ? matches([255, 216, 255])
+        : matches([82, 73, 70, 70]) && matches([87, 69, 66, 80], 8)
+    if (!valid) return `${file.name} is not a valid ${file.type} image.`
+    const url = URL.createObjectURL(file)
+    try {
+      const image = new Image()
+      image.src = url
+      await image.decode()
+    } finally {
+      URL.revokeObjectURL(url)
+    }
+    return null
+  } catch {
+    return `${file.name} could not be read as an image. Choose another file.`
+  }
+}
+
 /** Pasted and dropped layers start at this width, in stage px. */
 const LAYER_SIZE = 250
 /** Each further layer in one import is offset by this much, so none hide another. */
@@ -51,15 +79,16 @@ export type ImageImportResult = {
 }
 
 /** Import images into the editor as one undoable step. */
-export function importImages(files: readonly File[]): ImageImportResult {
+export async function importImages(files: readonly File[], asSlides = false): Promise<ImageImportResult> {
   const rejected: ImageImportResult['rejected'] = []
-  const accepted = files.filter((file) => {
-    const reason = validateImageFile(file)
+  const reasons = await Promise.all(files.map(validateImageContents))
+  const accepted = files.filter((file, index) => {
+    const reason = reasons[index]
     if (reason) rejected.push({ name: file.name, reason })
     return !reason
   })
   const state = useImageStore.getState()
-  const target = planImageImport(state)
+  const target = asSlides ? 'main' : planImageImport(state)
   if (accepted.length === 0) return { imported: 0, rejected, target }
 
   withHistoryStep(() => writeImport(target, accepted))

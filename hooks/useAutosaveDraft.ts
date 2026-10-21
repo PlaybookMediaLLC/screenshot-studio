@@ -29,6 +29,9 @@ import { trackDraftRestore } from "@/lib/projects/draft-ready";
 const AUTOSAVE_DELAY = 1000;
 // A returning editor waits for the save started by the previous mount.
 let pendingDraftSave: Promise<void> = Promise.resolve();
+// Navigation keeps the live store. Rehydrating it again would replace uploaded
+// URLs with draft data URLs and turn a clean project into an unsaved edit.
+let restoredThisPage = false;
 
 /**
  * Live session state. It is written to the draft so the persisted shape stays
@@ -118,6 +121,11 @@ export function useAutosaveDraft() {
   useEffect(() => {
     const loadDraft = async () => {
       if (hasLoadedRef.current) return;
+      if (restoredThisPage) {
+        hasLoadedRef.current = true;
+        lastSnapshotRef.current = JSON.stringify(toPersistedImageState(useImageStore.getState()));
+        return;
+      }
 
       try {
         await pendingDraftSave;
@@ -134,6 +142,7 @@ export function useAutosaveDraft() {
         if (!draft) {
           lastSnapshotRef.current = JSON.stringify(toPersistedImageState(useImageStore.getState()));
           hasLoadedRef.current = true;
+          restoredThisPage = true;
           return;
         }
 
@@ -210,6 +219,7 @@ export function useAutosaveDraft() {
         setLastSaved(new Date(draft.timestamp));
         lastSnapshotRef.current = JSON.stringify(toPersistedImageState(useImageStore.getState()));
         hasLoadedRef.current = true;
+        restoredThisPage = true;
       } catch (error) {
         console.error("Failed to load draft:", error);
         hasLoadedRef.current = true;
@@ -342,6 +352,13 @@ export function useAutosaveDraft() {
         const result = await saveDraft(imageState);
 
         if (!result.ok) {
+          if (result.reason === 'conflict') {
+            toast.error('This draft was changed in another tab', {
+              id: 'draft-conflict',
+              description: 'This tab has stopped saving locally. Export your work or save it as a project before reloading.',
+              duration: Infinity,
+            });
+          }
           // Leave lastSnapshotRef untouched so the next change retries this
           // save instead of treating the failed write as already persisted.
           console.warn("[draft] autosave failed:", result.reason, result.error);

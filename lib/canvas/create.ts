@@ -5,7 +5,7 @@ import type { AppRouter } from '@/lib/trpc/router'
 import { newCreativeSetId } from '@/lib/creative-sets/document'
 import { fetchAssetUrl } from '@/lib/design/open-design'
 import { uploadDesignSources } from '@/lib/design/upload-sources'
-import { validateImageFile } from '@/lib/editor/import-images'
+import { validateImageContents } from '@/lib/editor/import-images'
 import { canvasDocumentSchema, type ArtboardInput, type CanvasDocument } from './document'
 import type { RecipeScreenshot } from './recipes'
 
@@ -21,7 +21,7 @@ async function imageSize(url: string): Promise<{ width: number; height: number }
 
 /** A chosen file as a recipe screenshot. Saving uploads it to workspace assets. */
 export async function screenshotFromFile(file: File): Promise<RecipeScreenshot> {
-  const problem = validateImageFile(file)
+  const problem = await validateImageContents(file)
   if (problem) throw new Error(problem)
   const src = URL.createObjectURL(file)
   return { src, name: file.name.slice(0, 200) || 'Screenshot', ...(await imageSize(src)) }

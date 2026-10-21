@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.32.7](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.6...v2.32.7) (2026-10-21)
+
+
+### Bug Fixes
+
+* **editor:** resolve image imports, autosave, and slide QA regressions ([#267](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/267)) ([d8c15b7](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/d8c15b7ebda64ef45a15f71c8bf5bf3141af3844))
+
 ## [2.32.6](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.5...v2.32.6) (2026-10-21)
 
 

@@ -4,7 +4,7 @@ import { type TRPCClient, TRPCClientError } from '@trpc/client'
 import { z } from 'zod'
 import { create } from 'zustand'
 import type { DesignDocument } from '@/lib/design/document'
-import { exportDesignDocument } from '@/lib/design/export'
+import { documentFromState } from '@/lib/design/export'
 import { applyStoredDocument } from '@/lib/design/open-design'
 import {
   rememberUploadedSources,
@@ -69,7 +69,7 @@ const AUTOSAVE_DELAY_MS = 1_500
 /** Wait before retrying a save that could not reach the server. */
 const RETRY_DELAY_MS = 5_000
 /** Statuses with work only this device has; leaving warns first. */
-const UNSAVED = new Set<ProjectSaveStatus>(['unsaved', 'saving', 'offline'])
+const UNSAVED = new Set<ProjectSaveStatus>(['unsaved', 'saving', 'offline', 'error', 'conflict'])
 
 /** Editor state that is not part of the design: changing it is not an edit. */
 const SESSION_KEYS = new Set<keyof ImageState>([
@@ -88,6 +88,7 @@ const SESSION_KEYS = new Set<keyof ImageState>([
   'showGrid',
   'showRulers',
   'showTemplates',
+  'showTimeline',
 ])
 
 /** The open project, for components. */
@@ -149,11 +150,22 @@ function documentKey(document: DesignDocument): string {
  * for comparing with a stored version. Nothing is uploaded.
  */
 export function currentProjectDocument(): DesignDocument {
-  return withUploadedSources(exportDesignDocument({ keepLocalSources: true }))
+  return withUploadedSources(projectDocument(useImageStore.getState()))
+}
+
+/** Slide selection belongs to the viewing session, so saved designs start at slide one. */
+function projectDocument(state: ImageState): DesignDocument {
+  const first = state.slides[0]
+  return documentFromState(first ? {
+    ...state,
+    activeSlideId: first.id,
+    uploadedImageUrl: first.src,
+    imageName: first.name,
+  } : state, { keepLocalSources: true })
 }
 
 function editorDocument(trpcClient: Client) {
-  return uploadDesignSources(trpcClient, exportDesignDocument({ keepLocalSources: true }))
+  return uploadDesignSources(trpcClient, projectDocument(useImageStore.getState()))
 }
 
 function scheduleSave(): void {
@@ -163,7 +175,9 @@ function scheduleSave(): void {
 
 function isEdit(state: ImageState, previous: ImageState): boolean {
   for (const key of Object.keys(state) as Array<keyof ImageState>) {
-    if (state[key] !== previous[key] && !SESSION_KEYS.has(key)) return true
+    if (state[key] !== previous[key] && !SESSION_KEYS.has(key)) {
+      return documentKey(projectDocument(state)) !== documentKey(projectDocument(previous))
+    }
   }
   return false
 }
@@ -355,7 +369,8 @@ export async function openProject(
   useProjectSession.setState({ ...CLOSED, projectId, status: 'loading' })
   try {
     const project = await trpcClient.project.get.query({ projectId })
-    const recovering = owner?.projectId === projectId && owner.dirty
+    const recovering = owner?.projectId === projectId && owner.dirty &&
+      documentKey(currentProjectDocument()) !== documentKey(project.document)
     if (recovering && owner.baseRevision === project.revision) {
       adopt(trpcClient, project, null)
       useProjectSession.setState({ status: 'unsaved' })

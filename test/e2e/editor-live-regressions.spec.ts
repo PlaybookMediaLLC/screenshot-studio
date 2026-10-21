@@ -11,7 +11,7 @@ const canvas = (page: Page) => page.locator('[data-html-canvas="true"]:visible')
 const text = (page: Page) => canvas(page).locator('[data-text-overlay-id]')
 
 async function png(page: Page) {
-  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await page.getByRole('button', { name: 'Export', exact: true }).click()
   await page.getByRole('button', { name: 'PNG', exact: true }).click()
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export as PNG', exact: true }).click()

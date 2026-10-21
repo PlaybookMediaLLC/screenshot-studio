@@ -13,11 +13,7 @@ import { trackExportComplete, trackExportError, trackExportStart } from '@/lib/a
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { deliverFiles, exportStill, stillFormatSchema } from '@/lib/export/export-design'
 import {
-  DEFAULT_EXPORT_SETTINGS,
-  type ExportSettings,
   frameRateFor,
-  loadExportSettings,
-  saveExportSettings,
   withCurrentCanvas,
 } from '@/lib/export/export-settings'
 import {
@@ -32,6 +28,7 @@ import {
   type PdfCompression,
   type QualityPresetName,
 } from '@/lib/export/formats'
+import { useExportSettings } from '@/lib/export/use-export-settings'
 import { designFileName, safeBaseName } from '@/lib/export/naming'
 import { canvasTarget } from '@/lib/export/sizes'
 import {
@@ -66,22 +63,6 @@ const COMPRESSION_OPTIONS = [
 
 const isAbort = (error: unknown) =>
   isExportAborted(error) || (error instanceof Error && error.name === 'AbortError')
-
-/** Settings remembered in this browser, loaded after mount (storage is client-only). */
-function useExportSettings(): [ExportSettings, (change: Partial<ExportSettings>) => void] {
-  const [settings, setSettings] = React.useState(DEFAULT_EXPORT_SETTINGS)
-  React.useEffect(() => {
-    setSettings(loadExportSettings(window.localStorage))
-  }, [])
-  const update = React.useCallback((change: Partial<ExportSettings>) => {
-    setSettings((current) => {
-      const next = { ...current, ...change }
-      saveExportSettings(window.localStorage, next)
-      return next
-    })
-  }, [])
-  return [settings, update]
-}
 
 /** One format button in the format grid. */
 function FormatButton({

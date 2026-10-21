@@ -434,7 +434,7 @@ function VideoTrack({ width }: { width: number }) {
       >
         <div className="absolute inset-0 flex">
           {mediaItems.map((item) => {
-            const itemWidthPercent = 100 / mediaItems.length;
+            const itemWidthPercent = item.duration / durationSeconds * 100;
             return (
               <div
                 key={item.id}

@@ -3,7 +3,7 @@
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { MAX_DEVICE_MOCKUPS } from '@/lib/constants/mockups'
 import { createDeviceScreen, createMockup } from '@/lib/device-mockups/layouts'
-import { validateImageFile } from '@/lib/editor/import-images'
+import { validateImageContents } from '@/lib/editor/import-images'
 import { blobToDataUrl } from '@/lib/image-storage'
 import { type ImageState, useImageStore, withHistoryStep } from '@/lib/store'
 import { useDeviceUIStore } from '@/lib/store/device-ui'
@@ -125,8 +125,9 @@ export type AddScreensResult = { added: number; rejected: { name: string; reason
  */
 export async function addScreenshots(files: readonly File[]): Promise<AddScreensResult> {
   const rejected: AddScreensResult['rejected'] = []
-  const valid = files.filter((file) => {
-    const reason = validateImageFile(file)
+  const reasons = await Promise.all(files.map(validateImageContents))
+  const valid = files.filter((file, index) => {
+    const reason = reasons[index]
     if (reason) rejected.push({ name: file.name, reason })
     return !reason
   })
@@ -305,7 +306,7 @@ export function moveScreen(id: string, toIndex: number) {
 
 /** Show another image on a screen. Its frame refits the new image; crop resets. */
 export async function replaceScreenImage(id: string, file: File) {
-  const reason = validateImageFile(file)
+  const reason = await validateImageContents(file)
   if (reason) throw new Error(reason)
   const [src, aspect] = await Promise.all([blobToDataUrl(file), fileAspect(file)])
   const state = useImageStore.getState()

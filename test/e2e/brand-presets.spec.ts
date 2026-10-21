@@ -39,7 +39,7 @@ async function logoFile() {
 
 /** Export the design as PNG and return its decoded pixels. */
 async function exportPng(page: Page) {
-  await page.getByRole('button', { exact: true, name: 'Save' }).click()
+  await page.getByRole('button', { exact: true, name: 'Export' }).click()
   await page.getByRole('button', { exact: true, name: 'PNG' }).click()
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export as PNG' }).click()

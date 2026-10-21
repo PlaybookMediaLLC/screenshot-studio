@@ -53,7 +53,7 @@ function pngSize(png: Buffer) {
 }
 
 async function exportPng(page: Page): Promise<Buffer> {
-  await page.getByRole('button', { exact: true, name: 'Save' }).click()
+  await page.getByRole('button', { exact: true, name: 'Export' }).click()
   await page.getByRole('button', { exact: true, name: 'PNG' }).click()
   const exportButton = page.getByRole('button', { name: 'Export as PNG' })
   await expect(exportButton).toBeVisible()

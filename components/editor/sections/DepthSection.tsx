@@ -1,5 +1,8 @@
 'use client';
 
+import { validateImageContents } from '@/lib/editor/import-images';
+import { toast } from 'sonner';
+
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
 import { useEditorPanels } from '@/lib/store/editor-panels';
@@ -196,9 +199,12 @@ export function DepthSection() {
   }, [imageOverlays, textOverlays, elements, annotations, blurRegions]);
 
   // Handle file upload for custom overlay
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
+    const error = await validateImageContents(file);
+    if (error) { toast.error(error); return; }
 
     const blobUrl = URL.createObjectURL(file);
     addImageOverlay({
@@ -510,7 +516,7 @@ export function DepthSection() {
           <Input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp"
             onChange={handleFileUpload}
             className="hidden"
           />

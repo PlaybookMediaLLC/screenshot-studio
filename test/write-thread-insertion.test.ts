@@ -1,11 +1,48 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import type { Value } from '@shots/platejs-editor/platejs'
 import { createPlateEditor } from '@shots/platejs-editor/platejs/react'
-import { insertPostBreak, PostBreakPlugin, postRanges } from '@/components/drafts/thread'
+import {
+  deletePost,
+  insertPostBreak,
+  movePost,
+  PostBreakPlugin,
+  postRanges,
+  splitPostAtCaret,
+} from '@/components/drafts/thread'
 import { postBreak } from '@/lib/write/versions'
 import { POST_BREAK } from '@/lib/content-drafts/serialize'
 
 const p = (text = '') => ({ type: 'p', children: [{ text }] })
+
+test('moving then deleting a post preserves the other post and its identity', () => {
+  const first = postBreak()
+  const second = postBreak()
+  const editor = createPlateEditor({
+    plugins: [PostBreakPlugin],
+    value: [first, p('A'), second, p('B')] as Value,
+  })
+  movePost(editor, 2, 1)
+  assert.equal(editor.children[0].id, second.id)
+  assert.equal(editor.api.string([1]), 'B')
+  assert.equal(editor.children[2].id, first.id)
+  deletePost(editor, 2)
+  assert.equal(editor.children[0].id, second.id)
+  assert.equal(editor.api.string([1]), 'B')
+  assert.equal(postRanges(editor.children).length, 1)
+})
+
+test('splitting at a word boundary removes the new post’s leading space', () => {
+  const editor = createPlateEditor({
+    plugins: [PostBreakPlugin],
+    value: [postBreak(), p('First second')],
+  })
+  editor.tf.select({ path: [1, 0], offset: 5 })
+  splitPostAtCaret(editor)
+  assert.equal(editor.api.string([1]), 'First')
+  assert.equal(editor.api.string([3]), 'second')
+  assert.deepEqual(editor.selection?.anchor, { path: [3, 0], offset: 0 })
+})
 
 for (const selected of [null, [0, 0], [1, 0]]) {
   test(`add post keeps both headers and focuses the new paragraph from ${JSON.stringify(selected)}`, () => {

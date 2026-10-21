@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { applyDesignChanges, applyDesignDocument, applyDesignLayout } from '@/lib/design/apply'
-import { patchDesignDocument } from '@/lib/design/document'
+import { parseDesignDocument, patchDesignDocument } from '@/lib/design/document'
+import { isEmptyProject } from '@/lib/projects/empty'
+import { artboardFromProject } from '@/lib/canvas/import'
 import { exportDesignDocument } from '@/lib/design/export'
 import { getDesignTemplate } from '@/lib/design/templates'
 import { useImageStore } from '@/lib/store'
@@ -13,6 +15,24 @@ const close = (actual: number | undefined, expected: number, label: string) =>
     Math.abs((actual ?? Number.NaN) - expected) < 0.01,
     `${label}: ${actual} != ${expected}`
   )
+
+test('empty project rendering and canvas import never inherit a previous local image', async () => {
+  useImageStore.getState().setUploadedImageUrl('blob:private-local-screenshot', 'Private')
+  const empty = parseDesignDocument({ version: 2, image: { src: null } })
+  assert.equal(isEmptyProject(empty), true)
+  const board = await artboardFromProject(
+    { id: 'project', name: 'Empty', revision: 1, document: empty },
+    { x: 0, y: 0 }
+  )
+  assert.equal(board.document.image.src, null)
+  applyDesignDocument(board.document, identity)
+  assert.equal(useImageStore.getState().uploadedImageUrl, null)
+  assert.equal(exportDesignDocument({ keepLocalSources: true }).image.src, null)
+  const textOnly = patchDesignDocument(empty, {
+    texts: [{ text: 'Hello', fontSize: 0.04, position: { x: 50, y: 50 } }],
+  })
+  assert.equal(isEmptyProject(textOnly), false, 'text-only projects still get a preview')
+})
 
 function loadDesign() {
   useImageStore.setState({ canvasDimensions: { ...canvas, framedH: 800, framedW: 1400 } })

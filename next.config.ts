@@ -35,6 +35,10 @@ const nextConfig: NextConfig = {
   // Only applied to editor routes — applying globally breaks YouTube embeds on landing page
   async headers() {
     return [
+      {
+        source: '/api/:path*',
+        headers: [{ key: 'Cache-Control', value: 'private, no-store' }],
+      },
       // Security and SEO headers for all pages
       {
         source: '/(.*)',

@@ -15,10 +15,10 @@ const secondaryCtaClassName =
 
 export default function Error({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
   useEffect(() => {
     console.error(error);
@@ -53,7 +53,7 @@ export default function Error({
         ) : null}
 
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-          <Button variant="custom" size={null} type="button" onClick={() => reset()} className={primaryCtaClassName}>
+          <Button variant="custom" size={null} type="button" onClick={() => retry()} className={primaryCtaClassName}>
             Try again
           </Button>
           <Link href="/editor" className={secondaryCtaClassName}>

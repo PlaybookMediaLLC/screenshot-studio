@@ -1,7 +1,8 @@
 'use client'
 
+import { useWriteRouter } from '@/components/write/write-context'
+
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import type { SocialAccountHealth } from 'screenshot-studio-backend-sdk'
 import { Button } from '@/components/ui/button'
 import {
@@ -52,7 +53,7 @@ export function SetDot({ color, className }: { color: string; className?: string
  * is used. Sets are created and edited in workspace settings.
  */
 export function SocialSetSwitcher() {
-  const router = useRouter()
+  const router = useWriteRouter()
   const { activeId, canManageSets, data, setQuery } = useWrite()
   const active = data.activeSet
   return (

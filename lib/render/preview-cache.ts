@@ -37,14 +37,14 @@ export function cachedPreview(key: string): string | null {
 }
 
 /**
- * Render (or reuse) a preview and resolve to an object URL. A render whose
- * caller aborted is not cached, so the next request renders again.
+ * Render (or reuse) a preview and resolve to an object URL. Shared work outlives
+ * individual subscribers, so unmounting one card cannot cancel another's render.
  */
 export function renderPreview(
   key: string,
   document: DesignDocument,
   output: StageOutput,
-  options: { signal?: AbortSignal; time?: number } = {}
+  options: { time?: number } = {}
 ): Promise<string> {
   const existing = entries.get(key)
   if (existing) {
@@ -59,7 +59,7 @@ export function renderPreview(
       return entry.url
     },
     (error: unknown) => {
-      entries.delete(key)
+      if (entries.get(key) === entry) entries.delete(key)
       throw error
     }
   )

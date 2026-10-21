@@ -342,11 +342,8 @@ export function applyDesignDocument(
   history: DesignHistoryMode = 'clear'
 ) {
   inHistory(history, () => {
-    const mainSrc = document.image.src ? resolve(document.image.src) : null
-    const keepImage = !mainSrc ? useImageStore.getState().uploadedImageUrl : null
     useImageStore.getState().clearImage()
     useImageStore.setState({ frameChrome: { ...DEFAULT_FRAME_CHROME } })
-    if (keepImage) useImageStore.getState().setUploadedImageUrl(keepImage, 'design')
     writeSections(document, resolve)
   })
 }

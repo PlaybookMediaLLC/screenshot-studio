@@ -13,7 +13,7 @@ import { listPlannedContentDrafts } from '@/lib/tenant/write'
 import { requireDraftsPageAccess } from '../../drafts/page-access'
 import { loadWrite } from '../write-data'
 
-export const metadata: Metadata = { title: 'Plan' }
+export const metadata: Metadata = { title: 'Calendar' }
 
 type PlanPageProps = {
   params: Promise<{ locale: string }>
@@ -56,6 +56,8 @@ export default async function WritePlanPage({ params, searchParams }: PlanPagePr
         data={data}
       >
         <DraftCalendar
+          canPlan={hasPermission(access.role, 'artifact:edit')}
+          postingSlots={data.activeSet?.postingSlots ?? []}
           canMove={hasPermission(access.role, 'publish:manage')}
           planned={planned.flatMap((draft) =>
             draft.plannedFor

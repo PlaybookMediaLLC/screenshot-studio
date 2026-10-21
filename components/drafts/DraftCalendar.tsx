@@ -7,6 +7,8 @@ import { toast } from 'sonner'
 import { type CalendarPostWire, draftsApi } from '@/lib/content-drafts/client'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { addDays, zonedDayKey, zonedInstant, zonedParts } from '@/lib/settings/zoned-time'
+import { availableDaySlots } from '@/lib/write/calendar'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ChannelIcon } from './channel-meta'
 
@@ -31,6 +33,8 @@ export type PlannedDraft = { at: string; caption: string; draftId: string; title
  */
 export function DraftCalendar({
   canMove,
+  canPlan = false,
+  postingSlots = [],
   planned = [],
   posts,
   socialSetId,
@@ -38,6 +42,8 @@ export function DraftCalendar({
   weekStart,
 }: {
   canMove: boolean
+  canPlan?: boolean
+  postingSlots?: { weekday: number; time: string }[]
   /** Drafts placed on a day without scheduling. */
   planned?: PlannedDraft[]
   posts: CalendarPostWire[]
@@ -49,6 +55,7 @@ export function DraftCalendar({
   weekStart: string
 }) {
   const router = useRouter()
+  const [creating, setCreating] = React.useState(false)
   const [over, setOver] = React.useState<string | null>(null)
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index))
   const weekHref = (weeks: number | null) => {
@@ -76,10 +83,22 @@ export function DraftCalendar({
       toast.error(error instanceof Error ? error.message : 'The post could not move.')
     }
   }
+  const plan = async (day: string, time?: string) => {
+    if (creating) return
+    setCreating(true)
+    try {
+      const draft = await draftsApi.create({ socialSetId })
+      const query = new URLSearchParams({ panel: 'schedule', day, ...(time ? { time } : {}), ...(socialSetId ? { set: socialSetId } : {}) })
+      router.push(`/write/${draft.id}?${query}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'The draft could not be created.')
+      setCreating(false)
+    }
+  }
   const today = zonedDayKey(new Date(), timeZone)
   return (
     <div className="flex h-full flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-foreground/[0.06] px-4">
+      <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-3 py-2 border-b border-foreground/[0.06] px-4">
         <h2 className="text-sm font-medium text-foreground">
           Week of {readableDay(weekStart, { day: 'numeric', month: 'long' })}
         </h2>
@@ -110,7 +129,7 @@ export function DraftCalendar({
             <section
               aria-label={readableDay(day, { day: 'numeric', month: 'long', weekday: 'long', year: 'numeric' })}
               className={cn(
-                'flex min-h-64 flex-col gap-2 p-2',
+                'flex min-h-64 min-w-0 flex-col gap-2 p-2',
                 over === key && 'bg-sky-400/[0.06]'
               )}
               data-testid={`calendar-day-${Number(day.slice(8))}`}
@@ -139,6 +158,14 @@ export function DraftCalendar({
               >
                 {readableDay(day, { day: 'numeric', weekday: 'short' })}
               </p>
+              {canPlan && day >= today ? (
+                <div className="grid gap-1">
+                  <Button className="h-auto min-h-8 whitespace-normal px-1 text-xs" disabled={creating} size="sm" variant="outline" onClick={() => void plan(day)}>Plan a post</Button>
+                  {availableDaySlots(day, timeZone, postingSlots, [...posts.map((post) => post.scheduledFor), ...planned.map((item) => item.at)]).map((time) => (
+                    <Button className="h-auto min-h-8 whitespace-normal px-1 text-xs" key={time} disabled={creating} size="sm" variant="ghost" onClick={() => void plan(day, time)}>Available · {time}</Button>
+                  ))}
+                </div>
+              ) : null}
               {dayPlanned.map((item) => (
                 <Link
                   className="block rounded-lg border border-dashed border-foreground/20 p-2 text-xs"

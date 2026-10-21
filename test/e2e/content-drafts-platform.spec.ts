@@ -310,7 +310,7 @@ test('writing tools: history, per-post tools, channel text, AI, hashtags and pla
     await draftEditor(page).getByText('Second post', { exact: true }).selectText()
     await page.waitForTimeout(300)
     await page.keyboard.type('A longer note for LinkedIn readers.')
-    await expect(page.getByTestId('platform-tab-linkedin')).toContainText('own text')
+    await expect(page.getByTestId('platform-tab-linkedin')).toContainText('Own text')
     await inPreview(page, async () => {
       await expect(await previewOf(page, 'linkedin')).toContainText(
         'A longer note for LinkedIn readers.'
@@ -320,7 +320,7 @@ test('writing tools: history, per-post tools, channel text, AI, hashtags and pla
 
     // AI: the scripted model answers, Accept puts the answer in, and Undo takes it back.
     await page.getByTestId('platform-tab-x').click()
-    await page.getByRole('button', { name: 'Refine', exact: true }).click()
+    await page.getByRole('button', { name: 'Rewrite', exact: true }).click()
     await page
       .getByTestId('refine-menu')
       .getByRole('button', { name: 'Rewrite as a thread start' })

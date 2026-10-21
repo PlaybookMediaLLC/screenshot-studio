@@ -74,7 +74,7 @@ export default function CommandPalette({
                 value={`draft ${draft.id} ${draft.title} ${draft.plainText}`}
               >
                 <span className="truncate">{draft.title}</span>
-                <span className="ml-2 truncate text-xs text-neutral-500">
+                <span className="ml-2 truncate text-xs text-neutral-400">
                   {draft.plainText.slice(0, 60)}
                 </span>
               </CommandItem>
@@ -104,7 +104,7 @@ export default function CommandPalette({
             <CommandShortcut>{keys.label({ key: '1', mod: true, shift: true })}</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={() => go(() => router.push('/write/plan'))}>
-            Go to Plan
+            Go to Calendar
             <CommandShortcut>{keys.label({ key: '2', mod: true, shift: true })}</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={() => go(() => setQuery({ tab: 'queue' }))}>
@@ -128,7 +128,7 @@ export default function CommandPalette({
             ))}
           </CommandGroup>
         ) : null}
-        <CommandGroup heading="Social sets">
+        <CommandGroup heading="Brands">
           {data.sets.map((set) => (
             <CommandItem
               key={set.id}
@@ -141,7 +141,7 @@ export default function CommandPalette({
               value={`set ${set.id} ${set.name}`}
             >
               {set.name}
-              <span className="ml-2 text-xs text-neutral-500">
+              <span className="ml-2 text-xs text-neutral-400">
                 {set.accounts
                   .map((connection) => connection.handle ?? connection.platform)
                   .join(' · ')}

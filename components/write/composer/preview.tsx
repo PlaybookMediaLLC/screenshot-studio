@@ -57,7 +57,7 @@ export function PreviewPanel({
   const item = items.find((entry) => entry.account.channel === channel) ?? items[0]
   const size = DEVICES.find((entry) => entry.label === device)
   if (!item) {
-    return <p className="p-4 text-sm text-neutral-500">Turn on a platform to preview it.</p>
+    return <p className="p-4 text-sm text-neutral-400">Turn on a platform to preview it.</p>
   }
   return (
     <div className="flex flex-col gap-3 p-4" data-testid="preview-panel">
@@ -260,7 +260,7 @@ function Poll({
           {option || `Option ${index + 1}`}
         </span>
       ))}
-      <p className="text-[11px] text-neutral-500">
+      <p className="text-[11px] text-neutral-400">
         {poll.durationMinutes >= 1_440
           ? `${poll.durationMinutes / 1_440} day${poll.durationMinutes === 1_440 ? '' : 's'}`
           : `${poll.durationMinutes} minutes`}{' '}
@@ -277,11 +277,11 @@ function TargetCard({ target }: { target: DraftTarget }) {
       className="mt-2 rounded-xl border border-white/10 p-3 text-sm text-neutral-300"
       data-testid="preview-target"
     >
-      <p className="text-[11px] text-neutral-500">{target.author ?? target.url}</p>
+      <p className="text-[11px] text-neutral-400">{target.author ?? target.url}</p>
       {target.text ? (
         <p className="mt-1 line-clamp-3">{target.text}</p>
       ) : (
-        <p className="mt-1 text-neutral-500">Quoted post</p>
+        <p className="mt-1 text-neutral-400">Quoted post</p>
       )}
     </div>
   )
@@ -295,7 +295,7 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
   return (
     <div className="p-3">
       {target?.kind === 'reply' ? (
-        <p className="mb-2 text-xs text-neutral-500">Replying to {target.author ?? target.url}</p>
+        <p className="mb-2 text-xs text-neutral-400">Replying to {target.author ?? target.url}</p>
       ) : null}
       {(posts.length > 0
         ? posts
@@ -314,9 +314,9 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
                   {account.displayName ?? account.handle ?? CHANNEL_META[channel].label}
                 </span>
                 {account.handle ? (
-                  <span className="ml-1 text-neutral-500">@{account.handle}</span>
+                  <span className="ml-1 text-neutral-400">@{account.handle}</span>
                 ) : null}
-                <span className="ml-1 text-neutral-500">· now</span>
+                <span className="ml-1 text-neutral-400">· now</span>
               </p>
               <Truncated channel={channel} text={post.caption} />
               <Media assetIds={post.assetIds} channel={channel} />
@@ -325,12 +325,12 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
               ) : null}
               {index === 0 && target?.kind === 'quote' ? <TargetCard target={target} /> : null}
               {settings.quoteFirstPost ? (
-                <div className="mt-2 rounded-xl border border-dashed border-white/15 p-2 text-xs text-neutral-500">
+                <div className="mt-2 rounded-xl border border-dashed border-white/15 p-2 text-xs text-neutral-400">
                   Quotes the first post once it is live
                 </div>
               ) : null}
               {settings.disclosures?.madeWithAi || settings.disclosures?.paidPartnership ? (
-                <p className="mt-1 text-[11px] text-neutral-500">
+                <p className="mt-1 text-[11px] text-neutral-400">
                   {[
                     settings.disclosures.paidPartnership ? 'Paid partnership' : '',
                     settings.disclosures.madeWithAi ? 'Made with AI' : '',
@@ -383,7 +383,7 @@ function LinkedInPost({ item, target }: { item: PreviewItem; target: DraftTarget
       {target?.kind === 'quote' ? <TargetCard target={target} /> : null}
       {options?.firstComment ? (
         <div className="mt-3 rounded-lg bg-white/5 p-2 text-xs text-neutral-300">
-          <span className="text-neutral-500">First comment: </span>
+          <span className="text-neutral-400">First comment: </span>
           {options.firstComment}
         </div>
       ) : null}

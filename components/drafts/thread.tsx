@@ -128,10 +128,9 @@ export function splitPostAtCaret(editor: PlateEditor): void {
 /** Start a new post after the post holding the caret's block, and move into it. */
 export function insertPostBreak(editor: PlateEditor): void {
   const entry = editor.api.block({ highest: true })
-  const at = entry ? entry[1][0] + 1 : editor.children.length
-  editor.tf.insertNodes([postBreak(), { children: [{ text: '' }], type: 'p' }], { at: [at] })
-  editor.tf.select([at + 1], { edge: 'start' })
-  editor.tf.focus()
+  const ranges = postRanges(editor.children)
+  const current = entry ? ranges.findIndex(([start, end]) => entry[1][0] >= start && entry[1][0] < end) : -1
+  insertPostAfter(editor, current < 0 ? ranges.length : current + 1)
 }
 
 /** Add an empty post right after post `number`. */
@@ -194,8 +193,25 @@ export const PostBreakPlugin = createPlatePlugin({
       priority: 1000,
     },
   },
-}).overrideEditor(({ editor, tf: { deleteBackward, normalizeNode } }) => ({
+}).overrideEditor(({ editor, tf: { deleteBackward, insertText, normalizeNode } }) => ({
   transforms: {
+    insertText(text, options) {
+      if (options?.at) return insertText(text, options)
+      const selection = editor.selection
+      if (selection && !editor.api.isCollapsed() &&
+        [selection.anchor, selection.focus].some((point) => editor.children[point.path[0]]?.type === POST_BREAK)) {
+        editor.tf.deleteFragment()
+      }
+      const index = editor.selection?.anchor.path[0]
+      // Replacing a selection that starts at a header must land in editable text.
+      if (index !== undefined && editor.children[index]?.type === POST_BREAK) {
+        if (!editor.children[index + 1] || editor.children[index + 1].type === POST_BREAK) {
+          editor.tf.insertNodes({ type: 'p', children: [{ text: '' }] }, { at: [index + 1] })
+        }
+        editor.tf.select(editor.api.start([index + 1]))
+      }
+      insertText(text, options)
+    },
     deleteBackward(unit) {
       const selection = editor.selection
       const entry = editor.api.block({ highest: true })
@@ -262,7 +278,7 @@ function PostHead({ number, settings }: { number: number; settings: PostSettings
   const count = useEditorSelector((current) => postRanges(current.children).length, [])
   const [over, setOver] = React.useState(false)
   const button =
-    'flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-30'
+    'flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-30'
   return (
     <div
       className={cn('group/post flex items-start gap-2 rounded-lg', over && 'bg-sky-400/[0.06]')}
@@ -283,7 +299,7 @@ function PostHead({ number, settings }: { number: number; settings: PostSettings
     >
       <div className="min-w-0 flex-1">{header(number)}</div>
       {readOnly ? null : (
-        <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover/post:opacity-100 focus-within:opacity-100">
+        <div className="flex shrink-0 items-center flex-wrap gap-0.5">
           {tools.settings?.({ number, settings })}
           <Button
             variant="custom"

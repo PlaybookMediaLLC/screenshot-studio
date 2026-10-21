@@ -176,7 +176,7 @@ function Row({
     >
       <span className="min-w-0 flex-1">
         <span className="text-neutral-200">{label}</span>
-        <span className="block text-neutral-500">{detail}</span>
+        <span className="block text-neutral-400">{detail}</span>
       </span>
       {on && onEdit ? (
         <Button
@@ -373,7 +373,7 @@ function RetweetDialog({
                     Remove
                   </Button>
                 </div>
-                <p className="text-xs text-neutral-500" data-testid="retweet-projection">
+                <p className="text-xs text-neutral-400" data-testid="retweet-projection">
                   {at
                     ? `If published ${publishAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone })}: reposts ${at.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone })}`
                     : 'Set a time between one minute and 30 days after publishing.'}
@@ -511,7 +511,7 @@ function PlugDialog({
             className="rounded-lg border border-white/[0.06] p-3 text-sm"
             data-testid="plug-preview"
           >
-            <p className="text-xs text-neutral-500">Reply preview — not published</p>
+            <p className="text-xs text-neutral-400">Reply preview — not published</p>
             <p className="mt-1 whitespace-pre-wrap text-neutral-200">{text}</p>
           </div>
         ) : null}

@@ -185,7 +185,7 @@ export function MentionPicker({
             Find
           </Button>
         </form>
-        <p className="text-[11px] text-neutral-500">
+        <p className="text-[11px] text-neutral-400">
           {channel === 'x'
             ? 'Looked up on X with this set’s account, by exact username.'
             : 'Company pages only: LinkedIn does not let this connection look people up. Elsewhere the mention is written as the plain name.'}
@@ -216,7 +216,7 @@ export function MentionPicker({
                   ) : null}
                   <span className="min-w-0 flex-1 truncate">
                     {mention.label}
-                    <span className="ml-1 text-neutral-500">
+                    <span className="ml-1 text-neutral-400">
                       {mention.handle
                         ? `@${mention.handle}`
                         : mention.kind === 'organization'

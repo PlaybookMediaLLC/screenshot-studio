@@ -33,7 +33,7 @@ export type SetPermissions = {
 }
 
 /**
- * One social set's settings (RFC 043). Each page has its own address, so the
+ * One brand's settings (RFC 043). Each page has its own address, so the
  * set is chosen by its ID in the URL, independent of the page shown.
  */
 export function SocialSetSettings({
@@ -52,16 +52,16 @@ export function SocialSetSettings({
   }, [connected])
 
   const list = SETTINGS_SECTIONS.find((section) => section.id === 'social-sets')!
-  if (query.isPending) return <p className="text-sm text-muted-foreground">Loading social set…</p>
+  if (query.isPending) return <p className="text-sm text-muted-foreground">Loading brand…</p>
   if (query.isError) {
     const missing = query.error instanceof SettingsRequestError && query.error.status === 404
     return (
       <div className="grid gap-3" role="alert">
         <p className="text-sm text-red-700 dark:text-red-300">
-          {missing ? 'This social set does not exist, or it is private to someone else.' : settingsErrorMessage(query.error)}
+          {missing ? 'This brand does not exist, or it is private to someone else.' : settingsErrorMessage(query.error)}
         </p>
         <Link className="text-sm underline" href={settingsHref(list)}>
-          Back to social sets
+          Back to brands
         </Link>
       </div>
     )
@@ -71,7 +71,7 @@ export function SocialSetSettings({
     <div className="grid gap-6">
       <div className="grid gap-3">
         <Link className="w-fit text-sm text-muted-foreground hover:text-foreground" href={settingsHref(list)}>
-          ← All social sets
+          ← All brands
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <span aria-hidden className="size-4 rounded-full" style={{ backgroundColor: set.color }} />
@@ -79,7 +79,7 @@ export function SocialSetSettings({
           <Pill tone={set.visibility === 'PRIVATE' ? 'purple' : 'gray'}>
             {set.visibility === 'PRIVATE' ? 'Private to you' : 'Shared with workspace'}
           </Pill>
-          <DeveloperId id={set.id} label="Social set" />
+          <DeveloperId id={set.id} label="Brand" />
         </div>
         <nav aria-label={`${set.name} settings`} className="flex flex-wrap gap-1 border-b border-border">
           {SOCIAL_SET_PAGES.map((item) => (

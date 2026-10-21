@@ -72,18 +72,18 @@ export function TagManager({ onClose, setId }: { onClose: () => void; setId: str
         <DialogHeader>
           <DialogTitle>Tags in {setName_}</DialogTitle>
           <DialogDescription>
-            Each social set has its own tags. Deleting a tag takes it off its drafts.
+            Each brand has its own tags. Deleting a tag takes it off its drafts.
           </DialogDescription>
         </DialogHeader>
         <ul className="flex max-h-56 flex-col gap-1 overflow-y-auto">
-          {tags.length === 0 ? <li className="text-xs text-neutral-500">No tags yet.</li> : null}
+          {tags.length === 0 ? <li className="text-xs text-neutral-400">No tags yet.</li> : null}
           {tags.map((tag) => (
             <li className="flex items-center gap-2" key={tag.id}>
               <TagChip tag={tag} />
               <span className="flex-1" />
               <Button
                 aria-label={`Delete the ${tag.name} tag`}
-                className="text-xs text-neutral-500 hover:text-red-300"
+                className="text-xs text-neutral-400 hover:text-red-300"
                 disabled={busy}
                 onClick={() =>
                   void run(async () => {
@@ -128,7 +128,7 @@ export function TagManager({ onClose, setId }: { onClose: () => void; setId: str
               </Button>
             ))}
           </div>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-neutral-400">
             Preview: <TagChip tag={{ color, name: name.trim() || 'Tag' }} />
           </p>
         </fieldset>

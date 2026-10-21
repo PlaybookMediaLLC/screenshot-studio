@@ -39,7 +39,7 @@ export const SHORTCUT_REFERENCE: {
       { key: 'k', label: 'Search and commands', mod: true },
       { key: '/', label: 'Show or hide the drafts list', mod: true },
       { key: '1', label: 'Write', mod: true, shift: true },
-      { key: '2', label: 'Plan (calendar)', mod: true, shift: true },
+      { key: '2', label: 'Calendar', mod: true, shift: true },
       { key: '.', label: 'New draft', mod: true },
       { alt: true, key: 'arrowdown', label: 'Next draft', mod: true },
       { alt: true, key: 'arrowup', label: 'Previous draft', mod: true },
@@ -49,7 +49,7 @@ export const SHORTCUT_REFERENCE: {
   {
     group: 'In a draft',
     items: [
-      { key: '\\', label: 'Draft properties', mod: true },
+      { key: '\\', label: 'Draft details', mod: true },
       { key: 'p', label: 'Pin or unpin', mod: true, shift: true },
       { alt: true, key: 's', label: 'Share', mod: true },
       {
@@ -73,7 +73,7 @@ export const SHORTCUT_REFERENCE: {
       { key: 'h', label: 'Display mode: compact or comfortable', mod: true, shift: true },
       { key: 'm', label: 'Comment on the selection', mod: true, shift: true },
       { key: 'j', label: 'Writing assistant', mod: true },
-      { key: 'e', label: 'Refine with AI', mod: true, shift: true },
+      { key: 'e', label: 'Rewrite with AI', mod: true, shift: true },
       { key: 'v', label: 'Preview', mod: true, shift: true },
     ],
   },
@@ -167,7 +167,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
     },
     {
       key: '@',
-      label: 'Plan',
+      label: 'Calendar',
       mod: true,
       run: () => router.push('/write/plan'),
       shift: true,
@@ -175,7 +175,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
     },
     {
       key: '2',
-      label: 'Plan',
+      label: 'Calendar',
       mod: true,
       run: () => router.push('/write/plan'),
       shift: true,
@@ -258,7 +258,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
         <SheetContent className="w-full p-0 sm:max-w-sm" side="left">
           <SheetHeader className="sr-only">
             <SheetTitle>Drafts</SheetTitle>
-            <SheetDescription>The drafts of this social set.</SheetDescription>
+            <SheetDescription>The drafts of this brand.</SheetDescription>
           </SheetHeader>
           <WriteRail key={data.activeSet?.id ?? 'none'} />
         </SheetContent>
@@ -289,7 +289,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
           </DialogHeader>
           {SHORTCUT_REFERENCE.map((group) => (
             <section key={group.group}>
-              <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-400">
                 {group.group}
               </h3>
               <dl

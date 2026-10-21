@@ -49,8 +49,6 @@ export function BlockContextMenu({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      aria-expanded={openId === BLOCK_CONTEXT_MENU_ID}
-      aria-haspopup="menu"
       className="group/context-menu w-full"
       data-plate-selectable
       data-state={openId === BLOCK_CONTEXT_MENU_ID ? "open" : "closed"}
@@ -73,8 +71,6 @@ export function BlockContextMenu({ children }: { children: React.ReactNode }) {
         const rect = event.currentTarget.getBoundingClientRect();
         openContextMenu(rect.left + rect.width / 2, rect.top + rect.height / 2);
       }}
-      role="button"
-      tabIndex={0}
     >
       {children}
 
@@ -97,6 +93,7 @@ export function BlockActionButton({
 
   return (
     <Button
+      aria-label="Block actions"
       className={cn(
         defaultStyles &&
           "absolute top-1 right-1 opacity-0 transition-opacity group-hover:opacity-100",

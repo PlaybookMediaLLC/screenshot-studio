@@ -129,7 +129,7 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
 
     // The image goes to the workspace's storage through the signed upload.
     await page
-      .getByLabel('Insert image')
+      .getByLabel('Insert media')
       .setInputFiles({ buffer: png, mimeType: 'image/png', name: 'launch.png' })
     const image = draftEditor(page).locator('img[src*="/api/v1/assets/"]')
     await expect(image).toBeVisible({ timeout: 30_000 })
@@ -279,20 +279,23 @@ test('a table, a math block and a footnote persist, and the blocks post as image
 
     // Blocks insert after the block holding the caret.
     await caretAtEndOf(page, draftEditor(page).getByText('Pricing', { exact: true }))
-    await page.getByRole('button', { name: 'Math', exact: true }).click()
+    await page.getByRole('button', { name: 'Insert', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Math', exact: true }).click()
     await page.getByPlaceholder(/f\(x\) =/).fill('E = mc^2')
     await page.getByRole('button', { name: 'Done' }).click()
     await expect(draftEditor(page).locator('.katex').first()).toBeVisible()
 
     await caretAtEndOf(page, draftEditor(page).getByText('Pricing', { exact: true }))
-    await page.getByRole('button', { name: 'Table', exact: true }).click()
+    await page.getByRole('button', { name: 'Insert', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Table', exact: true }).click()
     const cells = draftEditor(page).locator('td')
     await typeInto(page, cells.nth(0), 'Plan')
     await typeInto(page, cells.nth(1), 'Price')
 
     // The footnote marker goes at the caret, at the end of the word.
     await caretAtEndOf(page, draftEditor(page).getByText('Pricing', { exact: true }))
-    await page.getByRole('button', { name: 'Footnote', exact: true }).click()
+    await page.getByRole('button', { name: 'Insert', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Footnote', exact: true }).click()
     await page.keyboard.type('Prices exclude tax.')
     await expectSaved(page)
 

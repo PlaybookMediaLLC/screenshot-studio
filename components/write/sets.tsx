@@ -47,7 +47,7 @@ export function SetDot({ color, className }: { color: string; className?: string
 }
 
 /**
- * The social set the library and composer write as (RFC 043). Sets with the
+ * The brand the library and composer write as (RFC 043). Sets with the
  * same name stay apart: each shows its accounts' handles, and the id is what
  * is used. Sets are created and edited in workspace settings.
  */
@@ -59,7 +59,7 @@ export function SocialSetSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label={`Social set: ${active?.name ?? 'none'}`}
+          aria-label={`Brand: ${active?.name ?? 'none'}`}
           className="flex h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-left text-sm text-white hover:bg-white/[0.05]"
           data-testid="social-set-switcher"
           size={null}
@@ -68,7 +68,7 @@ export function SocialSetSwitcher() {
         >
           {active ? <SetDot color={active.color} /> : null}
           <span className="min-w-0 flex-1 truncate font-medium">
-            {active?.name ?? 'No social set'}
+            {active?.name ?? 'No brand'}
           </span>
           {active ? <SetAccounts set={active} /> : null}
           {active?.needsAttention ? (
@@ -76,13 +76,13 @@ export function SocialSetSwitcher() {
               ⚠
             </span>
           ) : null}
-          <span aria-hidden className="text-neutral-500">
+          <span aria-hidden className="text-neutral-400">
             ▾
           </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80">
-        <DropdownMenuLabel>Social sets</DropdownMenuLabel>
+        <DropdownMenuLabel>Brands</DropdownMenuLabel>
         {data.sets.map((set) => (
           <DropdownMenuItem
             className="flex items-center gap-2"
@@ -103,7 +103,7 @@ export function SocialSetSwitcher() {
             <SetDot color={set.color} />
             <span className="min-w-0 flex-1">
               <span className="block truncate">{set.name}</span>
-              <span className="block truncate text-[11px] text-neutral-500">
+              <span className="block truncate text-[11px] text-neutral-400">
                 {set.accounts.length === 0
                   ? 'No accounts yet'
                   : set.accounts
@@ -112,7 +112,7 @@ export function SocialSetSwitcher() {
               </span>
             </span>
             {set.visibility === 'PRIVATE' ? (
-              <span className="text-[10px] text-neutral-500" title="Only its owner sees it">
+              <span className="text-[10px] text-neutral-400" title="Only its owner sees it">
                 private
               </span>
             ) : null}
@@ -128,7 +128,7 @@ export function SocialSetSwitcher() {
               </DropdownMenuItem>
             ) : null}
             <DropdownMenuItem asChild>
-              <Link href="/workspace/social-sets">New social set…</Link>
+              <Link href="/workspace/social-sets">New brand…</Link>
             </DropdownMenuItem>
           </>
         ) : null}

@@ -43,7 +43,7 @@ function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRe
             void runName(() => save({ name: trimmed }))
           }}
         >
-          <Input aria-label="Social set name" className="w-64" disabled={!canManage} maxLength={80} onChange={(event) => setName(event.target.value)} value={name} />
+          <Input aria-label="Brand name" className="w-64" disabled={!canManage} maxLength={80} onChange={(event) => setName(event.target.value)} value={name} />
           <Button disabled={!canManage || trimmed.length === 0 || trimmed === set.name} type="submit" variant="outline">
             Save name
           </Button>
@@ -52,7 +52,7 @@ function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRe
       </Row>
       <Row label="Colour">
         <fieldset className="flex flex-wrap items-center gap-2" disabled={!canManage}>
-          <legend className="sr-only">Social set colour</legend>
+          <legend className="sr-only">Brand colour</legend>
           {SET_COLORS.map((option) => (
             <label className="cursor-pointer" key={option.value} title={option.label}>
               <input
@@ -240,10 +240,10 @@ function DangerZone({ permissions, set }: { permissions: SetPermissions; set: So
     <Group className="ring-red-500/30">
       <Row
         description="Its accounts are disabled so nothing more publishes through them, its drafts are archived, and its published posts keep their history. A set with queued or publishing posts cannot be deleted; cancel them first."
-        label="Delete social set"
+        label="Delete brand"
       >
         <ConfirmDialog
-          confirmLabel="Delete social set"
+          confirmLabel="Delete brand"
           confirmText={set.name}
           description={<p>This removes {set.name} for everyone who can see it.</p>}
           destructive
@@ -261,7 +261,7 @@ function DangerZone({ permissions, set }: { permissions: SetPermissions; set: So
             }
           }}
           title={`Delete ${set.name}?`}
-          triggerLabel="Delete social set"
+          triggerLabel="Delete brand"
         />
       </Row>
     </Group>

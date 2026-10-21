@@ -3,6 +3,7 @@
 import {
   Activity01Icon,
   Album02Icon,
+  Layers01Icon,
   ArtboardIcon,
   Folder01Icon,
   Link01Icon,
@@ -43,7 +44,7 @@ const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
       { href: '/', icon: PaintBoardIcon, label: 'Editor' },
       { href: '/canvas', icon: ArtboardIcon, label: 'Canvas' },
       { href: '/projects', icon: Folder01Icon, label: 'Projects' },
-      { href: '/creative-sets', icon: Album02Icon, label: 'Story Sets' },
+      { href: '/creative-sets', icon: Layers01Icon, label: 'Story Sets' },
       { href: '/campaigns', icon: Megaphone01Icon, label: 'Campaigns' },
       { href: '/workflows', icon: WorkflowSquare03Icon, label: 'Workflows' },
       { href: '/write', icon: NoteEditIcon, label: 'Write' },

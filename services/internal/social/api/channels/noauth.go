@@ -210,6 +210,8 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 
 	customInstanceDetails := ""
 	switch {
+	case auth.CredentialDetails != nil:
+		customInstanceDetails, err = credentialcipher.Seal(*auth.CredentialDetails, "custom-instance")
 	case details != "":
 		customInstanceDetails, err = credentialcipher.Seal(details, "custom-instance")
 	case hasCustomFields, info.IsChromeExtension:

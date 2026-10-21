@@ -13,17 +13,18 @@ import (
 // Capabilities is a versioned snapshot of the provider's reported publishing limits.
 // Missing limits remain unknown; they must never be replaced with invented defaults.
 type Capabilities struct {
-	Version                  int      `json:"version"`
-	MaxCharacters            int      `json:"maxCharacters"`
-	MaxMediaAttachments      int      `json:"maxMediaAttachments"`
-	CharactersReservedPerURL int      `json:"charactersReservedPerUrl"`
-	MediaMIMETypes           []string `json:"mediaMimeTypes"`
-	ImageSizeLimit           int64    `json:"imageSizeLimit"`
-	VideoSizeLimit           int64    `json:"videoSizeLimit"`
-	ImageMatrixLimit         int64    `json:"imageMatrixLimit"`
-	VideoMatrixLimit         int64    `json:"videoMatrixLimit"`
-	VideoFrameRateLimit      int      `json:"videoFrameRateLimit"`
-	MediaDescriptionLimit    *int     `json:"mediaDescriptionLimit"`
+	Version                  int                  `json:"version"`
+	Bluesky                  *BlueskyCapabilities `json:"bluesky,omitempty"`
+	MaxCharacters            int                  `json:"maxCharacters"`
+	MaxMediaAttachments      int                  `json:"maxMediaAttachments"`
+	CharactersReservedPerURL int                  `json:"charactersReservedPerUrl"`
+	MediaMIMETypes           []string             `json:"mediaMimeTypes"`
+	ImageSizeLimit           int64                `json:"imageSizeLimit"`
+	VideoSizeLimit           int64                `json:"videoSizeLimit"`
+	ImageMatrixLimit         int64                `json:"imageMatrixLimit"`
+	VideoMatrixLimit         int64                `json:"videoMatrixLimit"`
+	VideoFrameRateLimit      int                  `json:"videoFrameRateLimit"`
+	MediaDescriptionLimit    *int                 `json:"mediaDescriptionLimit"`
 }
 
 // Verification is produced only after the adapter verifies the remote account and grants.
@@ -37,12 +38,19 @@ type Verification struct {
 
 var ErrInvalid = errors.New("provider identity or publishing capabilities could not be verified")
 var mastodonKey = regexp.MustCompile(`^mastodon:([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?:[0-9]{1,80}$`)
-var scopeName = regexp.MustCompile(`^[a-zA-Z0-9:_-]{1,100}$`)
+var scopeName = regexp.MustCompile(`^[a-zA-Z0-9:._-]{1,100}$`)
 
 // Validate binds a snapshot to the actual adapter and returned native identity.
 // Each additional provider must supply its own identity and grant rules here.
 func (v *Verification) Validate(provider, internalID string) error {
-	if v == nil || provider != "mastodon-custom" || v.AccountKey != internalID || len(v.AccountKey) > 350 || !mastodonKey.MatchString(v.AccountKey) || v.AccountKind != "profile" {
+	if v != nil && provider == "bluesky" {
+		if !BlueskyDID(internalID) || v.AccountKey != "bluesky:"+internalID || v.AccountKind != "profile" || len(v.GrantedScopes) != 1 ||
+			(v.GrantedScopes[0] != "com.atproto.appPass" && v.GrantedScopes[0] != "com.atproto.appPassPrivileged") || v.Capabilities.Bluesky == nil {
+			return ErrInvalid
+		}
+		return v.Capabilities.Validate()
+	}
+	if v == nil || provider != "mastodon-custom" || v.AccountKey != internalID || len(v.AccountKey) > 350 || !mastodonKey.MatchString(v.AccountKey) || v.AccountKind != "profile" || v.Capabilities.Bluesky != nil {
 		return ErrInvalid
 	}
 	if len(v.GrantedScopes) == 0 || len(v.GrantedScopes) > 64 {
@@ -63,6 +71,13 @@ func (v *Verification) Validate(provider, internalID string) error {
 
 // Validate rejects missing, inconsistent and unbounded remote configuration.
 func (c Capabilities) Validate() error {
+	if c.Bluesky != nil {
+		if c.Version != 1 || c.MaxCharacters != 0 || c.MaxMediaAttachments != 0 || c.CharactersReservedPerURL != 0 || len(c.MediaMIMETypes) != 0 ||
+			c.ImageSizeLimit != 0 || c.VideoSizeLimit != 0 || c.ImageMatrixLimit != 0 || c.VideoMatrixLimit != 0 || c.VideoFrameRateLimit != 0 || c.MediaDescriptionLimit != nil {
+			return ErrInvalid
+		}
+		return c.Bluesky.Validate()
+	}
 	if c.Version != 1 || c.MaxCharacters < 1 || c.MaxCharacters > 1000000 || c.MaxMediaAttachments < 1 || c.MaxMediaAttachments > 64 || c.CharactersReservedPerURL < 1 || c.CharactersReservedPerURL > 10000 || len(c.MediaMIMETypes) == 0 || len(c.MediaMIMETypes) > 128 {
 		return ErrInvalid
 	}

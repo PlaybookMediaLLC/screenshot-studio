@@ -80,7 +80,16 @@ func (r *RefreshIntegrationService) refreshProcess(ctx context.Context, integrat
 	if integration.RefreshToken != nil {
 		refreshToken = *integration.RefreshToken
 	}
-	refresh, refreshError := provider.RefreshToken(ctx, refreshToken)
+	var refresh *integrations.AuthTokenDetails
+	var refreshError error
+	if contextual, ok := provider.(integrations.IntegrationRefresher); ok {
+		refresh, refreshError = contextual.RefreshIntegration(ctx, integration)
+	} else {
+		refresh, refreshError = provider.RefreshToken(ctx, refreshToken)
+	}
+	if errors.Is(refreshError, integrations.ErrRefreshUnavailable) || errors.Is(refreshError, context.Canceled) || errors.Is(refreshError, context.DeadlineExceeded) {
+		return nil, refreshError
+	}
 
 	if refreshError != nil || refresh == nil || refresh.AccessToken == "" {
 		if refreshError != nil {

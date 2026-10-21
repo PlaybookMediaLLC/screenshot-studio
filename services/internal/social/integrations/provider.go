@@ -42,6 +42,9 @@ type AdditionalSetting struct {
 }
 
 type AuthTokenDetails struct {
+	// CredentialDetails stays in memory until the callback encrypts it. It must
+	// never enter JSON responses or workflow payloads.
+	CredentialDetails  *string                      `json:"-"`
 	Verification       *socialidentity.Verification `json:"-"`
 	ID                 string                       `json:"id"`
 	Name               string                       `json:"name"`
@@ -207,6 +210,12 @@ type Provider interface {
 	// Plugs are the @Plug global automations; InternalPlugs the @PostPlug ones.
 	Plugs() []Plug
 	InternalPlugs() []InternalPlug
+}
+
+// IntegrationRefresher renews credentials that require the saved account/server
+// context. The shared refresh service still owns authorization and atomic writes.
+type IntegrationRefresher interface {
+	RefreshIntegration(context.Context, *ent.Integration) (*AuthTokenDetails, error)
 }
 
 // Function is a provider method invoked by name with

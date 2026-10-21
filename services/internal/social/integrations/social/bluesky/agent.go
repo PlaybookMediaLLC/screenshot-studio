@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ssrf"
 )
 
@@ -85,10 +86,11 @@ type session struct {
 }
 
 type agent struct {
-	service *url.URL
-	pds     *url.URL
-	session *session
-	client  *http.Client
+	service                   *url.URL
+	pds                       *url.URL
+	session                   *session
+	client                    *http.Client
+	validateCredentialSession func(session) error
 }
 
 func newAgent(service string) (*agent, error) {
@@ -170,9 +172,15 @@ func (a *agent) do(ctx context.Context, base *url.URL, req xrpcRequest) (*XRPCEr
 		return nil, nil, err
 	}
 	defer res.Body.Close()
-	data, err := io.ReadAll(res.Body)
+	data, err := io.ReadAll(io.LimitReader(res.Body, connectionResponseLimit+1))
 	if err != nil {
-		return nil, nil, err
+		if ctx.Err() != nil {
+			return nil, nil, ctx.Err()
+		}
+		return nil, nil, integrations.ErrRefreshUnavailable
+	}
+	if len(data) > connectionResponseLimit {
+		return nil, nil, errConnection
 	}
 	code := statusEnum(res.StatusCode)
 	if code == 200 {
@@ -216,8 +224,15 @@ func (a *agent) login(ctx context.Context, identifier, password string) error {
 	if err := validateSession(s); err != nil {
 		return err
 	}
+	if a.validateCredentialSession != nil {
+		if err := a.validateCredentialSession(s); err != nil {
+			return err
+		}
+	}
 	a.session = &s
-	a.updateAPIEndpoint(s.DidDoc)
+	if a.validateCredentialSession == nil {
+		a.updateAPIEndpoint(s.DidDoc)
+	}
 	return nil
 }
 
@@ -248,8 +263,16 @@ func (a *agent) refreshSession(ctx context.Context) error {
 		a.session = nil
 		return errAccountMismatch
 	}
+	if a.validateCredentialSession != nil {
+		if err := a.validateCredentialSession(s); err != nil {
+			a.session = nil
+			return err
+		}
+	}
 	a.session = &s
-	a.updateAPIEndpoint(s.DidDoc)
+	if a.validateCredentialSession == nil {
+		a.updateAPIEndpoint(s.DidDoc)
+	}
 	return nil
 }
 

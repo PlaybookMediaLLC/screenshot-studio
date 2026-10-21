@@ -124,8 +124,18 @@ func applyRefresh(update *ent.IntegrationUpdateOne, auth *integrations.AuthToken
 }
 
 func (r *Repository) saveRefresh(ctx context.Context, snapshot *refreshSnapshot, auth *integrations.AuthTokenDetails) error {
+	if auth.Verification != nil {
+		if err := auth.Verification.Validate(snapshot.connection.ProviderIdentifier, snapshot.connection.InternalID); err != nil {
+			return err
+		}
+	}
 	return r.withCurrentRefresh(ctx, snapshot.connection, func(tx *ent.Tx, current *ent.Integration) error {
-		if err := applyRefresh(tx.Integration.UpdateOne(current), auth).Exec(ctx); err != nil {
+		update := applyRefresh(tx.Integration.UpdateOne(current), auth)
+		if auth.Verification != nil {
+			update.SetVerifiedAccountKey(auth.Verification.AccountKey).SetVerifiedAccountKind(auth.Verification.AccountKind).
+				SetVerifiedScopes(auth.Verification.GrantedScopes).SetVerifiedCapabilities(&auth.Verification.Capabilities).SetIdentityVerifiedAt(time.Now().UTC())
+		}
+		if err := update.Exec(ctx); err != nil {
 			return err
 		}
 		for _, before := range snapshot.linked {

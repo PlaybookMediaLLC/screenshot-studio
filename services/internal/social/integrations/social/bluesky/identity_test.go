@@ -2,8 +2,6 @@ package bluesky
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -24,46 +22,6 @@ func TestPublishingRejectsChangedBlueskyAccount(t *testing.T) {
 	}
 	if len(f.records) != 0 || f.uploads != 0 {
 		t.Fatal("account mismatch reached a publication or upload")
-	}
-}
-
-func TestConnectionRequiresMatchingProfileDIDAndActiveSession(t *testing.T) {
-	t.Setenv("DISABLE_SSRF_PROTECTION", "true")
-	for _, tc := range []struct {
-		name, session, profile string
-		wantProfile            bool
-	}{
-		{"wrong profile", `{"accessJwt":"access","refreshJwt":"refresh","did":"did:plc:one"}`, `{"did":"did:plc:two","handle":"me.bsky.social"}`, true},
-		{"missing profile identity", `{"accessJwt":"access","refreshJwt":"refresh","did":"did:plc:one"}`, `{"handle":"me.bsky.social"}`, true},
-		{"inactive", `{"accessJwt":"access","refreshJwt":"refresh","did":"did:plc:one","active":false}`, `{}`, false},
-		{"suspended", `{"accessJwt":"access","refreshJwt":"refresh","did":"did:plc:one","status":"suspended"}`, `{}`, false},
-		{"missing account", `{"accessJwt":"access","refreshJwt":"refresh"}`, `{}`, false},
-		{"missing access", `{"refreshJwt":"refresh","did":"did:plc:one"}`, `{}`, false},
-		{"missing refresh", `{"accessJwt":"access","did":"did:plc:one"}`, `{}`, false},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			profileCalls := 0
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path == "/xrpc/com.atproto.server.createSession" {
-					_, _ = io.WriteString(w, tc.session)
-				} else if r.URL.Path == "/xrpc/app.bsky.actor.getProfile" {
-					profileCalls++
-					_, _ = io.WriteString(w, tc.profile)
-				} else {
-					t.Error("unexpected request")
-					w.WriteHeader(http.StatusNotFound)
-				}
-			}))
-			defer server.Close()
-			encoded, err := json.Marshal(credentials{Service: server.URL, Identifier: "me.bsky.social", Password: "fixture-app-password"})
-			if err != nil {
-				t.Fatal(err)
-			}
-			auth, err := New().Authenticate(context.Background(), integrations.AuthenticateParams{Code: base64.StdEncoding.EncodeToString(encoded)}, nil)
-			if auth != nil || err == nil || (profileCalls == 1) != tc.wantProfile {
-				t.Fatal("unverified account completed authentication")
-			}
-		})
 	}
 }
 

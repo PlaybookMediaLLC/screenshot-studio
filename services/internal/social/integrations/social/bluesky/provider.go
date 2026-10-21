@@ -6,7 +6,6 @@ package bluesky
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -49,18 +48,22 @@ var (
 
 type Provider struct {
 	*integrations.Base
+	connectionClient *http.Client
 }
 
 var (
-	_ integrations.Provider         = (*Provider)(nil)
-	_ integrations.PendingPoster    = (*Provider)(nil)
-	_ integrations.Commenter        = (*Provider)(nil)
-	_ integrations.CustomFielder    = (*Provider)(nil)
-	_ integrations.MentionFormatter = (*Provider)(nil)
+	_ integrations.Provider             = (*Provider)(nil)
+	_ integrations.PendingPoster        = (*Provider)(nil)
+	_ integrations.Commenter            = (*Provider)(nil)
+	_ integrations.CustomFielder        = (*Provider)(nil)
+	_ integrations.MentionFormatter     = (*Provider)(nil)
+	_ integrations.IntegrationRefresher = (*Provider)(nil)
 )
 
-func New() *Provider {
-	return &Provider{Base: integrations.NewBase(identifier, nil)}
+func New() *Provider { return newProvider(ssrf.PublicClient()) }
+
+func newProvider(client *http.Client) *Provider {
+	return &Provider{Base: integrations.NewBase(identifier, nil), connectionClient: client}
 }
 
 func (p *Provider) Info() integrations.Info {
@@ -68,7 +71,7 @@ func (p *Provider) Info() integrations.Info {
 		Identifier: identifier,
 		Name:       "Bluesky",
 		Editor:     "normal",
-		Scopes:     []string{"write:statuses", "profile", "write:media"},
+		Scopes:     []string{"com.atproto.appPass"},
 		ToolTip:    "Use a dedicated Bluesky app password. Keep your main account password private.",
 		// Bluesky limits are per account and per IP
 		MaxConcurrentJob: 6,
@@ -100,75 +103,35 @@ func (p *Provider) CheckValidity(_ context.Context, posts [][]integrations.Valid
 
 func (p *Provider) CustomFields() []integrations.CustomField {
 	return []integrations.CustomField{
-		{
-			Key: "service", Label: "Service", DefaultValue: "https://bsky.social", Type: "text",
-			Validation: `/^(https?:\/\/)?((([a-zA-Z0-9\-_]{1,256}\.[a-zA-Z]{2,6})|(([0-9]{1,3}\.){3}[0-9]{1,3}))(:[0-9]{1,5})?)(\/[^\s]*)?$/`,
-		},
-		{Key: "identifier", Label: "Identifier", Validation: `/^.+$/`, Type: "text"},
-		{Key: "password", Label: "Password", Validation: `/^.{3,}$/`, Type: "password"},
+		{Key: "identifier", Label: "Handle", Validation: `/^@?[a-zA-Z0-9.-]+\.[a-zA-Z][a-zA-Z0-9-]*$/`, Type: "text"},
+		{Key: "password", Label: "App password", Validation: `/^[a-z0-9]{4}(-[a-z0-9]{4}){3}$/`, Type: "password"},
 	}
 }
 
 func (p *Provider) RefreshToken(context.Context, string) (*integrations.AuthTokenDetails, error) {
-	return &integrations.AuthTokenDetails{}, nil
+	// A token alone cannot establish the account's authorized PDS destination.
+	return nil, errConnection
 }
 
 func (p *Provider) GenerateAuthURL(context.Context, *integrations.ClientInformation) (*integrations.GenerateAuthURLResponse, error) {
-	state := ids.Secure(6)
-	return &integrations.GenerateAuthURLResponse{URL: state, CodeVerifier: ids.Secure(10), State: state}, nil
+	state := ids.Secure(32)
+	return &integrations.GenerateAuthURLResponse{URL: state, CodeVerifier: ids.Secure(64), State: state}, nil
 }
 
 type credentials struct {
+	Version    int    `json:"version,omitempty"`
+	ServerDID  string `json:"serverDid,omitempty"`
 	Service    string `json:"service"`
 	Identifier string `json:"identifier"`
 	Password   string `json:"password"`
 }
 
 func (p *Provider) Authenticate(ctx context.Context, params integrations.AuthenticateParams, _ *integrations.ClientInformation) (*integrations.AuthTokenDetails, error) {
-	data, err := base64.StdEncoding.DecodeString(params.Code)
-	if err != nil {
-		if data, err = base64.RawStdEncoding.DecodeString(strings.TrimRight(params.Code, "=")); err != nil {
-			return nil, err
-		}
-	}
-	var body credentials
-	if err := json.Unmarshal(data, &body); err != nil {
-		return nil, err
-	}
-
-	// The service URL is user-supplied: validate it here - the connection
-	// chokepoint - so an internal/private address can never be saved as an
-	// integration. Opt-out matches the SSRF-safe client's env.
-	if !ssrf.Disabled() && !ssrf.IsSafePublicHTTPSURL(ctx, body.Service) {
-		return nil, integrations.AuthMessage("Invalid service URL: must be a public HTTPS address")
-	}
-
-	invalid := integrations.AuthMessage("Invalid credentials")
-	a, err := newAgent(body.Service)
-	if err != nil {
-		return nil, invalid
-	}
-	if err := a.login(ctx, body.Identifier, body.Password); err != nil {
-		return nil, invalid
-	}
-	profile, err := a.getProfile(ctx, a.session.Did)
-	if err != nil || profile.Did != a.session.Did {
-		return nil, invalid
-	}
-	now := time.Now()
-	return &integrations.AuthTokenDetails{
-		RefreshToken: a.session.RefreshJwt,
-		ExpiresIn:    now.AddDate(100, 0, 0).Unix() - now.Unix(),
-		AccessToken:  a.session.AccessJwt,
-		ID:           a.session.Did,
-		Name:         profile.DisplayName,
-		Picture:      profile.Avatar,
-		Username:     profile.Handle,
-	}, nil
+	return p.authenticateAppPassword(ctx, params)
 }
 
 // loginAgent logs in with the credentials stored on the integration.
-func loginAgent(ctx context.Context, integration *ent.Integration) (*agent, error) {
+func (p *Provider) loginAgent(ctx context.Context, integration *ent.Integration) (*agent, error) {
 	if integration == nil || integration.CustomInstanceDetails == nil {
 		return nil, errors.New("missing custom instance details")
 	}
@@ -180,7 +143,19 @@ func loginAgent(ctx context.Context, integration *ent.Integration) (*agent, erro
 	if err := json.Unmarshal([]byte(decrypted), &body); err != nil {
 		return nil, err
 	}
-	a, err := newAgent(body.Service)
+	var a *agent
+	if body.Version == 1 {
+		if body.Identifier != integration.InternalID {
+			return nil, errAccountMismatch
+		}
+		a, err = p.credentialAgent(body, "")
+	} else if body.Version == 0 {
+		// Existing encrypted records retain their legacy adapter behavior until
+		// reconnect. New authentication never creates this unverified format.
+		a, err = newAgent(body.Service)
+	} else {
+		return nil, errConnection
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +171,7 @@ func loginAgent(ctx context.Context, integration *ent.Integration) (*agent, erro
 }
 
 func (p *Provider) getAgent(ctx context.Context, integration *ent.Integration) (*agent, error) {
-	a, err := loginAgent(ctx, integration)
+	a, err := p.loginAgent(ctx, integration)
 	var xrpcErr *XRPCError
 	// Only a definite 4xx (bad password, account taken down) means the
 	// credentials are broken. A 5xx or network error is Bluesky being
@@ -842,7 +817,7 @@ func likedThread(ctx context.Context, a *agent, id, likesAmount string) (*thread
 }
 
 func (p *Provider) autoRepostPost(ctx context.Context, integration *ent.Integration, id string, fields map[string]string) (bool, error) {
-	a, err := loginAgent(ctx, integration)
+	a, err := p.loginAgent(ctx, integration)
 	if err != nil {
 		return false, err
 	}
@@ -860,7 +835,7 @@ func (p *Provider) autoRepostPost(ctx context.Context, integration *ent.Integrat
 }
 
 func (p *Provider) autoPlugPost(ctx context.Context, integration *ent.Integration, id string, fields map[string]string) (bool, error) {
-	a, err := loginAgent(ctx, integration)
+	a, err := p.loginAgent(ctx, integration)
 	if err != nil {
 		return false, err
 	}
@@ -922,7 +897,7 @@ func (p *Provider) Plugs() []integrations.Plug {
 }
 
 func (p *Provider) Mention(ctx context.Context, _, query, _ string, integration *ent.Integration) ([]integrations.MentionResult, bool, error) {
-	a, err := loginAgent(ctx, integration)
+	a, err := p.loginAgent(ctx, integration)
 	if err != nil {
 		return nil, false, err
 	}

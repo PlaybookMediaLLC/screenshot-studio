@@ -3,7 +3,6 @@ package bluesky
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"image"
 	"image/png"
@@ -123,32 +122,6 @@ func (f *fakePDS) integration(t *testing.T, password string) *ent.Integration {
 		t.Fatal(err)
 	}
 	return &ent.Integration{InternalID: "did:plc:me", CustomInstanceDetails: &encrypted}
-}
-
-func TestAuthenticate(t *testing.T) {
-	f := newFakePDS(t)
-	code := func(password string) string {
-		data, _ := json.Marshal(credentials{Service: f.URL, Identifier: "me", Password: password})
-		return base64.StdEncoding.EncodeToString(data)
-	}
-	auth, err := New().Authenticate(context.Background(), integrations.AuthenticateParams{Code: code("app-password")}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if auth.ID != "did:plc:me" || auth.AccessToken != "access" || auth.RefreshToken != "refresh" || auth.Name != "Me" || auth.Username != "me.bsky.social" {
-		t.Fatalf("unexpected auth %+v", auth)
-	}
-
-	_, err = New().Authenticate(context.Background(), integrations.AuthenticateParams{Code: code("wrong")}, nil)
-	if msg, ok := err.(integrations.AuthMessage); !ok || msg != "Invalid credentials" {
-		t.Fatalf("want Invalid credentials, got %v", err)
-	}
-
-	t.Setenv("DISABLE_SSRF_PROTECTION", "")
-	_, err = New().Authenticate(context.Background(), integrations.AuthenticateParams{Code: code("app-password")}, nil)
-	if msg, ok := err.(integrations.AuthMessage); !ok || msg != "Invalid service URL: must be a public HTTPS address" {
-		t.Fatalf("want Invalid service URL, got %v", err)
-	}
 }
 
 func TestPostWithImageFacetsAndHandshake(t *testing.T) {

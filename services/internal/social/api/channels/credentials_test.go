@@ -21,6 +21,30 @@ type externalFixture struct {
 	client                   *integrations.ClientInformation
 }
 
+func TestCallbackEncryptsProviderCanonicalCredentials(t *testing.T) {
+	f := setup(t)
+	f.provider.id = "bluesky"
+	did := "did:plc:abcdefghijklmnopqrstuvwx"
+	canonical := `{"version":1,"service":"https://pds.example.social","identifier":"` + did + `","password":"disposable-app-password"}`
+	f.provider.auth = func() (*integrations.AuthTokenDetails, error) {
+		return &integrations.AuthTokenDetails{ID: did, AccessToken: "private-access", RefreshToken: "private-refresh", ExpiresIn: 7200, CredentialDetails: &canonical}, nil
+	}
+	f.noAuth()
+	f.state(t)
+	status, body := do(t, f.router, http.MethodPost, "/integrations/social-connect/bluesky", `{"state":"state1","code":"caller-chosen-server","timezone":"0"}`)
+	if status != http.StatusCreated || strings.Contains(body, "private-") || strings.Contains(body, "disposable-app-password") || strings.Contains(body, "credentialDetails") {
+		t.Fatal("canonical callback failed or exposed credentials")
+	}
+	row := f.client.Integration.Query().OnlyX(f.ctx)
+	if row.CustomInstanceDetails == nil || !credentialcipher.IsSealed(*row.CustomInstanceDetails) || strings.Contains(*row.CustomInstanceDetails, "disposable-app-password") {
+		t.Fatal("canonical app password was stored without encryption")
+	}
+	plain, err := helpers.FixedDecryption(*row.CustomInstanceDetails)
+	if err != nil || plain != canonical || strings.Contains(plain, "caller-chosen-server") {
+		t.Fatal("callback stored caller data instead of the verified credential destination")
+	}
+}
+
 func TestOAuthCallbackPersistsVerifiedProviderFacts(t *testing.T) {
 	f := setup(t)
 	f.provider.id = "mastodon-custom"

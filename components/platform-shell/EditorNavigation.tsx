@@ -19,6 +19,7 @@ export function EditorSectionLink({
 }: Omit<ComponentProps<typeof Link>, 'href'> & { section: EditorSection }) {
   return (
     <Link
+      prefetch={false}
       {...props}
       data-keep-selection
       href={section === 'app-store' ? '/?editor=app-store' : '/'}
@@ -140,7 +141,7 @@ export function EditorNavigation(props: { collapsed: boolean; onNavigate?: () =>
   return (
     <Suspense
       fallback={
-        <Link href="/" aria-label="Editor">
+        <Link prefetch={false} href="/" aria-label="Editor">
           <PaintBoardIcon size={16} />
         </Link>
       }

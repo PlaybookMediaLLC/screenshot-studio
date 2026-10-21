@@ -61,6 +61,9 @@ export const creativeSetCreateInputSchema = z.object({
   name: creativeSetNameSchema,
 })
 
+/** A lookup accepts mistyped links so the resolver can return a safe not-found response. */
+export const creativeSetLookupInputSchema = z.object({ creativeSetId: z.string().max(500) })
+
 /** Input naming one creativeSet. */
 export const creativeSetRefInputSchema = z.object({ creativeSetId: creativeSetIdSchema })
 

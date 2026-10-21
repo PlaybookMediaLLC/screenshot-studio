@@ -3,6 +3,7 @@
 import {
   Activity01Icon,
   Album02Icon,
+  Layers01Icon,
   ArtboardIcon,
   Folder01Icon,
   Link01Icon,
@@ -43,7 +44,7 @@ const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
       { href: '/', icon: PaintBoardIcon, label: 'Editor' },
       { href: '/canvas', icon: ArtboardIcon, label: 'Canvas' },
       { href: '/projects', icon: Folder01Icon, label: 'Projects' },
-      { href: '/creative-sets', icon: Album02Icon, label: 'Story Sets' },
+      { href: '/creative-sets', icon: Layers01Icon, label: 'Story Sets' },
       { href: '/campaigns', icon: Megaphone01Icon, label: 'Campaigns' },
       { href: '/workflows', icon: WorkflowSquare03Icon, label: 'Workflows' },
       { href: '/write', icon: NoteEditIcon, label: 'Write' },
@@ -105,6 +106,7 @@ function NavLink({
       aria-current={active ? 'page' : undefined}
       aria-label={collapsed ? label : undefined}
       className={rowClassName}
+      prefetch={false}
       href={href}
       onClick={onNavigate}
     >
@@ -203,7 +205,7 @@ function WorkspaceSwitcher({
 
 function Brand({ collapsed }: { collapsed: boolean }) {
   return (
-    <Link className="flex min-w-0 items-center gap-2.5" href="/">
+    <Link prefetch={false} className="flex min-w-0 items-center gap-2.5" href="/">
       <Image alt="" className="size-6 rounded-md" height={24} src="/logo-mark.png" width={24} />
       {collapsed ? null : (
         <span className="truncate text-sm font-semibold tracking-tight text-foreground">Shots</span>

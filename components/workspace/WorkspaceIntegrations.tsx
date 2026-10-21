@@ -108,22 +108,33 @@ export function WorkspaceIntegrations({ canManage }: { canManage: boolean }) {
                 {!status ? (
                   <p className="text-sm text-muted-foreground">Loading…</p>
                 ) : !status.ready ? (
-                  <p className="text-sm text-foreground/65">
-                    Not set up on this server. An operator must set{' '}
-                    {status.missing.map((name, index) => (
-                      <span key={name}>
-                        {index > 0 ? ', ' : ''}
-                        <code className="text-foreground">{name}</code>
-                      </span>
-                    ))}
-                    . See docs/integrations.md.
-                  </p>
+                  <div className="grid gap-2">
+                    <Pill tone="yellow">Requires setup</Pill>
+                    <p className="text-sm text-foreground/65">
+                      Unavailable — contact your administrator to enable {PROVIDER_NAMES[provider]}.
+                    </p>
+                    {canManage ? (
+                      <details className="text-xs text-muted-foreground">
+                        <summary className="cursor-pointer">Administrator setup details</summary>
+                        <p className="mt-2">
+                          Ask the server operator to configure{' '}
+                          {status.missing.map((name, index) => (
+                            <span key={name}>
+                              {index > 0 ? ', ' : ''}
+                              <code>{name}</code>
+                            </span>
+                          ))}
+                          . Setup instructions: docs/integrations.md.
+                        </p>
+                      </details>
+                    ) : null}
+                  </div>
                 ) : canManage ? (
                   <div className="flex items-center justify-between gap-4">
                     <p className="text-sm text-foreground/65">
                       {accounts.length
                         ? 'Connect another account, or reconnect to refresh access.'
-                        : 'No account connected.'}
+                        : 'Available — connect your account to get started.'}
                     </p>
                     <Button asChild size="sm">
                       <a href={`/api/integrations/${provider.toLowerCase()}/connect`}>

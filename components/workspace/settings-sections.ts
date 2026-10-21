@@ -32,7 +32,14 @@ export type SettingId =
   | 'surfaces'
 
 /** Who a section's settings belong to. */
-export const settingGroupSchema = z.enum(['personal', 'workspace', 'publishing'])
+export const settingGroupSchema = z.enum([
+  'personal',
+  'workspace',
+  'brand',
+  'publishing',
+  'integrations',
+  'advanced',
+])
 
 /** One of {@link settingGroupSchema}'s values. */
 export type SettingGroup = z.infer<typeof settingGroupSchema>
@@ -48,9 +55,12 @@ export type SettingSection = {
 
 /** Group headings, in display order. */
 export const SETTING_GROUPS: { id: SettingGroup; title: string }[] = [
-  { id: 'personal', title: 'Personal' },
-  { id: 'workspace', title: 'Workspace' },
-  { id: 'publishing', title: 'Publishing identities' },
+  { id: 'personal', title: 'My account' },
+  { id: 'workspace', title: 'Workspace & team' },
+  { id: 'brand', title: 'Brand & content' },
+  { id: 'publishing', title: 'Publishing' },
+  { id: 'integrations', title: 'Integrations' },
+  { id: 'advanced', title: 'Advanced' },
 ]
 
 export const SETTINGS_SECTIONS: SettingSection[] = [
@@ -119,70 +129,70 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
   },
   {
     description: 'Single sign-on and SCIM provisioning controls.',
-    group: 'workspace',
+    group: 'advanced',
     id: 'sso',
     slug: 'sso',
     title: 'SSO',
   },
   {
     description: 'Searchable events, retention, and SIEM log drains.',
-    group: 'workspace',
+    group: 'advanced',
     id: 'audit',
     slug: 'audit-log',
     title: 'Audit log',
   },
   {
     description: 'Brand voice for AI copy, plus colors and typography for visuals.',
-    group: 'workspace',
+    group: 'brand',
     id: 'brand',
     slug: 'brand-kit',
     title: 'Brand kit',
   },
   {
     description: 'What your product is, who it is for, and what campaigns can claim.',
-    group: 'workspace',
+    group: 'brand',
     id: 'product',
     slug: 'product',
     title: 'Product',
   },
   {
     description: 'The product pages campaigns screenshot, and how fresh each capture is.',
-    group: 'workspace',
+    group: 'brand',
     id: 'surfaces',
     slug: 'product-pages',
     title: 'Product pages',
   },
   {
     description: 'Every agent and app Shots connects to, what each needs, and how to set it up.',
-    group: 'workspace',
+    group: 'integrations',
     id: 'integrations',
     slug: 'integrations',
     title: 'Integrations',
   },
   {
     description: 'Connect Claude, ChatGPT, Cursor, and other AI agents to this workspace over MCP.',
-    group: 'workspace',
+    group: 'integrations',
     id: 'agents',
     slug: 'ai-agents',
     title: 'AI agents',
   },
   {
     description: 'Every design published at a link: copy, restrict, or revoke.',
-    group: 'workspace',
+    group: 'publishing',
     id: 'sharing',
     slug: 'shared-links',
     title: 'Shared links',
   },
   {
     description: 'API keys, outbound webhooks, development mode, and debug logs.',
-    group: 'workspace',
+    group: 'advanced',
     id: 'api',
     slug: 'developers',
     title: 'Developer API',
   },
   {
     description: 'Try features before they ship to everyone.',
-    group: 'workspace',
+    group: 'advanced',
     id: 'experimental',
     slug: 'experimental',
     title: 'Experimental',
@@ -192,10 +202,11 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     group: 'workspace',
     id: 'new-team',
     slug: 'new-team',
-    title: 'New team',
+    title: 'Create workspace',
   },
   {
-    description: 'The people and brands you post as: their accounts, schedules, defaults, and voice.',
+    description:
+      'The people and brands you post as: their accounts, schedules, defaults, and voice.',
     group: 'publishing',
     id: 'social-sets',
     slug: 'social-sets',

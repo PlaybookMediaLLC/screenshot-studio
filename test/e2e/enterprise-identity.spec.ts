@@ -10,7 +10,7 @@ import {
 import { browserRequest } from './framework/browser'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { startHttpMockServer, type HttpMockRequest } from './framework/http-server'
-import { createE2EDatabase, queryRow } from './framework/services'
+import { createE2EDatabase, grantWorkspacePlan, queryRow } from './framework/services'
 
 const scimUserSchema = z.object({
   active: z.boolean(),
@@ -110,6 +110,7 @@ async function registerVerifiedOidcProvider(
 }
 
 async function enableEnterpriseIdentity(organizationId: string): Promise<void> {
+  await grantWorkspacePlan(organizationId, 'enterprise')
   const database = createE2EDatabase()
   try {
     await database.query(
@@ -159,11 +160,19 @@ test('enterprise identity controls enforce the plan and create an audited SCIM c
   await enableTwoFactor(page, identity.password)
   await openWorkspaceSetting(page, 'SSO')
 
-  await page.getByPlaceholder('acme-scim').fill(providerId)
-  await page.getByRole('button', { name: 'Generate token' }).click()
   await expect(
-    page.getByText('This organization does not have this enterprise feature.')
+    page.getByText('Complete these steps to enter your provider credentials.')
   ).toBeVisible()
+  await expect(page.getByPlaceholder('acme-scim')).toHaveCount(0)
+  const denied = await browserRequest(page, '/api/auth/scim/generate-token', {
+    body: JSON.stringify({ organizationId, providerId }),
+    headers: { 'content-type': 'application/json' },
+    method: 'POST',
+  })
+  expect(denied.status).toBe(403)
+  expect(JSON.stringify(denied.body)).toContain(
+    'This organization does not have this enterprise feature.'
+  )
 
   await enableEnterpriseIdentity(organizationId)
   await page.reload()

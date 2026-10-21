@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { KeyExpiry } from '@/components/settings/KeyExpiry'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -15,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { apiKeyScopes, type ApiKeyScope } from '@/lib/auth/api-key-scopes'
+import { apiKeyScopeDescriptions, apiKeyScopes, type ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { GitHubConnections } from './GitHubConnections'
 import { getErrorMessage } from './settings-client'
@@ -51,7 +52,8 @@ type ApiKey = {
 /** A key's state: active, disabled, or past its expiry. */
 function keyStatus(key: ApiKey): { label: string; tone: 'gray' | 'green' | 'yellow' } {
   if (!key.enabled) return { label: 'disabled', tone: 'gray' }
-  if (key.expiresAt && new Date(key.expiresAt).getTime() <= Date.now()) return { label: 'expired', tone: 'yellow' }
+  if (key.expiresAt && new Date(key.expiresAt).getTime() <= Date.now())
+    return { label: 'expired', tone: 'yellow' }
   return { label: 'active', tone: 'green' }
 }
 
@@ -90,7 +92,8 @@ export function WorkspaceDeveloperSettings({ canManage }: WorkspaceDeveloperSett
     try {
       const expiresInDays = data.get('expiresInDays')
       const result = await trpcClient.apiKey.create.mutate({
-        expiresInDays: expiresInDays ? Number(expiresInDays) : undefined,
+        expiresInDays:
+          expiresInDays && expiresInDays !== 'never' ? Number(expiresInDays) : undefined,
         name: String(data.get('name') ?? ''),
         scopes,
       })
@@ -252,9 +255,15 @@ function NewSourceNotice({ onDismiss, source }: { onDismiss: () => void; source:
         <p className="text-sm text-foreground/65">
           {source.provider === 'gitlab'
             ? 'GitLab generates its own signing token. Ask an operator to configure it for this source.'
-            : 'This server cannot sign webhooks yet. Ask an operator to set SOURCE_WEBHOOK_SIGNING_KEY.'}
+            : 'Webhook signing is unavailable. Contact your administrator to enable it.'}
         </p>
       )}
+      {!secret && source.provider !== 'gitlab' ? (
+        <details className="text-xs text-muted-foreground">
+          <summary>Administrator setup details</summary>
+          <p>Configure SOURCE_WEBHOOK_SIGNING_KEY on the server.</p>
+        </details>
+      ) : null}
       {source.provider === 'github' && secret ? (
         <p className="text-sm text-foreground/65">
           In GitHub, open the repository’s Settings, then Webhooks, then Add webhook. Paste the
@@ -279,8 +288,13 @@ function ApiKeyForm({
   isSubmitting: boolean
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }) {
+  const [scopes, setScopes] = useState<ApiKeyScope[]>(['artifact:read'])
   return (
-    <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+    <form
+      className="flex flex-col gap-4"
+      onReset={() => setScopes(['artifact:read'])}
+      onSubmit={onSubmit}
+    >
       <h3 className="text-sm font-medium text-foreground">Create a key</h3>
       <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
         <div className="flex flex-col gap-1.5">
@@ -295,35 +309,62 @@ function ApiKeyForm({
             required
           />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label className={fieldLabel} htmlFor="api-key-expires">
-            Expiry (optional)
-          </Label>
-          <Input
-            className="h-10 rounded-lg"
-            id="api-key-expires"
-            min="1"
-            name="expiresInDays"
-            placeholder="Expires in days"
-            type="number"
-          />
-        </div>
+        <KeyExpiry id="api-key-expires" />
       </div>
       <fieldset className="flex flex-col gap-2">
         <legend className={`mb-2 ${fieldLabel}`}>Scopes</legend>
+        <div className="mb-2 flex flex-wrap gap-2">
+          <Button
+            onClick={() => setScopes(['artifact:read'])}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            Read only
+          </Button>
+          <Button
+            onClick={() => setScopes(['artifact:read', 'draft:write'])}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            Draft creation
+          </Button>
+          <Button
+            onClick={() => setScopes(['artifact:read', 'post:schedule'])}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            Publishing
+          </Button>
+        </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {apiKeyScopes.map((scope) => (
             <div className="flex items-center gap-2" key={scope}>
-              <Checkbox defaultChecked id={`scope-${scope}`} name="scopes" value={scope} />
+              <Checkbox
+                checked={scopes.includes(scope)}
+                onCheckedChange={(checked) =>
+                  setScopes((current) =>
+                    checked === true
+                      ? [...current, scope]
+                      : current.filter((item) => item !== scope)
+                  )
+                }
+                id={`scope-${scope}`}
+                name="scopes"
+                value={scope}
+              />
               <Label className="font-mono text-xs text-foreground/80" htmlFor={`scope-${scope}`}>
-                {scope}
+                {apiKeyScopeDescriptions[scope]}
+                <span className="block text-muted-foreground">{scope}</span>
               </Label>
             </div>
           ))}
         </div>
       </fieldset>
       <div className="flex justify-end">
-        <Button className="rounded-lg" disabled={isSubmitting} type="submit">
+        <Button className="rounded-lg" disabled={isSubmitting || scopes.length === 0} type="submit">
           {isSubmitting ? 'Creating…' : 'Create API key'}
         </Button>
       </div>
@@ -360,7 +401,9 @@ function ApiKeyList({
           <p className="text-xs text-muted-foreground">
             Created {readableDate(key.createdAt)}
             {key.expiresAt ? ` · Expires ${readableDate(key.expiresAt)}` : ' · Never expires'}
-            {key.lastRequest ? ` · Last used ${new Date(key.lastRequest).toLocaleString()}` : ' · Not used yet'}
+            {key.lastRequest
+              ? ` · Last used ${new Date(key.lastRequest).toLocaleString()}`
+              : ' · Not used yet'}
           </p>
         </div>
         <Pill tone={status.tone}>{status.label}</Pill>

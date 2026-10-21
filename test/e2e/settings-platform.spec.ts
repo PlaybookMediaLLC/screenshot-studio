@@ -86,7 +86,8 @@ test('personal settings are addressable, saved on the server and survive a reloa
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
   await page.reload()
   await expect(page.getByRole('switch', { name: 'Email notifications' })).not.toBeChecked()
-  await expect(page.getByText('Slack direct messages are not available')).toBeVisible()
+  await page.getByText('Slack delivery details', { exact: true }).click()
+  await expect(page.getByText('Direct messages are unavailable', { exact: false })).toBeVisible()
 
   await openWorkspaceSetting(page, 'Account')
   await page.getByLabel('Search display time zone').fill('Tokyo')
@@ -179,6 +180,29 @@ test('social sets keep their own names, schedules and settings beside the compos
     await expect(
       page.getByRole('combobox', { exact: true, name: 'Scheduling time zone' })
     ).toHaveValue('Europe/Paris')
+
+    await page.goto('/workspace/brand-kit')
+    await page
+      .getByLabel('Product description', { exact: true })
+      .fill('Social publishing for teams')
+    await page.getByLabel('Audience', { exact: true }).fill('Product teams')
+    await page.getByLabel('Tone', { exact: true }).fill('Direct and concrete')
+    await page.getByRole('button', { name: 'Save brand voice', exact: true }).click()
+    await expect(page.getByText('Brand voice saved.', { exact: true })).toBeVisible()
+    await page.goto(`/workspace/social-sets/${setId}/writing-assistant`)
+    await expect(page.getByText(/Workspace default: Direct and concrete/)).toBeVisible()
+    await page.getByLabel('Tone', { exact: true }).fill('Playful')
+    await page.getByRole('button', { name: 'Save style guide', exact: true }).click()
+    await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
+    await page.reload()
+    const tone = page.getByLabel('Tone', { exact: true })
+    await expect(tone).toHaveValue('Playful')
+    await tone.locator('..').getByRole('button', { name: 'Reset to workspace default' }).click()
+    await page.getByRole('button', { name: 'Save style guide', exact: true }).click()
+    await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
+    await page.reload()
+    await expect(tone).toHaveValue('')
+    await expect(page.getByText(/Workspace default: Direct and concrete/)).toBeVisible()
 
     // Settings open beside a draft without losing what was typed, and the
     // editor runs text in the direction Appearance chose.

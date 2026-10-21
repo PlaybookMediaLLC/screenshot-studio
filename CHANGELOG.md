@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.32.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.3...v2.32.4) (2026-10-21)
+
+
+### Bug Fixes
+
+* **canvas:** preserve edits and repair export and library workflows ([002ecab](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/002ecabd1b3ec94b5e7e215953694c31f033462c))
+
 ## [2.32.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.2...v2.32.3) (2026-10-21)
 
 

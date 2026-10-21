@@ -116,6 +116,7 @@ func RegisterPublicIntegrationsController(r *httpx.Router, d Deps) {
 	g.Get("/me", h.getMe)
 	g.Get("/groups", h.listGroups)
 	g.Get("/integrations", h.listIntegration)
+	g.Get("/integrations/:id/identity", h.integrationIdentity)
 	g.Get("/social/:integration", h.getIntegrationURL, d.Perms.CheckPolicies(auth.Policy(auth.ActionCreate, auth.SectionChannel)))
 	g.Get("/users", h.listUsers, superAdmin)
 	g.Get("/debug/posts/:id", h.getPostTimeline, superAdmin)
@@ -509,6 +510,9 @@ func (h *controller) getIntegrationURL(c *httpx.Ctx) (any, error) {
 			}
 		}
 		if err := h.Store.Set(ctx, "organization:"+generated.State, c.Org.ID, time.Hour); err != nil {
+			return "", err
+		}
+		if err := h.Store.Set(ctx, "connection-provider:"+generated.State, target, time.Hour); err != nil {
 			return "", err
 		}
 		if err := h.Store.Set(ctx, "login:"+generated.State, generated.CodeVerifier, time.Hour); err != nil {

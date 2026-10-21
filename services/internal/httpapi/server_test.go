@@ -104,7 +104,18 @@ func (f *fakeStore) StartOAuth(_ context.Context, _ publishing.Actor, session, s
 	f.oauthSession = session
 	f.oauthProvider = provider
 	f.oauthOptions = options
+	f.oauthStatus = socialoauthstart.ExchangeStatusPENDING
 	return nil
+}
+
+func (f *fakeStore) PrepareOAuth(_ context.Context, _ publishing.Actor, _, _ string, options publishing.OAuthStartOptions) (string, error) {
+	if f.authError != nil {
+		return "", f.authError
+	}
+	if err := publishing.ValidateOAuthStartOptions(options); err != nil {
+		return "", err
+	}
+	return "", nil
 }
 
 func TestSocialOAuthCreationBindsOwnerAndRejectsMixedIntent(t *testing.T) {

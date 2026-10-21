@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
@@ -239,36 +240,8 @@ func (s *Server) beginSocialOAuth(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "this provider does not accept an instance server")
 		return
 	}
-	var socialSetID *string
-	if input.SocialSetID != "" {
-		if s.configuration == nil {
-			writeError(w, http.StatusServiceUnavailable, "social sets are unavailable")
-			return
-		}
-		if err := s.configuration.AuthorizeSocialSetConnection(r.Context(), workspaceActor(r), input.SocialSetID); err != nil {
-			writeStoreError(w, err)
-			return
-		}
-		socialSetID = &input.SocialSetID
-	}
-	options := publishing.OAuthStartOptions{SocialSetID: socialSetID, ReturnPath: input.ReturnPath,
-		Operation: input.Operation, CreationVisibility: input.CreationVisibility}
-	if input.ExpectedConnectionID != "" {
-		options.ExpectedConnectionID = &input.ExpectedConnectionID
-	}
-	if err := publishing.ValidateOAuthStartOptions(options); err != nil {
-		writeError(w, http.StatusBadRequest, "choose one connection operation and its owner or target")
-		return
-	}
-	if options.Operation == "CREATE_SET" && s.configuration != nil {
-		if err := s.configuration.RequireChannel(r.Context(), actor.Organization, ""); err != nil {
-			writeStoreError(w, err)
-			return
-		}
-	}
-	binding, err := s.store.Binding(r.Context(), actor.Organization)
-	if err != nil {
-		writeStoreError(w, err)
+	options, binding, _, ok := s.prepareConnectionStart(w, r, actor, sessionID, input)
+	if !ok {
 		return
 	}
 	if s.verifier == nil {
@@ -399,4 +372,45 @@ func writeOAuthStoreError(w http.ResponseWriter, err error) {
 		return
 	}
 	writeStoreError(w, err)
+}
+
+func (s *Server) prepareConnectionStart(w http.ResponseWriter, r *http.Request, actor publishing.Actor, sessionID string, input oauthRequest) (publishing.OAuthStartOptions, *ent.SocialTenantBinding, string, bool) {
+	var socialSetID *string
+	if input.SocialSetID != "" {
+		if s.configuration == nil {
+			writeError(w, http.StatusServiceUnavailable, "social sets are unavailable")
+			return publishing.OAuthStartOptions{}, nil, "", false
+		}
+		if err := s.configuration.AuthorizeSocialSetConnection(r.Context(), workspaceActor(r), input.SocialSetID); err != nil {
+			writeStoreError(w, err)
+			return publishing.OAuthStartOptions{}, nil, "", false
+		}
+		socialSetID = &input.SocialSetID
+	}
+	options := publishing.OAuthStartOptions{SocialSetID: socialSetID, ReturnPath: input.ReturnPath,
+		Operation: input.Operation, CreationVisibility: input.CreationVisibility}
+	if input.ExpectedConnectionID != "" {
+		options.ExpectedConnectionID = &input.ExpectedConnectionID
+	}
+	if err := publishing.ValidateOAuthStartOptions(options); err != nil {
+		writeError(w, http.StatusBadRequest, "choose one connection operation and its owner or target")
+		return publishing.OAuthStartOptions{}, nil, "", false
+	}
+	if options.Operation == "CREATE_SET" && s.configuration != nil {
+		if err := s.configuration.RequireChannel(r.Context(), actor.Organization, ""); err != nil {
+			writeStoreError(w, err)
+			return publishing.OAuthStartOptions{}, nil, "", false
+		}
+	}
+	expected, err := s.store.PrepareOAuth(r.Context(), actor, sessionID, input.Provider, options)
+	if err != nil {
+		writeStoreError(w, err)
+		return publishing.OAuthStartOptions{}, nil, "", false
+	}
+	binding, err := s.store.Binding(r.Context(), actor.Organization)
+	if err != nil {
+		writeStoreError(w, err)
+		return publishing.OAuthStartOptions{}, nil, "", false
+	}
+	return options, binding, expected, true
 }

@@ -9,6 +9,7 @@ import * as approvals from '@/lib/api/contracts/approvals'
 import * as assets from '@/lib/api/contracts/assets'
 import * as audit from '@/lib/api/contracts/audit'
 import * as billing from '@/lib/api/contracts/billing'
+import * as blueskyConnections from '@/lib/api/contracts/bluesky-connections'
 import * as campaigns from '@/lib/api/contracts/campaigns'
 import * as canvases from '@/lib/api/contracts/canvases'
 import * as contentDrafts from '@/lib/api/contracts/content-drafts'
@@ -48,6 +49,7 @@ const contracts = new Map<string, RouteContract>(
     assets,
     audit,
     billing,
+    blueskyConnections,
     campaigns,
     canvases,
     contentDraftPlatform,

@@ -756,6 +756,230 @@
         ]
       }
     },
+    "/api/v1/bluesky-connection-attempts": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Creates a single-use, session-bound Bluesky connection attempt for an owner or admin. No social set is created yet. Reconnect retains the original account identity. Each call creates a new attempt; do not retry a lost begin response automatically. API keys cannot connect accounts.",
+        "operationId": "beginBlueskyConnection",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlueskyConnectionBeginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A persisted credential attempt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueskyConnectionBeginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ownership or connection target.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target is unavailable to this person.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The provider slot, account or plan conflicts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The write quota is exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceQuotaError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bluesky connections are unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Start a Bluesky connection",
+        "tags": [
+          "Publishing"
+        ]
+      }
+    },
+    "/api/v1/bluesky-connection-attempts/connect": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Verifies a dedicated app password and commits the account to the original authorized social set. Credentials belong only in this POST body and must never be logged or persisted by clients. Omit credentials to recover a saved result after interruption. An uncertain external exchange returns a conflict and is not automatically retried. The backend rechecks the original session, workspace and target before committing.",
+        "operationId": "completeBlueskyConnection",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlueskyConnectionCompleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified account and social-set association completed or recovered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueskyConnectionCompleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid handle, app-password format or state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The original session or authority is no longer valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The original target is no longer available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Account mismatch, ownership conflict or uncertain external result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The write quota is exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceQuotaError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The adapter is unavailable; a saved result can be checked later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Complete or recover a Bluesky connection",
+        "tags": [
+          "Publishing"
+        ]
+      }
+    },
     "/api/v1/releases": {
       "get": {
         "x-shots-entitlement": {
@@ -10271,11 +10495,6 @@
       "SocialConnectionAttemptRequest": {
         "type": "object",
         "properties": {
-          "instanceServer": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2048
-          },
           "operation": {
             "type": "string",
             "enum": [
@@ -10300,6 +10519,11 @@
             "type": "string",
             "pattern": "^\\/(?:workspace\\/social-sets|write)\\/[a-z0-9]{10,32}$"
           },
+          "socialSetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
           "provider": {
             "type": "string",
             "enum": [
@@ -10312,10 +10536,10 @@
               "mastodon-custom"
             ]
           },
-          "socialSetId": {
+          "instanceServer": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 160
+            "maxLength": 2048
           }
         },
         "required": [
@@ -10334,6 +10558,138 @@
         },
         "required": [
           "url"
+        ],
+        "additionalProperties": false
+      },
+      "BlueskyConnectionBeginRequest": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "CREATE_SET",
+              "ADD_ACCOUNT",
+              "RECONNECT"
+            ]
+          },
+          "creationVisibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "WORKSPACE"
+            ]
+          },
+          "expectedConnectionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "returnPath": {
+            "type": "string",
+            "pattern": "^\\/(?:workspace\\/social-sets|write)\\/[a-z0-9]{10,32}$"
+          },
+          "socialSetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "operation"
+        ],
+        "additionalProperties": false
+      },
+      "BlueskyConnectionBeginResponse": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{32,512}$"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "BlueskyConnectionCompleteRequest": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{32,512}$"
+          },
+          "credentials": {
+            "type": "object",
+            "properties": {
+              "handle": {
+                "type": "string"
+              },
+              "appPassword": {
+                "type": "string",
+                "pattern": "^[a-z0-9]{4}(-[a-z0-9]{4}){3}$"
+              }
+            },
+            "required": [
+              "handle",
+              "appPassword"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "BlueskyConnectionCompleteResponse": {
+        "type": "object",
+        "properties": {
+          "completed": {
+            "type": "boolean",
+            "const": true
+          },
+          "connectionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "socialSetId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "organizationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "returnPath": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": ""
+              },
+              {
+                "type": "string",
+                "pattern": "^\\/(?:workspace\\/social-sets|write)\\/[a-z0-9]{10,32}$"
+              }
+            ]
+          }
+        },
+        "required": [
+          "completed",
+          "connectionId",
+          "socialSetId",
+          "organizationId",
+          "returnPath"
         ],
         "additionalProperties": false
       },

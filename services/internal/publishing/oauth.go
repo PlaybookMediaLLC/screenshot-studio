@@ -34,30 +34,10 @@ func (r *Repository) StartOAuth(ctx context.Context, actor Actor, sessionID, sta
 	if err := lockOAuthAuthority(ctx, tx, actor, sessionID); err != nil {
 		return err
 	}
-	if err := authorizeOAuthTarget(ctx, tx.Client(), actor, options.SocialSetID); err != nil {
+	if _, err := validateOAuthIntent(ctx, tx.Client(), actor, provider, options); err != nil {
 		return err
 	}
 	operation := oauthOperation(options)
-	if operation == socialoauthstart.OperationCREATE_SET {
-		if err := authorizeOAuthCreation(ctx, tx.Client(), actor); err != nil {
-			return err
-		}
-		if err := workspaceplan.RequireChannel(ctx, tx.Client(), actor.Organization, ""); err != nil {
-			return err
-		}
-	}
-	if options.ExpectedConnectionID != nil {
-		connection, err := tx.ChannelConnection.Query().Where(channelconnection.ID(*options.ExpectedConnectionID), channelconnection.OrganizationID(actor.Organization)).Only(ctx)
-		if ent.IsNotFound(err) {
-			return ErrNotFound
-		}
-		if err != nil {
-			return err
-		}
-		if connection.Platform != provider || connection.SocialSetID == nil || options.SocialSetID == nil || *connection.SocialSetID != *options.SocialSetID {
-			return ErrConflict
-		}
-	}
 	_, err = tx.SocialOAuthStart.Create().
 		SetID(state).SetOrganizationID(actor.Organization).SetUserID(actor.UserID).SetSessionID(sessionID).
 		SetProvider(provider).SetSecretReference(secretReference).SetNillableSocialSetID(options.SocialSetID).
@@ -165,6 +145,9 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 	if start.ExchangeStatus != socialoauthstart.ExchangeStatusEXCHANGED {
 		return nil, ErrOAuthExchangeUncertain
 	}
+	if provider == "bluesky" && start.ExchangeReceipt.Account.Validate(provider, integrationID) != nil {
+		return nil, ErrConflict
+	}
 	if err := workspaceplan.RequireChannel(ctx, tx.Client(), actor.Organization, integrationID); err != nil {
 		return nil, err
 	}
@@ -226,6 +209,15 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 		return nil, ErrConflict
 	} else if connection, err = reconnect(ctx, tx, actor, connection, start.SocialSetID); err != nil {
 		return nil, err
+	}
+	if account := start.ExchangeReceipt.Account; account != nil {
+		if account.Validate(provider, integrationID) != nil {
+			return nil, ErrConflict
+		}
+		connection, err = tx.ChannelConnection.UpdateOne(connection).SetDisplayName(account.Name).SetHandle(account.Handle).SetAvatarURL(account.AvatarURL).Save(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
 	completed := tx.SocialOAuthStart.UpdateOneID(state).SetExchangeStatus(socialoauthstart.ExchangeStatusCOMPLETED).
 		SetCompletedConnectionID(connection.ID).SetCompletedAt(time.Now().UTC())

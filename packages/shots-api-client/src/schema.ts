@@ -132,6 +132,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bluesky-connection-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a Bluesky connection
+         * @description Creates a single-use, session-bound Bluesky connection attempt for an owner or admin. No social set is created yet. Reconnect retains the original account identity. Each call creates a new attempt; do not retry a lost begin response automatically. API keys cannot connect accounts.
+         */
+        post: operations["beginBlueskyConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bluesky-connection-attempts/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete or recover a Bluesky connection
+         * @description Verifies a dedicated app password and commits the account to the original authorized social set. Credentials belong only in this POST body and must never be logged or persisted by clients. Omit credentials to recover a saved result after interruption. An uncertain external exchange returns a conflict and is not automatically retried. The backend rechecks the original session, workspace and target before committing.
+         */
+        post: operations["completeBlueskyConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/releases": {
         parameters: {
             query?: never;
@@ -1118,20 +1158,47 @@ export interface components {
             authorizationEnabled: boolean;
         };
         SocialConnectionAttemptRequest: {
-            instanceServer?: string;
             /** @enum {string} */
             operation: "CREATE_SET" | "ADD_ACCOUNT" | "RECONNECT";
             /** @enum {string} */
             creationVisibility?: "PRIVATE" | "WORKSPACE";
             expectedConnectionId?: string;
             returnPath?: string;
+            socialSetId?: string;
             /** @enum {string} */
             provider: "x" | "instagram" | "instagram-standalone" | "linkedin" | "threads" | "mastodon" | "mastodon-custom";
-            socialSetId?: string;
+            instanceServer?: string;
         };
         SocialConnectionAttemptResponse: {
             /** Format: uri */
             url: string;
+        };
+        BlueskyConnectionBeginRequest: {
+            /** @enum {string} */
+            operation: "CREATE_SET" | "ADD_ACCOUNT" | "RECONNECT";
+            /** @enum {string} */
+            creationVisibility?: "PRIVATE" | "WORKSPACE";
+            expectedConnectionId?: string;
+            returnPath?: string;
+            socialSetId?: string;
+        };
+        BlueskyConnectionBeginResponse: {
+            state: string;
+        };
+        BlueskyConnectionCompleteRequest: {
+            state: string;
+            credentials?: {
+                handle: string;
+                appPassword: string;
+            };
+        };
+        BlueskyConnectionCompleteResponse: {
+            /** @constant */
+            completed: true;
+            connectionId: string;
+            socialSetId: string | null;
+            organizationId: string;
+            returnPath: "" | string;
         };
         ReleaseListResponse: {
             releases: {
@@ -3160,6 +3227,180 @@ export interface operations {
                 };
             };
             /** @description The provider or a required connection service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    beginBlueskyConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlueskyConnectionBeginRequest"];
+            };
+        };
+        responses: {
+            /** @description A persisted credential attempt. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlueskyConnectionBeginResponse"];
+                };
+            };
+            /** @description Invalid ownership or connection target. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The target is unavailable to this person. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The provider slot, account or plan conflicts. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The write quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description Bluesky connections are unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    completeBlueskyConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlueskyConnectionCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Verified account and social-set association completed or recovered. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlueskyConnectionCompleteResponse"];
+                };
+            };
+            /** @description Invalid handle, app-password format or state. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The original session or authority is no longer valid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The original target is no longer available. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Account mismatch, ownership conflict or uncertain external result. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The write quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description The adapter is unavailable; a saved result can be checked later. */
             503: {
                 headers: {
                     [name: string]: unknown;

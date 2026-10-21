@@ -3,6 +3,8 @@ package schema
 import (
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
+
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
@@ -58,7 +60,8 @@ type SocialOAuthPage struct {
 
 // SocialOAuthExchange is the safe result of consuming one provider callback.
 type SocialOAuthExchange struct {
-	Completed bool              `json:"completed,omitempty"`
-	ID        string            `json:"id"`
-	Pages     []SocialOAuthPage `json:"pages,omitempty"`
+	Completed bool                       `json:"completed,omitempty"`
+	ID        string                     `json:"id"`
+	Pages     []SocialOAuthPage          `json:"pages,omitempty"`
+	Account   *socialidentity.Connection `json:"account,omitempty"`
 }

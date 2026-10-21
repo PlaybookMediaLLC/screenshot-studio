@@ -32,6 +32,7 @@ type Store interface {
 	AuthorizeAPIKeyScope(context.Context, string, string, string) error
 	Binding(context.Context, string) (*ent.SocialTenantBinding, error)
 	StartOAuth(context.Context, publishing.Actor, string, string, string, string, publishing.OAuthStartOptions) error
+	PrepareOAuth(context.Context, publishing.Actor, string, string, publishing.OAuthStartOptions) (string, error)
 	AuthorizeSession(context.Context, string, string) (*ent.Session, error)
 	ResolveOAuthContext(context.Context, string, string, string, string) (*publishing.OAuthContext, error)
 	ClaimOAuthExchange(context.Context, publishing.Actor, string, string, string) (*schema.SocialOAuthExchange, error)
@@ -268,6 +269,8 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 	mux.Handle("POST /v1/channel-connections", s.authenticate(http.HandlerFunc(s.createConnection)))
 	mux.Handle("POST /v1/social-oauth/context", s.authenticateOAuthCallback(http.HandlerFunc(s.socialOAuthContext)))
 	mux.Handle("POST /v1/social-oauth/begin", s.authenticate(http.HandlerFunc(s.beginSocialOAuth)))
+	mux.Handle("POST /v1/social-connections/bluesky/begin", s.authenticate(http.HandlerFunc(s.beginBluesky)))
+	mux.Handle("POST /v1/social-connections/bluesky/connect", s.authenticateOAuthCallback(http.HandlerFunc(s.connectBluesky)))
 	mux.Handle("POST /v1/social-oauth/exchange", s.authenticateOAuthCallback(http.HandlerFunc(s.exchangeSocialOAuth)))
 	mux.Handle("POST /v1/social-oauth/page", s.authenticateOAuthCallback(http.HandlerFunc(s.selectSocialOAuthPage)))
 	mux.Handle("POST /v1/social-oauth/verify", s.authenticateOAuthCallback(http.HandlerFunc(s.verifySocialOAuth)))

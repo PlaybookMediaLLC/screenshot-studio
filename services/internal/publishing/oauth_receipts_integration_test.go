@@ -15,6 +15,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	"github.com/lucsky/cuid"
 )
 
@@ -387,4 +388,54 @@ func TestOAuthReceiptsKeepOriginalContextAndIdentity(t *testing.T) {
 			t.Fatalf("failed commitment consumed receipt: %+v %v", start, err)
 		}
 	})
+	t.Run("Bluesky proof and profile commit with the original private set", func(t *testing.T) {
+		exec(`UPDATE session SET "activeOrganizationId"=$2 WHERE id=$1`, sessionID, org)
+		state, external := cuid.New(), cuid.New()
+		opts := OAuthStartOptions{Operation: "CREATE_SET", CreationVisibility: "PRIVATE"}
+		if _, err := repo.PrepareOAuth(ctx, actor, sessionID, "bluesky", opts); err != nil {
+			t.Fatal(err)
+		}
+		if err := repo.StartOAuth(ctx, actor, sessionID, state, "bluesky", "SOCIAL_OAUTH_FIXTURE", opts); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.ClaimOAuthExchange(ctx, actor, sessionID, state, "bluesky"); err != nil {
+			t.Fatal(err)
+		}
+		if err := repo.SaveOAuthExchange(ctx, actor, sessionID, state, "bluesky", schema.SocialOAuthExchange{ID: external}); !errors.Is(err, ErrConflict) {
+			t.Fatal("unverified Bluesky receipt accepted")
+		}
+		did, now := "did:plc:abcdefghijklmnopqrstuvwx", time.Now()
+		account := &socialidentity.Connection{ID: external, Provider: "bluesky", NativeID: did, Name: "Verified profile", Handle: "me.bsky.social", Active: true, VerifiedAt: &now,
+			Verification: &socialidentity.Verification{AccountKey: "bluesky:" + did, AccountKind: "profile", GrantedScopes: []string{"com.atproto.appPass"}, Capabilities: socialidentity.Capabilities{Version: 1, Bluesky: &socialidentity.BlueskyCapabilities{MaxTextGraphemes: 300, MaxTextBytes: 3000, MaxImages: 4, ImageMaxBytes: 2000000, MaxVideos: 1, VideoMaxBytes: 300000000}}}}
+		if err := repo.SaveOAuthExchange(ctx, actor, sessionID, state, "bluesky", schema.SocialOAuthExchange{ID: external, Account: account}); err != nil {
+			t.Fatal(err)
+		}
+		exec(`UPDATE session SET "activeOrganizationId"=$2 WHERE id=$1`, sessionID, other)
+		connection, err := repo.FinishOAuth(ctx, actor, sessionID, state, "bluesky", external)
+		if err != nil || connection.OrganizationID != org || connection.SocialSetID == nil || connection.DisplayName == nil || *connection.DisplayName != account.Name || connection.Handle == nil || *connection.Handle != account.Handle {
+			t.Fatalf("verified profile did not commit: %v", err)
+		}
+		stored := db.Client.SocialOAuthStart.GetX(ctx, state)
+		if stored.ExchangeReceipt.Account == nil || stored.ExchangeReceipt.Account.NativeID != did || stored.ExchangeReceipt.Account.Verification.AccountKey != "bluesky:"+did {
+			t.Fatal("native identity proof was not retained in durable receipt")
+		}
+		replayed, err := repo.FinishOAuth(ctx, actor, sessionID, state, "bluesky", external)
+		if err != nil || replayed.ID != connection.ID {
+			t.Fatal("Bluesky completion replay duplicated identity")
+		}
+		exec(`UPDATE session SET "activeOrganizationId"=$2 WHERE id=$1`, sessionID, org)
+		reconnect := OAuthStartOptions{Operation: "RECONNECT", SocialSetID: connection.SocialSetID, ExpectedConnectionID: &connection.ID}
+		if original, err := repo.PrepareOAuth(ctx, actor, sessionID, "bluesky", reconnect); err != nil || original != external {
+			t.Fatal("reconnect preparation lost adapter identity")
+		}
+		if _, err := repo.PrepareOAuth(ctx, actor, sessionID, "x", reconnect); !errors.Is(err, ErrConflict) {
+			t.Fatal("reconnect accepted another provider")
+		}
+		exec(`UPDATE member SET role='viewer' WHERE "organizationId"=$1 AND "userId"=$2`, org, user)
+		if _, err := repo.PrepareOAuth(ctx, actor, sessionID, "bluesky", reconnect); !errors.Is(err, ErrForbidden) {
+			t.Fatal("revoked authority prepared reconnect")
+		}
+		exec(`UPDATE member SET role='admin' WHERE "organizationId"=$1 AND "userId"=$2`, org, user)
+	})
+
 }

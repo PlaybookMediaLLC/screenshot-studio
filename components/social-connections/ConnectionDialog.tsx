@@ -15,6 +15,7 @@ import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { settingsErrorMessage } from '@/lib/settings/client'
 import type { ConnectionLauncherProps } from './ConnectionLauncher'
 import { MastodonServer } from './MastodonServer'
+import { BlueskyForm } from './BlueskyForm'
 
 const providers = [
   { id: 'x', label: 'X / Twitter' },
@@ -123,11 +124,6 @@ function ProviderForm({
           >
             Substack API information
           </a>
-        </p>
-      ) : provider === 'bluesky' ? (
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Bluesky uses a handle and an app password. This connection method is not available in this
-          dialog yet.
         </p>
       ) : (
         <>
@@ -319,12 +315,14 @@ export default function ConnectionDialog({
             })}
           </div>
         </>
+      ) : provider === 'bluesky' ? (
+        <BlueskyForm intent={intent} target={target} />
       ) : (
         <ProviderForm key={provider} provider={provider} intent={intent} target={target} />
       )}
       {provider ? (
         <Button type="button" variant="ghost" onClick={close}>
-          Close
+          {provider === 'bluesky' ? 'Cancel' : 'Close'}
         </Button>
       ) : null}
     </DialogContent>

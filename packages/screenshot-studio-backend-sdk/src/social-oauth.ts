@@ -27,19 +27,11 @@ export const socialOAuthStartOptionsSchema = z.strictObject({
     .optional(),
 })
 
-/** A first connection requires explicit ownership and cannot also target an existing set. */
-export const socialOAuthBeginRequestSchema = socialOAuthStartOptionsSchema
-  .extend({
-    provider: socialOAuthProviderSchema,
-    socialSetId: z.string().min(1).max(160).optional(),
-  })
+/** One immutable creation, addition or reconnect target shared by connection methods. */
+export const socialConnectionIntentSchema = socialOAuthStartOptionsSchema
+  .omit({ instanceServer: true })
+  .extend({ socialSetId: z.string().min(1).max(160).optional() })
   .superRefine((input, context) => {
-    if ((input.provider === 'mastodon-custom') !== !!input.instanceServer)
-      context.addIssue({
-        code: 'custom',
-        path: ['instanceServer'],
-        message: 'Choose a public Mastodon server only for a custom Mastodon connection.',
-      })
     const operation = input.operation ?? (input.expectedConnectionId ? 'RECONNECT' : 'ADD_ACCOUNT')
     const valid =
       operation === 'CREATE_SET'
@@ -51,6 +43,21 @@ export const socialOAuthBeginRequestSchema = socialOAuthStartOptionsSchema
       context.addIssue({
         code: 'custom',
         message: 'Choose one connection operation and its owner or target.',
+      })
+  })
+
+/** A first OAuth connection requires explicit ownership and a provider-specific server. */
+export const socialOAuthBeginRequestSchema = socialConnectionIntentSchema
+  .safeExtend({
+    provider: socialOAuthProviderSchema,
+    instanceServer: socialInstanceServerSchema.optional(),
+  })
+  .superRefine((input, context) => {
+    if ((input.provider === 'mastodon-custom') !== !!input.instanceServer)
+      context.addIssue({
+        code: 'custom',
+        path: ['instanceServer'],
+        message: 'Choose a public Mastodon server only for a custom Mastodon connection.',
       })
   })
 

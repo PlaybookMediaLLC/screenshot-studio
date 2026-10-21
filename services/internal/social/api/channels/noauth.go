@@ -71,13 +71,10 @@ func (h *noAuthIntegrationsController) get(ctx context.Context, key string) (str
 	return value, err
 }
 
-// take reads a key and deletes it when it was set.
+// take consumes a key atomically, including credential and callback state.
 func (h *noAuthIntegrationsController) take(ctx context.Context, key string) (string, error) {
-	value, err := h.get(ctx, key)
-	if err != nil || value == "" {
-		return value, err
-	}
-	return value, h.store.Del(ctx, key)
+	value, _, err := h.store.Take(ctx, key)
+	return value, err
 }
 
 func authError(message string) integrations.AuthTokenDetails {
@@ -110,15 +107,11 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 	_, isExternal := provider.(integrations.ExternalURLer)
 	info := provider.Info()
 
-	codeVerifier := "none"
-	if !hasCustomFields {
-		var err error
-		if codeVerifier, err = h.get(ctx, "login:"+body.State); err != nil {
-			return nil, err
-		}
+	boundProvider, err := h.get(ctx, "connection-provider:"+body.State)
+	if err != nil {
+		return nil, err
 	}
-	if codeVerifier == "" {
-		// The state expires after an hour and is deleted once used (page reload)
+	if boundProvider != name {
 		return nil, httpx.HTTPException("This connection link expired or was already used, please connect the channel again", http.StatusBadRequest)
 	}
 
@@ -137,10 +130,14 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 		return nil, errors.New("Organization not found")
 	}
 
-	if !hasCustomFields {
-		if err := h.store.Del(ctx, "login:"+body.State); err != nil {
-			return nil, err
-		}
+	// Credential forms need the same one-use exchange boundary as OAuth codes.
+	// Consume before touching any provider or per-attempt credential state.
+	codeVerifier, err := h.take(ctx, "login:"+body.State)
+	if err != nil {
+		return nil, err
+	}
+	if codeVerifier == "" {
+		return nil, httpx.HTTPException("This connection link expired or was already used, please connect the channel again", http.StatusBadRequest)
 	}
 
 	details := ""
@@ -167,6 +164,9 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 	}
 	if auth.ID == "" {
 		return nil, &integrations.NotEnoughScopes{Message: "Invalid API key"}
+	}
+	if auth.CredentialDetails != nil && refresh != "" && auth.ID != refresh {
+		return nil, &integrations.NotEnoughScopes{Message: "Choose the same account already connected to this social set."}
 	}
 
 	validName := auth.Name

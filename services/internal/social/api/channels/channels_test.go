@@ -119,6 +119,7 @@ func (f *fixture) noAuth() {
 func (f *fixture) state(t *testing.T) {
 	t.Helper()
 	_ = f.store.Set(f.ctx, "login:state1", "verifier", 0)
+	_ = f.store.Set(f.ctx, "connection-provider:state1", f.provider.id, 0)
 	_ = f.store.Set(f.ctx, "organization:state1", f.org.ID, 0)
 	_ = f.store.Set(f.ctx, "redirect:state1", "https://app/back", 0)
 }

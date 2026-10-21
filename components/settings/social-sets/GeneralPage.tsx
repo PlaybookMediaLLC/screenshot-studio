@@ -31,7 +31,7 @@ import {
 } from './api'
 import { SET_COLORS } from './colors'
 import { ConnectionLauncher } from '@/components/social-connections/ConnectionLauncher'
-import { socialOAuthProviderSchema } from 'screenshot-studio-backend-sdk'
+import { socialConnectionProviderSchema } from 'screenshot-studio-backend-sdk'
 import type { SetPermissions } from './SocialSetSettings'
 
 function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRecord }) {
@@ -121,7 +121,7 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
       <ul className="grid gap-2">
         {set.accounts.map((account) => {
           const channel = channelForPlatform(account.platform)
-          const provider = socialOAuthProviderSchema.safeParse(providerFor(account.platform))
+          const provider = socialConnectionProviderSchema.safeParse(providerFor(account.platform))
           const healthy = account.health === 'connected'
           const name = account.displayName ?? account.handle ?? account.platform
           return (

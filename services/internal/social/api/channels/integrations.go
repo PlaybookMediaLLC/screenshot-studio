@@ -330,6 +330,9 @@ func (h *integrationsController) getIntegrationURL(c *httpx.Ctx) (any, error) {
 		if err := h.store.Set(ctx, "organization:"+state, c.Org.ID, stateTTL); err != nil {
 			return "", err
 		}
+		if err := h.store.Set(ctx, "connection-provider:"+state, target, stateTTL); err != nil {
+			return "", err
+		}
 		if err := h.store.Set(ctx, "login:"+state, generated.CodeVerifier, stateTTL); err != nil {
 			return "", err
 		}

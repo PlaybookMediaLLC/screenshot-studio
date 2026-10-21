@@ -136,10 +136,11 @@ func enterpriseURL(ctx context.Context, params string, manager *integrations.Man
 		}
 	}
 	for key, value := range map[string]string{
-		"webhookUrl:":   str(load, "webhookUrl"),
-		"redirect:":     redirectURL,
-		"organization:": org.ID,
-		"login:":        auth.CodeVerifier,
+		"webhookUrl:":          str(load, "webhookUrl"),
+		"redirect:":            redirectURL,
+		"organization:":        org.ID,
+		"connection-provider:": provider,
+		"login:":               auth.CodeVerifier,
 	} {
 		if err := store.Set(ctx, key+auth.State, value, time.Hour); err != nil {
 			return "", err

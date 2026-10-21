@@ -3,7 +3,10 @@
 import dynamic from 'next/dynamic'
 import { useState, type ReactNode } from 'react'
 import type { z } from 'zod'
-import type { socialOAuthBeginRequestSchema } from 'screenshot-studio-backend-sdk'
+import type {
+  socialOAuthBeginRequestSchema,
+  socialConnectionProviderSchema,
+} from 'screenshot-studio-backend-sdk'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { useSocialSetScope } from '@/components/settings/social-sets/scope'
 import type { SocialSetRecord } from '@/components/settings/social-sets/api'
@@ -15,7 +18,7 @@ export type ConnectionLauncherProps = {
   children: ReactNode
   intent: Omit<z.input<typeof socialOAuthBeginRequestSchema>, 'provider'>
   target?: Pick<SocialSetRecord, 'name' | 'accounts'>
-  initialProvider?: z.input<typeof socialOAuthBeginRequestSchema>['provider']
+  initialProvider?: z.input<typeof socialConnectionProviderSchema>
 }
 
 function Launcher(props: ConnectionLauncherProps) {

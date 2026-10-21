@@ -1,4 +1,17 @@
-import { socialOAuthBeginRequestSchema, socialOAuthBeginResponseSchema, socialOAuthContextSchema, socialOAuthExchangeSchema } from './social-oauth.ts'
+import {
+  socialOAuthBeginRequestSchema,
+  socialOAuthBeginResponseSchema,
+  socialOAuthContextSchema,
+  socialOAuthExchangeSchema,
+} from './social-oauth.ts'
+import {
+  blueskyConnectionBeginSchema,
+  blueskyConnectionBeginResponseSchema,
+  blueskyConnectionCompleteSchema,
+  blueskyConnectionCompleteResponseSchema,
+} from './bluesky-connections.ts'
+import type { BlueskyConnectionBegin, BlueskyConnectionComplete } from './bluesky-connections.ts'
+export * from './bluesky-connections.ts'
 import { mastodonInstanceSchema, socialInstanceQuerySchema } from './social-instances.ts'
 export * from './social-instances.ts'
 import type { OAuthProvider, SocialOAuthStartOptions } from './social-oauth.js'
@@ -189,7 +202,6 @@ export type ChannelConnection = {
   displayName?: string | null
   handle?: string | null
 }
-
 
 export type BrandKit = {
   id: string
@@ -2053,18 +2065,47 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Begins a provider connection; with a set, the account joins that set (RFC 043). */
-  async beginSocialOAuth(provider: OAuthProvider, socialSetId?: string, options: SocialOAuthStartOptions = {}) {
-    return socialOAuthBeginResponseSchema.parse(await this.request('v1/social-oauth/begin', {
-      body: socialOAuthBeginRequestSchema.parse({ provider, socialSetId, ...options }),
-      method: 'POST',
-    }))
+  async beginSocialOAuth(
+    provider: OAuthProvider,
+    socialSetId?: string,
+    options: SocialOAuthStartOptions = {}
+  ) {
+    return socialOAuthBeginResponseSchema.parse(
+      await this.request('v1/social-oauth/begin', {
+        body: socialOAuthBeginRequestSchema.parse({ provider, socialSetId, ...options }),
+        method: 'POST',
+      })
+    )
+  }
+
+  /** Create a session-bound Bluesky attempt without sending credentials. */
+  async beginBlueskyConnection(input: BlueskyConnectionBegin) {
+    return blueskyConnectionBeginResponseSchema.parse(
+      await this.request('v1/social-connections/bluesky/begin', {
+        method: 'POST',
+        body: blueskyConnectionBeginSchema.parse(input),
+      })
+    )
+  }
+
+  /** Submit credentials once or recover the attempt without resending them. */
+  async completeBlueskyConnection(input: BlueskyConnectionComplete) {
+    return blueskyConnectionCompleteResponseSchema.parse(
+      await this.request('v1/social-connections/bluesky/connect', {
+        method: 'POST',
+        body: blueskyConnectionCompleteSchema.parse(input),
+      })
+    )
   }
 
   /** Resolve a session-bound attempt independently of the selected workspace. */
   async resolveSocialOAuthContext(provider: OAuthProvider, state: string) {
-    return socialOAuthContextSchema.parse(await this.request('v1/social-oauth/context', {
-      body: { provider, state }, method: 'POST',
-    }))
+    return socialOAuthContextSchema.parse(
+      await this.request('v1/social-oauth/context', {
+        body: { provider, state },
+        method: 'POST',
+      })
+    )
   }
 
   async verifySocialOAuth(provider: OAuthProvider, state: string, integrationId?: string) {
@@ -2075,10 +2116,12 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async exchangeSocialOAuth(provider: OAuthProvider, state: string, code: string) {
-    return socialOAuthExchangeSchema.parse(await this.request('v1/social-oauth/exchange', {
-      body: { provider, state, code },
-      method: 'POST',
-    }))
+    return socialOAuthExchangeSchema.parse(
+      await this.request('v1/social-oauth/exchange', {
+        body: { provider, state, code },
+        method: 'POST',
+      })
+    )
   }
 
   async selectInstagramOAuthPage(input: {

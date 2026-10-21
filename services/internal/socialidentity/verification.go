@@ -30,10 +30,10 @@ type Capabilities struct {
 // Verification is produced only after the adapter verifies the remote account and grants.
 // AccountKey is immutable identity; handles and names never participate in this binding.
 type Verification struct {
-	AccountKey    string
-	AccountKind   string
-	GrantedScopes []string
-	Capabilities  Capabilities
+	AccountKey    string       `json:"accountKey"`
+	AccountKind   string       `json:"accountKind"`
+	GrantedScopes []string     `json:"grantedScopes"`
+	Capabilities  Capabilities `json:"capabilities"`
 }
 
 var ErrInvalid = errors.New("provider identity or publishing capabilities could not be verified")

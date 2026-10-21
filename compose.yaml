@@ -181,6 +181,8 @@ services:
       PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
       PLATFORM_CREATIVE_SETS: ${PLATFORM_CREATIVE_SETS:-internal}
       SOCIAL_API_URL: ${SOCIAL_API_URL:-http://screenshot-studio-backend:3000/public/v1}
+      # Enable only after a disposable live Bluesky connection has been verified.
+      PLATFORM_SOCIAL_BLUESKY_ENABLED: ${PLATFORM_SOCIAL_BLUESKY_ENABLED:-false}
       # Set by bin/social-gate for its isolated Go destination.
       SOCIAL_API_KEY_GATE: ${SOCIAL_API_KEY_GATE:-}
       PUBLISHING_RETRY_DELAY: ${PUBLISHING_RETRY_DELAY:-2m}

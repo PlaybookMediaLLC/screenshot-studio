@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.33.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.2...v2.33.3) (2026-10-21)
+
+
+### Bug Fixes
+
+* prevent notification count clipping in sidebar ([#275](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/275)) ([72f2f5c](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/72f2f5c1ac9988dd3647fafa86285e5ffc6995cd))
+
 ## [2.33.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.1...v2.33.2) (2026-10-21)
 
 

@@ -2,6 +2,9 @@
 
 import { type KeyboardEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { TRPCClientError } from '@trpc/client'
+import { useQueryClient } from '@tanstack/react-query'
+import type { AppRouter } from '@/lib/trpc/router'
 import {
   AlertCircle,
   ArrowLeft,
@@ -53,7 +56,7 @@ import {
   SelectItem,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { useTRPCClient } from '@/lib/trpc/react'
+import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
 import { actionAvailability, savedGraph, WORKFLOW_SCHEMA_VERSION } from '@/lib/workflows/actions'
 import { releaseExample } from '@/lib/workflows/examples'
 import { getErrorMessage } from '@/components/workspace/settings-client'
@@ -90,6 +93,8 @@ export function WorkflowEditor({
   readOnly?: boolean
 }) {
   const client = useTRPCClient()
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
   const [record, setRecord] = useState(definition)
   const [graph, setGraph] = useState<AutomationGraph>(definition.draft)
   const [layout, setLayout] = useState<AutomationLayout>(definition.layout)
@@ -109,6 +114,9 @@ export function WorkflowEditor({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState('')
+  const [conflict, setConflict] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<{ field: string; message: string }[]>([])
+  const fieldError = (field: string) => fieldErrors.find((issue) => issue.field === field)?.message
   const [dirty, setDirty] = useState(!definition.id)
   const source = overview.sources.find((item) => item.id === record.sourceAppId)
   const selectedNode = graph.nodes.find((node) => node.id === selected)
@@ -271,10 +279,12 @@ export function WorkflowEditor({
       graph: savedGraph(graph),
       layout,
     })
+    setConflict(false)
     setRecord(saved)
     setGraph(saved.draft)
     setIssues(saved.issues)
     setDirty(false)
+    void queryClient.invalidateQueries({ queryKey: trpc.releaseAutomation.overview.queryKey() })
     onSaved(saved)
     setMessage(
       saved.issues.length
@@ -283,13 +293,55 @@ export function WorkflowEditor({
     )
     return saved
   }
+  async function reloadLatest() {
+    const latest = (await client.releaseAutomation.overview.query()).definitions.find(
+      (item) => item.id === record.id
+    )
+    if (!latest) throw new Error('This workflow no longer exists in this workspace.')
+    setRecord(latest)
+    setGraph(latest.draft)
+    setLayout(latest.layout)
+    setName(latest.name)
+    setDescription(latest.description)
+    setPriority(latest.priority)
+    setIssues(latest.issues)
+    setPast([])
+    setFuture([])
+    setPreview(null)
+    setVersions(null)
+    setDirty(false)
+    setConflict(false)
+    setFieldErrors([])
+    void queryClient.invalidateQueries({ queryKey: trpc.releaseAutomation.overview.queryKey() })
+    onSaved(latest)
+    setMessage(`Loaded revision ${latest.revision}.`)
+  }
   async function perform(action: () => Promise<void>) {
     setBusy(true)
     setError(null)
+    setFieldErrors([])
     try {
       await action()
     } catch (failure) {
-      setError(getErrorMessage(failure))
+      const rpcError =
+        failure instanceof TRPCClientError ? (failure as TRPCClientError<AppRouter>) : null
+      if (rpcError?.data?.code === 'CONFLICT') {
+        setConflict(true)
+        setError(
+          'This workflow was changed elsewhere. Reload to see the latest version. Your unsaved changes will be discarded when you reload.'
+        )
+      } else {
+        const errors = rpcError?.data?.fieldErrors ?? []
+        setFieldErrors(errors)
+        if (errors.some((issue) => issue.field === 'priority' || issue.field === 'description')) {
+          setPanel('workflow')
+        }
+        setError(
+          errors.length
+            ? errors.map((issue) => `${issue.field}: ${issue.message}`).join(' ')
+            : getErrorMessage(failure)
+        )
+      }
     } finally {
       setBusy(false)
     }
@@ -367,6 +419,8 @@ export function WorkflowEditor({
                 </div>
                 <Input
                   aria-label="Definition name"
+                  aria-invalid={Boolean(fieldError('name'))}
+                  aria-describedby={fieldError('name') ? 'workflow-name-error' : undefined}
                   disabled={busy || readOnly}
                   className="-ml-2 mt-1 h-8 w-[min(26rem,65vw)] border-transparent bg-transparent px-2 text-base font-semibold shadow-none hover:border-border md:text-base"
                   value={name}
@@ -376,6 +430,11 @@ export function WorkflowEditor({
                     setMessage('')
                   }}
                 />
+                {fieldError('name') ? (
+                  <p id="workflow-name-error" className="text-xs text-destructive">
+                    {fieldError('name')}
+                  </p>
+                ) : null}
                 <DialogDescription className="sr-only">
                   Build a workflow on the canvas. Configure nodes in the side panel, test a path,
                   then activate a saved version.
@@ -785,6 +844,10 @@ export function WorkflowEditor({
                       <Label className="grid gap-1.5 text-sm">
                         Description
                         <Input
+                          aria-invalid={Boolean(fieldError('description'))}
+                          aria-describedby={
+                            fieldError('description') ? 'workflow-description-error' : undefined
+                          }
                           value={description}
                           placeholder="Describe what this workflow does"
                           onChange={(event) => {
@@ -793,6 +856,14 @@ export function WorkflowEditor({
                             setMessage('')
                           }}
                         />
+                        {fieldError('description') ? (
+                          <span
+                            id="workflow-description-error"
+                            className="text-xs text-destructive"
+                          >
+                            {fieldError('description')}
+                          </span>
+                        ) : null}
                       </Label>
                       <Label className="grid gap-1.5 text-sm">
                         Priority
@@ -800,6 +871,10 @@ export function WorkflowEditor({
                           type="number"
                           min={0}
                           max={9999}
+                          aria-invalid={Boolean(fieldError('priority'))}
+                          aria-describedby={
+                            fieldError('priority') ? 'workflow-priority-error' : undefined
+                          }
                           value={priority}
                           onChange={(event) => {
                             setPriority(Number(event.target.value))
@@ -807,6 +882,11 @@ export function WorkflowEditor({
                             setMessage('')
                           }}
                         />
+                        {fieldError('priority') ? (
+                          <span id="workflow-priority-error" className="text-xs text-destructive">
+                            {fieldError('priority')}
+                          </span>
+                        ) : null}
                       </Label>
                       <p className="text-xs leading-5 text-muted-foreground">
                         Lower numbers run first for this repository and event. Ties use the
@@ -1155,6 +1235,16 @@ export function WorkflowEditor({
               <p className="w-full text-amber-600 dark:text-amber-400">
                 Activation is blocked: {unavailable[0]?.reason}
               </p>
+            ) : null}
+            {conflict ? (
+              <Button
+                disabled={busy}
+                size="sm"
+                variant="outline"
+                onClick={() => void perform(reloadLatest)}
+              >
+                Reload
+              </Button>
             ) : null}
             {error ? (
               <p role="alert" className="w-full text-destructive">

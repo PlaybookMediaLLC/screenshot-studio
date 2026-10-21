@@ -1,9 +1,16 @@
 import { initTRPC } from '@trpc/server'
 import superjson from 'superjson'
+import { ZodError } from 'zod'
+import { workflowFieldErrors } from './workflow-field-errors'
 import { getDomainTRPCError } from './errors'
 import type { TRPCContext } from './context'
 
-const t = initTRPC.context<TRPCContext>().create({ transformer: superjson })
+const t = initTRPC.context<TRPCContext>().create({
+  transformer: superjson,
+  errorFormatter({ shape, error, path }) {
+    return { ...shape, data: { ...shape.data, fieldErrors: workflowFieldErrors(error, path) } }
+  },
+})
 
 export const router = t.router
 export const middleware = t.middleware
@@ -18,6 +25,10 @@ export const createCallerFactory = t.createCallerFactory
 const domainErrorMiddleware = middleware(async ({ next }) => {
   const result = await next()
   if (!result.ok) {
+    // Response validation is a server bug, not a user input error.
+    if (result.error.code === 'INTERNAL_SERVER_ERROR' && result.error.cause instanceof ZodError) {
+      return result
+    }
     const mapped = getDomainTRPCError(result.error.cause ?? result.error)
     if (mapped && mapped !== result.error) {
       throw mapped

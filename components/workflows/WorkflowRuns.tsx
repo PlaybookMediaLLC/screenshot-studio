@@ -1,8 +1,9 @@
 'use client'
 
-import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { WorkflowRunLink } from './WorkflowRunLink'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -23,17 +24,13 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { getErrorMessage } from '@/components/workspace/settings-client'
-import {
-  automationFamilySchema,
-  type AutomationHistoryItem,
-  type AutomationOverview,
-} from '@/lib/api/contracts/release-automation'
+import { automationFamilySchema } from '@/lib/api/contracts/release-automation'
 import {
   automationHistoryFilterSchema,
   automationRunStatusSchema,
   type AutomationHistoryFilter,
 } from '@/lib/api/contracts/workflow-runs'
-import { useTRPCClient } from '@/lib/trpc/react'
+import { useTRPC } from '@/lib/trpc/react'
 import { FAMILY_NAMES } from './workflow-canvas'
 import {
   duration,
@@ -56,37 +53,30 @@ function filterFrom(params: URLSearchParams): AutomationHistoryFilter {
 
 /** Persisted run history with workflow, event, repository, status, and date filters. */
 export function WorkflowRuns() {
-  const client = useTRPCClient()
+  const trpc = useTRPC()
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
   const filter = useMemo(() => filterFrom(new URLSearchParams(params.toString())), [params])
-  const [overview, setOverview] = useState<AutomationOverview | null>(null)
-  const [items, setItems] = useState<AutomationHistoryItem[] | null>(null)
   const [cursor, setCursor] = useState<string[]>([])
-  const [error, setError] = useState<string | null>(null)
   const before = cursor.at(-1)
-
-  const load = useCallback(async () => {
-    try {
-      const [next, history] = await Promise.all([
-        client.releaseAutomation.overview.query(),
-        client.releaseAutomation.history.query({ ...filter, before }),
-      ])
-      setOverview(next)
-      setItems(history.items)
-      setError(null)
-    } catch (failure) {
-      setError(getErrorMessage(failure))
-    }
-  }, [client, filter, before])
-  useEffect(() => {
-    void load()
-    // Refresh the newest page while it is open; older pages are stable.
-    if (before) return
-    const timer = setInterval(() => void load(), 10_000)
-    return () => clearInterval(timer)
-  }, [load, before])
+  // Filter choices are independent of history filters and polling.
+  const overviewQuery = useQuery(
+    trpc.releaseAutomation.overview.queryOptions(undefined, {
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+    })
+  )
+  const historyQuery = useQuery(
+    trpc.releaseAutomation.runSummaries.queryOptions(
+      { ...filter, before },
+      { staleTime: 10_000, refetchInterval: before ? false : 10_000 }
+    )
+  )
+  const overview = overviewQuery.data
+  const items = historyQuery.data?.items
+  const queryError = overviewQuery.error ?? historyQuery.error
+  const error = queryError ? getErrorMessage(queryError) : null
 
   function setFilter(
     keys: keyof AutomationHistoryFilter | (keyof AutomationHistoryFilter)[],
@@ -197,7 +187,7 @@ export function WorkflowRuns() {
         </Alert>
       ) : null}
 
-      {items === null ? (
+      {!items ? (
         <p className="text-sm text-neutral-500" role="status">
           Loading runs…
         </p>
@@ -222,12 +212,12 @@ export function WorkflowRuns() {
               {items.map((item) => (
                 <TableRow key={item.run.id}>
                   <TableCell className="max-w-80 whitespace-normal">
-                    <Link
+                    <WorkflowRunLink
                       className="font-medium hover:underline"
                       href={`/workflows/runs/${item.run.id}`}
                     >
                       {item.event.snapshot.title}
-                    </Link>
+                    </WorkflowRunLink>
                     <p className="text-xs text-neutral-500">
                       {FAMILY_NAMES[item.event.snapshot.family]} · {triggeringObject(item)} ·{' '}
                       {item.event.snapshot.repositoryName || sourceName(item.event.sourceAppId)}

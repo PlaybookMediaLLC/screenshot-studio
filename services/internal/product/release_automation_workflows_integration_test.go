@@ -189,6 +189,7 @@ func TestAutomationHistoryFiltersVersionsAndNotificationsStayInTenant(t *testing
 		filter AutomationHistoryFilter
 		want   []string
 	}{
+		"limited":       {AutomationHistoryFilter{Limit: 1}, []string{secondRun}},
 		"first version": {AutomationHistoryFilter{VersionID: *first.ActiveVersionID}, []string{firstRun}},
 		"definition":    {AutomationHistoryFilter{DefinitionID: first.ID}, []string{secondRun, firstRun}},
 		"family":        {AutomationHistoryFilter{Family: automation.Published, SourceAppID: f.source.ID}, []string{secondRun, firstRun}},
@@ -218,6 +219,12 @@ func TestAutomationHistoryFiltersVersionsAndNotificationsStayInTenant(t *testing
 	}
 	if _, err := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{Status: "approved"}); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("unknown status accepted: %v", err)
+	}
+
+	for _, limit := range []int{-1, 51} {
+		if _, err := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{Limit: limit}); !errors.Is(err, ErrInvalidInput) {
+			t.Fatalf("invalid limit %d accepted: %v", limit, err)
+		}
 	}
 
 	other := newTestWorkspace(t)

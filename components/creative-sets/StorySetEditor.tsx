@@ -5,6 +5,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { usePrivateCreativeSurface } from './use-private-surface'
 import { useRouter } from 'next/navigation'
+import { TRPCClientError } from '@trpc/client'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -110,8 +111,14 @@ export function StorySetEditor({
   const client = useTRPCClient()
   const [session, setSession] = useState<CreativeSetSession | null>(null),
     [error, setError] = useState<string | null>(null)
+  const [openError, setOpenError] = useState<'missing' | 'failed' | null>(null)
+  const [retry, setRetry] = useState(0)
   const [recovery, setRecovery] = useState<SetRecovery | null>(null)
   useEffect(() => {
+    setOpenError(null)
+    setError(null)
+    setSession(null)
+    setRecovery(null)
     let active = true,
       instance: CreativeSetSession | null = null
     void (async () => {
@@ -132,17 +139,40 @@ export function StorySetEditor({
       }
     })().catch((error) => {
       if (active)
-        setError(
-          error instanceof Error
-            ? error.message
-            : 'Could not open this Story Set. Update the app if it was saved by a newer version.'
+        setOpenError(
+          error instanceof TRPCClientError && error.data?.code === 'NOT_FOUND'
+            ? 'missing'
+            : 'failed'
         )
     })
     return () => {
       active = false
       instance?.dispose()
     }
-  }, [client, setId, workspaceId, canEdit])
+  }, [client, setId, workspaceId, canEdit, retry])
+  if (!session && openError)
+    return (
+      <main className="space-y-4 p-8">
+        <h1 className="text-2xl font-semibold">
+          {openError === 'missing' ? 'Story Set not found' : 'Could not open this Story Set'}
+        </h1>
+        <p role="alert" className="text-sm text-muted-foreground">
+          {openError === 'missing'
+            ? 'This link is unavailable in your current workspace.'
+            : 'Please try again. If this set was saved by a newer version, update the app.'}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="outline">
+            <Link prefetch={false} href="/creative-sets">
+              Back to Story Sets
+            </Link>
+          </Button>
+          {openError === 'failed' ? (
+            <Button onClick={() => setRetry((value) => value + 1)}>Retry</Button>
+          ) : null}
+        </div>
+      </main>
+    )
   return (
     <>
       {error ? (

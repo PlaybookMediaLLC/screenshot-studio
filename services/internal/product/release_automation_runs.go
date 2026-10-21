@@ -98,6 +98,7 @@ func automationEvent(row *ent.ReleaseSourceEvent) AutomationEvent {
 // AutomationHistoryFilter narrows persisted run history. Every field is
 // optional; tenant scope always comes from the actor, never the filter.
 type AutomationHistoryFilter struct {
+	Limit        int               `json:"limit"`
 	Before       string            `json:"before"`
 	DefinitionID string            `json:"definitionId"`
 	VersionID    string            `json:"versionId"`
@@ -114,7 +115,7 @@ func (c *Configuration) ListAutomationHistory(ctx context.Context, actor Actor, 
 	if err := c.AuthorizeRead(ctx, actor); err != nil {
 		return nil, err
 	}
-	if len(filter.Before) > 64 || len(filter.DefinitionID) > 64 || len(filter.VersionID) > 64 || len(filter.SourceAppID) > 64 ||
+	if filter.Limit < 0 || filter.Limit > 50 || len(filter.Before) > 64 || len(filter.DefinitionID) > 64 || len(filter.VersionID) > 64 || len(filter.SourceAppID) > 64 ||
 		(filter.Family != "" && !automation.ValidFamily(filter.Family)) || (filter.Status != "" && !slices.Contains(automationRunStatuses, filter.Status)) {
 		return nil, ErrInvalidInput
 	}
@@ -151,7 +152,11 @@ func (c *Configuration) ListAutomationHistory(ctx context.Context, actor Actor, 
 			s.Where(sql.In(s.C(releaseautomationrun.FieldEventID), matching))
 		})
 	}
-	runs, err := query.Order(ent.Desc(releaseautomationrun.FieldID)).Limit(50).All(ctx)
+	limit := filter.Limit
+	if limit == 0 {
+		limit = 50
+	}
+	runs, err := query.Order(ent.Desc(releaseautomationrun.FieldID)).Limit(limit).All(ctx)
 	if err != nil {
 		return nil, err
 	}

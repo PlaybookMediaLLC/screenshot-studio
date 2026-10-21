@@ -1,8 +1,11 @@
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { requirePaidPageAccess } from '@/lib/auth/page-access'
 import { hasPermission } from '@/lib/auth/permissions'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { StorySetEditor } from '@/components/creative-sets/StorySetEditor'
+
+export const metadata: Metadata = { title: 'Story Set' }
 
 export default async function StorySetPage({
   params,
@@ -18,6 +21,7 @@ export default async function StorySetPage({
       organizationName={access.organization?.name}
     >
       <StorySetEditor
+        key={setId}
         setId={setId}
         collabUrl={process.env.PLATFORM_COLLAB_URL || null}
         user={{ id: access.session.user.id, name: access.session.user.name }}

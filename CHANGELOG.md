@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.32.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.31.2...v2.32.0) (2026-10-21)
+
+
+### Features
+
+* **settings:** complete workspace settings usability improvements ([#249](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/249)) ([772e2fd](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/772e2fd165b4cba8d79adaf91be58aa5c47514eb))
+
+
+### Bug Fixes
+
+* **workflows:** resolve save errors and reduce page requests [skip ci] ([94d28e1](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/94d28e1ecaa231e77f063c7f45846f8364c4d3ea))
+
 ## [2.31.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.31.1...v2.31.2) (2026-10-21)
 
 

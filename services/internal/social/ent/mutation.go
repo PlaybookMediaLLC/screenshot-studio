@@ -53,6 +53,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/userorganization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/webhooks"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 const (
@@ -9275,6 +9276,12 @@ type IntegrationMutation struct {
 	_type                   *string
 	token                   *string
 	disabled                *bool
+	verified_account_key    *string
+	verified_account_kind   *string
+	verified_scopes         *[]string
+	appendverified_scopes   []string
+	verified_capabilities   **socialidentity.Capabilities
+	identity_verified_at    *time.Time
 	token_expiration        *time.Time
 	refresh_token           **string
 	profile                 *string
@@ -9764,6 +9771,267 @@ func (m *IntegrationMutation) OldDisabled(ctx context.Context) (v bool, err erro
 // ResetDisabled resets all changes to the "disabled" field.
 func (m *IntegrationMutation) ResetDisabled() {
 	m.disabled = nil
+}
+
+// SetVerifiedAccountKey sets the "verified_account_key" field.
+func (m *IntegrationMutation) SetVerifiedAccountKey(s string) {
+	m.verified_account_key = &s
+}
+
+// VerifiedAccountKey returns the value of the "verified_account_key" field in the mutation.
+func (m *IntegrationMutation) VerifiedAccountKey() (r string, exists bool) {
+	v := m.verified_account_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVerifiedAccountKey returns the old "verified_account_key" field's value of the Integration entity.
+// If the Integration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationMutation) OldVerifiedAccountKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVerifiedAccountKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVerifiedAccountKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVerifiedAccountKey: %w", err)
+	}
+	return oldValue.VerifiedAccountKey, nil
+}
+
+// ClearVerifiedAccountKey clears the value of the "verified_account_key" field.
+func (m *IntegrationMutation) ClearVerifiedAccountKey() {
+	m.verified_account_key = nil
+	m.clearedFields[integration.FieldVerifiedAccountKey] = struct{}{}
+}
+
+// VerifiedAccountKeyCleared returns if the "verified_account_key" field was cleared in this mutation.
+func (m *IntegrationMutation) VerifiedAccountKeyCleared() bool {
+	_, ok := m.clearedFields[integration.FieldVerifiedAccountKey]
+	return ok
+}
+
+// ResetVerifiedAccountKey resets all changes to the "verified_account_key" field.
+func (m *IntegrationMutation) ResetVerifiedAccountKey() {
+	m.verified_account_key = nil
+	delete(m.clearedFields, integration.FieldVerifiedAccountKey)
+}
+
+// SetVerifiedAccountKind sets the "verified_account_kind" field.
+func (m *IntegrationMutation) SetVerifiedAccountKind(s string) {
+	m.verified_account_kind = &s
+}
+
+// VerifiedAccountKind returns the value of the "verified_account_kind" field in the mutation.
+func (m *IntegrationMutation) VerifiedAccountKind() (r string, exists bool) {
+	v := m.verified_account_kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVerifiedAccountKind returns the old "verified_account_kind" field's value of the Integration entity.
+// If the Integration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationMutation) OldVerifiedAccountKind(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVerifiedAccountKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVerifiedAccountKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVerifiedAccountKind: %w", err)
+	}
+	return oldValue.VerifiedAccountKind, nil
+}
+
+// ClearVerifiedAccountKind clears the value of the "verified_account_kind" field.
+func (m *IntegrationMutation) ClearVerifiedAccountKind() {
+	m.verified_account_kind = nil
+	m.clearedFields[integration.FieldVerifiedAccountKind] = struct{}{}
+}
+
+// VerifiedAccountKindCleared returns if the "verified_account_kind" field was cleared in this mutation.
+func (m *IntegrationMutation) VerifiedAccountKindCleared() bool {
+	_, ok := m.clearedFields[integration.FieldVerifiedAccountKind]
+	return ok
+}
+
+// ResetVerifiedAccountKind resets all changes to the "verified_account_kind" field.
+func (m *IntegrationMutation) ResetVerifiedAccountKind() {
+	m.verified_account_kind = nil
+	delete(m.clearedFields, integration.FieldVerifiedAccountKind)
+}
+
+// SetVerifiedScopes sets the "verified_scopes" field.
+func (m *IntegrationMutation) SetVerifiedScopes(s []string) {
+	m.verified_scopes = &s
+	m.appendverified_scopes = nil
+}
+
+// VerifiedScopes returns the value of the "verified_scopes" field in the mutation.
+func (m *IntegrationMutation) VerifiedScopes() (r []string, exists bool) {
+	v := m.verified_scopes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVerifiedScopes returns the old "verified_scopes" field's value of the Integration entity.
+// If the Integration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationMutation) OldVerifiedScopes(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVerifiedScopes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVerifiedScopes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVerifiedScopes: %w", err)
+	}
+	return oldValue.VerifiedScopes, nil
+}
+
+// AppendVerifiedScopes adds s to the "verified_scopes" field.
+func (m *IntegrationMutation) AppendVerifiedScopes(s []string) {
+	m.appendverified_scopes = append(m.appendverified_scopes, s...)
+}
+
+// AppendedVerifiedScopes returns the list of values that were appended to the "verified_scopes" field in this mutation.
+func (m *IntegrationMutation) AppendedVerifiedScopes() ([]string, bool) {
+	if len(m.appendverified_scopes) == 0 {
+		return nil, false
+	}
+	return m.appendverified_scopes, true
+}
+
+// ClearVerifiedScopes clears the value of the "verified_scopes" field.
+func (m *IntegrationMutation) ClearVerifiedScopes() {
+	m.verified_scopes = nil
+	m.appendverified_scopes = nil
+	m.clearedFields[integration.FieldVerifiedScopes] = struct{}{}
+}
+
+// VerifiedScopesCleared returns if the "verified_scopes" field was cleared in this mutation.
+func (m *IntegrationMutation) VerifiedScopesCleared() bool {
+	_, ok := m.clearedFields[integration.FieldVerifiedScopes]
+	return ok
+}
+
+// ResetVerifiedScopes resets all changes to the "verified_scopes" field.
+func (m *IntegrationMutation) ResetVerifiedScopes() {
+	m.verified_scopes = nil
+	m.appendverified_scopes = nil
+	delete(m.clearedFields, integration.FieldVerifiedScopes)
+}
+
+// SetVerifiedCapabilities sets the "verified_capabilities" field.
+func (m *IntegrationMutation) SetVerifiedCapabilities(s *socialidentity.Capabilities) {
+	m.verified_capabilities = &s
+}
+
+// VerifiedCapabilities returns the value of the "verified_capabilities" field in the mutation.
+func (m *IntegrationMutation) VerifiedCapabilities() (r *socialidentity.Capabilities, exists bool) {
+	v := m.verified_capabilities
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVerifiedCapabilities returns the old "verified_capabilities" field's value of the Integration entity.
+// If the Integration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationMutation) OldVerifiedCapabilities(ctx context.Context) (v *socialidentity.Capabilities, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVerifiedCapabilities is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVerifiedCapabilities requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVerifiedCapabilities: %w", err)
+	}
+	return oldValue.VerifiedCapabilities, nil
+}
+
+// ClearVerifiedCapabilities clears the value of the "verified_capabilities" field.
+func (m *IntegrationMutation) ClearVerifiedCapabilities() {
+	m.verified_capabilities = nil
+	m.clearedFields[integration.FieldVerifiedCapabilities] = struct{}{}
+}
+
+// VerifiedCapabilitiesCleared returns if the "verified_capabilities" field was cleared in this mutation.
+func (m *IntegrationMutation) VerifiedCapabilitiesCleared() bool {
+	_, ok := m.clearedFields[integration.FieldVerifiedCapabilities]
+	return ok
+}
+
+// ResetVerifiedCapabilities resets all changes to the "verified_capabilities" field.
+func (m *IntegrationMutation) ResetVerifiedCapabilities() {
+	m.verified_capabilities = nil
+	delete(m.clearedFields, integration.FieldVerifiedCapabilities)
+}
+
+// SetIdentityVerifiedAt sets the "identity_verified_at" field.
+func (m *IntegrationMutation) SetIdentityVerifiedAt(t time.Time) {
+	m.identity_verified_at = &t
+}
+
+// IdentityVerifiedAt returns the value of the "identity_verified_at" field in the mutation.
+func (m *IntegrationMutation) IdentityVerifiedAt() (r time.Time, exists bool) {
+	v := m.identity_verified_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdentityVerifiedAt returns the old "identity_verified_at" field's value of the Integration entity.
+// If the Integration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IntegrationMutation) OldIdentityVerifiedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdentityVerifiedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdentityVerifiedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdentityVerifiedAt: %w", err)
+	}
+	return oldValue.IdentityVerifiedAt, nil
+}
+
+// ClearIdentityVerifiedAt clears the value of the "identity_verified_at" field.
+func (m *IntegrationMutation) ClearIdentityVerifiedAt() {
+	m.identity_verified_at = nil
+	m.clearedFields[integration.FieldIdentityVerifiedAt] = struct{}{}
+}
+
+// IdentityVerifiedAtCleared returns if the "identity_verified_at" field was cleared in this mutation.
+func (m *IntegrationMutation) IdentityVerifiedAtCleared() bool {
+	_, ok := m.clearedFields[integration.FieldIdentityVerifiedAt]
+	return ok
+}
+
+// ResetIdentityVerifiedAt resets all changes to the "identity_verified_at" field.
+func (m *IntegrationMutation) ResetIdentityVerifiedAt() {
+	m.identity_verified_at = nil
+	delete(m.clearedFields, integration.FieldIdentityVerifiedAt)
 }
 
 // SetTokenExpiration sets the "token_expiration" field.
@@ -10709,7 +10977,7 @@ func (m *IntegrationMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *IntegrationMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 27)
 	if m.internal_id != nil {
 		fields = append(fields, integration.FieldInternalID)
 	}
@@ -10736,6 +11004,21 @@ func (m *IntegrationMutation) Fields() []string {
 	}
 	if m.disabled != nil {
 		fields = append(fields, integration.FieldDisabled)
+	}
+	if m.verified_account_key != nil {
+		fields = append(fields, integration.FieldVerifiedAccountKey)
+	}
+	if m.verified_account_kind != nil {
+		fields = append(fields, integration.FieldVerifiedAccountKind)
+	}
+	if m.verified_scopes != nil {
+		fields = append(fields, integration.FieldVerifiedScopes)
+	}
+	if m.verified_capabilities != nil {
+		fields = append(fields, integration.FieldVerifiedCapabilities)
+	}
+	if m.identity_verified_at != nil {
+		fields = append(fields, integration.FieldIdentityVerifiedAt)
 	}
 	if m.token_expiration != nil {
 		fields = append(fields, integration.FieldTokenExpiration)
@@ -10802,6 +11085,16 @@ func (m *IntegrationMutation) Field(name string) (ent.Value, bool) {
 		return m.Token()
 	case integration.FieldDisabled:
 		return m.Disabled()
+	case integration.FieldVerifiedAccountKey:
+		return m.VerifiedAccountKey()
+	case integration.FieldVerifiedAccountKind:
+		return m.VerifiedAccountKind()
+	case integration.FieldVerifiedScopes:
+		return m.VerifiedScopes()
+	case integration.FieldVerifiedCapabilities:
+		return m.VerifiedCapabilities()
+	case integration.FieldIdentityVerifiedAt:
+		return m.IdentityVerifiedAt()
 	case integration.FieldTokenExpiration:
 		return m.TokenExpiration()
 	case integration.FieldRefreshToken:
@@ -10855,6 +11148,16 @@ func (m *IntegrationMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldToken(ctx)
 	case integration.FieldDisabled:
 		return m.OldDisabled(ctx)
+	case integration.FieldVerifiedAccountKey:
+		return m.OldVerifiedAccountKey(ctx)
+	case integration.FieldVerifiedAccountKind:
+		return m.OldVerifiedAccountKind(ctx)
+	case integration.FieldVerifiedScopes:
+		return m.OldVerifiedScopes(ctx)
+	case integration.FieldVerifiedCapabilities:
+		return m.OldVerifiedCapabilities(ctx)
+	case integration.FieldIdentityVerifiedAt:
+		return m.OldIdentityVerifiedAt(ctx)
 	case integration.FieldTokenExpiration:
 		return m.OldTokenExpiration(ctx)
 	case integration.FieldRefreshToken:
@@ -10952,6 +11255,41 @@ func (m *IntegrationMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDisabled(v)
+		return nil
+	case integration.FieldVerifiedAccountKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVerifiedAccountKey(v)
+		return nil
+	case integration.FieldVerifiedAccountKind:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVerifiedAccountKind(v)
+		return nil
+	case integration.FieldVerifiedScopes:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVerifiedScopes(v)
+		return nil
+	case integration.FieldVerifiedCapabilities:
+		v, ok := value.(*socialidentity.Capabilities)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVerifiedCapabilities(v)
+		return nil
+	case integration.FieldIdentityVerifiedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdentityVerifiedAt(v)
 		return nil
 	case integration.FieldTokenExpiration:
 		v, ok := value.(time.Time)
@@ -11080,6 +11418,21 @@ func (m *IntegrationMutation) ClearedFields() []string {
 	if m.FieldCleared(integration.FieldPicture) {
 		fields = append(fields, integration.FieldPicture)
 	}
+	if m.FieldCleared(integration.FieldVerifiedAccountKey) {
+		fields = append(fields, integration.FieldVerifiedAccountKey)
+	}
+	if m.FieldCleared(integration.FieldVerifiedAccountKind) {
+		fields = append(fields, integration.FieldVerifiedAccountKind)
+	}
+	if m.FieldCleared(integration.FieldVerifiedScopes) {
+		fields = append(fields, integration.FieldVerifiedScopes)
+	}
+	if m.FieldCleared(integration.FieldVerifiedCapabilities) {
+		fields = append(fields, integration.FieldVerifiedCapabilities)
+	}
+	if m.FieldCleared(integration.FieldIdentityVerifiedAt) {
+		fields = append(fields, integration.FieldIdentityVerifiedAt)
+	}
 	if m.FieldCleared(integration.FieldTokenExpiration) {
 		fields = append(fields, integration.FieldTokenExpiration)
 	}
@@ -11126,6 +11479,21 @@ func (m *IntegrationMutation) ClearField(name string) error {
 		return nil
 	case integration.FieldPicture:
 		m.ClearPicture()
+		return nil
+	case integration.FieldVerifiedAccountKey:
+		m.ClearVerifiedAccountKey()
+		return nil
+	case integration.FieldVerifiedAccountKind:
+		m.ClearVerifiedAccountKind()
+		return nil
+	case integration.FieldVerifiedScopes:
+		m.ClearVerifiedScopes()
+		return nil
+	case integration.FieldVerifiedCapabilities:
+		m.ClearVerifiedCapabilities()
+		return nil
+	case integration.FieldIdentityVerifiedAt:
+		m.ClearIdentityVerifiedAt()
 		return nil
 	case integration.FieldTokenExpiration:
 		m.ClearTokenExpiration()
@@ -11188,6 +11556,21 @@ func (m *IntegrationMutation) ResetField(name string) error {
 		return nil
 	case integration.FieldDisabled:
 		m.ResetDisabled()
+		return nil
+	case integration.FieldVerifiedAccountKey:
+		m.ResetVerifiedAccountKey()
+		return nil
+	case integration.FieldVerifiedAccountKind:
+		m.ResetVerifiedAccountKind()
+		return nil
+	case integration.FieldVerifiedScopes:
+		m.ResetVerifiedScopes()
+		return nil
+	case integration.FieldVerifiedCapabilities:
+		m.ResetVerifiedCapabilities()
+		return nil
+	case integration.FieldIdentityVerifiedAt:
+		m.ResetIdentityVerifiedAt()
 		return nil
 	case integration.FieldTokenExpiration:
 		m.ResetTokenExpiration()

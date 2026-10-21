@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/customer"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/exisingplugdata"
@@ -20,6 +21,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/post"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/webhooks"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // IntegrationUpdate is the builder for updating Integration entities.
@@ -171,6 +173,96 @@ func (_u *IntegrationUpdate) SetNillableDisabled(v *bool) *IntegrationUpdate {
 	if v != nil {
 		_u.SetDisabled(*v)
 	}
+	return _u
+}
+
+// SetVerifiedAccountKey sets the "verified_account_key" field.
+func (_u *IntegrationUpdate) SetVerifiedAccountKey(v string) *IntegrationUpdate {
+	_u.mutation.SetVerifiedAccountKey(v)
+	return _u
+}
+
+// SetNillableVerifiedAccountKey sets the "verified_account_key" field if the given value is not nil.
+func (_u *IntegrationUpdate) SetNillableVerifiedAccountKey(v *string) *IntegrationUpdate {
+	if v != nil {
+		_u.SetVerifiedAccountKey(*v)
+	}
+	return _u
+}
+
+// ClearVerifiedAccountKey clears the value of the "verified_account_key" field.
+func (_u *IntegrationUpdate) ClearVerifiedAccountKey() *IntegrationUpdate {
+	_u.mutation.ClearVerifiedAccountKey()
+	return _u
+}
+
+// SetVerifiedAccountKind sets the "verified_account_kind" field.
+func (_u *IntegrationUpdate) SetVerifiedAccountKind(v string) *IntegrationUpdate {
+	_u.mutation.SetVerifiedAccountKind(v)
+	return _u
+}
+
+// SetNillableVerifiedAccountKind sets the "verified_account_kind" field if the given value is not nil.
+func (_u *IntegrationUpdate) SetNillableVerifiedAccountKind(v *string) *IntegrationUpdate {
+	if v != nil {
+		_u.SetVerifiedAccountKind(*v)
+	}
+	return _u
+}
+
+// ClearVerifiedAccountKind clears the value of the "verified_account_kind" field.
+func (_u *IntegrationUpdate) ClearVerifiedAccountKind() *IntegrationUpdate {
+	_u.mutation.ClearVerifiedAccountKind()
+	return _u
+}
+
+// SetVerifiedScopes sets the "verified_scopes" field.
+func (_u *IntegrationUpdate) SetVerifiedScopes(v []string) *IntegrationUpdate {
+	_u.mutation.SetVerifiedScopes(v)
+	return _u
+}
+
+// AppendVerifiedScopes appends value to the "verified_scopes" field.
+func (_u *IntegrationUpdate) AppendVerifiedScopes(v []string) *IntegrationUpdate {
+	_u.mutation.AppendVerifiedScopes(v)
+	return _u
+}
+
+// ClearVerifiedScopes clears the value of the "verified_scopes" field.
+func (_u *IntegrationUpdate) ClearVerifiedScopes() *IntegrationUpdate {
+	_u.mutation.ClearVerifiedScopes()
+	return _u
+}
+
+// SetVerifiedCapabilities sets the "verified_capabilities" field.
+func (_u *IntegrationUpdate) SetVerifiedCapabilities(v *socialidentity.Capabilities) *IntegrationUpdate {
+	_u.mutation.SetVerifiedCapabilities(v)
+	return _u
+}
+
+// ClearVerifiedCapabilities clears the value of the "verified_capabilities" field.
+func (_u *IntegrationUpdate) ClearVerifiedCapabilities() *IntegrationUpdate {
+	_u.mutation.ClearVerifiedCapabilities()
+	return _u
+}
+
+// SetIdentityVerifiedAt sets the "identity_verified_at" field.
+func (_u *IntegrationUpdate) SetIdentityVerifiedAt(v time.Time) *IntegrationUpdate {
+	_u.mutation.SetIdentityVerifiedAt(v)
+	return _u
+}
+
+// SetNillableIdentityVerifiedAt sets the "identity_verified_at" field if the given value is not nil.
+func (_u *IntegrationUpdate) SetNillableIdentityVerifiedAt(v *time.Time) *IntegrationUpdate {
+	if v != nil {
+		_u.SetIdentityVerifiedAt(*v)
+	}
+	return _u
+}
+
+// ClearIdentityVerifiedAt clears the value of the "identity_verified_at" field.
+func (_u *IntegrationUpdate) ClearIdentityVerifiedAt() *IntegrationUpdate {
+	_u.mutation.ClearIdentityVerifiedAt()
 	return _u
 }
 
@@ -625,6 +717,11 @@ func (_u *IntegrationUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *IntegrationUpdate) check() error {
+	if v, ok := _u.mutation.VerifiedCapabilities(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "verified_capabilities", err: fmt.Errorf(`ent: validator failed for field "Integration.verified_capabilities": %w`, err)}
+		}
+	}
 	if _u.mutation.OrganizationCleared() && len(_u.mutation.OrganizationIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Integration.organization"`)
 	}
@@ -682,6 +779,41 @@ func (_u *IntegrationUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	}
 	if value, ok := _u.mutation.Disabled(); ok {
 		_spec.SetField(integration.FieldDisabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.VerifiedAccountKey(); ok {
+		_spec.SetField(integration.FieldVerifiedAccountKey, field.TypeString, value)
+	}
+	if _u.mutation.VerifiedAccountKeyCleared() {
+		_spec.ClearField(integration.FieldVerifiedAccountKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.VerifiedAccountKind(); ok {
+		_spec.SetField(integration.FieldVerifiedAccountKind, field.TypeString, value)
+	}
+	if _u.mutation.VerifiedAccountKindCleared() {
+		_spec.ClearField(integration.FieldVerifiedAccountKind, field.TypeString)
+	}
+	if value, ok := _u.mutation.VerifiedScopes(); ok {
+		_spec.SetField(integration.FieldVerifiedScopes, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedVerifiedScopes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, integration.FieldVerifiedScopes, value)
+		})
+	}
+	if _u.mutation.VerifiedScopesCleared() {
+		_spec.ClearField(integration.FieldVerifiedScopes, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.VerifiedCapabilities(); ok {
+		_spec.SetField(integration.FieldVerifiedCapabilities, field.TypeJSON, value)
+	}
+	if _u.mutation.VerifiedCapabilitiesCleared() {
+		_spec.ClearField(integration.FieldVerifiedCapabilities, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.IdentityVerifiedAt(); ok {
+		_spec.SetField(integration.FieldIdentityVerifiedAt, field.TypeTime, value)
+	}
+	if _u.mutation.IdentityVerifiedAtCleared() {
+		_spec.ClearField(integration.FieldIdentityVerifiedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.TokenExpiration(); ok {
 		_spec.SetField(integration.FieldTokenExpiration, field.TypeTime, value)
@@ -1187,6 +1319,96 @@ func (_u *IntegrationUpdateOne) SetNillableDisabled(v *bool) *IntegrationUpdateO
 	return _u
 }
 
+// SetVerifiedAccountKey sets the "verified_account_key" field.
+func (_u *IntegrationUpdateOne) SetVerifiedAccountKey(v string) *IntegrationUpdateOne {
+	_u.mutation.SetVerifiedAccountKey(v)
+	return _u
+}
+
+// SetNillableVerifiedAccountKey sets the "verified_account_key" field if the given value is not nil.
+func (_u *IntegrationUpdateOne) SetNillableVerifiedAccountKey(v *string) *IntegrationUpdateOne {
+	if v != nil {
+		_u.SetVerifiedAccountKey(*v)
+	}
+	return _u
+}
+
+// ClearVerifiedAccountKey clears the value of the "verified_account_key" field.
+func (_u *IntegrationUpdateOne) ClearVerifiedAccountKey() *IntegrationUpdateOne {
+	_u.mutation.ClearVerifiedAccountKey()
+	return _u
+}
+
+// SetVerifiedAccountKind sets the "verified_account_kind" field.
+func (_u *IntegrationUpdateOne) SetVerifiedAccountKind(v string) *IntegrationUpdateOne {
+	_u.mutation.SetVerifiedAccountKind(v)
+	return _u
+}
+
+// SetNillableVerifiedAccountKind sets the "verified_account_kind" field if the given value is not nil.
+func (_u *IntegrationUpdateOne) SetNillableVerifiedAccountKind(v *string) *IntegrationUpdateOne {
+	if v != nil {
+		_u.SetVerifiedAccountKind(*v)
+	}
+	return _u
+}
+
+// ClearVerifiedAccountKind clears the value of the "verified_account_kind" field.
+func (_u *IntegrationUpdateOne) ClearVerifiedAccountKind() *IntegrationUpdateOne {
+	_u.mutation.ClearVerifiedAccountKind()
+	return _u
+}
+
+// SetVerifiedScopes sets the "verified_scopes" field.
+func (_u *IntegrationUpdateOne) SetVerifiedScopes(v []string) *IntegrationUpdateOne {
+	_u.mutation.SetVerifiedScopes(v)
+	return _u
+}
+
+// AppendVerifiedScopes appends value to the "verified_scopes" field.
+func (_u *IntegrationUpdateOne) AppendVerifiedScopes(v []string) *IntegrationUpdateOne {
+	_u.mutation.AppendVerifiedScopes(v)
+	return _u
+}
+
+// ClearVerifiedScopes clears the value of the "verified_scopes" field.
+func (_u *IntegrationUpdateOne) ClearVerifiedScopes() *IntegrationUpdateOne {
+	_u.mutation.ClearVerifiedScopes()
+	return _u
+}
+
+// SetVerifiedCapabilities sets the "verified_capabilities" field.
+func (_u *IntegrationUpdateOne) SetVerifiedCapabilities(v *socialidentity.Capabilities) *IntegrationUpdateOne {
+	_u.mutation.SetVerifiedCapabilities(v)
+	return _u
+}
+
+// ClearVerifiedCapabilities clears the value of the "verified_capabilities" field.
+func (_u *IntegrationUpdateOne) ClearVerifiedCapabilities() *IntegrationUpdateOne {
+	_u.mutation.ClearVerifiedCapabilities()
+	return _u
+}
+
+// SetIdentityVerifiedAt sets the "identity_verified_at" field.
+func (_u *IntegrationUpdateOne) SetIdentityVerifiedAt(v time.Time) *IntegrationUpdateOne {
+	_u.mutation.SetIdentityVerifiedAt(v)
+	return _u
+}
+
+// SetNillableIdentityVerifiedAt sets the "identity_verified_at" field if the given value is not nil.
+func (_u *IntegrationUpdateOne) SetNillableIdentityVerifiedAt(v *time.Time) *IntegrationUpdateOne {
+	if v != nil {
+		_u.SetIdentityVerifiedAt(*v)
+	}
+	return _u
+}
+
+// ClearIdentityVerifiedAt clears the value of the "identity_verified_at" field.
+func (_u *IntegrationUpdateOne) ClearIdentityVerifiedAt() *IntegrationUpdateOne {
+	_u.mutation.ClearIdentityVerifiedAt()
+	return _u
+}
+
 // SetTokenExpiration sets the "token_expiration" field.
 func (_u *IntegrationUpdateOne) SetTokenExpiration(v time.Time) *IntegrationUpdateOne {
 	_u.mutation.SetTokenExpiration(v)
@@ -1651,6 +1873,11 @@ func (_u *IntegrationUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *IntegrationUpdateOne) check() error {
+	if v, ok := _u.mutation.VerifiedCapabilities(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "verified_capabilities", err: fmt.Errorf(`ent: validator failed for field "Integration.verified_capabilities": %w`, err)}
+		}
+	}
 	if _u.mutation.OrganizationCleared() && len(_u.mutation.OrganizationIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Integration.organization"`)
 	}
@@ -1725,6 +1952,41 @@ func (_u *IntegrationUpdateOne) sqlSave(ctx context.Context) (_node *Integration
 	}
 	if value, ok := _u.mutation.Disabled(); ok {
 		_spec.SetField(integration.FieldDisabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.VerifiedAccountKey(); ok {
+		_spec.SetField(integration.FieldVerifiedAccountKey, field.TypeString, value)
+	}
+	if _u.mutation.VerifiedAccountKeyCleared() {
+		_spec.ClearField(integration.FieldVerifiedAccountKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.VerifiedAccountKind(); ok {
+		_spec.SetField(integration.FieldVerifiedAccountKind, field.TypeString, value)
+	}
+	if _u.mutation.VerifiedAccountKindCleared() {
+		_spec.ClearField(integration.FieldVerifiedAccountKind, field.TypeString)
+	}
+	if value, ok := _u.mutation.VerifiedScopes(); ok {
+		_spec.SetField(integration.FieldVerifiedScopes, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedVerifiedScopes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, integration.FieldVerifiedScopes, value)
+		})
+	}
+	if _u.mutation.VerifiedScopesCleared() {
+		_spec.ClearField(integration.FieldVerifiedScopes, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.VerifiedCapabilities(); ok {
+		_spec.SetField(integration.FieldVerifiedCapabilities, field.TypeJSON, value)
+	}
+	if _u.mutation.VerifiedCapabilitiesCleared() {
+		_spec.ClearField(integration.FieldVerifiedCapabilities, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.IdentityVerifiedAt(); ok {
+		_spec.SetField(integration.FieldIdentityVerifiedAt, field.TypeTime, value)
+	}
+	if _u.mutation.IdentityVerifiedAtCleared() {
+		_spec.ClearField(integration.FieldIdentityVerifiedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.TokenExpiration(); ok {
 		_spec.SetField(integration.FieldTokenExpiration, field.TypeTime, value)

@@ -33,6 +33,16 @@ const (
 	FieldToken = "token"
 	// FieldDisabled holds the string denoting the disabled field in the database.
 	FieldDisabled = "disabled"
+	// FieldVerifiedAccountKey holds the string denoting the verified_account_key field in the database.
+	FieldVerifiedAccountKey = "verifiedAccountKey"
+	// FieldVerifiedAccountKind holds the string denoting the verified_account_kind field in the database.
+	FieldVerifiedAccountKind = "verifiedAccountKind"
+	// FieldVerifiedScopes holds the string denoting the verified_scopes field in the database.
+	FieldVerifiedScopes = "verifiedScopes"
+	// FieldVerifiedCapabilities holds the string denoting the verified_capabilities field in the database.
+	FieldVerifiedCapabilities = "verifiedCapabilities"
+	// FieldIdentityVerifiedAt holds the string denoting the identity_verified_at field in the database.
+	FieldIdentityVerifiedAt = "identityVerifiedAt"
 	// FieldTokenExpiration holds the string denoting the token_expiration field in the database.
 	FieldTokenExpiration = "tokenExpiration"
 	// FieldRefreshToken holds the string denoting the refresh_token field in the database.
@@ -145,6 +155,11 @@ var Columns = []string{
 	FieldType,
 	FieldToken,
 	FieldDisabled,
+	FieldVerifiedAccountKey,
+	FieldVerifiedAccountKind,
+	FieldVerifiedScopes,
+	FieldVerifiedCapabilities,
+	FieldIdentityVerifiedAt,
 	FieldTokenExpiration,
 	FieldRefreshToken,
 	FieldProfile,
@@ -253,6 +268,21 @@ func ByToken(opts ...sql.OrderTermOption) OrderOption {
 // ByDisabled orders the results by the disabled field.
 func ByDisabled(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDisabled, opts...).ToFunc()
+}
+
+// ByVerifiedAccountKey orders the results by the verified_account_key field.
+func ByVerifiedAccountKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVerifiedAccountKey, opts...).ToFunc()
+}
+
+// ByVerifiedAccountKind orders the results by the verified_account_kind field.
+func ByVerifiedAccountKind(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVerifiedAccountKind, opts...).ToFunc()
+}
+
+// ByIdentityVerifiedAt orders the results by the identity_verified_at field.
+func ByIdentityVerifiedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIdentityVerifiedAt, opts...).ToFunc()
 }
 
 // ByTokenExpiration orders the results by the token_expiration field.

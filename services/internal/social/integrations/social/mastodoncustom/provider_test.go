@@ -76,6 +76,11 @@ func TestCustomInstanceAuthorization(t *testing.T) {
 				t.Errorf("incorrect token exchange fields")
 			}
 			_, _ = io.WriteString(w, `{"access_token":"token-canary","token_type":"Bearer","scope":"read:accounts write:media write:statuses"}`)
+		case "/api/v2/instance":
+			if r.Method != http.MethodGet || r.Header.Get("Authorization") != "" || r.URL.RawQuery != "" {
+				t.Fatal("public capability discovery received credentials")
+			}
+			_, _ = io.WriteString(w, instanceFixture)
 		case "/api/v1/accounts/verify_credentials":
 			if r.Header.Get("Authorization") != "Bearer token-canary" {
 				t.Error("missing bearer")
@@ -109,8 +114,12 @@ func TestCustomInstanceAuthorization(t *testing.T) {
 		t.Fatal(err)
 	}
 	if auth.ID != "mastodon:example.social:7" || auth.Username != "me@example.social" || auth.Name != "me" ||
-		auth.AccessToken != "token-canary" || auth.RefreshToken != "" || !auth.NonExpiring || auth.ExpiresIn != 0 || calls != 3 {
+		auth.AccessToken != "token-canary" || auth.RefreshToken != "" || !auth.NonExpiring || auth.ExpiresIn != 0 || calls != 4 {
 		t.Fatal("account identity or token semantics were not verified")
+	}
+	if auth.Verification.Validate(identifier, auth.ID) != nil || auth.Verification.Capabilities.MaxCharacters != 1024 ||
+		auth.Verification.Capabilities.MediaDescriptionLimit == nil || *auth.Verification.Capabilities.MediaDescriptionLimit != 1500 {
+		t.Fatal("verified account is missing the selected instance's capabilities")
 	}
 }
 
@@ -132,7 +141,9 @@ func TestCustomInstanceIdentityAndPermissions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			accountCalled := false
 			p := fixtureProvider(func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path == "/oauth/token" {
+				if r.URL.Path == "/api/v2/instance" {
+					_, _ = io.WriteString(w, instanceFixture)
+				} else if r.URL.Path == "/oauth/token" {
 					_, _ = io.WriteString(w, tc.token)
 				} else {
 					accountCalled = true

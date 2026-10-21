@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 type ClientInformation struct {
@@ -41,16 +42,17 @@ type AdditionalSetting struct {
 }
 
 type AuthTokenDetails struct {
-	ID                 string              `json:"id"`
-	Name               string              `json:"name"`
-	Error              string              `json:"error,omitempty"`
-	AccessToken        string              `json:"accessToken"`
-	RefreshToken       string              `json:"refreshToken,omitempty"`
-	ExpiresIn          int64               `json:"expiresIn,omitempty"`   // seconds
-	NonExpiring        bool                `json:"nonExpiring,omitempty"` // verified provider contract; clears any previous expiry
-	Picture            string              `json:"picture,omitempty"`
-	Username           string              `json:"username"`
-	AdditionalSettings []AdditionalSetting `json:"additionalSettings,omitempty"`
+	Verification       *socialidentity.Verification `json:"-"`
+	ID                 string                       `json:"id"`
+	Name               string                       `json:"name"`
+	Error              string                       `json:"error,omitempty"`
+	AccessToken        string                       `json:"accessToken"`
+	RefreshToken       string                       `json:"refreshToken,omitempty"`
+	ExpiresIn          int64                        `json:"expiresIn,omitempty"`   // seconds
+	NonExpiring        bool                         `json:"nonExpiring,omitempty"` // verified provider contract; clears any previous expiry
+	Picture            string                       `json:"picture,omitempty"`
+	Username           string                       `json:"username"`
+	AdditionalSettings []AdditionalSetting          `json:"additionalSettings,omitempty"`
 }
 
 // AuthMessage is returned by Authenticate when TypeScript returned a string:

@@ -3,6 +3,8 @@ package schema
 import (
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
+
 	"entgo.io/ent"
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
@@ -25,6 +27,11 @@ func (Integration) Fields() []ent.Field {
 		str("type", "type"),
 		field.String("token").StorageKey("token").Sensitive().ValueScanner(credentialScanner("integration.token")),
 		field.Bool("disabled").StorageKey("disabled").Default(false),
+		optStr("verified_account_key", "verifiedAccountKey"),
+		optStr("verified_account_kind", "verifiedAccountKind"),
+		field.JSON("verified_scopes", []string{}).StorageKey("verifiedScopes").Optional(),
+		field.JSON("verified_capabilities", &socialidentity.Capabilities{}).StorageKey("verifiedCapabilities").Optional(),
+		optTime("identity_verified_at", "identityVerifiedAt"),
 		optTime("token_expiration", "tokenExpiration"),
 		field.String("refresh_token").StorageKey("refreshToken").Optional().GoType((*string)(nil)).Sensitive().ValueScanner(nullableCredentialScanner("integration.refresh_token")),
 		optStr("profile", "profile"),

@@ -92,7 +92,7 @@ rotation whose result is lost can still require a fresh user authorization.
 
 ## Custom Mastodon adapter preparation
 
-The `mastodon-custom` adapter is registered only when the backend opt-in flag is enabled. The local product path accepts a validated `instanceServer`, preserves its original owner/set intent, and validates the authorization redirect against that exact HTTPS origin. Legacy default-server reconnects retain their existing adapter identity. General availability still requires real disposable-account verification and a durable capability snapshot. Its protocol implementation now registers a confidential client on
+The `mastodon-custom` adapter is registered only when the backend opt-in flag is enabled. The local product path accepts a validated `instanceServer`, preserves its original owner/set intent, and validates the authorization redirect against that exact HTTPS origin. Legacy default-server reconnects retain their existing adapter identity. General availability still requires real disposable-account verification and enforcement of persisted capabilities throughout scheduling and publishing. Its protocol implementation now registers a confidential client on
 the normalized public HTTPS origin, uses the matching
 `/integrations/social/mastodon-custom` callback in all three OAuth steps, and
 binds a 64-character verifier to an S256 PKCE challenge. The instance client
@@ -120,9 +120,44 @@ No database migration is needed for this nullable existing column.
 
 The shared publisher still supplies text/media posting, replies and pending-media
 polling. Status finalization retains its existing idempotency key. Per-instance
-media/length capability discovery, canonical slot aliases with legacy Mastodon
-connections, product start/callback plumbing, and live account verification are
-remaining work; this adapter preparation does not prove those capabilities.
+media/length limits are discovered and persisted at authorization. Enforcing them
+in the composer and publishing handoff, reconciling legacy and custom adapter
+identities for the same underlying account, and live account verification remain
+outstanding. Canonical platform slots and opt-in product start/callback plumbing
+are implemented and covered by local tests.
+
+### Verified account and capability records
+
+`0003_verified_provider_capabilities.sql` adds five nullable columns to the
+existing social `Integration`: `verifiedAccountKey`, `verifiedAccountKind`,
+`verifiedScopes`, `verifiedCapabilities`, and `identityVerifiedAt`. The account
+key has a tenant lookup index. These columns are independent of editable
+`additionalSettings`. The database rejects partial verification records; the
+repository additionally checks provider-specific identity, required grants and
+the versioned, bounded capability schema before replacing credentials.
+
+For custom Mastodon, the adapter reads the selected server's public
+[`/api/v2/instance` configuration](https://docs.joinmastodon.org/entities/Instance/)
+without credentials before consuming the authorization code. It stores caption
+length, URL weight, attachment count, MIME types, image/video size and pixel
+limits, video frame-rate limit, and the optional media-description limit. Missing
+required limits fail closed. An absent description limit remains unknown rather
+than receiving a default. The account lookup and token response then provide the
+native account key and actual granted scopes. Discovery alone creates no record.
+
+Fresh authorization replaces the full snapshot on the same integration. An
+authorization without verification clears old proof. Provider migration,
+second-step account replacement, and sibling token replacement also clear it.
+Editable connection settings cannot upgrade capability claims. Legacy rows stay
+unverified: the migration does not infer permissions from tokens or settings.
+
+Apply this additive social migration before deploying the generated Ent client.
+It takes an `Integration` table lock, adds nullable columns without backfilling
+rows, and builds a tenant/account lookup index. Schedule it during the normal
+migration window. Old binaries tolerate the extra columns, so application
+rollback should leave them in place; dropping them would discard verification
+evidence and requires stopping all new writers first. Fresh database, populated
+upgrade, transaction rollback, and replay tests cover schema compatibility.
 
 Primary protocol references: [app registration](https://docs.joinmastodon.org/methods/apps),
 [OAuth and PKCE](https://docs.joinmastodon.org/methods/oauth/),

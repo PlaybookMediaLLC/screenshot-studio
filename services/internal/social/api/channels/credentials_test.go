@@ -12,12 +12,37 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/organizations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/helpers"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 type externalFixture struct {
 	*fakeProvider
 	registrations, exchanges int
 	client                   *integrations.ClientInformation
+}
+
+func TestOAuthCallbackPersistsVerifiedProviderFacts(t *testing.T) {
+	f := setup(t)
+	f.provider.id = "mastodon-custom"
+	proof := &socialidentity.Verification{
+		AccountKey: "mastodon:example.social:123", AccountKind: "profile", GrantedScopes: []string{"read", "write"},
+		Capabilities: socialidentity.Capabilities{Version: 1, MaxCharacters: 1024, MaxMediaAttachments: 4, CharactersReservedPerURL: 23,
+			MediaMIMETypes: []string{"image/jpeg"}, ImageSizeLimit: 16777216, VideoSizeLimit: 103809024,
+			ImageMatrixLimit: 33177600, VideoMatrixLimit: 8294400, VideoFrameRateLimit: 120},
+	}
+	f.provider.auth = func() (*integrations.AuthTokenDetails, error) {
+		return &integrations.AuthTokenDetails{ID: proof.AccountKey, AccessToken: "private-access", Username: "me@example.social", NonExpiring: true, Verification: proof}, nil
+	}
+	f.noAuth()
+	f.state(t)
+	status, body := do(t, f.router, http.MethodPost, "/integrations/social-connect/mastodon-custom", `{"state":"state1","code":"code","timezone":"0"}`)
+	if status != http.StatusCreated || strings.Contains(body, "private-access") {
+		t.Fatalf("verified callback failed or leaked credentials: status %d", status)
+	}
+	stored := f.client.Integration.Query().OnlyX(f.ctx)
+	if stored.VerifiedAccountKey == nil || *stored.VerifiedAccountKey != proof.AccountKey || stored.VerifiedCapabilities == nil || stored.VerifiedCapabilities.MaxCharacters != 1024 || stored.IdentityVerifiedAt == nil || stored.TokenExpiration != nil {
+		t.Fatal("callback lost adapter verification before persistence")
+	}
 }
 
 func (f *externalFixture) ExternalURL(context.Context, string) (*integrations.ClientInformation, error) {

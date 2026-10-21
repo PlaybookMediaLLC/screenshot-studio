@@ -302,6 +302,11 @@ var (
 		{Name: "type", Type: field.TypeString},
 		{Name: "token", Type: field.TypeString},
 		{Name: "disabled", Type: field.TypeBool, Default: false},
+		{Name: "verifiedAccountKey", Type: field.TypeString, Nullable: true},
+		{Name: "verifiedAccountKind", Type: field.TypeString, Nullable: true},
+		{Name: "verifiedScopes", Type: field.TypeJSON, Nullable: true},
+		{Name: "verifiedCapabilities", Type: field.TypeJSON, Nullable: true},
+		{Name: "identityVerifiedAt", Type: field.TypeTime, Nullable: true},
 		{Name: "tokenExpiration", Type: field.TypeTime, Nullable: true},
 		{Name: "refreshToken", Type: field.TypeString, Nullable: true},
 		{Name: "profile", Type: field.TypeString, Nullable: true},
@@ -325,13 +330,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "Integration_Customer_integrations",
-				Columns:    []*schema.Column{IntegrationColumns[21]},
+				Columns:    []*schema.Column{IntegrationColumns[26]},
 				RefColumns: []*schema.Column{CustomerColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "Integration_Organization_Integration",
-				Columns:    []*schema.Column{IntegrationColumns[22]},
+				Columns:    []*schema.Column{IntegrationColumns[27]},
 				RefColumns: []*schema.Column{OrganizationColumns[0]},
 				OnDelete:   schema.NoAction,
 			},

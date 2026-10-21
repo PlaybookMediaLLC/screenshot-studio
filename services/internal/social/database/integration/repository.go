@@ -27,6 +27,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ids"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // Uploader is the part of the upload storage (UploadFactory.createStorage())
@@ -138,6 +139,7 @@ type UpdateIntegrationParams struct {
 // is the 999999999 default, Username nil leaves the profile untouched on
 // update, AdditionalSettings nil keeps the stored settings.
 type CreateOrUpdateIntegrationParams struct {
+	Verification          *socialidentity.Verification
 	AdditionalSettings    []integrations.AdditionalSetting
 	OneTimeToken          bool
 	Org                   string
@@ -356,6 +358,7 @@ func (r *Repository) UpdateIntegration(ctx context.Context, id string, params Up
 		SetName(params.Name).
 		SetInBetweenSteps(params.InBetweenSteps).
 		SetToken(params.Token).
+		ClearVerifiedAccountKey().ClearVerifiedAccountKind().ClearVerifiedScopes().ClearVerifiedCapabilities().ClearIdentityVerifiedAt().
 		SetDisabled(false).
 		ClearDeletedAt()
 	if params.Profile != "" {
@@ -398,7 +401,8 @@ func (r *Repository) MigrateIntegration(ctx context.Context, org, id, internalID
 			return nil, err
 		}
 	}
-	u := r.updateOne(org, id).SetInternalID(internalID).SetProviderIdentifier(providerIdentifier)
+	u := r.updateOne(org, id).SetInternalID(internalID).SetProviderIdentifier(providerIdentifier).
+		ClearVerifiedAccountKey().ClearVerifiedAccountKind().ClearVerifiedScopes().ClearVerifiedCapabilities().ClearIdentityVerifiedAt()
 	if rootInternalID == nil {
 		u.ClearRootInternalID()
 	} else {
@@ -408,6 +412,12 @@ func (r *Repository) MigrateIntegration(ctx context.Context, org, id, internalID
 }
 
 func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUpdateIntegrationParams) (*ent.Integration, error) {
+	if p.Verification != nil {
+		if err := p.Verification.Validate(p.Provider, p.InternalID); err != nil {
+			return nil, err
+		}
+	}
+	verifiedAt := time.Now().UTC()
 	expiresIn := int64(999999999)
 	if p.ExpiresIn != nil {
 		expiresIn = *p.ExpiresIn
@@ -459,8 +469,19 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 		create.SetAdditionalSettings(additionalSettings)
 	}
 
+	if p.Verification != nil {
+		create.SetVerifiedAccountKey(p.Verification.AccountKey).SetVerifiedAccountKind(p.Verification.AccountKind).
+			SetVerifiedScopes(p.Verification.GrantedScopes).SetVerifiedCapabilities(&p.Verification.Capabilities).SetIdentityVerifiedAt(verifiedAt)
+	}
 	id, err := create.OnConflictColumns(integration.FieldOrganizationID, integration.FieldInternalID).
 		Update(func(u *ent.IntegrationUpsert) {
+			// New authorization must carry new verification. Never retain old grants for a replacement token.
+			if p.Verification != nil {
+				u.SetVerifiedAccountKey(p.Verification.AccountKey).SetVerifiedAccountKind(p.Verification.AccountKind).
+					SetVerifiedScopes(p.Verification.GrantedScopes).SetVerifiedCapabilities(&p.Verification.Capabilities).SetIdentityVerifiedAt(verifiedAt)
+			} else {
+				u.ClearVerifiedAccountKey().ClearVerifiedAccountKind().ClearVerifiedScopes().ClearVerifiedCapabilities().ClearIdentityVerifiedAt()
+			}
 			if additionalSettings != "" {
 				u.SetAdditionalSettings(additionalSettings)
 			}
@@ -515,6 +536,7 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 		u := r.client.Integration.Update().
 			Where(integration.OrganizationID(p.Org), integration.ProviderIdentifier(p.Provider), integration.IDNEQ(upsert.ID), integration.RootInternalID(rootID)).
 			SetToken(p.Token).
+			ClearVerifiedAccountKey().ClearVerifiedAccountKind().ClearVerifiedScopes().ClearVerifiedCapabilities().ClearIdentityVerifiedAt().
 			SetRefreshNeeded(false)
 		if p.RefreshToken != "" {
 			u.SetRefreshToken(&p.RefreshToken)

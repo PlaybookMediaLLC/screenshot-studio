@@ -21,6 +21,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/mastodon"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ssrf"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 const identifier = "mastodon-custom"
@@ -122,6 +123,12 @@ func (p *Provider) Authenticate(ctx context.Context, params integrations.Authent
 	if !validCredential(params.Code) || len(params.CodeVerifier) < 43 || len(params.CodeVerifier) > 128 {
 		return nil, errConnection
 	}
+	// Discover limits before consuming the single-use authorization code. A
+	// failed public lookup must not leave an exchanged token without a record.
+	capabilities, err := p.instanceCapabilities(ctx, origin)
+	if err != nil {
+		return nil, err
+	}
 	form := url.Values{
 		"client_id": {client.ClientID}, "client_secret": {client.ClientSecret}, "code": {params.Code},
 		"grant_type": {"authorization_code"}, "redirect_uri": {callbackURL()},
@@ -173,8 +180,15 @@ func (p *Provider) Authenticate(ctx context.Context, params integrations.Authent
 	if parseErr != nil || avatar.Scheme != "https" || avatar.Hostname() == "" || avatar.User != nil {
 		me.Avatar = ""
 	}
+	key := "mastodon:" + strings.TrimPrefix(origin, "https://") + ":" + me.ID
+	verification := &socialidentity.Verification{
+		AccountKey: key, AccountKind: "profile", GrantedScopes: granted, Capabilities: capabilities,
+	}
+	if err := verification.Validate(identifier, key); err != nil {
+		return nil, err
+	}
 	return &integrations.AuthTokenDetails{
-		ID:   "mastodon:" + strings.TrimPrefix(origin, "https://") + ":" + me.ID,
+		ID: key, Verification: verification,
 		Name: name, AccessToken: token.AccessToken, NonExpiring: true,
 		Picture: me.Avatar, Username: me.Username + "@" + strings.TrimPrefix(origin, "https://"),
 	}, nil

@@ -221,6 +221,7 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 
 	timezone, _ := strconv.ParseFloat(strings.TrimSpace(body.Timezone), 64)
 	params := integration.CreateOrUpdateIntegrationParams{
+		Verification:          auth.Verification,
 		AdditionalSettings:    auth.AdditionalSettings,
 		OneTimeToken:          info.OneTimeToken,
 		Org:                   org.ID,
@@ -472,6 +473,7 @@ func (h *noAuthIntegrationsController) extensionRefreshCookies(c *httpx.Ctx) (an
 		return nil, err
 	}
 	params := integration.CreateOrUpdateIntegrationParams{
+		Verification:          authResult.Verification,
 		Org:                   organizationID,
 		Name:                  in.Name,
 		Type:                  "social",

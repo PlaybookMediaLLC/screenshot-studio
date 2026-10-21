@@ -11,7 +11,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { getErrorMessage } from '@/components/workspace/settings-client'
 import { trackEvent } from '@/lib/analytics'
 import { useTRPCClient } from '@/lib/trpc/react'
-import { productEnvironments } from '@/lib/tenant/schemas'
+import { briefValidationMessage, normalizeProductUrl } from '@/lib/campaigns/brief-form'
+import { useUnsavedCampaignChanges } from '@/components/campaigns/useUnsavedCampaignChanges'
+import {
+  productSurfaceCreateSchema,
+  releaseCreateSchema,
+  productEnvironments,
+} from '@/lib/tenant/schemas'
 import {
   Select as UiSelect,
   SelectTrigger,
@@ -86,27 +92,32 @@ export function CampaignSetupForm({
   )
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [values, setValues] = useState<Record<string, string>>({})
+  const [dirty, setDirty] = useState(false)
+  useUnsavedCampaignChanges(dirty)
   const isNewProduct = surfaceChoice === NEW_PRODUCT
 
-  async function createProduct(data: FormData): Promise<string> {
+  async function createProduct(data: FormData, created: string[]): Promise<string> {
     const name = field(data, 'productName')
     const { productSurface } = await trpcClient.productSurface.create.mutate({
       environment: field(data, 'environment') as (typeof productEnvironments)[number],
       name,
-      url: field(data, 'appUrl'),
+      url: normalizeProductUrl(field(data, 'appUrl')),
     })
-    const marketingUrl = field(data, 'marketingUrl')
+    created.push(productSurface.id)
+    setSurfaces((current) => [...current, productSurface])
+    setSurfaceChoice(productSurface.id)
+    const marketingUrl = normalizeProductUrl(field(data, 'marketingUrl'))
     if (marketingUrl) {
-      await trpcClient.productSurface.create.mutate({
+      const marketing = await trpcClient.productSurface.create.mutate({
         name: `${name} marketing site`,
         url: marketingUrl,
       })
+      created.push(marketing.productSurface.id)
     }
     trackEvent('product_surface_created', { source: 'campaign_setup' })
     // Select the new surface so a retry after a later failure reuses it
     // instead of colliding with the name it just took.
-    setSurfaces((current) => [...current, productSurface])
-    setSurfaceChoice(productSurface.id)
     return productSurface.id
   }
 
@@ -115,23 +126,53 @@ export function CampaignSetupForm({
     setError(null)
     setIsSaving(true)
     const data = new FormData(event.currentTarget)
+    const createdProducts: string[] = []
+    let releaseSaved = false
     try {
-      const productSurfaceId = isNewProduct ? await createProduct(data) : surfaceChoice || undefined
       const title = field(data, 'title')
       const benefitStatement = field(data, 'benefitStatement')
       const audience = field(data, 'audience')
-      const { release } = await trpcClient.release.create.mutate({
+      const parsed = releaseCreateSchema.safeParse({
         audience: audience || undefined,
         benefitStatement,
         description: field(data, 'description') || undefined,
-        idempotencyKey,
-        productSurfaceId,
         sourceUrls: parseSourceUrls(field(data, 'sourceUrls')),
         title,
       })
+      if (!parsed.success) throw new Error(briefValidationMessage(parsed.error))
+      if (!benefitStatement && !parsed.data.sourceUrls?.length) {
+        throw new Error('Why it matters: enter a benefit or add a source link.')
+      }
+      if (isNewProduct) {
+        const product = productSurfaceCreateSchema.safeParse({
+          name: field(data, 'productName'),
+          url: normalizeProductUrl(field(data, 'appUrl')),
+          environment: field(data, 'environment'),
+        })
+        if (!product.success) throw new Error(briefValidationMessage(product.error))
+        const marketingUrl = normalizeProductUrl(field(data, 'marketingUrl'))
+        if (marketingUrl) {
+          const marketing = productSurfaceCreateSchema.safeParse({
+            name: `${product.data.name} marketing site`,
+            url: marketingUrl,
+          })
+          if (!marketing.success)
+            throw new Error(`Marketing site: ${briefValidationMessage(marketing.error)}`)
+        }
+      }
+      const productSurfaceId = isNewProduct
+        ? await createProduct(data, createdProducts)
+        : surfaceChoice || undefined
+      const { release } = await trpcClient.release.create.mutate({
+        ...parsed.data,
+        idempotencyKey,
+        productSurfaceId,
+      })
+      releaseSaved = true
       trackEvent('release_created', { source: 'campaign_setup' })
       const { campaign } = await trpcClient.campaign.create.mutate({
         audience: audience || undefined,
+        idempotencyKey,
         name: title,
         // The release may skip why it matters when sources are linked; a
         // campaign still needs an objective, so the title stands in.
@@ -141,9 +182,25 @@ export function CampaignSetupForm({
       trackEvent('campaign_draft_created', {
         elapsedSeconds: Math.round((Date.now() - startedAt.current) / 1_000),
       })
+      setDirty(false)
       router.push(`/campaigns/${campaign.id}`)
     } catch (requestError) {
-      setError(getErrorMessage(requestError))
+      const cleanupFailures: string[] = []
+      if (!releaseSaved) {
+        for (const surfaceId of createdProducts.toReversed()) {
+          try {
+            await trpcClient.productSurface.delete.mutate({ surfaceId })
+            setSurfaces((current) => current.filter((surface) => surface.id !== surfaceId))
+            setSurfaceChoice((current) => (current === surfaceId ? NEW_PRODUCT : current))
+          } catch {
+            cleanupFailures.push(surfaceId)
+          }
+        }
+      }
+      setError(
+        getErrorMessage(requestError) +
+          (cleanupFailures.length ? ' The product was kept; select it when retrying.' : '')
+      )
       setIsSaving(false)
     }
   }
@@ -157,7 +214,16 @@ export function CampaignSetupForm({
   }
 
   return (
-    <form className="flex flex-col gap-10" onSubmit={handleSubmit}>
+    <form
+      className="flex flex-col gap-10"
+      onChange={(event) => {
+        setDirty(true)
+        const target = event.target
+        if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)
+          setValues((current) => ({ ...current, [target.name]: target.value }))
+      }}
+      onSubmit={handleSubmit}
+    >
       <Section description="The app this campaign captures and promotes." title="Product">
         <Group>
           <Row>
@@ -169,7 +235,12 @@ export function CampaignSetupForm({
                 value={String(surfaceChoice) || '__empty_option__'}
               >
                 <SelectTrigger className={selectClassName} id="campaign-product">
-                  <SelectValue />
+                  <SelectValue>
+                    {isNewProduct
+                      ? 'Add a product…'
+                      : (surfaces.find((surface) => surface.id === surfaceChoice)?.name ??
+                        'Choose a product')}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {surfaces.map((surface) => (
@@ -189,24 +260,33 @@ export function CampaignSetupForm({
           </Row>
           {isNewProduct ? (
             <Row>
-              <Field htmlFor="campaign-product-name" label="Product name">
+              <Field htmlFor="campaign-product-name" label="Product name (required)">
                 <Input
                   className={inputClassName}
                   id="campaign-product-name"
                   maxLength={160}
                   name="productName"
+                  defaultValue={values.productName ?? ''}
                   required
                 />
               </Field>
               <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
-                <Field htmlFor="campaign-app-url" label="App URL">
+                <Field htmlFor="campaign-app-url" label="App URL (required)">
                   <Input
                     className={inputClassName}
                     id="campaign-app-url"
                     name="appUrl"
+                    defaultValue={values.appUrl ?? ''}
                     placeholder="https://app.example.com"
                     required
-                    type="url"
+                    type="text"
+                    inputMode="url"
+                    onBlur={(event) => {
+                      const value = normalizeProductUrl(event.target.value)
+                      event.target.value = value
+                      const name = event.target.name
+                      setValues((current) => ({ ...current, [name]: value }))
+                    }}
                   />
                 </Field>
                 <Field htmlFor="campaign-environment" label="Environment">
@@ -229,8 +309,16 @@ export function CampaignSetupForm({
                   className={inputClassName}
                   id="campaign-marketing-url"
                   name="marketingUrl"
+                  defaultValue={values.marketingUrl ?? ''}
                   placeholder="https://example.com"
-                  type="url"
+                  type="text"
+                  inputMode="url"
+                  onBlur={(event) => {
+                    const value = normalizeProductUrl(event.target.value)
+                    event.target.value = value
+                    const name = event.target.name
+                    setValues((current) => ({ ...current, [name]: value }))
+                  }}
                 />
               </Field>
             </Row>
@@ -241,7 +329,7 @@ export function CampaignSetupForm({
       <Section description="What did you ship? This becomes the campaign brief." title="Release">
         <Group>
           <Row>
-            <Field htmlFor="campaign-release-title" label="Release title">
+            <Field htmlFor="campaign-release-title" label="Release title (required)">
               <Input
                 className={inputClassName}
                 id="campaign-release-title"
@@ -265,7 +353,7 @@ export function CampaignSetupForm({
             </Field>
           </Row>
           <Row>
-            <Field htmlFor="campaign-description" label="Description">
+            <Field htmlFor="campaign-description" label="Description (optional)">
               <Textarea
                 className={textareaClassName}
                 id="campaign-description"
@@ -274,7 +362,7 @@ export function CampaignSetupForm({
                 placeholder="What changed, in your own words. Plain text."
               />
             </Field>
-            <Field htmlFor="campaign-audience" label="Target audience">
+            <Field htmlFor="campaign-audience" label="Target audience (optional)">
               <Input
                 className={inputClassName}
                 id="campaign-audience"

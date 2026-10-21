@@ -5,9 +5,9 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { type ReactNode, useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import { ProduceControl } from '@/components/launch/assets/ProduceControl'
 import { RevisePanel } from '@/components/launch/RevisePanel'
 import { RunButton } from '@/components/launch/RunButton'
-import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { EmptyState, Group, Pill, Row, Section } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
 import {
@@ -138,6 +138,7 @@ export function PlanView({
   canApprove,
   canEdit,
   hasApproved,
+  productionRun,
   lastRunError,
   latestId,
   plan,
@@ -152,6 +153,7 @@ export function PlanView({
   canEdit: boolean
   /** Some version is approved, so production can start. */
   hasApproved: boolean
+  productionRun?: { id: string; startedAt: string } | null
   lastRunError: string | null
   latestId: string | null
   /** The version on screen: the latest unless an earlier one was picked. */
@@ -276,22 +278,13 @@ export function PlanView({
         </div>
       ) : null}
 
-      {hasApproved ? (
-        <div className="flex flex-col gap-3 rounded-2xl bg-emerald-500/[0.05] px-5 py-4 ring-1 ring-emerald-500/20 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-medium text-foreground">The plan is approved</p>
-            <p className="mt-0.5 text-sm text-foreground/65">
-              Next, produce the visuals and copy it calls for.
-            </p>
-          </div>
-          <ButtonLink
-            className="shrink-0 rounded-lg"
-            href={`/campaigns/${campaignId}/assets`}
-            size="sm"
-          >
-            Produce the campaign
-          </ButtonLink>
-        </div>
+      {canEdit && hasApproved ? (
+        <ProduceControl
+          activeRun={productionRun ?? null}
+          blocker={!aiConfigured ? 'ai' : null}
+          campaignId={campaignId}
+          lastError={null}
+        />
       ) : null}
 
       <Section title="Summary">

@@ -5,6 +5,7 @@ import { CampaignList } from '@/components/campaigns/CampaignList'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { Page, Pill } from '@/components/platform-ui'
+import { getProductProfile } from '@/lib/tenant/product-profile'
 import { backendSDK } from '@/lib/backend/sdk'
 import { listCampaigns } from '@/lib/tenant/campaigns'
 import { requireCampaignPageAccess } from './page-access'
@@ -18,18 +19,18 @@ type CampaignsPageProps = {
 /** The three RFC 021 workflows; a workflow without an href is planned, not offered yet. */
 const WORKFLOWS = [
   {
-    description: 'Paste your product URL. We learn it, then draft seven launch posts to approve.',
-    href: '/onboarding/product',
+    description: 'Add your product and release brief, then draft launch posts to approve.',
+    href: '/campaigns/new',
     icon: Rocket01Icon,
     label: 'Start the launch',
     primary: true,
     title: 'Launch your product',
   },
   {
-    description: 'Pick a release you shipped and build a campaign around that one feature.',
+    description: 'Describe a release you shipped and build a campaign around that feature.',
     href: '/campaigns/new',
     icon: Megaphone01Icon,
-    label: 'Choose a release',
+    label: 'Add a release',
     primary: false,
     title: 'Announce a feature',
   },
@@ -93,9 +94,11 @@ function CampaignWorkflows() {
 export default async function CampaignsPage({ params }: CampaignsPageProps) {
   const { locale } = await params
   const access = await requireCampaignPageAccess(locale)
-  const [campaigns, bootstrap] = await Promise.all([
+  const [campaigns, bootstrap, { productSurfaces }, profile] = await Promise.all([
     listCampaigns(access.tenant),
     backendSDK(access.tenant).getBootstrap(),
+    backendSDK(access.tenant).listProductSurfaces(),
+    getProductProfile(access.tenant),
   ])
 
   return (
@@ -105,7 +108,11 @@ export default async function CampaignsPage({ params }: CampaignsPageProps) {
         description="Each campaign starts from a release brief and keeps its context as you build it out."
         title="Campaigns"
       >
-        <ShipInput aiEnabled={bootstrap.capabilities.aiAgent} />
+        <ShipInput
+          aiEnabled={bootstrap.capabilities.aiAgent}
+          hasProfile={Boolean(profile)}
+          products={productSurfaces.map(({ name, slug, url }) => ({ name, slug, url }))}
+        />
         {campaigns.length === 0 ? (
           <CampaignWorkflows />
         ) : (
@@ -114,6 +121,9 @@ export default async function CampaignsPage({ params }: CampaignsPageProps) {
               id: campaign.id,
               name: campaign.name,
               objective: campaign.objective,
+              productName:
+                productSurfaces.find((surface) => surface.id === campaign.productSurfaceId)?.name ??
+                null,
               releaseTitle: campaign.release?.title ?? null,
               status: campaign.status,
               updatedAt: campaign.updatedAt.toISOString(),

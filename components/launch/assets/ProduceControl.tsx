@@ -30,7 +30,7 @@ export function ProduceControl({
 }: {
   activeRun: ActiveRun | null
   /** Why production cannot start: no plan yet, or AI is not configured. */
-  blocker: 'ai' | 'plan' | null
+  blocker: 'ai' | 'spec' | 'plan' | null
   campaignId: string
   /** The latest run's failure, so it is not lost when the page reloads. */
   lastError: string | null
@@ -97,14 +97,14 @@ export function ProduceControl({
       <Group>
         <Row
           description={
-            blocker === 'plan' ? (
+            blocker === 'spec' || blocker === 'plan' ? (
               <>
-                Plan the campaign first.{' '}
+                {blocker === 'spec' ? 'Draft the spec first.' : 'Plan the campaign first.'}{' '}
                 <Link
                   className="font-medium text-foreground underline-offset-4 hover:underline"
-                  href={`/campaigns/${campaignId}/plan`}
+                  href={`/campaigns/${campaignId}/${blocker}`}
                 >
-                  Go to the plan
+                  {blocker === 'spec' ? 'Open the spec' : 'Go to the plan'}
                 </Link>
               </>
             ) : blocker === 'ai' ? (

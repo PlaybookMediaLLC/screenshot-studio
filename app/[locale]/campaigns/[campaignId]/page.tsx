@@ -38,6 +38,7 @@ export default async function CampaignPage({ params }: CampaignPageProps) {
     <>
       <PipelineSteps
         campaignId={campaign.id}
+        canEdit={campaign.status !== 'ARCHIVED' && hasPermission(access.role, 'release:create')}
         hasRelease={Boolean(campaign.release)}
         plan={plans}
         produced={{ designs: designs.length, posts: campaign.posts.length }}

@@ -30,6 +30,7 @@ func TestDecisionsRefuseNonSessionActors(t *testing.T) {
 			_, err := repo.TransitionCampaign(ctx, a, "campaign", "APPROVED")
 			return err
 		},
+		"ApproveCampaignAsset": func(a Actor) error { _, err := repo.ApproveCampaignAsset(ctx, a, "campaign", "asset"); return err },
 		"ApproveCampaignDesign": func(a Actor) error {
 			_, err := repo.ApproveCampaignDesign(ctx, a, "campaign", "design")
 			return err

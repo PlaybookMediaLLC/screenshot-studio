@@ -138,7 +138,8 @@ const plainTextSchema = (max: number) =>
     .string()
     .trim()
     .max(max)
-    .refine((value) => !/<\/?[a-z!][^>]*>/i.test(value), 'HTML is not allowed.')
+    .refine((value) => !/<\/?[a-z!][^>]*>/i.test(value), 'Use plain text without HTML tags.')
+    .refine((value) => !value.includes('\0'), 'Remove null characters.')
 
 export const productEnvironments = ['production', 'staging', 'demo', 'development'] as const
 
@@ -193,12 +194,17 @@ export const campaignCreateSchema = z.object({
     .default([]),
 })
 
-export const campaignApprovalSchema = z.object({
-  decision: z.enum(['submit', 'approve', 'reject', 'request_changes']),
-  /** Why, when rejecting or requesting changes; it guides the next generation. */
-  note: z.string().trim().max(1_000).optional(),
-  postIds: z.array(z.string().cuid()).min(1).max(100).optional(),
-})
+export const campaignApprovalSchema = z
+  .object({
+    decision: z.enum(['submit', 'approve', 'reject', 'request_changes']),
+    /** Why, when rejecting or requesting changes; it guides the next generation. */
+    note: z.string().trim().max(1_000).optional(),
+    postIds: z.array(z.string().cuid()).min(1).max(100).optional(),
+  })
+  .refine((input) => input.decision !== 'request_changes' || Boolean(input.note?.trim()), {
+    path: ['note'],
+    message: 'Explain what should change.',
+  })
 
 export const campaignTransitionSchema = z.object({
   campaignId: z.string().cuid(),
@@ -241,7 +247,7 @@ const releaseFields = {
   description: plainTextSchema(10_000),
   productSurfaceId: z.string().cuid(),
   sourceUrls: z.array(webUrlSchema).max(20),
-  title: z.string().trim().min(1).max(160),
+  title: z.string().trim().min(1, 'Enter a release title.').max(160),
 }
 
 export const releaseCreateSchema = z.object({

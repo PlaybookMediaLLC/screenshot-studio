@@ -226,6 +226,7 @@ type ConfigurationStore interface {
 	UpdateDesignDocument(context.Context, product.Actor, string, map[string]any) error
 	SetDesignRender(context.Context, product.Actor, string, string, *string) error
 	ListCampaignDesigns(context.Context, product.Actor, string) ([]product.DesignRecord, error)
+	ApproveCampaignAsset(context.Context, product.Actor, string, string) (*product.CreativeApprovalDecision, error)
 	ApproveCampaignDesign(context.Context, product.Actor, string, string) (*product.CreativeApprovalDecision, error)
 	GetEntitlementSummary(context.Context, product.Actor) (*product.EntitlementSummary, error)
 	GetFeatureDecision(context.Context, product.Actor, string) (*product.FeatureDecision, error)

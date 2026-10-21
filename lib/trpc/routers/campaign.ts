@@ -23,6 +23,7 @@ import {
 import { runCampaignStudio } from '@/lib/ai/agents/campaign-studio'
 import { withAiCredits } from '@/lib/ai/metering'
 import { requireActiveOrganizationPermission } from '@/lib/auth/access'
+import { backendSDK } from '@/lib/backend/sdk'
 import { router, publicProcedure } from '../init'
 import { allowAiAction } from './launch'
 import { organizationProcedure } from '../procedures'
@@ -44,9 +45,11 @@ export const campaignRouter = router({
       return { campaign }
     }),
   create: organizationProcedure('release:create')
-    .input(campaignCreateSchema)
+    .input(
+      campaignCreateSchema.extend({ idempotencyKey: z.string().trim().min(1).max(128).optional() })
+    )
     .mutation(async ({ ctx, input }) => {
-      const campaign = await createCampaign(ctx.access, input)
+      const campaign = await createCampaign(ctx.access, input, input.idempotencyKey)
       return { campaign }
     }),
   /**
@@ -68,7 +71,7 @@ export const campaignRouter = router({
       campaign: await transitionCampaign(ctx.access, input.campaignId, input.status),
     })),
   decideApproval: publicProcedure
-    .input(campaignApprovalSchema.extend({ campaignId: z.string().cuid() }))
+    .input(campaignApprovalSchema.safeExtend({ campaignId: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
       const access = await requireActiveOrganizationPermission(
         ctx.headers,
@@ -87,6 +90,13 @@ export const campaignRouter = router({
     .input(campaignIdSchema.extend({ designId: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
       await approveCampaignDesign(ctx.access, input.campaignId, input.designId)
+      return { approved: true }
+    }),
+  /** Approve the current fallback product shot, preserving its exact render. */
+  approveAsset: organizationProcedure('release:approve')
+    .input(campaignIdSchema.extend({ assetId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      await backendSDK(ctx.access).approveCampaignAsset(input.campaignId, input.assetId)
       return { approved: true }
     }),
   /** A hand edit to a post; stale copy and prohibited terms come back as outcomes. */

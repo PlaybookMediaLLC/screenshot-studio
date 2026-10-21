@@ -131,3 +131,19 @@ export function allowedHostsFrom(urls: ReadonlyArray<string | null | undefined>)
   }
   return hosts
 }
+
+/** Review and scheduling use the same copy-plus-CTA count as generation. */
+export function campaignPostReviewIssue(post: {
+  channel: string
+  copy: string
+  callToAction: string | null
+}): string | null {
+  const limit =
+    CHANNEL_RULES[post.channel as LaunchChannel]?.bodyMax ??
+    { threads: 500, bluesky: 300 }[post.channel] ??
+    3000
+  const length = [post.copy, post.callToAction].filter(Boolean).join(' ').length
+  return length > limit
+    ? `${post.channel}: ${length}/${limit} characters. Shorten this post before review.`
+    : null
+}

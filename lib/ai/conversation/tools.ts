@@ -104,26 +104,38 @@ export function conversationTools(run: ToolRun, state: TurnState, { canAsk }: { 
           state.campaignId = linked
           return { campaignId: linked, created: false, ok: true as const }
         }
-        const profile = await getProductProfile(access)
-        if (!profile) return failure('Add your product before creating a campaign.', 'onboarding')
-        const surfaces = surfaceSlug ? await marketingServices.listProductSurfaces(access) : []
+        const [profile, surfaces] = await Promise.all([
+          getProductProfile(access),
+          marketingServices.listProductSurfaces(access),
+        ])
+        if (surfaceSlug && !surfaces.some((entry) => entry.slug === surfaceSlug))
+          return failure(
+            'That product page no longer exists. List the product pages and choose one again.'
+          )
         const surface =
           surfaces.find((entry) => entry.slug === surfaceSlug) ??
-          (await ensureProductSurface(access, profile))
+          (profile ? await ensureProductSurface(access, profile) : surfaces[0])
+        if (!surface) return failure('Add your product before creating a campaign.', 'onboarding')
+        const productProfile =
+          profile && new URL(profile.url).origin === new URL(surface.url).origin ? profile : null
         const name = plain(`${feature} launch`, 160)
         const { release } = await createRelease(access, {
-          audience: plain(profile.audience, 1_000) || undefined,
+          audience: plain(productProfile?.audience ?? '', 1_000) || undefined,
           benefitStatement: plain(benefit, 500),
-          description: plain(`${feature}\n\n${profile.summary}`, 10_000) || undefined,
+          description:
+            plain(
+              `${feature}\n\n${productProfile?.summary ?? surface.description ?? ''}`,
+              10_000
+            ) || undefined,
           // One release per conversation, so a retried call does not make a second.
           idempotencyKey: `conversation:${state.conversationId}`,
           productSurfaceId: surface.id,
-          sourceUrls: [...new Set([surface.url, profile.url])],
+          sourceUrls: [...new Set([surface.url, ...(productProfile ? [productProfile.url] : [])])],
           title: plain(feature, 160),
         })
         const campaign = await createCampaign(access, {
           angles: [],
-          audience: plain(profile.audience, 1_000) || undefined,
+          audience: plain(productProfile?.audience ?? '', 1_000) || undefined,
           feature: plain(feature, 500),
           name,
           objective: 'Launch',

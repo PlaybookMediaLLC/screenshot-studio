@@ -13,6 +13,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignasset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
@@ -225,6 +226,11 @@ func (c *Configuration) CreateDesign(ctx context.Context, actor Actor, input Cre
 		return nil, err
 	}
 	defer tx.Rollback()
+	if input.CampaignID != nil {
+		if err := mutableCampaign(ctx, tx, actor, *input.CampaignID); err != nil {
+			return nil, err
+		}
+	}
 	if err := requireDesignAssets(ctx, tx, actor.OrganizationID, input.Document); err != nil {
 		return nil, err
 	}
@@ -317,6 +323,9 @@ func (c *Configuration) UpdateDesignDocument(ctx context.Context, actor Actor, i
 		return err
 	}
 	defer tx.Rollback()
+	if err := mutableDesignCampaign(ctx, tx, actor, id); err != nil {
+		return err
+	}
 	if err := requireDesignAssets(ctx, tx, actor.OrganizationID, document); err != nil {
 		return err
 	}
@@ -349,6 +358,9 @@ func (c *Configuration) SetDesignRender(ctx context.Context, actor Actor, id, as
 		return err
 	}
 	defer tx.Rollback()
+	if err := mutableDesignCampaign(ctx, tx, actor, id); err != nil {
+		return err
+	}
 	ownedAsset, err := tx.Asset.Query().Where(asset.ID(assetID), asset.OrganizationID(actor.OrganizationID),
 		asset.StatusEQ(asset.StatusUPLOADED)).Exist(ctx)
 	if err != nil {
@@ -420,6 +432,16 @@ func (c *Configuration) ListCampaignDesigns(ctx context.Context, actor Actor, ca
 // render becomes a creative variant (one per design and render), so a later
 // re-render never changes what was approved.
 func (c *Configuration) ApproveCampaignDesign(ctx context.Context, actor Actor, campaignID, designID string) (*CreativeApprovalDecision, error) {
+	return c.approveCampaignVisual(ctx, actor, campaignID, designID, "")
+}
+
+// ApproveCampaignAsset gives a fallback product shot the same immutable render
+// approval and publishing lineage as editor designs.
+func (c *Configuration) ApproveCampaignAsset(ctx context.Context, actor Actor, campaignID, assetID string) (*CreativeApprovalDecision, error) {
+	return c.approveCampaignVisual(ctx, actor, campaignID, "", assetID)
+}
+
+func (c *Configuration) approveCampaignVisual(ctx context.Context, actor Actor, campaignID, designID, assetID string) (*CreativeApprovalDecision, error) {
 	if err := c.authorizeDecision(ctx, actor, creativeApproveRoles...); err != nil {
 		return nil, err
 	}
@@ -428,12 +450,52 @@ func (c *Configuration) ApproveCampaignDesign(ctx context.Context, actor Actor, 
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := mutableCampaign(ctx, tx, actor, campaignID); err != nil {
+		return nil, err
+	}
 	owner, err := tx.Campaign.Query().Where(campaign.ID(campaignID), campaign.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return nil, publishing.ErrNotFound
 	}
 	if err != nil {
 		return nil, err
+	}
+	if assetID != "" {
+		link, err := tx.CampaignAsset.Query().Where(campaignasset.CampaignID(campaignID), campaignasset.AssetID(assetID),
+			campaignasset.OrganizationID(actor.OrganizationID), campaignasset.Kind("product-shot")).Only(ctx)
+		if ent.IsNotFound(err) {
+			return nil, publishing.ErrNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+		// mutableCampaign holds the parent lock, so retries cannot create two designs.
+		existing, err := tx.Design.Query().Where(design.CampaignID(campaignID), design.OrganizationID(actor.OrganizationID), design.RenderedAssetID(assetID)).First(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return nil, err
+		}
+		if existing == nil {
+			media, err := tx.Asset.Query().Where(asset.ID(assetID), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
+			if ent.IsNotFound(err) {
+				return nil, publishing.ErrNotFound
+			}
+			if err != nil {
+				return nil, err
+			}
+			if media.Width == nil || media.Height == nil {
+				return nil, conflict("The visual needs image dimensions before approval.")
+			}
+			existing, err = tx.Design.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetCampaignID(campaignID).
+				SetName("Product shot").SetRenderedAssetID(assetID).SetNillablePlanAssetKey(link.PlanAssetKey).
+				SetNillablePlanVersion(link.PlanVersion).SetNillableVariantLabel(link.VariantLabel).SetCreatedAt(link.CreatedAt).
+				SetDocument(map[string]any{"version": 2, "canvas": map[string]any{"aspectRatio": "custom", "padding": 0,
+					"size": map[string]any{"width": *media.Width, "height": *media.Height}},
+					"image": map[string]any{"src": "asset:" + assetID, "scale": 100, "radius": 0}}).Save(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+		designID = existing.ID
 	}
 	row, err := tx.Design.Query().Where(design.ID(designID), design.CampaignID(campaignID),
 		design.OrganizationID(actor.OrganizationID)).Only(ctx)

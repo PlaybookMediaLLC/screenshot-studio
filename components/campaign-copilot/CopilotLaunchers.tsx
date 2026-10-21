@@ -5,6 +5,7 @@ import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { CampaignCopilot } from './CampaignCopilot'
+import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 
@@ -16,9 +17,18 @@ function errorMessage(error: unknown): string {
  * The campaigns list's one-sentence start: "What did you ship?" creates a
  * conversation, sends the sentence, and opens the panel on it.
  */
-export function ShipInput({ aiEnabled }: { aiEnabled: boolean }) {
+export function ShipInput({
+  aiEnabled,
+  hasProfile = false,
+  products = [],
+}: {
+  aiEnabled: boolean
+  hasProfile?: boolean
+  products?: { name: string; slug: string; url: string }[]
+}) {
   const client = useTRPCClient()
   const [value, setValue] = useState('')
+  const [productSlug, setProductSlug] = useState(products[0]?.slug ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [conversationId, setConversationId] = useState<string | null>(null)
@@ -26,8 +36,11 @@ export function ShipInput({ aiEnabled }: { aiEnabled: boolean }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    const content = value.trim()
-    if (!content) return
+    if (!value.trim()) return
+    const product = products.find((entry) => entry.slug === productSlug)
+    const content = product
+      ? `${value.trim()}\nUse product ${product.name} (surface slug: ${product.slug}, URL: ${product.url}).`
+      : value.trim()
     setBusy(true)
     setError(null)
     try {
@@ -52,6 +65,15 @@ export function ShipInput({ aiEnabled }: { aiEnabled: boolean }) {
       </p>
     )
   }
+  if (!hasProfile && products.length === 0)
+    return (
+      <div className="rounded-2xl bg-foreground/[0.02] p-4 text-sm">
+        <p>Add a product before drafting a campaign.</p>
+        <ButtonLink href="/campaigns/new" size="sm">
+          Add your product
+        </ButtonLink>
+      </div>
+    )
   return (
     <>
       <form
@@ -61,6 +83,23 @@ export function ShipInput({ aiEnabled }: { aiEnabled: boolean }) {
         <Label className="text-sm font-medium text-foreground" htmlFor="ship-input">
           What did you ship?
         </Label>
+        {products.length > 0 ? (
+          <Label className="grid gap-1">
+            Product
+            <select
+              aria-label="Product for quick draft"
+              className="h-10 rounded-lg border border-input bg-background px-3"
+              value={productSlug}
+              onChange={(event) => setProductSlug(event.target.value)}
+            >
+              {products.map((product) => (
+                <option key={product.slug} value={product.slug}>
+                  {product.name}
+                </option>
+              ))}
+            </select>
+          </Label>
+        ) : null}
         <div className="flex flex-col gap-2 md:flex-row">
           <Input
             className="h-10 w-full rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none placeholder:text-muted-foreground/75 focus:ring-foreground/20"

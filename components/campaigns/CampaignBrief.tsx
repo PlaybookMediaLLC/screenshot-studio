@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { getErrorMessage } from '@/components/workspace/settings-client'
 import { trackEvent } from '@/lib/analytics'
+import { releaseUpdateSchema } from '@/lib/tenant/schemas'
+import { briefValidationMessage } from '@/lib/campaigns/brief-form'
 import { useTRPCClient } from '@/lib/trpc/react'
 
 type CampaignStatus = 'APPROVED' | 'ARCHIVED' | 'DRAFT' | 'READY_FOR_REVIEW'
@@ -116,16 +118,21 @@ export function CampaignBrief({
     setMessage(null)
     setIsSaving(true)
     try {
-      await trpcClient.release.update.mutate({
+      const update = {
         audience: field(data, 'audience') || null,
         benefitStatement: field(data, 'benefitStatement'),
         description: field(data, 'description') || null,
         releaseId: release.id,
         sourceUrls: field(data, 'sourceUrls').split(/\s+/).filter(Boolean),
         title: field(data, 'title'),
-      })
+      }
+      const parsed = releaseUpdateSchema.safeParse(update)
+      if (!parsed.success) throw new Error(briefValidationMessage(parsed.error))
+      if (!update.benefitStatement && !update.sourceUrls.length)
+        throw new Error('Why it matters: enter a benefit or add a source link.')
+      await trpcClient.release.update.mutate(update)
       setIsEditing(false)
-      setMessage('Brief updated.')
+      setMessage('Brief updated. Redraft the spec and review existing posts to use the new facts.')
       router.refresh()
     } catch (requestError) {
       setError(getErrorMessage(requestError))
@@ -152,10 +159,14 @@ export function CampaignBrief({
     <>
       <Section
         actions={
-          canEdit && release && !isEditing ? (
+          canEdit && campaign.status !== 'ARCHIVED' && release && !isEditing ? (
             <Button
               className="rounded-lg"
-              onClick={() => setIsEditing(true)}
+              onClick={() => {
+                setError(null)
+                setMessage(null)
+                setIsEditing(true)
+              }}
               size="sm"
               type="button"
               variant="outline"
@@ -233,7 +244,10 @@ export function CampaignBrief({
                 <div className="flex justify-end gap-2">
                   <Button
                     className="rounded-lg"
-                    onClick={() => setIsEditing(false)}
+                    onClick={() => {
+                      setError(null)
+                      setIsEditing(false)
+                    }}
                     type="button"
                     variant="ghost"
                   >

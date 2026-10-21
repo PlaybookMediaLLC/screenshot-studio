@@ -23,12 +23,10 @@ test('one sentence becomes a drafted campaign with inspectable steps that surviv
 }) => {
   test.slow()
   await signUpAndCreateWorkspace(identity, page)
-  const profile = await trpcMutation(page, 'productProfile.upsert', {
-    audience: 'Freelancers who bill monthly',
-    capabilities: ['Recurring invoices: schedule an invoice once and it sends itself'],
+  const profile = await trpcMutation(page, 'productSurface.create', {
+    featureTags: ['recurring invoices'],
     name: 'Ledgerly',
-    problem: 'Recreating the same invoice every month.',
-    summary: 'Invoices that send themselves.',
+    description: 'Invoices that send themselves.',
     url: `${MOCK}/product`,
   })
   expect(profile.status).toBe(200)

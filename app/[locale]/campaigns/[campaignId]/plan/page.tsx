@@ -61,9 +61,14 @@ export default async function PlanPage({ params, searchParams }: PlanPageProps) 
       activeRunId={run?.status === 'RUNNING' ? run.id : null}
       aiConfigured={isCampaignStudioConfigured()}
       campaignId={campaign.id}
-      canApprove={hasPermission(access.role, 'release:approve')}
-      canEdit={hasPermission(access.role, 'release:create')}
+      canApprove={campaign.status !== 'ARCHIVED' && hasPermission(access.role, 'release:approve')}
+      canEdit={campaign.status !== 'ARCHIVED' && hasPermission(access.role, 'release:create')}
       hasApproved={Boolean(plans.approved)}
+      productionRun={
+        runs.produce?.status === 'RUNNING'
+          ? { id: runs.produce.id, startedAt: runs.produce.startedAt.toISOString() }
+          : null
+      }
       lastRunError={runFailed ? (run.error ?? 'The last plan failed.') : null}
       latestId={plans.latest?.id ?? null}
       plan={

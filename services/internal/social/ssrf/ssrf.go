@@ -28,15 +28,16 @@ func IsBlockedIP(ip string) bool {
 		return true
 	}
 	addr = addr.Unmap()
+	if !addr.IsGlobalUnicast() || addr.IsPrivate() || addr.IsLinkLocalUnicast() {
+		return true
+	}
 	if addr.Is4() {
 		b := addr.As4()
 		a, s := b[0], b[1]
 		return a == 0 || a == 10 || a == 127 || (a == 169 && s == 254) || (a == 172 && s >= 16 && s <= 31) ||
 			(a == 192 && s == 168) || (a == 100 && s >= 64 && s <= 127) || (a == 198 && (s == 18 || s == 19)) || a >= 224
 	}
-	text := strings.ToLower(addr.String())
-	return text == "::1" || text == "::" || strings.HasPrefix(text, "fe80:") || strings.HasPrefix(text, "fc") ||
-		strings.HasPrefix(text, "fd") || strings.HasPrefix(text, "ff")
+	return netip.MustParsePrefix("fec0::/10").Contains(addr) || netip.MustParsePrefix("2001:db8::/32").Contains(addr)
 }
 
 // IsSafePublicHTTPSURL is the IsSafeWebhookUrl validator.
@@ -72,6 +73,19 @@ func IsSafePublicHTTPSURL(ctx context.Context, value string) bool {
 func Disabled() bool { return os.Getenv("DISABLE_SSRF_PROTECTION") == "true" }
 
 var guarded = &http.Client{Transport: newTransport()}
+
+var publicOnly = &http.Client{
+	Transport: newTransport(),
+	Timeout:   10 * time.Second,
+	CheckRedirect: func(*http.Request, []*http.Request) error {
+		return errors.New("instance redirects are not allowed")
+	},
+}
+
+// PublicClient keeps public instance discovery and credentials off private
+// networks even when a self-hosted deployment disables the general guard.
+// Redirects are refused so credentials cannot leave the chosen instance.
+func PublicClient() *http.Client { return publicOnly }
 
 func newTransport() *http.Transport {
 	dialer := &net.Dialer{

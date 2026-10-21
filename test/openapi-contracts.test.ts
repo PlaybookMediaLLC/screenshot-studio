@@ -28,6 +28,7 @@ import * as sharing from '@/lib/api/contracts/sharing'
 import * as shell from '@/lib/api/contracts/shell'
 import * as socialMentions from '@/lib/api/contracts/social-mentions'
 import * as socialConnections from '@/lib/api/contracts/social-connections'
+import * as socialInstances from '@/lib/api/contracts/social-instances'
 import * as socialSets from '@/lib/api/contracts/social-sets'
 import * as sourceApps from '@/lib/api/contracts/source-apps'
 import * as storePublishing from '@/lib/api/contracts/store-publishing'
@@ -66,6 +67,7 @@ const contracts = new Map<string, RouteContract>(
     shell,
     socialMentions,
     socialConnections,
+    socialInstances,
     socialSets,
     sourceApps,
     storePublishing,

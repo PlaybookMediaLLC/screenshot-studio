@@ -1,4 +1,6 @@
 import { socialOAuthBeginRequestSchema, socialOAuthBeginResponseSchema, socialOAuthContextSchema, socialOAuthExchangeSchema } from './social-oauth.ts'
+import { mastodonInstanceSchema, socialInstanceQuerySchema } from './social-instances.ts'
+export * from './social-instances.ts'
 import type { OAuthProvider, SocialOAuthStartOptions } from './social-oauth.js'
 export * from './social-oauth.ts'
 import type {
@@ -2042,6 +2044,12 @@ export class ScreenshotStudioBackendSDK {
       body: input,
       method: 'POST',
     })
+  }
+
+  /** Read public Mastodon metadata through the backend’s bounded network guard. */
+  async previewMastodonInstance(server: string) {
+    const query = new URLSearchParams(socialInstanceQuerySchema.parse({ server }))
+    return mastodonInstanceSchema.parse(await this.request(`v1/social-instances/mastodon?${query}`))
   }
 
   /** Begins a provider connection; with a set, the account joins that set (RFC 043). */

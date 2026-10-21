@@ -42,6 +42,7 @@ func validPullRequestAuthors(authors []string) bool {
 }
 
 func (s *Server) registerConfiguration(mux *http.ServeMux) {
+	mux.Handle("GET /v1/social-instances/mastodon", s.authenticateWithOptions(http.HandlerFunc(s.previewMastodonInstance), true, true, s.configuration.Authorize))
 	mux.Handle("GET /v1/brand-kits", s.authenticateProduct(http.HandlerFunc(s.listBrandKits)))
 	mux.Handle("POST /v1/brand-kits", s.authenticateProduct(http.HandlerFunc(s.createBrandKit)))
 	mux.Handle("GET /v1/brand-profile", s.authenticateProduct(http.HandlerFunc(s.getBrandProfile)))

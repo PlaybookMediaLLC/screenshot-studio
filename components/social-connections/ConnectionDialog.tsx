@@ -14,6 +14,7 @@ import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/c
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { settingsErrorMessage } from '@/lib/settings/client'
 import type { ConnectionLauncherProps } from './ConnectionLauncher'
+import { MastodonServer } from './MastodonServer'
 
 const providers = [
   { id: 'x', label: 'X / Twitter' },
@@ -34,6 +35,7 @@ function ProviderForm({
   const scope = useSocialSetScope()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [mastodonServer, setMastodonServer] = useState('mastodon.social')
   const lifetime = useRef<AbortController | null>(null)
   useLayoutEffect(() => {
     const controller = new AbortController()
@@ -46,9 +48,10 @@ function ProviderForm({
   const label =
     provider === 'x' ? 'X' : (providers.find((item) => item.id === provider)?.label ?? provider)
   const supported = socialOAuthProviderSchema.safeParse(provider)
+  const serverAvailable = provider !== 'mastodon' || mastodonServer === 'mastodon.social'
   const connect = async () => {
     const controller = lifetime.current
-    if (!supported.success || !controller || busy) return
+    if (!supported.success || !serverAvailable || !controller || busy) return
     setBusy(true)
     setError('')
     try {
@@ -112,7 +115,14 @@ function ProviderForm({
             </p>
           ) : null}
           {provider === 'mastodon' ? (
-            <p className="text-sm text-muted-foreground">This connection uses mastodon.social.</p>
+            <>
+              <MastodonServer value={mastodonServer} onChange={setMastodonServer} />
+              {!serverAvailable && mastodonServer.trim() ? (
+                <p className="text-sm text-muted-foreground">
+                  Authorization on this server is not enabled yet.
+                </p>
+              ) : null}
+            </>
           ) : null}
           {intent.operation === 'RECONNECT' ? (
             <p className="text-sm text-muted-foreground">
@@ -133,7 +143,7 @@ function ProviderForm({
       ) : null}
       <Button
         className="w-full"
-        disabled={!supported.success || busy || !scope.ready}
+        disabled={!supported.success || !serverAvailable || busy || !scope.ready}
         onClick={() => void connect()}
         type="button"
       >

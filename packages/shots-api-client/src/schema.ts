@@ -92,6 +92,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/social-instances/mastodon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview a public Mastodon server
+         * @description Reads the selected public Mastodon server’s v2 instance metadata. Accepts a hostname or HTTPS origin with no path, port or credentials. The backend blocks private addresses, refuses redirects, limits the response size and bounds network time. This preview does not authorize an account or prove publishing capability. activeUsers is the reported number of active users in the past four weeks, when available.
+         */
+        get: operations["previewMastodonInstance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/social-connection-attempts": {
         parameters: {
             query?: never;
@@ -1088,6 +1108,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        MastodonInstancePreview: {
+            /** Format: uri */
+            origin: string;
+            title: string;
+            description: string;
+            activeUsers: number | null;
+        };
         SocialConnectionAttemptRequest: {
             /** @enum {string} */
             operation: "CREATE_SET" | "ADD_ACCOUNT" | "RECONNECT";
@@ -2977,6 +3004,73 @@ export interface operations {
             };
             /** @description The upstream host refused the request. */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    previewMastodonInstance: {
+        parameters: {
+            query: {
+                server: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public instance metadata for the requested origin. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MastodonInstancePreview"];
+                };
+            };
+            /** @description The server origin is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The workspace API request quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description The server is unreachable, private, redirects, or returns an invalid response. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

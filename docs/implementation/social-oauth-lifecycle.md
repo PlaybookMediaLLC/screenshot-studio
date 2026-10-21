@@ -16,6 +16,14 @@ Channel capacity is checked again inside that transaction, under the same worksp
 
 `POST /api/v1/social-connection-attempts` exposes the explicit operation through the member-only Zod REST contract and SDK. Owner/admin authorization and fresh sensitive-action authentication run before beginning the provider handoff. Callers must not automatically retry a lost begin response; each begin creates a new attempt. Listing social sets no longer creates an empty default brand. Legacy unassigned accounts are still adopted into the default set. Existing explicit set-creation and draft-writing compatibility paths remain available for compatibility. The new picker begins from the sidebar, private/workspace list actions, existing-set rows, and General settings without navigating the current page.
 
+## Mastodon server discovery
+
+The picker offers the five documented servers and custom HTTPS hostnames. Public metadata comes from the authenticated Go backend through `GET /api/v1/social-instances/mastodon`; no account, credential, or social set is created by discovery. The backend checks the actual dialed IP, rejects private and link-local addresses even when the general self-hosted SSRF bypass is enabled, refuses redirects, bounds requests to ten seconds, and caps response bodies at 256 KiB. Hostnames cannot include paths, ports, query strings, fragments, or credentials. The browser validates before building the request URL and cancels previews when selection or workspace changes.
+
+The preview uses Mastodon’s public [v2 instance endpoint](https://docs.joinmastodon.org/methods/instance/). The optional active-user count is labeled “past four weeks,” matching the [instance entity definition](https://docs.joinmastodon.org/entities/instance/). Metadata is untrusted text, not proof of account authorization or publishing capability. Custom-server authorization remains disabled until its adapter and credential lifecycle are integrated and verified.
+
+Go tests cover URL validation, malformed and oversized responses, denied private egress and redirects. Production browser checks cover presets, empty custom input, stale-request cancellation and credential rejection. An opt-in browser check (`E2E_LIVE_PUBLIC_PREVIEW=1`) passed against the real public mastodon.social endpoint on 2026-10-21 through authenticated REST/Go. This verifies public discovery only; no live provider account was authorized.
+
 ## Migration and retention
 
 `20261031100000_social_oauth_receipts.sql` is additive. Existing social and Slack starts remain pending with the same original identities, set, and expiry. Pending starts expire after one hour. Completed receipts can replay for 24 hours, subject to current authorization. Maintenance removes completed receipts after that window and other expired social starts after another 24 hours. Shared Slack starts retain their existing single-use deletion and expiry behavior.

@@ -2,6 +2,7 @@ package x
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"unicode/utf8"
@@ -37,6 +38,24 @@ func publishingLimits(ctx context.Context, token string, in *ent.Integration) (s
 
 func publishRejected(message string) error {
 	return temporalx.BadBody(identifier, "{}", "{}", message)
+}
+
+// AccountMaxLength gives admission checks the stored, tenant-bound allowance.
+// Execution still rechecks the signed live account through publishingLimits.
+func (p *Provider) AccountMaxLength(in *ent.Integration, settingsRaw json.RawMessage) (int, error) {
+	if in == nil || (in.ProviderIdentifier != "x" && in.ProviderIdentifier != "twitter") ||
+		in.DeletedAt != nil || in.Disabled || in.RefreshNeeded || in.InBetweenSteps ||
+		in.Token == "" || integrations.RequireVerifiedIdentity(in) != nil {
+		return 280, errors.New("Reconnect X to verify this account's identity and publishing permissions.")
+	}
+	caps := in.VerifiedCapabilities.X
+	if str(decodeSettings(settingsRaw).PostType) == "article" {
+		if caps.Articles == nil || !*caps.Articles {
+			return 280, errors.New("This X account does not have verified Article publishing access.")
+		}
+		return 100000, nil
+	}
+	return caps.PostTextLimit(), nil
 }
 
 func checkPublishingContent(caps socialidentity.XCapabilities, message string, settings pendingSettings, mediaCount int, article bool) error {

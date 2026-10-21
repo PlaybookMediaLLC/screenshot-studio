@@ -225,7 +225,60 @@ func TestDirectPublisherResumesAThreadAndReportsProgress(t *testing.T) {
 func TestDirectPublisherSendsAPoll(t *testing.T) {
 	p, _, poster, input := directFixture()
 	input.Poll = &postoptions.Poll{DurationMinutes: 90, Options: []string{"Yes", "No"}}
-	if _, err := p.Publish(context.Background(), input); err != nil || poster.poll == nil || poster.poll.Duration != 2 {
+	if _, err := p.Publish(context.Background(), input); err != nil || poster.poll == nil || poster.poll.Duration != 2 || poster.poll.DurationMinutes != 90 {
 		t.Fatalf("err=%v poll=%+v", err, poster.poll)
+	}
+}
+
+func TestDirectPublisherKeepsInvalidPollsForProviderValidation(t *testing.T) {
+	for _, poll := range []*postoptions.Poll{
+		{DurationMinutes: 60},
+		{Options: []string{"Only one"}, DurationMinutes: 60},
+		{Options: []string{"A", "B"}, DurationMinutes: 0},
+	} {
+		p, _, provider, input := directFixture()
+		input.Poll = poll
+		if _, err := p.Publish(context.Background(), input); err != nil {
+			t.Fatal(err)
+		}
+		if provider.poll == nil || len(provider.poll.Options) != len(poll.Options) || provider.poll.DurationMinutes != poll.DurationMinutes {
+			t.Fatalf("invalid poll dropped or changed before validation: %+v", provider.poll)
+		}
+		if poll.DurationMinutes == 0 && provider.poll.Duration != 0 {
+			t.Fatalf("zero minutes became a valid legacy duration: %+v", provider.poll)
+		}
+	}
+}
+
+type uncertainAutoPoster struct {
+	fakePoster
+	repostErr error
+	plugCalls int
+}
+
+func (p *uncertainAutoPoster) AutoRepostPost(context.Context, *socialent.Integration, string, map[string]string) (bool, error) {
+	return false, p.repostErr
+}
+func (p *uncertainAutoPoster) AutoPlugPost(context.Context, *socialent.Integration, string, map[string]string) (bool, error) {
+	p.plugCalls++
+	return false, temporalx.UnknownDelivery("x", "Uncertain reply")
+}
+
+func TestLegacyAutoActStopsAfterUncertainRepost(t *testing.T) {
+	p, _, _, input := directFixture()
+	provider := &uncertainAutoPoster{repostErr: temporalx.UnknownDelivery("x", "Uncertain repost")}
+	p.resolve = func(string) poster { return provider }
+	result, err := p.AutoAct(context.Background(), socialapi.AutoActionInput{OrganizationID: input.OrganizationID, DestinationID: input.DestinationID, Platform: input.Platform, SecretReference: input.SecretReference, RemotePostID: "42", Repost: true, RepostAtLikes: 1, Plug: true, PlugAtLikes: 1, PlugText: "reply", Quote: true, QuoteText: "later"})
+	if temporalx.FailureType(err) != temporalx.TypeUnknownDelivery || result.Reposted || provider.plugCalls != 0 || provider.calls != 0 {
+		t.Fatalf("uncertainty swallowed or later mutation sent: %+v %v plugs=%d calls=%d", result, err, provider.plugCalls, provider.calls)
+	}
+}
+func TestLegacyAutoActPreservesUnknownDelivery(t *testing.T) {
+	p, _, _, input := directFixture()
+	provider := &uncertainAutoPoster{}
+	p.resolve = func(string) poster { return provider }
+	result, err := p.AutoAct(context.Background(), socialapi.AutoActionInput{OrganizationID: input.OrganizationID, DestinationID: input.DestinationID, Platform: input.Platform, SecretReference: input.SecretReference, RemotePostID: "42", Plug: true, PlugAtLikes: 1, PlugText: "reply", Quote: true, QuoteText: "later"})
+	if temporalx.FailureType(err) != temporalx.TypeUnknownDelivery || result.Plugged || provider.calls != 0 {
+		t.Fatalf("uncertainty swallowed or later mutation sent: %+v %v calls=%d", result, err, provider.calls)
 	}
 }

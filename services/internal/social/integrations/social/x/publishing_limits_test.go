@@ -241,7 +241,7 @@ func TestPublishingMissingReceiptDoesNotReportSuccess(t *testing.T) {
 			calls, done := fakePublishingX(t, func(r recorded) (int, string) { return 201, response })
 			defer done()
 			_, err := New().ReplyTo(context.Background(), publishingAccount(), "42", "hello")
-			if temporalx.FailureType(err) != temporalx.TypeBadBody || !strings.Contains(err.Error(), "avoid duplicates") || len(*calls) != 2 {
+			if temporalx.FailureType(err) != temporalx.TypeUnknownDelivery || !strings.Contains(err.Error(), "avoid duplicates") || len(*calls) != 2 {
 				t.Fatalf("unknown outcome reported success or retried: %v", err)
 			}
 		})

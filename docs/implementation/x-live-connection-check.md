@@ -455,3 +455,82 @@ processing and post-create errors still remain authoritative. Exact poll rules,
 legacy API long-post admission, root/Article mutation retries, native ownership,
 remaining provider checks and live publication are still open. S20 remains
 In progress; this increment does not establish complete X publishing support.
+
+
+## Exact polls, admission limits and uncertain mutations — 2026-10-21
+
+The X adapter now validates poll options and duration before preparing media and
+again before sending a root post or reply. Explicit minute values and option text
+are preserved, including whitespace; invalid values fail rather than being clamped
+or dropped. Legacy whole-hour inputs remain supported within the same limits.
+The shared product/provider validator uses X's documented 2–4 options, 1–25
+characters per option, and 5–10,080 minutes. See the current
+[create-post contract](https://docs.x.com/x-api/posts/create-post).
+The no-media/no-Article combinations remain product policy. Native Go inputs with
+invalid UTF-8 are rejected; JSON decoding can already have replaced invalid bytes.
+
+The legacy social API now reads the scoped integration's authenticated capabilities
+when admitting long posts. An editable Verified setting cannot grant access.
+Articles require verified Article access, and their thread replies use the ordinary
+post allowance. Execution still performs the fresh signed account checks described
+above; stored admission facts do not replace that check.
+
+Root posts, replies and Article create/publish now use one bounded HTTP mutation
+without response retries or redirect following. Transport errors, HTTP 408/5xx,
+redirects, malformed/oversized responses, partial-error envelopes and missing or
+invalid numeric receipts produce a non-retryable `unknown_delivery` outcome.
+401 requests reconnect; explicit 429 and other rejected requests return a safe
+error. Provider response bodies and post text are not copied into these failures.
+This is a conservative recovery policy, not a claim that X rejected an uncertain
+request. The account must be reconciled before another publication attempt.
+
+The social workflow stops root/reply/finalize retries for this failure and exposes
+an uncertainty warning. Later global plug checks for the same action are removed.
+Legacy tenant follow-ups propagate uncertainty and stop subsequent threshold checks;
+newer automation receipts retain `UNKNOWN_DELIVERY`. An Article draft ID is returned
+to the pending workflow history before a separately armed publish step. The
+[Article API](https://docs.x.com/x-api/articles/introduction) treats draft creation
+and publication as separate mutations. If the draft receipt is lost, no publish
+step runs and no draft is automatically recreated.
+
+Roll out workflow consumers before the adapter starts emitting the new failure
+class, or deploy both together; keep those consumers on rollback. Older consumers
+may manually retry an unfamiliar error. No schema or environment change is needed.
+The direct blocking Article path cannot durably save the intermediate ID within
+its single activity, so a crash still requires account/draft reconciliation.
+Automation crash-after-provider-before-receipt recovery, uncertain partial-thread
+resume, repost/retweet capability guards, remaining media limitations, native
+ownership and live publication remain open. S20 stays In progress.
+
+Protocol and database regression cases cover exact poll payloads and invalid
+selections before provider mutation, Basic/Premium/unknown account admission,
+Article reply limits, foreign integration IDs, HTTP failures and broken receipts,
+redirect/disconnect/oversized responses, separated Article draft/publish phases,
+workflow root/reply/finalize uncertainty and later follow-up checks. The public
+tenant-publisher regression caught empty polls disappearing before provider
+validation; it failed before the fix and passes in the full suite. Zero-minute
+polls now remain invalid instead of becoming a legacy one-hour poll.
+
+All 124 Go packages pass with serial database tests
+(`.context/x-contract-go-test-verified.log`), as does full `go vet ./...`
+(`.context/x-contract-vet-verified.log`). Static Linux/amd64 social API and product
+worker builds pass (`.context/x-contract-linux-build-verified.log`). No frontend
+source changed. Initial test corrections retained the boundaries under test:
+Go JSON serialization replaces invalid UTF-8, and the database requires all
+verification fields to be cleared together.
+
+The open Shots page and read-only database check confirm @yoanyombax remains
+connected: one connection, four completed attempts, native identity and read/write
+grant verified, encrypted non-expiring credentials. Screenshot:
+`.context/x-authorized-confirmed.png`. No public post, Article draft or media
+upload was sent. The new adapter/worker code has not been deployed to the live
+local connection container or production; protocol fixtures establish the code
+behavior, not live publication acceptance.
+
+Final verification also passed all eight affected race suites (X, social posts,
+product, social workflows, identity, tenant publishing, Temporal publishing and
+social activities; `.context/x-contract-race-verified.log`) and 17/17 RFC checks.
+CodeRabbit reviewed all 26 changed files with zero findings after the corrections
+(`.context/x-contract-review-complete.ndjson`). Its earlier major finding about
+swallowed uncertain repost outcomes was fixed and covered by a regression.
+Final execution-result documentation was inspected after that review.

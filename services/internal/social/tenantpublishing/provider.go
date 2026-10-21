@@ -129,12 +129,17 @@ func (p *Publisher) account(ctx context.Context, organizationID, destinationID, 
 	return account, provider, settings, nil
 }
 
-// pollDetails is a poll as providers take it: whole hours, at least one.
+// pollDetails rounds positive durations to whole hours for legacy providers.
+// Invalid choices and durations must reach provider validation, not disappear.
 func pollDetails(poll *postoptions.Poll) *integrations.PollDetails {
-	if poll == nil || len(poll.Options) < 2 {
+	if poll == nil {
 		return nil
 	}
-	return &integrations.PollDetails{Options: poll.Options, Duration: max(1, (poll.DurationMinutes+59)/60)}
+	hours := 0
+	if poll.DurationMinutes > 0 {
+		hours = 1 + (poll.DurationMinutes-1)/60
+	}
+	return &integrations.PollDetails{Options: poll.Options, Duration: hours}
 }
 
 // publicationOutcome maps a provider failure: reconnect, or an outcome the
@@ -278,6 +283,9 @@ func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput
 		if ok {
 			done, err := auto.AutoRepostPost(ctx, account, input.RemotePostID, map[string]string{"likesAmount": fmt.Sprint(input.RepostAtLikes)})
 			result.Reposted = err == nil && done
+			if temporalx.FailureType(err) == temporalx.TypeUnknownDelivery {
+				return result, err
+			}
 		}
 	}
 	if input.Plug {
@@ -286,6 +294,9 @@ func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput
 			done, err := auto.AutoPlugPost(ctx, account, input.RemotePostID,
 				map[string]string{"likesAmount": fmt.Sprint(input.PlugAtLikes), "post": input.PlugText})
 			result.Plugged = err == nil && done
+			if temporalx.FailureType(err) == temporalx.TypeUnknownDelivery {
+				return result, err
+			}
 		}
 	}
 	if input.Quote {

@@ -3,10 +3,31 @@ package socialidentity
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/helpers"
 )
+
+// CheckXPoll checks the exact choices and duration without rewriting them.
+// Media and Article combinations are excluded by the product's X poll contract.
+func CheckXPoll(options []string, minutes, mediaCount int, article bool) error {
+	if article || mediaCount != 0 {
+		return errors.New("An X poll cannot include media or be an Article.")
+	}
+	if len(options) < 2 || len(options) > 4 {
+		return errors.New("An X poll needs 2 to 4 choices.")
+	}
+	if minutes < 5 || minutes > 10080 {
+		return errors.New("An X poll stays open 5 minutes to 7 days.")
+	}
+	for _, choice := range options {
+		if !utf8.ValidString(choice) || strings.TrimSpace(choice) == "" || utf8.RuneCountInString(choice) > 25 {
+			return errors.New("Each X poll choice needs 1 to 25 valid characters.")
+		}
+	}
+	return nil
+}
 
 // CheckXText validates the actual text without truncation or link removal.
 // The caller ensures a post with empty text has selected media.

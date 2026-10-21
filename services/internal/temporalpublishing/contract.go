@@ -7,6 +7,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
+// FailureUnknownDelivery identifies a mutation without a confirmed remote receipt.
+// Both social workflow generations stop resubmitting this failure class.
+const FailureUnknownDelivery = "unknown_delivery"
+
 const (
 	WorkflowNameV1          = "PostWorkflowV1"
 	WorkflowNameV2          = "PostWorkflowV2"

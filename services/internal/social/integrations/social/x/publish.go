@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +39,8 @@ type pendingData struct {
 	// outcome is detected instead of run again (X has no idempotency key).
 	Attempting bool `json:"attempting,omitempty"`
 	Confirmed  bool `json:"confirmed,omitempty"`
+	// Saved after draft creation and before its separate publish handshake.
+	ArticleDraftID string `json:"articleDraftId,omitempty"`
 }
 
 type pendingSettings struct {
@@ -281,6 +282,9 @@ func (p *Provider) PostPending(ctx context.Context, _, accessToken string, posts
 			ArticleTitle: settings.ArticleTitle, ArticleStatus: settings.ArticleStatus}, len(post.Media), article); err != nil {
 			return nil, err
 		}
+		if _, err := checkedPoll(post.Poll, len(post.Media), article); err != nil {
+			return nil, err
+		}
 	}
 	c := newClient(accessToken)
 	first := posts[0]
@@ -366,7 +370,7 @@ func (p *Provider) CheckPostStatus(ctx context.Context, accessToken string, raw 
 	// cheap way to ask whether that tweet was created, so never run the create
 	// again - stop with an explicit warning instead.
 	if pending.Attempting && pending.Confirmed {
-		return nil, temporalx.BadBody(identifier, "{}", "{}", "X may have already published this post, please check your account before posting again to avoid duplicates")
+		return nil, uncertainMutation()
 	}
 
 	c := newClient(accessToken)
@@ -439,6 +443,10 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 	if err := checkPublishingContent(caps, pending.Message, pending.Settings, len(pending.MediaIDs), str(pending.Settings.PostType) == "article"); err != nil {
 		return nil, err
 	}
+	poll, err := checkedPoll(pending.Poll, len(pending.MediaIDs), str(pending.Settings.PostType) == "article")
+	if err != nil {
+		return nil, err
+	}
 
 	expected := len(pending.MediaIDs) + len(pending.InlineMediaIDs)
 	if pending.CoverMediaID != "" {
@@ -473,6 +481,7 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 
 	body := tweetBody{
 		Text:            pending.Message,
+		Poll:            poll,
 		MadeWithAI:      integrations.AssetBoolean(settings.MadeWithAI),
 		PaidPartnership: integrations.AssetBoolean(settings.PaidPartnership),
 	}
@@ -491,14 +500,6 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 	body.QuoteTweetID = str(settings.QuoteTweetID)
 	if len(mediaIDs) > 0 {
 		body.Media = &tweetMedia{MediaIDs: mediaIDs}
-	}
-	if poll := pending.Poll; poll != nil && len(poll.Options) >= 2 {
-		// X takes the duration in minutes, from 5 minutes to 7 days.
-		minutes := poll.Duration * 60
-		if poll.DurationMinutes > 0 {
-			minutes = poll.DurationMinutes
-		}
-		body.Poll = &tweetPoll{Options: poll.Options, DurationMinutes: min(max(minutes, 5), 7*24*60)}
 	}
 	id, err := p.createTweet(ctx, token, secret, body)
 	if err != nil {
@@ -536,114 +537,67 @@ type tweetPoll struct {
 	DurationMinutes int      `json:"duration_minutes"`
 }
 
-// createTweet is the signed raw POST https://api.x.com/2/tweets through fetch.
+// createTweet requires a confirmed receipt from one non-retrying mutation.
 func (p *Provider) createTweet(ctx context.Context, token, secret string, body tweetBody) (string, error) {
-	tweetURL := v2("tweets")
-	res, err := p.Fetch(ctx, tweetURL, integrations.Request{
-		Method: "POST",
-		Headers: map[string]string{
-			"Authorization": signOAuth1("POST", tweetURL, token, secret),
-			"Content-Type":  "application/json",
-		},
-		Body: marshal(body),
-	})
-	if err != nil {
-		return "", err
-	}
-	var data struct {
-		Data *struct {
+	var result struct {
+		Data struct {
 			ID string `json:"id"`
 		} `json:"data"`
 	}
-	if err := res.JSON(&data); err != nil {
+	if err := (&client{token: token, secret: secret}).mutationJSON(ctx, v2("tweets"), body, &result); err != nil {
 		return "", err
 	}
-	if data.Data == nil || data.Data.ID == "" {
-		return "", publishRejected("X did not return a post ID. Check the account before trying again to avoid duplicates.")
+	if !socialidentity.XAccountID(result.Data.ID) {
+		return "", uncertainMutation()
 	}
-	return data.Data.ID, nil
+	return result.Data.ID, nil
 }
 
 func (p *Provider) finalizeArticle(ctx context.Context, accessToken string, pending pendingData, integration *ent.Integration) (*integrations.PendingCheckResponse, error) {
-	token, secret := splitToken(accessToken)
-	settings := pending.Settings
-	// All the post media is embedded in the article body; the cover comes from
-	// its own settings field.
-	embeddedMediaIDs := nonEmpty(pending.MediaIDs)
-
-	draft := articleDraft{
-		Title:        settings.ArticleTitle,
-		ContentState: articleContentState(pending.Message, embeddedMediaIDs, pending.InlineMediaIDs),
+	c := newClient(accessToken)
+	if pending.ArticleDraftID == "" {
+		draft := articleDraft{Title: pending.Settings.ArticleTitle, ContentState: articleContentState(pending.Message, pending.MediaIDs, pending.InlineMediaIDs)}
+		if pending.CoverMediaID != "" {
+			draft.CoverMedia = &mediaItem{MediaCategory: "tweet_image", MediaID: pending.CoverMediaID}
+		}
+		var receipt struct {
+			Data struct {
+				ID string `json:"id"`
+			} `json:"data"`
+		}
+		if err := c.mutationJSON(ctx, v2("articles/draft"), draft, &receipt); err != nil {
+			return nil, err
+		}
+		if !socialidentity.XAccountID(receipt.Data.ID) {
+			return nil, uncertainMutation()
+		}
+		pending.ArticleDraftID = receipt.Data.ID
+		if str(pending.Settings.ArticleStatus) == "published" {
+			// Return the draft receipt to durable history before a second mutation.
+			// Publishing uses a new arm/confirm cycle; a lost draft response never
+			// reaches this state and cannot cause another draft to be created.
+			pending.Attempting, pending.Confirmed = false, false
+			return &integrations.PendingCheckResponse{Status: "pending", PendingData: marshal(pending)}, nil
+		}
 	}
-	if pending.CoverMediaID != "" {
-		// Lowercase, matching the category the upload stored.
-		draft.CoverMedia = &mediaItem{MediaCategory: "tweet_image", MediaID: pending.CoverMediaID}
+	if !socialidentity.XAccountID(pending.ArticleDraftID) {
+		return nil, publishRejected("The saved X Article draft ID is invalid.")
 	}
-	draftURL := apiBase + "/2/articles/draft"
-	draftResponse, err := p.Fetch(ctx, draftURL, integrations.Request{
-		Method: "POST",
-		Headers: map[string]string{
-			"Authorization": signOAuth1("POST", draftURL, token, secret),
-			"Content-Type":  "application/json",
-		},
-		Body: marshal(draft),
-	})
-	if err != nil {
-		return nil, err
+	if str(pending.Settings.ArticleStatus) != "published" {
+		return &integrations.PendingCheckResponse{Status: "completed", PostID: pending.ArticleDraftID, ReleaseURL: "https://x.com/i/articles"}, nil
 	}
-	var draftJSON struct {
-		Data *struct {
-			ID string `json:"id"`
-		} `json:"data,omitempty"`
-		Errors []any `json:"errors,omitempty"`
-	}
-	if err := draftResponse.JSON(&draftJSON); err != nil {
-		return nil, err
-	}
-	// The articles endpoints can return 2xx with an errors array (e.g. a
-	// rejected cover) - don't swallow it.
-	if len(draftJSON.Errors) > 0 {
-		log.Println("X article draft returned errors:", string(marshal(draftJSON.Errors)))
-	}
-	if draftJSON.Data == nil || draftJSON.Data.ID == "" {
-		return nil, temporalx.BadBody(identifier, draftResponse.Text(), "{}", "X could not create the article draft")
-	}
-
-	if str(settings.ArticleStatus) != "published" {
-		return &integrations.PendingCheckResponse{Status: "completed", PostID: draftJSON.Data.ID, ReleaseURL: "https://x.com/i/articles"}, nil
-	}
-
-	publishURL := apiBase + "/2/articles/" + draftJSON.Data.ID + "/publish"
-	publishResponse, err := p.Fetch(ctx, publishURL, integrations.Request{
-		Method: "POST",
-		Headers: map[string]string{
-			"Authorization": signOAuth1("POST", publishURL, token, secret),
-			"Content-Type":  "application/json",
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	var publishJSON struct {
-		Data *struct {
+	var receipt struct {
+		Data struct {
 			PostID string `json:"post_id"`
-		} `json:"data,omitempty"`
-		Errors []any `json:"errors,omitempty"`
+		} `json:"data"`
 	}
-	if err := publishResponse.JSON(&publishJSON); err != nil {
+	if err := c.mutationJSON(ctx, v2("articles/"+pending.ArticleDraftID+"/publish"), nil, &receipt); err != nil {
 		return nil, err
 	}
-	if len(publishJSON.Errors) > 0 {
-		log.Println("X article publish returned errors:", string(marshal(publishJSON.Errors)))
+	if !socialidentity.XAccountID(receipt.Data.PostID) {
+		return nil, uncertainMutation()
 	}
-	if publishJSON.Data == nil || publishJSON.Data.PostID == "" {
-		return nil, temporalx.BadBody(identifier, publishResponse.Text(), "{}", "X created the article draft but could not publish it, check your drafts on X")
-	}
-	return &integrations.PendingCheckResponse{
-		Status:     "completed",
-		PostID:     publishJSON.Data.PostID,
-		ReleaseURL: "https://twitter.com/" + jsString(integration.Profile) + "/status/" + publishJSON.Data.PostID,
-	}, nil
+	return &integrations.PendingCheckResponse{Status: "completed", PostID: receipt.Data.PostID, ReleaseURL: "https://twitter.com/" + jsString(integration.Profile) + "/status/" + receipt.Data.PostID}, nil
 }
 
 // Post is the old blocking behavior, kept for workflow versions before v1.0.6
@@ -704,6 +658,10 @@ func (p *Provider) Comment(ctx context.Context, _, postID, lastCommentID, access
 	commentPost := posts[0]
 	settings := decodeSettings(commentPost.Settings)
 	commentText := toTweetText(commentPost.Message)
+	poll, err := checkedPoll(commentPost.Poll, len(commentPost.Media), false)
+	if err != nil {
+		return nil, err
+	}
 	check := func() error {
 		return checkPublishingContent(caps, commentText, pendingSettings{QuoteTweetID: settings.QuoteTweetID}, len(commentPost.Media), false)
 	}
@@ -744,6 +702,7 @@ func (p *Provider) Comment(ctx context.Context, _, postID, lastCommentID, access
 
 	body := tweetBody{
 		Text:            commentText,
+		Poll:            poll,
 		MadeWithAI:      integrations.AssetBoolean(settings.MadeWithAI),
 		PaidPartnership: integrations.AssetBoolean(settings.PaidPartnership),
 		QuoteTweetID:    str(settings.QuoteTweetID),

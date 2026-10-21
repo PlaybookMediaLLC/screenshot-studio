@@ -219,8 +219,8 @@ func TestArticleFlow(t *testing.T) {
 		case "/2/media/upload/11/finalize":
 			return 200, `{"data":{"id":"11"}}`
 		case "/2/articles/draft":
-			return 200, `{"data":{"id":"draft1"}}`
-		case "/2/articles/draft1/publish":
+			return 200, `{"data":{"id":"91"}}`
+		case "/2/articles/91/publish":
 			return 200, `{"data":{"post_id":"555"}}`
 		}
 		return 404, `{}`
@@ -329,7 +329,7 @@ func TestHandshakeAndProcessing(t *testing.T) {
 	if !strings.Contains(string(confirmed.PendingData), `"confirmed":true`) {
 		t.Fatalf("confirmed: %s", confirmed.PendingData)
 	}
-	if _, err := p.CheckPostStatus(ctx, "a:b", confirmed.PendingData, nil); temporalx.FailureType(err) != temporalx.TypeBadBody {
+	if _, err := p.CheckPostStatus(ctx, "a:b", confirmed.PendingData, nil); temporalx.FailureType(err) != temporalx.TypeUnknownDelivery {
 		t.Fatalf("died attempt: %v", err)
 	}
 

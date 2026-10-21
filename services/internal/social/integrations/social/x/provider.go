@@ -17,6 +17,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/helpers"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 const identifier = "x"
@@ -315,13 +316,13 @@ func (p *Provider) ReplyTo(ctx context.Context, integration *ent.Integration, id
 	}
 	// Keep the non-retrying client: a failed response can follow a committed
 	// reply, and X does not accept a publication idempotency key.
-	if err := newClient(integration.Token).postJSON(ctx, v2("tweets"), map[string]any{
+	if err := newClient(integration.Token).mutationJSON(ctx, v2("tweets"), map[string]any{
 		"text": text, "reply": map[string]string{"in_reply_to_tweet_id": id},
 	}, &res); err != nil {
 		return "", err
 	}
-	if res.Data.ID == "" {
-		return "", publishRejected("X did not return a post ID. Check the account before trying again to avoid duplicates.")
+	if !socialidentity.XAccountID(res.Data.ID) {
+		return "", uncertainMutation()
 	}
 	return res.Data.ID, nil
 }

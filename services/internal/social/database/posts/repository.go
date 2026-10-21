@@ -206,7 +206,7 @@ func curatedError(raw *string) *string {
 		message = dig(parsed, "failure", "cause", "message")
 	}
 	s, ok := message.(string)
-	if kind == "bad_body" && ok && s != "" && s != "Unknown Error" {
+	if (kind == "bad_body" || kind == "unknown_delivery") && ok && s != "" && s != "Unknown Error" {
 		return &s
 	}
 	return nil

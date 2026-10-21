@@ -2115,6 +2115,13 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
+  /** Read-only guidance inherited by a member's social sets. */
+  async getWritingDefaults() {
+    return this.request<{ tone: string; audience: string; prohibitedPhrases: string[] }>(
+      'v1/brand-profile?view=writing-defaults'
+    )
+  }
+
   async getBrandProfile() {
     return this.request<{ brandProfile: BrandProfile | null }>('v1/brand-profile')
   }

@@ -27,8 +27,8 @@ const STATUS_LABELS: Record<Status, { label: string; tone: 'gray' | 'green' | 'y
   {
     available: { label: 'Available', tone: 'blue' },
     connected: { label: 'Connected', tone: 'green' },
-    not_available: { label: 'Not available', tone: 'gray' },
-    not_configured: { label: 'Needs server setup', tone: 'yellow' },
+    not_available: { label: 'Unavailable', tone: 'gray' },
+    not_configured: { label: 'Requires setup', tone: 'yellow' },
   }
 
 /**
@@ -164,7 +164,10 @@ export function IntegrationCatalog({ canManage }: { canManage: boolean }) {
         {entries.map((entry) => {
           const status = STATUS_LABELS[entry.status]
           return (
-            <li className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between" key={entry.name}>
+            <li
+              className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between"
+              key={entry.name}
+            >
               <div className="min-w-0 md:max-w-[60%]">
                 <p className="flex items-center gap-2 text-sm font-medium text-foreground">
                   {entry.name}
@@ -172,21 +175,36 @@ export function IntegrationCatalog({ canManage }: { canManage: boolean }) {
                 </p>
                 <div className="mt-0.5 grid gap-1 text-xs text-muted-foreground">
                   <span>{entry.purpose}</span>
-                  <span>
-                    <strong className="font-medium text-foreground/80">Access:</strong> {entry.authorization}
-                  </span>
-                  <span>
-                    <strong className="font-medium text-foreground/80">Scopes:</strong> {entry.scopes}
-                  </span>
-                  <span>
-                    <strong className="font-medium text-foreground/80">Setup:</strong> {entry.setup}
-                  </span>
+                  <details>
+                    <summary className="cursor-pointer">Access and setup details</summary>
+                    <p>
+                      <strong className="font-medium text-foreground/80">Access:</strong>{' '}
+                      {entry.authorization}
+                    </p>
+                    <span>
+                      <strong className="font-medium text-foreground/80">Scopes:</strong>{' '}
+                      {entry.scopes}
+                    </span>
+                    <span>
+                      <strong className="font-medium text-foreground/80">Setup:</strong>{' '}
+                      {entry.setup}
+                    </span>
+                  </details>
                 </div>
               </div>
-              {entry.action ? (
+              {entry.status === 'not_configured' ? (
+                <p className="text-sm text-muted-foreground">
+                  Contact your administrator to enable this integration.
+                </p>
+              ) : entry.action ? (
                 <div className="flex min-w-0 items-center gap-2 md:justify-end">
                   {entry.action.external ? (
-                    <a className="text-sm underline" href={entry.action.href} rel="noreferrer" target="_blank">
+                    <a
+                      className="text-sm underline"
+                      href={entry.action.href}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
                       {entry.action.label}
                     </a>
                   ) : (

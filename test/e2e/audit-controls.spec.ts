@@ -31,6 +31,12 @@ test('an owner can manage and search audited retention and SIEM controls', async
   await page.getByLabel('Search audit events').fill('audit.retention_changed')
   await expect(page.getByText('audit.retention_changed')).toBeVisible()
 
+  await page.getByLabel('Search audit events').fill('no-such-event-qa')
+  await expect(page.getByText('No events match your search.')).toBeVisible()
+  await expect(page.getByLabel('Search audit events')).toHaveValue('no-such-event-qa')
+  await page.getByRole('button', { name: 'Clear search' }).click()
+  await expect(page.getByText('audit.retention_changed')).toBeVisible()
+
   const filteredLogs = await browserRequest(
     page,
     `/api/audit-logs?organizationId=${organizationId}&search=audit.retention_changed`

@@ -1,6 +1,8 @@
 'use client'
 
 import { type FormEvent, useEffect, useState } from 'react'
+import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
+import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { Group, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -89,17 +91,22 @@ export function IdealCustomerProfileForm({
   onSaved,
   profile: initialProfile,
   submitLabel,
+  settings = false,
 }: {
   canManage: boolean
   onSaved: (profile: StoredIdealCustomerProfile) => void | Promise<void>
   profile: StoredIdealCustomerProfile | null
   submitLabel: string
+  settings?: boolean
 }) {
   const trpcClient = useTRPCClient()
   const [profile, setProfile] = useState(initialProfile)
   const [values, setValues] = useState(() => toForm(initialProfile))
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [savedValues, setSavedValues] = useState(() => toForm(initialProfile))
+  const dirty = JSON.stringify(values) !== JSON.stringify(savedValues)
+  useUnsavedSettings(settings && dirty)
 
   async function save(
     input: IdealCustomerProfileUpsertInput
@@ -123,7 +130,10 @@ export function IdealCustomerProfileForm({
     try {
       const changes = changedFields(values, profile)
       const saved = Object.keys(changes).length > 0 || !profile ? await save(changes) : profile
-      if (saved) await onSaved(saved)
+      if (saved) {
+        setSavedValues(values)
+        await onSaved(saved)
+      }
     } catch (requestError) {
       setError(getErrorMessage(requestError))
     } finally {
@@ -182,11 +192,23 @@ export function IdealCustomerProfileForm({
           </Alert>
         ) : null}
         {canManage ? (
-          <div className="flex justify-end">
-            <Button className="rounded-lg" type="submit">
-              {isSaving ? 'Saving…' : submitLabel}
-            </Button>
-          </div>
+          settings ? (
+            <SettingsSaveBar
+              dirty={dirty}
+              busy={isSaving}
+              label={submitLabel}
+              onDiscard={() => {
+                setValues(savedValues)
+                setError(null)
+              }}
+            />
+          ) : (
+            <div className="flex justify-end">
+              <Button className="rounded-lg" type="submit">
+                {isSaving ? 'Saving…' : submitLabel}
+              </Button>
+            </div>
+          )
         ) : null}
       </fieldset>
     </form>
@@ -227,6 +249,7 @@ export function WorkspaceIdealCustomerProfile({ canManage }: { canManage: boolea
           canManage={canManage}
           onSaved={() => setMessage('Ideal customer saved.')}
           profile={profile}
+          settings
           submitLabel="Save ideal customer"
         />
       )}

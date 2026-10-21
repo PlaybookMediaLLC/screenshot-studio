@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { subscriptionPriceLabel } from './display'
+
 import Stripe from 'stripe'
 import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import { z } from 'zod'
@@ -224,7 +226,9 @@ export async function workspaceSubscriptionCycle(organizationId: string) {
   const live = (await workspaceSubscriptions(api, organizationId)).find((subscription) =>
     ['active', 'past_due', 'trialing'].includes(subscription.status)
   )
-  return live ? subscriptionCycle(live) : null
+  if (!live) return null
+  const cycle = subscriptionCycle(live)
+  return cycle ? { ...cycle, priceLabel: subscriptionPriceLabel(live.items.data) } : null
 }
 
 /** Opens Checkout for a one-time AI credit pack, on any plan. */

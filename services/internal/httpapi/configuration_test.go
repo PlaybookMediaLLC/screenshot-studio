@@ -17,18 +17,24 @@ import (
 type fakeConfiguration struct {
 	// Embedded so a test only implements the operations it exercises.
 	ConfigurationStore
-	authorizationError error
-	actor              product.Actor
-	brandKit           product.CreateBrandKitInput
-	auditQuery         product.AuditLogQuery
-	releaseUpdate      product.UpdateReleaseInput
+	authorizationError  error
+	readError           error
+	profile             *ent.BrandProfile
+	profileOrganization string
+	actor               product.Actor
+	brandKit            product.CreateBrandKitInput
+	auditQuery          product.AuditLogQuery
+	releaseUpdate       product.UpdateReleaseInput
 }
 
 func (f *fakeConfiguration) Authorize(_ context.Context, actor product.Actor) error {
 	f.actor = actor
 	return f.authorizationError
 }
-func (f *fakeConfiguration) AuthorizeRead(context.Context, product.Actor) error    { return nil }
+func (f *fakeConfiguration) AuthorizeRead(_ context.Context, actor product.Actor) error {
+	f.actor = actor
+	return f.readError
+}
 func (f *fakeConfiguration) AuthorizeSession(context.Context, product.Actor) error { return nil }
 func (f *fakeConfiguration) AuthorizeSensitive(_ context.Context, actor product.Actor) error {
 	f.actor = actor
@@ -218,8 +224,9 @@ func (f *fakeConfiguration) CreateBrandKit(_ context.Context, actor product.Acto
 	f.brandKit = input
 	return &ent.BrandKit{ID: "kit-2", OrganizationID: actor.OrganizationID, Name: input.Name, Version: 1, Definition: input.Definition}, nil
 }
-func (f *fakeConfiguration) GetBrandProfile(context.Context, string) (*ent.BrandProfile, error) {
-	return nil, nil
+func (f *fakeConfiguration) GetBrandProfile(_ context.Context, organizationID string) (*ent.BrandProfile, error) {
+	f.profileOrganization = organizationID
+	return f.profile, nil
 }
 func (f *fakeConfiguration) UpsertBrandProfile(_ context.Context, actor product.Actor, input product.UpsertBrandProfileInput) (*ent.BrandProfile, error) {
 	return &ent.BrandProfile{ID: "profile-1", OrganizationID: actor.OrganizationID, Audience: input.Audience, ProductDescription: input.ProductDescription, Tone: input.Tone}, nil
@@ -656,5 +663,49 @@ func TestAgentAuthorizationRoutes(t *testing.T) {
 	}
 	if unknown := configurationRequest(handler, http.MethodPost, "/v1/agent-authorizations", `{"clientId":"x","admin":true}`); unknown.Code != http.StatusBadRequest {
 		t.Fatalf("unknown field status=%d", unknown.Code)
+	}
+}
+
+func TestWritingDefaultsAreScopedAndExcludeProfileDetails(t *testing.T) {
+	config := &fakeConfiguration{authorizationError: publishing.ErrForbidden, profile: &ent.BrandProfile{Tone: "Direct", Audience: "Creators", ProductDescription: "Private product facts"}}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	response := configurationRequest(handler, http.MethodGet, "/v1/brand-profile?view=writing-defaults&organizationId=org-2", "")
+	if response.Code != http.StatusOK || config.profileOrganization != "org-1" || !strings.Contains(response.Body.String(), `"tone":"Direct"`) || strings.Contains(response.Body.String(), "Private product facts") {
+		t.Fatalf("defaults leaked or wrong tenant: %d %s org=%s", response.Code, response.Body, config.profileOrganization)
+	}
+	var fields map[string]any
+	if err := json.Unmarshal(response.Body.Bytes(), &fields); err != nil || len(fields) != 3 {
+		t.Fatalf("unexpected defaults: %s", response.Body)
+	}
+	full := configurationRequest(handler, http.MethodGet, "/v1/brand-profile", "")
+	if full.Code != http.StatusForbidden {
+		t.Fatalf("full profile readable: %d", full.Code)
+	}
+	config.profileOrganization = ""
+	config.readError = publishing.ErrForbidden
+	denied := configurationRequest(handler, http.MethodGet, "/v1/brand-profile?view=writing-defaults", "")
+	if denied.Code != http.StatusForbidden || config.profileOrganization != "" {
+		t.Fatal("read continued after membership rejection")
+	}
+	request := httptest.NewRequest(http.MethodGet, "/v1/brand-profile?view=writing-defaults", nil)
+	unauthenticated := httptest.NewRecorder()
+	handler.ServeHTTP(unauthenticated, request)
+	if unauthenticated.Code != http.StatusUnauthorized {
+		t.Fatalf("unsigned request allowed: %d", unauthenticated.Code)
+	}
+}
+
+func TestWritingDefaultsRejectMachineCredentials(t *testing.T) {
+	config := &fakeConfiguration{}
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", config)
+	request := httptest.NewRequest(http.MethodGet, "/v1/brand-profile?view=writing-defaults", nil)
+	request.Header.Set("Authorization", "Bearer secret")
+	request.Header.Set("X-Organization-ID", "org-1")
+	request.Header.Set("X-Principal-Kind", "api_key")
+	request.Header.Set("X-API-Key-ID", "key-1")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden || config.profileOrganization != "" {
+		t.Fatalf("machine read allowed: %d %s", response.Code, response.Body)
 	}
 }

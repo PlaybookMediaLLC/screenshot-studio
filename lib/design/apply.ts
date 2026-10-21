@@ -200,6 +200,7 @@ function writeSections(changes: DesignSections, resolve: ResolveDesignSource) {
   }
   if (changes.mode) useImageStore.setState({ editorMode: changes.mode })
   // Elements are stored in canvas fractions, so they load as they are.
+  if (changes.layerOrder) useImageStore.setState({ layerOrder: [...changes.layerOrder] })
   if (changes.elements) useImageStore.setState({ elements: structuredClone(changes.elements) })
 
   if (changes.timeline) {
@@ -233,6 +234,7 @@ function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canv
   const { canvasH, canvasW } = canvas
   if (changes.image?.offset) {
     useImageStore.getState().setImagePlacement({
+      anchor: changes.image.positionAnchor,
       offsetX: changes.image.offset.x * canvasW,
       offsetY: changes.image.offset.y * canvasH,
     })
@@ -306,6 +308,7 @@ function writeLayout(changes: DesignSections, resolve: ResolveDesignSource, canv
       ? {
           textOverlays: changes.texts.map((text, index) => ({
             color: text.color,
+            ...(text.zIndex !== undefined ? { zIndex: text.zIndex } : {}),
             fontFamily: text.fontFamily,
             fontSize: Math.round(text.fontSize * canvasW),
             fontWeight: text.fontWeight,

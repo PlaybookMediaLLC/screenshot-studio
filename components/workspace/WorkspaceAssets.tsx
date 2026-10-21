@@ -1,5 +1,6 @@
 'use client'
 
+import { Input } from '@/components/ui/input'
 import { Album02Icon, MoreHorizontalIcon } from 'hugeicons-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
@@ -38,6 +39,7 @@ import {
  */
 
 type AssetSummary = {
+  fileName?: string
   bytes: number
   createdAt: string | Date
   height: number | null
@@ -129,11 +131,14 @@ export function WorkspaceAssets() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
+  const search = searchParams.get('search') ?? ''
+  const classificationParam = searchParams.get('classification')
+  const classification = classificationParam === 'input' || classificationParam === 'export' ? classificationParam : undefined
   const typeParam = searchParams.get('type')
   const typeFilter: TypeFilter = typeParam === 'image' || typeParam === 'video' ? typeParam : 'all'
   const sort = searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest'
   const options = trpc.asset.list.infiniteQueryOptions(
-    { limit: PAGE_SIZE, type: typeFilter, sort },
+    { limit: PAGE_SIZE, type: typeFilter, sort, search: search || undefined, classification },
     {
       getNextPageParam: (page) => page.nextCursor,
       staleTime: 0,
@@ -174,7 +179,7 @@ export function WorkspaceAssets() {
     return () => window.removeEventListener('pageshow', refresh)
   }, [queryClient, trpc])
 
-  function updateView(key: 'type' | 'sort', value: string): void {
+  function updateView(key: 'type' | 'sort' | 'search' | 'classification', value: string): void {
     const params = new URLSearchParams(searchParams.toString())
     params.set(key, value)
     window.history.replaceState(null, '', `?${params}`)
@@ -264,6 +269,14 @@ export function WorkspaceAssets() {
         </Label>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3">
+        <Input className="max-w-sm" type="search" placeholder="Search filenames" aria-label="Search assets by filename" value={search} maxLength={200} onChange={(event) => updateView('search', event.target.value)} />
+        <Select value={classification ?? 'all'} onValueChange={(value) => updateView('classification', value)}>
+          <SelectTrigger aria-label="Asset source"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="export">Saved exports</SelectItem><SelectItem value="input">Uploaded originals</SelectItem></SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Files in this workspace are shared with its members.</p>
+      </div>
       {query.error ? (
         <Alert variant="destructive">
           <AlertDescription>
@@ -311,12 +324,18 @@ export function WorkspaceAssets() {
                 className="group overflow-hidden rounded-xl bg-foreground/[0.02] ring-1 ring-foreground/[0.08] transition hover:ring-foreground/[0.16]"
                 key={asset.id}
               >
-                <AssetPreview asset={asset} onMetadataAvailable={refreshMetadata} />
+                {asset.mediaType.startsWith('video/') ? <AssetPreview asset={asset} onMetadataAvailable={refreshMetadata} /> : (
+                  <a className="block focus-visible:ring-2" href={`/api/v1/assets/${asset.id}/content`} target="_blank" rel="noopener noreferrer" aria-label={`Open ${asset.fileName || describeType(asset.mediaType)}`}>
+                    <AssetPreview asset={asset} onMetadataAvailable={refreshMetadata} />
+                  </a>
+                )}
                 <div className="flex items-start justify-between gap-3 border-t border-foreground/[0.06] px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">
-                      {describeType(asset.mediaType)}
+                      {asset.fileName || `${describeType(asset.mediaType)} · ${asset.id.slice(0, 8)}`}
                     </p>
+                    {asset.projectName ? <a className="block truncate text-xs text-primary underline" href={`/?project=${asset.projectId}`}>From {asset.projectName}</a> : null}
+                    <p className="text-xs text-muted-foreground">{asset.classification === 'export' ? 'Saved export' : asset.classification === 'input' ? 'Uploaded original' : 'Workspace asset'}{asset.uploadedBy ? ` · ${asset.uploadedBy}` : ''}</p>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       {[dimensions, formatBytes(asset.bytes)].filter(Boolean).join(' · ')}
                       {' · '}
@@ -345,11 +364,12 @@ export function WorkspaceAssets() {
                         }
                       }}
                     >
+                      {asset.projectId ? <DropdownMenuItem asChild><a href={`/?project=${asset.projectId}`}>Open source project</a></DropdownMenuItem> : null}
                       {isImage ? (
                         <DropdownMenuItem asChild>
                           {/* The editor reads this parameter on load and pulls
                               the asset onto the canvas for another pass. */}
-                          <a href={`/?asset=${asset.id}`}>Edit</a>
+                          <a href={`/?asset=${asset.id}`}>Use image in new design</a>
                         </DropdownMenuItem>
                       ) : null}
                       <DropdownMenuItem onSelect={() => void handleOpen(asset.id)}>

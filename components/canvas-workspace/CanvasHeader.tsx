@@ -171,8 +171,8 @@ export function CanvasHeader({
           </Button>
         ) : null}
         {canEdit && canHandOff ? (
-          <Button variant="outline" size="sm" onClick={() => onDialog('campaign')}>
-            Campaign…
+          <Button className="shrink-0 whitespace-nowrap" variant="outline" size="sm" onClick={() => onDialog('campaign')}>
+            Campaign
           </Button>
         ) : null}
         <Button size="sm" onClick={() => onDialog('export')}>

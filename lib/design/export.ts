@@ -186,6 +186,7 @@ export function documentFromState(
               })),
           })
         : undefined,
+    layerOrder: image.layerOrder,
     elements: image.elements.filter((element) => keepLocalSources || element.visible),
     image: {
       browserHeaderSize: image.browserHeaderSize,
@@ -203,6 +204,7 @@ export function documentFromState(
       }),
       filters: image.imageFilters,
       name: mainSrc && image.imageName ? image.imageName : undefined,
+      positionAnchor: image.imagePlacement.anchor,
       offset: {
         x: clamp(image.imagePlacement.offsetX / canvasW, -0.5, 0.5),
         y: clamp(image.imagePlacement.offsetY / canvasH, -0.5, 0.5),
@@ -298,6 +300,7 @@ export function documentFromState(
         .filter((text) => keepLocalSources || text.isVisible)
         .map((text) => ({
           color: text.color,
+          zIndex: text.zIndex,
           fontFamily: text.fontFamily,
           fontSize: clamp(text.fontSize / canvasW, 0.005, 0.3),
           fontWeight: text.fontWeight,

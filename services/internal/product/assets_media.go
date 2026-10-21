@@ -60,6 +60,7 @@ type GeneratedAssetRecord struct {
 }
 
 type AssetUploadInput struct {
+	ProjectID      string  `json:"projectId"`
 	Bytes          int     `json:"bytes"`
 	Classification string  `json:"classification"`
 	ContentType    string  `json:"contentType"`
@@ -170,7 +171,15 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.asset_upload_signed", "asset", row.ID); err != nil {
+	metadata := map[string]any{"fileName": input.FileName, "classification": input.Classification}
+	if input.ProjectID != "" {
+		project, err := c.GetProject(ctx, actor, input.ProjectID)
+		if err != nil {
+			return nil, err
+		}
+		metadata["projectId"], metadata["projectName"] = project.ID, project.Name
+	}
+	if err := appendConfigurationAudit(ctx, tx, actor, "product.asset_upload_signed", "asset", row.ID, metadata); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

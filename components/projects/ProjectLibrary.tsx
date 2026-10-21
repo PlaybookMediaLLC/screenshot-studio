@@ -348,7 +348,12 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
                         Duplicate
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={() => setDeleting(project)} variant="destructive">
+                      <DropdownMenuItem onSelect={() => {
+                        void trpcClient.project.get.query({ projectId: project.id }).then((latest) => {
+                          setDeleting({ ...project, updatedAt: latest.updatedAt, name: latest.name })
+                          void load(null)
+                        }).catch((error: unknown) => toast.error(error instanceof Error ? error.message : 'Could not load project.'))
+                      }} variant="destructive">
                         Delete…
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -415,7 +420,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
               {deleting ? (
                 <>
                   {' '}
-                  Last edited {deleting.updatedAt.toLocaleString()}. Project ID: {deleting.id}.
+                  Last edited {deleting.updatedAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}. Project ID: {deleting.id}.
                 </>
               ) : null}
             </AlertDialogDescription>

@@ -1,5 +1,6 @@
 'use client'
 
+import { orderedLayerIds } from '@/lib/editor/layer-order'
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { MAX_DEVICE_MOCKUPS } from '@/lib/constants/mockups'
 import { createDeviceScreen, createMockup } from '@/lib/device-mockups/layouts'
@@ -301,7 +302,10 @@ export function moveScreen(id: string, toIndex: number) {
   const next = [...mockups]
   const [moved] = next.splice(from, 1)
   next.splice(to, 0, moved!)
-  useImageStore.setState({ mockups: next })
+  const screenIds = new Set(mockups.map((screen) => screen.id))
+  let cursor = 0
+  const layerOrder = orderedLayerIds(useImageStore.getState()).map((layerId) => screenIds.has(layerId) ? next[cursor++].id : layerId)
+  useImageStore.setState({ mockups: next, layerOrder })
 }
 
 /** Show another image on a screen. Its frame refits the new image; crop resets. */

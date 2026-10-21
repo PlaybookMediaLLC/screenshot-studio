@@ -13,7 +13,7 @@ import { renderDocument } from './scene-renderer'
 
 const MAX_PREVIEWS = 120
 
-type Entry = { promise: Promise<string>; url: string | null }
+type Entry = { promise: Promise<string>; url: string | null; readers: Set<AbortSignal> }
 const entries = new Map<string, Entry>()
 
 /** FNV-1a: a short, stable key for a long document string. */
@@ -37,39 +37,48 @@ export function cachedPreview(key: string): string | null {
 }
 
 /**
- * Render (or reuse) a preview and resolve to an object URL. Shared work outlives
+ * Render (or reuse) a preview and resolve to a durable data URL. Shared work outlives
  * individual subscribers, so unmounting one card cannot cancel another's render.
  */
 export function renderPreview(
   key: string,
   document: DesignDocument,
   output: StageOutput,
-  options: { time?: number } = {}
+  options: { time?: number; signal: AbortSignal }
 ): Promise<string> {
+  const subscribe = (entry: Entry) => {
+    entry.readers.add(options.signal)
+    const release = () => entry.readers.delete(options.signal)
+    options.signal.addEventListener('abort', release, { once: true })
+    void entry.promise.finally(() => { release(); options.signal.removeEventListener('abort', release) }).catch(() => {})
+    return entry.promise
+  }
   const existing = entries.get(key)
   if (existing) {
     entries.delete(key)
     entries.set(key, existing)
-    return existing.promise
+    return subscribe(existing)
   }
-  const entry: Entry = { promise: Promise.resolve(''), url: null }
-  entry.promise = renderDocument(document, output, options).then(
-    ({ blob }) => {
-      entry.url = URL.createObjectURL(blob)
+  const entry: Entry = { promise: Promise.resolve(''), url: null, readers: new Set() }
+  entry.promise = renderDocument(document, output, { time: options.time, shouldSkip: () => entry.readers.size === 0 }).then(
+    async ({ blob }) => {
+      entry.url = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result))
+        reader.onerror = () => reject(reader.error)
+        reader.readAsDataURL(blob)
+      })
       return entry.url
-    },
-    (error: unknown) => {
+    }
+  ).catch((error: unknown) => {
       if (entries.get(key) === entry) entries.delete(key)
       throw error
-    }
-  )
+    })
   entries.set(key, entry)
-  // ponytail: evicts by recency, so a preview still on screen past 120 newer
-  // renders is revoked; key-count bound, not byte-size bound.
+  // Mounted cards own their data URL even after the cache drops its reference.
   while (entries.size > MAX_PREVIEWS) {
-    const [oldestKey, oldest] = entries.entries().next().value as [string, Entry]
+    const oldestKey = entries.keys().next().value!
     entries.delete(oldestKey)
-    if (oldest.url) URL.revokeObjectURL(oldest.url)
   }
-  return entry.promise
+  return subscribe(entry)
 }

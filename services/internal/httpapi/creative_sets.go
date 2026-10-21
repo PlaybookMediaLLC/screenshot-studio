@@ -10,6 +10,7 @@ import (
 
 // CreativeSetStore keeps a workspace's cloud creativeSets and their version history.
 type CreativeSetStore interface {
+	DeleteCanvas(context.Context, product.Actor, string) error
 	IssueCreativeSetCollabToken(context.Context, product.Actor, string) (*product.CollabToken, error)
 	AttachCreativeSetDelivery(context.Context, product.Actor, string, product.CreativeSetHandoffInput) (*product.CreativeSetHandoffResult, error)
 	CreateCreativeSet(context.Context, product.Actor, string, string, map[string]any) (*product.CreativeSetRecord, error)
@@ -26,6 +27,7 @@ type CreativeSetStore interface {
 }
 
 func (s *Server) registerCreativeSets(mux *http.ServeMux) {
+	mux.Handle("DELETE /v1/canvases/{id}", s.authenticateProduct(http.HandlerFunc(s.deleteCanvas)))
 	mux.Handle("POST /v1/creative-sets/{id}/collab-token", s.authenticateProduct(http.HandlerFunc(s.issueCreativeSetCollabToken)))
 	mux.Handle("POST /v1/creative-sets/{id}/campaign", s.authenticateProduct(http.HandlerFunc(s.attachCreativeSetDelivery)))
 	mux.Handle("GET /v1/creative-sets", s.authenticateProduct(http.HandlerFunc(s.listCreativeSets)))
@@ -297,4 +299,16 @@ func (s *Server) issueCreativeSetCollabToken(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	writeJSON(w, http.StatusOK, token)
+}
+
+func (s *Server) deleteCanvas(w http.ResponseWriter, r *http.Request) {
+	id, ok := creativeSetPathID(w, r, "id")
+	if !ok {
+		return
+	}
+	if err := s.configuration.DeleteCanvas(r.Context(), workspaceActor(r), id); err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
 }

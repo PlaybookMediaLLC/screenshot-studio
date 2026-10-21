@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useTRPCClient } from '@/lib/trpc/react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -40,6 +41,8 @@ export function ProjectNameDialog({
   submitLabel: string
   title: string
 }) {
+  const client = useTRPCClient()
+  const [duplicateConfirmed, setDuplicateConfirmed] = React.useState(false)
   const [name, setName] = React.useState(initialName)
   const [error, setError] = React.useState<string | null>(null)
   const [pending, setPending] = React.useState(false)
@@ -48,6 +51,7 @@ export function ProjectNameDialog({
 
   React.useEffect(() => {
     if (open) {
+      setDuplicateConfirmed(false)
       setName(initialName)
       setError(null)
     }
@@ -69,6 +73,14 @@ export function ProjectNameDialog({
     setPending(true)
     setError(null)
     try {
+      if (label === 'Project name' && trimmed !== initialName && !duplicateConfirmed) {
+        const page = await client.project.list.query({ search: trimmed, limit: 100 })
+        if (page.items.some((project) => project.name.toLocaleLowerCase() === trimmed.toLocaleLowerCase())) {
+          setDuplicateConfirmed(true)
+          setError('A project with this name already exists. Choose another name or submit again to keep both.')
+          return
+        }
+      }
       await onSubmit(trimmed)
       onOpenChange(false)
     } catch (failure) {
@@ -94,7 +106,8 @@ export function ProjectNameDialog({
               aria-invalid={Boolean(error)}
               autoFocus
               id={inputId}
-              onChange={(event) => setName(event.target.value)}
+              maxLength={maxLength}
+              onChange={(event) => { setName(event.target.value); setError(null); setDuplicateConfirmed(false) }}
               value={name}
             />
             <p className="text-xs text-muted-foreground" id={`${inputId}-limit`}>

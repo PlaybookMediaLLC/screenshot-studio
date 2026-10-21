@@ -23,6 +23,8 @@ export const assetRouter = router({
     .query(async ({ ctx, input }) =>
       listAssets(ctx.tenant, {
         cursor: input?.cursor,
+        search: input?.search,
+        classification: input?.classification,
         take: input?.limit ?? 50,
         type: input?.type,
         sort: input?.sort,

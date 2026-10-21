@@ -72,7 +72,7 @@ export function PendingDraftInput() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 p-6">
       <div className="w-full max-w-xl space-y-3">
-        <p role="status">{value.error ?? 'Opening your draft… You can start writing.'}</p>
+        <p role="status">{value.error ?? 'New draft · Connecting in the background'}</p>
         <Textarea
           autoFocus
           aria-label="New draft text"

@@ -56,6 +56,7 @@ function PositionIcon({ x, y }: { x: number; y: number }) {
 
 export function ImagePositionSection() {
   const { canvasDimensions } = useImageStore();
+  const anchor = useImageStore((state) => state.imagePlacement.anchor);
   const screenshot = useImageStore(useShallow(selectScreenshot));
   const setScreenshot = useImageStore((state) => state.setImagePlacement);
 
@@ -70,6 +71,7 @@ export function ImagePositionSection() {
     const maxY = Math.max(0, (canvasH - framedH) / 2);
 
     setScreenshot({
+      anchor: pos.key,
       offsetX: Math.round(pos.x * maxX),
       offsetY: Math.round(pos.y * maxY),
     });
@@ -81,6 +83,8 @@ export function ImagePositionSection() {
   };
 
   React.useEffect(() => {
+    if (anchor) { setActivePosition(anchor); return; }
+    if (screenshot.offsetX === 0 && screenshot.offsetY === 0) { setActivePosition('mc'); return; }
     if (!canvasDimensions) return;
     const { canvasW, canvasH, framedW, framedH } = canvasDimensions;
     const maxX = Math.max(0, (canvasW - framedW) / 2);
@@ -96,7 +100,7 @@ export function ImagePositionSection() {
     });
 
     setActivePosition(match?.key ?? null);
-  }, [screenshot.offsetX, screenshot.offsetY, canvasDimensions]);
+  }, [anchor, screenshot.offsetX, screenshot.offsetY, canvasDimensions]);
 
   return (
     <SectionWrapper title="Position" defaultOpen={true}>

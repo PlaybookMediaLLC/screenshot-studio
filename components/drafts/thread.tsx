@@ -1,5 +1,7 @@
 'use client'
 
+import { normalizeMentions } from '@/lib/write/normalize-mentions'
+
 import * as React from 'react'
 import {
   createPlatePlugin,
@@ -237,7 +239,14 @@ export const PostBreakPlugin = createPlatePlugin({
       deleteBackward(unit)
     },
     normalizeNode(entry, options) {
-      const [, path] = entry
+      const [node, path] = entry
+      if (node.type === 'mention_input') {
+        editor.tf.withoutNormalizing(() => {
+          editor.tf.removeNodes({ at: path })
+          editor.tf.insertNodes(normalizeMentions(node) as { text: string }, { at: path })
+        })
+        return
+      }
       if (path.length === 0) {
         const children = editor.children
         if (children[0]?.type !== POST_BREAK) {

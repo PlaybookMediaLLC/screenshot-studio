@@ -26,6 +26,10 @@ import { isMp4Supported, type VideoFormat, type VideoQuality } from "@/lib/expor
 import { hasMotionContent } from "@/lib/animation/motion-schema";
 import { Label } from '@/components/ui/label'
 
+function validSlideDuration(duration: number): number {
+  return Number.isFinite(duration) && duration >= 0.5 && duration <= 30 ? duration : 3;
+}
+
 type ExportMode = "slideshow" | "animation";
 
 const FORMAT_OPTIONS: { value: VideoFormat; label: string; description: string }[] = [
@@ -121,15 +125,15 @@ export function ExportSlideshowDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { slideshow, setSlideshow, timeline, slides, animationClips } = useImageStore();
+  const { slideshow, timeline, slides, animationClips } = useImageStore();
   const { active: exporting, progress, abort } = useExportProgress();
   const [format, setFormat] = useState<VideoFormat>("mp4");
   const [quality, setQuality] = useState<VideoQuality>("high");
-  const [durationInput, setDurationInput] = useState(String(slideshow.defaultDuration));
+  const [durationInput, setDurationInput] = useState(String(validSlideDuration(slideshow.defaultDuration)));
   const validDuration = durationInput.trim() !== '' && Number.isFinite(Number(durationInput)) &&
     Number(durationInput) >= 0.5 && Number(durationInput) <= 30;
   useEffect(() => {
-    if (open) setDurationInput(String(slideshow.defaultDuration));
+    if (open) setDurationInput(String(validSlideDuration(slideshow.defaultDuration)));
   }, [open, slideshow.defaultDuration]);
   const [mp4Supported, setMp4Supported] = useState(true);
 
@@ -163,7 +167,6 @@ export function ExportSlideshowDialog({
   const handleExport = async () => {
     if (exportMode === 'slideshow') {
       if (!validDuration) return;
-      setSlideshow({ defaultDuration: Number(durationInput) });
     }
     try {
       const options: VideoExportOptions = { format, quality };
@@ -171,7 +174,7 @@ export function ExportSlideshowDialog({
       if (exportMode === "animation") {
         result = await exportAnimationVideo(options);
       } else {
-        result = await exportSlideshowVideo(options);
+        result = await exportSlideshowVideo({ ...options, slideDuration: Number(durationInput) });
       }
       // Confetti on successful video export
       confetti({
@@ -349,15 +352,12 @@ export function ExportSlideshowDialog({
                       aria-describedby="slide-duration-help"
                       value={durationInput}
                       onChange={(e) => setDurationInput(e.target.value)}
-                      onBlur={() => {
-                        if (validDuration) setSlideshow({ defaultDuration: Number(durationInput) });
-                      }}
                       className="flex-1"
                     />
                     <span className="text-sm text-muted-foreground">seconds per slide</span>
                   </div>
                   <p id="slide-duration-help" className={validDuration ? 'text-xs text-muted-foreground' : 'text-xs text-destructive'}>
-                    Enter a duration from 0.5 to 30 seconds.
+                    Export duration: 0.5–30 seconds per slide. Your timeline stays unchanged.
                   </p>
                 </div>
               )}

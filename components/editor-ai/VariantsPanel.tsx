@@ -46,12 +46,26 @@ export function VariantsPanel({
   request: (VariantsRequest & { id: number }) | null
 }) {
   const trpcClient = useTRPCClient()
+  const [estimate, setEstimate] = useState<{ lower: number; upper: number } | null>(null)
+  const [estimateError, setEstimateError] = useState(false)
   const [instruction, setInstruction] = useState('')
   const [count, setCount] = useState(4)
   const [loading, setLoading] = useState(false)
   const [original, setOriginal] = useState<DesignDocument | null>(null)
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [inspecting, setInspecting] = useState<Candidate | null>(null)
+
+  useEffect(() => {
+    if (hidden || disabled) return
+    let active = true
+    setEstimate(null)
+    setEstimateError(false)
+    trpcClient.editorAi.variantEstimate.query({ count, document: exportDesignDocument() }).then(
+      (value) => { if (active) setEstimate(value) },
+      () => { if (active) setEstimateError(true) }
+    )
+    return () => { active = false }
+  }, [count, disabled, hidden, trpcClient])
 
   const generate = useCallback(
     async (wanted: number, words: string) => {
@@ -104,7 +118,7 @@ export function VariantsPanel({
     onRequestHandled()
     setCount(request.count)
     setInstruction(request.instruction)
-    void generate(request.count, request.instruction)
+    setCandidates([])
   }, [generate, onRequestHandled, request])
 
   async function apply(candidate: Candidate) {
@@ -165,13 +179,14 @@ export function VariantsPanel({
         </div>
         <Button
           className="flex-1"
-          disabled={disabled || loading}
+          disabled={disabled || loading || !estimate}
           onClick={() => void generate(count, instruction)}
           type="button"
         >
           {loading ? 'Making versions…' : `Make ${count} versions`}
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground" role="status">{estimate ? `Estimated ${estimate.lower}–${estimate.upper} AI credits for ${count} versions.` : estimateError ? 'Estimate unavailable. Retry by selecting a version count.' : 'Estimating AI credits…'} Charged for actual usage; complex designs and retries can exceed the estimate.</p>
       {disabled ? (
         <p className="text-xs text-muted-foreground">Add a screenshot to the canvas first.</p>
       ) : null}

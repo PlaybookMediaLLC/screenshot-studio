@@ -62,6 +62,8 @@ export type EncoderType = 'auto' | 'ffmpeg' | 'webcodecs' | 'mediarecorder';
 export type ExtendedVideoFormat = VideoFormat | 'gif';
 
 export interface VideoExportOptions {
+  /** Duration per slide for this export only, in seconds. */
+  slideDuration?: number;
   format?: ExtendedVideoFormat;
   quality?: VideoQuality;
   encoder?: EncoderType; // Which encoder to use (default: 'auto')
@@ -74,7 +76,7 @@ export interface VideoExportOptions {
 }
 
 /** Per-export encoder settings, resolved from {@link VideoExportOptions}. */
-type EncodeSettings = { fileName?: string; fps: number; maxWidth?: number };
+type EncodeSettings = { slideDuration?: number; fileName?: string; fps: number; maxWidth?: number };
 
 /** The encoder's output size: the frame's, or a GIF scaled down to `maxWidth` (even sides). */
 function encodeSize(canvas: HTMLCanvasElement, format: string, maxWidth?: number) {
@@ -192,6 +194,9 @@ function yieldToMain(): Promise<void> {
  */
 export async function exportSlideshowVideo(options: VideoExportOptions = {}) {
   const { format = "mp4", quality = "high" } = options;
+  if (options.slideDuration !== undefined && (!Number.isFinite(options.slideDuration) || options.slideDuration < 0.5 || options.slideDuration > 30)) {
+    throw new Error('Slide duration must be between 0.5 and 30 seconds.');
+  }
   const settings: EncodeSettings = { ...options, fps: options.fps ?? SLIDESHOW_FPS };
   const progress = useExportProgress.getState();
   const savedState = saveStoreState();
@@ -203,8 +208,8 @@ export async function exportSlideshowVideo(options: VideoExportOptions = {}) {
     const { slides, slideshow } = useImageStore.getState();
     const slideshowMs =
       (slides.length > 0
-        ? slides.reduce((total, slide) => total + (slide.duration || slideshow.defaultDuration || 2), 0)
-        : slideshow.defaultDuration || 2) * 1000;
+        ? slides.reduce((total, slide) => total + (options.slideDuration ?? (slide.duration || slideshow.defaultDuration || 2)), 0)
+        : options.slideDuration ?? (slideshow.defaultDuration || 2)) * 1000;
     // GIF has no audio track; video formats carry the timeline's audio.
     const audio = format === "gif" ? null : await mixExportAudio(slideshowMs);
 
@@ -270,7 +275,8 @@ async function exportSlideshowWithWebCodecs(
       },
 
       (p) => progress.set(p * 0.9),
-      signal
+      signal,
+      settings.slideDuration
     );
 
     if (!state.encoder) {
@@ -340,9 +346,9 @@ async function exportSlideshowWithFFmpeg(
         await encoder.initialize();
       }
 
-      const duration = slide
+      const duration = settings.slideDuration ?? (slide
         ? (slide.duration || slideshow.defaultDuration || 2)
-        : (slideshow.defaultDuration || 2);
+        : (slideshow.defaultDuration || 2));
 
       await encoder.addSlide(canvas, duration);
       progress.set((si + 1) / slideList.length * 40);

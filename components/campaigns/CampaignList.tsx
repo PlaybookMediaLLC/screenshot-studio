@@ -110,7 +110,7 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
             variant="ghost"
             onClick={() => {
               setQuery('')
-              setStatus('ACTIVE')
+              setStatus('ALL')
             }}
           >
             Clear filters

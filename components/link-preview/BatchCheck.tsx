@@ -168,7 +168,6 @@ export function BatchCheck({
   return (
     <div className="space-y-6">
       {rows.length > 0 && checkedAgent !== agent && <p role="status">These results are for {checkedAgent}. Choose Check all to use {agent}.</p>}
-      {invalid.length > 0 && <p role="alert" className="text-sm text-red-400">Invalid URL lines: {invalid.join(', ')}. Enter one web URL per line.</p>}
       <section className={cn(PANEL, 'space-y-3 p-5')}>
         <form
           onSubmit={(event) => {
@@ -197,12 +196,17 @@ export function BatchCheck({
           </span>
           <Textarea
             value={text}
+            aria-invalid={invalid.length > 0}
+            aria-describedby="batch-url-errors"
             onChange={(event) => setText(event.target.value)}
             rows={6}
             placeholder={'example.com\nexample.com/pricing\nexample.com/blog/launch'}
             className="w-full resize-y rounded-lg bg-white/[0.03] px-3 py-2 font-mono text-sm text-foreground ring-1 ring-white/[0.08] outline-none placeholder:text-muted-foreground focus:ring-white/25"
           />
         </Label>
+        <p id="batch-url-errors" role={invalid.length ? 'alert' : undefined} className="min-h-5 text-xs text-red-400">
+          {invalid.length ? `Invalid URL lines: ${invalid.join(', ')}. Enter one web URL per line.` : '\u00a0'}
+        </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
             {urls.length} link{urls.length === 1 ? '' : 's'}

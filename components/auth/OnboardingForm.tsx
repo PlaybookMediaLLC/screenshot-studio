@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { TimeZonePicker, browserTimeZone } from '@/components/settings/TimeZonePicker'
 import { Input } from '@/components/ui/input'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { workspaceCreateSchema } from '@/lib/workspace/input-schemas'
@@ -24,6 +25,8 @@ export function OnboardingForm() {
   // The inputs stay uncontrolled so text typed before hydration is kept; this
   // state only drives the preview card.
   const [name, setName] = useState('')
+  const [timeZone, setTimeZone] = useState('UTC')
+  useEffect(() => setTimeZone(browserTimeZone()), [])
   const [slug, setSlug] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
   const slugInputRef = useRef<HTMLInputElement>(null)
@@ -66,6 +69,7 @@ export function OnboardingForm() {
     setIsSubmitting(true)
     try {
       await trpcClient.workspace.create.mutate({
+        timeZone,
         name: input.data.name,
         slug: input.data.slug,
       })
@@ -132,6 +136,7 @@ export function OnboardingForm() {
           The slug uses lowercase letters, numbers, and hyphens. You can change both later.
         </p>
 
+        <TimeZonePicker label="Workspace time zone" value={timeZone} onChange={setTimeZone} disabled={isSubmitting} />
         {error ? <FormAlert>{error}</FormAlert> : null}
       </div>
 

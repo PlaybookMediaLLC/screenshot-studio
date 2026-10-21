@@ -20,9 +20,17 @@ export function WorkspaceAuditLogList({ logs, search }: WorkspaceAuditLogListPro
             <div className="min-w-0 flex-1">
               <p className="truncate font-mono text-sm text-foreground">{log.action}</p>
               <p className="truncate text-xs text-muted-foreground">
-                {log.actorDisplay ?? 'System'} · {log.entityType} ·{' '}
+                {log.actorDisplay ?? 'System'} · {log.entityType.replace(/([a-z])([A-Z])/g, '$1 $2').replaceAll('_', ' ')} ·{' '}
                 {new Date(log.createdAt).toLocaleString()}
               </p>
+              <details className="mt-2 text-xs text-muted-foreground">
+                <summary className="cursor-pointer">Event details{log.entityId ? ` · ${log.entityId}` : ''}</summary>
+                <dl className="mt-2 grid gap-1">
+                  <div><dt className="inline font-medium">Event ID: </dt><dd className="inline break-all">{log.id}</dd></div>
+                  {log.entityId ? <div><dt className="inline font-medium">Entity ID: </dt><dd className="inline break-all">{log.entityId}</dd></div> : null}
+                  {Object.entries(log.metadata ?? {}).map(([key, value]) => <div key={key}><dt className="inline font-medium">{key.replace(/([a-z])([A-Z])/g, '$1 $2')}: </dt><dd className="inline break-all">{typeof value === 'string' ? value : JSON.stringify(value)}</dd></div>)}
+                </dl>
+              </details>
             </div>
             <Pill tone={outcomeTones[log.outcome] ?? 'gray'}>
               <span className="capitalize">{log.outcome.toLowerCase()}</span>

@@ -1,6 +1,9 @@
 'use client';
 
-import { useRef, useState, useCallback, useMemo } from 'react';
+import { useLayerDepth, reorderLayer } from '@/lib/editor/use-layer-depth';
+
+import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
+import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts';
 import { fitFontSize, textFillCss } from '@/lib/typography/text-style';
 import { measureLine, useFontsVersion } from '@/lib/typography/measure';
 import { getFontCSS } from '@/lib/constants/fonts';
@@ -48,6 +51,7 @@ function DraggableText({
   onSelect,
   onUpdate,
 }: DraggableTextProps) {
+  const depth = useLayerDepth(overlay.id);
   const drag = useRef<{ x: number; y: number; position: TextOverlay["position"]; lines: SnapLines | null } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -148,7 +152,7 @@ function DraggableText({
         writingMode: overlay.orientation === 'vertical' ? 'vertical-rl' : 'horizontal-tb',
         outline: isSelected ? '2px solid rgba(59, 130, 246, 0.5)' : 'none',
         outlineOffset: '4px',
-        zIndex: 100,
+        zIndex: depth,
         pointerEvents: 'auto',
       }}
     >
@@ -171,6 +175,19 @@ export function HTMLTextOverlayLayer({
   setIsMainImageSelected,
   updateTextOverlay,
 }: HTMLTextOverlayLayerProps) {
+  useEffect(() => {
+    if (!selectedTextId) return;
+    const reorder = (event: KeyboardEvent) => {
+      if (!event.altKey || shouldIgnoreEditorShortcut(event) || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      const text = textOverlays.find((item) => item.id === selectedTextId);
+      if (!text) return;
+      event.preventDefault();
+      reorderLayer(text.id, event.key === 'ArrowUp' ? 'up' : 'down');
+    };
+    window.addEventListener('keydown', reorder);
+    return () => window.removeEventListener('keydown', reorder);
+  }, [selectedTextId, textOverlays, updateTextOverlay]);
+
   const handleSelect = useCallback((id: string) => {
     setSelectedTextId(id);
     setSelectedOverlayId(null);
@@ -185,7 +202,6 @@ export function HTMLTextOverlayLayer({
         width: `${canvasW}px`,
         height: `${canvasH}px`,
         pointerEvents: 'none',
-        zIndex: 100,
       }}
     >
       {textOverlays.map((overlay) => (

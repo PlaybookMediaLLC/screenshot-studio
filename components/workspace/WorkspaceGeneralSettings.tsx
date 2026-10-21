@@ -73,6 +73,8 @@ export function WorkspaceGeneralSettings({
   const dirty = JSON.stringify(values) !== JSON.stringify(saved)
   const slugResult = workspaceUpdateSchema.shape.slug.safeParse(values.slug)
   const slugError = slugResult.success ? null : slugResult.error.issues[0]?.message
+  const logoResult = workspaceUpdateSchema.shape.logo.safeParse(values.logo.trim() || null)
+  const logoError = logoResult.success ? null : logoResult.error.issues[0]?.message
   useUnsavedSettings(dirty)
 
   useEffect(() => {
@@ -174,15 +176,13 @@ export function WorkspaceGeneralSettings({
                 pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
                 required
               />
-              {slugError ? (
-                <p
-                  className="text-sm text-red-700 dark:text-red-300"
-                  id="workspace-slug-error"
-                  role="alert"
-                >
-                  {slugError}
-                </p>
-              ) : null}
+              <p
+                className="min-h-5 text-sm text-red-700 dark:text-red-300"
+                id="workspace-slug-error"
+                role={slugError ? 'alert' : undefined}
+              >
+                {slugError ?? '\u00a0'}
+              </p>
             </div>
           </Row>
           <Row description="A square image works best." label={label('workspace-logo', 'Logo URL')}>
@@ -192,10 +192,13 @@ export function WorkspaceGeneralSettings({
               onChange={(event) => update({ logo: event.target.value })}
               disabled={!canManage || isSaving}
               id="workspace-logo"
+              aria-invalid={Boolean(logoError)}
+              aria-describedby="workspace-logo-error"
               name="logo"
               placeholder="https://example.com/logo.svg"
               type="url"
             />
+            <p id="workspace-logo-error" className="min-h-4 text-xs text-destructive" role={logoError ? 'alert' : undefined}>{logoError}</p>
           </Row>
           <Row
             description="What this workspace is for, in a sentence or two."
@@ -287,7 +290,7 @@ export function WorkspaceGeneralSettings({
               {dirty ? 'Unsaved changes' : 'All changes saved'}
             </p>
             <Button
-              disabled={!dirty || isSaving}
+              disabled={!dirty || Boolean(logoError) || isSaving}
               onClick={() => {
                 setValues(saved)
                 clearDraft()
@@ -301,7 +304,7 @@ export function WorkspaceGeneralSettings({
             </Button>
             <Button
               className="rounded-lg"
-              disabled={!dirty || isSaving || Boolean(slugError)}
+              disabled={!dirty || Boolean(logoError) || isSaving || Boolean(slugError)}
               type="submit"
             >
               {isSaving ? 'Saving…' : 'Save workspace'}

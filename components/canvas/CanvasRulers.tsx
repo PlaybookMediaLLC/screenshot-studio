@@ -1,5 +1,6 @@
 'use client'
 
+import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 
 const RULER_SIZE = 20
@@ -298,7 +299,7 @@ export function CanvasRulers({
 
   if (!geo) return null
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -349,6 +350,6 @@ export function CanvasRulers({
           opacity: 0.92,
         }}
       />
-    </div>
+    </div>, document.body
   )
 }

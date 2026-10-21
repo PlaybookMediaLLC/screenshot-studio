@@ -1,5 +1,7 @@
 'use client';
 
+import { useLayerDepth } from '@/lib/editor/use-layer-depth';
+
 import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import Moveable from 'react-moveable';
 import type { ImageOverlay } from '@/lib/store';
@@ -49,6 +51,7 @@ function OverlayElement({
   onSelect: () => void;
   elRef?: (el: HTMLDivElement | null) => void;
 }) {
+  const depth = useLayerDepth(overlay.id);
   const isShadow = useMemo(
     () => typeof overlay.src === 'string' && overlay.src.includes('overlay-shadow'),
     [overlay.src]
@@ -66,7 +69,7 @@ function OverlayElement({
           inset: 0,
           opacity: overlay.opacity,
           userSelect: 'none',
-          zIndex: 5,
+          zIndex: depth,
           pointerEvents: 'none',
         }}
       >
@@ -97,6 +100,7 @@ function OverlayElement({
       }}
       style={{
         position: 'absolute',
+        zIndex: depth,
         left: `${overlay.position.x - overlay.size / 2}px`,
         top: `${overlay.position.y - overlay.size / 2}px`,
         width: `${overlay.size}px`,
@@ -212,7 +216,7 @@ export function HTMLImageOverlayLayer({
   updateImageOverlay,
   onDuplicate,
   onDelete,
-  zIndex = 200,
+  zIndex: _zIndex = 200,
 }: HTMLImageOverlayLayerProps) {
   const [selectedEl, setSelectedEl] = useState<HTMLDivElement | null>(null);
   const [interacting, setInteracting] = useState(false);
@@ -258,7 +262,6 @@ export function HTMLImageOverlayLayer({
         position: 'absolute',
         inset: 0,
         pointerEvents: 'none',
-        zIndex,
         overflow: 'visible',
       }}
     >
@@ -271,6 +274,7 @@ export function HTMLImageOverlayLayer({
           <MotionWrap
             key={overlay.id}
             motion={motions[overlay.id]}
+            layerId={overlay.id}
             origin={`${overlay.position.x}px ${overlay.position.y}px`}
           >
             <OverlayElement

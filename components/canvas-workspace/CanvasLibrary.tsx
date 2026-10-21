@@ -98,6 +98,7 @@ export function CanvasLibrary({
   const [error, setError] = useState<string | null>(null)
   const [refresh, setRefresh] = useState(0)
   const [renaming, setRenaming] = useState<Item | null>(null)
+  const [deleting, setDeleting] = useState<Item | null>(null)
   const [archiving, setArchiving] = useState<Item | null>(null)
   useEffect(() => {
     let active = true
@@ -338,6 +339,7 @@ export function CanvasLibrary({
                         Archive…
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(item)}>Delete permanently…</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : null}
@@ -372,6 +374,22 @@ export function CanvasLibrary({
             })
           }
         />
+      ) : null}
+      {deleting ? (
+        <Dialog open onOpenChange={(open) => { if (!open && !busy) setDeleting(null) }}>
+          <DialogContent>
+            <DialogTitle>Delete “{deleting.name}” permanently?</DialogTitle>
+            <DialogDescription>This removes the canvas and all its versions. Delivered campaign assets remain available. This cannot be undone.</DialogDescription>
+            <div className="flex justify-end gap-2">
+              <Button disabled={busy} variant="outline" onClick={() => setDeleting(null)}>Cancel</Button>
+              <Button disabled={busy} variant="destructive" onClick={() => void act(async () => {
+                await client.canvas.delete.mutate({ canvasId: deleting.id })
+                setDeleting(null)
+                toast.success('Canvas deleted')
+              })}>Delete permanently</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       ) : null}
       {archiving ? (
         <Dialog open onOpenChange={(open) => (open ? null : setArchiving(null))}>
@@ -458,6 +476,9 @@ export function RenameDialog({
             maxLength={200}
             onChange={(event) => setValue(event.target.value)}
           />
+          <p className="text-right text-xs tabular-nums text-muted-foreground" aria-live="polite">
+            {value.length}/200 characters
+          </p>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel

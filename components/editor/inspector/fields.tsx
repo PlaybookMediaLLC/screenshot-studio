@@ -60,6 +60,8 @@ export function ChoiceField<Value extends string>({
       <span className="text-xs text-muted-foreground">{label}</span>
       <SegmentedControl
         ariaLabel={label}
+        className="h-auto min-h-8 flex-wrap [&>button]:min-h-8 [&>button]:min-w-16 [&>button[aria-pressed=true]]:bg-foreground/10"
+        indicatorClassName="hidden"
         onChange={(next) => onChange(next as Value)}
         options={options.map((option) => ({ ariaLabel: option.label, id: option.value, label: option.label }))}
         size="sm"

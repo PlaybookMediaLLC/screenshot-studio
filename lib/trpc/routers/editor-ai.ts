@@ -3,7 +3,7 @@ import 'server-only'
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { type BrandVoice, writeCopy } from '@/lib/ai/agents/captions'
-import { critiqueDesign, proposeVariants } from '@/lib/ai/agents/editor-assist'
+import { critiqueDesign, proposeVariants, estimateVariantCredits } from '@/lib/ai/agents/editor-assist'
 import { BackgroundGenerationError, generateBackground } from '@/lib/ai/images/background'
 import { backgroundRequestSchema } from '@/lib/ai/images/background-request'
 import { withAiCredits } from '@/lib/ai/metering'
@@ -55,6 +55,10 @@ export const editorAiRouter = router({
         ),
       }
     }),
+  /** Usage estimate, without running a model or spending credits. */
+  variantEstimate: organizationProcedure('artifact:read')
+    .input(z.object({ count: variantCountSchema, document: designDocumentSchema }))
+    .query(({ input }) => estimateVariantCredits(input.document, input.count)),
   /** Complete, distinct versions of the design, as changes the browser applies to its own copy. */
   variants: organizationProcedure('artifact:edit')
     .input(

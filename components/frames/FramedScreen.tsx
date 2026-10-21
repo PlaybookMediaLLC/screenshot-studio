@@ -1,6 +1,8 @@
 'use client'
 
 import type { KeyboardEventHandler, PointerEventHandler } from 'react'
+import { useImageStore } from '@/lib/store'
+import { withAlpha } from '@/lib/editor/elements/color'
 import { DeviceShell, Screen } from '@/components/mockups/DeviceShell'
 import { getMockupDefinition } from '@/lib/constants/mockups'
 import { resolveAppearance } from '@/lib/frames/appearance'
@@ -39,19 +41,21 @@ export function FramedScreen({
   mockup: Mockup
   width: number
 }) {
+  const imageShadow = useImageStore((state) => state.imageShadow)
+  const borderRadius = useImageStore((state) => state.borderRadius)
   const frame = screenFrameSpec(mockup)
   const screenRect = frameScreenRect(frame, { height, width, x: 0, y: 0 })
   const { code } = mockup.screen
   const content = code ? (
     <CodeScreen content={code} height={screenRect.height} width={screenRect.width} />
   ) : undefined
-  const shadow = `drop-shadow(0 ${height * 0.012}px ${height * 0.03}px rgba(0,0,0,0.28))`
+  const shadow = imageShadow.enabled ? `drop-shadow(${imageShadow.offsetX}px ${imageShadow.offsetY}px ${imageShadow.blur}px ${withAlpha(imageShadow.color, imageShadow.opacity)})` : undefined
 
   if (frame.kind === 'device') {
     const definition = getMockupDefinition(frame.definitionId)
     if (!definition) return null
     return (
-      <DeviceShell
+      <div style={{ filter: shadow, height, width }}><DeviceShell
         color={mockup.color}
         content={content}
         definition={definition}
@@ -65,7 +69,7 @@ export function FramedScreen({
         screen={mockup.screen}
         screenFilter={handlers.screenFilter}
         screenObjectPosition={handlers.screenObjectPosition}
-      />
+      /></div>
     )
   }
 
@@ -91,7 +95,7 @@ export function FramedScreen({
       <div style={{ filter: shadow, height, position: 'relative', width }}>
         <div
           style={{
-            borderRadius: Math.min(width, height) * 0.025,
+            borderRadius,
             height,
             overflow: 'hidden',
             position: 'relative',

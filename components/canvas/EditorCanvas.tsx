@@ -3,17 +3,18 @@
 import { useImageStore } from "@/lib/store";
 import { CleanUploadState } from "@/components/controls/CleanUploadState";
 import { useLayoutEffect, useState } from "react";
+import { toast } from 'sonner';
 import React from "react";
 import { ExportSlideshowDialog } from "@/lib/export-slideshow-dialog";
 import { CanvasStageShell } from "@/components/canvas/CanvasStageShell";
 import { CanvasStageLoadingOverlay } from "@/components/canvas/CanvasStageLoadingOverlay";
+import { SlidePreview } from './SlidePreview';
 import ClientCanvas from "@/components/canvas/ClientCanvas";
 import { cn } from "@/lib/utils";
 import { Cancel01Icon } from "hugeicons-react";
 import { hasCanvasContent } from "@/lib/editor/canvas-content";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StoreScreenshotsShortcut } from "@/components/store-screenshots/StoreScreenshotsFeatureCard";
-import { STORE_SHORTCUT_GAP } from "@/lib/store-screenshots/config";
 import { TEMPLATE_DEMO_IMAGE_NAME } from "@/lib/templates/demo-media";
 import { useBackgroundImageReady } from "@/hooks/useBackgroundImageReady";
 import { Button } from '@/components/ui/button'
@@ -121,6 +122,11 @@ export function EditorCanvas() {
           onOpenChange={setExportOpen}
         />
 
+        {!isMobile && imageName !== TEMPLATE_DEMO_IMAGE_NAME ? (
+          <div className="flex shrink-0 justify-center py-2 max-lg:hidden">
+            <StoreScreenshotsShortcut />
+          </div>
+        ) : null}
         <div
           data-canvas-viewport
           className={cn(
@@ -129,14 +135,7 @@ export function EditorCanvas() {
               ? "flex items-center justify-center"
               : "flex flex-col items-center justify-center",
           )}
-          style={isMobile ? undefined : { rowGap: STORE_SHORTCUT_GAP }}
         >
-          {!isMobile && imageName !== TEMPLATE_DEMO_IMAGE_NAME ? (
-            <div data-stage-shortcut className="shrink-0 max-lg:hidden">
-              <StoreScreenshotsShortcut />
-            </div>
-          ) : null}
-
           {isMobile && !hasRenderableContent ? (
             <div className="h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl border border-foreground/10">
               <CleanUploadState />
@@ -188,12 +187,7 @@ export function EditorCanvas() {
                     onClick={() => setActiveSlide(slide.id)}
                     className="h-full w-full cursor-pointer"
                   >
-                    <img
-                      src={slide.src}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      draggable={false}
-                    />
+                    <SlidePreview src={slide.src} />
                   </Button>
 
                   <Button variant="custom" size={null}
@@ -201,8 +195,9 @@ export function EditorCanvas() {
                     onClick={(e) => {
                       e.stopPropagation();
                       removeSlide(slide.id);
+                      toast.success('Slide removed', { action: { label: 'Undo', onClick: () => useImageStore.temporal.getState().undo() } });
                     }}
-                    className="absolute top-1 right-1 z-10 flex size-11 lg:size-5 cursor-pointer items-center justify-center rounded-md border border-foreground/10 bg-card/90 text-muted-foreground transition-colors hover:bg-destructive hover:text-foreground hover:border-destructive"
+                    className="absolute top-1 right-1 z-10 flex size-8 lg:size-5 cursor-pointer items-center justify-center rounded-md border border-foreground/10 bg-card/90 text-muted-foreground transition-colors hover:bg-destructive hover:text-foreground hover:border-destructive"
                     title="Delete slide"
                   >
                     <Cancel01Icon size={10} />

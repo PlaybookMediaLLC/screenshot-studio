@@ -214,6 +214,7 @@ export const designDocumentSchema = z.object({
     scale: z.number().min(10).max(200).optional(),
     opacity: z.number().min(0).max(1).optional(),
     radius: z.number().min(0).max(100).optional(),
+    positionAnchor: z.enum(['tl', 'tc', 'tr', 'ml', 'mc', 'mr', 'bl', 'bc', 'br']).optional(),
     offset: z
       .object({ x: z.number().min(-0.5).max(0.5), y: z.number().min(-0.5).max(0.5) })
       .optional(),
@@ -306,6 +307,7 @@ export const designDocumentSchema = z.object({
       z.object({
         ...layerIdentity,
         color: color.default('#ffffff'),
+        zIndex: z.number().int().min(1).max(999).optional(),
         /** A catalog font id, or `google:<Family>` for a Google Fonts family. */
         fontFamily: z
           .string()
@@ -404,7 +406,9 @@ export const designDocumentSchema = z.object({
     .max(20)
     .default([]),
   animation: z.object({ presetId: enumOf(designCatalog.animationPresets) }).optional(),
-  /** Step badges, cursors, spotlights, and zoom callouts, bottom to top. */
+  /** Shared bottom-to-top order for all editable layers. */
+  layerOrder: z.array(z.string().max(160)).max(250).optional(),
+  /** Step badges, cursors, spotlights, and zoom callouts. */
   elements: z.array(canvasElementSchema).max(60).default([]),
   /** The full timeline: clips from presets and keyframed tracks. Wins over `animation`. */
   timeline: timelineSchema.optional(),

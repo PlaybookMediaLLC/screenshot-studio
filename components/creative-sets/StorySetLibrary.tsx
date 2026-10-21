@@ -119,7 +119,7 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
           edit Story Sets.
         </p>
       ) : null}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      {busy || error || items.length > 0 || query ? <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-sm">
           <Search01Icon
             aria-hidden
@@ -148,7 +148,7 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
             </SelectContent>
           </Select>
         </Label>
-      </div>
+      </div> : null}
       {error ? (
         <Alert variant="destructive">
           <AlertDescription>

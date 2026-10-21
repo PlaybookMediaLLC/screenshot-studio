@@ -10,7 +10,7 @@ import { exportDesignDocument } from './export'
  * previews that must show the design exactly as it is (frame, devices,
  * text, background). Null when the canvas has nothing to show.
  */
-export function useEditorDocument(delayMs = 400): DesignDocument | null {
+export function useEditorDocument(delayMs = 100): DesignDocument | null {
   const [document, setDocument] = useState<DesignDocument | null>(null)
 
   useEffect(() => {

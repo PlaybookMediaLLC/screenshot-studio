@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useProjectSession } from '@/lib/projects/session'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useHydratedSession } from '@/lib/auth/client'
@@ -47,6 +48,8 @@ export function SaveToWorkspaceButton({ createExport, disabled, fileName }: Save
       const blob = await createExport()
       const { assetId } = await saveExportToWorkspace({
         blob,
+        classification: 'export',
+        projectId: useProjectSession.getState().projectId ?? undefined,
         fileName: fileName ?? buildExportFileName(blob.type),
         trpcClient,
       })

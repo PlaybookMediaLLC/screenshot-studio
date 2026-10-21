@@ -170,3 +170,8 @@ export async function attachCanvasDelivery(context: TenantContext, input: Canvas
   if (!(await canvasRow(context, canvasId))) return null
   return backendSDK(context).attachCreativeSetDelivery(canvasId, handoff)
 }
+
+/** Permanently remove a workspace canvas and its history. */
+export async function deleteCanvas(context: TenantContext, canvasId: string) {
+  return backendSDK(context).deleteCanvas(canvasId)
+}

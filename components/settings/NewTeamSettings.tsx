@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Group, Row } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { settingsErrorMessage } from '@/lib/settings/client'
 import { useTRPCClient } from '@/lib/trpc/react'
+import { TimeZonePicker, browserTimeZone } from '@/components/settings/TimeZonePicker'
 import { workspaceNameSchema } from '@/lib/workspace/input-schemas'
 
 /** A slug from a name, with a short suffix so two teams named alike never collide. */
@@ -29,6 +30,8 @@ function slugFor(name: string): string {
 export function NewTeamSettings({ email }: { email: string }) {
   const trpcClient = useTRPCClient()
   const [name, setName] = useState('')
+  const [timeZone, setTimeZone] = useState('UTC')
+  useEffect(() => setTimeZone(browserTimeZone()), [])
   const [creating, setCreating] = useState(false)
   const parsed = workspaceNameSchema.safeParse(name)
 
@@ -37,6 +40,7 @@ export function NewTeamSettings({ email }: { email: string }) {
     setCreating(true)
     try {
       const { organization } = await trpcClient.workspace.create.mutate({
+        timeZone,
         name: parsed.data,
         slug: slugFor(parsed.data),
       })
@@ -81,6 +85,7 @@ export function NewTeamSettings({ email }: { email: string }) {
           </p>
         </Row>
       </Group>
+      <TimeZonePicker label="Workspace time zone" value={timeZone} onChange={setTimeZone} disabled={creating} />
       <div>
         <Button disabled={!parsed.success || creating} type="submit">
           {creating ? 'Creating…' : 'Create workspace'}

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useDeviceUIStore } from "@/lib/store/device-ui";
 import { useImageStore } from "@/lib/store";
 import type { Mockup } from "@/types/mockup";
+import { orderedLayerIds } from '@/lib/editor/layer-order';
 import { useImageMotion } from "@/lib/animation/use-image-motion";
 import { imageFilterCss } from "@/lib/editor/image-adjustments";
 import { useMoveableSnapping } from "@/components/canvas/use-moveable-snapping";
@@ -364,46 +365,27 @@ function MockupRenderer({ mockup, canvasWidth, canvasHeight, zIndex }: MockupRen
 
 export function MockupSceneRenderer({ canvasWidth, canvasHeight }: { canvasWidth: number; canvasHeight: number }): React.JSX.Element {
   const mockups = useImageStore((state) => state.mockups);
+  const imageScale = useImageStore((state) => state.imageScale);
+  const placement = useImageStore((state) => state.imagePlacement);
+  const order = useImageStore((state) => state.layerOrder);
+  const ids = orderedLayerIds({ ...useImageStore.getState(), layerOrder: order });
   const motions = useLayerMotions("device");
   // Drawn values at the playhead, like the main image.
   const { perspective3D, imageOpacity } = useImageMotion();
 
   return (
-    <div
-      data-device-scene="true"
-      style={{
-        position: "absolute",
-        inset: 0,
-        zIndex: 20,
-        pointerEvents: "none",
-        perspective: `${Math.max(100, perspective3D.perspective * 10)}px`,
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          opacity: imageOpacity,
-          transform: `translate(${perspective3D.translateX}%, ${perspective3D.translateY}%) scale(${perspective3D.scale}) rotateX(${perspective3D.rotateX}deg) rotateY(${perspective3D.rotateY}deg) rotateZ(${perspective3D.rotateZ}deg)`,
-          transformOrigin: "center",
-          transformStyle: "preserve-3d",
-        }}
-      >
-        {mockups.map((mockup, index) => (
-          <MotionWrap
-            key={mockup.id}
-            motion={motions[mockup.id]}
-            origin={`${mockup.position.x * 100}% ${mockup.position.y * 100}%`}
-          >
-            <MockupRenderer
-              mockup={mockup}
-              canvasWidth={canvasWidth}
-              canvasHeight={canvasHeight}
-              zIndex={index + 1}
-            />
-          </MotionWrap>
-        ))}
-      </div>
+    <div data-device-scene="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      {mockups.map((mockup) => (
+        <div key={mockup.id} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 + ids.indexOf(mockup.id), perspective: `${Math.max(100, perspective3D.perspective * 10)}px` }}>
+          <div style={{ position: 'absolute', inset: 0, opacity: imageOpacity,
+            transform: `translate(${placement.offsetX}px, ${placement.offsetY}px) translate(${perspective3D.translateX}%, ${perspective3D.translateY}%) scale(${perspective3D.scale * imageScale / 100}) rotateX(${perspective3D.rotateX}deg) rotateY(${perspective3D.rotateY}deg) rotateZ(${perspective3D.rotateZ}deg)`,
+            transformOrigin: 'center', transformStyle: 'preserve-3d' }}>
+            <MotionWrap motion={motions[mockup.id]} origin={`${mockup.position.x * 100}% ${mockup.position.y * 100}%`}>
+              <MockupRenderer mockup={mockup} canvasWidth={canvasWidth} canvasHeight={canvasHeight} zIndex={1} />
+            </MotionWrap>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

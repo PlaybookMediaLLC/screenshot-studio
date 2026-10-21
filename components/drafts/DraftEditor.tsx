@@ -554,6 +554,9 @@ export default function DraftEditor({
       : null
     const hosted = (extraPlugins ?? []) as typeof PostBreakPlugin[]
     return createEditorKit({
+      recipe: 'collaborative',
+      // Social handles remain literal; resolved platform mentions use the dedicated picker.
+      excludePluginKeys: ['mention', 'mention_input', 'autoformatShortcuts'],
       additionalPlugins: live ? [PostBreakPlugin, ...hosted, live] : [PostBreakPlugin, ...hosted],
       // Comments and suggestions are authored by the signed-in member, not
       // the upstream demo users.

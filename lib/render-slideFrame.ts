@@ -94,7 +94,7 @@ async function waitForDOMImageUpdate(expectedSrc: string, maxWaitMs: number = 30
   while (Date.now() - start < maxWaitMs) {
     const container = document.querySelector('[data-html-canvas="true"]');
     if (container) {
-      const img = container.querySelector('img[alt="Main image"]') as HTMLImageElement | null;
+      const img = Array.from(container.querySelectorAll<HTMLImageElement>('img')).find((image) => image.getAttribute('src') === expectedSrc || image.src === expectedSrc) ?? null;
       if (img && img.complete && img.naturalWidth > 0) {
         // Compare src — handle both exact match and resolved URL match
         if (img.src === expectedSrc || img.src.endsWith(expectedSrc) || expectedSrc.endsWith(img.src)) {
@@ -183,7 +183,8 @@ export async function streamSlidesToEncoder(
   fps: number,
   onFrame: (canvas: HTMLCanvasElement, frameIndex: number) => Promise<void>,
   onProgress?: (progress: number) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  slideDuration?: number
 ): Promise<{ width: number; height: number; totalFrames: number }> {
   // Read a fresh snapshot of the store each time
   const { slides, slideshow, uploadedImageUrl } = useImageStore.getState();
@@ -214,7 +215,7 @@ export async function streamSlidesToEncoder(
       height = canvas.height;
     }
 
-    const duration = slide ? (slide.duration || slideshow.defaultDuration || 2) : (slideshow.defaultDuration || 2);
+    const duration = slideDuration ?? (slide ? (slide.duration || slideshow.defaultDuration || 2) : (slideshow.defaultDuration || 2));
     const frameCount = Math.max(1, Math.round(duration * fps));
 
     // Stream the same canvas for the duration of this slide

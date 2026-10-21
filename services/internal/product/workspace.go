@@ -89,8 +89,9 @@ func (c *Configuration) AuthorizeSensitive(ctx context.Context, actor Actor) err
 }
 
 type CreateWorkspaceInput struct {
-	Name string `json:"name"`
-	Slug string `json:"slug"`
+	TimeZone string `json:"timeZone"`
+	Name     string `json:"name"`
+	Slug     string `json:"slug"`
 }
 
 type Workspace struct {
@@ -103,6 +104,15 @@ type Workspace struct {
 }
 
 func (c *Configuration) CreateWorkspace(ctx context.Context, actor Actor, input CreateWorkspaceInput) (*Workspace, error) {
+	if input.TimeZone == "" {
+		input.TimeZone = "UTC"
+	}
+	if len(input.TimeZone) > 100 {
+		return nil, invalid("Choose a valid time zone.")
+	}
+	if _, err := time.LoadLocation(input.TimeZone); err != nil {
+		return nil, invalid("Choose a valid time zone.")
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
@@ -120,7 +130,7 @@ func (c *Configuration) CreateWorkspace(ctx context.Context, actor Actor, input 
 		SetUserID(actor.UserID).SetRole("owner").SetCreatedAt(now).Save(ctx); err != nil {
 		return nil, err
 	}
-	settings, err := tx.WorkspaceSettings.Create().SetID(org.ID).Save(ctx)
+	settings, err := tx.WorkspaceSettings.Create().SetID(org.ID).SetTimeZone(input.TimeZone).Save(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useLayerDepth } from '@/lib/editor/use-layer-depth';
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { type ShadowConfig } from '../utils/shadow-utils';
 import { buildDropShadowFilter as buildSharedDropShadowFilter, parseShadowRgb } from '@/lib/drop-shadow';
@@ -128,6 +129,7 @@ export function HTMLMainImageLayer({
   onDragStateChange,
   onRemoveImage,
 }: HTMLMainImageLayerProps) {
+  const depth = useLayerDepth('__main__');
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -469,7 +471,7 @@ export function HTMLMainImageLayer({
         transform: `rotate(${screenshot.rotation}deg) scale(${screenshot.scale})`,
         transformOrigin: 'center center',
         cursor: isResizing ? 'default' : isDragging ? 'grabbing' : 'grab',
-        zIndex: 10,
+        zIndex: depth,
         outline: isMainImageSelected ? '2px solid rgba(59, 130, 246, 0.5)' : 'none',
         outlineOffset: '2px',
         filter: shadowFilter,

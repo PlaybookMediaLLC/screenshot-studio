@@ -182,13 +182,12 @@ export function TemplateLibraryDrawer() {
   const setOpen = useImageStore((state) => state.setShowTemplates);
   const shouldReduceMotion = useReducedMotion();
   const tabListId = React.useId();
-  const [filter, setFilter] = React.useState<TemplateFilter>('animated');
+  const [filter, setFilter] = React.useState<TemplateFilter>('all');
   const [selection, setSelection] = React.useState<TemplateSelection | null>(null);
 
   React.useEffect(() => {
     if (!open) {
       setSelection(null);
-      setFilter('animated');
     }
   }, [open]);
 
@@ -196,7 +195,6 @@ export function TemplateLibraryDrawer() {
     setOpen(nextOpen);
     if (!nextOpen) {
       setSelection(null);
-      setFilter('animated');
     }
   };
 

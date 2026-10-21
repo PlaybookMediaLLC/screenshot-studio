@@ -40,7 +40,7 @@ function Badge({ box, element }: RendererProps<'badge'>) {
         display: 'flex',
         filter: dropShadow(props.shadow),
         fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif',
-        fontSize: box.height * props.fontScale,
+        fontSize: Math.min(box.height * props.fontScale, box.width / (formatBadgeNumber(props.number, props.numbering).length * 0.7 + 0.5)),
         fontWeight: 700,
         height: '100%',
         justifyContent: 'center',

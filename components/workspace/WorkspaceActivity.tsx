@@ -65,7 +65,7 @@ const SECTIONS: Section[] = [
         href: `/?project=${encodeURIComponent(project.id)}`,
         id: project.id,
         meta: `Edited ${formatDate(project.updatedAt)}`,
-        status: `Revision ${project.revision}`,
+        status: 'Saved',
         title: project.name,
       }))
     },
@@ -77,6 +77,7 @@ const SECTIONS: Section[] = [
     load: async (trpc) => {
       const { releases } = await trpc.release.list.query()
       return releases.map((release) => ({
+        href: `/releases/${encodeURIComponent(release.id)}`,
         id: release.id,
         meta: [`Updated ${formatDate(release.updatedAt)}`, releaseContents(release)]
           .filter(Boolean)
@@ -93,6 +94,7 @@ const SECTIONS: Section[] = [
     load: async (trpc) => {
       const { campaigns } = await trpc.campaign.list.query()
       return campaigns.map((campaign) => ({
+        href: `/campaigns/${encodeURIComponent(campaign.id)}`,
         id: campaign.id,
         meta: `${truncate(campaign.objective)} · ${formatDate(campaign.createdAt)}`,
         status: campaign.status,
@@ -123,6 +125,7 @@ const SECTIONS: Section[] = [
     load: async (trpc) => {
       const { scheduledPosts } = await trpc.scheduledPost.list.query()
       return scheduledPosts.map((post) => ({
+        href: '/write/plan',
         id: post.id,
         meta: `${post.channelConnection.platform} · ${formatDate(post.scheduledFor)}`,
         status: post.status,
@@ -173,11 +176,11 @@ function ActivitySection({ section }: { section: Section }) {
         ) : (
           <ul className="divide-y rounded-lg border">
             {state.rows?.map((row) => (
-              <li className="flex items-center justify-between gap-4 p-4" key={row.id}>
+              <li className="relative flex items-center justify-between gap-4 p-4 hover:bg-muted/30" key={row.id}>
                 <div className="min-w-0">
                   {row.href ? (
                     <Link
-                      className="block truncate text-sm font-medium hover:underline"
+                      className="block truncate text-sm font-medium hover:underline after:absolute after:inset-0"
                       href={row.href}
                     >
                       {row.title}

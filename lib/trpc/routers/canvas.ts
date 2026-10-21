@@ -17,6 +17,7 @@ import {
 } from '@/lib/canvas/schema'
 import {
   archiveCanvas,
+  deleteCanvas,
   attachCanvasDelivery,
   createCanvas,
   createCanvasVersion,
@@ -80,6 +81,9 @@ export const canvasRouter = router({
     .mutation(async ({ ctx, input }) =>
       found(await duplicateCanvas(ctx.tenant, input.canvasId, input.name))
     ),
+  delete: tenantProcedure(EDIT)
+    .input(canvasRefInputSchema)
+    .mutation(({ ctx, input }) => deleteCanvas(ctx.tenant, input.canvasId)),
   archive: tenantProcedure(EDIT)
     .input(canvasArchiveInputSchema)
     .mutation(async ({ ctx, input }) => {

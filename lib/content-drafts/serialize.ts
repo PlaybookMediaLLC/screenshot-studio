@@ -291,6 +291,7 @@ function inlineText(nodes: PlateNode[] | undefined, context: Context): string {
           return !label || label === url ? url : `${label} (${url})`
         }
         case 'mention_input':
+          return `${String(node.trigger ?? '@')}${typeof node.value === 'string' ? node.value : inlineText(node.children, context)}`
         case 'mention':
           return `@${String(node.value ?? '')}`
         case SOCIAL_MENTION:

@@ -96,6 +96,8 @@ function resetFrame(reason: string) {
 
 export type RenderDocumentOptions = {
   signal?: AbortSignal
+  /** Skip stale preview jobs before they occupy the shared renderer. */
+  shouldSkip?: () => boolean
   /** Timeline position in milliseconds. */
   time?: number
 }
@@ -104,9 +106,10 @@ export type RenderDocumentOptions = {
 async function renderOne(
   document: DesignDocument,
   output: StageOutput,
-  { signal, time }: RenderDocumentOptions = {}
+  { signal, time, shouldSkip }: RenderDocumentOptions = {}
 ): Promise<StageCapture> {
   signal?.throwIfAborted()
+  if (shouldSkip?.()) throw new DOMException('Stale preview', 'AbortError')
   ready ??= createFrame()
   await ready
   signal?.throwIfAborted()

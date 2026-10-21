@@ -35,6 +35,8 @@ export async function signAssetDownload(
 export async function listAssets(
   context: TenantContext,
   options: {
+    search?: string
+    classification?: string
     cursor?: string
     take: number
     type?: 'all' | 'image' | 'video'
@@ -43,6 +45,8 @@ export async function listAssets(
 ) {
   const page = await backendSDK(context).listAssets({
     cursor: options.cursor,
+    search: options.search,
+    classification: options.classification,
     limit: options.take,
     type: options.type,
     sort: options.sort,

@@ -43,8 +43,8 @@ export function StorySetAccess() {
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link prefetch={false} href="/design-partners">
-              About the program
+            <Link prefetch={false} href="/design-partners" target="_blank" rel="noopener noreferrer">
+              About the program (opens a new tab)
             </Link>
           </Button>
         </div>

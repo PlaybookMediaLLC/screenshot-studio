@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.31.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.30.1...v2.31.0) (2026-10-21)
+
+
+### Features
+
+* **shell:** show the signed-in pages at 80% zoom ([#240](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/240)) ([a6ac622](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/a6ac622c4eb2a8039d9e8281946ec67cc67e11c6))
+
 ## [2.30.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.30.0...v2.30.1) (2026-10-21)
 
 

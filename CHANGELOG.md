@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.32.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.1...v2.32.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* **workflows:** address workflow QA findings and add recoverable archives ([#253](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/253)) ([ad41e0e](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/ad41e0e78c07fc9fc86b7c35b14264de911283ec))
+
 ## [2.32.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.0...v2.32.1) (2026-10-21)
 
 

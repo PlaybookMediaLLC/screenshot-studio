@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.33.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.3...v2.33.4) (2026-10-21)
+
+
+### Bug Fixes
+
+* resolve 95 QA findings across editors and workspace ([#277](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/277)) ([14ee655](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/14ee655d925782c25b49574431c06f2e39da56e1))
+
 ## [2.33.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.2...v2.33.3) (2026-10-21)
 
 

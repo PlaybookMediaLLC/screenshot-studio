@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.30.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.30.0...v2.30.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **write:** preserve draft input and improve editor usability ([#242](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/242)) ([2947db5](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/2947db5ace3d57382fb7740643eeb2ea6b739db6))
+
 ## [2.30.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.29.0...v2.30.0) (2026-10-20)
 
 

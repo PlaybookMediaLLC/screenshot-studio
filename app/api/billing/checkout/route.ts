@@ -4,9 +4,9 @@ import { organizationAccess } from '@/lib/api/route-auth'
 import { backendSDK } from '@/lib/backend/sdk'
 import { createBillingSession } from '@/lib/billing/stripe'
 
-/** Workspace admins start a subscription, or manage the one they have. */
+/** Workspace owners start a subscription, or manage the one they have. */
 export const POST = route(createBillingSessionContract, {
-  auth: organizationAccess('workspace:update'),
+  auth: organizationAccess('billing:manage'),
   handler: async ({ access, body }) => {
     const { plan } = await backendSDK(access).getEntitlements()
     return createBillingSession({

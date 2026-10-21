@@ -6,7 +6,7 @@ import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 /** Social sets of your other workspaces that can be copied here. */
 export const GET = route(listCopyableSocialSetsContract, {
-  auth: organizationAccess('publish:manage'),
+  auth: organizationAccess('connection:manage'),
   handler: ({ access }) =>
     contentDraftsEnabled()
       ? backendSDK(access).listCopyableSocialSets()

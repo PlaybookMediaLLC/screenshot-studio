@@ -566,7 +566,7 @@ type ContentDraftReviewInput struct {
 }
 
 // ReviewContentDraft records a review step. Writers request review; owners,
-// admins and publishers approve or ask for changes. Approval holds for the
+// admins and approvers approve or ask for changes. Approval holds for the
 // version it was given at.
 func (c *Configuration) ReviewContentDraft(ctx context.Context, actor Actor, id string, input ContentDraftReviewInput) (*ContentDraftRecord, error) {
 	write := input.Action == "request"
@@ -574,7 +574,7 @@ func (c *Configuration) ReviewContentDraft(ctx context.Context, actor Actor, id 
 	if write {
 		err = c.authorizeContentDrafts(ctx, actor, true)
 	} else {
-		err = c.authorizeScheduling(ctx, actor)
+		err = c.authorizeDecision(ctx, actor, "owner", "admin", "approver")
 	}
 	if err != nil {
 		return nil, err

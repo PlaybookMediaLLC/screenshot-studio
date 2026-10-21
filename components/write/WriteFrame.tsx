@@ -89,6 +89,7 @@ export function WriteFrame({
   canEdit,
   canManageSets,
   canPublish,
+  canReview,
   children,
   data,
 }: {
@@ -96,6 +97,7 @@ export function WriteFrame({
   canEdit: boolean
   canManageSets: boolean
   canPublish: boolean
+  canReview: boolean
   children: React.ReactNode
   data: WriteLibrary
 }) {
@@ -105,6 +107,7 @@ export function WriteFrame({
       canEdit={canEdit}
       canManageSets={canManageSets}
       canPublish={canPublish}
+      canReview={canReview}
       data={data}
     >
       <FrameLayout activeId={activeId}>{children}</FrameLayout>

@@ -108,7 +108,7 @@ func (s *Service) Authorize(ctx context.Context, p Principal, admin bool) error 
 	if p.Kind != "" && p.Kind != "session" {
 		return publishing.ErrForbidden
 	}
-	roles := []string{"owner", "admin", "creator", "approver", "publisher", "viewer", "member"}
+	roles := []string{"owner", "admin", "creator", "approver", "publisher", "writer_publisher", "viewer", "member"}
 	if admin {
 		roles = []string{"owner", "admin"}
 	}

@@ -29,6 +29,7 @@ import (
 type Store interface {
 	Ping(context.Context) error
 	AuthorizePublishing(context.Context, string, string, string) error
+	AuthorizeConnections(context.Context, string, string, string) error
 	AuthorizeAPIKeyScope(context.Context, string, string, string) error
 	Binding(context.Context, string) (*ent.SocialTenantBinding, error)
 	StartOAuth(context.Context, publishing.Actor, string, string, string, string, publishing.OAuthStartOptions) error
@@ -266,10 +267,10 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /readyz", s.ready)
 	mux.Handle("GET /v1/channel-connections", s.authenticate(http.HandlerFunc(s.listConnections)))
-	mux.Handle("POST /v1/channel-connections", s.authenticate(http.HandlerFunc(s.createConnection)))
+	mux.Handle("POST /v1/channel-connections", s.authenticateConnections(http.HandlerFunc(s.createConnection)))
 	mux.Handle("POST /v1/social-oauth/context", s.authenticateOAuthCallback(http.HandlerFunc(s.socialOAuthContext)))
-	mux.Handle("POST /v1/social-oauth/begin", s.authenticate(http.HandlerFunc(s.beginSocialOAuth)))
-	mux.Handle("POST /v1/social-connections/bluesky/begin", s.authenticate(http.HandlerFunc(s.beginBluesky)))
+	mux.Handle("POST /v1/social-oauth/begin", s.authenticateConnections(http.HandlerFunc(s.beginSocialOAuth)))
+	mux.Handle("POST /v1/social-connections/bluesky/begin", s.authenticateConnections(http.HandlerFunc(s.beginBluesky)))
 	mux.Handle("POST /v1/social-connections/bluesky/connect", s.authenticateOAuthCallback(http.HandlerFunc(s.connectBluesky)))
 	mux.Handle("POST /v1/social-oauth/exchange", s.authenticateOAuthCallback(http.HandlerFunc(s.exchangeSocialOAuth)))
 	mux.Handle("POST /v1/social-oauth/page", s.authenticateOAuthCallback(http.HandlerFunc(s.selectSocialOAuthPage)))
@@ -328,6 +329,12 @@ func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 func (s *Server) authenticate(next http.Handler) http.Handler {
 	return s.authenticateWithOptions(next, true, true, func(ctx context.Context, actor product.Actor) error {
 		return s.store.AuthorizePublishing(ctx, actor.OrganizationID, actor.UserID, actor.SessionID)
+	})
+}
+
+func (s *Server) authenticateConnections(next http.Handler) http.Handler {
+	return s.authenticateWithOptions(next, true, true, func(ctx context.Context, actor product.Actor) error {
+		return s.store.AuthorizeConnections(ctx, actor.OrganizationID, actor.UserID, actor.SessionID)
 	})
 }
 

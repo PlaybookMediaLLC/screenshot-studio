@@ -35,7 +35,7 @@ import (
 // forbidden to everyone else. Mutations need a signed-in person.
 
 var (
-	socialSetManageRoles  = []string{"owner", "admin", "publisher"}
+	socialSetManageRoles  = []string{"owner", "admin"}
 	socialSetWritingRoles = []string{"owner", "admin", "creator"}
 	socialSetColorPattern = regexp.MustCompile(`^#[0-9a-f]{6}$`)
 )
@@ -593,7 +593,7 @@ func socialSetColor(color string) (string, error) {
 	return color, nil
 }
 
-// authorizeSocialSetManage checks a signed-in publisher, admin or owner.
+// authorizeSocialSetManage checks a signed-in admin or owner.
 func (c *Configuration) authorizeSocialSetManage(ctx context.Context, actor Actor) error {
 	if err := c.authorizeDecision(ctx, actor, socialSetManageRoles...); err != nil {
 		return err

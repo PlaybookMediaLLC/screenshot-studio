@@ -88,9 +88,9 @@ function getDetailContent({
         organizationId={organization.id}
       />
     ),
-    billing: <WorkspaceBilling canManage={canManage} />,
+    billing: <WorkspaceBilling canManage={hasPermission(role, 'billing:manage')} />,
     brand: <WorkspaceBrandSettings canManage={canManage} />,
-    channels: <ChannelConnections canManage={hasPermission(role, 'publish:manage')} />,
+    channels: <ChannelConnections canManage={hasPermission(role, 'connection:manage')} />,
     general: (
       <WorkspaceGeneralSettings
         canDelete={hasPermission(role, 'workspace:delete')}

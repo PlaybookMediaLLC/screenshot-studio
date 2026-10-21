@@ -6,6 +6,7 @@ export const organizationRoles = [
   'creator',
   'approver',
   'publisher',
+  'writer_publisher',
   'viewer',
 ] as const
 
@@ -14,6 +15,8 @@ export type OrganizationRole = (typeof organizationRoles)[number]
 export const permissions = [
   'workspace:read',
   'workspace:update',
+  'billing:manage',
+  'connection:manage',
   'workspace:delete',
   'workspace:transfer_ownership',
   'member:read',
@@ -42,6 +45,7 @@ const rolePermissions: Record<OrganizationRole, readonly Permission[]> = {
   admin: [
     'workspace:read',
     'workspace:update',
+    'connection:manage',
     'member:read',
     'member:invite',
     'member:remove',
@@ -62,6 +66,14 @@ const rolePermissions: Record<OrganizationRole, readonly Permission[]> = {
   creator: ['workspace:read', 'member:read', 'release:create', 'artifact:read', 'artifact:edit'],
   approver: ['workspace:read', 'member:read', 'artifact:read', 'release:approve'],
   publisher: ['workspace:read', 'member:read', 'artifact:read', 'publish:manage'],
+  writer_publisher: [
+    'workspace:read',
+    'member:read',
+    'release:create',
+    'artifact:read',
+    'artifact:edit',
+    'publish:manage',
+  ],
   viewer: ['workspace:read', 'member:read', 'artifact:read'],
 }
 
@@ -72,6 +84,7 @@ export const betterAuthOrganizationRoles = {
   creator: defaultAc.newRole({ ac: ['read'] }),
   approver: defaultAc.newRole({ ac: ['read'] }),
   publisher: defaultAc.newRole({ ac: ['read'] }),
+  writer_publisher: defaultAc.newRole({ ac: ['read'] }),
   viewer: defaultAc.newRole({ ac: ['read'] }),
 }
 

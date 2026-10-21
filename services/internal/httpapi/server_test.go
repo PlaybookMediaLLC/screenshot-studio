@@ -18,19 +18,20 @@ import (
 )
 
 type fakeStore struct {
-	connections   []*ent.ChannelConnection
-	connection    publishing.CreateConnectionInput
-	scheduled     publishing.CreateScheduledPostInput
-	oauthState    string
-	oauthSession  string
-	oauthProvider string
-	oauthReceipt  *schema.SocialOAuthExchange
-	oauthStatus   socialoauthstart.ExchangeStatus
-	oauthOptions  publishing.OAuthStartOptions
-	authError     error
-	bindingError  error
-	keyScope      string
-	cancelActor   publishing.Actor
+	connections         []*ent.ChannelConnection
+	connection          publishing.CreateConnectionInput
+	scheduled           publishing.CreateScheduledPostInput
+	oauthState          string
+	oauthSession        string
+	oauthProvider       string
+	oauthReceipt        *schema.SocialOAuthExchange
+	oauthStatus         socialoauthstart.ExchangeStatus
+	oauthOptions        publishing.OAuthStartOptions
+	authError           error
+	connectionAuthError error
+	bindingError        error
+	keyScope            string
+	cancelActor         publishing.Actor
 }
 
 type fakeVerifier struct {
@@ -88,6 +89,29 @@ func (f *fakeScheduler) Cancel(_ context.Context, postID string) error {
 func (f *fakeStore) Ping(context.Context) error { return nil }
 func (f *fakeStore) AuthorizePublishing(context.Context, string, string, string) error {
 	return f.authError
+}
+func (f *fakeStore) AuthorizeConnections(context.Context, string, string, string) error {
+	if f.connectionAuthError != nil {
+		return f.connectionAuthError
+	}
+	return f.authError
+}
+
+func TestAccountMutationsRequireAdministrationBeforeProviderCalls(t *testing.T) {
+	for _, path := range []string{"/v1/channel-connections", "/v1/social-oauth/begin", "/v1/social-connections/bluesky/begin"} {
+		store := &fakeStore{connectionAuthError: publishing.ErrForbidden}
+		verifier := &fakeVerifier{}
+		request := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{}`))
+		request.Header.Set("Authorization", "Bearer secret")
+		request.Header.Set("X-Organization-ID", "org-1")
+		request.Header.Set("X-User-ID", "publisher")
+		request.Header.Set("X-Session-ID", "session-1")
+		response := httptest.NewRecorder()
+		New(store, &fakeScheduler{}, verifier, "secret").ServeHTTP(response, request)
+		if response.Code != http.StatusForbidden || verifier.beginCalls != 0 || store.connection.ExternalAccountID != "" {
+			t.Fatalf("%s escaped account administration: status=%d calls=%d", path, response.Code, verifier.beginCalls)
+		}
+	}
 }
 func (f *fakeStore) AuthorizeAPIKeyScope(_ context.Context, _, _, scope string) error {
 	f.keyScope = scope

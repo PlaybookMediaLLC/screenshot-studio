@@ -78,7 +78,8 @@ function blocking(context: ScheduleContext): string[] {
   if (context.requireApproval && !context.approved) {
     problems.push('This workspace approves drafts before they publish. Ask for review first.')
   }
-  if (!context.canPublish) problems.push('Only owners, admins and publishers schedule and publish.')
+  if (!context.canPublish)
+    problems.push('Your role needs publishing permission to schedule or publish.')
   return problems
 }
 

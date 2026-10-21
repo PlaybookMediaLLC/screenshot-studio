@@ -4,9 +4,9 @@ import { organizationAccess } from '@/lib/api/route-auth'
 import { createCreditPackSession } from '@/lib/billing/stripe'
 import { requireWorkspaceFeature, WorkspaceEntitlementError } from '@/lib/tenant/entitlements'
 
-/** Workspace admins on a paid plan buy extra AI credits. */
+/** Workspace owners on a paid plan buy extra AI credits. */
 export const POST = route(createCreditPackSessionContract, {
-  auth: organizationAccess('workspace:update'),
+  auth: organizationAccess('billing:manage'),
   handler: async ({ access, body }) => {
     try {
       await requireWorkspaceFeature(access, 'workspace:use')

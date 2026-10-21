@@ -19,7 +19,7 @@ const NEXT_PATH = {
  * not activated the subscription yet.
  */
 export const GET = route(completeCheckoutContract, {
-  auth: organizationAccess('workspace:update'),
+  auth: organizationAccess('billing:manage'),
   handler: async ({ access, query }) => {
     const outcome = await completeCheckout({
       organizationId: access.organizationId,

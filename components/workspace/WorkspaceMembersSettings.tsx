@@ -22,11 +22,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { roleSummaries } from '@/lib/auth/role-descriptions'
+import { normalizeOrganizationRole } from '@/lib/auth/permissions'
+import { roleLabels, roleSummaries } from '@/lib/auth/role-descriptions'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
 
-const assignableRoles = ['admin', 'creator', 'approver', 'publisher', 'viewer'] as const
+const assignableRoles = [
+  'admin',
+  'creator',
+  'approver',
+  'publisher',
+  'writer_publisher',
+  'viewer',
+] as const
 type AssignableRole = (typeof assignableRoles)[number]
 const invitationSchema = z.object({
   email: z.string().trim().email(),
@@ -253,8 +261,10 @@ export function WorkspaceMembersSettings({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-foreground">{invitation.email}</p>
                     <p className="text-xs text-muted-foreground">
-                      <span className="capitalize">{invitation.role ?? 'viewer'}</span> · expires{' '}
-                      {new Date(invitation.expiresAt).toLocaleDateString()}
+                      <span className="capitalize">
+                        {roleLabels[normalizeOrganizationRole(invitation.role ?? 'viewer')]}
+                      </span>{' '}
+                      · expires {new Date(invitation.expiresAt).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -368,7 +378,7 @@ function MemberRow({
   const displayName = member.user.name || member.user.email
   const rolePill = (
     <Pill tone={isOwner ? 'purple' : 'gray'}>
-      <span className="capitalize">{member.role}</span>
+      <span className="capitalize">{roleLabels[normalizeOrganizationRole(member.role)]}</span>
     </Pill>
   )
   // The e2e suite finds a member's actions two levels up from the email line,
@@ -468,10 +478,10 @@ function RoleSelect({
           <SelectItem
             key={role}
             value={role}
-            aria-label={role}
+            aria-label={roleLabels[role]}
             aria-description={roleSummaries[role]}
           >
-            <span className="capitalize">{role}</span> — {roleSummaries[role]}
+            <span className="capitalize">{roleLabels[role]}</span> — {roleSummaries[role]}
           </SelectItem>
         ))}
       </SelectContent>

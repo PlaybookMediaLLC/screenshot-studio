@@ -3,7 +3,6 @@ package product
 import (
 	"context"
 	"errors"
-	"slices"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -13,6 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/collab"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/workspaceroles"
 )
 
 // Real-time co-editing of content drafts (RFC 037). The backend issues a
@@ -64,7 +64,7 @@ func memberAccess(ctx context.Context, client *ent.Client, organizationID, userI
 	if err != nil {
 		return "", err
 	}
-	if slices.Contains(contentDraftEditRoles, row.Role) {
+	if workspaceroles.Allows(row.Role, contentDraftEditRoles...) {
 		return collab.AccessWrite, nil
 	}
 	return collab.AccessRead, nil

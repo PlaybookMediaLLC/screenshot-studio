@@ -30,6 +30,7 @@ type WriteContextValue = {
   canEdit: boolean
   canManageSets: boolean
   canPublish: boolean
+  canReview: boolean
   /** Update the library's URL state; undefined removes a key. */
   setQuery: (next: Record<string, string | undefined>) => void
   /** The draft list as last saved here: the open draft's line stays current. */
@@ -52,6 +53,7 @@ export function WriteProvider({
   canEdit,
   canManageSets,
   canPublish,
+  canReview,
   children,
   data,
 }: {
@@ -59,6 +61,7 @@ export function WriteProvider({
   canEdit: boolean
   canManageSets: boolean
   canPublish: boolean
+  canReview: boolean
   children: React.ReactNode
   data: WriteLibrary
 }) {
@@ -82,8 +85,18 @@ export function WriteProvider({
     []
   )
   const value = React.useMemo(
-    () => ({ activeId, canEdit, canManageSets, canPublish, data, saved, setQuery, showSaved }),
-    [activeId, canEdit, canManageSets, canPublish, data, saved, setQuery, showSaved]
+    () => ({
+      activeId,
+      canEdit,
+      canManageSets,
+      canPublish,
+      canReview,
+      data,
+      saved,
+      setQuery,
+      showSaved,
+    }),
+    [activeId, canEdit, canManageSets, canPublish, canReview, data, saved, setQuery, showSaved]
   )
   return <WriteContext.Provider value={value}>{children}</WriteContext.Provider>
 }

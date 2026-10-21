@@ -316,9 +316,9 @@ func (s *Service) recipients(ctx context.Context, e occurrence, d activity.Defin
 		case "approvers":
 			eligible = admin || role == "approver"
 		case "draft_reviewers":
-			eligible = admin || role == "publisher"
+			eligible = admin || role == "approver"
 		case "publishers":
-			eligible = eligible || role == "publisher"
+			eligible = eligible || role == "publisher" || role == "writer_publisher"
 		}
 		if eligible && (id != actor || background) {
 			result = append(result, id)

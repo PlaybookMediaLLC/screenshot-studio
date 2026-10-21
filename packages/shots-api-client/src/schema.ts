@@ -7360,7 +7360,7 @@ export interface operations {
                             logo: string | null;
                             name: string;
                             /** @enum {string} */
-                            role: "owner" | "admin" | "creator" | "approver" | "publisher" | "viewer";
+                            role: "owner" | "admin" | "creator" | "approver" | "publisher" | "writer_publisher" | "viewer";
                             slug: string;
                         };
                     };
@@ -7417,7 +7417,7 @@ export interface operations {
                             createdAt: string;
                             id: string;
                             /** @enum {string} */
-                            role: "owner" | "admin" | "creator" | "approver" | "publisher" | "viewer";
+                            role: "owner" | "admin" | "creator" | "approver" | "publisher" | "writer_publisher" | "viewer";
                             user: {
                                 email: string;
                                 id: string;
@@ -7480,7 +7480,7 @@ export interface operations {
                             email: string;
                             expiresAt: string;
                             id: string;
-                            role: ("owner" | "admin" | "creator" | "approver" | "publisher" | "viewer") | null;
+                            role: ("owner" | "admin" | "creator" | "approver" | "publisher" | "writer_publisher" | "viewer") | null;
                             status: string;
                         }[];
                     };
@@ -7592,9 +7592,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        readonly permissions: ("workspace:read" | "workspace:update" | "workspace:delete" | "workspace:transfer_ownership" | "member:read" | "member:invite" | "member:remove" | "member:update_role" | "invitation:read" | "invitation:revoke" | "audit:read" | "audit:export" | "audit:manage" | "identity:manage" | "brand:manage" | "release:create" | "release:approve" | "artifact:read" | "artifact:edit" | "publish:manage" | "support:manage")[];
+                        readonly permissions: ("workspace:read" | "workspace:update" | "billing:manage" | "connection:manage" | "workspace:delete" | "workspace:transfer_ownership" | "member:read" | "member:invite" | "member:remove" | "member:update_role" | "invitation:read" | "invitation:revoke" | "audit:read" | "audit:export" | "audit:manage" | "identity:manage" | "brand:manage" | "release:create" | "release:approve" | "artifact:read" | "artifact:edit" | "publish:manage" | "support:manage")[];
                         /** @enum {string} */
-                        role: "owner" | "admin" | "creator" | "approver" | "publisher" | "viewer";
+                        role: "owner" | "admin" | "creator" | "approver" | "publisher" | "writer_publisher" | "viewer";
                     };
                 };
             };

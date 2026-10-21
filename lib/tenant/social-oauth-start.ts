@@ -30,7 +30,7 @@ export async function startSocialOAuth(
   socialSetId?: string,
   options: SocialOAuthStartOptions = {}
 ): Promise<string> {
-  const access = await requireSensitiveActiveOrganizationPermission(headers, 'publish:manage')
+  const access = await requireSensitiveActiveOrganizationPermission(headers, 'connection:manage')
   return beginBackendSocialOAuth(access, provider, socialSetId, options)
 }
 

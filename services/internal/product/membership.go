@@ -87,7 +87,7 @@ func (c *Configuration) ListInvitations(ctx context.Context, organizationID stri
 
 func ValidAssignableRole(role string) bool {
 	switch role {
-	case "admin", "creator", "approver", "publisher", "viewer":
+	case "admin", "creator", "approver", "publisher", "writer_publisher", "viewer":
 		return true
 	default:
 		return false

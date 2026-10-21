@@ -19,7 +19,7 @@ export const GET = route(getSocialSetContract, {
 
 /** Save a social set, based on the version you read. */
 export const PATCH = route(updateSocialSetContract, {
-  auth: organizationAccess('publish:manage'),
+  auth: organizationAccess('connection:manage'),
   handler: ({ access, body, params }) =>
     contentDraftsEnabled()
       ? backendSDK(access).updateSocialSet(params.id, body)

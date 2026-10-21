@@ -8,6 +8,7 @@ export type BrowserRequest = {
 
 type BrowserResponse = {
   body: unknown
+  retryAfter: string | null
   status: number
 }
 
@@ -53,14 +54,16 @@ export async function browserRequest(
         async ({ input: requestInput, requestPath }) => {
           const response = await fetch(requestPath, requestInput)
           const text = await response.text()
+          const retryAfter =
+            response.headers.get('retry-after') ?? response.headers.get('x-retry-after')
           if (!text) {
-            return { body: null, status: response.status }
+            return { body: null, retryAfter, status: response.status }
           }
 
           try {
-            return { body: JSON.parse(text), status: response.status }
+            return { body: JSON.parse(text), retryAfter, status: response.status }
           } catch {
-            return { body: text, status: response.status }
+            return { body: text, retryAfter, status: response.status }
           }
         },
         { input: requestInit, requestPath: path }

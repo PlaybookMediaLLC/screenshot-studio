@@ -170,7 +170,7 @@ export function WriteComposer({
   const { mod } = useKeys()
   const narrow = useIsMobile()
   const trpcClient = useTRPCClient()
-  const { canEdit, canPublish, showSaved } = useWrite()
+  const { canEdit, canPublish, canReview, canManageSets, showSaved } = useWrite()
   const services = React.useMemo(
     () => platformEditorServices(trpcClient, aiEnabled),
     [trpcClient, aiEnabled]
@@ -213,7 +213,13 @@ export function WriteComposer({
       : null
   })
   const [dialog, setDialog] = React.useState<Dialog>(() =>
-    params.get('panel') === 'backups' ? 'backups' : params.get('panel') === 'schedule' ? 'schedule' : params.has('connected') ? 'manage' : null
+    params.get('panel') === 'backups'
+      ? 'backups'
+      : params.get('panel') === 'schedule'
+        ? 'schedule'
+        : params.has('connected')
+          ? 'manage'
+          : null
   )
   const [focus, setFocus] = React.useState(false)
   const [compact, setCompact] = React.useState(false)
@@ -619,9 +625,12 @@ export function WriteComposer({
             {requireApproval || server.reviewStatus !== 'none' ? (
               <ReviewControls
                 canEdit={canEdit}
-                canReview={canPublish}
+                canReview={canReview}
                 draftId={initial.id}
-                onDraft={(next) => setServer(next)}
+                onDraft={(next) => {
+                  setServer(next)
+                  router.refresh()
+                }}
                 review={{ ...server, version: version.current }}
               />
             ) : null}
@@ -757,15 +766,32 @@ export function WriteComposer({
           </div>
         </header>
         {server.status === 'archived' ? (
-          <div role="status" className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-neutral-300">
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-neutral-300"
+          >
             <span>Archived draft. Restore it before scheduling or publishing.</span>
-            {canEdit ? <Button size="sm" variant="outline" onClick={() => void archive('draft')}>Restore draft</Button> : null}
+            {canEdit ? (
+              <Button size="sm" variant="outline" onClick={() => void archive('draft')}>
+                Restore draft
+              </Button>
+            ) : null}
           </div>
         ) : null}
         {accounts.length === 0 ? (
           <div className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-neutral-300">
-            <span>Connect an account to publish. You can write your draft now.</span>
-            <Button size="sm" variant="outline" onClick={() => setDialog('manage')}>Connect account</Button>
+            <span>
+              {canManageSets
+                ? 'Connect an account to publish. You can write your draft now.'
+                : canEdit
+                  ? 'An owner or admin can connect an account. You can write your draft now.'
+                  : 'An owner or admin can connect an account to publish this draft.'}
+            </span>
+            {canManageSets ? (
+              <Button size="sm" variant="outline" onClick={() => setDialog('manage')}>
+                Connect account
+              </Button>
+            ) : null}
           </div>
         ) : null}
         <PlatformTabs
@@ -981,14 +1007,24 @@ export function WriteComposer({
       {dialog === 'manage' ? (
         <ManagePlatformsDialog
           accounts={accounts}
-          onConnect={canPublish && set ? async (provider) => {
-            try {
-              await flush()
-              window.location.assign(`${connectHref(provider, set.id)}&${new URLSearchParams({ returnTo: `/write/${initial.id}` })}`)
-            } catch (error) {
-              toast.error(error instanceof Error ? error.message : 'Save the draft before connecting an account.')
-            }
-          } : undefined}
+          onConnect={
+            canManageSets && set
+              ? async (provider) => {
+                  try {
+                    await flush()
+                    window.location.assign(
+                      `${connectHref(provider, set.id)}&${new URLSearchParams({ returnTo: `/write/${initial.id}` })}`
+                    )
+                  } catch (error) {
+                    toast.error(
+                      error instanceof Error
+                        ? error.message
+                        : 'Save the draft before connecting an account.'
+                    )
+                  }
+                }
+              : undefined
+          }
           draftVersion={version.current}
           enabled={enabled}
           kind={server.kind}

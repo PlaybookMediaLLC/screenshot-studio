@@ -6,7 +6,7 @@ import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 /** Share your private social set with the workspace. */
 export const POST = route(shareSocialSetContract, {
-  auth: organizationAccess('publish:manage'),
+  auth: organizationAccess('connection:manage'),
   handler: ({ access, params }) =>
     contentDraftsEnabled()
       ? backendSDK(access).shareSocialSet(params.id)

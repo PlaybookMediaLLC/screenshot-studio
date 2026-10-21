@@ -6,7 +6,7 @@ import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 /** Copy a set from another of your workspaces; its accounts are connected again here. */
 export const POST = route(copySocialSetContract, {
-  auth: organizationAccess('publish:manage'),
+  auth: organizationAccess('connection:manage'),
   handler: ({ access, body }) =>
     contentDraftsEnabled()
       ? backendSDK(access).copySocialSet(body.workspaceId, body.socialSetId)

@@ -46,6 +46,7 @@ export default async function WriteDraftPage({ params, searchParams }: WriteDraf
         canEdit={canEdit}
         canManageSets={canManageSets}
         canPublish={hasPermission(access.role, 'publish:manage')}
+        canReview={hasPermission(access.role, 'release:approve')}
         data={data}
       >
         <WriteComposer

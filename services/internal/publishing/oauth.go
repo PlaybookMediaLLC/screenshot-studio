@@ -23,7 +23,7 @@ func (r *Repository) StartOAuth(ctx context.Context, actor Actor, sessionID, sta
 	if options.ReturnPath != "" && !oauthReturnPath.MatchString(options.ReturnPath) {
 		return ErrConflict
 	}
-	if err := r.AuthorizePublishing(ctx, actor.Organization, actor.UserID, sessionID); err != nil {
+	if err := r.AuthorizeRole(ctx, actor.Organization, actor.UserID, sessionID, "owner", "admin"); err != nil {
 		return err
 	}
 	tx, err := r.client.Tx(ctx)

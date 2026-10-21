@@ -15,12 +15,18 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/supportaccessgrant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/workspaceroles"
 )
 
 // AuthorizePublishing verifies the web session and role against Ent. Headers
 // from the web tier provide identifiers, but do not establish authorization.
 func (r *Repository) AuthorizePublishing(ctx context.Context, organizationID, userID, sessionID string) error {
 	return r.AuthorizeRole(ctx, organizationID, userID, sessionID, "owner", "admin", "publisher")
+}
+
+// AuthorizeConnections reserves account administration for owners and admins.
+func (r *Repository) AuthorizeConnections(ctx context.Context, organizationID, userID, sessionID string) error {
+	return r.AuthorizeRole(ctx, organizationID, userID, sessionID, "owner", "admin")
 }
 
 // AuthorizeRole rechecks the session, active workspace, membership, and
@@ -45,14 +51,7 @@ func (r *Repository) AuthorizeRole(ctx context.Context, organizationID, userID, 
 	if len(participants) != 1 {
 		return ErrForbidden
 	}
-	allowed := false
-	for _, role := range allowedRoles {
-		if participants[0].Role == role {
-			allowed = true
-			break
-		}
-	}
-	if !allowed {
+	if !workspaceroles.Allows(participants[0].Role, allowedRoles...) {
 		return ErrForbidden
 	}
 	return r.requireOperational(ctx, organizationID)

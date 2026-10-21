@@ -22,7 +22,7 @@ export const channelConnectionRouter = router({
   list: organizationProcedure('publish:manage').query(async ({ ctx }) => ({
     connections: await listBackendConnections(ctx.access),
   })),
-  create: sensitiveOrganizationProcedure('publish:manage')
+  create: sensitiveOrganizationProcedure('connection:manage')
     .input(channelConnectionCreateSchema)
     .mutation(async ({ ctx, input }) => ({
       connection: await createBackendConnection(ctx.access, input),

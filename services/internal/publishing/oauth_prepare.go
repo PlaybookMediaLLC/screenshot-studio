@@ -12,7 +12,7 @@ import (
 // PrepareOAuth checks the same authority and intent as commitment before the
 // adapter receives any credentials. Reconnect returns the existing adapter ID.
 func (r *Repository) PrepareOAuth(ctx context.Context, actor Actor, sessionID, provider string, options OAuthStartOptions) (string, error) {
-	if err := r.AuthorizePublishing(ctx, actor.Organization, actor.UserID, sessionID); err != nil {
+	if err := r.AuthorizeRole(ctx, actor.Organization, actor.UserID, sessionID, "owner", "admin"); err != nil {
 		return "", err
 	}
 	tx, err := r.client.Tx(ctx)

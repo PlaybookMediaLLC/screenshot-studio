@@ -88,7 +88,7 @@ func (r *Repository) authorizeOAuth(ctx context.Context, actor Actor, sessionID 
 	if _, err := r.AuthorizeSession(ctx, actor.UserID, sessionID); err != nil {
 		return err
 	}
-	allowed, err := r.client.Member.Query().Where(member.OrganizationID(actor.Organization), member.UserID(actor.UserID), member.RoleIn("owner", "admin", "publisher")).Exist(ctx)
+	allowed, err := r.client.Member.Query().Where(member.OrganizationID(actor.Organization), member.UserID(actor.UserID), member.RoleIn("owner", "admin")).Exist(ctx)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func lockOAuthAuthority(ctx context.Context, tx *ent.Tx, actor Actor, sessionID 
         JOIN member m ON m."userId"=u.id AND m."organizationId"=$1
         JOIN organization o ON o.id=m."organizationId"
         WHERE s.id=$2 AND s."userId"=$3 AND s."expiresAt">$4 AND coalesce(u.banned,false)=false
-        AND m.role IN ('owner','admin','publisher')
+        AND m.role IN ('owner','admin')
         AND NOT EXISTS (SELECT 1 FROM workspace_deletion d WHERE d."organizationId"=o.id AND d.status<>'CANCELLED')
         FOR UPDATE OF o FOR SHARE OF s,u,m`, []any{actor.Organization, sessionID, actor.UserID, time.Now().UTC()}, func(row entsql.ColumnScanner) error {
 		var id string

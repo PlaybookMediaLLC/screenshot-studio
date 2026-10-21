@@ -29,6 +29,7 @@ export default async function WritePage({ params, searchParams }: WritePageProps
         canEdit={canEdit}
         canManageSets={canManageSets}
         canPublish={hasPermission(access.role, 'publish:manage')}
+        canReview={hasPermission(access.role, 'release:approve')}
         data={data}
       >
         <div className="flex h-full items-center justify-center p-8 text-center">

@@ -299,3 +299,33 @@ func TestCustomInstancePublishingFailureRedactsServerEchoes(t *testing.T) {
 		t.Fatal("provider echoed a credential into durable failure details")
 	}
 }
+
+func TestCustomInstancePreservesSafeFailureClassification(t *testing.T) {
+	integration := storedIntegration(t, "example.social")
+	for _, tc := range []struct {
+		status       int
+		marker, want string
+	}{
+		{403, "Your login is currently disabled", temporalx.TypeRefreshToken},
+		{422, "not finished processing", temporalx.TypeBadBody},
+		{422, "could not be found", temporalx.TypeBadBody},
+	} {
+		p := fixtureProvider(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(tc.status)
+			_, _ = io.WriteString(w, tc.marker+" token-canary secret-canary")
+		})
+		_, err := p.Comment(context.Background(), "", "parent", "", "token-canary", []integrations.PostDetails{{ID: "comment", Message: "hi"}}, integration)
+		if temporalx.FailureType(err) != tc.want {
+			t.Fatalf("lost failure classification: %v", err)
+		}
+		var app *temporal.ApplicationError
+		var details temporalx.FailureDetails
+		if !errors.As(err, &app) || app.Details(&details) != nil {
+			t.Fatal("missing failure details")
+		}
+		encoded, _ := json.Marshal(details)
+		if strings.Contains(string(encoded), "canary") {
+			t.Fatal("classification retained credential echo")
+		}
+	}
+}

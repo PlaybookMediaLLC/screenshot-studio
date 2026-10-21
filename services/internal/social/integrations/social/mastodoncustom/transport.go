@@ -36,8 +36,24 @@ func (t credentialTransport) RoundTrip(request *http.Request) (*http.Response, e
 		return nil, errConnection
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		// http.Client can include a redirect target in its returned error.
+		// Remove it before redirect processing so an echoed token cannot leak.
+		response.Header.Del("Location")
+		data, readErr := io.ReadAll(io.LimitReader(response.Body, responseLimit+1))
 		response.Body.Close()
-		response.Body = io.NopCloser(strings.NewReader(`{"error":"Mastodon request failed"}`))
+		message := "Mastodon request failed"
+		if readErr == nil && len(data) <= responseLimit {
+			// Preserve only the shared adapter's fixed classifications. Never
+			// carry remote error text (which may echo credentials) onward.
+			for _, marker := range []string{"Your login is currently disabled", "not finished processing", "could not be found"} {
+				if strings.Contains(string(data), marker) {
+					message = marker
+					break
+				}
+			}
+		}
+		body, _ := json.Marshal(map[string]string{"error": message})
+		response.Body = io.NopCloser(strings.NewReader(string(body)))
 	} else {
 		response.Body = &boundedBody{ReadCloser: response.Body, remaining: responseLimit}
 	}

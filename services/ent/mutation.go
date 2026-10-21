@@ -50057,6 +50057,9 @@ type PlatformNotificationInboxMutation struct {
 	resource_id     *string
 	description     *string
 	href            *string
+	seen_at         *time.Time
+	seen_action_id  *string
+	context         *map[string]interface{}
 	created_at      *time.Time
 	clearedFields   map[string]struct{}
 	done            bool
@@ -50456,6 +50459,127 @@ func (m *PlatformNotificationInboxMutation) ResetHref() {
 	m.href = nil
 }
 
+// SetSeenAt sets the "seen_at" field.
+func (m *PlatformNotificationInboxMutation) SetSeenAt(t time.Time) {
+	m.seen_at = &t
+}
+
+// SeenAt returns the value of the "seen_at" field in the mutation.
+func (m *PlatformNotificationInboxMutation) SeenAt() (r time.Time, exists bool) {
+	v := m.seen_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSeenAt returns the old "seen_at" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldSeenAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSeenAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSeenAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSeenAt: %w", err)
+	}
+	return oldValue.SeenAt, nil
+}
+
+// ClearSeenAt clears the value of the "seen_at" field.
+func (m *PlatformNotificationInboxMutation) ClearSeenAt() {
+	m.seen_at = nil
+	m.clearedFields[platformnotificationinbox.FieldSeenAt] = struct{}{}
+}
+
+// SeenAtCleared returns if the "seen_at" field was cleared in this mutation.
+func (m *PlatformNotificationInboxMutation) SeenAtCleared() bool {
+	_, ok := m.clearedFields[platformnotificationinbox.FieldSeenAt]
+	return ok
+}
+
+// ResetSeenAt resets all changes to the "seen_at" field.
+func (m *PlatformNotificationInboxMutation) ResetSeenAt() {
+	m.seen_at = nil
+	delete(m.clearedFields, platformnotificationinbox.FieldSeenAt)
+}
+
+// SetSeenActionID sets the "seen_action_id" field.
+func (m *PlatformNotificationInboxMutation) SetSeenActionID(s string) {
+	m.seen_action_id = &s
+}
+
+// SeenActionID returns the value of the "seen_action_id" field in the mutation.
+func (m *PlatformNotificationInboxMutation) SeenActionID() (r string, exists bool) {
+	v := m.seen_action_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSeenActionID returns the old "seen_action_id" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldSeenActionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSeenActionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSeenActionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSeenActionID: %w", err)
+	}
+	return oldValue.SeenActionID, nil
+}
+
+// ResetSeenActionID resets all changes to the "seen_action_id" field.
+func (m *PlatformNotificationInboxMutation) ResetSeenActionID() {
+	m.seen_action_id = nil
+}
+
+// SetContext sets the "context" field.
+func (m *PlatformNotificationInboxMutation) SetContext(value map[string]interface{}) {
+	m.context = &value
+}
+
+// Context returns the value of the "context" field in the mutation.
+func (m *PlatformNotificationInboxMutation) Context() (r map[string]interface{}, exists bool) {
+	v := m.context
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContext returns the old "context" field's value of the PlatformNotificationInbox entity.
+// If the PlatformNotificationInbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationInboxMutation) OldContext(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContext is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContext requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContext: %w", err)
+	}
+	return oldValue.Context, nil
+}
+
+// ResetContext resets all changes to the "context" field.
+func (m *PlatformNotificationInboxMutation) ResetContext() {
+	m.context = nil
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *PlatformNotificationInboxMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -50526,7 +50650,7 @@ func (m *PlatformNotificationInboxMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlatformNotificationInboxMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 12)
 	if m.organization_id != nil {
 		fields = append(fields, platformnotificationinbox.FieldOrganizationID)
 	}
@@ -50550,6 +50674,15 @@ func (m *PlatformNotificationInboxMutation) Fields() []string {
 	}
 	if m.href != nil {
 		fields = append(fields, platformnotificationinbox.FieldHref)
+	}
+	if m.seen_at != nil {
+		fields = append(fields, platformnotificationinbox.FieldSeenAt)
+	}
+	if m.seen_action_id != nil {
+		fields = append(fields, platformnotificationinbox.FieldSeenActionID)
+	}
+	if m.context != nil {
+		fields = append(fields, platformnotificationinbox.FieldContext)
 	}
 	if m.created_at != nil {
 		fields = append(fields, platformnotificationinbox.FieldCreatedAt)
@@ -50578,6 +50711,12 @@ func (m *PlatformNotificationInboxMutation) Field(name string) (ent.Value, bool)
 		return m.Description()
 	case platformnotificationinbox.FieldHref:
 		return m.Href()
+	case platformnotificationinbox.FieldSeenAt:
+		return m.SeenAt()
+	case platformnotificationinbox.FieldSeenActionID:
+		return m.SeenActionID()
+	case platformnotificationinbox.FieldContext:
+		return m.Context()
 	case platformnotificationinbox.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -50605,6 +50744,12 @@ func (m *PlatformNotificationInboxMutation) OldField(ctx context.Context, name s
 		return m.OldDescription(ctx)
 	case platformnotificationinbox.FieldHref:
 		return m.OldHref(ctx)
+	case platformnotificationinbox.FieldSeenAt:
+		return m.OldSeenAt(ctx)
+	case platformnotificationinbox.FieldSeenActionID:
+		return m.OldSeenActionID(ctx)
+	case platformnotificationinbox.FieldContext:
+		return m.OldContext(ctx)
 	case platformnotificationinbox.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -50672,6 +50817,27 @@ func (m *PlatformNotificationInboxMutation) SetField(name string, value ent.Valu
 		}
 		m.SetHref(v)
 		return nil
+	case platformnotificationinbox.FieldSeenAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSeenAt(v)
+		return nil
+	case platformnotificationinbox.FieldSeenActionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSeenActionID(v)
+		return nil
+	case platformnotificationinbox.FieldContext:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContext(v)
+		return nil
 	case platformnotificationinbox.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -50708,7 +50874,11 @@ func (m *PlatformNotificationInboxMutation) AddField(name string, value ent.Valu
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *PlatformNotificationInboxMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(platformnotificationinbox.FieldSeenAt) {
+		fields = append(fields, platformnotificationinbox.FieldSeenAt)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -50721,6 +50891,11 @@ func (m *PlatformNotificationInboxMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *PlatformNotificationInboxMutation) ClearField(name string) error {
+	switch name {
+	case platformnotificationinbox.FieldSeenAt:
+		m.ClearSeenAt()
+		return nil
+	}
 	return fmt.Errorf("unknown PlatformNotificationInbox nullable field %s", name)
 }
 
@@ -50751,6 +50926,15 @@ func (m *PlatformNotificationInboxMutation) ResetField(name string) error {
 		return nil
 	case platformnotificationinbox.FieldHref:
 		m.ResetHref()
+		return nil
+	case platformnotificationinbox.FieldSeenAt:
+		m.ResetSeenAt()
+		return nil
+	case platformnotificationinbox.FieldSeenActionID:
+		m.ResetSeenActionID()
+		return nil
+	case platformnotificationinbox.FieldContext:
+		m.ResetContext()
 		return nil
 	case platformnotificationinbox.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -52202,6 +52386,7 @@ type PlatformNotificationSeenActionMutation struct {
 	request_key      *string
 	deleted_count    *int
 	adddeleted_count *int
+	undone_at        *time.Time
 	created_at       *time.Time
 	clearedFields    map[string]struct{}
 	done             bool
@@ -52477,6 +52662,55 @@ func (m *PlatformNotificationSeenActionMutation) ResetDeletedCount() {
 	m.adddeleted_count = nil
 }
 
+// SetUndoneAt sets the "undone_at" field.
+func (m *PlatformNotificationSeenActionMutation) SetUndoneAt(t time.Time) {
+	m.undone_at = &t
+}
+
+// UndoneAt returns the value of the "undone_at" field in the mutation.
+func (m *PlatformNotificationSeenActionMutation) UndoneAt() (r time.Time, exists bool) {
+	v := m.undone_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUndoneAt returns the old "undone_at" field's value of the PlatformNotificationSeenAction entity.
+// If the PlatformNotificationSeenAction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationSeenActionMutation) OldUndoneAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUndoneAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUndoneAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUndoneAt: %w", err)
+	}
+	return oldValue.UndoneAt, nil
+}
+
+// ClearUndoneAt clears the value of the "undone_at" field.
+func (m *PlatformNotificationSeenActionMutation) ClearUndoneAt() {
+	m.undone_at = nil
+	m.clearedFields[platformnotificationseenaction.FieldUndoneAt] = struct{}{}
+}
+
+// UndoneAtCleared returns if the "undone_at" field was cleared in this mutation.
+func (m *PlatformNotificationSeenActionMutation) UndoneAtCleared() bool {
+	_, ok := m.clearedFields[platformnotificationseenaction.FieldUndoneAt]
+	return ok
+}
+
+// ResetUndoneAt resets all changes to the "undone_at" field.
+func (m *PlatformNotificationSeenActionMutation) ResetUndoneAt() {
+	m.undone_at = nil
+	delete(m.clearedFields, platformnotificationseenaction.FieldUndoneAt)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *PlatformNotificationSeenActionMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -52547,7 +52781,7 @@ func (m *PlatformNotificationSeenActionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlatformNotificationSeenActionMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.organization_id != nil {
 		fields = append(fields, platformnotificationseenaction.FieldOrganizationID)
 	}
@@ -52559,6 +52793,9 @@ func (m *PlatformNotificationSeenActionMutation) Fields() []string {
 	}
 	if m.deleted_count != nil {
 		fields = append(fields, platformnotificationseenaction.FieldDeletedCount)
+	}
+	if m.undone_at != nil {
+		fields = append(fields, platformnotificationseenaction.FieldUndoneAt)
 	}
 	if m.created_at != nil {
 		fields = append(fields, platformnotificationseenaction.FieldCreatedAt)
@@ -52579,6 +52816,8 @@ func (m *PlatformNotificationSeenActionMutation) Field(name string) (ent.Value, 
 		return m.RequestKey()
 	case platformnotificationseenaction.FieldDeletedCount:
 		return m.DeletedCount()
+	case platformnotificationseenaction.FieldUndoneAt:
+		return m.UndoneAt()
 	case platformnotificationseenaction.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -52598,6 +52837,8 @@ func (m *PlatformNotificationSeenActionMutation) OldField(ctx context.Context, n
 		return m.OldRequestKey(ctx)
 	case platformnotificationseenaction.FieldDeletedCount:
 		return m.OldDeletedCount(ctx)
+	case platformnotificationseenaction.FieldUndoneAt:
+		return m.OldUndoneAt(ctx)
 	case platformnotificationseenaction.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -52636,6 +52877,13 @@ func (m *PlatformNotificationSeenActionMutation) SetField(name string, value ent
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedCount(v)
+		return nil
+	case platformnotificationseenaction.FieldUndoneAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUndoneAt(v)
 		return nil
 	case platformnotificationseenaction.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -52688,7 +52936,11 @@ func (m *PlatformNotificationSeenActionMutation) AddField(name string, value ent
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *PlatformNotificationSeenActionMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(platformnotificationseenaction.FieldUndoneAt) {
+		fields = append(fields, platformnotificationseenaction.FieldUndoneAt)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -52701,6 +52953,11 @@ func (m *PlatformNotificationSeenActionMutation) FieldCleared(name string) bool 
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *PlatformNotificationSeenActionMutation) ClearField(name string) error {
+	switch name {
+	case platformnotificationseenaction.FieldUndoneAt:
+		m.ClearUndoneAt()
+		return nil
+	}
 	return fmt.Errorf("unknown PlatformNotificationSeenAction nullable field %s", name)
 }
 
@@ -52719,6 +52976,9 @@ func (m *PlatformNotificationSeenActionMutation) ResetField(name string) error {
 		return nil
 	case platformnotificationseenaction.FieldDeletedCount:
 		m.ResetDeletedCount()
+		return nil
+	case platformnotificationseenaction.FieldUndoneAt:
+		m.ResetUndoneAt()
 		return nil
 	case platformnotificationseenaction.FieldCreatedAt:
 		m.ResetCreatedAt()

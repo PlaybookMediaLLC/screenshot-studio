@@ -1,9 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Bell, GitBranch, MessageSquare, Workflow } from 'lucide-react'
+import { toast } from 'sonner'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,6 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { RunStatusPill, relativeTime } from '@/components/workflows/workflow-ui'
 import {
   notificationRequest,
   useNotificationIdentity,
@@ -24,264 +27,366 @@ import {
   notificationSeenSchema,
   type NotificationItem,
 } from '@/lib/notifications/schema'
-import { observeNotificationSummary } from '@/lib/notifications/visibility'
+import { groupNotifications, notificationTitle } from '@/lib/notifications/presentation'
 
 const countSchema = z.object({ unseenCount: z.number().int().nonnegative() })
 
-function Summary({
+function NotificationRow({
   item,
-  root,
-  acknowledged,
-  acknowledge,
+  busy,
+  change,
+  open,
 }: {
   item: NotificationItem
-  root: HTMLElement | null
-  acknowledged: boolean
-  acknowledge: (id: string) => Promise<void>
+  busy: boolean
+  change: (id: string, seen: boolean) => void
+  open: (item: NotificationItem) => void
 }) {
-  const summary = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (acknowledged || !summary.current) return
-    return observeNotificationSummary(summary.current, root, () => acknowledge(item.id))
-  }, [acknowledge, acknowledged, item.id, root])
+  const context = item.context
+  const title = notificationTitle(item)
+  const SourceIcon = context?.repository
+    ? GitBranch
+    : context?.source === 'workflows'
+      ? Workflow
+      : context?.source === 'comments' || context?.source === 'reviews'
+        ? MessageSquare
+        : Bell
   return (
-    <div ref={summary}>
-      <p className="text-sm font-medium text-foreground">{item.description}</p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        {item.workspaceName} ·{' '}
-        <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString()}</time>
-      </p>
-    </div>
+    <li
+      className={`min-w-0 py-4 ${item.seenAt ? 'text-muted-foreground' : 'text-foreground'}`}
+      data-notification-id={item.id}
+      aria-label={`${item.seenAt ? 'Seen' : 'Unseen'}: ${title}`}
+    >
+      <button
+        type="button"
+        disabled={!item.href || busy}
+        onClick={() => open(item)}
+        aria-label={`${item.seenAt ? 'Seen' : 'Unseen'}: ${title}. Open activity`}
+        className="group flex w-full min-w-0 gap-3 rounded-md text-left focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-default"
+      >
+        <span className="relative mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40">
+          <SourceIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+          {!item.seenAt ? (
+            <span className="absolute -right-1 -top-1 size-2 rounded-full bg-violet-500 ring-2 ring-background" />
+          ) : null}
+        </span>
+        <span className="min-w-0 flex-1 space-y-2 [overflow-wrap:anywhere]">
+          <span
+            className={`block text-sm leading-5 ${item.seenAt ? 'font-normal' : 'font-semibold'}`}
+          >
+            {title}
+          </span>
+          {context?.repository ||
+          context?.branch ||
+          context?.tag ||
+          context?.pullRequest ||
+          context?.campaignName ||
+          context?.storySetName ? (
+            <span className="block text-xs text-muted-foreground">
+              {[
+                context.repository,
+                context.branch,
+                context.tag,
+                context.pullRequest ? `PR #${context.pullRequest}` : null,
+                context.campaignName,
+                context.storySetName,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          ) : null}
+          {context?.message ? (
+            <span
+              className="line-clamp-2 block text-xs leading-5 text-muted-foreground"
+              title={context.message}
+            >
+              {context.message}
+            </span>
+          ) : null}
+          <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="capitalize">
+              {context?.actorName || context?.source || item.workspaceName}
+            </span>
+            <span aria-hidden="true">·</span>
+            <time dateTime={item.createdAt} title={new Date(item.createdAt).toLocaleString()}>
+              {relativeTime(item.createdAt)}
+            </time>
+          </span>
+        </span>
+      </button>
+      <div className="ml-11 mt-3 flex flex-wrap items-center gap-2">
+        {context?.status ? <RunStatusPill status={context.status} /> : null}
+        {item.href ? (
+          <button
+            type="button"
+            disabled={busy}
+            className="text-xs font-medium underline underline-offset-4 disabled:opacity-50"
+            onClick={() => open(item)}
+          >
+            Open activity
+          </button>
+        ) : null}
+        <button
+          type="button"
+          disabled={busy}
+          className="ml-auto text-xs text-muted-foreground underline underline-offset-4 disabled:opacity-50"
+          onClick={() => change(item.id, !item.seenAt)}
+        >
+          {item.seenAt ? 'Mark as unseen' : 'Mark as seen'}
+        </button>
+      </div>
+    </li>
   )
 }
 
 function OpenInbox({
   identity,
   close,
+  unseenCount,
 }: {
   identity: ReturnType<typeof useNotificationIdentity>
   close: () => void
+  unseenCount: number
 }) {
   const queryClient = useQueryClient()
   const router = useRouter()
-  const [items, setItems] = useState<NotificationItem[]>([])
-  const [cursor, setCursor] = useState<string | null>(null)
-  const [seen, setSeen] = useState<Set<string>>(() => new Set())
+  const [filter, setFilter] = useState<'all' | 'unseen'>('all')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [markingAll, setMarkingAll] = useState(false)
-  const [root, setRoot] = useState<HTMLDivElement | null>(null)
+  const [undo, setUndo] = useState<{ key: string; count: number } | null>(null)
+  useEffect(() => {
+    if (!undo) return
+    const timer = setTimeout(() => setUndo(null), 8000)
+    return () => clearTimeout(timer)
+  }, [undo])
+  const [, tick] = useState(0)
   const markAllKey = useRef<string | null>(null)
-  const pending = useRef(new Map<string, Promise<void>>())
   const live = useRef(true)
-  const countKey = [...identity.key, 'count']
-
-  const confirmCount = useCallback(
-    (unseenCount: number) => {
-      if (!queryClient.getQueryState([...identity.key, 'count'])) return
-      queryClient.setQueryData([...identity.key, 'count'], { unseenCount })
-      void queryClient.invalidateQueries({ queryKey: [...identity.key, 'count'] })
-      if ('BroadcastChannel' in window) {
-        const channel = new BroadcastChannel('workspace-notifications')
-        channel.postMessage({ userId: identity.userId, workspaceId: identity.workspaceId })
-        channel.close()
-      }
-    },
-    [identity.key, identity.userId, identity.workspaceId, queryClient]
-  )
-
-  const load = useCallback(
-    async (next = '', signal?: AbortSignal) => {
-      setLoading(true)
-      try {
-        const page = await notificationRequest(
-          identity,
-          `/inbox?cursor=${encodeURIComponent(next)}`,
-          notificationPageSchema,
-          { signal }
-        )
-        if (!live.current) return
-        setItems((current) => [
-          ...current,
-          ...page.items.filter((item) => !current.some((existing) => existing.id === item.id)),
-        ])
-        setCursor(page.nextCursor)
-        queryClient.setQueryData([...identity.key, 'count'], { unseenCount: page.unseenCount })
-        setError('')
-      } catch (failure) {
-        if (live.current && !signal?.aborted)
-          setError(failure instanceof Error ? failure.message : 'Notifications could not load.')
-      } finally {
-        if (live.current) setLoading(false)
-      }
-    },
-    [identity, queryClient]
-  )
-
   useEffect(() => {
     live.current = true
-    const controller = new AbortController()
-    void load('', controller.signal)
+    const timer = setInterval(() => tick((n) => n + 1), 60_000)
     return () => {
       live.current = false
-      controller.abort()
+      clearInterval(timer)
     }
-  }, [load])
-
-  const acknowledge = useCallback(
-    (id: string) => {
-      const existing = pending.current.get(id)
-      if (existing) return existing
-      const request = notificationRequest(identity, '/seen', notificationSeenSchema, {
-        method: 'POST',
-        body: { ids: [id] },
-      })
-        .then((result) => {
-          confirmCount(result.unseenCount)
-          if (!live.current) return
-          setSeen((current) => new Set([...current, id]))
-          setError('')
-        })
-        .catch((failure: unknown) => {
-          if (live.current)
-            setError('Could not mark activity seen. Visible items will retry safely.')
-          throw failure
-        })
-        .finally(() => {
-          pending.current.delete(id)
-        })
-      pending.current.set(id, request)
-      return request
+  }, [])
+  const inbox = useInfiniteQuery({
+    queryKey: [...identity.key, 'inbox', filter],
+    initialPageParam: '',
+    queryFn: ({ pageParam, signal }) =>
+      notificationRequest(
+        identity,
+        `/inbox?filter=${filter}&cursor=${encodeURIComponent(pageParam)}`,
+        notificationPageSchema,
+        { signal }
+      ),
+    getNextPageParam: (page) => page.nextCursor || undefined,
+    staleTime: 0,
+    refetchOnWindowFocus: 'always',
+  })
+  async function refresh(unseenCount: number) {
+    queryClient.setQueryData([...identity.key, 'count'], { unseenCount })
+    if ('BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('workspace-notifications')
+      channel.postMessage({ userId: identity.userId, workspaceId: identity.workspaceId })
+      channel.close()
+    }
+    await queryClient.invalidateQueries({ queryKey: identity.key })
+  }
+  const mutation = useMutation({
+    mutationFn: async (
+      action: { id: string; seen: boolean } | { all: true; key: string; undo?: boolean }
+    ) => {
+      const single = 'id' in action
+      const result = await notificationRequest(
+        identity,
+        single ? `/items/${encodeURIComponent(action.id)}` : '/seen',
+        notificationSeenSchema,
+        {
+          method: single ? 'PATCH' : 'POST',
+          body: single ? { seen: action.seen } : action,
+        }
+      )
+      await refresh(result.unseenCount)
+      return result
     },
-    [identity, confirmCount]
-  )
-
+    onSuccess: () => setError(''),
+    onError: (failure) => {
+      setError(failure.message)
+      toast.error(failure.message)
+    },
+  })
   async function markAll() {
     markAllKey.current ??= crypto.randomUUID()
-    setMarkingAll(true)
+    const key = markAllKey.current
     try {
-      const result = await notificationRequest(identity, '/seen', notificationSeenSchema, {
-        method: 'POST',
-        body: { all: true, key: markAllKey.current },
-      })
-      if (!live.current) return
-      setSeen(new Set(items.map((item) => item.id)))
+      const result = await mutation.mutateAsync({ all: true, key })
       markAllKey.current = null
-      setError('')
-      confirmCount(result.unseenCount)
-    } catch (failure) {
-      if (live.current)
-        setError(
-          failure instanceof Error
-            ? failure.message
-            : 'Mark all failed. Retry uses the same action.'
-        )
-    } finally {
-      if (live.current) setMarkingAll(false)
+      setUndo({ key, count: result.updated })
+    } catch {
+      /* Keep the same action key for a safe retry. */
     }
   }
-
-  async function openActivity(id: string) {
+  const [opening, setOpening] = useState(false)
+  async function openActivity(item: NotificationItem) {
+    setOpening(true)
     try {
       const result = await notificationRequest(
         identity,
-        `/resolve/${encodeURIComponent(id)}`,
+        `/resolve/${encodeURIComponent(item.id)}`,
         z.object({ href: z.string() })
       )
       if (!live.current) return
-      if (!result.href) {
-        setError('This activity is no longer available.')
-        return
-      }
+      if (!result.href || !result.href.startsWith('/') || result.href.startsWith('//'))
+        throw new Error('This activity is no longer available.')
+      await mutation.mutateAsync({ id: item.id, seen: true })
+      if (!live.current) return
       close()
       router.push(result.href)
-    } catch {
-      if (live.current) setError('This activity is no longer available.')
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : 'This activity is no longer available.')
+    } finally {
+      setOpening(false)
     }
   }
-
+  const items = [
+    ...new Map(
+      (inbox.data?.pages.flatMap((page) => page.items) ?? []).map((item) => [item.id, item])
+    ).values(),
+  ]
+  const groups = groupNotifications(items)
+  const busy = mutation.isPending || opening
+  const row = (item: NotificationItem) => (
+    <NotificationRow
+      key={item.id}
+      item={item}
+      busy={busy}
+      change={(id, seen) => mutation.mutate({ id, seen })}
+      open={(item) => void openActivity(item)}
+    />
+  )
   return (
     <>
-      <div className="flex items-center justify-between gap-3 px-5">
-        <Link
-          className="text-sm text-muted-foreground underline underline-offset-4"
-          href="/workspace/notifications"
-          onClick={close}
+      {undo ? (
+        <div
+          role="status"
+          className="mx-5 mb-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 text-xs shadow-sm"
         >
-          Notification settings
-        </Link>
+          <span>{undo.count} notifications marked as seen</span>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() =>
+              mutation.mutate(
+                { all: true, key: undo.key, undo: true },
+                { onSuccess: () => setUndo(null) }
+              )
+            }
+          >
+            Undo
+          </Button>
+        </div>
+      ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 pb-4">
+        <div
+          role="group"
+          aria-label="Filter notifications"
+          className="flex gap-1 rounded-lg bg-muted p-1"
+        >
+          {(['all', 'unseen'] as const).map((value) => (
+            <Button
+              key={value}
+              variant={filter === value ? 'secondary' : 'ghost'}
+              size="sm"
+              aria-pressed={filter === value}
+              onClick={() => setFilter(value)}
+            >
+              {value === 'all' ? 'All' : `Unseen (${unseenCount})`}
+            </Button>
+          ))}
+        </div>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          disabled={markingAll || (loading && cursor === null)}
+          disabled={busy || unseenCount === 0}
           onClick={() => void markAll()}
         >
-          {markingAll ? 'Marking…' : 'Mark all seen'}
+          Mark all as seen
         </Button>
       </div>
-      {error ? (
+      {error || inbox.error ? (
         <p role="alert" className="px-5 text-sm text-destructive">
-          {error}
+          {error || inbox.error?.message}
         </p>
       ) : null}
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6" ref={setRoot} aria-busy={loading}>
-        {items.length === 0 && !loading && !error ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">You’re all caught up.</p>
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6" aria-busy={inbox.isFetching}>
+        {!items.length && !inbox.isPending && !inbox.isError ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            {filter === 'unseen' ? 'No unseen notifications' : 'No notifications'}
+          </p>
         ) : null}
-        <ul className="divide-y divide-border">
-          {items.map((item) => (
-            <li className="py-5" key={item.id} data-notification-id={item.id}>
-              <Summary
-                item={item}
-                root={root}
-                acknowledged={seen.has(item.id)}
-                acknowledge={acknowledge}
-              />
-              <div className="mt-3 flex items-center gap-3">
-                {item.href ? (
-                  <Button variant="outline" size="sm" onClick={() => void openActivity(item.id)}>
-                    Open activity
-                  </Button>
-                ) : null}
-                {seen.has(item.id) ? (
-                  <span className="text-xs text-muted-foreground">Seen</span>
+        {groups.map((group) => (
+          <section key={group.label} aria-label={group.label}>
+            <h3 className="sticky top-0 z-10 bg-background py-3 text-xs font-medium text-muted-foreground">
+              {group.label}
+            </h3>
+            <ul className="divide-y divide-border">
+              {group.batches.map((batch) =>
+                batch.items.length >= 3 ? (
+                  <li key={batch.key}>
+                    <details className="py-3">
+                      <summary className="cursor-pointer rounded-md py-2 text-sm font-medium [overflow-wrap:anywhere]">
+                        {batch.items[0].description}{' '}
+                        <span className="text-muted-foreground">
+                          · {batch.items.length} events
+                          {batch.items.some((item) => !item.seenAt)
+                            ? ` · ${batch.items.filter((item) => !item.seenAt).length} unseen`
+                            : ' · Seen'}
+                        </span>
+                      </summary>
+                      <ul className="divide-y divide-border">{batch.items.map(row)}</ul>
+                    </details>
+                  </li>
                 ) : (
-                  <button
-                    className="text-xs text-muted-foreground underline underline-offset-4"
-                    onClick={() => void acknowledge(item.id).catch(() => undefined)}
-                    type="button"
-                  >
-                    Mark seen
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-        {loading ? (
+                  batch.items.map(row)
+                )
+              )}
+            </ul>
+          </section>
+        ))}
+        {inbox.isPending ? (
           <p role="status" className="py-6 text-sm text-muted-foreground">
             Loading notifications…
           </p>
-        ) : cursor ? (
-          <Button className="mt-4 w-full" variant="outline" onClick={() => void load(cursor)}>
-            Load older activity
+        ) : null}
+        {inbox.hasNextPage ? (
+          <Button
+            className="mt-4 w-full"
+            variant="outline"
+            disabled={inbox.isFetching}
+            onClick={() => void inbox.fetchNextPage()}
+          >
+            {inbox.isFetchingNextPage ? 'Loading…' : 'Load older activity'}
           </Button>
         ) : null}
-        {!loading && error && cursor === null ? (
-          <Button variant="outline" onClick={() => void load()}>
+        {inbox.isError ? (
+          <Button variant="outline" onClick={() => void inbox.refetch()}>
             Retry loading
           </Button>
         ) : null}
       </div>
-      <span className="sr-only" aria-live="polite">
-        {queryClient.getQueryData<{ unseenCount: number }>(countKey)?.unseenCount ?? 0} unseen
-        notifications
-      </span>
+      <Link
+        className="border-t border-border px-5 py-4 text-xs text-muted-foreground underline underline-offset-4"
+        href="/workspace/notifications"
+        onClick={close}
+      >
+        Notification settings
+      </Link>
     </>
   )
 }
 
-/** Accessible desktop and mobile entry point; retrieval never acknowledges activity. */
+/** Shared, explicit notification state across desktop, mobile, and browser tabs. */
 export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }) {
   const identity = useNotificationIdentity()
   const visible = useNotificationPageVisible()
@@ -292,6 +397,7 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
     queryFn: ({ signal }) => notificationRequest(identity, '/count', countSchema, { signal }),
     enabled: identity.ready && visible,
     staleTime: 30_000,
+    refetchOnWindowFocus: 'always',
     refetchInterval: visible ? 30_000 : false,
     refetchIntervalInBackground: false,
   })
@@ -305,31 +411,22 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
         parsed.data.userId === identity.userId &&
         parsed.data.workspaceId === identity.workspaceId
       )
-        void queryClient.invalidateQueries({ queryKey: [...identity.key, 'count'] })
+        void queryClient.invalidateQueries({ queryKey: identity.key })
     }
     return () => channel.close()
   }, [identity.key, identity.userId, identity.workspaceId, queryClient])
   if (!identity.ready) return null
   const n = count.data?.unseenCount ?? 0
+  const badge = n > 99 ? '99+' : n
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <button
           type="button"
-          aria-label={`Notifications${n ? `, ${n} unseen` : ''}`}
+          aria-label={`Notifications, ${badge} unseen`}
           className={`relative flex h-8 items-center gap-2.5 rounded-lg px-2 text-sm text-muted-foreground hover:text-foreground ${collapsed ? 'w-8 justify-center' : 'w-full'}`}
         >
-          <svg
-            aria-hidden="true"
-            width="17"
-            height="17"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          >
-            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
-          </svg>
+          <Bell className="size-[17px] shrink-0" aria-hidden="true" />
           {!collapsed ? <span>Notifications</span> : null}
           {n > 0 ? (
             <span
@@ -340,16 +437,16 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
                   : 'ml-auto rounded-full bg-violet-500 px-1.5 text-xs text-white'
               }
             >
-              {n > 99 ? '99+' : n}
+              {badge}
             </span>
           ) : null}
         </button>
       </SheetTrigger>
-      <SheetContent className="w-full gap-4 sm:max-w-md">
-        <SheetHeader>
+      <SheetContent className="w-full gap-0 overflow-hidden sm:max-w-lg">
+        <SheetHeader className="px-5 pb-4 pt-6">
           <SheetTitle>Notifications</SheetTitle>
           <SheetDescription>
-            Activity for you in this workspace. Seen items leave your inbox when you close it.
+            <span aria-live="polite">{n} unseen</span> · Your workspace activity, kept in one place.
           </SheetDescription>
         </SheetHeader>
         {open ? (
@@ -357,6 +454,7 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
             key={`${identity.userId}:${identity.workspaceId}`}
             identity={identity}
             close={() => setOpen(false)}
+            unseenCount={n}
           />
         ) : null}
       </SheetContent>

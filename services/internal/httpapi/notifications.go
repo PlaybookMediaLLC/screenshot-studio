@@ -10,7 +10,7 @@ import (
 func (s *Server) registerNotifications(mux *http.ServeMux) {
 	for _, pattern := range []string{
 		"GET /v1/workspace/notifications", "PUT /v1/workspace/notifications/policy", "PUT /v1/workspace/notifications/preferences",
-		"POST /v1/workspace/notifications/test", "GET /v1/workspace/notifications/resolve/{id}", "GET /v1/workspace/notifications/inbox", "GET /v1/workspace/notifications/count", "POST /v1/workspace/notifications/seen",
+		"POST /v1/workspace/notifications/test", "GET /v1/workspace/notifications/resolve/{id}", "GET /v1/workspace/notifications/inbox", "GET /v1/workspace/notifications/count", "POST /v1/workspace/notifications/seen", "PATCH /v1/workspace/notifications/items/{id}",
 		"POST /v1/workspace/notifications/slack/connect", "POST /v1/workspace/notifications/slack/callback", "GET /v1/workspace/notifications/slack/channels",
 		"DELETE /v1/workspace/notifications/slack/{id}", "GET /v1/workspace/notifications/deliveries", "GET /v1/workspace/notifications/deliveries/{id}", "POST /v1/workspace/notifications/deliveries/{id}/recover",
 	} {
@@ -62,19 +62,37 @@ func (s *Server) workspaceNotifications(w http.ResponseWriter, r *http.Request) 
 			err = notifications.ErrInvalid
 		}
 	case "GET /v1/workspace/notifications/inbox":
-		result, err = service.List(r.Context(), p, r.URL.Query().Get("cursor"))
+		result, err = service.List(r.Context(), p, r.URL.Query().Get("cursor"), notificationFilter(r))
 	case "GET /v1/workspace/notifications/count":
 		var count int
 		count, err = service.Count(r.Context(), p)
 		result = map[string]int{"unseenCount": count}
 	case "POST /v1/workspace/notifications/seen":
 		var input struct {
-			IDs []string `json:"ids"`
-			All bool     `json:"all"`
-			Key string   `json:"key"`
+			IDs  []string `json:"ids"`
+			All  bool     `json:"all"`
+			Key  string   `json:"key"`
+			Undo bool     `json:"undo"`
 		}
 		if err = decodeJSON(r, &input); err == nil {
-			result, err = service.Seen(r.Context(), p, input.IDs, input.All, input.Key)
+			if input.Undo {
+				if !input.All || len(input.IDs) > 0 {
+					err = notifications.ErrInvalid
+				} else {
+					result, err = service.UndoSeen(r.Context(), p, input.Key)
+				}
+			} else {
+				result, err = service.Seen(r.Context(), p, input.IDs, input.All, input.Key)
+			}
+		} else {
+			err = notifications.ErrInvalid
+		}
+	case "PATCH /v1/workspace/notifications/items/{id}":
+		var input struct {
+			Seen *bool `json:"seen"`
+		}
+		if err = decodeJSON(r, &input); err == nil && input.Seen != nil {
+			result, err = service.SetSeen(r.Context(), p, r.PathValue("id"), *input.Seen)
 		} else {
 			err = notifications.ErrInvalid
 		}
@@ -140,4 +158,11 @@ func (s *Server) workspaceNotifications(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+func notificationFilter(r *http.Request) string {
+	if value := r.URL.Query().Get("filter"); value != "" {
+		return value
+	}
+	return "all"
 }

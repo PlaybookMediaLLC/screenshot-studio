@@ -91,6 +91,26 @@ func (_u *PlatformNotificationSeenActionUpdate) AddDeletedCount(v int) *Platform
 	return _u
 }
 
+// SetUndoneAt sets the "undone_at" field.
+func (_u *PlatformNotificationSeenActionUpdate) SetUndoneAt(v time.Time) *PlatformNotificationSeenActionUpdate {
+	_u.mutation.SetUndoneAt(v)
+	return _u
+}
+
+// SetNillableUndoneAt sets the "undone_at" field if the given value is not nil.
+func (_u *PlatformNotificationSeenActionUpdate) SetNillableUndoneAt(v *time.Time) *PlatformNotificationSeenActionUpdate {
+	if v != nil {
+		_u.SetUndoneAt(*v)
+	}
+	return _u
+}
+
+// ClearUndoneAt clears the value of the "undone_at" field.
+func (_u *PlatformNotificationSeenActionUpdate) ClearUndoneAt() *PlatformNotificationSeenActionUpdate {
+	_u.mutation.ClearUndoneAt()
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *PlatformNotificationSeenActionUpdate) SetCreatedAt(v time.Time) *PlatformNotificationSeenActionUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -160,6 +180,12 @@ func (_u *PlatformNotificationSeenActionUpdate) sqlSave(ctx context.Context) (_n
 	}
 	if value, ok := _u.mutation.AddedDeletedCount(); ok {
 		_spec.AddField(platformnotificationseenaction.FieldDeletedCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.UndoneAt(); ok {
+		_spec.SetField(platformnotificationseenaction.FieldUndoneAt, field.TypeTime, value)
+	}
+	if _u.mutation.UndoneAtCleared() {
+		_spec.ClearField(platformnotificationseenaction.FieldUndoneAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldCreatedAt, field.TypeTime, value)
@@ -244,6 +270,26 @@ func (_u *PlatformNotificationSeenActionUpdateOne) SetNillableDeletedCount(v *in
 // AddDeletedCount adds value to the "deleted_count" field.
 func (_u *PlatformNotificationSeenActionUpdateOne) AddDeletedCount(v int) *PlatformNotificationSeenActionUpdateOne {
 	_u.mutation.AddDeletedCount(v)
+	return _u
+}
+
+// SetUndoneAt sets the "undone_at" field.
+func (_u *PlatformNotificationSeenActionUpdateOne) SetUndoneAt(v time.Time) *PlatformNotificationSeenActionUpdateOne {
+	_u.mutation.SetUndoneAt(v)
+	return _u
+}
+
+// SetNillableUndoneAt sets the "undone_at" field if the given value is not nil.
+func (_u *PlatformNotificationSeenActionUpdateOne) SetNillableUndoneAt(v *time.Time) *PlatformNotificationSeenActionUpdateOne {
+	if v != nil {
+		_u.SetUndoneAt(*v)
+	}
+	return _u
+}
+
+// ClearUndoneAt clears the value of the "undone_at" field.
+func (_u *PlatformNotificationSeenActionUpdateOne) ClearUndoneAt() *PlatformNotificationSeenActionUpdateOne {
+	_u.mutation.ClearUndoneAt()
 	return _u
 }
 
@@ -346,6 +392,12 @@ func (_u *PlatformNotificationSeenActionUpdateOne) sqlSave(ctx context.Context) 
 	}
 	if value, ok := _u.mutation.AddedDeletedCount(); ok {
 		_spec.AddField(platformnotificationseenaction.FieldDeletedCount, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.UndoneAt(); ok {
+		_spec.SetField(platformnotificationseenaction.FieldUndoneAt, field.TypeTime, value)
+	}
+	if _u.mutation.UndoneAtCleared() {
+		_spec.ClearField(platformnotificationseenaction.FieldUndoneAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldCreatedAt, field.TypeTime, value)

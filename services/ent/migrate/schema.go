@@ -1627,6 +1627,9 @@ var (
 		{Name: "resource_id", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString},
 		{Name: "href", Type: field.TypeString},
+		{Name: "seen_at", Type: field.TypeTime, Nullable: true},
+		{Name: "seen_action_id", Type: field.TypeString, Default: ""},
+		{Name: "context", Type: field.TypeJSON},
 		{Name: "created_at", Type: field.TypeTime},
 	}
 	// PlatformNotificationInboxTable holds the schema information for the "platform_notification_inbox" table.
@@ -1638,7 +1641,7 @@ var (
 			{
 				Name:    "platformnotificationinbox_organizationId_userId_created_at_id",
 				Unique:  false,
-				Columns: []*schema.Column{PlatformNotificationInboxColumns[1], PlatformNotificationInboxColumns[2], PlatformNotificationInboxColumns[9], PlatformNotificationInboxColumns[0]},
+				Columns: []*schema.Column{PlatformNotificationInboxColumns[1], PlatformNotificationInboxColumns[2], PlatformNotificationInboxColumns[12], PlatformNotificationInboxColumns[0]},
 			},
 			{
 				Name:    "platformnotificationinbox_organizationId_userId_event_id",
@@ -1695,6 +1698,7 @@ var (
 		{Name: "userId", Type: field.TypeString},
 		{Name: "request_key", Type: field.TypeString},
 		{Name: "deleted_count", Type: field.TypeInt, Default: 0},
+		{Name: "undone_at", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 	}
 	// PlatformNotificationSeenActionTable holds the schema information for the "platform_notification_seen_action" table.

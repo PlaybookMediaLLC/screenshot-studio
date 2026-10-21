@@ -15,9 +15,6 @@ func (s *Service) Maintain(ctx context.Context) error {
 		return err
 	}
 	defer tx.Rollback()
-	if _, err = tx.ExecContext(ctx, `DELETE FROM platform_notification_inbox i WHERE NOT EXISTS(SELECT 1 FROM outbox_event e WHERE e.id=i.event_id AND e."organizationId"=i."organizationId")`); err != nil {
-		return err
-	}
 	if _, err = tx.ExecContext(ctx, `DELETE FROM platform_notification_delivery d WHERE NOT EXISTS(SELECT 1 FROM outbox_event e WHERE e.id=d.event_id AND e."organizationId"=d."organizationId")`); err != nil {
 		return err
 	}

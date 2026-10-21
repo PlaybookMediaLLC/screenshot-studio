@@ -108,3 +108,45 @@ test('OAuth context accepts only the backend validated local return destination'
   )
   await assert.rejects(client.resolveSocialOAuthContext('x', 'state'))
 })
+
+test('custom Mastodon requires a safe server and carries it with the original creation intent', async () => {
+  const valid = {
+    provider: 'mastodon-custom',
+    operation: 'CREATE_SET',
+    creationVisibility: 'PRIVATE',
+    instanceServer: 'example.social',
+  }
+  assert.equal(socialOAuthBeginRequestSchema.safeParse(valid).success, true)
+  for (const instanceServer of [
+    undefined,
+    '',
+    'http://example.social',
+    'https://127.0.0.1',
+    'https://user:secret@example.social',
+    'https://example.social:443',
+  ])
+    assert.equal(
+      socialOAuthBeginRequestSchema.safeParse({ ...valid, instanceServer }).success,
+      false
+    )
+  assert.equal(socialOAuthBeginRequestSchema.safeParse({ ...valid, provider: 'x' }).success, false)
+  const client = new ScreenshotStudioBackendSDK(
+    'https://backend.test',
+    'fixture-service',
+    {
+      organizationId: 'original-workspace',
+      requestId: 'request',
+      sessionId: 'session',
+      userId: 'user',
+    },
+    async (_input, init) => {
+      assert.deepEqual(JSON.parse(String(init?.body)), valid)
+      return Response.json({ url: 'https://example.social/oauth/authorize?state=fixture' })
+    }
+  )
+  await client.beginSocialOAuth('mastodon-custom', undefined, {
+    operation: 'CREATE_SET',
+    creationVisibility: 'PRIVATE',
+    instanceServer: 'example.social',
+  })
+})

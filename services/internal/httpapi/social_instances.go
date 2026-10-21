@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"os"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/instances"
 )
@@ -23,5 +24,8 @@ func (s *Server) previewMastodonInstance(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	writeJSON(w, http.StatusOK, preview)
+	writeJSON(w, http.StatusOK, struct {
+		*instances.MastodonPreview
+		AuthorizationEnabled bool `json:"authorizationEnabled"`
+	}{preview, os.Getenv("PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED") == "true"})
 }

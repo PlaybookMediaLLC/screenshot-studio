@@ -5,6 +5,7 @@ import "testing"
 // Every provider must report a unique identifier and the registry must match
 // the original app's 35 providers.
 func TestRegistry(t *testing.T) {
+	t.Setenv("PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED", "false")
 	seen := map[string]bool{}
 	for _, p := range All() {
 		id := p.Info().Identifier
@@ -21,5 +22,15 @@ func TestRegistry(t *testing.T) {
 	}
 	if NewManager().GetSocialIntegration("linkedin-page") == nil {
 		t.Fatal("linkedin-page not found")
+	}
+}
+
+func TestCustomMastodonRegistryRequiresOptIn(t *testing.T) {
+	for _, enabled := range []string{"", "false", "true"} {
+		t.Setenv("PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED", enabled)
+		provider := NewManager().GetSocialIntegration("mastodon-custom")
+		if (provider != nil) != (enabled == "true") {
+			t.Fatalf("custom Mastodon registration ignored opt-in %q", enabled)
+		}
 	}
 }

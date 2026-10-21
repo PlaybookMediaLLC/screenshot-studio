@@ -44,4 +44,5 @@ export const mastodonInstanceSchema = z.object({
   title: z.string().min(1).max(160),
   description: z.string().max(1200),
   activeUsers: z.number().int().nonnegative().nullable(),
+  authorizationEnabled: z.boolean().default(false),
 })

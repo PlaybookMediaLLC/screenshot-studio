@@ -38,6 +38,8 @@ type fakeVerifier struct {
 	beginCalls    int
 	exchangeCalls int
 	pageCalls     int
+	beginInput    socialapi.BeginOAuthInput
+	beginURL      string
 }
 
 func (f *fakeVerifier) Profiles(context.Context, string) (map[string]socialapi.DestinationProfile, error) {
@@ -48,8 +50,12 @@ func (f *fakeVerifier) VerifyDestination(_ context.Context, input socialapi.Veri
 	f.input = input
 	return nil
 }
-func (f *fakeVerifier) BeginOAuth(context.Context, socialapi.BeginOAuthInput) (string, error) {
+func (f *fakeVerifier) BeginOAuth(_ context.Context, input socialapi.BeginOAuthInput) (string, error) {
 	f.beginCalls++
+	f.beginInput = input
+	if f.beginURL != "" {
+		return f.beginURL, nil
+	}
 	return "https://api.x.com/oauth/authorize?oauth_token=test-state", nil
 }
 func (f *fakeVerifier) ExchangeOAuth(_ context.Context, provider, code, state string) (socialapi.OAuthExchange, error) {

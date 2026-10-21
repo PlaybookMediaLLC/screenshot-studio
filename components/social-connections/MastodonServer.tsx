@@ -26,12 +26,16 @@ const servers = [
 export function MastodonServer({
   value,
   onChange,
+  onVerified,
+  disabled = false,
 }: {
   value: string
   onChange: (value: string) => void
+  onVerified: (server: string, authorizationEnabled: boolean | null) => void
+  disabled?: boolean
 }) {
   const { ready, request } = useSocialSetScope()
-  const [custom, setCustom] = useState(false)
+  const [custom, setCustom] = useState(() => !servers.some(([host]) => host === value))
   const [result, setResult] = useState<{
     server: string
     data?: z.output<typeof mastodonInstanceSchema>
@@ -41,6 +45,7 @@ export function MastodonServer({
   const valid = socialInstanceServerSchema.safeParse(server).success
   const current = result?.server === server ? result : null
   useEffect(() => {
+    onVerified(server, null)
     if (!valid || !ready) return
     const controller = new AbortController()
     const timer = window.setTimeout(async () => {
@@ -50,7 +55,10 @@ export function MastodonServer({
           mastodonInstanceSchema,
           { signal: controller.signal }
         )
-        if (!controller.signal.aborted) setResult({ server, data })
+        if (!controller.signal.aborted) {
+          setResult({ server, data })
+          onVerified(server, data.authorizationEnabled)
+        }
       } catch (error) {
         if (!controller.signal.aborted) setResult({ server, error: settingsErrorMessage(error) })
       }
@@ -59,12 +67,13 @@ export function MastodonServer({
       window.clearTimeout(timer)
       controller.abort()
     }
-  }, [server, valid, ready, request])
+  }, [server, valid, ready, request, onVerified])
   return (
     <div className="grid gap-3">
       <label className="grid gap-1.5 text-sm">
         <span>Mastodon server</span>
         <Select
+          disabled={disabled}
           value={custom ? 'custom' : value}
           onValueChange={(next) => {
             setCustom(next === 'custom')
@@ -88,6 +97,7 @@ export function MastodonServer({
         <label className="grid gap-1.5 text-sm">
           <span>Custom server hostname</span>
           <Input
+            disabled={disabled}
             autoCapitalize="none"
             autoComplete="off"
             spellCheck={false}

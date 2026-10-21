@@ -1114,8 +1114,11 @@ export interface components {
             title: string;
             description: string;
             activeUsers: number | null;
+            /** @default false */
+            authorizationEnabled: boolean;
         };
         SocialConnectionAttemptRequest: {
+            instanceServer?: string;
             /** @enum {string} */
             operation: "CREATE_SET" | "ADD_ACCOUNT" | "RECONNECT";
             /** @enum {string} */
@@ -1123,7 +1126,7 @@ export interface components {
             expectedConnectionId?: string;
             returnPath?: string;
             /** @enum {string} */
-            provider: "x" | "instagram" | "instagram-standalone" | "linkedin" | "threads" | "mastodon";
+            provider: "x" | "instagram" | "instagram-standalone" | "linkedin" | "threads" | "mastodon" | "mastodon-custom";
             socialSetId?: string;
         };
         SocialConnectionAttemptResponse: {

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { socialInstanceServerSchema } from './social-instances.ts'
 
 /** Provider keys accepted by the existing OAuth adapters. */
 export const socialOAuthProviderSchema = z.enum([
@@ -8,6 +9,7 @@ export const socialOAuthProviderSchema = z.enum([
   'linkedin',
   'threads',
   'mastodon',
+  'mastodon-custom',
 ])
 
 /** Intent is immutable even when the active workspace changes during authorization. */
@@ -15,6 +17,7 @@ export const socialOAuthOperationSchema = z.enum(['CREATE_SET', 'ADD_ACCOUNT', '
 
 /** Safe routing and reconnect context persisted with the authorization attempt. */
 export const socialOAuthStartOptionsSchema = z.strictObject({
+  instanceServer: socialInstanceServerSchema.optional(),
   operation: socialOAuthOperationSchema.optional(),
   creationVisibility: z.enum(['PRIVATE', 'WORKSPACE']).optional(),
   expectedConnectionId: z.string().min(1).max(160).optional(),
@@ -31,6 +34,12 @@ export const socialOAuthBeginRequestSchema = socialOAuthStartOptionsSchema
     socialSetId: z.string().min(1).max(160).optional(),
   })
   .superRefine((input, context) => {
+    if ((input.provider === 'mastodon-custom') !== !!input.instanceServer)
+      context.addIssue({
+        code: 'custom',
+        path: ['instanceServer'],
+        message: 'Choose a public Mastodon server only for a custom Mastodon connection.',
+      })
     const operation = input.operation ?? (input.expectedConnectionId ? 'RECONNECT' : 'ADD_ACCOUNT')
     const valid =
       operation === 'CREATE_SET'

@@ -10253,19 +10253,29 @@
                 "type": "null"
               }
             ]
+          },
+          "authorizationEnabled": {
+            "default": false,
+            "type": "boolean"
           }
         },
         "required": [
           "origin",
           "title",
           "description",
-          "activeUsers"
+          "activeUsers",
+          "authorizationEnabled"
         ],
         "additionalProperties": false
       },
       "SocialConnectionAttemptRequest": {
         "type": "object",
         "properties": {
+          "instanceServer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
           "operation": {
             "type": "string",
             "enum": [
@@ -10298,7 +10308,8 @@
               "instagram-standalone",
               "linkedin",
               "threads",
-              "mastodon"
+              "mastodon",
+              "mastodon-custom"
             ]
           },
           "socialSetId": {

@@ -36,6 +36,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/post"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/httpx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/instances"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/redis"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
@@ -457,14 +458,50 @@ func (h *controller) getIntegrationURL(c *httpx.Ctx) (any, error) {
 		}
 	}
 	provider := h.Manager.GetSocialIntegration(target)
-	if _, ok := provider.(integrations.ExternalURLer); ok {
-		return nil, msg(http.StatusBadRequest, "This integration requires an external URL and is not supported via the public API")
+	external, isExternal := provider.(integrations.ExternalURLer)
+	instanceOrigin := ""
+	if isExternal {
+		var err error
+		instanceOrigin, err = instances.Origin(c.Query("instance"))
+		if err != nil {
+			return nil, msg(http.StatusBadRequest, instances.ErrInvalidOrigin.Error())
+		}
+	} else if c.Query("instance") != "" {
+		return nil, msg(http.StatusBadRequest, "This integration does not accept an instance server")
 	}
 
 	url, err := func() (string, error) {
-		generated, err := provider.GenerateAuthURL(ctx, nil)
+		var client *integrations.ClientInformation
+		if isExternal {
+			var err error
+			client, err = external.ExternalURL(ctx, instanceOrigin)
+			if err != nil {
+				return "", err
+			}
+			if client == nil || client.ClientID == "" || client.ClientSecret == "" {
+				return "", errors.New("instance registration did not return credentials")
+			}
+			client.InstanceURL = instanceOrigin
+		}
+		generated, err := provider.GenerateAuthURL(ctx, client)
 		if err != nil {
 			return "", err
+		}
+		if generated == nil || generated.State == "" || generated.CodeVerifier == "" || generated.URL == "" {
+			return "", errors.New("provider returned incomplete authorization state")
+		}
+		if client != nil {
+			data, err := json.Marshal(client)
+			if err != nil {
+				return "", err
+			}
+			sealed, err := credentialcipher.Seal(string(data), "oauth-external:"+generated.State)
+			if err != nil {
+				return "", err
+			}
+			if err := h.Store.Set(ctx, "external:"+generated.State, sealed, time.Hour); err != nil {
+				return "", err
+			}
 		}
 		if refresh != "" {
 			if err := h.Store.Set(ctx, "refresh:"+generated.State, refresh, time.Hour); err != nil {

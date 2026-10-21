@@ -1,7 +1,7 @@
 'use client'
 
 import { ArrowUpRight, ChevronRight, LockKeyhole, Newspaper, Users, X } from 'lucide-react'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import {
   socialOAuthBeginRequestSchema,
   socialOAuthBeginResponseSchema,
@@ -35,7 +35,26 @@ function ProviderForm({
   const scope = useSocialSetScope()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [mastodonServer, setMastodonServer] = useState('mastodon.social')
+  const mastodon = provider === 'mastodon' || provider === 'mastodon-custom'
+  const legacyReconnect = provider === 'mastodon' && intent.operation === 'RECONNECT'
+  const [mastodonServer, setMastodonServer] = useState(() => {
+    if (provider === 'mastodon-custom' && intent.operation === 'RECONNECT') {
+      // This is an editable server hint only. The backend verifies the original account ID.
+      const handle = target?.accounts.find(
+        (account) => account.id === intent.expectedConnectionId
+      )?.handle
+      return handle?.split('@').at(-1) ?? ''
+    }
+    return 'mastodon.social'
+  })
+  const [verifiedServer, setVerifiedServer] = useState<{ server: string; enabled: boolean } | null>(
+    null
+  )
+  const onServerVerified = useCallback((server: string, authorizationEnabled: boolean | null) => {
+    setVerifiedServer(
+      authorizationEnabled === null ? null : { server, enabled: authorizationEnabled }
+    )
+  }, [])
   const lifetime = useRef<AbortController | null>(null)
   useLayoutEffect(() => {
     const controller = new AbortController()
@@ -46,16 +65,32 @@ function ProviderForm({
     }
   }, [])
   const label =
-    provider === 'x' ? 'X' : (providers.find((item) => item.id === provider)?.label ?? provider)
-  const supported = socialOAuthProviderSchema.safeParse(provider)
-  const serverAvailable = provider !== 'mastodon' || mastodonServer === 'mastodon.social'
+    provider === 'x'
+      ? 'X'
+      : mastodon
+        ? 'Mastodon'
+        : (providers.find((item) => item.id === provider)?.label ?? provider)
+  const customAvailable = verifiedServer?.server === mastodonServer.trim() && verifiedServer.enabled
+  const oauthProvider =
+    mastodon && !legacyReconnect && customAvailable ? 'mastodon-custom' : provider
+  const supported = socialOAuthProviderSchema.safeParse(oauthProvider)
+  const serverAvailable =
+    !mastodon ||
+    (customAvailable && !legacyReconnect) ||
+    (provider === 'mastodon' &&
+      mastodonServer === 'mastodon.social' &&
+      (legacyReconnect || (verifiedServer?.server === mastodonServer && !verifiedServer.enabled)))
   const connect = async () => {
     const controller = lifetime.current
     if (!supported.success || !serverAvailable || !controller || busy) return
     setBusy(true)
     setError('')
     try {
-      const body = socialOAuthBeginRequestSchema.parse({ ...intent, provider: supported.data })
+      const body = socialOAuthBeginRequestSchema.parse({
+        ...intent,
+        provider: supported.data,
+        ...(supported.data === 'mastodon-custom' ? { instanceServer: mastodonServer } : {}),
+      })
       const result = await scope.request(
         '/api/v1/social-connection-attempts',
         socialOAuthBeginResponseSchema,
@@ -114,9 +149,19 @@ function ProviderForm({
               </a>
             </p>
           ) : null}
-          {provider === 'mastodon' ? (
+          {mastodon ? (
             <>
-              <MastodonServer value={mastodonServer} onChange={setMastodonServer} />
+              <MastodonServer
+                value={mastodonServer}
+                onChange={setMastodonServer}
+                onVerified={onServerVerified}
+                disabled={legacyReconnect}
+              />
+              {legacyReconnect ? (
+                <p className="text-sm text-muted-foreground">
+                  Reconnect on the original server, mastodon.social.
+                </p>
+              ) : null}
               {!serverAvailable && mastodonServer.trim() ? (
                 <p className="text-sm text-muted-foreground">
                   Authorization on this server is not enabled yet.
@@ -171,7 +216,11 @@ export default function ConnectionDialog({
   const picker = useRef<HTMLDivElement>(null)
   const creating = intent.operation === 'CREATE_SET'
   const label =
-    provider === 'x' ? 'X' : (providers.find((item) => item.id === provider)?.label ?? provider)
+    provider === 'x'
+      ? 'X'
+      : provider === 'mastodon-custom'
+        ? 'Mastodon'
+        : (providers.find((item) => item.id === provider)?.label ?? provider)
   const close = () => {
     if (provider) {
       lastProvider.current = provider

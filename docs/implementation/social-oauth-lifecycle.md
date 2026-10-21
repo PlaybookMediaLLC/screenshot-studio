@@ -20,7 +20,7 @@ Channel capacity is checked again inside that transaction, under the same worksp
 
 The picker offers the five documented servers and custom HTTPS hostnames. Public metadata comes from the authenticated Go backend through `GET /api/v1/social-instances/mastodon`; no account, credential, or social set is created by discovery. The backend checks the actual dialed IP, rejects private and link-local addresses even when the general self-hosted SSRF bypass is enabled, refuses redirects, bounds requests to ten seconds, and caps response bodies at 256 KiB. Hostnames cannot include paths, ports, query strings, fragments, or credentials. The browser validates before building the request URL and cancels previews when selection or workspace changes.
 
-The preview uses Mastodon’s public [v2 instance endpoint](https://docs.joinmastodon.org/methods/instance/). The optional active-user count is labeled “past four weeks,” matching the [instance entity definition](https://docs.joinmastodon.org/entities/instance/). Metadata is untrusted text, not proof of account authorization or publishing capability. Custom-server authorization remains disabled until its adapter and credential lifecycle are integrated and verified.
+The preview uses Mastodon’s public [v2 instance endpoint](https://docs.joinmastodon.org/methods/instance/). The optional active-user count is labeled “past four weeks,” matching the [instance entity definition](https://docs.joinmastodon.org/entities/instance/). Metadata is untrusted text, not proof of account authorization or publishing capability. Custom-server authorization is opt-in through `PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED=true` on both product and social APIs. The default remains disabled pending live verification and persisted capability evidence. The preview response reports availability from the backend; changing the server clears that availability until its new preview completes.
 
 Go tests cover URL validation, malformed and oversized responses, denied private egress and redirects. Production browser checks cover presets, empty custom input, stale-request cancellation and credential rejection. An opt-in browser check (`E2E_LIVE_PUBLIC_PREVIEW=1`) passed against the real public mastodon.social endpoint on 2026-10-21 through authenticated REST/Go. This verifies public discovery only; no live provider account was authorized.
 
@@ -57,6 +57,12 @@ work and deployment of the updated local API/worker image.
 
 Deploy the Go migration/backend before the web facade. A rollout interrupted after a provider consumed a pre-upgrade code can require a fresh authorization; never assume it is safe to exchange that code again. Rolling the application back may consume pending rows using the earlier deletion semantics; retain the additive columns and connection records when rolling back. No provider tokens are copied into receipts.
 
+## Canonical platform slots
+
+`20261031120000_social_platform_slots.sql` adds the immutable versioned SQL function `platform_social_channel_v1` and an active-account expression index. Twitter/X, LinkedIn/profile-page, Instagram/standalone and Mastodon/default-custom each occupy one platform slot. Connections and OAuth receipts keep the original adapter identifier; this migration does not replace credentials or merge external accounts. Set defaults are normalized in their original order, with one version increment only when changed. Stored drafts are not rewritten.
+
+The migration first rejects preexisting duplicate active slots. Resolve those accounts explicitly through the removal flow and retry; a failed attempt rolls back the function, index and migration record together. Fresh and representative upgrade tests verify rollback, retry, disabled-account retention, index enforcement and replay. Index creation blocks connection writes while scanning; schedule a maintenance window sized for the connection table. Apply the migration before the updated backend because health queries use its function. Preserve the additive function/index on application rollback. Do not edit its mapping in place: a later mapping change requires a new function/index version and explicit backfill. Canonical slot aliases alone do not prove that two adapter identities represent the same underlying remote account; cross-adapter external identity reconciliation remains pending.
+
 ## Refresh completion and revocation
 
 Credential refresh updates an existing connection conditionally. It never uses
@@ -73,7 +79,7 @@ over a stale completion. Both late success and late failure are rejected: an old
 failure cannot mark a newer connection as broken or send its reconnect notice.
 Linked-account propagation checks each captured row version in the same
 workspace/provider, skipping removed or independently reconnected siblings. The
-periodic refresh sweep uses this same service and skips superseded snapshots.
+periodic refresh sweep uses this same service and skips superseded snapshots. An individual failure does not stop other accounts from refreshing; the sweep returns collected errors after processing the remaining accounts.
 Provider errors are logged as fixed outcomes without raw remote error text.
 
 The activity converts a superseded refresh into a terminal, credential-free
@@ -86,9 +92,7 @@ rotation whose result is lost can still require a fresh user authorization.
 
 ## Custom Mastodon adapter preparation
 
-The `mastodon-custom` adapter remains outside the production provider registry
-until its product callback path and a real disposable-account connection are
-verified. Its protocol implementation now registers a confidential client on
+The `mastodon-custom` adapter is registered only when the backend opt-in flag is enabled. The local product path accepts a validated `instanceServer`, preserves its original owner/set intent, and validates the authorization redirect against that exact HTTPS origin. Legacy default-server reconnects retain their existing adapter identity. General availability still requires real disposable-account verification and a durable capability snapshot. Its protocol implementation now registers a confidential client on
 the normalized public HTTPS origin, uses the matching
 `/integrations/social/mastodon-custom` callback in all three OAuth steps, and
 binds a 64-character verifier to an S256 PKCE challenge. The instance client

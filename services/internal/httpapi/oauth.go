@@ -5,11 +5,13 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/instances"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
 
@@ -23,6 +25,7 @@ type oauthRequest struct {
 	ReturnPath           string `json:"returnPath"`
 	Operation            string `json:"operation"`
 	CreationVisibility   string `json:"creationVisibility"`
+	InstanceServer       string `json:"instanceServer"`
 }
 
 func (s *Server) authenticateOAuthCallback(next http.Handler) http.Handler {
@@ -61,13 +64,13 @@ func oauthIdentity(w http.ResponseWriter, r *http.Request) (publishing.Actor, st
 
 func validOAuthProvider(provider string) bool {
 	return provider == "x" || provider == "instagram" || provider == "instagram-standalone" || provider == "linkedin" ||
-		provider == "threads" || provider == "mastodon"
+		provider == "threads" || provider == "mastodon" || provider == "mastodon-custom"
 }
 
 func decodeOAuthRequest(w http.ResponseWriter, r *http.Request, requireState, requireIntegration bool) (oauthRequest, bool) {
 	var input oauthRequest
 	if err := decodeJSON(r, &input); err != nil || !validOAuthProvider(input.Provider) ||
-		(requireState && (input.State == "" || len(input.State) > 512)) || len(input.SocialSetID) > 160 || len(input.ExpectedConnectionID) > 160 || len(input.ReturnPath) > 200 ||
+		(requireState && (input.State == "" || len(input.State) > 512)) || len(input.SocialSetID) > 160 || len(input.ExpectedConnectionID) > 160 || len(input.ReturnPath) > 200 || len(input.InstanceServer) > 2048 ||
 		(requireIntegration && (input.IntegrationID == "" || len(input.IntegrationID) > 160)) {
 		writeError(w, http.StatusBadRequest, "invalid social OAuth request")
 		return oauthRequest{}, false
@@ -75,7 +78,7 @@ func decodeOAuthRequest(w http.ResponseWriter, r *http.Request, requireState, re
 	return input, true
 }
 
-func validatedAuthorizationURL(raw, provider string) (string, string, error) {
+func validatedAuthorizationURL(raw, provider string, instanceOrigin ...string) (string, string, error) {
 	u, err := url.Parse(raw)
 	if err != nil || u == nil || u.Scheme != "https" || u.User != nil || u.Fragment != "" {
 		return "", "", errors.New("invalid authorization URL")
@@ -84,6 +87,16 @@ func validatedAuthorizationURL(raw, provider string) (string, string, error) {
 		"x": "api.x.com", "instagram": "www.facebook.com", "instagram-standalone": "www.instagram.com", "linkedin": "www.linkedin.com",
 		"threads": "www.threads.net", "mastodon": "mastodon.social",
 	}[provider]
+	if provider == "mastodon-custom" {
+		if len(instanceOrigin) != 1 {
+			return "", "", errors.New("missing instance origin")
+		}
+		origin, err := instances.Origin(instanceOrigin[0])
+		if err != nil || origin != instanceOrigin[0] || u.Scheme+"://"+u.Host != origin || u.Path != "/oauth/authorize" || u.RawPath != "" {
+			return "", "", errors.New("unexpected instance authorization URL")
+		}
+		host = u.Host
+	}
 	if u.Host != host {
 		return "", "", errors.New("unexpected authorization host")
 	}
@@ -210,6 +223,22 @@ func (s *Server) beginSocialOAuth(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	instanceOrigin := ""
+	if input.Provider == "mastodon-custom" {
+		if os.Getenv("PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED") != "true" {
+			writeError(w, http.StatusServiceUnavailable, "custom Mastodon authorization is not enabled")
+			return
+		}
+		var err error
+		instanceOrigin, err = instances.Origin(input.InstanceServer)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, instances.ErrInvalidOrigin.Error())
+			return
+		}
+	} else if input.InstanceServer != "" {
+		writeError(w, http.StatusBadRequest, "this provider does not accept an instance server")
+		return
+	}
 	var socialSetID *string
 	if input.SocialSetID != "" {
 		if s.configuration == nil {
@@ -249,12 +278,13 @@ func (s *Server) beginSocialOAuth(w http.ResponseWriter, r *http.Request) {
 	raw, err := s.verifier.BeginOAuth(r.Context(), socialapi.BeginOAuthInput{
 		ExpectedGoOrganizationID: binding.GoOrganizationID,
 		Provider:                 input.Provider, SecretReference: binding.SecretReference,
+		InstanceOrigin: instanceOrigin,
 	})
 	if err != nil {
 		writeError(w, http.StatusServiceUnavailable, "social OAuth is unavailable")
 		return
 	}
-	authorizationURL, state, err := validatedAuthorizationURL(raw, input.Provider)
+	authorizationURL, state, err := validatedAuthorizationURL(raw, input.Provider, instanceOrigin)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "social provider returned an invalid authorization URL")
 		return

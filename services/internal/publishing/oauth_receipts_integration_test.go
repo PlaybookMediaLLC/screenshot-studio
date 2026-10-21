@@ -45,6 +45,7 @@ func TestOAuthReceiptsKeepOriginalContextAndIdentity(t *testing.T) {
 	exec(`INSERT INTO "user" (id,name,email,"emailVerified","createdAt","updatedAt") VALUES ($1,'Other fixture',$2,true,now(),now())`, "other-"+user, "other-"+user+"@example.test")
 	for _, workspace := range []string{org, other} {
 		exec(`INSERT INTO organization (id,name,slug,"createdAt") VALUES ($1,'OAuth fixture',$1,now())`, workspace)
+		exec(`INSERT INTO workspace_entitlement ("organizationId",plan,status,"updatedAt") VALUES ($1,'business','active',now())`, workspace)
 		exec(`INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,'admin',now())`, workspace+"-member", workspace, user)
 	}
 	exec(`INSERT INTO session (id,"expiresAt",token,"createdAt","updatedAt","userId","activeOrganizationId") VALUES ($1,now()+interval '1 hour',$1,now(),now(),$2,$3)`, sessionID, user, org)

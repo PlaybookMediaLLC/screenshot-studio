@@ -40,6 +40,9 @@ func TestOAuthGrantAndConnectionUseEntInOnePublicSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _, _ = db.SQL.ExecContext(ctx, `DELETE FROM organization WHERE id=$1`, organizationID) })
+	if err := db.Client.WorkspaceEntitlement.Create().SetID(organizationID).SetPlan("pro").SetStatus("active").Exec(ctx); err != nil {
+		t.Fatal(err)
+	}
 	repo := NewRepository(db.Client)
 	actor := Actor{Organization: organizationID, UserID: userID, Type: "USER", RequestID: id}
 	if _, err := db.SQL.ExecContext(ctx, `INSERT INTO session (id,"expiresAt",token,"createdAt","updatedAt","userId","activeOrganizationId") VALUES ($1,now()+interval '1 hour',$2,now(),now(),$3,$4)`, "session_"+id, "token_"+id, userID, organizationID); err != nil {

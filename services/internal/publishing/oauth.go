@@ -9,6 +9,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/workspaceplan"
 	"github.com/lucsky/cuid"
 )
 
@@ -145,6 +146,9 @@ func (r *Repository) FinishOAuth(ctx context.Context, actor Actor, sessionID, st
 	}
 	if start.ExchangeStatus != socialoauthstart.ExchangeStatusEXCHANGED {
 		return nil, ErrOAuthExchangeUncertain
+	}
+	if err := workspaceplan.RequireChannel(ctx, tx.Client(), actor.Organization, integrationID); err != nil {
+		return nil, err
 	}
 	connection, err := tx.ChannelConnection.Query().Where(
 		channelconnection.OrganizationID(actor.Organization),

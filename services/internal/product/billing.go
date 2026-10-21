@@ -9,9 +9,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/billingentitlementevent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/workspaceplan"
 	"github.com/lucsky/cuid"
 )
 
@@ -111,12 +111,15 @@ func (c *Configuration) syncWorkspaceEntitlement(ctx context.Context, input Enti
 	if replay, err := entitlementReplay(ctx, tx.Client(), input); err != nil || replay != nil {
 		return replay, err
 	}
-	exists, err := tx.Organization.Query().Where(organization.ID(input.OrganizationID)).Exist(ctx)
+	exists, err := workspaceplan.LockWorkspace(ctx, tx, input.OrganizationID)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
 		return nil, fmt.Errorf("workspace not found: %w", publishing.ErrNotFound)
+	}
+	if replay, err := entitlementReplay(ctx, tx.Client(), input); err != nil || replay != nil {
+		return replay, err
 	}
 	current, err := tx.WorkspaceEntitlement.Query().Where(workspaceentitlement.ID(input.OrganizationID)).Only(ctx)
 	if err != nil && !ent.IsNotFound(err) {

@@ -36,7 +36,7 @@ func TestWritePublishing(t *testing.T) {
 	w := newTestWorkspace(t)
 	ctx, owner := w.ctx, w.owner
 	repo := w.repo.WithAccountStanding(standings{"x-premium-" + w.id: true}).WithMonthlyMeter(&recordingMonthlyMeter{})
-	subscribe(t, ctx, repo, w.org, "pro")
+	subscribe(t, ctx, repo, w.org, "business")
 	// The Premium account has a set of its own: one X account per set. The
 	// workspace's default set is its oldest, so it comes first.
 	if _, err := repo.ListSocialSets(ctx, owner); err != nil {

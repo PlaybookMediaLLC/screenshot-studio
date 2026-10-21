@@ -20,6 +20,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialtenantbinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/workspaceplan"
 	"github.com/lucsky/cuid"
 )
 
@@ -46,6 +47,14 @@ func (r *Repository) CreateConnection(ctx context.Context, actor Actor, input Cr
 		return nil, err
 	}
 	defer tx.Rollback()
+	if found, err := workspaceplan.LockWorkspace(ctx, tx, actor.Organization); err != nil {
+		return nil, err
+	} else if !found {
+		return nil, ErrNotFound
+	}
+	if err := workspaceplan.RequireChannel(ctx, tx.Client(), actor.Organization, input.ExternalAccountID); err != nil {
+		return nil, err
+	}
 	setID, err := targetSocialSet(ctx, tx, actor.Organization, input.Platform, input.SocialSetID)
 	if err != nil {
 		return nil, err

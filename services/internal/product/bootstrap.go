@@ -12,6 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/workspaceplan"
 )
 
 var bootstrapFeatures = []string{
@@ -139,19 +140,10 @@ func (c *Configuration) Bootstrap(ctx context.Context, actor Actor) (*BootstrapS
 }
 
 func evaluateBootstrapEntitlement(entitlement *ent.WorkspaceEntitlement, now time.Time) (string, string, map[string]bool) {
-	plan, status := "free", "active"
-	active := true
+	plan, status, active := workspaceplan.Resolve(entitlement, now)
 	var overrides map[string]any
 	if entitlement != nil {
-		status = entitlement.Status
-		switch entitlement.Plan {
-		case "free", "pro", "business", "enterprise":
-			plan = entitlement.Plan
-		}
 		overrides = entitlement.FeatureOverrides
-		active = (status == "active" || status == "trialing" ||
-			(status == "past_due" && entitlement.GraceUntil != nil && entitlement.GraceUntil.After(now))) &&
-			(entitlement.ValidUntil == nil || entitlement.ValidUntil.After(now))
 	}
 	features := make(map[string]bool, len(bootstrapFeatures))
 	for _, feature := range bootstrapFeatures {

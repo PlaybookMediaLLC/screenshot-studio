@@ -200,6 +200,19 @@ const CHECKS: Check[] = [
     expectBody: [/"code":"forbidden"/, /API keys cannot/],
   },
   {
+    name: "connection availability requires a signed-in member",
+    path: "/api/v1/social-connection-availability",
+    expectStatus: 401,
+    expectBody: [/"code":"unauthorized"/],
+  },
+  {
+    name: "an API key cannot inspect connection setup",
+    path: "/api/v1/social-connection-availability",
+    headers: { "X-API-Key": "ss_not_a_real_key" },
+    expectStatus: 403,
+    expectBody: [/"code":"forbidden"/, /API keys cannot/],
+  },
+  {
     name: "GET on a POST-only endpoint returns JSON 405 with Allow",
     path: "/api/screenshot",
     expectStatus: 405,

@@ -62,6 +62,16 @@ web. In the local overlay, use `SOCIAL_X_API_KEY`,
 process variables. LinkedIn uses `LINKEDIN_CLIENT_ID` and
 `LINKEDIN_CLIENT_SECRET`. Do not commit the overlay or tokens.
 
+Threads uses `SOCIAL_THREADS_APP_ID` and `SOCIAL_THREADS_APP_SECRET`; the legacy
+mastodon.social branch uses `SOCIAL_MASTODON_CLIENT_ID` and
+`SOCIAL_MASTODON_CLIENT_SECRET`. The picker reads the adapter's current
+configuration and disables unavailable connections before asking for credentials.
+Bluesky and custom Mastodon require their rollout flag on both product and social
+APIs. Deploy the adapter availability endpoint before the product/web update;
+older adapters cause a recoverable unavailable state. See
+[connection availability](implementation/social-connection-availability.md) for
+the configuration/status contract and coordinated rollout.
+
 The web's authenticated routes start OAuth at
 `/integrations/social/<provider>/start` and receive callbacks at
 `/integrations/social/<provider>`. They call the product backend through the

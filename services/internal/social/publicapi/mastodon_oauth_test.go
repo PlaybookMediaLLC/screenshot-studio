@@ -50,6 +50,8 @@ func (p *externalOAuthProvider) GenerateAuthURL(_ context.Context, client *integ
 }
 
 func TestPublicMastodonStartEncryptsOriginalInstanceCredentials(t *testing.T) {
+	t.Setenv("PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED", "true")
+	t.Setenv("FRONTEND_URL", "https://shots.example")
 	t.Setenv("PLATFORM_SOCIAL_ENCRYPTION_KEY", "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=")
 	provider := &externalOAuthProvider{Base: integrations.NewBase("mastodon-custom", nil)}
 	store := redis.NewMemory()

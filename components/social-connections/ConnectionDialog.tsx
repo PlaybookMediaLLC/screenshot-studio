@@ -6,6 +6,7 @@ import {
   socialOAuthBeginRequestSchema,
   socialOAuthBeginResponseSchema,
   socialOAuthProviderSchema,
+  type ConnectionAvailability,
 } from 'screenshot-studio-backend-sdk'
 import { ChannelIcon } from '@/components/drafts/channel-meta'
 import { useSocialSetScope } from '@/components/settings/social-sets/scope'
@@ -16,6 +17,11 @@ import { settingsErrorMessage } from '@/lib/settings/client'
 import type { ConnectionLauncherProps } from './ConnectionLauncher'
 import { MastodonServer } from './MastodonServer'
 import { BlueskyForm } from './BlueskyForm'
+import {
+  useConnectionAvailability,
+  providerReady,
+  providerUnavailableMessage,
+} from './availability'
 
 const providers = [
   { id: 'x', label: 'X / Twitter' },
@@ -32,7 +38,11 @@ function ProviderForm({
   provider,
   intent,
   target,
-}: Omit<ConnectionLauncherProps, 'children'> & { provider: string }) {
+  availability,
+}: Omit<ConnectionLauncherProps, 'children'> & {
+  provider: string
+  availability: ConnectionAvailability
+}) {
   const scope = useSocialSetScope()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -71,7 +81,10 @@ function ProviderForm({
       : mastodon
         ? 'Mastodon'
         : (providers.find((item) => item.id === provider)?.label ?? provider)
-  const customAvailable = verifiedServer?.server === mastodonServer.trim() && verifiedServer.enabled
+  const customAvailable =
+    verifiedServer?.server === mastodonServer.trim() &&
+    verifiedServer.enabled &&
+    providerReady(availability, 'mastodon-custom')
   const oauthProvider =
     mastodon && !legacyReconnect && customAvailable ? 'mastodon-custom' : provider
   const supported = socialOAuthProviderSchema.safeParse(oauthProvider)
@@ -80,10 +93,11 @@ function ProviderForm({
     (customAvailable && !legacyReconnect) ||
     (provider === 'mastodon' &&
       mastodonServer === 'mastodon.social' &&
-      (legacyReconnect || (verifiedServer?.server === mastodonServer && !verifiedServer.enabled)))
+      (legacyReconnect || verifiedServer?.server === mastodonServer))
+  const ready = providerReady(availability, oauthProvider)
   const connect = async () => {
     const controller = lifetime.current
-    if (!supported.success || !serverAvailable || !controller || busy) return
+    if (!supported.success || !serverAvailable || !ready || !controller || busy) return
     setBusy(true)
     setError('')
     try {
@@ -174,6 +188,11 @@ function ProviderForm({
           ) : null}
         </>
       )}
+      {!ready ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {providerUnavailableMessage(availability, oauthProvider)}
+        </p>
+      ) : null}
       {error ? (
         <p
           className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
@@ -184,7 +203,7 @@ function ProviderForm({
       ) : null}
       <Button
         className="w-full"
-        disabled={!supported.success || !serverAvailable || busy || !scope.ready}
+        disabled={!supported.success || !serverAvailable || !ready || busy || !scope.ready}
         onClick={() => void connect()}
         type="button"
       >
@@ -206,6 +225,9 @@ export default function ConnectionDialog({
   initialProvider,
   onClose,
 }: ConnectionLauncherProps & { onClose: () => void }) {
+  const availability = useConnectionAvailability()
+  const checking = availability.isPending || availability.isFetching
+  const catalog = !checking && !availability.isError ? availability.data : undefined
   const [provider, setProvider] = useState<string | null>(initialProvider ?? null)
   const lastProvider = useRef<string | null>(initialProvider ?? null)
   const heading = useRef<HTMLHeadingElement>(null)
@@ -267,6 +289,20 @@ export default function ConnectionDialog({
               : 'One account per platform. Choose another platform to add to this set.'}
         </DialogDescription>
       </DialogHeader>
+      {checking ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Checking available connections…
+        </p>
+      ) : availability.isError ? (
+        <div className="grid gap-2">
+          <p role="alert" className="text-sm text-destructive">
+            {settingsErrorMessage(availability.error)}
+          </p>
+          <Button type="button" variant="outline" onClick={() => void availability.refetch()}>
+            Check again
+          </Button>
+        </div>
+      ) : null}
       {!provider ? (
         <>
           {creating ? (
@@ -293,9 +329,15 @@ export default function ConnectionDialog({
                 <Button
                   key={item.id}
                   data-provider={item.id}
-                  disabled={occupied}
+                  aria-label={`${item.label}${occupied ? ' Connected' : ''}`}
+                  aria-describedby={
+                    !occupied && catalog && !providerReady(catalog, item.id, true)
+                      ? `provider-${item.id}-availability`
+                      : undefined
+                  }
+                  disabled={occupied || !providerReady(catalog, item.id, true)}
                   variant="outline"
-                  className="h-12 w-full justify-start gap-3"
+                  className="h-auto min-h-12 w-full justify-start gap-3 whitespace-normal py-2"
                   onClick={() => setProvider(item.id)}
                   type="button"
                 >
@@ -304,7 +346,17 @@ export default function ConnectionDialog({
                   ) : (
                     <Newspaper className="size-5" aria-hidden />
                   )}
-                  <span className="flex-1 text-left">{item.label}</span>
+                  <span className="flex-1 text-left">
+                    <span className="block">{item.label}</span>
+                    {!occupied && catalog && !providerReady(catalog, item.id, true) ? (
+                      <span
+                        id={`provider-${item.id}-availability`}
+                        className="block text-xs font-normal"
+                      >
+                        {providerUnavailableMessage(catalog, item.id)}
+                      </span>
+                    ) : null}
+                  </span>
                   {occupied ? (
                     <span className="text-xs">Connected</span>
                   ) : (
@@ -315,10 +367,20 @@ export default function ConnectionDialog({
             })}
           </div>
         </>
+      ) : !catalog ? null : !providerReady(catalog, provider, true) ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {providerUnavailableMessage(catalog, provider)}
+        </p>
       ) : provider === 'bluesky' ? (
         <BlueskyForm intent={intent} target={target} />
       ) : (
-        <ProviderForm key={provider} provider={provider} intent={intent} target={target} />
+        <ProviderForm
+          key={provider}
+          provider={provider}
+          intent={intent}
+          target={target}
+          availability={catalog}
+        />
       )}
       {provider ? (
         <Button type="button" variant="ghost" onClick={close}>

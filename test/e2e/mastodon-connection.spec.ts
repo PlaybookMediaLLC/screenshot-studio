@@ -1,3 +1,4 @@
+import { connectionAvailabilityFixture } from './framework/social-availability'
 import { randomUUID } from 'node:crypto'
 import { socialOAuthBeginRequestSchema } from 'screenshot-studio-backend-sdk'
 import { socialSetListSchema } from '../../lib/api/contracts/social-sets'
@@ -28,6 +29,8 @@ test('custom Mastodon authorization keeps the selected origin and commits one pr
   const state = randomUUID()
   const externalId = `mastodon-fixture-${randomUUID()}`
   const provider = await startHttpMockServer((request) => {
+    if (request.url === '/api/public/v1/connection-availability')
+      return { body: connectionAvailabilityFixture() }
     if (request.url === '/api/public/v1/me')
       return { body: { organization: { id: `go-${organizationId}` } } }
     const url = new URL(request.url, 'http://fixture.test')

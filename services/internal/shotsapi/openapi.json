@@ -756,6 +756,98 @@
         ]
       }
     },
+    "/api/v1/social-connection-availability": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Reads the current adapter configuration and product rollout gates for the active workspace. Only signed-in owners/admins may inspect it; API keys cannot connect accounts. No app IDs, secrets or credentials are returned. Available means a connection can be attempted, not that provider approval, account grants or publishing capabilities have been verified. Subscription capacity, target ownership and occupied slots are rechecked when an attempt starts and commits. The response is not cached.",
+        "operationId": "getSocialConnectionAvailability",
+        "responses": {
+          "200": {
+            "description": "Complete current configuration readiness for the supported connection branches.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocialConnectionAvailability"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request includes unsupported query parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace administration or content draft entitlement is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Social sets are not enabled in this deployment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The workspace API request quota is exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceQuotaError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace binding or adapter availability could not be verified.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Read social connection availability",
+        "tags": [
+          "Publishing"
+        ]
+      }
+    },
     "/api/v1/bluesky-connection-attempts": {
       "post": {
         "x-shots-entitlement": {
@@ -10558,6 +10650,58 @@
         },
         "required": [
           "url"
+        ],
+        "additionalProperties": false
+      },
+      "SocialConnectionAvailability": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number",
+            "const": 1
+          },
+          "providers": {
+            "minItems": 9,
+            "maxItems": 9,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "type": "string",
+                  "enum": [
+                    "x",
+                    "linkedin",
+                    "threads",
+                    "mastodon",
+                    "mastodon-custom",
+                    "bluesky",
+                    "instagram",
+                    "instagram-standalone",
+                    "substack"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "available",
+                    "not_configured",
+                    "disabled",
+                    "unsupported"
+                  ]
+                }
+              },
+              "required": [
+                "provider",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "version",
+          "providers"
         ],
         "additionalProperties": false
       },

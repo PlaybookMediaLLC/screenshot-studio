@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"slices"
 	"time"
 
@@ -285,6 +286,9 @@ func (h *integrationsController) getIntegrationURL(c *httpx.Ctx) (any, error) {
 		if migrateTo := h.manager.GetMigrationTarget(name); migrateTo != "" {
 			target = migrateTo
 		}
+	}
+	if status, managed := h.manager.ConnectionStatus(target); managed && status != "available" {
+		return nil, httpx.NewError(http.StatusServiceUnavailable, map[string]string{"message": "This social connection is not available"})
 	}
 	provider := h.manager.GetSocialIntegration(target)
 	external, isExternal := provider.(integrations.ExternalURLer)

@@ -27,6 +27,7 @@ import {
 } from '@/lib/api/contracts/content-drafts'
 import { getLinkPreviewContract } from '@/lib/api/contracts/link-preview'
 import { createSocialConnectionAttemptContract } from '@/lib/api/contracts/social-connections'
+import { getSocialConnectionAvailabilityContract } from '@/lib/api/contracts/social-availability'
 import {
   beginBlueskyConnectionContract,
   completeBlueskyConnectionContract,
@@ -77,6 +78,7 @@ import {
 export const documentedContracts = [
   previewMastodonInstanceContract,
   createSocialConnectionAttemptContract,
+  getSocialConnectionAvailabilityContract,
   beginBlueskyConnectionContract,
   completeBlueskyConnectionContract,
   listReleasesContract,

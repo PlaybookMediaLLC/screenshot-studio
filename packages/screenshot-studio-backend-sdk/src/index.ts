@@ -1,3 +1,5 @@
+import { connectionAvailabilitySchema } from './social-availability.ts'
+export * from './social-availability.ts'
 import {
   socialOAuthBeginRequestSchema,
   socialOAuthBeginResponseSchema,
@@ -2056,6 +2058,13 @@ export class ScreenshotStudioBackendSDK {
       body: input,
       method: 'POST',
     })
+  }
+
+  /** Read the current workspace-bound configuration readiness without creating an attempt. */
+  async socialConnectionAvailability() {
+    return connectionAvailabilitySchema.parse(
+      await this.request('v1/social-connection-availability')
+    )
   }
 
   /** Read public Mastodon metadata through the backend’s bounded network guard. */

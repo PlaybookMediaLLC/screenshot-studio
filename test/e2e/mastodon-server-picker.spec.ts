@@ -1,9 +1,26 @@
-import { createPublishingWorkspace, apiRequest } from './framework/publishing'
+import {
+  createPublishingWorkspace,
+  apiRequest,
+  bindTestGoOrganization,
+  unbindTestGoOrganization,
+} from './framework/publishing'
+import { connectionAvailabilityFixture } from './framework/social-availability'
+import { startHttpMockServer, type HttpMockServer } from './framework/http-server'
+import { socialMockPort } from './framework/content-drafts'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { chooseOption } from './framework/controls'
 import { mastodonInstanceSchema } from 'screenshot-studio-backend-sdk'
 
-configureE2EFlow()
+let provider: HttpMockServer | null = null
+let organizationId: string | null = null
+configureE2EFlow({
+  afterEach: async () => {
+    await unbindTestGoOrganization(organizationId)
+    await provider?.close()
+    organizationId = null
+    provider = null
+  },
+})
 
 test('a public Mastodon server returns a real preview through the authenticated backend', async ({
   identity,
@@ -14,6 +31,14 @@ test('a public Mastodon server returns a real preview through the authenticated 
     'Opt-in public network check; no provider account or credentials are used.'
   )
   await createPublishingWorkspace(identity, page)
+  organizationId = await bindTestGoOrganization(page)
+  provider = await startHttpMockServer((request) => {
+    if (request.url === '/api/public/v1/me')
+      return { body: { organization: { id: `go-${organizationId}` } } }
+    if (request.url === '/api/public/v1/connection-availability')
+      return { body: connectionAvailabilityFixture({ 'mastodon-custom': 'disabled' }) }
+    return { status: 404 }
+  }, socialMockPort)
   await page.goto('/workspace/social-sets')
   await page.getByRole('button', { name: 'Add social set to your personal workspace' }).click()
   const response = page.waitForResponse((item) =>
@@ -35,6 +60,14 @@ test('Mastodon preview follows the chosen server and refuses credentials in the 
   page,
 }) => {
   await createPublishingWorkspace(identity, page)
+  organizationId = await bindTestGoOrganization(page)
+  provider = await startHttpMockServer((request) => {
+    if (request.url === '/api/public/v1/me')
+      return { body: { organization: { id: `go-${organizationId}` } } }
+    if (request.url === '/api/public/v1/connection-availability')
+      return { body: connectionAvailabilityFixture({ 'mastodon-custom': 'disabled' }) }
+    return { status: 404 }
+  }, socialMockPort)
   const invalid = await apiRequest(page, '/api/v1/social-instances/mastodon?server=127.0.0.1')
   expect(invalid.status).toBe(400)
   let release = () => {}
@@ -59,6 +92,7 @@ test('Mastodon preview follows the chosen server and refuses credentials in the 
         title: server === 'mastodon.social' ? 'Original community' : 'Changed community',
         description: 'Public fixture server information',
         activeUsers: 27,
+        authorizationEnabled: true,
       },
     })
   })
@@ -70,6 +104,11 @@ test('Mastodon preview follows the chosen server and refuses credentials in the 
     const preview = dialog.getByTestId('mastodon-server-preview')
     await expect(preview.getByText('Original community', { exact: true })).toBeVisible()
     await expect(preview.getByText('27 active users in the past four weeks')).toBeVisible()
+    // An adapter-side custom-instance gate must still allow the configured
+    // default-server branch, even when metadata permits dynamic authorization.
+    await expect(
+      dialog.getByRole('button', { name: 'Connect Mastodon account', exact: true })
+    ).toBeEnabled()
     await chooseOption(dialog.getByRole('combobox', { name: 'Mastodon server' }), /^fosstodon.org/)
     await requested
     await expect(preview.getByText('Original community', { exact: true })).toHaveCount(0)

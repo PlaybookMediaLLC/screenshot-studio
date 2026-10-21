@@ -116,6 +116,7 @@ func RegisterPublicIntegrationsController(r *httpx.Router, d Deps) {
 	g.Get("/me", h.getMe)
 	g.Get("/groups", h.listGroups)
 	g.Get("/integrations", h.listIntegration)
+	g.Get("/connection-availability", h.connectionAvailability)
 	g.Get("/integrations/:id/identity", h.integrationIdentity)
 	g.Get("/social/:integration", h.getIntegrationURL, d.Perms.CheckPolicies(auth.Policy(auth.ActionCreate, auth.SectionChannel)))
 	g.Get("/users", h.listUsers, superAdmin)
@@ -457,6 +458,9 @@ func (h *controller) getIntegrationURL(c *httpx.Ctx) (any, error) {
 		if migrateTo := h.Manager.GetMigrationTarget(name); migrateTo != "" {
 			target = migrateTo
 		}
+	}
+	if status, managed := h.Manager.ConnectionStatus(target); managed && status != "available" {
+		return nil, msg(http.StatusServiceUnavailable, "This social connection is not available")
 	}
 	provider := h.Manager.GetSocialIntegration(target)
 	external, isExternal := provider.(integrations.ExternalURLer)

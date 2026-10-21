@@ -1,3 +1,4 @@
+import { connectionAvailabilityFixture } from './framework/social-availability'
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { socialSetListSchema, socialSetSchema } from '../../lib/api/contracts/social-sets'
@@ -26,6 +27,8 @@ test('provider-first creation stays layered, commits once, and preserves its set
   const state = randomUUID()
   const externalId = `picker-${randomUUID()}`
   const provider = await startHttpMockServer((request) => {
+    if (request.url === '/api/public/v1/connection-availability')
+      return { body: connectionAvailabilityFixture() }
     if (request.url === '/api/public/v1/me')
       return { body: { organization: { id: `go-${organizationId}` } } }
     if (request.url === '/api/public/v1/social/x')
@@ -73,19 +76,19 @@ test('provider-first creation stays layered, commits once, and preserves its set
       await dialog.getByRole('button', { name: 'Close', exact: true }).click()
       await expect(dialog.getByRole('button', { name: label, exact: true })).toBeFocused()
     }
-    await dialog.getByRole('button', { name: 'Substack Notes', exact: true }).click()
+    await expect(dialog.getByRole('button', { name: 'Substack Notes', exact: true })).toBeDisabled()
     await expect(
-      dialog.getByText('Substack does not offer a public publishing API', { exact: false })
+      dialog.getByText('Substack Notes has no supported public publishing API.')
     ).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Connection unavailable' })).toBeDisabled()
-    await page.keyboard.press('Escape')
-    await expect(dialog.getByRole('heading', { name: 'Create a social set' })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
     await expect(launch).toBeFocused()
     expect(page.url()).toBe(originalURL)
     expect(await list()).toHaveLength(0)
-    expect(provider.calls).toHaveLength(0)
+    expect(provider.calls.map((call) => [call.method, call.url])).toEqual([
+      ['GET', '/api/public/v1/me'],
+      ['GET', '/api/public/v1/connection-availability'],
+    ])
 
     // Authorization is a fixture page; no real provider account or credentials are used.
     await page.route('https://api.x.com/oauth/authenticate**', (route) =>

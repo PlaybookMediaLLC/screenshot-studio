@@ -1,3 +1,4 @@
+import { connectionAvailabilityFixture } from './framework/social-availability'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { blueskyConnectionCompleteResponseSchema } from '../../packages/screenshot-studio-backend-sdk/src/bluesky-connections'
@@ -60,6 +61,8 @@ for (const outcome of ['verified', 'unknown'] as const) {
       },
     }
     const provider = await startHttpMockServer(async (request) => {
+      if (request.url === '/api/public/v1/connection-availability')
+        return { body: connectionAvailabilityFixture() }
       if (request.url === '/api/public/v1/me')
         return { body: { organization: { id: `go-${organizationId}` } } }
       if (request.url.startsWith('/api/public/v1/social/bluesky')) {
@@ -122,7 +125,10 @@ for (const outcome of ['verified', 'unknown'] as const) {
       await expect(dialog.getByRole('button', { name: 'Connect', exact: true })).toBeEnabled()
       await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
       await expect(dialog.getByRole('button', { name: 'Bluesky', exact: true })).toBeFocused()
-      expect(provider.calls).toHaveLength(0)
+      expect(provider.calls.map((call) => [call.method, call.url])).toEqual([
+        ['GET', '/api/public/v1/me'],
+        ['GET', '/api/public/v1/connection-availability'],
+      ])
       expect(await list()).toHaveLength(0)
       expect(page.url()).toBe(originalURL)
       await dialog.getByRole('button', { name: 'Bluesky', exact: true }).click()

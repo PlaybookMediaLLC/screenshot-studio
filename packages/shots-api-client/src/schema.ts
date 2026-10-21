@@ -132,6 +132,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/social-connection-availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read social connection availability
+         * @description Reads the current adapter configuration and product rollout gates for the active workspace. Only signed-in owners/admins may inspect it; API keys cannot connect accounts. No app IDs, secrets or credentials are returned. Available means a connection can be attempted, not that provider approval, account grants or publishing capabilities have been verified. Subscription capacity, target ownership and occupied slots are rechecked when an attempt starts and commits. The response is not cached.
+         */
+        get: operations["getSocialConnectionAvailability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bluesky-connection-attempts": {
         parameters: {
             query?: never;
@@ -1172,6 +1192,16 @@ export interface components {
         SocialConnectionAttemptResponse: {
             /** Format: uri */
             url: string;
+        };
+        SocialConnectionAvailability: {
+            /** @constant */
+            version: 1;
+            providers: {
+                /** @enum {string} */
+                provider: "x" | "linkedin" | "threads" | "mastodon" | "mastodon-custom" | "bluesky" | "instagram" | "instagram-standalone" | "substack";
+                /** @enum {string} */
+                status: "available" | "not_configured" | "disabled" | "unsupported";
+            }[];
         };
         BlueskyConnectionBeginRequest: {
             /** @enum {string} */
@@ -3227,6 +3257,80 @@ export interface operations {
                 };
             };
             /** @description The provider or a required connection service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getSocialConnectionAvailability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete current configuration readiness for the supported connection branches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialConnectionAvailability"];
+                };
+            };
+            /** @description The request includes unsupported query parameters. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Workspace administration or content draft entitlement is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Social sets are not enabled in this deployment. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The workspace API request quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description The workspace binding or adapter availability could not be verified. */
             503: {
                 headers: {
                     [name: string]: unknown;

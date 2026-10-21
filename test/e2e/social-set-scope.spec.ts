@@ -1,3 +1,4 @@
+import { connectionAvailabilityFixture } from './framework/social-availability'
 import { randomUUID } from 'node:crypto'
 import { startHttpMockServer } from './framework/http-server'
 import { socialMockPort } from './framework/content-drafts'
@@ -78,6 +79,8 @@ test('private social-set caches and delayed mutations stay in their original wor
   await enablePublishingTwoFactor(page, identity.password)
   await bindTestGoOrganization(page)
   const provider = await startHttpMockServer((request) => {
+    if (request.url === '/api/public/v1/connection-availability')
+      return { body: connectionAvailabilityFixture() }
     if (request.url === '/api/public/v1/me')
       return { body: { organization: { id: `go-${alpha.workspace.id}` } } }
     if (request.url === '/api/public/v1/social/x')

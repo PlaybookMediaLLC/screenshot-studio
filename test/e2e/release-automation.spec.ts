@@ -351,8 +351,8 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
     await page.screenshot({ path: '.context/workflows-dashboard.png', fullPage: true })
     await page.getByRole('button', { name: 'Deactivate Stable releases to review' }).click()
     await expect(
-      page.getByRole('button', { name: 'Activate Stable releases to review' })
-    ).toBeVisible()
+      page.getByRole('button', { name: 'Activate Stable releases to review', exact: true })
+    ).toBeEnabled()
     const after = `${title} after disable`
     expect((await deliver(JSON.stringify(payload(releaseId + 2, after, false)))).status).toBe(200)
     await page.goto('/workflows/runs')

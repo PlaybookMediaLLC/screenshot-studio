@@ -7,6 +7,8 @@ import {
   creativeSetDocumentInputSchema,
   creativeSetDuplicateInputSchema,
   creativeSetListInputSchema,
+  creativeSetLookupInputSchema,
+  creativeSetIdSchema,
   creativeSetRefInputSchema,
   creativeSetRenameInputSchema,
   creativeSetRestoreInputSchema,
@@ -44,7 +46,7 @@ import {
 const READ: TenantAccessRequirement = { apiKeyScope: 'artifact:read', permission: 'artifact:read' }
 const EDIT: TenantAccessRequirement = { apiKeyScope: 'asset:write', permission: 'artifact:edit' }
 
-function found<T>(value: T | null | false, what = 'CreativeSet'): T {
+function found<T>(value: T | null | false, what = 'Story Set'): T {
   if (!value) throw new TRPCError({ code: 'NOT_FOUND', message: `${what} not found.` })
   return value
 }
@@ -104,8 +106,12 @@ export const creativeSetRouter = router({
     .input(creativeSetListInputSchema)
     .query(({ ctx, input }) => listCreativeSets(ctx.tenant, input)),
   get: tenantProcedure(READ)
-    .input(creativeSetRefInputSchema)
-    .query(async ({ ctx, input }) => found(await getCreativeSet(ctx.tenant, input.creativeSetId))),
+    .input(creativeSetLookupInputSchema)
+    .query(async ({ ctx, input }) => {
+      if (!creativeSetIdSchema.safeParse(input.creativeSetId).success)
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Story Set not found.' })
+      return found(await getCreativeSet(ctx.tenant, input.creativeSetId))
+    }),
   create: tenantProcedure(EDIT)
     .input(creativeSetCreateInputSchema)
     .mutation(({ ctx, input }) => createCreativeSet(ctx.tenant, input)),

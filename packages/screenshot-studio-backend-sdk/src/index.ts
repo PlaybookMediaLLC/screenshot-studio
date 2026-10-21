@@ -18,6 +18,7 @@ import type {
   AutomationEventSnapshot,
   AutomationPreview,
   AutomationHistoryItem,
+  AutomationRunSummary,
   AutomationRunDetail,
   AutomationVersion,
   AutomationHistoryFilter,
@@ -2114,6 +2115,13 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
+  /** Read-only guidance inherited by a member's social sets. */
+  async getWritingDefaults() {
+    return this.request<{ tone: string; audience: string; prohibitedPhrases: string[] }>(
+      'v1/brand-profile?view=writing-defaults'
+    )
+  }
+
   async getBrandProfile() {
     return this.request<{ brandProfile: BrandProfile | null }>('v1/brand-profile')
   }
@@ -3780,6 +3788,13 @@ export class ScreenshotStudioBackendSDK {
     const query = new URLSearchParams()
     for (const [key, value] of Object.entries(filter)) if (value) query.set(key, value)
     return this.request<{ items: AutomationHistoryItem[] }>(`v1/release-automation/runs?${query}`)
+  }
+
+  /** Read small run summaries; full evidence is available from the run detail endpoint. */
+  async listReleaseAutomationRunSummaries(filter: AutomationHistoryFilter = {}, limit = 50) {
+    const query = new URLSearchParams({ summary: 'true', limit: String(limit) })
+    for (const [key, value] of Object.entries(filter)) if (value) query.set(key, value)
+    return this.request<{ items: AutomationRunSummary[] }>(`v1/release-automation/runs?${query}`)
   }
 
   /** List a definition's immutable activated versions, newest first. */

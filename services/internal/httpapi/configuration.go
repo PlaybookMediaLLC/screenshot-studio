@@ -121,6 +121,32 @@ func (s *Server) createBrandKit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getBrandProfile(w http.ResponseWriter, r *http.Request) {
+	// Writers can inspect inherited guidance without access to the editable profile.
+	if r.URL.Query().Get("view") == "writing-defaults" {
+		if actor := requestActor(r); actor.Kind != "session" && actor.Kind != "" {
+			writeError(w, http.StatusForbidden, "sign in to read writing defaults")
+			return
+		}
+		actor, ok := s.productReadActor(w, r)
+		if !ok {
+			return
+		}
+		profile, err := s.configuration.GetBrandProfile(r.Context(), actor.OrganizationID)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		tone, audience := "", ""
+		terms := []string{}
+		if profile != nil {
+			tone, audience = profile.Tone, profile.Audience
+			for _, term := range profile.ProhibitedTerms {
+				terms = append(terms, term.Term)
+			}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"tone": tone, "audience": audience, "prohibitedPhrases": terms})
+		return
+	}
 	actor, ok := s.configurationActor(w, r)
 	if !ok {
 		return

@@ -1,6 +1,9 @@
 'use client'
 
+import { WritingInheritance } from '@/components/settings/WritingInheritance'
 import { Lock } from 'lucide-react'
+import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
+import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { Group, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -143,7 +146,9 @@ export function Provenance({
         <Lock aria-hidden className="size-3" />
         Edited by you
         {canManage ? (
-          <Button variant="custom" size={null}
+          <Button
+            variant="custom"
+            size={null}
             className="text-foreground/80 underline underline-offset-2 hover:text-foreground"
             onClick={onUnlock}
             type="button"
@@ -186,6 +191,7 @@ export function ProductProfileForm({
   onSaved,
   profile: initialProfile,
   submitLabel,
+  settings = false,
 }: {
   /** Disables the form while the caller works with the saved profile. */
   busy?: boolean
@@ -195,12 +201,16 @@ export function ProductProfileForm({
   onSaved: (profile: StoredProductProfile) => void | Promise<void>
   profile: StoredProductProfile | null
   submitLabel: string
+  settings?: boolean
 }) {
   const trpcClient = useTRPCClient()
   const [profile, setProfile] = useState(initialProfile)
   const [values, setValues] = useState(() => toForm(initialProfile, initialUrl))
   const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [savedValues, setSavedValues] = useState(() => toForm(initialProfile, initialUrl))
+  const dirty = JSON.stringify(values) !== JSON.stringify(savedValues)
+  useUnsavedSettings(settings && dirty)
 
   async function save(input: ProductProfileUpsertInput): Promise<StoredProductProfile | null> {
     const parsed = productProfileUpsertSchema.safeParse(input)
@@ -222,7 +232,10 @@ export function ProductProfileForm({
     try {
       const changes = changedFields(values, profile)
       const saved = Object.keys(changes).length > 0 || !profile ? await save(changes) : profile
-      if (saved) await onSaved(saved)
+      if (saved) {
+        setSavedValues(values)
+        await onSaved(saved)
+      }
     } catch (requestError) {
       setError(getErrorMessage(requestError))
     } finally {
@@ -295,11 +308,23 @@ export function ProductProfileForm({
           </Alert>
         ) : null}
         {canManage ? (
-          <div className="flex justify-end">
-            <Button className="rounded-lg" type="submit">
-              {isSaving ? 'Saving…' : submitLabel}
-            </Button>
-          </div>
+          settings ? (
+            <SettingsSaveBar
+              dirty={dirty}
+              busy={isSaving}
+              label={submitLabel}
+              onDiscard={() => {
+                setValues(savedValues)
+                setError(null)
+              }}
+            />
+          ) : (
+            <div className="flex justify-end">
+              <Button className="rounded-lg" type="submit">
+                {isSaving ? 'Saving…' : submitLabel}
+              </Button>
+            </div>
+          )
         ) : null}
       </fieldset>
     </form>
@@ -336,12 +361,16 @@ export function WorkspaceProductProfile({ canManage }: { canManage: boolean }) {
           <p className="text-sm text-muted-foreground">Loading…</p>
         )
       ) : (
-        <ProductProfileForm
-          canManage={canManage}
-          onSaved={() => setMessage('Product profile saved.')}
-          profile={profile}
-          submitLabel="Save product profile"
-        />
+        <>
+          <WritingInheritance />
+          <ProductProfileForm
+            canManage={canManage}
+            onSaved={() => setMessage('Product profile saved.')}
+            profile={profile}
+            settings
+            submitLabel="Save product profile"
+          />
+        </>
       )}
       {message ? (
         <p className="text-sm text-foreground/65" role="status">

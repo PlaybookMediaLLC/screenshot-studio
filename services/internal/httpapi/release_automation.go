@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
@@ -215,6 +216,14 @@ func (s *Server) automationHistory(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	filter := product.AutomationHistoryFilter{Mode: query.Get("mode"), Before: query.Get("before"), DefinitionID: query.Get("definitionId"), VersionID: query.Get("versionId"),
 		SourceAppID: query.Get("sourceAppId"), Family: automation.Family(query.Get("family")), Status: query.Get("status")}
+	if value := query.Get("limit"); value != "" {
+		limit, err := strconv.Atoi(value)
+		if err != nil || limit < 1 || limit > 50 {
+			writeError(w, 400, "limit must be 1–50")
+			return
+		}
+		filter.Limit = limit
+	}
 	for name, target := range map[string]**time.Time{"since": &filter.Since, "until": &filter.Until} {
 		if value := query.Get(name); value != "" {
 			parsed, err := time.Parse(time.RFC3339, value)
@@ -228,6 +237,14 @@ func (s *Server) automationHistory(w http.ResponseWriter, r *http.Request) {
 	result, err := store.ListAutomationHistory(r.Context(), workspaceActor(r), filter)
 	if err != nil {
 		writeStoreError(w, err)
+		return
+	}
+	if query.Get("summary") == "true" {
+		items := make([]product.AutomationHistorySummary, 0, len(result))
+		for _, item := range result {
+			items = append(items, product.SummarizeAutomationRun(item))
+		}
+		writeJSON(w, 200, map[string]any{"items": items})
 		return
 	}
 	writeJSON(w, 200, map[string]any{"items": result})

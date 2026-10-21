@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { Group, Row } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
+import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
+import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { Input } from '@/components/ui/input'
 import { authClient } from '@/lib/auth/client'
 import { getAuthErrorMessage } from './error-message'
@@ -22,6 +23,10 @@ type ProfileFormProps = {
 
 export function ProfileForm({ email, name }: ProfileFormProps) {
   const router = useRouter()
+  const [savedName, setSavedName] = useState(name)
+  const [draftName, setDraftName] = useState(name)
+  const dirty = draftName !== savedName
+  useUnsavedSettings(dirty)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -40,6 +45,8 @@ export function ProfileForm({ email, name }: ProfileFormProps) {
     try {
       const result = await authClient.updateUser(input.data)
       if (result.error) throw new Error(result.error.message || 'Could not update your profile.')
+      setSavedName(input.data.name)
+      setDraftName(input.data.name)
       setMessage('Profile updated.')
       router.refresh()
     } catch (requestError) {
@@ -59,14 +66,17 @@ export function ProfileForm({ email, name }: ProfileFormProps) {
           <Input
             autoComplete="name"
             className="h-10 rounded-lg md:w-72"
-            defaultValue={name}
+            value={draftName}
+            onChange={(event) => setDraftName(event.target.value)}
+            disabled={isSubmitting}
+            maxLength={100}
             id="profile-name"
             name="name"
             required
           />
         </Row>
         <Row
-          description="Used to sign in. It cannot be changed here."
+          description="Used to sign in and receive notifications. Use Change email below to update it."
           label={<Label htmlFor="profile-email">Email</Label>}
         >
           <Input
@@ -88,11 +98,17 @@ export function ProfileForm({ email, name }: ProfileFormProps) {
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="flex justify-end">
-        <Button className="rounded-lg" disabled={isSubmitting} type="submit">
-          {isSubmitting ? 'Saving…' : 'Save profile'}
-        </Button>
-      </div>
+      <SettingsSaveBar
+        dirty={dirty}
+        busy={isSubmitting}
+        disabled={!draftName.trim()}
+        label="Save profile"
+        onDiscard={() => {
+          setDraftName(savedName)
+          setError(null)
+          setMessage(null)
+        }}
+      />
     </form>
   )
 }

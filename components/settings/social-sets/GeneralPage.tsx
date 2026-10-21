@@ -1,14 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { ChannelIcon } from '@/components/drafts/channel-meta'
 import { Group, Pill, Row } from '@/components/platform-ui'
 import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 import { SaveStatus, useSaveState } from '@/components/settings/controls'
+import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
+import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { DeveloperId } from '@/components/settings/DeveloperId'
-import { settingsHref, SETTINGS_SECTIONS, socialSetHref } from '@/components/workspace/settings-sections'
+import {
+  settingsHref,
+  SETTINGS_SECTIONS,
+  socialSetHref,
+} from '@/components/workspace/settings-sections'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -32,22 +38,42 @@ function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRe
   const [name, setName] = useState(set.name)
   const [nameState, runName] = useSaveState()
   const [colorState, runColor] = useSaveState()
-  useEffect(() => setName(set.name), [set.name])
+  const previousValue = useRef(JSON.stringify(set.name))
+  useEffect(() => {
+    const previous = previousValue.current
+    previousValue.current = JSON.stringify(set.name)
+    setName((current) => (JSON.stringify(current) === previous ? set.name : current))
+  }, [set.name])
   const trimmed = name.trim()
+  const dirty = name !== set.name
+  useUnsavedSettings(dirty)
   return (
     <>
-      <Row description="Names can repeat; each set is its own by ID." label="Name">
+      <Row description="Choose a name that helps your team recognize this set." label="Name">
         <form
           className="flex flex-wrap items-center gap-2"
           onSubmit={(event) => {
             event.preventDefault()
-            void runName(() => save({ name: trimmed }))
+            void runName(() => save({ name: trimmed })).then((saved) => {
+              if (saved) setName(trimmed)
+            })
           }}
         >
-          <Input aria-label="Brand name" className="w-64" disabled={!canManage} maxLength={80} onChange={(event) => setName(event.target.value)} value={name} />
-          <Button disabled={!canManage || trimmed.length === 0 || trimmed === set.name} type="submit" variant="outline">
-            Save name
-          </Button>
+          <Input
+            aria-label="Brand name"
+            className="w-64"
+            disabled={!canManage || nameState === 'saving'}
+            maxLength={80}
+            onChange={(event) => setName(event.target.value)}
+            value={name}
+          />
+          <SettingsSaveBar
+            dirty={dirty}
+            busy={nameState === 'saving'}
+            disabled={!canManage || !trimmed}
+            label="Save name"
+            onDiscard={() => setName(set.name)}
+          />
           <SaveStatus state={nameState} />
         </form>
       </Row>
@@ -88,7 +114,9 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
       label={<span id="accounts">Connected accounts</span>}
       layout="stacked"
     >
-      {set.accounts.length === 0 ? <p className="text-sm text-muted-foreground">No accounts yet. Connect one below.</p> : null}
+      {set.accounts.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No accounts yet. Connect one below.</p>
+      ) : null}
       <ul className="grid gap-2">
         {set.accounts.map((account) => {
           const channel = channelForPlatform(account.platform)
@@ -96,26 +124,44 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
           const healthy = account.health === 'connected'
           const name = account.displayName ?? account.handle ?? account.platform
           return (
-            <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2" key={account.id}>
+            <li
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
+              key={account.id}
+            >
               <span className="flex min-w-0 items-center gap-2">
-                {channel ? <ChannelIcon channel={channel} className="size-4 text-foreground/80" /> : null}
+                {channel ? (
+                  <ChannelIcon channel={channel} className="size-4 text-foreground/80" />
+                ) : null}
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-foreground">
                     {name}
-                    {account.handle ? <span className="font-normal text-muted-foreground"> @{account.handle}</span> : null}
+                    {account.handle ? (
+                      <span className="font-normal text-muted-foreground"> @{account.handle}</span>
+                    ) : null}
                   </span>
-                  <span className={healthy ? 'text-xs text-muted-foreground' : 'text-xs text-amber-700 dark:text-amber-300'}>
+                  <span
+                    className={
+                      healthy
+                        ? 'text-xs text-muted-foreground'
+                        : 'text-xs text-amber-700 dark:text-amber-300'
+                    }
+                  >
                     {HEALTH_GUIDANCE[account.health]}
                   </span>
                 </span>
-                <Pill tone={healthy ? 'green' : 'yellow'}>{account.health.replaceAll('_', ' ')}</Pill>
+                <Pill tone={healthy ? 'green' : 'yellow'}>
+                  {account.health.replaceAll('_', ' ')}
+                </Pill>
                 <DeveloperId id={account.id} label="Account" />
               </span>
               {canManage ? (
                 <span className="flex flex-wrap gap-2">
                   {provider ? (
                     // A plain link: prefetching the start route would begin an OAuth flow.
-                    <a className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-foreground/[0.04]" href={connectHref(provider, set.id)}>
+                    <a
+                      className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-foreground/[0.04]"
+                      href={connectHref(provider, set.id)}
+                    >
                       Reconnect
                     </a>
                   ) : null}
@@ -123,9 +169,18 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
                     confirmLabel="Remove account"
                     description={
                       <>
-                        <p>Its queued posts are cancelled and nothing more publishes through it. A post already publishing blocks the removal until it finishes.</p>
-                        <p>Drafts that chose it keep it marked as removed, and new drafts stop using it as a default. Published posts and their history stay.</p>
-                        <p>Follow-ups waiting on published posts, such as auto-retweets, do not run once it is removed.</p>
+                        <p>
+                          Its queued posts are cancelled and nothing more publishes through it. A
+                          post already publishing blocks the removal until it finishes.
+                        </p>
+                        <p>
+                          Drafts that chose it keep it marked as removed, and new drafts stop using
+                          it as a default. Published posts and their history stay.
+                        </p>
+                        <p>
+                          Follow-ups waiting on published posts, such as auto-retweets, do not run
+                          once it is removed.
+                        </p>
                       </>
                     }
                     destructive
@@ -136,7 +191,12 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
                           socialSetRemovalSchema,
                           { method: 'DELETE' }
                         )
-                        await store(await settingsRequest(`/api/v1/social-sets/${encodeURIComponent(set.id)}`, socialSetSchema))
+                        await store(
+                          await settingsRequest(
+                            `/api/v1/social-sets/${encodeURIComponent(set.id)}`,
+                            socialSetSchema
+                          )
+                        )
                         toast.success(
                           removal.cancelledPostIds.length > 0
                             ? `Removed. ${removal.cancelledPostIds.length} queued posts were cancelled.`
@@ -158,11 +218,20 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
       </ul>
       {canManage ? (
         <div className="grid gap-2">
-          <p className="text-xs text-muted-foreground">Add a social account. You sign in with the platform, then come back here.</p>
+          <p className="text-xs text-muted-foreground">
+            Add a social account. You sign in with the platform, then come back here.
+          </p>
           <div className="flex flex-wrap gap-2">
             {CONNECT_PROVIDERS.map((provider) =>
               connected.has(provider.platform) ? (
-                <Button disabled key={provider.provider} size="sm" title="This set already has an account on this platform." type="button" variant="outline">
+                <Button
+                  disabled
+                  key={provider.provider}
+                  size="sm"
+                  title="This set already has an account on this platform."
+                  type="button"
+                  variant="outline"
+                >
                   {provider.label} connected
                 </Button>
               ) : (
@@ -177,7 +246,11 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            Bluesky connects with an app password through the API for now. <Link className="underline" href={socialSetHref(set.id, 'new-draft')}>Choose default platforms for new drafts</Link>.
+            Bluesky connects with an app password through the API for now.{' '}
+            <Link className="underline" href={socialSetHref(set.id, 'new-draft')}>
+              Choose default platforms for new drafts
+            </Link>
+            .
           </p>
         </div>
       ) : null}
@@ -208,8 +281,8 @@ function Ownership({ canManage, set }: { canManage: boolean; set: SocialSetRecor
           description={
             <>
               <p>
-                {set.accounts.length} account{set.accounts.length === 1 ? '' : 's'} and every draft in {set.name} become visible to the
-                workspace.
+                {set.accounts.length} account{set.accounts.length === 1 ? '' : 's'} and every draft
+                in {set.name} become visible to the workspace.
               </p>
               <p>Members can then write, schedule and publish with it according to their role.</p>
             </>
@@ -217,7 +290,11 @@ function Ownership({ canManage, set }: { canManage: boolean; set: SocialSetRecor
           onConfirm={async () => {
             try {
               await store(
-                await settingsRequest(`/api/v1/social-sets/${encodeURIComponent(set.id)}/share`, socialSetSchema, { method: 'POST' })
+                await settingsRequest(
+                  `/api/v1/social-sets/${encodeURIComponent(set.id)}/share`,
+                  socialSetSchema,
+                  { method: 'POST' }
+                )
               )
               return null
             } catch (error) {
@@ -251,10 +328,14 @@ function DangerZone({ permissions, set }: { permissions: SetPermissions; set: So
           disabled={!allowed}
           onConfirm={async (typed) => {
             try {
-              await settingsRequest(`/api/v1/social-sets/${encodeURIComponent(set.id)}`, socialSetRemovalSchema, {
-                body: { confirmation: typed },
-                method: 'DELETE',
-              })
+              await settingsRequest(
+                `/api/v1/social-sets/${encodeURIComponent(set.id)}`,
+                socialSetRemovalSchema,
+                {
+                  body: { confirmation: typed },
+                  method: 'DELETE',
+                }
+              )
               window.location.assign(settingsHref(list))
               return null
             } catch (error) {
@@ -270,7 +351,13 @@ function DangerZone({ permissions, set }: { permissions: SetPermissions; set: So
 }
 
 /** A set's identity, accounts, sharing and deletion. */
-export function GeneralPage({ permissions, set }: { permissions: SetPermissions; set: SocialSetRecord }) {
+export function GeneralPage({
+  permissions,
+  set,
+}: {
+  permissions: SetPermissions
+  set: SocialSetRecord
+}) {
   return (
     <div className="grid gap-6">
       <Group>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -12,7 +13,7 @@ import {
   AlertDialogAction,
 } from '@/components/ui/alert-dialog'
 import type { AutomationDefinition } from '@/lib/api/contracts/release-automation'
-import { useTRPCClient } from '@/lib/trpc/react'
+import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from '@/components/workspace/settings-client'
 
 /** Archive with confirmation; preserve history and allow an inactive restore. */
@@ -26,6 +27,8 @@ export function WorkflowArchiveButton({
   disabled?: boolean
 }) {
   const client = useTRPCClient()
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -77,7 +80,10 @@ export function WorkflowArchiveButton({
                     revision: definition.revision,
                     archived: !definition.archived,
                   })
-                  .then(() => {
+                  .then(async () => {
+                    await queryClient.invalidateQueries({
+                      queryKey: trpc.releaseAutomation.overview.queryKey(),
+                    })
                     setOpen(false)
                     onChanged()
                   })

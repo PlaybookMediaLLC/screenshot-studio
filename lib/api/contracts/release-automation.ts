@@ -151,7 +151,7 @@ export const automationSaveSchema = z.object({
   sourceAppId: z.string().min(1).max(64),
   name: z.string().trim().min(1).max(160),
   description: z.string().max(2000),
-  priority: z.number().int().min(0).max(9999),
+  priority: z.int().min(0, 'Must be 0–9999.').max(9999, 'Must be 0–9999.'),
   expectedRevision: z.number().int().nonnegative(),
   graph: automationGraphSchema,
   layout: automationLayoutSchema,

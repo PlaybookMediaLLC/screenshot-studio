@@ -1,7 +1,7 @@
 'use client'
 
 import { Pill, type PillTone } from '@/components/platform-ui'
-import { type AutomationHistoryItem } from '@/lib/api/contracts/release-automation'
+import { type AutomationRunSummary } from '@/lib/api/contracts/workflow-runs'
 import {
   automationRunStatusSchema,
   type AutomationRunStatus,
@@ -57,7 +57,7 @@ export function duration(start: string, end: string | null) {
 }
 
 /** The object that triggered a run: a release tag, PR number, or deployment. */
-export function triggeringObject(item: AutomationHistoryItem) {
+export function triggeringObject(item: AutomationRunSummary) {
   const { snapshot } = item.event
   const tag = snapshot.fields['release.tag']?.values?.[0]
   if (snapshot.family === 'pull_request.merged' && snapshot.number) return `PR #${snapshot.number}`

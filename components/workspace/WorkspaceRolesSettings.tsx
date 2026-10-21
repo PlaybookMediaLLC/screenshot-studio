@@ -1,53 +1,53 @@
-import { Group, Pill, Row } from '@/components/platform-ui'
-import { getRolePermissions, organizationRoles, permissions } from '@/lib/auth/permissions'
-
-const roleSummaries: Record<(typeof organizationRoles)[number], string> = {
-  admin: 'Manage the workspace, members, identity, brand, publishing, and audit controls.',
-  approver: 'Review and approve artifacts before they are published.',
-  creator: 'Create releases and edit content artifacts.',
-  owner: 'Full workspace access, including ownership and enterprise controls.',
-  publisher: 'Manage connected publishing providers and scheduled posts.',
-  viewer: 'Read approved artifacts without changing workspace data.',
-}
+import { getRolePermissions, hasPermission, organizationRoles } from '@/lib/auth/permissions'
+import { roleCapabilities, roleSummaries } from '@/lib/auth/role-descriptions'
 
 export function WorkspaceRolesSettings() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="grid gap-6">
       <p className="text-sm text-muted-foreground">
-        Roles are fixed policy definitions. Assign a role to a member from the Members section.
+        Choose the smallest role that covers a teammate’s work. Change roles in Members.
       </p>
-      <Group>
-        {organizationRoles.map((role) => (
-          <Row
-            description={roleSummaries[role]}
-            key={role}
-            label={<span className="capitalize">{role}</span>}
-            layout="inline"
-          >
-            <Pill tone={role === 'owner' ? 'purple' : 'gray'}>
-              {getRolePermissions(role).length} permissions
-            </Pill>
-          </Row>
-        ))}
-      </Group>
-      <Group>
-        <Row
-          description="Every permission a role can grant."
-          label="Defined permissions"
-          layout="stacked"
-        >
-          <div className="flex flex-wrap gap-1.5">
-            {permissions.map((permission) => (
-              <span
-                className="rounded-md bg-foreground/[0.04] px-2 py-0.5 font-mono text-xs text-foreground/65 ring-1 ring-foreground/[0.06]"
-                key={permission}
-              >
-                {permission}
-              </span>
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="w-full text-left text-sm">
+          <caption className="sr-only">Workspace role capabilities</caption>
+          <thead>
+            <tr>
+              <th className="p-4" scope="col">
+                Role
+              </th>
+              {roleCapabilities.map(({ label }) => (
+                <th className="p-4" scope="col" key={label}>
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {organizationRoles.map((role) => (
+              <tr className="border-t border-border" key={role}>
+                <th className="max-w-64 p-4 font-normal" scope="row">
+                  <span className="font-medium capitalize">{role}</span>
+                  <p className="mt-1 text-xs text-muted-foreground">{roleSummaries[role]}</p>
+                </th>
+                {roleCapabilities.map(({ permission }) => (
+                  <td className="p-4" key={permission}>
+                    {hasPermission(role, permission) ? 'Yes' : '—'}
+                  </td>
+                ))}
+              </tr>
             ))}
-          </div>
-        </Row>
-      </Group>
+          </tbody>
+        </table>
+      </div>
+      <details className="text-sm text-muted-foreground">
+        <summary className="cursor-pointer">Technical permission details</summary>
+        {organizationRoles.map((role) => (
+          <p className="mt-3" key={role}>
+            <strong className="capitalize">{role}: </strong>
+            {getRolePermissions(role).join(', ')}
+          </p>
+        ))}
+      </details>
     </div>
   )
 }

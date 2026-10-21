@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { KeyExpiry } from '@/components/settings/KeyExpiry'
 import { Label } from '@/components/ui/label'
 import { API_KEY_PLACEHOLDER, MCP_CLIENTS, type McpClientGuide } from '@/lib/agents/mcp-clients'
 import { apiKeyScopeDescriptions, apiKeyScopes, type ApiKeyScope } from '@/lib/auth/api-key-scopes'
@@ -67,7 +68,8 @@ export function WorkspaceAgentSettings({
     try {
       const expiresInDays = data.get('expiresInDays')
       const result = await trpcClient.apiKey.create.mutate({
-        expiresInDays: expiresInDays ? Number(expiresInDays) : undefined,
+        expiresInDays:
+          expiresInDays && expiresInDays !== 'never' ? Number(expiresInDays) : undefined,
         name: String(data.get('name') ?? ''),
         scopes: data.getAll('scopes').map(String) as ApiKeyScope[],
       })
@@ -99,7 +101,7 @@ export function WorkspaceAgentSettings({
   return (
     <div className="flex flex-col gap-10">
       <Section
-        description="Every agent connects to this one URL. It is served by the Shots backend, and each call is checked like the REST API: the key's scopes, your plan, and your quotas."
+        description="Connect your AI client with this URL. You choose what it can do; your plan and usage limits still apply."
         title="MCP server"
       >
         <Group>
@@ -259,19 +261,7 @@ function AgentKeyForm({
             required
           />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label className={fieldLabel} htmlFor="agent-key-expires">
-            Expiry (optional)
-          </Label>
-          <Input
-            className="h-10 rounded-lg"
-            id="agent-key-expires"
-            min="1"
-            name="expiresInDays"
-            placeholder="Days"
-            type="number"
-          />
-        </div>
+        <KeyExpiry id="agent-key-expires" />
       </div>
       <fieldset className="flex flex-col gap-2">
         <legend className={`mb-2 ${fieldLabel}`}>What the agent may do</legend>

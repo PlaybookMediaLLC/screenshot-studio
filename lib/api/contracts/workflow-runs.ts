@@ -3,6 +3,8 @@ import {
   automationFamilySchema,
   automationGraphSchema,
   automationRevisionSchema,
+  automationEventSchema,
+  automationHistoryItemSchema,
 } from './release-automation'
 
 /** Persisted run states; review and publishing state belong to the campaign. */
@@ -69,3 +71,21 @@ export type AutomationVersion = z.infer<typeof automationVersionSchema>
 
 /** Archive or restore the last saved revision without deleting run history. */
 export const automationArchiveSchema = automationRevisionSchema.extend({ archived: z.boolean() })
+/** List evidence excludes release notes, enrichment, and unrelated GitHub fields. */
+export const automationRunSummarySchema = automationHistoryItemSchema.extend({
+  event: automationHistoryItemSchema.shape.event
+    .pick({ id: true, sourceAppId: true, receivedAt: true, mode: true })
+    .extend({
+      snapshot: automationEventSchema.pick({
+        family: true,
+        repositoryName: true,
+        objectId: true,
+        number: true,
+        title: true,
+        fields: true,
+      }),
+    }),
+})
+
+/** A lightweight run for overview and history lists. */
+export type AutomationRunSummary = z.infer<typeof automationRunSummarySchema>

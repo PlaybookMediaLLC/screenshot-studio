@@ -19,7 +19,10 @@ export function runDateDay(boundary?: string, end = false): string {
 }
 
 /** Explain runs without a selected definition without attributing legacy work to workflows. */
-export function runHandler(item: AutomationHistoryItem): string {
+export function runHandler(item: {
+  event: Pick<AutomationHistoryItem['event'], 'mode'>
+  run: Pick<AutomationHistoryItem['run'], 'definitionId'>
+}): string {
   return item.event.mode === 'legacy'
     ? 'Legacy intake'
     : item.run.definitionId

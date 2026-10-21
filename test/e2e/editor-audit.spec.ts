@@ -434,8 +434,8 @@ test('Editor expands inline in the rail and mobile navigation; Settings opens it
   await expect(settings).toHaveAttribute('aria-current', 'page')
   const settingsLinks = page.getByRole('navigation', { name: 'Settings', exact: true })
   // Every settings section, including RFC 043's Appearance, Install, Experimental,
-  // New team and Social sets.
-  await expect(settingsLinks.getByRole('link')).toHaveCount(22)
+  // Social sets. Create workspace lives in the account menu.
+  await expect(settingsLinks.getByRole('link')).toHaveCount(21)
   await expect(
     settingsLinks.getByRole('link', { name: 'Notifications', exact: true })
   ).toHaveAttribute('href', '/workspace/notifications')

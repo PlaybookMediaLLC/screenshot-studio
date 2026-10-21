@@ -3,7 +3,8 @@
 import { Search01Icon, WorkflowSquare03Icon } from 'hugeicons-react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { EmptyState, Group, Pill, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -21,14 +22,13 @@ import { getErrorMessage } from '@/components/workspace/settings-client'
 import {
   automationFamilySchema,
   type AutomationDefinition,
-  type AutomationHistoryItem,
-  type AutomationOverview,
 } from '@/lib/api/contracts/release-automation'
-import { useTRPCClient } from '@/lib/trpc/react'
+import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
 import { FAMILY_NAMES } from './workflow-canvas'
 import { RunStatusPill, relativeTime, triggeringObject } from './workflow-ui'
 import { WorkflowArchiveButton } from './WorkflowArchiveButton'
 import { runHandler } from '@/lib/workflows/history'
+import { WorkflowRunLink } from './WorkflowRunLink'
 import { WorkflowSources } from './WorkflowSources'
 
 const PAGE_SIZE = 10
@@ -71,9 +71,26 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
   const client = useTRPCClient()
   const params = useSearchParams()
   const pathname = usePathname()
-  const [overview, setOverview] = useState<AutomationOverview | null>(null)
-  const [recent, setRecent] = useState<AutomationHistoryItem[]>([])
-  const [error, setError] = useState<string | null>(null)
+  const trpc = useTRPC()
+  const overviewQuery = useQuery(
+    trpc.releaseAutomation.overview.queryOptions(undefined, {
+      staleTime: 15_000,
+      refetchInterval: 15_000,
+    })
+  )
+  const recentQuery = useQuery(
+    trpc.releaseAutomation.recentRuns.queryOptions(undefined, {
+      staleTime: 15_000,
+      refetchInterval: 15_000,
+    })
+  )
+  const overview = overviewQuery.data
+  const recent = recentQuery.data?.items ?? []
+  const [actionError, setError] = useState<string | null>(null)
+  const queryError = overviewQuery.error ?? recentQuery.error
+  const error = actionError ?? (queryError ? getErrorMessage(queryError) : null)
+  const { refetch: refreshOverview } = overviewQuery
+  const { refetch: refreshRecent } = recentQuery
   const [busy, setBusy] = useState(false)
   const query = params.get('q') ?? ''
   const state = (
@@ -99,22 +116,8 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
   const clearFilters = () => window.history.replaceState(null, '', pathname)
 
   const load = useCallback(async () => {
-    try {
-      const [next, history] = await Promise.all([
-        client.releaseAutomation.overview.query(),
-        client.releaseAutomation.history.query({}),
-      ])
-      setOverview(next)
-      setRecent(history.items)
-    } catch (failure) {
-      setError(getErrorMessage(failure))
-    }
-  }, [client])
-  useEffect(() => {
-    void load()
-    const timer = setInterval(() => void load(), 15_000)
-    return () => clearInterval(timer)
-  }, [load])
+    await Promise.all([refreshOverview(), refreshRecent()])
+  }, [refreshOverview, refreshRecent])
 
   const perform = useCallback(
     (action: () => Promise<unknown>) => {
@@ -392,6 +395,15 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                             · draft revision {definition.revision} · {definition.recentRuns ?? 0}{' '}
                             runs in 30 days
                           </span>
+                          <span className="block">
+                            Last edited{' '}
+                            <time
+                              dateTime={definition.updatedAt}
+                              title={new Date(definition.updatedAt).toLocaleString()}
+                            >
+                              {relativeTime(definition.updatedAt)}
+                            </time>
+                          </span>
                           {definition.issues.map((issue, index) => (
                             <Link
                               key={index}
@@ -436,13 +448,13 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                     >
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         {definition.lastRun ? (
-                          <Link
+                          <WorkflowRunLink
                             className="flex items-center gap-2 text-xs text-neutral-500 hover:text-neutral-200"
                             href={`/workflows/runs/${definition.lastRun.id}`}
                           >
                             <RunStatusPill status={definition.lastRun.status} />
                             {relativeTime(definition.lastRun.createdAt)}
-                          </Link>
+                          </WorkflowRunLink>
                         ) : (
                           <span className="text-xs text-neutral-600">No runs yet</span>
                         )}
@@ -571,9 +583,12 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                   description={`${definitionName(item.run.definitionId) ?? runHandler(item)} · ${triggeringObject(item)} · ${relativeTime(item.event.receivedAt)}`}
                   key={item.run.id}
                   label={
-                    <Link className="hover:underline" href={`/workflows/runs/${item.run.id}`}>
+                    <WorkflowRunLink
+                      className="hover:underline"
+                      href={`/workflows/runs/${item.run.id}`}
+                    >
                       {item.event.snapshot.title}
-                    </Link>
+                    </WorkflowRunLink>
                   }
                   layout="inline"
                 >

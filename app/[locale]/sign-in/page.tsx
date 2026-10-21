@@ -10,19 +10,26 @@ export const metadata: Metadata = { title: 'Sign in' }
 
 type AuthPageProps = {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ callbackURL?: string | string[] }>
+  searchParams: Promise<{ callbackURL?: string | string[]; reauthenticate?: string }>
 }
 
 export default async function SignInPage({ params, searchParams }: AuthPageProps) {
-  const [{ locale }, { callbackURL }, requestHeaders] = await Promise.all([
+  const [{ locale }, { callbackURL, reauthenticate }, requestHeaders] = await Promise.all([
     params,
     searchParams,
     headers(),
   ])
-  await redirectIfSignedIn(requestHeaders, locale, callbackURL)
+  if (reauthenticate !== '1') await redirectIfSignedIn(requestHeaders, locale, callbackURL)
 
   return (
-    <AuthShell description="Sign in to access your team workspace." title="Welcome back">
+    <AuthShell
+      description={
+        reauthenticate === '1'
+          ? 'Sign in again to confirm your identity. You will return to settings afterward.'
+          : 'Sign in to access your team workspace.'
+      }
+      title={reauthenticate === '1' ? 'Verify your identity' : 'Welcome back'}
+    >
       <Suspense fallback={null}>
         <AuthForm
           mode="sign-in"

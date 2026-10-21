@@ -1,6 +1,8 @@
 import 'server-only'
 
 import { z } from 'zod'
+import { TRPCError } from '@trpc/server'
+import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import {
   automationDefinitionSchema,
   automationHistoryItemSchema,
@@ -15,6 +17,7 @@ import {
 import {
   automationArchiveSchema,
   automationHistoryFilterSchema,
+  automationRunSummarySchema,
   automationSourceModeSchema,
   automationVersionSchema,
 } from '@/lib/api/contracts/workflow-runs'
@@ -58,7 +61,19 @@ export const releaseAutomationRouter = router({
   save: organizationProcedure('workspace:update')
     .input(automationSaveSchema)
     .output(automationDefinitionSchema)
-    .mutation(({ ctx, input }) => backendSDK(ctx.access).saveReleaseAutomation(input)),
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await backendSDK(ctx.access).saveReleaseAutomation(input)
+      } catch (error) {
+        if (error instanceof BackendSDKError && error.status === 409) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'This workflow was changed elsewhere. Reload to see the latest version.',
+          })
+        }
+        throw error
+      }
+    }),
   activate: organizationProcedure('workspace:update')
     .input(automationRevisionSchema)
     .output(automationDefinitionSchema)
@@ -98,6 +113,13 @@ export const releaseAutomationRouter = router({
     .input(automationHistoryFilterSchema.optional())
     .output(z.object({ items: z.array(automationHistoryItemSchema) }))
     .query(({ ctx, input }) => backendSDK(ctx.access).listReleaseAutomationHistory(input)),
+  recentRuns: organizationProcedure('workspace:read')
+    .output(z.object({ items: z.array(automationRunSummarySchema).max(6) }))
+    .query(({ ctx }) => backendSDK(ctx.access).listReleaseAutomationRunSummaries({}, 6)),
+  runSummaries: organizationProcedure('workspace:read')
+    .input(automationHistoryFilterSchema.optional())
+    .output(z.object({ items: z.array(automationRunSummarySchema) }))
+    .query(({ ctx, input }) => backendSDK(ctx.access).listReleaseAutomationRunSummaries(input)),
   versions: organizationProcedure('workspace:read')
     .input(automationIdentitySchema)
     .output(z.object({ items: z.array(automationVersionSchema) }))

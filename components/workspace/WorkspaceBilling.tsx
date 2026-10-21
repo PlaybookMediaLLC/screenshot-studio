@@ -120,6 +120,26 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
                 {summary.paid && status ? <Pill tone={status.tone}>{status.label}</Pill> : null}
               </div>
             </Row>
+            {summary.paid ? (
+              <Row
+                label="Plan cost"
+                description="Subscription base price before discounts, taxes, and one-time purchases."
+                layout="inline"
+              >
+                <span className="text-sm font-medium">
+                  {summary.cycle?.priceLabel ??
+                    (summary.plan === 'enterprise'
+                      ? 'Contract pricing — see your agreement'
+                      : 'Price unavailable — open Manage subscription')}
+                </span>
+              </Row>
+            ) : null}
+            {summary.paid && !summary.cycle ? (
+              <Row
+                label="Renewal"
+                description="Subscription details could not be loaded. Check your agreement or Manage subscription for the next billing date."
+              />
+            ) : null}
             {summary.paid &&
             summary.cycle &&
             (summary.cycle.cancelsAt ?? summary.cycle.renewsAt) ? (
@@ -141,6 +161,22 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
             ) : null}
             {summary.paid ? (
               <>
+                <Row
+                  label="Usage period"
+                  description={`Allowances reset ${new Date(summary.usagePeriod.resetsAt).toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' })} at 00:00 UTC, independently of your subscription renewal.`}
+                >
+                  <span className="text-sm">
+                    {new Date(summary.usagePeriod.startsAt).toLocaleDateString(undefined, {
+                      dateStyle: 'medium',
+                      timeZone: 'UTC',
+                    })}{' '}
+                    –{' '}
+                    {new Date(
+                      new Date(summary.usagePeriod.resetsAt).getTime() - 1
+                    ).toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' })}{' '}
+                    (UTC)
+                  </span>
+                </Row>
                 <UsageRow
                   allowance={summary.credits}
                   description="AI credits left this month. One credit is one cent of AI cost."

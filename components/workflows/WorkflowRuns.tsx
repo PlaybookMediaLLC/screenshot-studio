@@ -1,8 +1,9 @@
 'use client'
 
-import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { WorkflowRunLink } from './WorkflowRunLink'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -23,17 +24,13 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { getErrorMessage } from '@/components/workspace/settings-client'
-import {
-  automationFamilySchema,
-  type AutomationHistoryItem,
-  type AutomationOverview,
-} from '@/lib/api/contracts/release-automation'
+import { automationFamilySchema } from '@/lib/api/contracts/release-automation'
 import {
   automationHistoryFilterSchema,
   automationRunStatusSchema,
   type AutomationHistoryFilter,
 } from '@/lib/api/contracts/workflow-runs'
-import { useTRPCClient } from '@/lib/trpc/react'
+import { useTRPC } from '@/lib/trpc/react'
 import { runDateBoundary, runDateDay, runHandler } from '@/lib/workflows/history'
 import { FAMILY_NAMES } from './workflow-canvas'
 import {
@@ -49,7 +46,7 @@ const ALL = 'all'
 
 /** Persisted run history with workflow, event, repository, status, and date filters. */
 export function WorkflowRuns() {
-  const client = useTRPCClient()
+  const trpc = useTRPC()
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -67,38 +64,28 @@ export function WorkflowRuns() {
   const filterError = parsed.success
     ? null
     : parsed.error.issues.map((issue) => issue.message).join(' ')
-  const [overview, setOverview] = useState<AutomationOverview | null>(null)
-  const [items, setItems] = useState<AutomationHistoryItem[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const before = filter.before
-  const request = useRef(0)
-
-  const load = useCallback(async () => {
-    const current = ++request.current
-    if (filterError) {
-      setError(`${filterError} Clear filters to choose a valid range.`)
-      setItems([])
-      return
-    }
-    try {
-      const [next, history] = await Promise.all([
-        client.releaseAutomation.overview.query(),
-        client.releaseAutomation.history.query({ ...filter, before }),
-      ])
-      if (current !== request.current) return
-      setOverview(next)
-      setItems(history.items)
-      setError(null)
-    } catch (failure) {
-      if (current === request.current) setError(getErrorMessage(failure))
-    }
-  }, [client, filter, before, filterError])
-  useEffect(() => {
-    void load()
-    // Refresh the newest page while it is open; older pages are stable.
-    const timer = before ? undefined : setInterval(() => void load(), 10_000)
-    return () => clearInterval(timer)
-  }, [load, before])
+  // Filter choices are independent of history filters and polling.
+  const overviewQuery = useQuery(
+    trpc.releaseAutomation.overview.queryOptions(undefined, {
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+    })
+  )
+  const historyQuery = useQuery(
+    trpc.releaseAutomation.runSummaries.queryOptions(
+      { ...filter, before },
+      { enabled: !filterError, staleTime: 10_000, refetchInterval: before ? false : 10_000 }
+    )
+  )
+  const overview = overviewQuery.data
+  const items = filterError ? [] : historyQuery.data?.items
+  const queryError = overviewQuery.error ?? historyQuery.error
+  const error = filterError
+    ? `${filterError} Clear filters to choose a valid range.`
+    : queryError
+      ? getErrorMessage(queryError)
+      : null
 
   function setFilter(
     keys: keyof AutomationHistoryFilter | (keyof AutomationHistoryFilter)[],
@@ -231,7 +218,7 @@ export function WorkflowRuns() {
         </Alert>
       ) : null}
 
-      {items === null ? (
+      {!items ? (
         <p className="text-sm text-neutral-500" role="status">
           Loading runs…
         </p>
@@ -256,12 +243,12 @@ export function WorkflowRuns() {
               {items.map((item) => (
                 <TableRow key={item.run.id}>
                   <TableCell className="max-w-80 whitespace-normal">
-                    <Link
+                    <WorkflowRunLink
                       className="font-medium hover:underline"
                       href={`/workflows/runs/${item.run.id}?${new URLSearchParams({ returnTo: `${pathname}?${params}` })}`}
                     >
                       {item.event.snapshot.title}
-                    </Link>
+                    </WorkflowRunLink>
                     <p className="text-xs text-neutral-500">
                       {FAMILY_NAMES[item.event.snapshot.family]} · {triggeringObject(item)} ·{' '}
                       {item.event.snapshot.repositoryName || sourceName(item.event.sourceAppId)}

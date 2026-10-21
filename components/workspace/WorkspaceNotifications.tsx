@@ -6,6 +6,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { Group, Section } from '@/components/platform-ui'
 import { EmailSwitch, SocialSetNotifications } from '@/components/settings/NotificationExtras'
+import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
+import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
+import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -41,6 +44,13 @@ function SettingsForm({
   const [policy, setPolicy] = useState(initial.policy)
   const [preferences, setPreferences] = useState(initial.preferences)
   const [busy, setBusy] = useState('')
+  const [panel, setPanel] = useState(
+    search.has('connected') || search.has('error') ? 'delivery' : 'personal'
+  )
+  const { preferences: personal } = usePreferences()
+  const preferencesDirty = JSON.stringify(preferences) !== JSON.stringify(settings.preferences)
+  const policyDirty = JSON.stringify(policy) !== JSON.stringify(settings.policy)
+  useUnsavedSettings(preferencesDirty || policyDirty)
   const [error, setError] = useState(
     search.has('error')
       ? 'Slack did not connect. Check your workspace and permissions, then try again.'
@@ -144,6 +154,11 @@ function SettingsForm({
     })
   }
   async function disconnect(id: string) {
+    if (
+      policyDirty &&
+      !window.confirm('Disconnect Slack and discard unsaved workspace policy changes?')
+    )
+      return
     await perform('disconnect', async () => {
       await notificationRequest(
         identity,
@@ -177,7 +192,31 @@ function SettingsForm({
     (connection) => connection.id === policy.slackConnectionId
   )
   return (
-    <div className="flex flex-col gap-10">
+    <fieldset disabled={!!busy} className="flex min-w-0 flex-col gap-8">
+      <div className="flex flex-wrap gap-2" aria-label="Notification settings">
+        {[
+          ['personal', 'My notifications'],
+          ...(settings.canManage
+            ? [
+                ['policy', 'Workspace rules'],
+                ['delivery', 'Delivery & Slack'],
+              ]
+            : []),
+        ].map(([id, label]) => (
+          <Button
+            key={id}
+            type="button"
+            aria-pressed={panel === id}
+            variant={panel === id ? 'default' : 'outline'}
+            onClick={() => setPanel(id!)}
+          >
+            {label}
+            {(id === 'personal' && preferencesDirty) || (id !== 'personal' && policyDirty)
+              ? ' •'
+              : ''}
+          </Button>
+        ))}
+      </div>
       <p className="text-sm text-muted-foreground">
         Choose the activity you receive in this workspace. Authentication, invitations, and required
         security messages keep their own delivery rules.
@@ -197,420 +236,468 @@ function SettingsForm({
         </p>
       ) : null}
 
-      <Section
-        title="Email"
-        description="Your switch for activity email, in every workspace you belong to."
-      >
-        <EmailSwitch />
-      </Section>
+      <div hidden={panel !== 'personal'} className="space-y-8">
+        <Section
+          title="Email"
+          description="Saves automatically. Your switch for activity email in every workspace."
+        >
+          <EmailSwitch />
+        </Section>
 
-      <Section
-        title="Your preferences"
-        description="Workspace policy is the limit for every delivery. These settings affect only you."
-      >
-        <Group>
-          {groups.map((group) => (
-            <details
-              className="border-b border-border last:border-0"
-              key={group}
-              open={group === 'reviews'}
-            >
-              <summary className="cursor-pointer px-5 py-4 text-sm font-medium capitalize">
-                {group}
-              </summary>
-              <div className="overflow-x-auto px-5 pb-4">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr>
-                      <th scope="col" className="pb-3 font-medium">
-                        Activity
-                      </th>
-                      <th scope="col" className="px-3 pb-3 font-medium">
-                        In-app
-                      </th>
-                      <th scope="col" className="px-3 pb-3 font-medium">
-                        Email
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {settings.catalogue
-                      .filter((event) => event.group === group)
-                      .map((event) => (
-                        <tr className="border-t border-border" key={event.id}>
-                          <th scope="row" className="py-3 pr-4 font-normal">
-                            {event.label}
-                          </th>
-                          {(['inApp', 'email'] as const).map((channel) => {
-                            const reason =
-                              settings.effective[event.id]?.[
-                                channel === 'inApp' ? 'in_app' : channel
-                              ]?.reason
-                            return (
-                              <td className="px-3 py-3" key={channel}>
-                                <label className="flex items-center gap-2">
-                                  <Checkbox
-                                    aria-label={`${event.label}: your ${channel === 'inApp' ? 'in-app' : 'email'} preference`}
-                                    checked={preferences.events[event.id]?.[channel] ?? true}
-                                    onCheckedChange={(checked) =>
-                                      setPreferences((current) => ({
-                                        ...current,
-                                        events: {
-                                          ...current.events,
-                                          [event.id]: {
-                                            ...current.events[event.id],
-                                            [channel]: checked === true,
+        <Section
+          title="Your preferences"
+          description="Your selections are remembered separately from current delivery. Save changes to apply them. Workspace rules and the email switch can block delivery."
+        >
+          <Group>
+            {groups.map((group) => (
+              <details
+                className="border-b border-border last:border-0"
+                key={group}
+                open={group === 'reviews'}
+              >
+                <summary className="cursor-pointer px-5 py-4 text-sm font-medium capitalize">
+                  {group}
+                </summary>
+                <div className="overflow-x-auto px-5 pb-4">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr>
+                        <th scope="col" className="pb-3 font-medium">
+                          Activity
+                        </th>
+                        <th scope="col" className="px-3 pb-3 font-medium">
+                          In-app
+                        </th>
+                        <th scope="col" className="px-3 pb-3 font-medium">
+                          Email
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {settings.catalogue
+                        .filter((event) => event.group === group)
+                        .map((event) => (
+                          <tr className="border-t border-border" key={event.id}>
+                            <th scope="row" className="py-3 pr-4 font-normal">
+                              {event.label}
+                            </th>
+                            {(['inApp', 'email'] as const).map((channel) => {
+                              const effective =
+                                settings.effective[event.id]?.[
+                                  channel === 'inApp' ? 'in_app' : channel
+                                ]
+                              const blocked =
+                                !settings.policy.availability[channel] ||
+                                !settings.policy.events[event.id]?.[channel]
+                              const masterOff =
+                                channel === 'email' && personal?.emailNotifications === false
+                              const label = channel === 'inApp' ? 'In-app' : 'Email'
+                              const reason = blocked
+                                ? 'Blocked by workspace policy'
+                                : masterOff
+                                  ? 'Off for all workspaces'
+                                  : effective?.enabled
+                                    ? 'On'
+                                    : effective?.reason || 'Off'
+                              return (
+                                <td className="px-3 py-3" key={channel}>
+                                  <label className="flex items-center gap-2">
+                                    <Checkbox
+                                      disabled={blocked || masterOff}
+                                      aria-label={`${event.label}: your ${channel === 'inApp' ? 'in-app' : 'email'} preference`}
+                                      checked={preferences.events[event.id]?.[channel] ?? true}
+                                      onCheckedChange={(checked) =>
+                                        setPreferences((current) => ({
+                                          ...current,
+                                          events: {
+                                            ...current.events,
+                                            [event.id]: {
+                                              ...current.events[event.id],
+                                              [channel]: checked === true,
+                                            },
                                           },
-                                        },
-                                      }))
-                                    }
-                                  />
-                                  <span className="sr-only">{channel}</span>
-                                </label>
-                                {reason ? (
-                                  <p className="mt-1 max-w-44 text-xs text-muted-foreground">
-                                    {reason}
-                                  </p>
-                                ) : null}
-                              </td>
-                            )
-                          })}
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </details>
-          ))}
-        </Group>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Slack direct messages are not available: the Shots Slack app does not ask for the im:write
-          permission. Workspace activity can still go to a Slack channel.
-        </p>
-        <div className="mt-6">
-          <SocialSetNotifications
-            disabled={!!busy}
-            onChange={(socialSets) => setPreferences((current) => ({ ...current, socialSets }))}
-            value={preferences.socialSets ?? {}}
-          />
-        </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Button disabled={!!busy} onClick={() => void save('preferences')}>
-            {busy === 'preferences' ? 'Saving…' : 'Save my preferences'}
-          </Button>
-          <Button
-            variant="outline"
-            disabled={!!busy || !settings.emailAvailable || !!testUntil.email}
-            onClick={() => void test('email')}
-          >
-            Send test to my email
-          </Button>
-        </div>
-        {!settings.emailAvailable ? (
-          <p className="mt-3 text-sm text-muted-foreground">
-            Email is unavailable until an administrator configures delivery.
-          </p>
-        ) : null}
-      </Section>
+                                        }))
+                                      }
+                                    />
+                                    <span className="text-xs">
+                                      Your preference:{' '}
+                                      {(preferences.events[event.id]?.[channel] ?? true)
+                                        ? 'On'
+                                        : 'Off'}
+                                    </span>
+                                  </label>
+                                  {reason ? (
+                                    <p className="mt-1 max-w-44 text-xs text-muted-foreground">
+                                      Current {label.toLowerCase()} delivery: {reason}
+                                    </p>
+                                  ) : null}
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            ))}
+          </Group>
+          <details className="mt-3 text-sm text-muted-foreground">
+            <summary className="cursor-pointer">Slack delivery details</summary>
+            <p>
+              Workspace activity can go to a Slack channel. Direct messages are unavailable because
+              the app does not request im:write.
+            </p>
+          </details>
+          <div className="mt-6">
+            <SocialSetNotifications
+              disabled={!!busy}
+              onChange={(socialSets) => setPreferences((current) => ({ ...current, socialSets }))}
+              value={preferences.socialSets ?? {}}
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              disabled={!!busy || !settings.emailAvailable || !!testUntil.email}
+              onClick={() => void test('email')}
+            >
+              Send test to my email
+            </Button>
+          </div>
+          {!settings.emailAvailable ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Email is unavailable until an administrator configures delivery.
+            </p>
+          ) : null}
+        </Section>
 
+        <SettingsSaveBar
+          dirty={preferencesDirty}
+          busy={busy === 'preferences'}
+          label="Save my preferences"
+          onSave={() => void save('preferences')}
+          onDiscard={() => setPreferences(settings.preferences)}
+        />
+      </div>
       {settings.canManage ? (
         <>
-          <Section
-            title="Slack destination"
-            description="A shared channel receives only the activity categories permitted for Slack. Private activity stays with its recipients."
-          >
-            <Group>
-              <div className="flex flex-col gap-4 p-5">
-                {!settings.slackAvailable ? (
-                  <p className="text-sm text-muted-foreground">
-                    Slack is not configured. Ask the server administrator to configure the Slack app
-                    and callback URL.
-                  </p>
-                ) : null}
-                {settings.connections.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No Slack workspace is connected.</p>
-                ) : null}
-                <label className="grid gap-2 text-sm">
-                  Slack workspace
-                  <Select
-                    value={policy.slackConnectionId}
-                    onValueChange={(slackConnectionId) =>
-                      setPolicy((current) => ({
-                        ...current,
-                        slackConnectionId,
-                        slackChannelId: '',
-                        slackChannelName: '',
-                      }))
-                    }
-                  >
-                    <SelectTrigger aria-label="Slack workspace" className="w-full">
-                      <SelectValue placeholder="Select a connection" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {settings.connections.map((connection) => (
-                        <SelectItem key={connection.id} value={connection.id}>
-                          {connection.teamName} · {connection.teamId}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </label>
-                {selected ? (
-                  <p className="text-xs text-muted-foreground">
-                    App {selected.appId} ·{' '}
-                    {selected.health === 'CONNECTED' ? 'Connected' : 'Reconnect required'}
-                  </p>
-                ) : null}
-                <label className="grid gap-2 text-sm">
-                  Channel
-                  <Select
-                    disabled={!policy.slackConnectionId || channels.isPending}
-                    value={policy.slackChannelId}
-                    onValueChange={(slackChannelId) =>
-                      setPolicy((current) => ({ ...current, slackChannelId }))
-                    }
-                  >
-                    <SelectTrigger aria-label="Slack channel" className="w-full">
-                      <SelectValue placeholder="Select a channel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {channels.data?.map((channel) => (
-                        <SelectItem
-                          key={channel.id}
-                          value={channel.id}
-                          disabled={!channel.isMember || channel.isArchived}
-                        >
-                          {channel.isPrivate ? 'Private: ' : '#'}
-                          {channel.name}
-                          {!channel.isMember ? ' — invite the app first' : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </label>
-                {policy.slackConnectionId && channels.isPending ? (
-                  <p role="status" className="text-sm text-muted-foreground">
-                    Loading Slack channels…
-                  </p>
-                ) : null}
-                {channels.error ? (
-                  <p role="alert" className="text-sm text-destructive">
-                    {channels.error.message}
-                  </p>
-                ) : null}
-                {channels.data?.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No available channels. Invite the Slack app to a channel, then refresh.
-                  </p>
-                ) : null}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    disabled={!!busy || !settings.slackAvailable}
-                    onClick={() => void connect()}
-                  >
-                    {selected ? 'Reconnect Slack' : 'Connect Slack'}
-                  </Button>
+          <div hidden={panel !== 'delivery'}>
+            <Section
+              title="Slack destination"
+              description="Save workspace policy applies changes from both Workspace rules and Delivery & Slack. A shared channel receives only permitted activity; private activity stays with its recipients."
+            >
+              <Group>
+                <div className="flex flex-col gap-4 p-5">
+                  {!settings.slackAvailable ? (
+                    <p className="text-sm text-muted-foreground">
+                      Slack is unavailable. Contact your administrator to enable it.
+                    </p>
+                  ) : null}
+                  {settings.connections.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No Slack workspace is connected.
+                    </p>
+                  ) : null}
+                  <label className="grid gap-2 text-sm">
+                    Slack workspace
+                    <Select
+                      value={policy.slackConnectionId}
+                      onValueChange={(slackConnectionId) =>
+                        setPolicy((current) => ({
+                          ...current,
+                          slackConnectionId,
+                          slackChannelId: '',
+                          slackChannelName: '',
+                        }))
+                      }
+                    >
+                      <SelectTrigger aria-label="Slack workspace" className="w-full">
+                        <SelectValue placeholder="Select a connection" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {settings.connections.map((connection) => (
+                          <SelectItem key={connection.id} value={connection.id}>
+                            {connection.teamName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
                   {selected ? (
+                    <p className="text-xs text-muted-foreground">
+                      {selected.health === 'CONNECTED' ? 'Connected' : 'Reconnect required'}
+                    </p>
+                  ) : null}
+                  <label className="grid gap-2 text-sm">
+                    Channel
+                    <Select
+                      disabled={!policy.slackConnectionId || channels.isPending}
+                      value={policy.slackChannelId}
+                      onValueChange={(slackChannelId) =>
+                        setPolicy((current) => ({ ...current, slackChannelId }))
+                      }
+                    >
+                      <SelectTrigger aria-label="Slack channel" className="w-full">
+                        <SelectValue placeholder="Select a channel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {channels.data?.map((channel) => (
+                          <SelectItem
+                            key={channel.id}
+                            value={channel.id}
+                            disabled={!channel.isMember || channel.isArchived}
+                          >
+                            {channel.isPrivate ? 'Private: ' : '#'}
+                            {channel.name}
+                            {!channel.isMember ? ' — invite the app first' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                  {policy.slackConnectionId && channels.isPending ? (
+                    <p role="status" className="text-sm text-muted-foreground">
+                      Loading Slack channels…
+                    </p>
+                  ) : null}
+                  {channels.error ? (
+                    <p role="alert" className="text-sm text-destructive">
+                      {channels.error.message}
+                    </p>
+                  ) : null}
+                  {channels.data?.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No available channels. Invite the Slack app to a channel, then refresh.
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"
-                      disabled={!!busy}
-                      onClick={() => void disconnect(selected.id)}
+                      disabled={!!busy || !settings.slackAvailable}
+                      onClick={() => void connect()}
                     >
-                      Disconnect
+                      {selected ? 'Reconnect Slack' : 'Connect Slack'}
                     </Button>
-                  ) : null}
+                    {selected ? (
+                      <Button
+                        variant="outline"
+                        disabled={!!busy}
+                        onClick={() => void disconnect(selected.id)}
+                      >
+                        Disconnect
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant="outline"
+                      disabled={!policy.slackConnectionId || channels.isFetching}
+                      onClick={() => void channels.refetch()}
+                    >
+                      Refresh channels
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Invite the app to private channels. Save the workspace policy before testing a
+                    new destination.
+                  </p>
                   <Button
                     variant="outline"
-                    disabled={!policy.slackConnectionId || channels.isFetching}
-                    onClick={() => void channels.refetch()}
+                    disabled={!!busy || !settings.policy.slackChannelId || !!testUntil.slack}
+                    onClick={() => void test('slack')}
                   >
-                    Refresh channels
+                    Send test to selected channel
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Invite the app to private channels. Save the workspace policy before testing a new
-                  destination.
-                </p>
-                <Button
-                  variant="outline"
-                  disabled={!!busy || !settings.policy.slackChannelId || !!testUntil.slack}
-                  onClick={() => void test('slack')}
-                >
-                  Send test to selected channel
-                </Button>
-              </div>
-            </Group>
-          </Section>
-          <Section
-            title="Workspace policy"
-            description="Owners and administrators choose which categories each channel can deliver. New email categories and Slack streams start disabled."
-          >
-            <fieldset className="mb-4 flex flex-wrap gap-5" disabled={!!busy}>
-              <legend className="mb-3 text-sm font-medium">Available channels</legend>
-              {(['inApp', 'email', 'slack'] as const).map((channel) => (
-                <label key={channel} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={policy.availability[channel]}
-                    onCheckedChange={(checked) =>
-                      setPolicy((current) => ({
-                        ...current,
-                        availability: { ...current.availability, [channel]: checked === true },
-                      }))
-                    }
-                  />
-                  {channel === 'inApp' ? 'In-app' : channel === 'email' ? 'Email' : 'Slack'}
-                </label>
-              ))}
-            </fieldset>
-            <Group>
-              {groups.map((group) => (
-                <details
-                  className="border-b border-border last:border-0"
-                  key={group}
-                  open={group === 'reviews'}
-                >
-                  <summary className="cursor-pointer px-5 py-4 text-sm font-medium capitalize">
-                    {group}
-                  </summary>
-                  <div className="overflow-x-auto px-5 pb-4">
-                    <table className="w-full text-left text-sm">
-                      <thead>
-                        <tr>
-                          <th scope="col" className="pb-3 font-medium">
-                            Activity
-                          </th>
-                          {['In-app', 'Email', 'Slack'].map((channel) => (
-                            <th scope="col" className="px-3 pb-3 font-medium" key={channel}>
-                              {channel}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {settings.catalogue
-                          .filter((event) => event.group === group)
-                          .map((event) => (
-                            <tr className="border-t border-border" key={event.id}>
-                              <th scope="row" className="py-3 pr-4 font-normal">
-                                {event.label}
-                                {event.restricted ? (
-                                  <span className="mt-1 block text-xs text-muted-foreground">
-                                    Private to recipients
-                                  </span>
-                                ) : null}
-                              </th>
-                              {(['inApp', 'email', 'slack'] as const).map((channel) => (
-                                <td className="px-3 py-3" key={channel}>
-                                  <Checkbox
-                                    aria-label={`${event.label}: workspace ${channel === 'inApp' ? 'in-app' : channel}`}
-                                    disabled={
-                                      !!busy ||
-                                      !policy.availability[channel] ||
-                                      (channel === 'slack' && event.restricted)
-                                    }
-                                    checked={policy.events[event.id]?.[channel] ?? false}
-                                    onCheckedChange={(checked) =>
-                                      setPolicy((current) => ({
-                                        ...current,
-                                        events: {
-                                          ...current.events,
-                                          [event.id]: {
-                                            ...current.events[event.id],
-                                            [channel]: checked === true,
-                                          },
-                                        },
-                                      }))
-                                    }
-                                  />
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </details>
-              ))}
-            </Group>
-            <Button className="mt-4" disabled={!!busy} onClick={() => void save('policy')}>
-              {busy === 'policy' ? 'Saving…' : 'Save workspace policy'}
-            </Button>
-          </Section>
-          <Section
-            title="Delivery status"
-            description="Review failures and reconcile uncertain sends. Confirm delivery only after checking the destination."
-          >
-            {deliveries.isPending ? (
-              <p role="status" className="text-sm text-muted-foreground">
-                Loading deliveries…
-              </p>
-            ) : deliveries.error ? (
-              <p role="alert" className="text-sm text-destructive">
-                {deliveries.error.message}
-              </p>
-            ) : deliveries.data?.deliveries.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No external deliveries yet.</p>
-            ) : (
+              </Group>
+            </Section>
+            <SettingsSaveBar
+              dirty={policyDirty}
+              busy={busy === 'policy'}
+              label="Save workspace policy"
+              onSave={() => void save('policy')}
+              onDiscard={() => setPolicy(settings.policy)}
+            />
+          </div>
+          <div hidden={panel !== 'policy'}>
+            <Section
+              title="Workspace policy"
+              description="Owners and administrators choose which categories each channel can deliver. New email categories and Slack streams start disabled."
+            >
+              <fieldset className="mb-4 flex flex-wrap gap-5" disabled={!!busy}>
+                <legend className="mb-3 text-sm font-medium">Available channels</legend>
+                {(['inApp', 'email', 'slack'] as const).map((channel) => (
+                  <label key={channel} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={policy.availability[channel]}
+                      onCheckedChange={(checked) =>
+                        setPolicy((current) => ({
+                          ...current,
+                          availability: {
+                            ...current.availability,
+                            [channel]: checked === true,
+                          },
+                        }))
+                      }
+                    />
+                    {channel === 'inApp' ? 'In-app' : channel === 'email' ? 'Email' : 'Slack'}
+                  </label>
+                ))}
+              </fieldset>
               <Group>
-                {deliveries.data?.deliveries.map((delivery) => (
-                  <div className="border-b border-border p-5 last:border-0" key={delivery.id}>
-                    <p className="text-sm font-medium">
-                      {settings.catalogue.find((event) => event.id === delivery.kind)?.label ??
-                        'Test notification'}{' '}
-                      · {delivery.channel}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {delivery.status.toLowerCase()}
-                      {delivery.failureCode
-                        ? ` · ${delivery.failureCode.toLowerCase().replaceAll('_', ' ')}`
-                        : ''}
-                    </p>
-                    <p className="mt-1 break-all text-xs text-muted-foreground">
-                      Reference: {delivery.id}
-                    </p>
-                    {['BLOCKED', 'UNCERTAIN', 'DEAD'].includes(delivery.status) ? (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {(['retry', 'confirm_delivered', 'dismiss'] as const).map((action) => (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            key={action}
-                            disabled={!!busy}
-                            onClick={() =>
-                              void perform(delivery.id, async () => {
-                                await notificationRequest(
-                                  identity,
-                                  `/deliveries/${encodeURIComponent(delivery.id)}/recover`,
-                                  z.object({ recovered: z.boolean() }),
-                                  { method: 'POST', body: { action } }
-                                )
-                                await deliveries.refetch()
-                                setSaved('Delivery recovery recorded.')
-                              })
-                            }
-                          >
-                            {action === 'retry'
-                              ? 'Retry safely'
-                              : action === 'confirm_delivered'
-                                ? 'Confirm delivered'
-                                : 'Dismiss'}
-                          </Button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
+                {groups.map((group) => (
+                  <details
+                    className="border-b border-border last:border-0"
+                    key={group}
+                    open={group === 'reviews'}
+                  >
+                    <summary className="cursor-pointer px-5 py-4 text-sm font-medium capitalize">
+                      {group}
+                    </summary>
+                    <div className="overflow-x-auto px-5 pb-4">
+                      <table className="w-full text-left text-sm">
+                        <thead>
+                          <tr>
+                            <th scope="col" className="pb-3 font-medium">
+                              Activity
+                            </th>
+                            {['In-app', 'Email', 'Slack'].map((channel) => (
+                              <th scope="col" className="px-3 pb-3 font-medium" key={channel}>
+                                {channel}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {settings.catalogue
+                            .filter((event) => event.group === group)
+                            .map((event) => (
+                              <tr className="border-t border-border" key={event.id}>
+                                <th scope="row" className="py-3 pr-4 font-normal">
+                                  {event.label}
+                                  {event.restricted ? (
+                                    <span className="mt-1 block text-xs text-muted-foreground">
+                                      Private to recipients
+                                    </span>
+                                  ) : null}
+                                </th>
+                                {(['inApp', 'email', 'slack'] as const).map((channel) => (
+                                  <td className="px-3 py-3" key={channel}>
+                                    <Checkbox
+                                      aria-label={`${event.label}: workspace ${channel === 'inApp' ? 'in-app' : channel}`}
+                                      disabled={
+                                        !!busy ||
+                                        !policy.availability[channel] ||
+                                        (channel === 'slack' && event.restricted)
+                                      }
+                                      checked={policy.events[event.id]?.[channel] ?? false}
+                                      onCheckedChange={(checked) =>
+                                        setPolicy((current) => ({
+                                          ...current,
+                                          events: {
+                                            ...current.events,
+                                            [event.id]: {
+                                              ...current.events[event.id],
+                                              [channel]: checked === true,
+                                            },
+                                          },
+                                        }))
+                                      }
+                                    />
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
                 ))}
               </Group>
-            )}
-          </Section>
+              <SettingsSaveBar
+                dirty={policyDirty}
+                busy={busy === 'policy'}
+                label="Save workspace policy"
+                onSave={() => void save('policy')}
+                onDiscard={() => setPolicy(settings.policy)}
+              />
+            </Section>
+          </div>
+          <div hidden={panel !== 'delivery'}>
+            <Section
+              title="Delivery status"
+              description="Review failures and reconcile uncertain sends. Confirm delivery only after checking the destination."
+            >
+              {deliveries.isPending ? (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Loading deliveries…
+                </p>
+              ) : deliveries.error ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {deliveries.error.message}
+                </p>
+              ) : deliveries.data?.deliveries.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No external deliveries yet.</p>
+              ) : (
+                <Group>
+                  {deliveries.data?.deliveries.map((delivery) => (
+                    <div className="border-b border-border p-5 last:border-0" key={delivery.id}>
+                      <p className="text-sm font-medium">
+                        {settings.catalogue.find((event) => event.id === delivery.kind)?.label ??
+                          'Test notification'}{' '}
+                        · {delivery.channel}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {delivery.status.toLowerCase()}
+                        {delivery.failureCode
+                          ? ` · ${delivery.failureCode.toLowerCase().replaceAll('_', ' ')}`
+                          : ''}
+                      </p>
+                      <p className="mt-1 break-all text-xs text-muted-foreground">
+                        Reference: {delivery.id}
+                      </p>
+                      {['BLOCKED', 'UNCERTAIN', 'DEAD'].includes(delivery.status) ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {(['retry', 'confirm_delivered', 'dismiss'] as const).map((action) => (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              key={action}
+                              disabled={!!busy}
+                              onClick={() =>
+                                void perform(delivery.id, async () => {
+                                  await notificationRequest(
+                                    identity,
+                                    `/deliveries/${encodeURIComponent(delivery.id)}/recover`,
+                                    z.object({ recovered: z.boolean() }),
+                                    { method: 'POST', body: { action } }
+                                  )
+                                  await deliveries.refetch()
+                                  setSaved('Delivery recovery recorded.')
+                                })
+                              }
+                            >
+                              {action === 'retry'
+                                ? 'Retry safely'
+                                : action === 'confirm_delivered'
+                                  ? 'Confirm delivered'
+                                  : 'Dismiss'}
+                            </Button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </Group>
+              )}
+            </Section>
+          </div>
         </>
       ) : (
         <p className="text-sm text-muted-foreground">
           Owners and administrators manage workspace channels and Slack connections.
         </p>
       )}
-    </div>
+    </fieldset>
   )
 }
 

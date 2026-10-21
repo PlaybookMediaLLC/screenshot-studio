@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { roleSummaries } from '@/lib/auth/role-descriptions'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
 
@@ -464,8 +465,13 @@ function RoleSelect({
       </SelectTrigger>
       <SelectContent>
         {assignableRoles.map((role) => (
-          <SelectItem key={role} value={role}>
-            {role}
+          <SelectItem
+            key={role}
+            value={role}
+            aria-label={role}
+            aria-description={roleSummaries[role]}
+          >
+            <span className="capitalize">{role}</span> — {roleSummaries[role]}
           </SelectItem>
         ))}
       </SelectContent>

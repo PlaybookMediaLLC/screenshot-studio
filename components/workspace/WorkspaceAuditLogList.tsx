@@ -1,16 +1,18 @@
 import { Group, Pill, type PillTone, Row } from '@/components/platform-ui'
 import type { AuditLog } from './WorkspaceAuditSettings'
 
-type WorkspaceAuditLogListProps = { logs: AuditLog[] }
+type WorkspaceAuditLogListProps = { logs: AuditLog[]; search?: string }
 
 const outcomeTones: Record<string, PillTone> = { DENIED: 'red', FAILED: 'red', SUCCEEDED: 'green' }
 
-export function WorkspaceAuditLogList({ logs }: WorkspaceAuditLogListProps) {
+export function WorkspaceAuditLogList({ logs, search }: WorkspaceAuditLogListProps) {
   return (
     <Group>
       {logs.length === 0 ? (
         <Row>
-          <p className="text-sm text-muted-foreground">No audit events have been recorded.</p>
+          <p className="text-sm text-muted-foreground">
+            {search ? 'No events match your search.' : 'No audit events have been recorded.'}
+          </p>
         </Row>
       ) : (
         logs.map((log) => (

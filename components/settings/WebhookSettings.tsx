@@ -372,10 +372,11 @@ export function WebhookSettings({ canManage }: { canManage: boolean }) {
           {webhooks.isError ? (
             <p className="text-sm text-red-700 dark:text-red-300" role="alert">
               {unavailable
-                ? 'Outbound webhooks are not configured on this server: it needs PLATFORM_WEBHOOK_ENCRYPTION_KEY to keep signing secrets.'
+                ? 'Webhooks are unavailable. Contact your administrator to enable them.'
                 : settingsErrorMessage(webhooks.error)}
             </p>
           ) : null}
+          {unavailable ? <details className="text-xs text-muted-foreground"><summary>Administrator setup details</summary><p>Configure PLATFORM_WEBHOOK_ENCRYPTION_KEY on the server to protect signing secrets.</p></details> : null}
           {webhooks.data ? (
             webhooks.data.items.length > 0 ? (
               <Group>

@@ -391,6 +391,7 @@ const useResolvedDiscussion = (
   const { api, getOption, setOption } = useEditorPlugin(commentPlugin);
 
   const discussions = usePluginOption(discussionPlugin, "discussions");
+  const commentsPathMap = usePluginOption(commentPlugin, "uniquePathMap");
 
   useEffect(() => {
     commentNodes.forEach(([node]) => {
@@ -429,7 +430,6 @@ const useResolvedDiscussion = (
     }))
     .filter((item: TDiscussion) => {
       /** If comment cross blocks just show it in the first block */
-      const commentsPathMap = getOption("uniquePathMap");
       const firstBlockPath = commentsPathMap.get(item.id);
 
       if (!firstBlockPath) return false;

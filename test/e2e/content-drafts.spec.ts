@@ -298,6 +298,7 @@ test('a table, a math block and a footnote persist, and the blocks post as image
     await caretAtEndOf(page, draftEditor(page).getByText('Pricing', { exact: true }))
     await page.getByRole('button', { name: 'Insert', exact: true }).click()
     await page.getByRole('menuitem', { name: 'Footnote', exact: true }).click()
+    await expect(draftEditor(page)).toBeFocused()
     await page.keyboard.type('Prices exclude tax.')
     await expectSaved(page)
 
@@ -420,9 +421,10 @@ test('a comment thread survives a reload', async ({ identity, page }) => {
     await page.getByRole('button', { name: 'Comment', exact: true }).click()
     // Focus the reply editor after the floating toolbar closes.
     await expect(page.getByText('Reply...')).toBeInViewport()
-    await page.getByText('Reply...').click()
-    await page.keyboard.type('Check the date')
-    await page.keyboard.press('Enter')
+    const reply = page.getByRole('dialog').getByRole('textbox')
+    await reply.fill('Check the date')
+    await reply.press('Enter')
+    await draftEditor(page).getByText('Launch day', { exact: true }).click()
     await expect(page.getByText('Check the date')).toBeVisible()
     await expectSaved(page)
 

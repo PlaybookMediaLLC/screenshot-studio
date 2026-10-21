@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 )
 
@@ -78,6 +79,90 @@ func (_c *SocialOAuthStartCreate) SetNillableSocialSetID(v *string) *SocialOAuth
 	return _c
 }
 
+// SetExchangeStatus sets the "exchange_status" field.
+func (_c *SocialOAuthStartCreate) SetExchangeStatus(v socialoauthstart.ExchangeStatus) *SocialOAuthStartCreate {
+	_c.mutation.SetExchangeStatus(v)
+	return _c
+}
+
+// SetNillableExchangeStatus sets the "exchange_status" field if the given value is not nil.
+func (_c *SocialOAuthStartCreate) SetNillableExchangeStatus(v *socialoauthstart.ExchangeStatus) *SocialOAuthStartCreate {
+	if v != nil {
+		_c.SetExchangeStatus(*v)
+	}
+	return _c
+}
+
+// SetExchangeReceipt sets the "exchange_receipt" field.
+func (_c *SocialOAuthStartCreate) SetExchangeReceipt(v schema.SocialOAuthExchange) *SocialOAuthStartCreate {
+	_c.mutation.SetExchangeReceipt(v)
+	return _c
+}
+
+// SetNillableExchangeReceipt sets the "exchange_receipt" field if the given value is not nil.
+func (_c *SocialOAuthStartCreate) SetNillableExchangeReceipt(v *schema.SocialOAuthExchange) *SocialOAuthStartCreate {
+	if v != nil {
+		_c.SetExchangeReceipt(*v)
+	}
+	return _c
+}
+
+// SetExpectedConnectionID sets the "expected_connection_id" field.
+func (_c *SocialOAuthStartCreate) SetExpectedConnectionID(v string) *SocialOAuthStartCreate {
+	_c.mutation.SetExpectedConnectionID(v)
+	return _c
+}
+
+// SetNillableExpectedConnectionID sets the "expected_connection_id" field if the given value is not nil.
+func (_c *SocialOAuthStartCreate) SetNillableExpectedConnectionID(v *string) *SocialOAuthStartCreate {
+	if v != nil {
+		_c.SetExpectedConnectionID(*v)
+	}
+	return _c
+}
+
+// SetReturnPath sets the "return_path" field.
+func (_c *SocialOAuthStartCreate) SetReturnPath(v string) *SocialOAuthStartCreate {
+	_c.mutation.SetReturnPath(v)
+	return _c
+}
+
+// SetNillableReturnPath sets the "return_path" field if the given value is not nil.
+func (_c *SocialOAuthStartCreate) SetNillableReturnPath(v *string) *SocialOAuthStartCreate {
+	if v != nil {
+		_c.SetReturnPath(*v)
+	}
+	return _c
+}
+
+// SetCompletedConnectionID sets the "completed_connection_id" field.
+func (_c *SocialOAuthStartCreate) SetCompletedConnectionID(v string) *SocialOAuthStartCreate {
+	_c.mutation.SetCompletedConnectionID(v)
+	return _c
+}
+
+// SetNillableCompletedConnectionID sets the "completed_connection_id" field if the given value is not nil.
+func (_c *SocialOAuthStartCreate) SetNillableCompletedConnectionID(v *string) *SocialOAuthStartCreate {
+	if v != nil {
+		_c.SetCompletedConnectionID(*v)
+	}
+	return _c
+}
+
+// SetCompletedAt sets the "completed_at" field.
+func (_c *SocialOAuthStartCreate) SetCompletedAt(v time.Time) *SocialOAuthStartCreate {
+	_c.mutation.SetCompletedAt(v)
+	return _c
+}
+
+// SetNillableCompletedAt sets the "completed_at" field if the given value is not nil.
+func (_c *SocialOAuthStartCreate) SetNillableCompletedAt(v *time.Time) *SocialOAuthStartCreate {
+	if v != nil {
+		_c.SetCompletedAt(*v)
+	}
+	return _c
+}
+
 // SetExpiresAt sets the "expires_at" field.
 func (_c *SocialOAuthStartCreate) SetExpiresAt(v time.Time) *SocialOAuthStartCreate {
 	_c.mutation.SetExpiresAt(v)
@@ -139,6 +224,14 @@ func (_c *SocialOAuthStartCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *SocialOAuthStartCreate) defaults() {
+	if _, ok := _c.mutation.ExchangeStatus(); !ok {
+		v := socialoauthstart.DefaultExchangeStatus
+		_c.mutation.SetExchangeStatus(v)
+	}
+	if _, ok := _c.mutation.ReturnPath(); !ok {
+		v := socialoauthstart.DefaultReturnPath
+		_c.mutation.SetReturnPath(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := socialoauthstart.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -161,6 +254,17 @@ func (_c *SocialOAuthStartCreate) check() error {
 	}
 	if _, ok := _c.mutation.SecretReference(); !ok {
 		return &ValidationError{Name: "secret_reference", err: errors.New(`ent: missing required field "SocialOAuthStart.secret_reference"`)}
+	}
+	if _, ok := _c.mutation.ExchangeStatus(); !ok {
+		return &ValidationError{Name: "exchange_status", err: errors.New(`ent: missing required field "SocialOAuthStart.exchange_status"`)}
+	}
+	if v, ok := _c.mutation.ExchangeStatus(); ok {
+		if err := socialoauthstart.ExchangeStatusValidator(v); err != nil {
+			return &ValidationError{Name: "exchange_status", err: fmt.Errorf(`ent: validator failed for field "SocialOAuthStart.exchange_status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.ReturnPath(); !ok {
+		return &ValidationError{Name: "return_path", err: errors.New(`ent: missing required field "SocialOAuthStart.return_path"`)}
 	}
 	if _, ok := _c.mutation.ExpiresAt(); !ok {
 		return &ValidationError{Name: "expires_at", err: errors.New(`ent: missing required field "SocialOAuthStart.expires_at"`)}
@@ -230,6 +334,30 @@ func (_c *SocialOAuthStartCreate) createSpec() (*SocialOAuthStart, *sqlgraph.Cre
 	if value, ok := _c.mutation.SocialSetID(); ok {
 		_spec.SetField(socialoauthstart.FieldSocialSetID, field.TypeString, value)
 		_node.SocialSetID = &value
+	}
+	if value, ok := _c.mutation.ExchangeStatus(); ok {
+		_spec.SetField(socialoauthstart.FieldExchangeStatus, field.TypeEnum, value)
+		_node.ExchangeStatus = value
+	}
+	if value, ok := _c.mutation.ExchangeReceipt(); ok {
+		_spec.SetField(socialoauthstart.FieldExchangeReceipt, field.TypeJSON, value)
+		_node.ExchangeReceipt = value
+	}
+	if value, ok := _c.mutation.ExpectedConnectionID(); ok {
+		_spec.SetField(socialoauthstart.FieldExpectedConnectionID, field.TypeString, value)
+		_node.ExpectedConnectionID = &value
+	}
+	if value, ok := _c.mutation.ReturnPath(); ok {
+		_spec.SetField(socialoauthstart.FieldReturnPath, field.TypeString, value)
+		_node.ReturnPath = value
+	}
+	if value, ok := _c.mutation.CompletedConnectionID(); ok {
+		_spec.SetField(socialoauthstart.FieldCompletedConnectionID, field.TypeString, value)
+		_node.CompletedConnectionID = &value
+	}
+	if value, ok := _c.mutation.CompletedAt(); ok {
+		_spec.SetField(socialoauthstart.FieldCompletedAt, field.TypeTime, value)
+		_node.CompletedAt = &value
 	}
 	if value, ok := _c.mutation.ExpiresAt(); ok {
 		_spec.SetField(socialoauthstart.FieldExpiresAt, field.TypeTime, value)

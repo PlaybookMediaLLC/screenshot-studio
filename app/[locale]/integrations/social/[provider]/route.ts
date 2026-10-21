@@ -9,6 +9,7 @@ import {
   rememberInstagramIntegration,
   selectInstagramOAuthPage,
   socialOAuthErrorResponse,
+  socialOAuthReturnPath,
 } from '@/lib/tenant/social-oauth-start'
 
 type Context = { params: Promise<{ provider: string }> }
@@ -20,6 +21,7 @@ export async function GET(request: Request, context: Context): Promise<Response>
   }
   try {
     return await completeSocialOAuth(request, provider, {
+      returnTo: (state) => socialOAuthReturnPath(request.headers, provider, state),
       exchange: (oauthState, code) =>
         exchangeSocialOAuthCallback(request.headers, provider, oauthState, code),
       onConnected: (oauthState, integrationId) =>
@@ -37,6 +39,7 @@ export async function POST(request: Request, context: Context): Promise<Response
   if (provider !== 'instagram') return new Response('Provider not found.', { status: 404 })
   try {
     return await selectInstagramAccount(request, {
+      returnTo: (state) => socialOAuthReturnPath(request.headers, 'instagram', state),
       selectPage: ({ state, integrationId, accountId, pageId }) =>
         selectInstagramOAuthPage(request.headers, { state, integrationId, accountId, pageId }),
       onSelected: (state, integrationId) =>

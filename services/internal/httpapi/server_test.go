@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
@@ -22,6 +24,8 @@ type fakeStore struct {
 	oauthState    string
 	oauthSession  string
 	oauthProvider string
+	oauthReceipt  *schema.SocialOAuthExchange
+	oauthStatus   socialoauthstart.ExchangeStatus
 	authError     error
 	keyScope      string
 	cancelActor   publishing.Actor
@@ -82,7 +86,7 @@ func (f *fakeStore) AuthorizeAPIKeyScope(_ context.Context, _, _, scope string) 
 func (f *fakeStore) Binding(context.Context, string) (*ent.SocialTenantBinding, error) {
 	return &ent.SocialTenantBinding{GoOrganizationID: "go-org-1", SecretReference: "SOCIAL_API_KEY"}, nil
 }
-func (f *fakeStore) StartOAuth(_ context.Context, _ publishing.Actor, session, state, provider, _ string, _ *string) error {
+func (f *fakeStore) StartOAuth(_ context.Context, _ publishing.Actor, session, state, provider, _ string, _ publishing.OAuthStartOptions) error {
 	f.oauthState = state
 	f.oauthSession = session
 	f.oauthProvider = provider
@@ -92,12 +96,40 @@ func (f *fakeStore) OAuthStart(_ context.Context, _ publishing.Actor, session, s
 	if state != f.oauthState || session != f.oauthSession || provider != f.oauthProvider {
 		return nil, publishing.ErrNotFound
 	}
-	return &ent.SocialOAuthStart{SecretReference: "SOCIAL_API_KEY"}, nil
+	return &ent.SocialOAuthStart{SecretReference: "SOCIAL_API_KEY", ExchangeStatus: f.oauthStatus}, nil
+}
+func (f *fakeStore) AuthorizeSession(context.Context, string, string) (*ent.Session, error) {
+	return &ent.Session{}, f.authError
+}
+func (f *fakeStore) ResolveOAuthContext(ctx context.Context, user, session, state, provider string) (*publishing.OAuthContext, error) {
+	if _, err := f.OAuthStart(ctx, publishing.Actor{}, session, state, provider, nil); err != nil {
+		return nil, err
+	}
+	return &publishing.OAuthContext{OrganizationID: "org-1"}, nil
+}
+func (f *fakeStore) ClaimOAuthExchange(ctx context.Context, actor publishing.Actor, session, state, provider string) (*schema.SocialOAuthExchange, error) {
+	if _, err := f.OAuthStart(ctx, actor, session, state, provider, nil); err != nil {
+		return nil, err
+	}
+	if f.oauthReceipt != nil {
+		return f.oauthReceipt, nil
+	}
+	if f.oauthStatus == socialoauthstart.ExchangeStatusEXCHANGING {
+		return nil, publishing.ErrOAuthExchangeUncertain
+	}
+	f.oauthStatus = socialoauthstart.ExchangeStatusEXCHANGING
+	return nil, nil
+}
+func (f *fakeStore) SaveOAuthExchange(_ context.Context, _ publishing.Actor, _, _, _ string, result schema.SocialOAuthExchange) error {
+	f.oauthReceipt = &result
+	f.oauthStatus = socialoauthstart.ExchangeStatusEXCHANGED
+	return nil
 }
 func (f *fakeStore) RememberInstagramIntegration(context.Context, publishing.Actor, string, string, string) error {
 	return nil
 }
 func (f *fakeStore) FinishOAuth(context.Context, publishing.Actor, string, string, string, string) (*ent.ChannelConnection, error) {
+	f.oauthStatus = socialoauthstart.ExchangeStatusCOMPLETED
 	return &ent.ChannelConnection{ID: "connection-1", ProviderSettings: map[string]any{}}, nil
 }
 
@@ -130,6 +162,10 @@ func TestSocialOAuthBoundToSessionAndCompletesThroughEnt(t *testing.T) {
 	exchanged := call("/v1/social-oauth/exchange", "session-1", `{"provider":"x","state":"test-state","code":"test-code"}`)
 	if exchanged.Code != http.StatusOK || verifier.exchangeCalls != 1 || !strings.Contains(exchanged.Body.String(), `"id":"destination-1"`) {
 		t.Fatalf("exchange status=%d body=%s calls=%d", exchanged.Code, exchanged.Body, verifier.exchangeCalls)
+	}
+	replay := call("/v1/social-oauth/exchange", "session-1", `{"provider":"x","state":"test-state","code":"test-code"}`)
+	if replay.Code != http.StatusOK || verifier.exchangeCalls != 1 {
+		t.Fatalf("exchange replay=%d calls=%d", replay.Code, verifier.exchangeCalls)
 	}
 	verified := call("/v1/social-oauth/verify", "session-1", `{"provider":"x","state":"test-state"}`)
 	if verified.Code != http.StatusOK {

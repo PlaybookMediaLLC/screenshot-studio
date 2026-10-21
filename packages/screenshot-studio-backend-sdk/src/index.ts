@@ -1,3 +1,6 @@
+import { socialOAuthContextSchema, socialOAuthExchangeSchema } from './social-oauth.ts'
+import type { OAuthProvider, SocialOAuthStartOptions } from './social-oauth.js'
+export * from './social-oauth.ts'
 import type {
   NotificationView,
   NotificationStateInput,
@@ -184,12 +187,6 @@ export type ChannelConnection = {
   handle?: string | null
 }
 
-export type OAuthProvider =
-  'x' | 'instagram' | 'instagram-standalone' | 'linkedin' | 'threads' | 'mastodon'
-export type OAuthExchange = {
-  id: string
-  pages?: { id: string; pageId: string; name?: string | null }[]
-}
 
 export type BrandKit = {
   id: string
@@ -2047,11 +2044,18 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Begins a provider connection; with a set, the account joins that set (RFC 043). */
-  async beginSocialOAuth(provider: OAuthProvider, socialSetId?: string) {
+  async beginSocialOAuth(provider: OAuthProvider, socialSetId?: string, options: SocialOAuthStartOptions = {}) {
     return this.request<{ url: string }>('v1/social-oauth/begin', {
-      body: socialSetId ? { provider, socialSetId } : { provider },
+      body: { provider, ...(socialSetId ? { socialSetId } : {}), ...options },
       method: 'POST',
     })
+  }
+
+  /** Resolve a session-bound attempt independently of the selected workspace. */
+  async resolveSocialOAuthContext(provider: OAuthProvider, state: string) {
+    return socialOAuthContextSchema.parse(await this.request('v1/social-oauth/context', {
+      body: { provider, state }, method: 'POST',
+    }))
   }
 
   async verifySocialOAuth(provider: OAuthProvider, state: string, integrationId?: string) {
@@ -2062,10 +2066,10 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async exchangeSocialOAuth(provider: OAuthProvider, state: string, code: string) {
-    return this.request<OAuthExchange>('v1/social-oauth/exchange', {
+    return socialOAuthExchangeSchema.parse(await this.request('v1/social-oauth/exchange', {
       body: { provider, state, code },
       method: 'POST',
-    })
+    }))
   }
 
   async selectInstagramOAuthPage(input: {

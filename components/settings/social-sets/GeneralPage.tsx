@@ -114,7 +114,7 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
                 <span className="flex flex-wrap gap-2">
                   {provider ? (
                     // A plain link: prefetching the start route would begin an OAuth flow.
-                    <a className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-foreground/[0.04]" href={connectHref(provider, set.id)}>
+                    <a className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-foreground/[0.04]" href={connectHref(provider, set.id, account.id)}>
                       Reconnect
                     </a>
                   ) : null}

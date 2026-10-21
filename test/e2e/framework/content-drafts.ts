@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test'
+import { createE2EDatabase } from './services'
 import type { E2EIdentity } from './flow'
 import { type HttpMockServer, startHttpMockServer } from './http-server'
 import {
@@ -41,7 +42,7 @@ export async function createDraftWorkspace(
       return {
         body: platforms.map((platform) => ({
           disabled: false,
-          id: `social-${platform}`,
+          id: `social-${organizationId}-${platform}`,
           identifier: platform,
           name: `Shots on ${platform}`,
           picture: '',
@@ -55,10 +56,28 @@ export async function createDraftWorkspace(
   // Connecting a channel and cancelling a post are sensitive actions.
   await enablePublishingTwoFactor(page, identity.password)
   organizationId = await bindTestGoOrganization(page)
+  // The product checks actual provider credentials in the shared database.
+  // The HTTP fixture still owns destination verification; neither path bypasses health.
+  const database = createE2EDatabase()
+  try {
+    await database.query(
+      `INSERT INTO "Organization" (id,name,"updatedAt") VALUES ($1,'Draft fixture',now())`,
+      [`go-${organizationId}`]
+    )
+    for (const platform of platforms) {
+      await database.query(
+        `INSERT INTO "Integration" (id,"internalId","organizationId",name,"providerIdentifier",type,token)
+         VALUES ($1,$1,$2,$3,$3,'social','fixture-only-credential')`,
+        [`social-${organizationId}-${platform}`, `go-${organizationId}`, platform]
+      )
+    }
+  } finally {
+    await database.end()
+  }
   const channels: Record<string, string> = {}
   for (const platform of platforms) {
     const response = await trpcMutation(page, 'channelConnection.create', {
-      externalAccountId: `social-${platform}`,
+      externalAccountId: `social-${organizationId}-${platform}`,
       platform,
       secretReference: e2eSecretReference,
     })

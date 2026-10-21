@@ -27,6 +27,9 @@ func (s *Service) Maintain(ctx context.Context) error {
 	if _, err = tx.ExecContext(ctx, `DELETE FROM social_oauth_start WHERE provider='platform-slack' AND "expiresAt"<now()`); err != nil {
 		return err
 	}
+	if _, err = tx.ExecContext(ctx, `DELETE FROM social_oauth_start WHERE provider<>'platform-slack' AND (("exchangeStatus"='COMPLETED' AND "completedAt"<now()-interval '24 hours') OR ("exchangeStatus"<>'COMPLETED' AND "expiresAt"<now()-interval '24 hours'))`); err != nil {
+		return err
+	}
 	if _, err = tx.ExecContext(ctx, `DELETE FROM platform_slack_installation i WHERE NOT EXISTS(SELECT 1 FROM platform_slack_connection c WHERE c.installation_id=i.id)`); err != nil {
 		return err
 	}

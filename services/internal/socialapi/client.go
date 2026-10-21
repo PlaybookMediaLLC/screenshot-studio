@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
@@ -162,16 +163,9 @@ type BeginOAuthInput struct {
 	SecretReference          string
 }
 
-type OAuthPage struct {
-	ID     string  `json:"id"`
-	PageID string  `json:"pageId"`
-	Name   *string `json:"name,omitempty"`
-}
+type OAuthPage = schema.SocialOAuthPage
 
-type OAuthExchange struct {
-	ID    string      `json:"id"`
-	Pages []OAuthPage `json:"pages,omitempty"`
-}
+type OAuthExchange = schema.SocialOAuthExchange
 
 type Error struct {
 	Status          int

@@ -88,8 +88,10 @@ export function useStoreSocialSet() {
 }
 
 /** Where to send someone to connect an account on a platform to a set. */
-export function connectHref(provider: string, socialSetId: string): string {
-  return `/integrations/social/${encodeURIComponent(provider)}/start?socialSet=${encodeURIComponent(socialSetId)}`
+export function connectHref(provider: string, socialSetId: string, expectedConnectionId?: string): string {
+  const query = new URLSearchParams({ socialSet: socialSetId })
+  if (expectedConnectionId) query.set('reconnect', expectedConnectionId)
+  return `/integrations/social/${encodeURIComponent(provider)}/start?${query}`
 }
 
 /** The OAuth providers a set can connect from settings, by label. */

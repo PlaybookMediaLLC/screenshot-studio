@@ -74323,22 +74323,28 @@ func (m *ShareLinkMutation) ResetEdge(name string) error {
 // SocialOAuthStartMutation represents an operation that mutates the SocialOAuthStart nodes in the graph.
 type SocialOAuthStartMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *string
-	organization_id  *string
-	user_id          *string
-	session_id       *string
-	provider         *string
-	secret_reference *string
-	integration_id   *string
-	social_set_id    *string
-	expires_at       *time.Time
-	created_at       *time.Time
-	clearedFields    map[string]struct{}
-	done             bool
-	oldValue         func(context.Context) (*SocialOAuthStart, error)
-	predicates       []predicate.SocialOAuthStart
+	op                      Op
+	typ                     string
+	id                      *string
+	organization_id         *string
+	user_id                 *string
+	session_id              *string
+	provider                *string
+	secret_reference        *string
+	integration_id          *string
+	social_set_id           *string
+	exchange_status         *socialoauthstart.ExchangeStatus
+	exchange_receipt        *schema.SocialOAuthExchange
+	expected_connection_id  *string
+	return_path             *string
+	completed_connection_id *string
+	completed_at            *time.Time
+	expires_at              *time.Time
+	created_at              *time.Time
+	clearedFields           map[string]struct{}
+	done                    bool
+	oldValue                func(context.Context) (*SocialOAuthStart, error)
+	predicates              []predicate.SocialOAuthStart
 }
 
 var _ ent.Mutation = (*SocialOAuthStartMutation)(nil)
@@ -74723,6 +74729,274 @@ func (m *SocialOAuthStartMutation) ResetSocialSetID() {
 	delete(m.clearedFields, socialoauthstart.FieldSocialSetID)
 }
 
+// SetExchangeStatus sets the "exchange_status" field.
+func (m *SocialOAuthStartMutation) SetExchangeStatus(ss socialoauthstart.ExchangeStatus) {
+	m.exchange_status = &ss
+}
+
+// ExchangeStatus returns the value of the "exchange_status" field in the mutation.
+func (m *SocialOAuthStartMutation) ExchangeStatus() (r socialoauthstart.ExchangeStatus, exists bool) {
+	v := m.exchange_status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExchangeStatus returns the old "exchange_status" field's value of the SocialOAuthStart entity.
+// If the SocialOAuthStart object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialOAuthStartMutation) OldExchangeStatus(ctx context.Context) (v socialoauthstart.ExchangeStatus, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExchangeStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExchangeStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExchangeStatus: %w", err)
+	}
+	return oldValue.ExchangeStatus, nil
+}
+
+// ResetExchangeStatus resets all changes to the "exchange_status" field.
+func (m *SocialOAuthStartMutation) ResetExchangeStatus() {
+	m.exchange_status = nil
+}
+
+// SetExchangeReceipt sets the "exchange_receipt" field.
+func (m *SocialOAuthStartMutation) SetExchangeReceipt(soe schema.SocialOAuthExchange) {
+	m.exchange_receipt = &soe
+}
+
+// ExchangeReceipt returns the value of the "exchange_receipt" field in the mutation.
+func (m *SocialOAuthStartMutation) ExchangeReceipt() (r schema.SocialOAuthExchange, exists bool) {
+	v := m.exchange_receipt
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExchangeReceipt returns the old "exchange_receipt" field's value of the SocialOAuthStart entity.
+// If the SocialOAuthStart object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialOAuthStartMutation) OldExchangeReceipt(ctx context.Context) (v schema.SocialOAuthExchange, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExchangeReceipt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExchangeReceipt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExchangeReceipt: %w", err)
+	}
+	return oldValue.ExchangeReceipt, nil
+}
+
+// ClearExchangeReceipt clears the value of the "exchange_receipt" field.
+func (m *SocialOAuthStartMutation) ClearExchangeReceipt() {
+	m.exchange_receipt = nil
+	m.clearedFields[socialoauthstart.FieldExchangeReceipt] = struct{}{}
+}
+
+// ExchangeReceiptCleared returns if the "exchange_receipt" field was cleared in this mutation.
+func (m *SocialOAuthStartMutation) ExchangeReceiptCleared() bool {
+	_, ok := m.clearedFields[socialoauthstart.FieldExchangeReceipt]
+	return ok
+}
+
+// ResetExchangeReceipt resets all changes to the "exchange_receipt" field.
+func (m *SocialOAuthStartMutation) ResetExchangeReceipt() {
+	m.exchange_receipt = nil
+	delete(m.clearedFields, socialoauthstart.FieldExchangeReceipt)
+}
+
+// SetExpectedConnectionID sets the "expected_connection_id" field.
+func (m *SocialOAuthStartMutation) SetExpectedConnectionID(s string) {
+	m.expected_connection_id = &s
+}
+
+// ExpectedConnectionID returns the value of the "expected_connection_id" field in the mutation.
+func (m *SocialOAuthStartMutation) ExpectedConnectionID() (r string, exists bool) {
+	v := m.expected_connection_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpectedConnectionID returns the old "expected_connection_id" field's value of the SocialOAuthStart entity.
+// If the SocialOAuthStart object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialOAuthStartMutation) OldExpectedConnectionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpectedConnectionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpectedConnectionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpectedConnectionID: %w", err)
+	}
+	return oldValue.ExpectedConnectionID, nil
+}
+
+// ClearExpectedConnectionID clears the value of the "expected_connection_id" field.
+func (m *SocialOAuthStartMutation) ClearExpectedConnectionID() {
+	m.expected_connection_id = nil
+	m.clearedFields[socialoauthstart.FieldExpectedConnectionID] = struct{}{}
+}
+
+// ExpectedConnectionIDCleared returns if the "expected_connection_id" field was cleared in this mutation.
+func (m *SocialOAuthStartMutation) ExpectedConnectionIDCleared() bool {
+	_, ok := m.clearedFields[socialoauthstart.FieldExpectedConnectionID]
+	return ok
+}
+
+// ResetExpectedConnectionID resets all changes to the "expected_connection_id" field.
+func (m *SocialOAuthStartMutation) ResetExpectedConnectionID() {
+	m.expected_connection_id = nil
+	delete(m.clearedFields, socialoauthstart.FieldExpectedConnectionID)
+}
+
+// SetReturnPath sets the "return_path" field.
+func (m *SocialOAuthStartMutation) SetReturnPath(s string) {
+	m.return_path = &s
+}
+
+// ReturnPath returns the value of the "return_path" field in the mutation.
+func (m *SocialOAuthStartMutation) ReturnPath() (r string, exists bool) {
+	v := m.return_path
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReturnPath returns the old "return_path" field's value of the SocialOAuthStart entity.
+// If the SocialOAuthStart object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialOAuthStartMutation) OldReturnPath(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReturnPath is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReturnPath requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReturnPath: %w", err)
+	}
+	return oldValue.ReturnPath, nil
+}
+
+// ResetReturnPath resets all changes to the "return_path" field.
+func (m *SocialOAuthStartMutation) ResetReturnPath() {
+	m.return_path = nil
+}
+
+// SetCompletedConnectionID sets the "completed_connection_id" field.
+func (m *SocialOAuthStartMutation) SetCompletedConnectionID(s string) {
+	m.completed_connection_id = &s
+}
+
+// CompletedConnectionID returns the value of the "completed_connection_id" field in the mutation.
+func (m *SocialOAuthStartMutation) CompletedConnectionID() (r string, exists bool) {
+	v := m.completed_connection_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompletedConnectionID returns the old "completed_connection_id" field's value of the SocialOAuthStart entity.
+// If the SocialOAuthStart object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialOAuthStartMutation) OldCompletedConnectionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompletedConnectionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompletedConnectionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompletedConnectionID: %w", err)
+	}
+	return oldValue.CompletedConnectionID, nil
+}
+
+// ClearCompletedConnectionID clears the value of the "completed_connection_id" field.
+func (m *SocialOAuthStartMutation) ClearCompletedConnectionID() {
+	m.completed_connection_id = nil
+	m.clearedFields[socialoauthstart.FieldCompletedConnectionID] = struct{}{}
+}
+
+// CompletedConnectionIDCleared returns if the "completed_connection_id" field was cleared in this mutation.
+func (m *SocialOAuthStartMutation) CompletedConnectionIDCleared() bool {
+	_, ok := m.clearedFields[socialoauthstart.FieldCompletedConnectionID]
+	return ok
+}
+
+// ResetCompletedConnectionID resets all changes to the "completed_connection_id" field.
+func (m *SocialOAuthStartMutation) ResetCompletedConnectionID() {
+	m.completed_connection_id = nil
+	delete(m.clearedFields, socialoauthstart.FieldCompletedConnectionID)
+}
+
+// SetCompletedAt sets the "completed_at" field.
+func (m *SocialOAuthStartMutation) SetCompletedAt(t time.Time) {
+	m.completed_at = &t
+}
+
+// CompletedAt returns the value of the "completed_at" field in the mutation.
+func (m *SocialOAuthStartMutation) CompletedAt() (r time.Time, exists bool) {
+	v := m.completed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompletedAt returns the old "completed_at" field's value of the SocialOAuthStart entity.
+// If the SocialOAuthStart object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SocialOAuthStartMutation) OldCompletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompletedAt: %w", err)
+	}
+	return oldValue.CompletedAt, nil
+}
+
+// ClearCompletedAt clears the value of the "completed_at" field.
+func (m *SocialOAuthStartMutation) ClearCompletedAt() {
+	m.completed_at = nil
+	m.clearedFields[socialoauthstart.FieldCompletedAt] = struct{}{}
+}
+
+// CompletedAtCleared returns if the "completed_at" field was cleared in this mutation.
+func (m *SocialOAuthStartMutation) CompletedAtCleared() bool {
+	_, ok := m.clearedFields[socialoauthstart.FieldCompletedAt]
+	return ok
+}
+
+// ResetCompletedAt resets all changes to the "completed_at" field.
+func (m *SocialOAuthStartMutation) ResetCompletedAt() {
+	m.completed_at = nil
+	delete(m.clearedFields, socialoauthstart.FieldCompletedAt)
+}
+
 // SetExpiresAt sets the "expires_at" field.
 func (m *SocialOAuthStartMutation) SetExpiresAt(t time.Time) {
 	m.expires_at = &t
@@ -74829,7 +75103,7 @@ func (m *SocialOAuthStartMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SocialOAuthStartMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 15)
 	if m.organization_id != nil {
 		fields = append(fields, socialoauthstart.FieldOrganizationID)
 	}
@@ -74850,6 +75124,24 @@ func (m *SocialOAuthStartMutation) Fields() []string {
 	}
 	if m.social_set_id != nil {
 		fields = append(fields, socialoauthstart.FieldSocialSetID)
+	}
+	if m.exchange_status != nil {
+		fields = append(fields, socialoauthstart.FieldExchangeStatus)
+	}
+	if m.exchange_receipt != nil {
+		fields = append(fields, socialoauthstart.FieldExchangeReceipt)
+	}
+	if m.expected_connection_id != nil {
+		fields = append(fields, socialoauthstart.FieldExpectedConnectionID)
+	}
+	if m.return_path != nil {
+		fields = append(fields, socialoauthstart.FieldReturnPath)
+	}
+	if m.completed_connection_id != nil {
+		fields = append(fields, socialoauthstart.FieldCompletedConnectionID)
+	}
+	if m.completed_at != nil {
+		fields = append(fields, socialoauthstart.FieldCompletedAt)
 	}
 	if m.expires_at != nil {
 		fields = append(fields, socialoauthstart.FieldExpiresAt)
@@ -74879,6 +75171,18 @@ func (m *SocialOAuthStartMutation) Field(name string) (ent.Value, bool) {
 		return m.IntegrationID()
 	case socialoauthstart.FieldSocialSetID:
 		return m.SocialSetID()
+	case socialoauthstart.FieldExchangeStatus:
+		return m.ExchangeStatus()
+	case socialoauthstart.FieldExchangeReceipt:
+		return m.ExchangeReceipt()
+	case socialoauthstart.FieldExpectedConnectionID:
+		return m.ExpectedConnectionID()
+	case socialoauthstart.FieldReturnPath:
+		return m.ReturnPath()
+	case socialoauthstart.FieldCompletedConnectionID:
+		return m.CompletedConnectionID()
+	case socialoauthstart.FieldCompletedAt:
+		return m.CompletedAt()
 	case socialoauthstart.FieldExpiresAt:
 		return m.ExpiresAt()
 	case socialoauthstart.FieldCreatedAt:
@@ -74906,6 +75210,18 @@ func (m *SocialOAuthStartMutation) OldField(ctx context.Context, name string) (e
 		return m.OldIntegrationID(ctx)
 	case socialoauthstart.FieldSocialSetID:
 		return m.OldSocialSetID(ctx)
+	case socialoauthstart.FieldExchangeStatus:
+		return m.OldExchangeStatus(ctx)
+	case socialoauthstart.FieldExchangeReceipt:
+		return m.OldExchangeReceipt(ctx)
+	case socialoauthstart.FieldExpectedConnectionID:
+		return m.OldExpectedConnectionID(ctx)
+	case socialoauthstart.FieldReturnPath:
+		return m.OldReturnPath(ctx)
+	case socialoauthstart.FieldCompletedConnectionID:
+		return m.OldCompletedConnectionID(ctx)
+	case socialoauthstart.FieldCompletedAt:
+		return m.OldCompletedAt(ctx)
 	case socialoauthstart.FieldExpiresAt:
 		return m.OldExpiresAt(ctx)
 	case socialoauthstart.FieldCreatedAt:
@@ -74968,6 +75284,48 @@ func (m *SocialOAuthStartMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetSocialSetID(v)
 		return nil
+	case socialoauthstart.FieldExchangeStatus:
+		v, ok := value.(socialoauthstart.ExchangeStatus)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExchangeStatus(v)
+		return nil
+	case socialoauthstart.FieldExchangeReceipt:
+		v, ok := value.(schema.SocialOAuthExchange)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExchangeReceipt(v)
+		return nil
+	case socialoauthstart.FieldExpectedConnectionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpectedConnectionID(v)
+		return nil
+	case socialoauthstart.FieldReturnPath:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReturnPath(v)
+		return nil
+	case socialoauthstart.FieldCompletedConnectionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompletedConnectionID(v)
+		return nil
+	case socialoauthstart.FieldCompletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompletedAt(v)
+		return nil
 	case socialoauthstart.FieldExpiresAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -75018,6 +75376,18 @@ func (m *SocialOAuthStartMutation) ClearedFields() []string {
 	if m.FieldCleared(socialoauthstart.FieldSocialSetID) {
 		fields = append(fields, socialoauthstart.FieldSocialSetID)
 	}
+	if m.FieldCleared(socialoauthstart.FieldExchangeReceipt) {
+		fields = append(fields, socialoauthstart.FieldExchangeReceipt)
+	}
+	if m.FieldCleared(socialoauthstart.FieldExpectedConnectionID) {
+		fields = append(fields, socialoauthstart.FieldExpectedConnectionID)
+	}
+	if m.FieldCleared(socialoauthstart.FieldCompletedConnectionID) {
+		fields = append(fields, socialoauthstart.FieldCompletedConnectionID)
+	}
+	if m.FieldCleared(socialoauthstart.FieldCompletedAt) {
+		fields = append(fields, socialoauthstart.FieldCompletedAt)
+	}
 	return fields
 }
 
@@ -75037,6 +75407,18 @@ func (m *SocialOAuthStartMutation) ClearField(name string) error {
 		return nil
 	case socialoauthstart.FieldSocialSetID:
 		m.ClearSocialSetID()
+		return nil
+	case socialoauthstart.FieldExchangeReceipt:
+		m.ClearExchangeReceipt()
+		return nil
+	case socialoauthstart.FieldExpectedConnectionID:
+		m.ClearExpectedConnectionID()
+		return nil
+	case socialoauthstart.FieldCompletedConnectionID:
+		m.ClearCompletedConnectionID()
+		return nil
+	case socialoauthstart.FieldCompletedAt:
+		m.ClearCompletedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown SocialOAuthStart nullable field %s", name)
@@ -75066,6 +75448,24 @@ func (m *SocialOAuthStartMutation) ResetField(name string) error {
 		return nil
 	case socialoauthstart.FieldSocialSetID:
 		m.ResetSocialSetID()
+		return nil
+	case socialoauthstart.FieldExchangeStatus:
+		m.ResetExchangeStatus()
+		return nil
+	case socialoauthstart.FieldExchangeReceipt:
+		m.ResetExchangeReceipt()
+		return nil
+	case socialoauthstart.FieldExpectedConnectionID:
+		m.ResetExpectedConnectionID()
+		return nil
+	case socialoauthstart.FieldReturnPath:
+		m.ResetReturnPath()
+		return nil
+	case socialoauthstart.FieldCompletedConnectionID:
+		m.ResetCompletedConnectionID()
+		return nil
+	case socialoauthstart.FieldCompletedAt:
+		m.ResetCompletedAt()
 		return nil
 	case socialoauthstart.FieldExpiresAt:
 		m.ResetExpiresAt()

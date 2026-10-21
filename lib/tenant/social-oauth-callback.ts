@@ -1,41 +1,31 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
+import {
+  socialOAuthProviderSchema,
+  socialOAuthExchangeSchema,
+  type OAuthProvider,
+} from 'screenshot-studio-backend-sdk'
 
-const providers = [
-  'x',
-  'instagram',
-  'instagram-standalone',
-  'linkedin',
-  'threads',
-  'mastodon',
-] as const
-export type SocialOAuthProvider = (typeof providers)[number]
+export type SocialOAuthProvider = OAuthProvider
 
-/** Whether `provider` is one a workspace can connect through OAuth. */
+/** Whether the platform has an OAuth adapter for this provider. */
 export function isSocialOAuthProvider(provider: string): provider is SocialOAuthProvider {
-  return (providers as readonly string[]).includes(provider)
+  return socialOAuthProviderSchema.safeParse(provider).success
 }
 
 export type SocialOAuthCompletion = {
   exchange?: (state: string, code: string) => Promise<unknown>
   onConnected?: (state: string, integrationId: string) => Promise<void>
+  returnTo?: (state: string) => Promise<string>
   onPageChoice?: (state: string, integrationId: string) => Promise<void>
 }
 
 export type InstagramSelection = {
   selectPage?: (choice: InstagramChoice) => Promise<void>
   onSelected?: (state: string, integrationId: string) => Promise<void>
+  returnTo?: (state: string) => Promise<string>
 }
 
-const pageSchema = z.object({
-  id: z.string().min(1),
-  pageId: z.string().min(1),
-  name: z.string().nullable().optional(),
-})
-const connectionSchema = z.object({
-  id: z.string().min(1),
-  pages: z.array(pageSchema).optional(),
-})
 const pageChoiceSchema = z.object({
   accountId: z.string().min(1),
   expiresAt: z.number().int(),
@@ -103,7 +93,11 @@ export const socialOAuthReturnSchema = z
  * Back to where the connection started, which confirms it: the social set's
  * settings (RFC 043), or else the Channels settings.
  */
-function connectedRedirect(provider: SocialOAuthProvider, request: Request): Response {
+function connectedRedirect(
+  provider: SocialOAuthProvider,
+  request: Request,
+  returnTo?: string
+): Response {
   const cookie = request.headers
     .get('cookie')
     ?.split(/;\s*/)
@@ -115,7 +109,7 @@ function connectedRedirect(provider: SocialOAuthProvider, request: Request): Res
   } catch {
     /* Ignore malformed cookies. */
   }
-  const back = socialOAuthReturnSchema.safeParse(decoded)
+  const back = socialOAuthReturnSchema.safeParse(returnTo ?? decoded)
   const headers = new Headers({
     'Cache-Control': 'no-store',
     Location: `${back.success ? back.data : '/workspace/channels'}?${new URLSearchParams({ connected: provider })}`,
@@ -156,11 +150,11 @@ export async function completeSocialOAuth(
   if (!completion.exchange)
     return new Response('Social connection is not configured.', { status: 503 })
 
-  const connected = connectionSchema.safeParse(await completion.exchange(state, code))
+  const connected = socialOAuthExchangeSchema.safeParse(await completion.exchange(state, code))
   if (!connected.success) return connectionFailed(providerName)
-  if (providerName !== 'instagram') {
+  if (providerName !== 'instagram' || connected.data.completed) {
     await completion.onConnected?.(state, connected.data.id)
-    return connectedRedirect(providerName, request)
+    return connectedRedirect(providerName, request, await completion.returnTo?.(state))
   }
 
   const pages = connected.data.pages ?? []
@@ -218,5 +212,5 @@ export async function selectInstagramAccount(
     return new Response('Social connection is not configured.', { status: 503 })
   await selection.selectPage(choice)
   await selection.onSelected?.(choice.state, choice.integrationId)
-  return connectedRedirect('instagram', request)
+  return connectedRedirect('instagram', request, await selection.returnTo?.(choice.state))
 }

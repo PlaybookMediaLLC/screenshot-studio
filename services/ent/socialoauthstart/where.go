@@ -99,6 +99,26 @@ func SocialSetID(v string) predicate.SocialOAuthStart {
 	return predicate.SocialOAuthStart(sql.FieldEQ(FieldSocialSetID, v))
 }
 
+// ExpectedConnectionID applies equality check predicate on the "expected_connection_id" field. It's identical to ExpectedConnectionIDEQ.
+func ExpectedConnectionID(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldExpectedConnectionID, v))
+}
+
+// ReturnPath applies equality check predicate on the "return_path" field. It's identical to ReturnPathEQ.
+func ReturnPath(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldReturnPath, v))
+}
+
+// CompletedConnectionID applies equality check predicate on the "completed_connection_id" field. It's identical to CompletedConnectionIDEQ.
+func CompletedConnectionID(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldCompletedConnectionID, v))
+}
+
+// CompletedAt applies equality check predicate on the "completed_at" field. It's identical to CompletedAtEQ.
+func CompletedAt(v time.Time) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldCompletedAt, v))
+}
+
 // ExpiresAt applies equality check predicate on the "expires_at" field. It's identical to ExpiresAtEQ.
 func ExpiresAt(v time.Time) predicate.SocialOAuthStart {
 	return predicate.SocialOAuthStart(sql.FieldEQ(FieldExpiresAt, v))
@@ -582,6 +602,301 @@ func SocialSetIDEqualFold(v string) predicate.SocialOAuthStart {
 // SocialSetIDContainsFold applies the ContainsFold predicate on the "social_set_id" field.
 func SocialSetIDContainsFold(v string) predicate.SocialOAuthStart {
 	return predicate.SocialOAuthStart(sql.FieldContainsFold(FieldSocialSetID, v))
+}
+
+// ExchangeStatusEQ applies the EQ predicate on the "exchange_status" field.
+func ExchangeStatusEQ(v ExchangeStatus) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldExchangeStatus, v))
+}
+
+// ExchangeStatusNEQ applies the NEQ predicate on the "exchange_status" field.
+func ExchangeStatusNEQ(v ExchangeStatus) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNEQ(FieldExchangeStatus, v))
+}
+
+// ExchangeStatusIn applies the In predicate on the "exchange_status" field.
+func ExchangeStatusIn(vs ...ExchangeStatus) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIn(FieldExchangeStatus, vs...))
+}
+
+// ExchangeStatusNotIn applies the NotIn predicate on the "exchange_status" field.
+func ExchangeStatusNotIn(vs ...ExchangeStatus) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotIn(FieldExchangeStatus, vs...))
+}
+
+// ExchangeReceiptIsNil applies the IsNil predicate on the "exchange_receipt" field.
+func ExchangeReceiptIsNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIsNull(FieldExchangeReceipt))
+}
+
+// ExchangeReceiptNotNil applies the NotNil predicate on the "exchange_receipt" field.
+func ExchangeReceiptNotNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotNull(FieldExchangeReceipt))
+}
+
+// ExpectedConnectionIDEQ applies the EQ predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldExpectedConnectionID, v))
+}
+
+// ExpectedConnectionIDNEQ applies the NEQ predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDNEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNEQ(FieldExpectedConnectionID, v))
+}
+
+// ExpectedConnectionIDIn applies the In predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIn(FieldExpectedConnectionID, vs...))
+}
+
+// ExpectedConnectionIDNotIn applies the NotIn predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDNotIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotIn(FieldExpectedConnectionID, vs...))
+}
+
+// ExpectedConnectionIDGT applies the GT predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDGT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGT(FieldExpectedConnectionID, v))
+}
+
+// ExpectedConnectionIDGTE applies the GTE predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDGTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGTE(FieldExpectedConnectionID, v))
+}
+
+// ExpectedConnectionIDLT applies the LT predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDLT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLT(FieldExpectedConnectionID, v))
+}
+
+// ExpectedConnectionIDLTE applies the LTE predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDLTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLTE(FieldExpectedConnectionID, v))
+}
+
+// ExpectedConnectionIDContains applies the Contains predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDContains(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContains(FieldExpectedConnectionID, v))
+}
+
+// ExpectedConnectionIDHasPrefix applies the HasPrefix predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDHasPrefix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasPrefix(FieldExpectedConnectionID, v))
+}
+
+// ExpectedConnectionIDHasSuffix applies the HasSuffix predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDHasSuffix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasSuffix(FieldExpectedConnectionID, v))
+}
+
+// ExpectedConnectionIDIsNil applies the IsNil predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDIsNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIsNull(FieldExpectedConnectionID))
+}
+
+// ExpectedConnectionIDNotNil applies the NotNil predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDNotNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotNull(FieldExpectedConnectionID))
+}
+
+// ExpectedConnectionIDEqualFold applies the EqualFold predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDEqualFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEqualFold(FieldExpectedConnectionID, v))
+}
+
+// ExpectedConnectionIDContainsFold applies the ContainsFold predicate on the "expected_connection_id" field.
+func ExpectedConnectionIDContainsFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContainsFold(FieldExpectedConnectionID, v))
+}
+
+// ReturnPathEQ applies the EQ predicate on the "return_path" field.
+func ReturnPathEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldReturnPath, v))
+}
+
+// ReturnPathNEQ applies the NEQ predicate on the "return_path" field.
+func ReturnPathNEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNEQ(FieldReturnPath, v))
+}
+
+// ReturnPathIn applies the In predicate on the "return_path" field.
+func ReturnPathIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIn(FieldReturnPath, vs...))
+}
+
+// ReturnPathNotIn applies the NotIn predicate on the "return_path" field.
+func ReturnPathNotIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotIn(FieldReturnPath, vs...))
+}
+
+// ReturnPathGT applies the GT predicate on the "return_path" field.
+func ReturnPathGT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGT(FieldReturnPath, v))
+}
+
+// ReturnPathGTE applies the GTE predicate on the "return_path" field.
+func ReturnPathGTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGTE(FieldReturnPath, v))
+}
+
+// ReturnPathLT applies the LT predicate on the "return_path" field.
+func ReturnPathLT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLT(FieldReturnPath, v))
+}
+
+// ReturnPathLTE applies the LTE predicate on the "return_path" field.
+func ReturnPathLTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLTE(FieldReturnPath, v))
+}
+
+// ReturnPathContains applies the Contains predicate on the "return_path" field.
+func ReturnPathContains(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContains(FieldReturnPath, v))
+}
+
+// ReturnPathHasPrefix applies the HasPrefix predicate on the "return_path" field.
+func ReturnPathHasPrefix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasPrefix(FieldReturnPath, v))
+}
+
+// ReturnPathHasSuffix applies the HasSuffix predicate on the "return_path" field.
+func ReturnPathHasSuffix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasSuffix(FieldReturnPath, v))
+}
+
+// ReturnPathEqualFold applies the EqualFold predicate on the "return_path" field.
+func ReturnPathEqualFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEqualFold(FieldReturnPath, v))
+}
+
+// ReturnPathContainsFold applies the ContainsFold predicate on the "return_path" field.
+func ReturnPathContainsFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContainsFold(FieldReturnPath, v))
+}
+
+// CompletedConnectionIDEQ applies the EQ predicate on the "completed_connection_id" field.
+func CompletedConnectionIDEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldCompletedConnectionID, v))
+}
+
+// CompletedConnectionIDNEQ applies the NEQ predicate on the "completed_connection_id" field.
+func CompletedConnectionIDNEQ(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNEQ(FieldCompletedConnectionID, v))
+}
+
+// CompletedConnectionIDIn applies the In predicate on the "completed_connection_id" field.
+func CompletedConnectionIDIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIn(FieldCompletedConnectionID, vs...))
+}
+
+// CompletedConnectionIDNotIn applies the NotIn predicate on the "completed_connection_id" field.
+func CompletedConnectionIDNotIn(vs ...string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotIn(FieldCompletedConnectionID, vs...))
+}
+
+// CompletedConnectionIDGT applies the GT predicate on the "completed_connection_id" field.
+func CompletedConnectionIDGT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGT(FieldCompletedConnectionID, v))
+}
+
+// CompletedConnectionIDGTE applies the GTE predicate on the "completed_connection_id" field.
+func CompletedConnectionIDGTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGTE(FieldCompletedConnectionID, v))
+}
+
+// CompletedConnectionIDLT applies the LT predicate on the "completed_connection_id" field.
+func CompletedConnectionIDLT(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLT(FieldCompletedConnectionID, v))
+}
+
+// CompletedConnectionIDLTE applies the LTE predicate on the "completed_connection_id" field.
+func CompletedConnectionIDLTE(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLTE(FieldCompletedConnectionID, v))
+}
+
+// CompletedConnectionIDContains applies the Contains predicate on the "completed_connection_id" field.
+func CompletedConnectionIDContains(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContains(FieldCompletedConnectionID, v))
+}
+
+// CompletedConnectionIDHasPrefix applies the HasPrefix predicate on the "completed_connection_id" field.
+func CompletedConnectionIDHasPrefix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasPrefix(FieldCompletedConnectionID, v))
+}
+
+// CompletedConnectionIDHasSuffix applies the HasSuffix predicate on the "completed_connection_id" field.
+func CompletedConnectionIDHasSuffix(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldHasSuffix(FieldCompletedConnectionID, v))
+}
+
+// CompletedConnectionIDIsNil applies the IsNil predicate on the "completed_connection_id" field.
+func CompletedConnectionIDIsNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIsNull(FieldCompletedConnectionID))
+}
+
+// CompletedConnectionIDNotNil applies the NotNil predicate on the "completed_connection_id" field.
+func CompletedConnectionIDNotNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotNull(FieldCompletedConnectionID))
+}
+
+// CompletedConnectionIDEqualFold applies the EqualFold predicate on the "completed_connection_id" field.
+func CompletedConnectionIDEqualFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEqualFold(FieldCompletedConnectionID, v))
+}
+
+// CompletedConnectionIDContainsFold applies the ContainsFold predicate on the "completed_connection_id" field.
+func CompletedConnectionIDContainsFold(v string) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldContainsFold(FieldCompletedConnectionID, v))
+}
+
+// CompletedAtEQ applies the EQ predicate on the "completed_at" field.
+func CompletedAtEQ(v time.Time) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldEQ(FieldCompletedAt, v))
+}
+
+// CompletedAtNEQ applies the NEQ predicate on the "completed_at" field.
+func CompletedAtNEQ(v time.Time) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNEQ(FieldCompletedAt, v))
+}
+
+// CompletedAtIn applies the In predicate on the "completed_at" field.
+func CompletedAtIn(vs ...time.Time) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIn(FieldCompletedAt, vs...))
+}
+
+// CompletedAtNotIn applies the NotIn predicate on the "completed_at" field.
+func CompletedAtNotIn(vs ...time.Time) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotIn(FieldCompletedAt, vs...))
+}
+
+// CompletedAtGT applies the GT predicate on the "completed_at" field.
+func CompletedAtGT(v time.Time) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGT(FieldCompletedAt, v))
+}
+
+// CompletedAtGTE applies the GTE predicate on the "completed_at" field.
+func CompletedAtGTE(v time.Time) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldGTE(FieldCompletedAt, v))
+}
+
+// CompletedAtLT applies the LT predicate on the "completed_at" field.
+func CompletedAtLT(v time.Time) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLT(FieldCompletedAt, v))
+}
+
+// CompletedAtLTE applies the LTE predicate on the "completed_at" field.
+func CompletedAtLTE(v time.Time) predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldLTE(FieldCompletedAt, v))
+}
+
+// CompletedAtIsNil applies the IsNil predicate on the "completed_at" field.
+func CompletedAtIsNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldIsNull(FieldCompletedAt))
+}
+
+// CompletedAtNotNil applies the NotNil predicate on the "completed_at" field.
+func CompletedAtNotNil() predicate.SocialOAuthStart {
+	return predicate.SocialOAuthStart(sql.FieldNotNull(FieldCompletedAt))
 }
 
 // ExpiresAtEQ applies the EQ predicate on the "expires_at" field.

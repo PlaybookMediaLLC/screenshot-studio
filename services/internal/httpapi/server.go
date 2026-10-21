@@ -17,6 +17,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
@@ -30,7 +31,11 @@ type Store interface {
 	AuthorizePublishing(context.Context, string, string, string) error
 	AuthorizeAPIKeyScope(context.Context, string, string, string) error
 	Binding(context.Context, string) (*ent.SocialTenantBinding, error)
-	StartOAuth(context.Context, publishing.Actor, string, string, string, string, *string) error
+	StartOAuth(context.Context, publishing.Actor, string, string, string, string, publishing.OAuthStartOptions) error
+	AuthorizeSession(context.Context, string, string) (*ent.Session, error)
+	ResolveOAuthContext(context.Context, string, string, string, string) (*publishing.OAuthContext, error)
+	ClaimOAuthExchange(context.Context, publishing.Actor, string, string, string) (*schema.SocialOAuthExchange, error)
+	SaveOAuthExchange(context.Context, publishing.Actor, string, string, string, schema.SocialOAuthExchange) error
 	OAuthStart(context.Context, publishing.Actor, string, string, string, *string) (*ent.SocialOAuthStart, error)
 	RememberInstagramIntegration(context.Context, publishing.Actor, string, string, string) error
 	FinishOAuth(context.Context, publishing.Actor, string, string, string, string) (*ent.ChannelConnection, error)
@@ -261,12 +266,13 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 	mux.HandleFunc("GET /readyz", s.ready)
 	mux.Handle("GET /v1/channel-connections", s.authenticate(http.HandlerFunc(s.listConnections)))
 	mux.Handle("POST /v1/channel-connections", s.authenticate(http.HandlerFunc(s.createConnection)))
+	mux.Handle("POST /v1/social-oauth/context", s.authenticateOAuthCallback(http.HandlerFunc(s.socialOAuthContext)))
 	mux.Handle("POST /v1/social-oauth/begin", s.authenticate(http.HandlerFunc(s.beginSocialOAuth)))
-	mux.Handle("POST /v1/social-oauth/exchange", s.authenticate(http.HandlerFunc(s.exchangeSocialOAuth)))
-	mux.Handle("POST /v1/social-oauth/page", s.authenticate(http.HandlerFunc(s.selectSocialOAuthPage)))
-	mux.Handle("POST /v1/social-oauth/verify", s.authenticate(http.HandlerFunc(s.verifySocialOAuth)))
-	mux.Handle("POST /v1/social-oauth/remember", s.authenticate(http.HandlerFunc(s.rememberSocialOAuth)))
-	mux.Handle("POST /v1/social-oauth/complete", s.authenticate(http.HandlerFunc(s.completeSocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/exchange", s.authenticateOAuthCallback(http.HandlerFunc(s.exchangeSocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/page", s.authenticateOAuthCallback(http.HandlerFunc(s.selectSocialOAuthPage)))
+	mux.Handle("POST /v1/social-oauth/verify", s.authenticateOAuthCallback(http.HandlerFunc(s.verifySocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/remember", s.authenticateOAuthCallback(http.HandlerFunc(s.rememberSocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/complete", s.authenticateOAuthCallback(http.HandlerFunc(s.completeSocialOAuth)))
 	mux.Handle("GET /v1/scheduled-posts", s.authenticatePublishing("artifact:read", s.listScheduledPosts))
 	mux.Handle("POST /v1/scheduled-posts", s.authenticatePublishing(product.PostScheduleScope, s.createScheduledPost))
 	mux.Handle("POST /v1/scheduled-posts/{id}/cancel", s.authenticatePublishing(product.PostScheduleScope, s.cancelScheduledPost))

@@ -1370,8 +1370,12 @@ func init() {
 	sharelink.UpdateDefaultUpdatedAt = sharelinkDescUpdatedAt.UpdateDefault.(func() time.Time)
 	socialoauthstartFields := schema.SocialOAuthStart{}.Fields()
 	_ = socialoauthstartFields
+	// socialoauthstartDescReturnPath is the schema descriptor for return_path field.
+	socialoauthstartDescReturnPath := socialoauthstartFields[11].Descriptor()
+	// socialoauthstart.DefaultReturnPath holds the default value on creation for the return_path field.
+	socialoauthstart.DefaultReturnPath = socialoauthstartDescReturnPath.Default.(string)
 	// socialoauthstartDescCreatedAt is the schema descriptor for created_at field.
-	socialoauthstartDescCreatedAt := socialoauthstartFields[9].Descriptor()
+	socialoauthstartDescCreatedAt := socialoauthstartFields[15].Descriptor()
 	// socialoauthstart.DefaultCreatedAt holds the default value on creation for the created_at field.
 	socialoauthstart.DefaultCreatedAt = socialoauthstartDescCreatedAt.Default.(func() time.Time)
 	socialsetFields := schema.SocialSet{}.Fields()

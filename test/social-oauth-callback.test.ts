@@ -174,3 +174,43 @@ test('malformed OAuth return cookie falls back to channels', async () => {
   )
   assert.equal(result.headers.get('Location'), '/workspace/channels?connected=linkedin')
 })
+
+test('the immutable attempt return path overrides a cookie changed by another tab', async () => {
+  const response = await completeSocialOAuth(
+    new Request('http://localhost/integrations/social/x?oauth_token=state&oauth_verifier=code', {
+      headers: { cookie: 'shots-oauth-return=%2Fwrite%2Fanotherdraft1234' },
+    }),
+    'x',
+    {
+      exchange: async () => ({ id: 'verified-account', completed: true }),
+      returnTo: async (state) => {
+        assert.equal(state, 'state')
+        return '/workspace/social-sets/originalset1234'
+      },
+    }
+  )
+  assert.equal(
+    response.headers.get('Location'),
+    '/workspace/social-sets/originalset1234?connected=x'
+  )
+})
+
+test('a completed Instagram callback recovers without asking for page selection again', async () => {
+  let completed = 0
+  const response = await completeSocialOAuth(
+    new Request('http://localhost/integrations/social/instagram?state=state&code=code'),
+    'instagram',
+    {
+      exchange: async () => ({ id: 'verified-account', completed: true }),
+      onConnected: async () => {
+        completed++
+      },
+      onPageChoice: async () => {
+        assert.fail('completed callback requested another selection')
+      },
+      returnTo: async () => '',
+    }
+  )
+  assert.equal(response.status, 303)
+  assert.equal(completed, 1)
+})

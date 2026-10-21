@@ -3,6 +3,7 @@
 package socialoauthstart
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -27,6 +28,18 @@ const (
 	FieldIntegrationID = "integrationId"
 	// FieldSocialSetID holds the string denoting the social_set_id field in the database.
 	FieldSocialSetID = "socialSetId"
+	// FieldExchangeStatus holds the string denoting the exchange_status field in the database.
+	FieldExchangeStatus = "exchangeStatus"
+	// FieldExchangeReceipt holds the string denoting the exchange_receipt field in the database.
+	FieldExchangeReceipt = "exchangeReceipt"
+	// FieldExpectedConnectionID holds the string denoting the expected_connection_id field in the database.
+	FieldExpectedConnectionID = "expectedConnectionId"
+	// FieldReturnPath holds the string denoting the return_path field in the database.
+	FieldReturnPath = "returnPath"
+	// FieldCompletedConnectionID holds the string denoting the completed_connection_id field in the database.
+	FieldCompletedConnectionID = "completedConnectionId"
+	// FieldCompletedAt holds the string denoting the completed_at field in the database.
+	FieldCompletedAt = "completedAt"
 	// FieldExpiresAt holds the string denoting the expires_at field in the database.
 	FieldExpiresAt = "expiresAt"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -45,6 +58,12 @@ var Columns = []string{
 	FieldSecretReference,
 	FieldIntegrationID,
 	FieldSocialSetID,
+	FieldExchangeStatus,
+	FieldExchangeReceipt,
+	FieldExpectedConnectionID,
+	FieldReturnPath,
+	FieldCompletedConnectionID,
+	FieldCompletedAt,
 	FieldExpiresAt,
 	FieldCreatedAt,
 }
@@ -60,9 +79,39 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultReturnPath holds the default value on creation for the "return_path" field.
+	DefaultReturnPath string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 )
+
+// ExchangeStatus defines the type for the "exchange_status" enum field.
+type ExchangeStatus string
+
+// ExchangeStatusPENDING is the default value of the ExchangeStatus enum.
+const DefaultExchangeStatus = ExchangeStatusPENDING
+
+// ExchangeStatus values.
+const (
+	ExchangeStatusPENDING    ExchangeStatus = "PENDING"
+	ExchangeStatusEXCHANGING ExchangeStatus = "EXCHANGING"
+	ExchangeStatusEXCHANGED  ExchangeStatus = "EXCHANGED"
+	ExchangeStatusCOMPLETED  ExchangeStatus = "COMPLETED"
+)
+
+func (es ExchangeStatus) String() string {
+	return string(es)
+}
+
+// ExchangeStatusValidator is a validator for the "exchange_status" field enum values. It is called by the builders before save.
+func ExchangeStatusValidator(es ExchangeStatus) error {
+	switch es {
+	case ExchangeStatusPENDING, ExchangeStatusEXCHANGING, ExchangeStatusEXCHANGED, ExchangeStatusCOMPLETED:
+		return nil
+	default:
+		return fmt.Errorf("socialoauthstart: invalid enum value for exchange_status field: %q", es)
+	}
+}
 
 // OrderOption defines the ordering options for the SocialOAuthStart queries.
 type OrderOption func(*sql.Selector)
@@ -105,6 +154,31 @@ func ByIntegrationID(opts ...sql.OrderTermOption) OrderOption {
 // BySocialSetID orders the results by the social_set_id field.
 func BySocialSetID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSocialSetID, opts...).ToFunc()
+}
+
+// ByExchangeStatus orders the results by the exchange_status field.
+func ByExchangeStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExchangeStatus, opts...).ToFunc()
+}
+
+// ByExpectedConnectionID orders the results by the expected_connection_id field.
+func ByExpectedConnectionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExpectedConnectionID, opts...).ToFunc()
+}
+
+// ByReturnPath orders the results by the return_path field.
+func ByReturnPath(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReturnPath, opts...).ToFunc()
+}
+
+// ByCompletedConnectionID orders the results by the completed_connection_id field.
+func ByCompletedConnectionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCompletedConnectionID, opts...).ToFunc()
+}
+
+// ByCompletedAt orders the results by the completed_at field.
+func ByCompletedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCompletedAt, opts...).ToFunc()
 }
 
 // ByExpiresAt orders the results by the expires_at field.

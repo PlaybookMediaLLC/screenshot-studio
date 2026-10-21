@@ -27,6 +27,7 @@ type fakeStore struct {
 	oauthReceipt  *schema.SocialOAuthExchange
 	oauthStatus   socialoauthstart.ExchangeStatus
 	authError     error
+	bindingError  error
 	keyScope      string
 	cancelActor   publishing.Actor
 }
@@ -84,6 +85,9 @@ func (f *fakeStore) AuthorizeAPIKeyScope(_ context.Context, _, _, scope string) 
 	return f.authError
 }
 func (f *fakeStore) Binding(context.Context, string) (*ent.SocialTenantBinding, error) {
+	if f.bindingError != nil {
+		return nil, f.bindingError
+	}
 	return &ent.SocialTenantBinding{GoOrganizationID: "go-org-1", SecretReference: "SOCIAL_API_KEY"}, nil
 }
 func (f *fakeStore) StartOAuth(_ context.Context, _ publishing.Actor, session, state, provider, _ string, _ publishing.OAuthStartOptions) error {
@@ -174,6 +178,38 @@ func TestSocialOAuthBoundToSessionAndCompletesThroughEnt(t *testing.T) {
 	completed := call("/v1/social-oauth/complete", "session-1", `{"provider":"x","state":"test-state","integrationId":"destination-1"}`)
 	if completed.Code != http.StatusOK || verifier.input.DestinationID != "destination-1" {
 		t.Fatalf("complete status=%d body=%s destination=%s", completed.Code, completed.Body, verifier.input.DestinationID)
+	}
+}
+
+func TestOAuthExchangeRecoveryWithoutProviderConfiguration(t *testing.T) {
+	for _, status := range []socialoauthstart.ExchangeStatus{socialoauthstart.ExchangeStatusPENDING, socialoauthstart.ExchangeStatusEXCHANGED, socialoauthstart.ExchangeStatusCOMPLETED} {
+		for _, missingBinding := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/missingBinding=%t", status, missingBinding), func(t *testing.T) {
+				store := &fakeStore{oauthState: "saved-state", oauthSession: "session-1", oauthProvider: "x", oauthStatus: status}
+				if status != socialoauthstart.ExchangeStatusPENDING {
+					store.oauthReceipt = &schema.SocialOAuthExchange{ID: "saved-destination"}
+				}
+				handler := New(store, &fakeScheduler{}, nil, "secret")
+				if missingBinding {
+					store.bindingError = publishing.ErrNotFound
+					handler = New(store, &fakeScheduler{}, &fakeVerifier{}, "secret")
+				}
+				request := httptest.NewRequest(http.MethodPost, "/v1/social-oauth/exchange", strings.NewReader(`{"provider":"x","state":"saved-state","code":"already-used-code"}`))
+				request.Header.Set("Authorization", "Bearer secret")
+				request.Header.Set("X-Organization-ID", "org-1")
+				request.Header.Set("X-User-ID", "user-1")
+				request.Header.Set("X-Session-ID", "session-1")
+				response := httptest.NewRecorder()
+				handler.ServeHTTP(response, request)
+				if status == socialoauthstart.ExchangeStatusPENDING {
+					if response.Code != http.StatusConflict || store.oauthStatus != status {
+						t.Fatalf("unavailable provider consumed pending attempt: status=%d state=%s", response.Code, store.oauthStatus)
+					}
+				} else if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"id":"saved-destination"`) {
+					t.Fatalf("saved result was not recovered: status=%d body=%s", response.Code, response.Body)
+				}
+			})
+		}
 	}
 }
 

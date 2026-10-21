@@ -122,6 +122,15 @@ func (s *Server) exchangeSocialOAuth(w http.ResponseWriter, r *http.Request) {
 		writeOAuthStoreError(w, err)
 		return
 	}
+	if start.ExchangeStatus == socialoauthstart.ExchangeStatusEXCHANGED || start.ExchangeStatus == socialoauthstart.ExchangeStatusCOMPLETED {
+		receipt, err := s.store.ClaimOAuthExchange(r.Context(), actor, sessionID, input.State, input.Provider)
+		if err != nil {
+			writeOAuthStoreError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, receipt)
+		return
+	}
 	binding, err := s.store.Binding(r.Context(), actor.Organization)
 	exchanger, supported := s.verifier.(socialOAuthExchanger)
 	if err != nil || binding == nil || binding.SecretReference != start.SecretReference || !supported {

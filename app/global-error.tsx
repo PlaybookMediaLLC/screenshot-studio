@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button'
 
 export default function GlobalError({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
   useEffect(() => {
     console.error(error);
@@ -153,7 +153,7 @@ export default function GlobalError({
               }}
             >
               <Button variant="custom" size={null}
-                onClick={() => reset()}
+                onClick={() => retry()}
                 style={{
                   padding: "0.625rem 1.5rem",
                   borderRadius: "0.5rem",

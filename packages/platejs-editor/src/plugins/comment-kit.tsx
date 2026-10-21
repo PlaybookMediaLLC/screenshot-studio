@@ -164,7 +164,18 @@ export const commentPlugin = toTPlatePlugin<CommentConfig>(BaseCommentPlugin, {
   )
   .extend({
     shortcuts: {
-      setDraft: { keys: "mod+shift+m" },
+      setDraft: {
+        keys: "mod+shift+m",
+        handler: ({ editor }) => {
+          // Slate selection updates are debounced; use the word selected in the DOM now.
+          const selection = window.getSelection();
+          if (selection?.rangeCount && editor.api.toDOMNode(editor)?.contains(selection.anchorNode)) {
+            const range = editor.api.toSlateRange(selection, { exactMatch: false, suppressThrow: true });
+            if (range) editor.tf.select(range);
+          }
+          editor.getTransforms(commentPlugin).comment.setDraft();
+        },
+      },
     },
   })
   // extend, not configure: a host's .configure({ options }) must keep these.

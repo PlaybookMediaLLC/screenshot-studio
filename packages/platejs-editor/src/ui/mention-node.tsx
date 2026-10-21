@@ -192,13 +192,17 @@ export function MentionInputElement(props: PlateElementProps) {
   );
 
   const { children, editor, element } = props;
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(String(element.value ?? ""));
 
   return (
     <PlateElement {...props} as="span">
       <InlineCombobox
         element={element}
-        setValue={setSearch}
+        setValue={(value) => {
+          setSearch(value);
+          const path = editor.api.findPath(element);
+          if (path) editor.tf.setNodes({ value }, { at: path });
+        }}
         showTrigger={false}
         trigger="@"
         value={search}

@@ -179,3 +179,88 @@ test('a failed conflict reload keeps the unsaved document available for retry', 
   assert.equal(save.mock.calls[1].arguments[1].plainText, 'Keep edits after conflict')
   await editor.unmount()
 })
+
+test('a transient server failure retries automatically with the latest title', async (t) => {
+  let attempts = 0
+  const save = t.mock.method(draftsApi, 'save', async (_id: string, input: DraftSave) => {
+    if (++attempts === 1) throw new DraftRequestError('Unavailable', 503)
+    return { ...draft, ...input, version: 2 }
+  })
+  const editor = await mount()
+  await act(async () => {
+    editor.state.update({ title: 'Every letter survives' })
+    await assert.rejects(editor.state.flush())
+  })
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+  })
+  assert.equal(save.mock.callCount(), 2)
+  assert.equal(save.mock.calls[1].arguments[1].title, 'Every letter survives')
+  assert.equal(editor.state.saveState, 'saved')
+  await editor.unmount()
+})
+
+test('repeated failures back off three times, then leave a manual retry available', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const save = t.mock.method(draftsApi, 'save', async (): Promise<DraftWire> => {
+    throw new DraftRequestError('Unavailable', 503)
+  })
+  const editor = await mount()
+  await act(async () => {
+    editor.state.update({ title: 'Keep retrying safely' })
+    await assert.rejects(editor.state.flush())
+  })
+  for (const [index, delay] of [1000, 2000, 4000].entries()) {
+    await act(async () => t.mock.timers.tick(delay))
+    assert.equal(save.mock.callCount(), index + 2)
+  }
+  await act(async () => t.mock.timers.tick(8000))
+  assert.equal(save.mock.callCount(), 4)
+  assert.equal(editor.state.saveState, 'error')
+  save.mock.mockImplementation(async () => ({ ...draft, version: 2 }))
+  await act(async () => editor.state.flush())
+  assert.equal(editor.state.saveState, 'saved')
+  await editor.unmount()
+})
+
+test('failed edits survive unmount and reopening the draft', async (t) => {
+  const save = t.mock.method(draftsApi, 'save', async (): Promise<DraftWire> => {
+    throw new DraftRequestError('Unavailable', 503)
+  })
+  const editor = await mount()
+  await act(async () =>
+    editor.state.update({ title: 'Recover me', value: paragraph('Kept locally') })
+  )
+  await editor.unmount()
+  const reopened = await mount()
+  assert.equal(reopened.state.document.title, 'Recover me')
+  assert.deepEqual(reopened.state.document.value, paragraph('Kept locally'))
+  save.mock.mockImplementation(async () => ({ ...draft, version: 2 }))
+  await act(async () => reopened.state.flush())
+  await reopened.unmount()
+})
+
+test('fast title updates remain local while an earlier save response arrives', async (t) => {
+  const pending = deferred<DraftWire>()
+  let attempts = 0
+  t.mock.method(draftsApi, 'save', async (_id: string, input: DraftSave) =>
+    ++attempts === 1 ? pending.promise : { ...draft, ...input, version: 3 }
+  )
+  const editor = await mount()
+  let saving!: Promise<void>
+  await act(async () => {
+    editor.state.update({ title: 'A' })
+    saving = editor.state.flush()
+  })
+  const title = '0123456789'.repeat(20)
+  for (let end = 1; end <= title.length; end++) {
+    await act(async () => editor.state.update({ title: title.slice(0, end) }))
+  }
+  await act(async () => {
+    pending.resolve({ ...draft, title: 'A', version: 2 })
+    await saving
+  })
+  assert.equal(editor.state.document.title, title)
+  assert.equal(editor.state.saveState, 'saved')
+  await editor.unmount()
+})

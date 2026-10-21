@@ -1,9 +1,9 @@
 'use client'
 
+import { useWriteRouter } from '@/components/write/write-context'
+
 import * as React from 'react'
 import dynamic from 'next/dynamic'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,7 +19,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { draftsApi } from '@/lib/content-drafts/client'
+import { createWritingDraft, PendingDraftInput } from './pending-draft'
 import { cn } from '@/lib/utils'
 import { WriteRail } from './library'
 import { type Shortcut, useKeys, useShortcuts } from './shortcuts'
@@ -116,9 +116,9 @@ export function WriteFrame({
 export const DraftsDrawerContext = React.createContext<() => void>(() => {})
 
 function FrameLayout({ activeId, children }: { activeId?: string; children: React.ReactNode }) {
-  const router = useRouter()
+  const router = useWriteRouter()
   const keys = useKeys()
-  const { canEdit, data } = useWrite()
+  const { beforeLeaveRef, canEdit, data } = useWrite()
   const [railOpen, setRailOpen] = React.useState(true)
   const [drawer, setDrawer] = React.useState(false)
   const [palette, setPalette] = React.useState(false)
@@ -188,12 +188,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
       inEditor: true,
       run: () => {
         if (!canEdit) return
-        void draftsApi
-          .create({ socialSetId: data.activeSet?.id })
-          .then((draft) => router.push(draftHref(draft.id, data.activeSet?.id)))
-          .catch((error: unknown) =>
-            toast.error(error instanceof Error ? error.message : 'No new draft.')
-          )
+        void createWritingDraft({ socialSetId: data.activeSet?.id }, (id) => router.push(draftHref(id, data.activeSet?.id)), beforeLeaveRef.current ?? undefined)
       },
     },
     {
@@ -235,6 +230,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
   }
   return (
     <DraftsDrawerContext.Provider value={() => setDrawer(true)}>
+      <PendingDraftInput />
       <div
         className="flex h-[100dvh] min-h-0 md:h-[calc(100vh-1rem-2px)]"
         data-testid="write-frame"
@@ -255,7 +251,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
         </main>
       </div>
       <Sheet onOpenChange={setDrawer} open={drawer}>
-        <SheetContent className="w-full p-0 sm:max-w-sm" side="left">
+        <SheetContent className="w-full pt-10 sm:max-w-sm" side="left">
           <SheetHeader className="sr-only">
             <SheetTitle>Drafts</SheetTitle>
             <SheetDescription>The drafts of this brand.</SheetDescription>

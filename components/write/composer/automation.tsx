@@ -1,7 +1,8 @@
 'use client'
 
+import { useWriteRouter } from '@/components/write/write-context'
+
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
 import type { EngagementRule } from 'screenshot-studio-backend-sdk'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -460,7 +461,7 @@ function PlugDialog({
   onSave: (automation: Automation) => void
   setId: string | null
 }) {
-  const router = useRouter()
+  const router = useWriteRouter()
   const { canManageSets, data } = useWrite()
   const set = data.sets.find((item) => item.id === setId)
   const start = automation?.plugAtLikes ? automation : defaults?.plugAtLikes ? defaults : undefined

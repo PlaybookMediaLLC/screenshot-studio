@@ -266,24 +266,24 @@ func (s *Service) SetBetweenRefreshSteps(ctx context.Context, id string) (*ent.I
 	return s.repo.SetBetweenRefreshSteps(ctx, id)
 }
 
-// RefreshTokens refreshes every expiring channel. Like the original app it stops at the
-// first channel that fails to refresh.
+// RefreshTokens isolates failures so one account cannot starve the remaining sweep.
 func (s *Service) RefreshTokens(ctx context.Context) error {
 	list, err := s.repo.NeedsToBeRefreshed(ctx)
 	if err != nil {
 		return err
 	}
+	var errs []error
 	for _, integration := range list {
-		data, err := s.refresh.Refresh(ctx, integration, "")
+		_, err := s.refresh.Refresh(ctx, integration, "")
 		if errors.Is(err, ErrRefreshChanged) {
 			continue
 		}
-		if err != nil || data == nil {
-			return err
+		if err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (s *Service) DisableChannel(ctx context.Context, org, id string) error {

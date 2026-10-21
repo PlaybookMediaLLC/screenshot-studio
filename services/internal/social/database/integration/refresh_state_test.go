@@ -245,3 +245,41 @@ func TestRefreshSweepUsesConditionalCompletion(t *testing.T) {
 		t.Fatal("periodic refresh revived a removed account")
 	}
 }
+
+func TestRefreshSweepContinuesAfterIndividualFailures(t *testing.T) {
+	f := setup(t, "failed", "wrong", "healthy")
+	expiry := int64(-60)
+	rows := map[string]*ent.Integration{}
+	calls := map[string]int{}
+	for _, name := range []string{"failed", "wrong", "healthy"} {
+		rows[name] = f.connect(t, CreateOrUpdateIntegrationParams{Name: name, InternalID: name, Provider: name, Token: "old", RefreshToken: "refresh", ExpiresIn: &expiry})
+		f.providers[name].refresh = func() (*integrations.AuthTokenDetails, error) {
+			calls[name]++
+			if name == "failed" {
+				return nil, errors.New("rejected")
+			}
+			if name == "wrong" {
+				return &integrations.AuthTokenDetails{ID: "another-account", AccessToken: "wrong"}, nil
+			}
+			return &integrations.AuthTokenDetails{AccessToken: "renewed", ExpiresIn: 3600}, nil
+		}
+	}
+	if err := f.service.RefreshTokens(f.ctx); err == nil {
+		t.Fatal("identity error was not returned")
+	}
+	for name, row := range rows {
+		if calls[name] != 1 {
+			t.Fatalf("%s refresh calls=%d", name, calls[name])
+		}
+		stored := f.client.Integration.GetX(f.ctx, row.ID)
+		if name == "healthy" && stored.Token != "renewed" {
+			t.Fatal("healthy account was starved")
+		}
+		if name == "failed" && !stored.RefreshNeeded {
+			t.Fatal("failed account was not flagged")
+		}
+		if name != "healthy" && stored.Token != "old" {
+			t.Fatal("failed refresh replaced credentials")
+		}
+	}
+}

@@ -107,6 +107,7 @@ test('early typing, reordered post controls, selected comments, and failed saves
     ).toHaveCount(1)
     expect(serverSearches).toEqual([])
     await search.fill('')
+    await expect(page).not.toHaveURL(/[?&]q=/)
 
     const other = await apiRequest(page, '/api/v1/content-drafts', {
       method: 'POST',
@@ -117,7 +118,7 @@ test('early typing, reordered post controls, selected comments, and failed saves
     await page
       .getByRole('button', { name: 'Actions for Retry keeps this title', exact: true })
       .click()
-    await page.getByRole('menuitem', { name: 'Select multiple', exact: true }).click()
+    await page.getByRole('menuitem', { name: /^Select multiple/ }).click()
     await page
       .getByTestId('draft-row')
       .filter({ hasText: 'Bulk companion' })

@@ -158,10 +158,6 @@ const nextConfig: NextConfig = {
         destination: '/api/openapi',
       },
       {
-        source: '/indexnow-key.txt',
-        destination: '/api/indexnow',
-      },
-      {
         source: '/.well-known/openapi.json',
         destination: '/api/openapi',
       },

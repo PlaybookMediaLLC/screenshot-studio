@@ -169,7 +169,26 @@ export function detectSensitiveText(words: readonly OcrWord[], image: { height: 
     })
   }
   const used = new Set<number>()
+  // OCR may split a key at underscores. Join nearby fragments before classifying
+  // so the redaction includes the prefix as well as the random-looking suffix.
+  words.forEach((word, start) => {
+    if (used.has(start) || !/^(?:sk|rk|pk)[_-]|^gh[pousr]_|^github_pat_|^xox[abprs]-/.test(word.text)) return
+    const group = [word]
+    for (let end = start + 1; end < words.length && end < start + 8; end++) {
+      const next = words[end]!
+      const previous = group[group.length - 1]!
+      if (next.line !== word.line || !/^[A-Za-z0-9_+/=-]+$/.test(next.text) ||
+          next.bbox.x0 - previous.bbox.x1 > (word.bbox.y1 - word.bbox.y0) * 0.75) break
+      group.push(next)
+    }
+    const token = classifyToken(group.map((part) => part.text).join(''))
+    if (token?.kind === 'credential') {
+      add(token.kind, token.label, token.confidence, group)
+      group.forEach((_, offset) => used.add(start + offset))
+    }
+  })
   words.forEach((word, index) => {
+    if (used.has(index)) return
     const token = classifyToken(word.text)
     if (token) {
       add(token.kind, token.label, token.confidence, [word])

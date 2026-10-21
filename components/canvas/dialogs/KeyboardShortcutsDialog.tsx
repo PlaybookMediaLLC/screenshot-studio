@@ -18,12 +18,16 @@ const shortcutGroups: ShortcutGroup[] = [
   {
     title: "Canvas (when not editing text)",
     shortcuts: [
+      { keys: ["⌘/Ctrl", "K"], description: "Open AI tools" },
+      { keys: ["Alt", "↑ / ↓"], description: "Reorder selected layer" },
+      { keys: ["Arrow keys"], description: "Move selected layer 1 px" },
+      { keys: ["Shift", "Arrow keys"], description: "Move selected layer 10 px" },
       { keys: ["⌘/Ctrl", "V"], description: "Paste image" },
       { keys: ["⌘/Ctrl", "Z"], description: "Undo" },
       { keys: ["⌘/Ctrl", "Shift", "Z"], description: "Redo" },
       { keys: ["⌘/Ctrl", "Y"], description: "Redo (alternative)" },
       { keys: ["Delete / Backspace"], description: "Delete selected item" },
-      { keys: ["Esc"], description: "Close dialog / Deselect item" },
+      { keys: ["Esc"], description: "Close dialog / Deselect / Exit crop" },
     ],
   },
 ];

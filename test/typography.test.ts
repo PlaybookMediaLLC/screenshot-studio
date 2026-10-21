@@ -64,3 +64,43 @@ test('every typography template yields valid document texts and keeps written co
     )
   }
 })
+
+test('a missing weight falls back to the real family and invalid names differ from network errors', async (context) => {
+  const { loadGoogleFont, InvalidGoogleFontFamily } = await import('../lib/typography/google-fonts')
+  const requested: string[] = []
+  const fakeDocument = {
+    createElement: () => ({
+      dataset: {},
+      remove() {},
+      href: '',
+      onload: () => {},
+      onerror: () => {},
+    }),
+    head: {
+      appendChild(link: { href: string; onload: () => void; onerror: () => void }) {
+        requested.push(link.href)
+        queueMicrotask(() =>
+          link.href.includes('Real+Single+Weight&') ? link.onload() : link.onerror()
+        )
+      },
+    },
+    fonts: { load: async () => [] },
+  }
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'document')
+  Object.defineProperty(globalThis, 'document', { value: fakeDocument, configurable: true })
+  context.after(() => {
+    if (original) Object.defineProperty(globalThis, 'document', original)
+    else Reflect.deleteProperty(globalThis, 'document')
+  })
+  context.mock.method(globalThis, 'fetch', async () => new Response('', { status: 400 }))
+  await loadGoogleFont('google:Real Single Weight', ['400', '700'])
+  assert.equal(requested.length, 2)
+  await assert.rejects(loadGoogleFont('google:Missing Test Font', ['400']), InvalidGoogleFontFamily)
+  context.mock.method(globalThis, 'fetch', async () => {
+    throw new TypeError('Offline')
+  })
+  await assert.rejects(
+    loadGoogleFont('google:Offline Test Font', ['400']),
+    (error: unknown) => error instanceof Error && !(error instanceof InvalidGoogleFontFamily)
+  )
+})

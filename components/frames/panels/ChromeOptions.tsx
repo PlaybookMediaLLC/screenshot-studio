@@ -214,7 +214,7 @@ function TabsField({
         >
           <Add01Icon size={12} /> Add tab
         </Button>
-      ) : null}
+      ) : <p className="text-xs text-muted-foreground">Maximum {MAX_FRAME_TABS} tabs. Remove a tab to add another.</p>}
     </fieldset>
   )
 }

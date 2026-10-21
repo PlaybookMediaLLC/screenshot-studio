@@ -45,18 +45,20 @@ function ScaleSlider() {
       max={2}
       step={0.01}
       label="Scale"
-      valueDisplay={(imageScale / 100).toFixed(1)}
+      valueDisplay={`${Math.round(imageScale)}%`}
     />
   );
 }
 
 export function BorderSection() {
+  const deviceScene = useImageStore((s) => s.editorMode === 'device' && s.mockups.some((mockup) => !mockup.frame || mockup.frame.kind !== 'none'));
   const borderRadius = useImageStore((s) => s.borderRadius);
   const setBorderRadius = useImageStore((s) => s.setBorderRadius);
 
   return (
     <SectionWrapper title="Border" defaultOpen={true}>
       <div className="space-y-3">
+        {deviceScene ? <p className="text-xs text-muted-foreground">Screen frame corners follow the selected device or browser. Use Frame to change them.</p> : null}
         <div className="grid grid-cols-3 gap-2 p-1">
           {borderPresets.map(({ value, label }) => {
             const isSelected = borderRadius === value;
@@ -64,6 +66,7 @@ export function BorderSection() {
               <Button variant="custom" size={null}
                 key={value}
                 type="button"
+                disabled={deviceScene}
                 onClick={() => setBorderRadius(value)}
                 className="flex flex-col items-center gap-1.5 group"
               >
@@ -91,6 +94,7 @@ export function BorderSection() {
         </div>
 
         <Slider
+          disabled={deviceScene}
           value={[borderRadius]}
           onValueChange={(value) => setBorderRadius(value[0])}
           min={0}

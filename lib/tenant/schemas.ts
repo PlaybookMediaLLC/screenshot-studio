@@ -20,6 +20,8 @@ export const assetCompleteSchema = z.object({
 })
 
 export const assetListQuerySchema = z.object({
+  search: z.string().trim().max(200).optional(),
+  classification: z.enum(assetClassifications).optional(),
   /** Opaque, versioned keyset boundary returned by the previous page. */
   cursor: z
     .string()
@@ -42,6 +44,7 @@ export const assetUploadSchema = z
       .int()
       .positive()
       .max(100 * 1024 * 1024),
+    projectId: z.string().cuid().optional(),
     classification: z.enum(assetClassifications).default('input'),
     contentType: contentTypeSchema,
     fileName: z.string().trim().min(1).max(128),

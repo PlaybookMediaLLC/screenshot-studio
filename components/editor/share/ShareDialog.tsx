@@ -115,6 +115,8 @@ export function ShareDialog({
       const blob = await render()
       const { assetId } = await saveExportToWorkspace({
         blob,
+        classification: 'export',
+        projectId: project.projectId ?? undefined,
         fileName: buildExportFileName(blob.type),
         trpcClient,
       })

@@ -11,6 +11,7 @@ import {
   patchDesignDocument,
 } from '@/lib/design/document'
 import { models } from '../models'
+import { tokenCostUsd, settleCredits } from '../metering/pricing'
 import { EDITOR_CRITIC_INSTRUCTIONS, EDITOR_VARIANTS_INSTRUCTIONS } from '../prompts/editor-copilot'
 import { distinctnessProblem } from '../variants'
 
@@ -85,8 +86,10 @@ export async function critiqueDesign(document: DesignDocument, snapshotJpegBase6
         role: 'user',
       },
     ],
-    model: models.languageModel('drafting'),
-    stopWhen: stepCountIs(4),
+    model: models.languageModel('fast'),
+    abortSignal: AbortSignal.timeout(15_000),
+    maxOutputTokens: 2400,
+    stopWhen: [stepCountIs(2), () => suggestions.length > 0],
     system: `${EDITOR_CRITIC_INSTRUCTIONS}\n\nCall proposeSuggestion once per suggestion (at most three), then stop. If nothing needs fixing, call nothing.`,
     tools: {
       proposeSuggestion: proposalTool(
@@ -155,4 +158,14 @@ export async function proposeVariants(
     },
   })
   return variants
+}
+
+/** Estimate a range before generation from the configured model and serialized design. */
+export function estimateVariantCredits(document: DesignDocument, count: number) {
+  const model = models.modelId('deep')
+  // Include the catalog and tool schema overhead; tokenization and cache hits vary.
+  const input = Math.ceil(designContext(document).length / 3) + 8000
+  const lower = settleCredits(tokenCostUsd(model, { input, output: count * 800, cacheRead: 0, cacheWrite: 0 }))
+  const upper = settleCredits(tokenCostUsd(model, { input: (input + count * 2400) * (count + 4), output: (count + 4) * 2400, cacheRead: 0, cacheWrite: 0 }))
+  return { lower, upper, model }
 }

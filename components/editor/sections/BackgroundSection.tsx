@@ -109,7 +109,7 @@ function HexColorField({
             }
           }}
           spellCheck={false}
-          className="min-w-0 flex-1 bg-transparent font-mono text-[10px] uppercase text-foreground outline-none"
+          className="min-w-[76px] flex-1 px-0 bg-transparent font-mono text-[10px] uppercase text-foreground outline-none"
         />
       </span>
     </Label>
@@ -416,7 +416,7 @@ export function BackgroundSection() {
           </Button>
         }
       >
-        <div className="overflow-x-auto scrollbar-hide">
+        <div className="overflow-x-auto">
           <div
             className="grid grid-flow-col auto-cols-min gap-2 w-max"
             style={{ gridTemplateRows: 'repeat(4, 1fr)', gridAutoFlow: 'column' }}
@@ -458,7 +458,7 @@ export function BackgroundSection() {
             onChange={(to) => updateCustomGradient({ to })}
           />
         </div>
-        <div className="overflow-x-auto scrollbar-hide">
+        <div className="overflow-x-auto">
           <div
             className="grid grid-flow-col auto-cols-min gap-2 w-max"
             style={{ gridTemplateRows: 'repeat(4, 1fr)', gridAutoFlow: 'column' }}

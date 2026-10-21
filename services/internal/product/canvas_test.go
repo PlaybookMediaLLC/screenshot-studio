@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignasset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/google/uuid"
 	"github.com/lucsky/cuid"
@@ -185,5 +187,52 @@ func TestCanvasLifecycleAndHandoff(t *testing.T) {
 	unchanged, err := w.repo.GetDesign(w.ctx, w.owner, attached.DesignID)
 	if err != nil || unchanged.RenderKey == nil || *unchanged.RenderKey != *design.RenderKey {
 		t.Fatal("a canvas edit rewrote its campaign delivery")
+	}
+	if err := w.repo.DeleteCanvas(w.ctx, w.owner, setID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.repo.GetDesign(w.ctx, w.owner, attached.DesignID); err != nil {
+		t.Fatalf("deleting the canvas removed its delivered design: %v", err)
+	}
+	if exists, err := w.db.Client.CampaignAsset.Query().Where(campaignasset.CampaignID(campaignID), campaignasset.Kind("canvas-delivery")).Exist(w.ctx); err != nil || !exists {
+		t.Fatalf("deleting the canvas removed its campaign delivery: %v %v", exists, err)
+	}
+}
+
+func TestCanvasPermanentDeletionIsTenantScoped(t *testing.T) {
+	w, foreign := newTestWorkspace(t), newTestWorkspace(t)
+	subscribe(t, w.ctx, w.repo, w.org, "pro")
+	w.addMember(t, "viewer", "viewer")
+	id := cuid.New()
+	if _, err := w.repo.CreateCreativeSet(w.ctx, w.owner, id, "Remove me", canvasFixture()); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.repo.DeleteCanvas(w.ctx, foreign.owner, id); !errors.Is(err, publishing.ErrNotFound) {
+		t.Fatalf("foreign delete: %v", err)
+	}
+	if err := w.repo.DeleteCanvas(w.ctx, w.actor("viewer"), id); err == nil {
+		t.Fatal("viewer deleted canvas")
+	}
+	if err := w.repo.DeleteCanvas(w.ctx, Actor{}, id); err == nil {
+		t.Fatal("unauthenticated delete")
+	}
+	if _, err := w.repo.GetCreativeSet(w.ctx, w.owner, id); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.repo.DeleteCanvas(w.ctx, w.owner, id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.repo.GetCreativeSet(w.ctx, w.owner, id); !errors.Is(err, publishing.ErrNotFound) {
+		t.Fatalf("canvas survived: %v", err)
+	}
+	if exists, err := w.db.Client.PlatformCreativeSetVersion.Query().Where(platformcreativesetversion.CreativeSetID(id)).Exist(w.ctx); err != nil || exists {
+		t.Fatalf("versions survived: %v %v", exists, err)
+	}
+	event, err := w.db.Client.AuditLog.Query().Where(auditlog.OrganizationID(w.org), auditlog.EntityID(id), auditlog.Action("product.canvas_deleted")).Only(w.ctx)
+	if err != nil || event.Metadata["name"] != "Remove me" {
+		t.Fatalf("audit: %+v %v", event, err)
+	}
+	if err := w.repo.DeleteCanvas(w.ctx, w.owner, id); !errors.Is(err, publishing.ErrNotFound) {
+		t.Fatalf("repeat delete: %v", err)
 	}
 }

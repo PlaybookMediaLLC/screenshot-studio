@@ -83,7 +83,7 @@ function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
 
 // Convert hex to RGB
 function hexToRgb(hex: string): [number, number, number] | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})(?:[a-f\d]{2})?$/i.exec(hex);
   return result
     ? [
         parseInt(result[1], 16),
@@ -116,7 +116,7 @@ function rgbaToColor(color: string): { r: number; g: number; b: number; alpha: n
 function colorToHsva(color: string): HsvaColor {
   const rgb = hexToRgb(color);
   const parsed = rgb
-    ? { r: rgb[0], g: rgb[1], b: rgb[2], alpha: 1 }
+    ? { r: rgb[0], g: rgb[1], b: rgb[2], alpha: /^#?[a-f\d]{8}$/i.test(color) ? parseInt(color.slice(-2), 16) / 255 : 1 }
     : rgbaToColor(color) || defaultColor;
   const [h, s, v] = rgbToHsv(parsed.r, parsed.g, parsed.b);
 
@@ -125,14 +125,14 @@ function colorToHsva(color: string): HsvaColor {
 
 const hexColorSchema = z.string()
   .trim()
-  .regex(/^#?[0-9a-fA-F]{6}$/, 'Invalid hex color')
+  .regex(/^#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/, 'Invalid hex color')
   .transform((value) => value.startsWith('#') ? value : `#${value}`);
 
 export function ColorPicker({ color, onChange, className }: ColorPickerProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { h, s, v, alpha } = colorToHsva(color);
   const currentRgb = hsvToRgb(h, s, v);
-  const currentHex = rgbToHex(currentRgb[0], currentRgb[1], currentRgb[2]);
+  const currentHex = rgbToHex(currentRgb[0], currentRgb[1], currentRgb[2]) + (alpha < 1 ? Math.round(alpha * 255).toString(16).padStart(2, '0') : '');
   const hueColor = rgbToHex(...hsvToRgb(h, 1, 1));
 
   const saturationRef = React.useRef<HTMLDivElement>(null);
@@ -239,7 +239,7 @@ export function ColorPicker({ color, onChange, className }: ColorPickerProps) {
     const [newH, newS, newV] = rgbToHsv(rgb[0], rgb[1], rgb[2]);
     setHexInput(result.data.toLowerCase());
     setHexError(false);
-    updateColor({ h: newH, s: newS, v: newV, alpha });
+    updateColor({ h: newH, s: newS, v: newV, alpha: result.data.length === 9 ? parseInt(result.data.slice(-2), 16) / 255 : 1 });
   };
 
   const handleHexKeyDown = (e: React.KeyboardEvent) => {

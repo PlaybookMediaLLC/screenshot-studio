@@ -206,6 +206,7 @@ export function BrandKitDialog({
     const name = draft.name.trim()
     if (!name) {
       setError('Enter a name.')
+      document.getElementById(nameId)?.focus()
       return
     }
     setPending(true)
@@ -259,9 +260,12 @@ export function BrandKitDialog({
               autoFocus
               id={nameId}
               maxLength={100}
-              onChange={(event) => set('name', event.target.value)}
+              aria-invalid={error === 'Enter a name.'}
+              aria-describedby={error === 'Enter a name.' ? `${nameId}-error` : undefined}
+              onChange={(event) => { set('name', event.target.value); if (error === 'Enter a name.') setError(null) }}
               value={draft.name}
             />
+            {error === 'Enter a name.' ? <p id={`${nameId}-error`} role="alert" className="text-xs text-destructive">{error}</p> : null}
           </div>
 
           <fieldset className="grid gap-2">
@@ -453,12 +457,12 @@ export function BrandKitDialog({
             />
           </fieldset>
 
-          {error ? (
+          {error && error !== 'Enter a name.' ? (
             <p className="text-xs text-destructive" role="alert">
               {error}
             </p>
           ) : null}
-          <DialogFooter>
+          <DialogFooter className="sticky -bottom-6 border-t bg-background py-4">
             <Button
               disabled={pending}
               onClick={() => onOpenChange(false)}

@@ -228,6 +228,10 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
     // Focus goes back to whatever opened the dialog.
     setTimeout(() => launcher.current?.focus(), 0)
   }
+  React.useEffect(() => {
+    const timer = setTimeout(() => { void import('@/components/drafts/DraftEditor') }, 0)
+    return () => clearTimeout(timer)
+  }, [])
   return (
     <DraftsDrawerContext.Provider value={() => setDrawer(true)}>
       <PendingDraftInput />

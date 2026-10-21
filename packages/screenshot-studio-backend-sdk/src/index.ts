@@ -559,6 +559,11 @@ export type BackendAsset = {
 }
 
 export type BackendAssetListItem = {
+  fileName?: string
+  classification?: string
+  projectId?: string
+  projectName?: string
+  uploadedBy?: string
   bytes: number
   createdAt: string
   height: number | null
@@ -570,6 +575,7 @@ export type BackendAssetListItem = {
 export type BackendAssetPage = { assets: BackendAssetListItem[]; nextCursor: string | null }
 
 export type BackendAssetUploadInput = {
+  projectId?: string
   bytes: number
   classification?: 'capture' | 'derived' | 'export' | 'input'
   contentType: string
@@ -2276,7 +2282,7 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  async createWorkspace(input: { name: string; slug: string }) {
+  async createWorkspace(input: { name: string; slug: string; timeZone?: string }) {
     return this.request<WorkspaceMutation>('v1/workspaces', { body: input, method: 'POST' })
   }
 
@@ -2301,11 +2307,13 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ enabled: true }>(`v1/enterprise-features/${feature}`)
   }
 
-  async listAssets(options: { cursor?: string; limit: number; type?: 'all' | 'image' | 'video'; sort?: 'newest' | 'oldest' }) {
+  async listAssets(options: { search?: string; classification?: string; cursor?: string; limit: number; type?: 'all' | 'image' | 'video'; sort?: 'newest' | 'oldest' }) {
     const parameters = new URLSearchParams({ limit: String(options.limit) })
     if (options.cursor) parameters.set('cursor', options.cursor)
     if (options.type) parameters.set('type', options.type)
     if (options.sort) parameters.set('sort', options.sort)
+    if (options.search) parameters.set('search', options.search)
+    if (options.classification) parameters.set('classification', options.classification)
     return this.request<BackendAssetPage>(`v1/assets?${parameters}`)
   }
 
@@ -3168,6 +3176,11 @@ export class ScreenshotStudioBackendSDK {
         method: 'POST',
       }
     )
+  }
+
+  /** Permanently remove a canvas and its versions; delivered assets are retained. */
+  async deleteCanvas(id: string) {
+    return this.request<{ deleted: boolean }>(`v1/canvases/${encodeURIComponent(id)}`, { method: 'DELETE' })
   }
 
   async archiveCreativeSet(id: string, archived = true) {

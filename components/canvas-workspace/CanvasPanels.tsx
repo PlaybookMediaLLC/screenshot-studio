@@ -735,7 +735,10 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
                 aria-label={`Artboard ${axis.toUpperCase()}`}
                 onBlur={(event) => {
                   const value = Number(event.target.value)
-                  if (Number.isFinite(value) && value !== artboard[axis])
+                  if (!event.currentTarget.value.trim() || !Number.isFinite(value)) {
+                    event.currentTarget.value = String(Math.round(artboard[axis]))
+                    toast.error('Enter a number. The previous position has been kept.')
+                  } else if (value !== artboard[axis])
                     actions.move([
                       {
                         id: artboard.id,

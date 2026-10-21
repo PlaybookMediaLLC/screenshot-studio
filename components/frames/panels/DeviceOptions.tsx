@@ -52,9 +52,9 @@ export function DeviceOptions({ target }: { target: FrameTarget }) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto">
+      <div>
       <SegmentedControl
-        className="min-w-[360px]"
+        className="!h-auto flex-wrap [&>div:first-child]:hidden [&>button]:min-w-[70px] [&>button]:min-h-9"
         ariaLabel="Device family"
         onChange={(value) => setFamily(value as DeviceFamily)}
         options={FAMILIES.map((item) => ({

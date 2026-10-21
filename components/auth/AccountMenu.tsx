@@ -1,16 +1,13 @@
 'use client'
 
 import Link from 'next/link'
+import { UserAvatar } from './UserAvatar'
 import { type ReactNode, useEffect, useState } from 'react'
 import { authClient, useHydratedSession } from '@/lib/auth/client'
 import { resetUser } from '@/lib/analytics'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { Button } from '@/components/ui/button'
-
-function getInitial(name: string | null | undefined, email: string): string {
-  return (name || email).trim().charAt(0).toUpperCase()
-}
 
 type Workspace = { id: string; isScheduledForDeletion: boolean; name: string; slug: string }
 
@@ -109,17 +106,17 @@ export function AccountMenu({
           aria-label="Open account menu"
           className={
             triggerClassName ??
-            'flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background transition-opacity hover:opacity-80'
+            'flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-opacity hover:opacity-80'
           }
           type="button"
         >
-          {children ?? getInitial(session.user.name, session.user.email)}
+          {children ?? <UserAvatar name={name} image={session.user.image} />}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align={align} className="w-64 p-2" side={side}>
-        <div className="border-b px-2 py-2.5">
+      <PopoverContent align={align} className="w-72 max-w-[calc(100vw-2rem)] p-2" side={side}>
+        <div className="min-w-0 border-b px-2 py-2.5">
           <p className="truncate text-sm font-medium">{name}</p>
-          <p className="truncate text-xs text-muted-foreground">{session.user.email}</p>
+          <p className="break-all text-xs text-muted-foreground">{session.user.email}</p>
           {workspaceName ? (
             <p className="mt-1.5 truncate text-xs text-muted-foreground">
               Workspace: <span className="text-foreground">{workspaceName}</span>

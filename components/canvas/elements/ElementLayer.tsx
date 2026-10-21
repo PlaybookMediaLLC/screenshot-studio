@@ -1,5 +1,7 @@
 'use client'
 
+import { orderedLayerIds } from '@/lib/editor/layer-order'
+
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import Moveable from 'react-moveable'
 import { canvasScale } from '@/lib/editor/snap-dom'
@@ -30,6 +32,7 @@ function CalloutLinks({ elements }: { elements: readonly CanvasElement[] }) {
   if (callouts.length === 0 || !geometry.imageRect) return null
   return (
     <svg
+      data-callout-links="true"
       height={geometry.canvasH}
       style={{ left: 0, overflow: 'visible', pointerEvents: 'none', position: 'absolute', top: 0 }}
       width={geometry.canvasW}
@@ -128,7 +131,9 @@ function CalloutSourceHandle({ callout }: { callout: ElementOf<'callout'> }) {
  * the selected one move, resize, rotate, nudge with the arrow keys, and
  * delete, snapping like every other layer.
  */
-export function ElementLayer({ zIndex }: { zIndex: number }) {
+export function ElementLayer({ zIndex: _zIndex }: { zIndex: number }) {
+  const order = useImageStore((state) => state.layerOrder);
+  const ids = orderedLayerIds({ ...useImageStore.getState(), layerOrder: order });
   const elements = useImageStore((state) => state.elements)
   const selectedId = useImageStore((state) => state.selectedElementId)
   const setSelectedElementId = useImageStore((state) => state.setSelectedElementId)
@@ -186,7 +191,7 @@ export function ElementLayer({ zIndex }: { zIndex: number }) {
         ArrowUp: [0, -step],
       }
       const move = moves[event.key]
-      if (!move || selected.locked) return
+      if (!move || event.altKey || selected.locked) return
       event.preventDefault()
       updateElement(selected.id, { x: selected.x + move[0] / canvasW, y: selected.y + move[1] / canvasH })
     }
@@ -197,7 +202,7 @@ export function ElementLayer({ zIndex }: { zIndex: number }) {
   return (
     <div
       data-element-layer="true"
-      style={{ inset: 0, overflow: 'visible', pointerEvents: 'none', position: 'absolute', zIndex }}
+      style={{ inset: 0, overflow: 'visible', pointerEvents: 'none', position: 'absolute' }}
     >
       <CalloutLinks elements={shownElements} />
       {shownElements.map((element) => {
@@ -214,12 +219,13 @@ export function ElementLayer({ zIndex }: { zIndex: number }) {
             }}
             ref={element.id === selectedId ? setTarget : undefined}
             style={{
+              zIndex: 20 + ids.indexOf(element.id),
               cursor: element.locked ? 'default' : 'move',
               height: box.height,
               left: box.x,
               opacity: element.opacity,
               outline: element.id === selectedId ? '1px solid rgba(59,130,246,0.6)' : undefined,
-              pointerEvents: 'auto',
+              pointerEvents: element.type === 'spotlight' && element.id !== selectedId ? 'none' : 'auto',
               position: 'absolute',
               top: box.y,
               transform: `rotate(${element.rotation}deg)`,

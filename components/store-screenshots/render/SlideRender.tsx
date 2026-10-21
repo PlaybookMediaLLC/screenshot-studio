@@ -169,13 +169,20 @@ function CalloutConnector({ node, width, height }: { node: SceneCallout; width: 
 const CalloutView = React.memo(function CalloutView({
   node,
   resolveAsset,
+  scene,
 }: {
   node: SceneCallout
+  scene: Scene
   resolveAsset: AssetResolver
 }): React.JSX.Element {
-  const src = node.sourceAssetId ? resolveAsset(node.sourceAssetId) : null
   const { box, callout } = node
-  const filters = node.filters
+  // Repeat the actual scene through a clipped, magnified viewport. This shares
+  // device transforms, text, filters and redacted assets with the visible slide.
+  const source = scene.nodes.find((candidate) => candidate.type === 'device' && candidate.assetId === node.sourceAssetId)
+  const sampleWidth = source ? source.box.width * callout.region.width : scene.width * callout.region.width
+  const zoom = box.width / Math.max(1, sampleWidth)
+  const anchor = node.anchor ?? { x: scene.width / 2, y: scene.height / 2 }
+  const composite = { ...scene, nodes: scene.nodes.filter((candidate) => candidate.type !== 'callout') }
   const radius = callout.shape === 'circle' ? '50%' : callout.shape === 'rounded' ? Math.min(box.width, box.height) * 0.12 : 0
   return (
     <div
@@ -202,23 +209,9 @@ const CalloutView = React.memo(function CalloutView({
           .join(', '),
       }}
     >
-      {src ? (
-        <img
-          src={src}
-          alt=""
-          draggable={false}
-          decoding="sync"
-          style={{
-            position: 'absolute',
-            left: node.image.x,
-            top: node.image.y,
-            width: node.image.width,
-            height: node.image.height,
-            maxWidth: 'none',
-            filter: `brightness(${filters.brightness}%) contrast(${filters.contrast}%) saturate(${filters.saturation}%)`,
-          }}
-        />
-      ) : null}
+      <div aria-hidden style={{ position: 'absolute', left: box.width / 2 - anchor.x * zoom, top: box.height / 2 - anchor.y * zoom, transform: `scale(${zoom})`, transformOrigin: '0 0', pointerEvents: 'none' }}>
+        <SlideRender scene={composite} resolveAsset={resolveAsset} />
+      </div>
     </div>
   )
 })
@@ -271,7 +264,7 @@ export const SlideRender = React.memo(function SlideRender({
             return (
               <React.Fragment key={node.layerId}>
                 <CalloutConnector node={node} width={scene.width} height={scene.height} />
-                <CalloutView node={node} resolveAsset={resolveAsset} />
+                <CalloutView node={node} scene={scene} resolveAsset={resolveAsset} />
               </React.Fragment>
             )
         }

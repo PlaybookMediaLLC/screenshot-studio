@@ -784,7 +784,7 @@ export function WorkflowEditor({
                               : ['next']
                           ).map((branch) => (
                             <Label key={branch} className="grid gap-1 text-sm">
-                              {branch} connection
+                              {branch.charAt(0).toUpperCase() + branch.slice(1)} connection
                               <UiSelect
                                 value={
                                   String(
@@ -803,7 +803,7 @@ export function WorkflowEditor({
                                 }
                               >
                                 <SelectTrigger
-                                  aria-label={`${selectedNode.id} ${branch} connection`}
+                                  aria-label={`${selectedNode.id} ${branch.charAt(0).toUpperCase() + branch.slice(1)} connection`}
                                   className={automationSelectClass}
                                 >
                                   <SelectValue />

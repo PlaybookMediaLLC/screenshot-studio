@@ -6,8 +6,12 @@ import { NEUTRAL_IMAGE_FILTERS } from '@/lib/editor/image-adjustments'
 import type { TextAlign, TextFill, TextFit, TextRole } from '@/lib/typography/text-style'
 import type { BrandBinding } from '@/lib/brand/binding'
 import type { DesignCopy } from '@/lib/captions/channels'
+import { orderedLayerIds, moveLayer } from '@/lib/editor/layer-order'
 import { createElementsSlice, type ElementsSlice } from './elements-slice'
 import { createFramesSlice, type FramesSlice } from './frames-slice'
+import { arrangeScreens } from '@/lib/frames/arrange'
+import { compositionLayoutSchema } from '@/lib/frames/layouts'
+import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { isChromeFrameType } from '@/lib/frames/main-frame'
 import { createMotionSlice, type MotionSlice } from './motion-slice'
 import { emptyMotion } from '@/lib/animation/motion-schema'
@@ -72,6 +76,8 @@ interface Slide {
 export interface TextOverlay {
   id: string
   text: string
+  /** Stacking level relative to screens (20), image overlays (200) and elements (205). */
+  zIndex?: number
   position: { x: number; y: number }
   fontSize: number
   fontWeight: string
@@ -223,6 +229,7 @@ export interface BackgroundPattern {
 
 /** Main image offset from the canvas centre, in stage px, and its rotation in degrees. */
 export interface ImagePlacement {
+  anchor?: 'tl' | 'tc' | 'tr' | 'ml' | 'mc' | 'mr' | 'bl' | 'bc' | 'br'
   offsetX: number
   offsetY: number
   rotation: number
@@ -270,6 +277,7 @@ export function endHistoryGesture() {
 
 // Re-export existing ImageState interface and store
 export interface ImageState extends ElementsSlice, FramesSlice, MotionSlice {
+  layerOrder: string[]
   uploadedImageUrl: string | null
   imageName: string | null
   selectedGradient: GradientKey
@@ -485,6 +493,34 @@ function slideTimelineDuration(state: ImageState, slides: ImageState['slides']):
   ), state.motion)
 }
 
+/** Resize normalized layers uniformly and reflow an active composition in the same edit. */
+function resizeCanvas(state: ImageState, aspectRatio: AspectRatioKey, custom = state.customDimensions) {
+  const aspect = (key: AspectRatioKey, size: ImageState['customDimensions']) => {
+    const dimensions = key === 'custom' ? size : getAspectRatioPreset(key)
+    return dimensions ? dimensions.width / dimensions.height : 4 / 3
+  }
+  const before = aspect(state.selectedAspectRatio, state.customDimensions)
+  const after = aspect(aspectRatio, custom)
+  const layout = compositionLayoutSchema.safeParse(state.activeDeviceLayoutId)
+  return {
+    selectedAspectRatio: aspectRatio,
+    elements: before === after ? state.elements : state.elements.map((element) => ({
+      ...element, height: element.height * after / before,
+    })),
+    mockups: layout.success ? arrangeScreens(state.mockups, layout.data, after) : state.mockups,
+  }
+}
+
+/** Bind the primary composition screen to the selected slide, keeping custom screens. */
+function slideScreens(state: ImageState, src: string | null, name: string | null) {
+  const linked = state.mockups.some((mockup) => !mockup.screen.code &&
+    (!mockup.screen.isCustom || mockup.screen.src === state.uploadedImageUrl))
+  const firstImage = state.mockups.findIndex((mockup) => !mockup.screen.code)
+  return state.mockups.map((mockup, index) => !mockup.screen.code &&
+    (linked ? !mockup.screen.isCustom || mockup.screen.src === state.uploadedImageUrl : index === firstImage)
+    ? { ...mockup, screen: { ...mockup.screen, src, name, isCustom: false } } : mockup)
+}
+
 export const useImageStore = create<ImageState>()(
   temporal(
     (set, get) => ({
@@ -534,6 +570,7 @@ export const useImageStore = create<ImageState>()(
       },
       backgroundBlur: 0,
       backgroundNoise: 0,
+      layerOrder: [],
       textOverlays: [],
       imageOverlays: [],
       mockups: [],
@@ -695,86 +732,10 @@ export const useImageStore = create<ImageState>()(
       },
 
       clearImage: () => {
-        // ponytail: keep blob URLs for session-long undo; reclaim on history
-        // eviction if history becomes bounded. The browser frees them on unload.
-        // Clear everything and reset ALL effects to defaults
-        set({
-          uploadedImageUrl: null,
-          imageName: null,
-          slides: [],
-          activeSlideId: null,
-          isPreviewing: false,
-          previewIndex: 0,
-          previewStartedAt: null,
-          // Reset image settings
-          imageScale: 100,
-          imageOpacity: 1,
-          borderRadius: 10,
-          backgroundBorderRadius: 10,
-          // Reset background
-          backgroundConfig: {
-            type: 'image',
-            value: 'backgrounds/raycast/red_distortion_4.webp',
-            opacity: 1,
-          },
-          backgroundBlur: 0,
-          backgroundNoise: 0,
-          selectedGradient: 'vibrant_orange_pink',
-          // Reset shadow
-          imageShadow: {
-            enabled: true,
-            blur: 15,
-            offsetX: 5,
-            offsetY: 8,
-            spread: 3,
-            color: 'rgba(0, 0, 0, 0.6)',
-            opacity: 0.5,
-          },
-          // Reset border/frame
-          imageBorder: {
-            enabled: false,
-            width: 8,
-            color: '#000000',
-            type: 'none',
-            padding: 20,
-            title: '',
-          },
-          imageStylePreset: 'default' as ImageStylePreset,
-          shadowPreset: 'soft' as ShadowPreset,
-          // Reset 3D perspective
-          perspective3D: {
-            perspective: 200,
-            rotateX: 0,
-            rotateY: 0,
-            rotateZ: 0,
-            translateX: 0,
-            translateY: 0,
-            scale: 1,
-          },
-          // Reset filters
-          imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
-          imagePlacement: { ...DEFAULT_IMAGE_PLACEMENT },
-          pattern: { ...DEFAULT_BACKGROUND_PATTERN },
-          // Clear overlays
-          textOverlays: [],
-          imageOverlays: [],
-          mockups: [],
-          activeDeviceLayoutId: null,
-          deviceLayoutSnapshot: null,
-          // Reset annotations & blur
-          annotations: [],
-          activeAnnotationTool: null,
-          blurRegions: [],
-          elements: [],
-          motion: emptyMotion(),
-          selectedElementId: null,
-          brand: null,
-          copy: null,
-          // Reset timeline/animation
-          timeline: { ...DEFAULT_TIMELINE_STATE },
-          animationClips: [],
-          showTimeline: false,
-        })
+        // A new document must not inherit the previous project's URL, fonts,
+        // frame chrome, slide timing, or selection state.
+        resetPlayback()
+        set({ ...useImageStore.getInitialState(), canvasDimensions: get().canvasDimensions })
       },
 
       removeMainImage: () => {
@@ -812,12 +773,13 @@ export const useImageStore = create<ImageState>()(
 
       setAspectRatio: (aspectRatio: AspectRatioKey) => {
         trackAspectRatioChange(aspectRatio)
-        set({ selectedAspectRatio: aspectRatio })
+        set((state) => resizeCanvas(state, aspectRatio))
       },
 
       setCustomDimensions: (width: number, height: number) => {
         trackAspectRatioChange('custom')
-        set({ selectedAspectRatio: 'custom', customDimensions: { width, height } })
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return
+        set((state) => ({ ...resizeCanvas(state, 'custom', { width, height }), customDimensions: { width, height } }))
       },
 
       setBackgroundConfig: (config: BackgroundConfig) => {
@@ -916,6 +878,7 @@ export const useImageStore = create<ImageState>()(
         const id = `text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         set((state) => ({
           textOverlays: [...state.textOverlays, { ...overlay, id }],
+          layerOrder: [...orderedLayerIds(state), id],
         }))
         return id
       },
@@ -943,11 +906,17 @@ export const useImageStore = create<ImageState>()(
         const id = `overlay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         set((state) => ({
           imageOverlays: [...state.imageOverlays, { blur: 0, ...overlay, id }],
+          layerOrder: [...orderedLayerIds(state), id],
+          selectedOverlayId: id,
+          selectedTextId: null,
+          selectedElementId: null,
+          isMainImageSelected: false,
         }))
       },
 
       updateImageOverlay: (id, updates) => {
         set((state) => ({
+          ...(updates.layer ? { layerOrder: moveLayer(orderedLayerIds(state), id, updates.layer === 'back' ? 'bottom' : 'top') } : {}),
           imageOverlays: state.imageOverlays.map((overlay) =>
             overlay.id === id ? { ...overlay, ...updates } : overlay
           ),
@@ -986,10 +955,9 @@ export const useImageStore = create<ImageState>()(
               break
           }
 
-          if (newIndex === index) return state
           const [item] = overlays.splice(index, 1)
           overlays.splice(newIndex, 0, item)
-          return { imageOverlays: overlays }
+          return { imageOverlays: overlays, layerOrder: moveLayer(orderedLayerIds(state), id, direction) }
         })
       },
 
@@ -998,6 +966,7 @@ export const useImageStore = create<ImageState>()(
         const id = `mockup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         set((state) => ({
           mockups: [...state.mockups, { ...mockup, id }],
+          layerOrder: [...orderedLayerIds(state), id],
           activeDeviceLayoutId: null,
           deviceLayoutSnapshot: null,
         }))
@@ -1013,11 +982,15 @@ export const useImageStore = create<ImageState>()(
       },
 
       removeMockup: (id) => {
-        set((state) => ({
-          mockups: state.mockups.filter((mockup) => mockup.id !== id),
-          activeDeviceLayoutId: null,
-          deviceLayoutSnapshot: null,
-        }))
+        set((state) => {
+          const remaining = state.mockups.filter((mockup) => mockup.id !== id)
+          const layout = compositionLayoutSchema.safeParse(state.activeDeviceLayoutId)
+          const size = state.selectedAspectRatio === 'custom' ? state.customDimensions : getAspectRatioPreset(state.selectedAspectRatio)
+          return {
+            mockups: layout.success ? arrangeScreens(remaining, layout.data, size ? size.width / size.height : 4 / 3) : remaining,
+            deviceLayoutSnapshot: null,
+          }
+        })
       },
 
       clearMockups: () => {
@@ -1240,7 +1213,7 @@ export const useImageStore = create<ImageState>()(
                   imageName: TEMPLATE_DEMO_IMAGE_NAME,
                 }
               : {}),
-            selectedAspectRatio: preset.aspectRatio,
+            ...resizeCanvas(state, preset.aspectRatio),
             backgroundConfig: preset.backgroundConfig,
             borderRadius: preset.borderRadius,
             backgroundBorderRadius: preset.backgroundBorderRadius,
@@ -1261,7 +1234,7 @@ export const useImageStore = create<ImageState>()(
               translateY: DEFAULT_ANIMATABLE_PROPERTIES.translateY,
               scale: DEFAULT_ANIMATABLE_PROPERTIES.scale,
             },
-            ...(options.scene
+            ...(options.scene && state.mockups.length === 0
               ? {
                   editorMode:
                     options.scene.kind === 'device' ? ('device' as const) : ('screenshot' as const),
@@ -1332,7 +1305,7 @@ export const useImageStore = create<ImageState>()(
                   imageName: TEMPLATE_DEMO_IMAGE_NAME,
                 }
               : {}),
-            selectedAspectRatio: visualPreset.aspectRatio,
+            ...resizeCanvas(state, visualPreset.aspectRatio),
             backgroundConfig: visualPreset.backgroundConfig,
             borderRadius: visualPreset.borderRadius,
             backgroundBorderRadius: visualPreset.backgroundBorderRadius,
@@ -1353,9 +1326,8 @@ export const useImageStore = create<ImageState>()(
               translateY: DEFAULT_ANIMATABLE_PROPERTIES.translateY,
               scale: DEFAULT_ANIMATABLE_PROPERTIES.scale,
             },
-            editorMode: 'screenshot' as const,
-            mockups: [],
-            activeDeviceLayoutId: null,
+            editorMode: state.mockups.length ? state.editorMode : 'screenshot' as const,
+            activeDeviceLayoutId: state.activeDeviceLayoutId,
             deviceLayoutSnapshot: null,
             animationClips: [animation.clip],
             timeline: {
@@ -1402,7 +1374,11 @@ export const useImageStore = create<ImageState>()(
       },
 
       setImagePlacement: (placement) => {
-        set((state) => ({ imagePlacement: { ...state.imagePlacement, ...placement } }))
+        set((state) => ({ imagePlacement: {
+          ...state.imagePlacement,
+          ...((placement.offsetX !== undefined || placement.offsetY !== undefined) ? { anchor: undefined } : {}),
+          ...placement,
+        } }))
       },
 
       setCanvasPadding: (padding) => {
@@ -1499,12 +1475,12 @@ export const useImageStore = create<ImageState>()(
           id: `slide-${crypto.randomUUID()}`,
           src: URL.createObjectURL(file),
           name: file.name,
-          duration: slideshow.defaultDuration,
+          duration: Number.isFinite(slideshow.defaultDuration) && slideshow.defaultDuration >= 0.5 && slideshow.defaultDuration <= 30 ? slideshow.defaultDuration : 3,
         }))
 
         const existing = slides.length || !uploadedImageUrl ? slides : [{
           id: `slide-${crypto.randomUUID()}`, src: uploadedImageUrl,
-          name: imageName ?? 'Screenshot', duration: slideshow.defaultDuration,
+          name: imageName ?? 'Screenshot', duration: Number.isFinite(slideshow.defaultDuration) && slideshow.defaultDuration >= 0.5 && slideshow.defaultDuration <= 30 ? slideshow.defaultDuration : 3,
         }]
         const allSlides = [...existing, ...newSlides]
         const activeSlide = allSlides.find((slide) => slide.id === get().activeSlideId) ?? allSlides[0]
@@ -1517,8 +1493,6 @@ export const useImageStore = create<ImageState>()(
           activeSlideId: activeSlide?.id ?? null,
           uploadedImageUrl: activeSlide?.src ?? null,
           imageName: activeSlide?.name ?? null,
-          // Auto-show timeline when multiple slides are added
-          showTimeline: allSlides.length > 1 ? true : get().showTimeline,
           // Extend timeline to fit all slides
           timeline: {
             ...timeline,
@@ -1535,7 +1509,7 @@ export const useImageStore = create<ImageState>()(
         const tracking = history.isTracking
         if (tracking) history.pause()
         try {
-          set({ activeSlideId: id, uploadedImageUrl: slide.src, imageName: slide.name })
+          set({ activeSlideId: id, uploadedImageUrl: slide.src, imageName: slide.name, mockups: slideScreens(get(), slide.src, slide.name) })
         } finally {
           if (tracking) history.resume()
         }
@@ -1550,6 +1524,7 @@ export const useImageStore = create<ImageState>()(
 
         set({
           slides: remaining,
+          mockups: slideScreens(get(), nextSlide?.src ?? null, nextSlide?.name ?? null),
           activeSlideId: nextActive,
           uploadedImageUrl: nextSlide?.src ?? null,
           imageName: nextSlide?.name ?? null,
@@ -1840,6 +1815,7 @@ export const useImageStore = create<ImageState>()(
         const id = `ann-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         set((state) => ({
           annotations: [...state.annotations, { ...annotation, id }],
+          layerOrder: [...orderedLayerIds(state), id],
           selectedAnnotationId: id,
         }))
       },
@@ -1870,6 +1846,7 @@ export const useImageStore = create<ImageState>()(
         const id = `blur-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         set((state) => ({
           blurRegions: [...state.blurRegions, { ...region, id }],
+          layerOrder: [...orderedLayerIds(state), id],
         }))
       },
       updateBlurRegion: (id, updates) => {

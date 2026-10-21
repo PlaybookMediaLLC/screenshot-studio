@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useEffect, useState } from 'react'
 import { z } from 'zod'
 import { artboardRect, type Artboard } from '@/lib/canvas/document'
 import type { CanvasSession } from '@/lib/canvas/session'
@@ -88,7 +88,14 @@ export function PresenceSummary({
   status: PresenceStatus
   peers: CanvasPeer[]
 }) {
-  if (status === 'unavailable') return null
+  const [showConnection, setShowConnection] = useState(false)
+  useEffect(() => {
+    setShowConnection(false)
+    if (status === 'live' || status === 'unavailable') return
+    const timer = setTimeout(() => setShowConnection(true), 3000)
+    return () => clearTimeout(timer)
+  }, [status])
+  if (status === 'unavailable' || (status !== 'live' && !showConnection)) return null
   return (
     <span
       role="status"

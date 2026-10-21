@@ -3,9 +3,10 @@
 import * as React from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { fontFamilies, getFontCSS } from '@/lib/constants/fonts'
-import { GOOGLE_FONTS, googleFontFamily, googleFontId, isGoogleFontId } from '@/lib/typography/google-fonts'
+import { GOOGLE_FONTS, googleFontFamily, googleFontId, isGoogleFontId, loadGoogleFont } from '@/lib/typography/google-fonts'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 
 type Option = { group: string; id: string; name: string }
@@ -37,7 +38,13 @@ export function FontPicker({ onChange, value }: { onChange: (id: string) => void
   const custom = search && !matches.some((option) => option.name.toLowerCase() === search) ? googleFontId(query) : null
   const choices: Option[] = custom ? [...matches, { group: 'Google Fonts', id: custom, name: `Use “${googleFontFamily(custom)}”` }] : matches
 
-  const pick = (id: string) => {
+  const pick = async (id: string) => {
+    if (isGoogleFontId(id)) {
+      try { await loadGoogleFont(id, ['400', '700']) } catch {
+        toast.error(`Couldn't load ${googleFontFamily(id)}`, { description: 'Check the font name or connection. Your previous font is still selected.' })
+        return
+      }
+    }
     onChange(id)
     setOpen(false)
     setQuery('')
@@ -56,7 +63,7 @@ export function FontPicker({ onChange, value }: { onChange: (id: string) => void
           <span className="text-muted-foreground">▾</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 p-2">
+      <PopoverContent align="start" collisionPadding={12} className="w-64 max-w-[calc(100vw-24px)] p-2">
         <Input
           aria-activedescendant={choices[active] ? `font-option-${active}` : undefined}
           aria-controls="font-options"

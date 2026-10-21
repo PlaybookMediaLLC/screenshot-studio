@@ -61,7 +61,7 @@ function Body({ node }: { node: SceneAnnotation }): React.JSX.Element {
     case 'step':
       return (
         <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: fill, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 ${4 * unit}px ${14 * unit}px rgba(0,0,0,0.18)` }}>
-          <span style={text(Math.min(box.width, box.height) * 0.5, a.textColor)}>{a.text || Math.round(a.value)}</span>
+          <span style={text(Math.min(box.width, box.height) * 0.5, a.textColor)}>{a.text || Math.max(1, Math.round(a.value))}</span>
         </div>
       )
     case 'label':

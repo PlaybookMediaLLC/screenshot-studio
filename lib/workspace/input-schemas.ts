@@ -12,4 +12,7 @@ export const workspaceSlugSchema = z
 export const workspaceCreateSchema = z.object({
   name: workspaceNameSchema,
   slug: workspaceSlugSchema,
+  timeZone: z.string().max(100).refine((zone) => {
+    try { Intl.DateTimeFormat(undefined, { timeZone: zone }); return true } catch { return false }
+  }, 'Choose a valid time zone.').optional(),
 })

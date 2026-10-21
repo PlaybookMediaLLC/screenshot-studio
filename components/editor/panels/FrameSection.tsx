@@ -1,5 +1,8 @@
 'use client'
 
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { withHistoryStep } from '@/lib/store'
 import { BrowserOptions, WindowOptions } from '@/components/frames/panels/ChromeOptions'
 import { CompositionSection } from '@/components/frames/panels/CompositionSection'
 import { DeviceOptions } from '@/components/frames/panels/DeviceOptions'
@@ -38,7 +41,10 @@ const FRAME_CHOICES = [
  */
 export function FrameSection() {
   const target = useFrameTarget()
-  const current = FRAME_CHOICES.find((choice) => choice.id === target.choice) ?? FRAME_CHOICES[0]
+  const scopeKey = `${target.screens.map((screen) => screen.id).join(',')}:${target.choice}`
+  const [browsing, setBrowsing] = useState<{ key: string; choice: FrameChoice } | null>(null)
+  const choice = browsing?.key === scopeKey ? browsing.choice : target.choice
+  const current = FRAME_CHOICES.find((item) => item.id === choice) ?? FRAME_CHOICES[0]
   const { screens } = target
   const mixed = !target.single && new Set(screens.map((screen) => screen.frame?.kind ?? 'device')).size > 1
   const scope =
@@ -47,7 +53,10 @@ export function FrameSection() {
       : target.single || screens.length === 1
         ? screenLabel(screens[0]!).toLowerCase()
         : `all ${screens.length} screens`
-  const onChange = (changes: Parameters<typeof changeChrome>[1]) => changeChrome(target, changes)
+  const onChange = (changes: Parameters<typeof changeChrome>[1]) => withHistoryStep(() => {
+    if (choice !== target.choice) chooseFrame(target, choice)
+    changeChrome(target, changes)
+  })
 
   return (
     <div className="space-y-3">
@@ -56,24 +65,30 @@ export function FrameSection() {
       </p>
       <SegmentedControl
         ariaLabel="Frame"
-        onChange={(id) => chooseFrame(target, id as FrameChoice)}
+        onChange={(id) => setBrowsing({ key: scopeKey, choice: id as FrameChoice })}
         options={FRAME_CHOICES.map((choice) => ({
           ariaLabel: `${choice.label} frame`,
           id: choice.id,
           label: choice.label,
           tooltip: choice.description,
         }))}
-        value={target.choice}
+        value={choice}
       />
       <p className="px-0.5 text-[11px] leading-snug text-muted-foreground">
         {mixed ? 'These screens use different frames; a choice here applies to all of them.' : current.description}
       </p>
+      {choice !== target.choice ? (
+        <div className="space-y-2 rounded-md bg-foreground/[0.04] p-2.5 text-xs text-muted-foreground">
+          <p>Browsing {current.label.toLowerCase()} frames. Choose an option to apply it.</p>
+          {choice !== 'device' ? <Button size="sm" variant="outline" onClick={() => chooseFrame(target, choice)}>Apply {current.label.toLowerCase()} frame</Button> : null}
+        </div>
+      ) : null}
       <div className="space-y-1">
-        {target.choice === 'device' ? (
+        {choice === 'device' ? (
           <DeviceOptions target={target} />
-        ) : target.choice === 'browser' ? (
+        ) : choice === 'browser' ? (
           <BrowserOptions chrome={target.chrome} onChange={onChange} />
-        ) : target.choice === 'window' ? (
+        ) : choice === 'window' ? (
           <WindowOptions chrome={target.chrome} onChange={onChange} />
         ) : screens.length === 0 ? (
           <StyleSection />

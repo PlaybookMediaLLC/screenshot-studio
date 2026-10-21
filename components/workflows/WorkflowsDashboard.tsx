@@ -229,12 +229,12 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
         />
         <Stat
           href="/workflows/runs?mode=automation&status=succeeded"
-          label="Succeeded"
+          label="Automation succeeded"
           value={counts.succeeded ?? 0}
         />
         <Stat
           href="/workflows/runs?mode=automation&status=failed"
-          label="Failed"
+          label="Automation failed"
           value={counts.failed ?? 0}
         />
         <Stat
@@ -268,23 +268,11 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
       </p>
       <div id="definitions" />
       <Section
-        actions={
-          canManage ? (
-            <ButtonLink href="/workflows/new" size="sm">
-              New workflow
-            </ButtonLink>
-          ) : null
-        }
         description="Each workflow runs one GitHub event family for one repository. Lower priority wins; the first match runs."
         title="Definitions"
       >
         {overview.definitions.length === 0 ? (
           <EmptyState
-            action={
-              canManage ? (
-                <ButtonLink href="/workflows/new">Start from a template</ButtonLink>
-              ) : null
-            }
             description="Turn a published release, a merged pull request, or a production deployment into campaign drafts for review."
             icon={WorkflowSquare03Icon}
             title="No workflows yet"
@@ -355,9 +343,7 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
               {shown.length === 0 ? (
                 <Row>
                   <p className="text-sm text-neutral-500">No workflows match these filters.</p>
-                  <Button variant="ghost" size="sm" onClick={clearFilters}>
-                    Clear filters
-                  </Button>
+
                 </Row>
               ) : (
                 shown.map((definition) => {

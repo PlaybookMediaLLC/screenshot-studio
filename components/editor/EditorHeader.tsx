@@ -34,7 +34,6 @@ import {
   RefreshIcon,
   MagicWand01Icon,
   GridIcon,
-  RulerIcon,
   KeyboardIcon,
   MoreHorizontalIcon,
 } from 'hugeicons-react'
@@ -270,15 +269,16 @@ export function EditorHeader() {
                 label="Toggle rulers"
                 onClick={toggleRulers}
               >
-                <RulerIcon size={15} />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="2" y="7" width="20" height="10" rx="1" /><path d="M6 7v6m4-6v3m4-3v6m4-6v3" /></svg>
               </ToolButton>
-              {showRulers ? (
+              <span className={showRulers ? 'inline-flex w-16' : 'invisible inline-flex w-16'} aria-hidden={!showRulers}>
                 <Select
                   onValueChange={(nextValue) => setRulerInterval(Number(nextValue))}
                   value={String(rulerInterval)}
                 >
                   <SelectTrigger
                     className="h-7 shrink-0 cursor-pointer rounded-md border-0 bg-transparent px-1 text-[11px] text-muted-foreground outline-none hover:text-foreground"
+                    disabled={!showRulers}
                     title="Ruler interval"
                     aria-label={'Ruler interval'}
                   >
@@ -291,7 +291,7 @@ export function EditorHeader() {
                     <SelectItem value={String(200)}>200px</SelectItem>
                   </SelectContent>
                 </Select>
-              ) : null}
+              </span>
               <ToolButton
                 active={showGrid}
                 aria-pressed={showGrid}
@@ -364,13 +364,13 @@ export function EditorHeader() {
 
         <div className="flex items-center gap-1 justify-self-end">
           {hasContent && !isMobile ? (
-            <ToolButton className="hover:text-destructive" label="Remove" disabled={!uploadedImageUrl} onClick={removeScreenshot}>
+            <ToolButton className="hover:text-destructive" label="Remove screenshot" disabled={!uploadedImageUrl} onClick={removeScreenshot}>
               <Delete02Icon size={15} />
             </ToolButton>
           ) : null}
           <ToolButton
             disabled={!hasContent || exportBusy || isCopying}
-            label="Copy"
+            label="Copy image to clipboard"
             onClick={() => copyImage()}
           >
             <Copy01Icon size={15} />

@@ -100,7 +100,7 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     title: 'Install',
   },
   {
-    description: 'Workspace name, release preferences, and defaults.',
+    description: 'Workspace name, slug, logo URL, time zone (timezone), release preferences, and defaults.',
     group: 'workspace',
     id: 'general',
     slug: '',

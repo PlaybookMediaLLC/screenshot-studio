@@ -172,7 +172,9 @@ func TestOutboundWebhookDelivery(t *testing.T) {
 		t.Fatal(err)
 	}
 	for attempt := 1; attempt <= webhooks.MaxAttempts; attempt++ {
-		exec(`UPDATE webhook_delivery SET "nextAttemptAt"=now() WHERE id=$1`, deleted.ID)
+		// timestamp(3) rounds now() up by up to half a millisecond. Keep the
+		// fixture unambiguously due before the dispatcher's next clock read.
+		exec(`UPDATE webhook_delivery SET "nextAttemptAt"=now()-interval '1 second' WHERE id=$1`, deleted.ID)
 		if _, err := dispatcher.Deliver(ctx); err != nil {
 			t.Fatal(err)
 		}

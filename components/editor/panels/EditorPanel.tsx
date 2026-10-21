@@ -39,7 +39,7 @@ function SidePanel<Tab extends EditorPanelTab>({
           value={active}
         />
       </div>
-      <div className="flex-1 overflow-y-auto scrollbar-hide">
+      <div key={active} className="flex-1 overflow-y-auto">
         <PanelTabContent active={active} tabs={tabs} />
       </div>
     </aside>
@@ -71,8 +71,9 @@ export function MobilePanel({ onClose }: { onClose?: () => void }) {
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
       <div className="relative z-20 flex shrink-0 items-center gap-2 border-b border-foreground/10 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
-        <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
+        <div className="min-w-0 flex-1 overflow-x-auto">
           <SegmentedControl
+            className="min-w-[560px]"
             onChange={(id) => showTab(id as EditorPanelTab)}
             options={ALL_TABS.map((tab) => ({ ariaLabel: tab.label, icon: tab.icon, id: tab.id, label: tab.label }))}
             size="sm"
@@ -90,7 +91,7 @@ export function MobilePanel({ onClose }: { onClose?: () => void }) {
           </Button>
         ) : null}
       </div>
-      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-hide">
+      <div key={active} className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <PanelTabContent active={active} tabs={ALL_TABS} />
       </div>
     </div>

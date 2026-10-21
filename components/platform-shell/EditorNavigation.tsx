@@ -77,7 +77,7 @@ function EditorNavigationContent({
     </Collapsible.Trigger>
   )
   return (
-    <Collapsible.Root defaultOpen={Boolean(active)} key={pathname}>
+    <Collapsible.Root defaultOpen key={pathname}>
       {collapsed ? (
         <Tooltip>
           <TooltipTrigger asChild>{trigger}</TooltipTrigger>

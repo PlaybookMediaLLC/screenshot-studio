@@ -135,7 +135,7 @@ test('a comparison names the sections that changed', () => {
   editHeadline('After')
   useImageStore.getState().setBackgroundOpacity(0.5)
   const after = exportDesignDocument()
-  assert.deepEqual(changedSections(before, after).sort(), ['background', 'texts'])
+  assert.deepEqual(changedSections(before, after).sort(), ['background', 'layerOrder', 'texts'])
   assert.deepEqual(changedSections(after, after), [])
 })
 

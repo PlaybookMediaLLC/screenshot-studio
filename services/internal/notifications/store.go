@@ -547,7 +547,11 @@ func href(kind, id string, row map[string]any) string {
 		return "/assets"
 	case "project", "store_review":
 		return "/projects"
-	case "product_surface", "deployment_event":
+	case "deployment_event":
+		// Receiving a deployment does not mean a product page has been captured.
+		// There is no deployment detail screen to link to yet.
+		return ""
+	case "product_surface":
 		return "/workspace/product-pages"
 	case "integration_connection", "channel_connection", "source_app":
 		return "/workspace/integrations"

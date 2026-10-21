@@ -55,7 +55,7 @@ export function AnnotationPanel({ owner, layer, node }: { owner: LayerOwner; lay
             ) : null}
           </>
         ) : null}
-        {layer.kind === 'step' ? <NumberField label="Number" value={layer.value} min={0} max={99} onChange={(value) => props({ value }, 'value')} /> : null}
+        {layer.kind === 'step' ? <NumberField label="Number" value={Math.max(1, layer.value)} min={1} max={99} onChange={(value) => props({ value }, 'value')} /> : null}
         {layer.kind === 'rating' ? <NumberField label="Stars" value={layer.value} min={0} max={5} step={0.5} precision={1} onChange={(value) => props({ value }, 'value')} hint="Use your real store rating." /> : null}
         {layer.kind === 'arrow' ? <SliderField label="Curve" value={layer.curve * 100} min={-100} max={100} unit="%" onChange={(value) => props({ curve: value / 100 }, 'curve')} /> : null}
         {layer.kind === 'highlight' ? (

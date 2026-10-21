@@ -327,14 +327,14 @@ function PresetCard({
     <Button variant="custom" size={null}
       onClick={onApply}
       className={cn(
-        'w-full rounded-md border transition-all overflow-hidden text-left cursor-pointer',
+        'w-full flex-col items-stretch rounded-md border transition-all overflow-hidden text-left cursor-pointer',
         'outline-none focus-visible:ring-2 focus-visible:ring-foreground/25',
         isActive
           ? 'border-foreground/30 ring-1 ring-foreground/20'
           : 'border-foreground/10 hover:border-foreground/20'
       )}
     >
-      <PresetPreview preset={preset} previewImageUrl={previewImageUrl} />
+      <PresetPreview className="w-full shrink-0" preset={preset} previewImageUrl={previewImageUrl} />
 
       <div className={cn(
         "p-3 border-t",

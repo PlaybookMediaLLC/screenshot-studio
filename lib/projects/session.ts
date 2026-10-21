@@ -161,6 +161,8 @@ function projectDocument(state: ImageState): DesignDocument {
     activeSlideId: first.id,
     uploadedImageUrl: first.src,
     imageName: first.name,
+    mockups: state.mockups.map((mockup) => !mockup.screen.isCustom && !mockup.screen.code
+      ? { ...mockup, screen: { ...mockup.screen, src: first.src, name: first.name } } : mockup),
   } : state, { keepLocalSources: true })
 }
 

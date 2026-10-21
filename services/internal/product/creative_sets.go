@@ -209,7 +209,7 @@ func (c *Configuration) CreateCreativeSet(ctx context.Context, actor Actor, id, 
 	if _, err := recordCreativeSetVersion(ctx, tx, actor, row, platformcreativesetversion.KindAutosave, &created); err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(kind, "created"), "creativeSet", row.ID); err != nil {
+	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(kind, "created"), "creativeSet", row.ID, map[string]any{"name": row.Name}); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -334,7 +334,7 @@ func (c *Configuration) RenameCreativeSet(ctx context.Context, actor Actor, id, 
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(row.Kind, "renamed"), "creativeSet", id); err != nil {
+	if err := appendConfigurationAudit(ctx, tx, actor, creativeSetAction(row.Kind, "renamed"), "creativeSet", id, map[string]any{"name": row.Name}); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {

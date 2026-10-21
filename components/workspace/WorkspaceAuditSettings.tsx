@@ -23,6 +23,8 @@ const auditLogSchema = z.object({
   actorDisplay: z.string().nullable(),
   createdAt: z.string(),
   entityType: z.string(),
+  entityId: z.string().nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   id: z.string(),
   outcome: z.string(),
 })

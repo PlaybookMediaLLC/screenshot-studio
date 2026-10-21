@@ -613,3 +613,12 @@ func TestWorkflowContextAndRetainedHistoryAfterEventCleanup(t *testing.T) {
 		t.Fatalf("history link=%q %v", target, err)
 	}
 }
+
+func TestDeploymentReceiptDoesNotLinkToCaptureStatus(t *testing.T) {
+	if got := href("deployment_event", "deployment-one", nil); got != "" {
+		t.Fatalf("deployment receipt points at unrelated capture status: %q", got)
+	}
+	if got := href("product_surface", "surface-one", nil); got != "/workspace/product-pages" {
+		t.Fatalf("product surface destination changed: %q", got)
+	}
+}

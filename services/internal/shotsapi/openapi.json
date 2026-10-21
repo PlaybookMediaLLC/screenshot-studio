@@ -10703,6 +10703,11 @@
             "exclusiveMinimum": 0,
             "maximum": 104857600
           },
+          "projectId": {
+            "type": "string",
+            "format": "cuid",
+            "pattern": "^[cC][0-9a-z]{6,}$"
+          },
           "classification": {
             "default": "input",
             "type": "string",

@@ -1,5 +1,6 @@
 'use client'
 
+import { withMediaPipeDiagnostics } from './diagnostics'
 import { detectSensitiveText, type Finding, type ImageBox, type OcrWord } from './patterns'
 
 /**
@@ -109,7 +110,7 @@ async function findFaces(canvas: HTMLCanvasElement): Promise<Finding[]> {
   const { FaceDetector, FilesetResolver } = await import('@mediapipe/tasks-vision')
   const fileset = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM)
   const detector = await FaceDetector.createFromOptions(fileset, {
-    baseOptions: { modelAssetPath: FACE_MODEL },
+    baseOptions: { modelAssetPath: FACE_MODEL, delegate: 'CPU' },
     minDetectionConfidence: MIN_FACE_SCORE,
     runningMode: 'IMAGE',
   })
@@ -174,7 +175,7 @@ export async function scanImage(
   const warnings: string[] = []
 
   onProgress({ message: 'Finding faces', progress: 0.05 })
-  const faces = await findFaces(canvas).catch((error: unknown) => {
+  const faces = await withMediaPipeDiagnostics(() => findFaces(canvas)).catch((error: unknown) => {
     warnings.push(
       `Face detection is unavailable (${error instanceof Error ? error.message : 'load failed'}).`
     )

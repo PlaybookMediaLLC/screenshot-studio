@@ -16,6 +16,7 @@ import {
   type PlatformVersions,
   primaryChannel,
 } from '@/lib/write/document'
+import { normalizeMentions } from '@/lib/write/normalize-mentions'
 import { readVersions } from '@/lib/write/versions'
 
 /**
@@ -57,7 +58,7 @@ export function documentOf(draft: DraftWire): DraftDocument {
     primaryPlatform: primaryChannel(draft.primaryPlatform),
     target: draft.target,
     title: draft.title === 'Untitled draft' ? '' : draft.title,
-    value: draft.body as Value,
+    value: normalizeMentions(draft.body) as Value,
     versions: readVersions(
       draft.platformVersions,
       draft.channelText as Partial<Record<DraftChannel, string>>,
@@ -122,13 +123,13 @@ export function useDraftDocument({
             article: next.article ?? undefined,
             assetIds: serializeDraft(next.value, 'linkedin').assetIds,
             baseVersion: version.current,
-            body: next.value,
+            body: normalizeMentions(next.value),
             channelConnectionIds: next.channelConnectionIds,
             // Legacy per-channel text moved into platform versions: clear it once.
             ...(legacyText.current ? { channelText: {} } : {}),
             discussions: discussions.current,
             plainText: draftPlainText(next.value),
-            platformVersions: next.versions,
+            platformVersions: normalizeMentions(next.versions),
             primaryPlatform: next.primaryPlatform,
             target: next.target ?? undefined,
             title: next.title,

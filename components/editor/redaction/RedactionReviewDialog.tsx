@@ -23,9 +23,6 @@ import { type ScanProgress, scanImage } from '@/lib/redaction/scan'
 import { cn } from '@/lib/utils'
 import { Checkbox } from '@/components/ui/checkbox'
 
-/** Suggestions at or above this confidence start approved; the rest wait for a decision. */
-const AUTO_APPROVE = 0.75
-
 const KIND_LABELS: Record<FindingKind | 'manual', string> = {
   card: 'Card number',
   credential: 'Credential',
@@ -58,7 +55,7 @@ const clamp = (value: number) => Math.min(1, Math.max(0, value))
 
 function toItems(findings: readonly Finding[]): ReviewItem[] {
   return findings.map((finding) => ({
-    approved: finding.confidence >= AUTO_APPROVE,
+    approved: true,
     box: finding.box,
     confidence: finding.confidence,
     id: finding.id,
@@ -229,6 +226,7 @@ export function RedactionReviewDialog({
   const [progress, setProgress] = React.useState<ScanProgress | null>(null)
   const [warnings, setWarnings] = React.useState<string[]>([])
   const [error, setError] = React.useState<string | null>(null)
+  const [scanned, setScanned] = React.useState(false)
   const [method, setMethod] = React.useState<RedactionMethod>(redactionMethodSchema.enum.cover)
   const [selectedId, setSelectedId] = React.useState<string | null>(null)
   const [applying, setApplying] = React.useState(false)
@@ -241,11 +239,13 @@ export function RedactionReviewDialog({
     scanRun.current = controller
     setError(null)
     setWarnings([])
+    setProgress({ message: 'Starting scan', progress: 0 })
     try {
       const result = await scanImage(imageUrl, setProgress, controller.signal)
       if (controller.signal.aborted) return
       setItems((current) => [...current.filter((item) => item.kind === 'manual'), ...toItems(result.findings)])
       setWarnings(result.warnings)
+      setScanned(true)
     } catch (scanError) {
       if (!controller.signal.aborted) setError(scanError instanceof Error ? scanError.message : 'The scan failed.')
     } finally {
@@ -257,6 +257,9 @@ export function RedactionReviewDialog({
     if (!open) {
       scanRun.current?.abort()
       setItems([])
+      setScanned(false)
+      setError(null)
+      setWarnings([])
       setSelectedId(null)
       setProgress(null)
       return
@@ -279,7 +282,7 @@ export function RedactionReviewDialog({
       const blob = await redactImage(imageUrl, approved.map((item) => ({ box: item.box, method })))
       replaceScreenshotEverywhere(imageUrl, URL.createObjectURL(blob))
       toast.success(`${approved.length} redaction${approved.length === 1 ? '' : 's'} applied`, {
-        description: 'The covered pixels are gone from the screenshot and every export. Undo to edit them.',
+        description: `${approved.length} of ${items.length} regions redacted; ${items.length - approved.length} skipped. Review the screenshot for anything detection missed. Undo to edit.`,
       })
       onOpenChange(false)
     } catch (applyError) {
@@ -318,11 +321,11 @@ export function RedactionReviewDialog({
               <p className="text-sm text-muted-foreground">Add a screenshot first.</p>
             )}
             <div className="flex min-h-0 flex-col gap-3">
-              {progress ? (
+              {progress || (scan && !scanned && !error) ? (
                 <div aria-live="polite" className="space-y-1.5">
-                  <p className="text-xs text-muted-foreground">{progress.message}…</p>
+                  <p className="text-xs text-muted-foreground">{progress?.message ?? 'Starting scan'}…</p>
                   <div className="h-1.5 overflow-hidden rounded-full bg-foreground/10">
-                    <div className="h-full bg-primary transition-[width]" style={{ width: `${Math.round(progress.progress * 100)}%` }} />
+                    <div className="h-full bg-primary transition-[width]" style={{ width: `${Math.round((progress?.progress ?? 0) * 100)}%` }} />
                   </div>
                 </div>
               ) : (
@@ -348,7 +351,7 @@ export function RedactionReviewDialog({
               />
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium">
-                  {items.length === 0 ? 'No regions yet' : `${approved.length} of ${items.length} will be redacted`}
+                  {items.length === 0 ? (scanned ? 'No sensitive information detected. Review the image for missed regions.' : (scan ? 'Scanning your screenshot…' : 'Draw a region on the screenshot')) : `${approved.length} of ${items.length} will be redacted`}
                 </p>
                 {items.length > 0 ? (
                   <Button variant="custom" size={null}

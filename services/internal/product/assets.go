@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"path"
 	"strings"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
@@ -17,12 +19,17 @@ import (
 )
 
 type AssetListItem struct {
-	ID        string    `json:"id"`
-	Bytes     int       `json:"bytes"`
-	CreatedAt time.Time `json:"createdAt"`
-	Height    *int      `json:"height"`
-	MediaType string    `json:"mediaType"`
-	Width     *int      `json:"width"`
+	FileName       string    `json:"fileName"`
+	Classification string    `json:"classification"`
+	ProjectID      string    `json:"projectId,omitempty"`
+	ProjectName    string    `json:"projectName,omitempty"`
+	UploadedBy     string    `json:"uploadedBy,omitempty"`
+	ID             string    `json:"id"`
+	Bytes          int       `json:"bytes"`
+	CreatedAt      time.Time `json:"createdAt"`
+	Height         *int      `json:"height"`
+	MediaType      string    `json:"mediaType"`
+	Width          *int      `json:"width"`
 }
 
 type AssetPage struct {
@@ -32,10 +39,12 @@ type AssetPage struct {
 
 // AssetListOptions applies filters before pagination, with a stable total order.
 type AssetListOptions struct {
-	Limit  int
-	Cursor string
-	Type   string
-	Sort   string
+	Search         string
+	Classification string
+	Limit          int
+	Cursor         string
+	Type           string
+	Sort           string
 }
 
 type assetCursor struct {
@@ -82,7 +91,19 @@ func (c *Configuration) ListAssets(ctx context.Context, actor Actor, options Ass
 		(options.Sort != "newest" && options.Sort != "oldest") {
 		return nil, ErrInvalidInput
 	}
+	if len(options.Search) > 200 {
+		return nil, ErrInvalidInput
+	}
+	if options.Classification != "" && options.Classification != "input" && options.Classification != "export" && options.Classification != "derived" && options.Classification != "capture" {
+		return nil, ErrInvalidInput
+	}
 	conditions := []predicate.Asset{asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED)}
+	if search := strings.TrimSpace(options.Search); search != "" {
+		conditions = append(conditions, asset.ObjectKeyContainsFold(search))
+	}
+	if options.Classification != "" {
+		conditions = append(conditions, asset.ObjectKeyHasPrefix("org/"+actor.OrganizationID+"/"+options.Classification+"/"))
+	}
 	if options.Type != "all" {
 		conditions = append(conditions, asset.MediaTypeHasPrefix(options.Type+"/"))
 	}
@@ -111,8 +132,36 @@ func (c *Configuration) ListAssets(ctx context.Context, actor Actor, options Ass
 	if hasMore {
 		rows = rows[:options.Limit]
 	}
+	ids := make([]string, 0, len(rows))
 	for _, row := range rows {
-		page.Assets = append(page.Assets, AssetListItem{ID: row.ID, Bytes: row.Bytes, CreatedAt: row.CreatedAt, Height: row.Height, MediaType: row.MediaType, Width: row.Width})
+		ids = append(ids, row.ID)
+	}
+	origins := map[string]*ent.AuditLog{}
+	if len(ids) > 0 {
+		events, err := c.client.AuditLog.Query().Where(auditlog.OrganizationID(actor.OrganizationID), auditlog.EntityType("asset"), auditlog.EntityIDIn(ids...), auditlog.Action("product.asset_upload_signed")).All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, event := range events {
+			if event.EntityID != nil {
+				origins[*event.EntityID] = event
+			}
+		}
+	}
+	for _, row := range rows {
+		item := AssetListItem{ID: row.ID, Bytes: row.Bytes, CreatedAt: row.CreatedAt, Height: row.Height, MediaType: row.MediaType, Width: row.Width, FileName: path.Base(row.ObjectKey)}
+		parts := strings.Split(row.ObjectKey, "/")
+		if len(parts) >= 3 {
+			item.Classification = parts[2]
+		}
+		if origin := origins[row.ID]; origin != nil {
+			item.ProjectID, _ = origin.Metadata["projectId"].(string)
+			item.ProjectName, _ = origin.Metadata["projectName"].(string)
+			if origin.ActorDisplay != nil {
+				item.UploadedBy = *origin.ActorDisplay
+			}
+		}
+		page.Assets = append(page.Assets, item)
 	}
 	if hasMore {
 		last := rows[len(rows)-1]

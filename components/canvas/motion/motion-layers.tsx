@@ -1,5 +1,6 @@
 'use client'
 
+import { useLayerDepth } from '@/lib/editor/use-layer-depth'
 import type { ReactNode } from 'react'
 import type { LayerMotion } from '@/lib/animation/motion-evaluate'
 import type { RevealMode } from '@/lib/animation/motion-schema'
@@ -24,17 +25,21 @@ export function MotionWrap({
   children,
   motion,
   origin,
+  layerId,
 }: {
   children: ReactNode
   motion: LayerMotion | undefined
   origin: string
+  layerId?: string
 }) {
+  const depth = useLayerDepth(layerId ?? '')
   if (!motion) return <>{children}</>
   return (
     <div
       data-motion-layer="true"
       style={{
         inset: 0,
+        zIndex: layerId ? depth : undefined,
         opacity: motion.opacity,
         pointerEvents: 'none',
         position: 'absolute',

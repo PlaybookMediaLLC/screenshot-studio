@@ -1,5 +1,7 @@
 'use client';
 
+import { useLayerDepth } from '@/lib/editor/use-layer-depth';
+
 import { canvasScale } from '@/lib/editor/snap-dom';
 import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts';
 
@@ -36,6 +38,7 @@ function DraggableBlurRegion({
   onUpdate: (updates: Partial<BlurRegion>) => void;
   onRemove: () => void;
 }) {
+  const depth = useLayerDepth(region.id);
   const ref = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -186,6 +189,7 @@ function DraggableBlurRegion({
       onPointerDown={handlePointerDown}
       style={{
         position: 'absolute',
+        zIndex: depth,
         left: `${region.position.x}px`,
         top: `${region.position.y}px`,
         width: `${region.size.width}px`,
@@ -349,7 +353,7 @@ export function HTMLBlurRegionLayer({
         pointerEvents: 'none',
         // Raise above SVG annotation layer (z-220) when a blur region is selected
         // so delete button and resize handles are interactive
-        zIndex: selectedBlurId ? 230 : 210,
+
       }}
     >
       {blurRegions.map((region) => (

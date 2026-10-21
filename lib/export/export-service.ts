@@ -1,3 +1,4 @@
+import { waitForCompositeSources } from '@/components/canvas/elements/use-composite-source'
 /**
  * Export service for handling image exports (fully in-browser)
  *
@@ -106,6 +107,7 @@ async function capture3DTransformWithModernScreenshot(
   scale: number,
   skipDelay: boolean = false
 ): Promise<HTMLCanvasElement> {
+  await waitForCompositeSources();
   const overlayElement = element.querySelector('[data-3d-overlay="true"]') as HTMLElement;
   if (!overlayElement) {
     throw new Error('3D overlay element not found');
@@ -173,6 +175,7 @@ async function exportHTMLCanvas(
   // onCloneNode overrides overflow:hidden → visible on the canvas
   // container so that CSS drop-shadow filters render fully instead
   // of being hard-clipped at the canvas boundary.
+  await waitForCompositeSources();
   const canvas = await domToCanvas(container, {
     scale: exportScale,
     backgroundColor: null,

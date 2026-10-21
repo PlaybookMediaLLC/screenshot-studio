@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   automationFamilySchema,
   automationGraphSchema,
+  automationRevisionSchema,
   automationEventSchema,
   automationHistoryItemSchema,
 } from './release-automation'
@@ -18,16 +19,25 @@ export const automationRunStatusSchema = z.enum([
 ])
 
 /** Optional run-history filters; tenant scope always comes from the session. */
-export const automationHistoryFilterSchema = z.strictObject({
-  before: z.string().max(64).optional(),
-  definitionId: z.string().max(64).optional(),
-  versionId: z.string().max(64).optional(),
-  sourceAppId: z.string().max(64).optional(),
-  family: automationFamilySchema.optional(),
-  status: automationRunStatusSchema.optional(),
-  since: z.iso.datetime().optional(),
-  until: z.iso.datetime().optional(),
-})
+export const automationHistoryFilterSchema = z
+  .strictObject({
+    mode: z.enum(['automation', 'legacy']).optional(),
+    before: z.string().max(64).optional(),
+    definitionId: z.string().max(64).optional(),
+    versionId: z.string().max(64).optional(),
+    sourceAppId: z.string().max(64).optional(),
+    family: automationFamilySchema.optional(),
+    status: automationRunStatusSchema.optional(),
+    since: z.iso.datetime().optional(),
+    until: z.iso.datetime().optional(),
+  })
+  .refine(
+    (value) => !value.since || !value.until || Date.parse(value.since) < Date.parse(value.until),
+    {
+      message: 'From must be on or before To.',
+      path: ['until'],
+    }
+  )
 
 /** An immutable activated revision of a definition. */
 export const automationVersionSchema = z.object({
@@ -59,10 +69,12 @@ export type AutomationHistoryFilter = z.infer<typeof automationHistoryFilterSche
 /** An immutable activated version. */
 export type AutomationVersion = z.infer<typeof automationVersionSchema>
 
+/** Archive or restore the last saved revision without deleting run history. */
+export const automationArchiveSchema = automationRevisionSchema.extend({ archived: z.boolean() })
 /** List evidence excludes release notes, enrichment, and unrelated GitHub fields. */
 export const automationRunSummarySchema = automationHistoryItemSchema.extend({
   event: automationHistoryItemSchema.shape.event
-    .pick({ id: true, sourceAppId: true, receivedAt: true })
+    .pick({ id: true, sourceAppId: true, receivedAt: true, mode: true })
     .extend({
       snapshot: automationEventSchema.pick({
         family: true,

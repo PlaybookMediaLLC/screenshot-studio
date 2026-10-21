@@ -10,7 +10,7 @@ import (
 
 func TestAutomationHistorySummaryExcludesFullEvidence(t *testing.T) {
 	item := AutomationHistoryItem{
-		Event: AutomationEvent{ID: "event", SourceAppID: "source", Snapshot: automation.Event{
+		Event: AutomationEvent{Mode: "legacy", ID: "event", SourceAppID: "source", Snapshot: automation.Event{
 			Family: automation.Published, Title: "Release", Notes: strings.Repeat("large release notes", 1000),
 			Fields: map[string]automation.Value{"release.tag": automation.StringValue("v1.2"), "pr.files": automation.StringValue("private/file")},
 		}, Enrichment: map[string]automation.Value{"pr.files": automation.StringValue("enrichment")}},
@@ -26,7 +26,7 @@ func TestAutomationHistorySummaryExcludesFullEvidence(t *testing.T) {
 			t.Fatalf("summary includes %s", excluded)
 		}
 	}
-	if summary.Run.ID != "run" || summary.Run.Outputs.CampaignID != "campaign" || summary.Event.Snapshot.Fields["release.tag"].Values[0] != "v1.2" {
+	if summary.Event.Mode != "legacy" || summary.Run.ID != "run" || summary.Run.Outputs.CampaignID != "campaign" || summary.Event.Snapshot.Fields["release.tag"].Values[0] != "v1.2" {
 		t.Fatalf("lost list evidence: %+v", summary)
 	}
 	if item.Event.Snapshot.Notes == "" || len(item.Event.Snapshot.Fields) != 2 {

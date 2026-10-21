@@ -51,6 +51,7 @@ type AutomationOverview struct {
 	ExecutorAvailable bool                                    `json:"executorAvailable"`
 	Executor          AutomationExecutor                      `json:"executor"`
 	Actions           []AutomationActionAvailability          `json:"actions"`
+	LegacyRunCounts   map[string]int                          `json:"legacyRunCounts"`
 	RunCounts         map[string]int                          `json:"runCounts"`
 }
 
@@ -106,7 +107,10 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 	if result.Actions, err = c.automationActions(ctx, actor.OrganizationID, result.Executor); err != nil {
 		return nil, err
 	}
-	if result.RunCounts, err = c.automationRunCounts(ctx, actor.OrganizationID); err != nil {
+	if result.LegacyRunCounts, err = c.automationRunCounts(ctx, actor.OrganizationID, "legacy"); err != nil {
+		return nil, err
+	}
+	if result.RunCounts, err = c.automationRunCounts(ctx, actor.OrganizationID, "automation"); err != nil {
 		return nil, err
 	}
 	if err := c.attachLastRuns(ctx, actor.OrganizationID, result.Definitions); err != nil {

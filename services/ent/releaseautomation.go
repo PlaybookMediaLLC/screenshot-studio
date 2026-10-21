@@ -35,6 +35,8 @@ type ReleaseAutomation struct {
 	Revision int `json:"revision,omitempty"`
 	// Enabled holds the value of the "enabled" field.
 	Enabled bool `json:"enabled,omitempty"`
+	// Archived holds the value of the "archived" field.
+	Archived bool `json:"archived,omitempty"`
 	// ActivePriority holds the value of the "active_priority" field.
 	ActivePriority int `json:"active_priority,omitempty"`
 	// ActiveVersionID holds the value of the "active_version_id" field.
@@ -59,7 +61,7 @@ func (*ReleaseAutomation) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case entreleaseautomation.FieldDraft, entreleaseautomation.FieldLayout:
 			values[i] = new([]byte)
-		case entreleaseautomation.FieldEnabled:
+		case entreleaseautomation.FieldEnabled, entreleaseautomation.FieldArchived:
 			values[i] = new(sql.NullBool)
 		case entreleaseautomation.FieldPriority, entreleaseautomation.FieldRevision, entreleaseautomation.FieldActivePriority:
 			values[i] = new(sql.NullInt64)
@@ -135,6 +137,12 @@ func (_m *ReleaseAutomation) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field enabled", values[i])
 			} else if value.Valid {
 				_m.Enabled = value.Bool
+			}
+		case entreleaseautomation.FieldArchived:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field archived", values[i])
+			} else if value.Valid {
+				_m.Archived = value.Bool
 			}
 		case entreleaseautomation.FieldActivePriority:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -242,6 +250,9 @@ func (_m *ReleaseAutomation) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Enabled))
+	builder.WriteString(", ")
+	builder.WriteString("archived=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Archived))
 	builder.WriteString(", ")
 	builder.WriteString("active_priority=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ActivePriority))

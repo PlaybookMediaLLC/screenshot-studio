@@ -3740,6 +3740,14 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
+  /** Archive or restore a definition, retaining immutable versions and runs. */
+  async archiveReleaseAutomation(id: string, revision: number, archived: boolean) {
+    return this.request<{ archived: boolean }>(
+      `v1/release-automation/${encodeURIComponent(id)}/archive`,
+      { method: 'PUT', body: { revision, archived } }
+    )
+  }
+
   /** Stop new executions and request cancellation without restoring legacy intake. */
   async disableReleaseAutomation(id: string, revision: number) {
     return this.request<{ disabled: boolean }>(

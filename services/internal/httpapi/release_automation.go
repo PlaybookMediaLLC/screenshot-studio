@@ -13,6 +13,7 @@ import (
 // This optional extension keeps older test doubles and staged backend
 // deployments explicit: unsupported endpoints return unavailable, never success.
 type releaseAutomationStore interface {
+	ArchiveReleaseAutomation(context.Context, product.Actor, string, int, bool) error
 	AcceptGitHubEvent(context.Context, product.AcceptGitHubEventInput) (*product.GitHubEventAcceptance, error)
 	ReleaseAutomationOverview(context.Context, product.Actor) (*product.AutomationOverview, error)
 	SaveReleaseAutomation(context.Context, product.Actor, product.SaveAutomationInput) (*product.AutomationDefinition, error)
@@ -43,6 +44,7 @@ func (s *Server) automationStore(w http.ResponseWriter) releaseAutomationStore {
 }
 
 func (s *Server) registerReleaseAutomation(mux *http.ServeMux) {
+	mux.Handle("PUT /v1/release-automation/{id}/archive", s.authenticateProduct(http.HandlerFunc(s.archiveAutomation)))
 	mux.Handle("POST /v1/internal/github/events", s.authenticateService(http.HandlerFunc(s.acceptGitHubEvent)))
 	mux.Handle("GET /v1/release-automation", s.authenticateProduct(http.HandlerFunc(s.automationOverview)))
 	mux.Handle("PUT /v1/release-automation", s.authenticateProduct(http.HandlerFunc(s.saveAutomation)))
@@ -212,7 +214,7 @@ func (s *Server) automationHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	query := r.URL.Query()
-	filter := product.AutomationHistoryFilter{Before: query.Get("before"), DefinitionID: query.Get("definitionId"), VersionID: query.Get("versionId"),
+	filter := product.AutomationHistoryFilter{Mode: query.Get("mode"), Before: query.Get("before"), DefinitionID: query.Get("definitionId"), VersionID: query.Get("versionId"),
 		SourceAppID: query.Get("sourceAppId"), Family: automation.Family(query.Get("family")), Status: query.Get("status")}
 	if value := query.Get("limit"); value != "" {
 		limit, err := strconv.Atoi(value)
@@ -292,4 +294,24 @@ func (s *Server) retryAutomationRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, map[string]bool{"requested": true})
+}
+
+func (s *Server) archiveAutomation(w http.ResponseWriter, r *http.Request) {
+	store := s.automationStore(w)
+	if store == nil {
+		return
+	}
+	var input struct {
+		Revision int   `json:"revision"`
+		Archived *bool `json:"archived"`
+	}
+	if err := decodeJSON(r, &input); err != nil || input.Archived == nil || input.Revision < 1 {
+		writeError(w, 400, "invalid archive request")
+		return
+	}
+	if err := store.ArchiveReleaseAutomation(r.Context(), workspaceActor(r), r.PathValue("id"), input.Revision, *input.Archived); err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, 200, map[string]bool{"archived": *input.Archived})
 }

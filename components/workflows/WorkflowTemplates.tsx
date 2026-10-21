@@ -18,7 +18,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { getErrorMessage } from '@/components/workspace/settings-client'
-import type { AutomationOverview } from '@/lib/api/contracts/release-automation'
+import {
+  automationFamilySchema,
+  type AutomationDefinition,
+  type AutomationFamily,
+  type AutomationOverview,
+} from '@/lib/api/contracts/release-automation'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { actionAvailability } from '@/lib/workflows/actions'
 import {
@@ -27,12 +32,19 @@ import {
   type WorkflowTemplateId,
 } from '@/lib/workflows/templates'
 
+import { WorkflowEditor } from './WorkflowEditor'
+import { FAMILY_NAMES } from './workflow-canvas'
+import { WORKFLOW_SCHEMA_VERSION } from '@/lib/workflows/actions'
+
 const EMPTY = '__empty_option__'
 
 /** Pick an executable template, fill in workspace resources, and open it as a draft. */
 export function WorkflowTemplates() {
   const client = useTRPCClient()
   const router = useRouter()
+  const [blank, setBlank] = useState(false)
+  const [blankFamily, setBlankFamily] = useState<AutomationFamily>('release.published')
+  const [blankDefinition, setBlankDefinition] = useState<AutomationDefinition | null>(null)
   const [overview, setOverview] = useState<AutomationOverview | null>(null)
   const [templateId, setTemplateId] = useState<WorkflowTemplateId | null>(null)
   const [sourceId, setSourceId] = useState('')
@@ -62,6 +74,17 @@ export function WorkflowTemplates() {
         setBranch(source?.branch || 'main')
       })
       .catch((failure) => setError(getErrorMessage(failure)))
+  }, [client])
+
+  useEffect(() => {
+    const refresh = () => {
+      void client.releaseAutomation.overview
+        .query()
+        .then(setOverview)
+        .catch((failure) => setError(getErrorMessage(failure)))
+    }
+    window.addEventListener('focus', refresh)
+    return () => window.removeEventListener('focus', refresh)
   }, [client])
 
   if (!overview) {
@@ -115,19 +138,121 @@ export function WorkflowTemplates() {
     }
   }
 
+  if (blankDefinition)
+    return (
+      <WorkflowEditor
+        definition={blankDefinition}
+        overview={overview}
+        history={[]}
+        onClose={() => setBlankDefinition(null)}
+        onSaved={(saved) => router.replace(`/workflows/${saved.id}`)}
+      />
+    )
+
   return (
     <div className="flex flex-col gap-10">
+      <ButtonLink className="self-start" href="/workflows" variant="outline">
+        Back to workflows
+      </ButtonLink>
+      {blank ? (
+        <Section
+          title="Blank workflow"
+          description="Choose a trigger, then build the steps. Nothing is saved until you save the draft."
+        >
+          <Label className="grid gap-2">
+            Repository
+            <Select
+              value={sourceId || EMPTY}
+              onValueChange={(value) => setSourceId(value === EMPTY ? '' : value)}
+            >
+              <SelectTrigger aria-label="Blank workflow repository">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={EMPTY}>Choose a repository</SelectItem>
+                {sources.map((source) => (
+                  <SelectItem key={source.id} value={source.id}>
+                    {source.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Label>
+          <Label className="grid gap-2">
+            Event
+            <Select
+              value={blankFamily}
+              onValueChange={(value) => setBlankFamily(value as AutomationFamily)}
+            >
+              <SelectTrigger aria-label="Blank workflow event">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {automationFamilySchema.options.map((family) => (
+                  <SelectItem key={family} value={family}>
+                    {FAMILY_NAMES[family]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Label>
+          <Button
+            disabled={!sourceId}
+            onClick={() =>
+              setBlankDefinition({
+                id: '',
+                sourceAppId: sourceId,
+                name: 'Untitled workflow',
+                description: '',
+                priority: 100,
+                revision: 0,
+                enabled: false,
+                activeVersionId: null,
+                activePriority: 0,
+                modifiedBy: '',
+                updatedAt: '',
+                issues: [],
+                layout: { trigger: { x: 100, y: 50 }, end: { x: 100, y: 220 } },
+                draft: {
+                  schemaVersion: WORKFLOW_SCHEMA_VERSION,
+                  family: blankFamily,
+                  qualification: { field: 'event.family', operator: 'eq', values: [blankFamily] },
+                  nodes: [
+                    { id: 'trigger', type: 'trigger' },
+                    { id: 'end', type: 'end', outcome: 'completed' },
+                  ],
+                  edges: [{ from: 'trigger', to: 'end', branch: 'next' }],
+                },
+              })
+            }
+          >
+            Open blank draft
+          </Button>
+        </Section>
+      ) : null}
       <Section
         description="Each template is a normal, editable workflow."
         title="Choose a template"
       >
         <ul className="grid gap-3">
+          <li>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setBlank(true)
+                setTemplateId(null)
+              }}
+            >
+              Start with a blank workflow
+            </Button>
+          </li>
           {WORKFLOW_TEMPLATES.map((candidate) => (
             <li key={candidate.id}>
               <Button
                 aria-pressed={candidate.id === templateId}
                 className="flex h-auto w-full flex-col items-start gap-2 rounded-xl p-5 text-left whitespace-normal aria-pressed:ring-2 aria-pressed:ring-emerald-500/60"
                 onClick={() => {
+                  setBlank(false)
                   setTemplateId(candidate.id)
                   setName(candidate.name)
                 }}
@@ -218,6 +343,18 @@ export function WorkflowTemplates() {
                     onChange={(event) => setBranch(event.target.value)}
                     value={branch}
                   />
+                </Row>
+              ) : null}
+              {overview.brands.length === 0 ? (
+                <Row label="Brand kit required">
+                  <Link
+                    className="underline"
+                    href="/workspace/brand-kit"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Create and publish a brand kit (new tab)
+                  </Link>
                 </Row>
               ) : null}
               <Row description="Drafts use this published brand kit." label="Brand kit">

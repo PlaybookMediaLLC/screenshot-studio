@@ -1,7 +1,9 @@
 'use client'
 
-import { type KeyboardEvent, useEffect, useState } from 'react'
+import { type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { guardWorkflowNavigation } from '@/lib/workflows/navigation-guard'
+import { WorkflowArchiveButton } from './WorkflowArchiveButton'
 import { TRPCClientError } from '@trpc/client'
 import { useQueryClient } from '@tanstack/react-query'
 import type { AppRouter } from '@/lib/trpc/router'
@@ -83,6 +85,7 @@ export function WorkflowEditor({
   onSaved,
   onClose,
   readOnly = false,
+  initialNode,
 }: {
   definition: AutomationDefinition
   overview: AutomationOverview
@@ -91,6 +94,7 @@ export function WorkflowEditor({
   onClose: () => void
   /** Members inspect workflows; only owner/admin sessions edit them. */
   readOnly?: boolean
+  initialNode?: string
 }) {
   const client = useTRPCClient()
   const trpc = useTRPC()
@@ -102,10 +106,11 @@ export function WorkflowEditor({
   const [future, setFuture] = useState<Snapshot[]>([])
   const [name, setName] = useState(definition.name)
   const [description, setDescription] = useState(definition.description)
-  const [priority, setPriority] = useState(definition.priority)
-  const [selected, setSelected] = useState('condition')
+  const [priority, setPriority] = useState(String(definition.priority))
+  const [selected, setSelected] = useState(initialNode ?? 'condition')
   const [panel, setPanel] = useState('node')
   const [confirmClose, setConfirmClose] = useState(false)
+  const pendingLeave = useRef<(() => void) | null>(null)
   const [sample, setSample] = useState('example:match')
   const [assumeIrrelevant, setAssumeIrrelevant] = useState(false)
   const [preview, setPreview] = useState<AutomationPreview | null>(null)
@@ -134,12 +139,18 @@ export function WorkflowEditor({
   })
   const usesAI = graph.nodes.some((node) => node.type === 'classify')
 
+  const priorityError =
+    !/^\d+$/.test(priority) || Number(priority) > 9999
+      ? 'Priority must be a whole number from 0 to 9999.'
+      : null
+  const priorityMessage = priorityError ?? fieldError('priority')
   useEffect(() => {
-    if (!dirty) return
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [dirty])
+    if (!dirty || readOnly) return
+    return guardWorkflowNavigation((leave) => {
+      pendingLeave.current = leave
+      setConfirmClose(true)
+    })
+  }, [dirty, readOnly])
 
   useEffect(() => {
     if (panel !== 'versions' || !record.id || versions) return
@@ -151,8 +162,10 @@ export function WorkflowEditor({
 
   function closeEditor() {
     if (busy) return
-    if (dirty && !readOnly) setConfirmClose(true)
-    else onClose()
+    if (dirty && !readOnly) {
+      pendingLeave.current = onClose
+      setConfirmClose(true)
+    } else onClose()
   }
   function selectNode(id: string) {
     setSelected(id)
@@ -269,16 +282,22 @@ export function WorkflowEditor({
   }
 
   async function save(): Promise<AutomationDefinition> {
+    if (priorityError) {
+      setPanel('workflow')
+      throw new Error(priorityError)
+    }
     const saved = await client.releaseAutomation.save.mutate({
       id: record.id,
       sourceAppId: record.sourceAppId,
       name,
       description,
-      priority,
+      priority: Number(priority),
       expectedRevision: record.id ? record.revision : 0,
       graph: savedGraph(graph),
       layout,
     })
+    setPriority(String(saved.priority))
+    setName(saved.name)
     setConflict(false)
     setRecord(saved)
     setGraph(saved.draft)
@@ -303,7 +322,7 @@ export function WorkflowEditor({
     setLayout(latest.layout)
     setName(latest.name)
     setDescription(latest.description)
-    setPriority(latest.priority)
+    setPriority(String(latest.priority))
     setIssues(latest.issues)
     setPast([])
     setFuture([])
@@ -443,6 +462,9 @@ export function WorkflowEditor({
             </div>
             {readOnly ? null : (
               <div className="flex flex-wrap items-center gap-2">
+                {record.id ? (
+                  <WorkflowArchiveButton definition={record} disabled={busy} onChanged={onClose} />
+                ) : null}
                 <Button
                   disabled={busy}
                   type="button"
@@ -467,7 +489,13 @@ export function WorkflowEditor({
                   <Play className="size-3.5" aria-hidden="true" /> Test draft
                 </Button>
                 <Button
-                  disabled={busy || !overview.executorAvailable || unavailable.length > 0}
+                  disabled={
+                    busy ||
+                    !!priorityError ||
+                    (!dirty && issues.length > 0) ||
+                    !overview.executorAvailable ||
+                    unavailable.length > 0
+                  }
                   title={unavailable[0]?.reason}
                   type="button"
                   onClick={() =>
@@ -479,6 +507,9 @@ export function WorkflowEditor({
                       })
                       setRecord(active)
                       setVersions(null)
+                      void queryClient.invalidateQueries({
+                        queryKey: trpc.releaseAutomation.overview.queryKey(),
+                      })
                       onSaved(active)
                       setMessage(
                         'Version activated for future events. Previously accepted events retain their versions.'
@@ -868,26 +899,27 @@ export function WorkflowEditor({
                       <Label className="grid gap-1.5 text-sm">
                         Priority
                         <Input
-                          type="number"
-                          min={0}
-                          max={9999}
-                          aria-invalid={Boolean(fieldError('priority'))}
-                          aria-describedby={
-                            fieldError('priority') ? 'workflow-priority-error' : undefined
-                          }
+                          type="text"
+                          inputMode="numeric"
+                          aria-invalid={!!priorityMessage}
+                          aria-describedby={priorityMessage ? 'workflow-priority-error' : undefined}
                           value={priority}
                           onChange={(event) => {
-                            setPriority(Number(event.target.value))
+                            setPriority(event.target.value)
                             setDirty(true)
                             setMessage('')
                           }}
                         />
-                        {fieldError('priority') ? (
-                          <span id="workflow-priority-error" className="text-xs text-destructive">
-                            {fieldError('priority')}
-                          </span>
-                        ) : null}
                       </Label>
+                      {priorityMessage ? (
+                        <p
+                          id="workflow-priority-error"
+                          role="alert"
+                          className="text-sm text-destructive"
+                        >
+                          {priorityMessage}
+                        </p>
+                      ) : null}
                       <p className="text-xs leading-5 text-muted-foreground">
                         Lower numbers run first for this repository and event. Ties use the
                         definition ID. The first matching workflow wins.
@@ -929,6 +961,9 @@ export function WorkflowEditor({
                                 revision: record.revision + 1,
                               }
                               setRecord(disabled)
+                              void queryClient.invalidateQueries({
+                                queryKey: trpc.releaseAutomation.overview.queryKey(),
+                              })
                               onSaved(disabled)
                               setMessage(
                                 'Disabled. Cancellation requested; source stays in automation mode and history is kept.'
@@ -982,6 +1017,12 @@ export function WorkflowEditor({
                           </SelectContent>
                         </UiSelect>
                       </Label>
+
+                      <p className="text-xs text-muted-foreground">
+                        {recorded.length
+                          ? `${recorded.length} recent recorded events are available in Test evidence, alongside the examples.`
+                          : 'No matching events have been recorded for this repository yet. Use an example until an event arrives.'}
+                      </p>
 
                       {usesAI ? (
                         <Label className="grid gap-1 text-sm">
@@ -1236,6 +1277,11 @@ export function WorkflowEditor({
                 Activation is blocked: {unavailable[0]?.reason}
               </p>
             ) : null}
+            {!dirty && issues.length ? (
+              <p className="w-full text-amber-600 dark:text-amber-400">
+                Activation is blocked: {issues[0]?.message}. Select the validation issue to fix it.
+              </p>
+            ) : null}
             {conflict ? (
               <Button
                 disabled={busy}
@@ -1263,7 +1309,14 @@ export function WorkflowEditor({
           </AlertDialogDescription>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep editing</AlertDialogCancel>
-            <AlertDialogAction onClick={onClose}>Discard changes</AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                setDirty(false)
+                ;(pendingLeave.current ?? onClose)()
+              }}
+            >
+              Discard changes
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

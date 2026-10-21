@@ -126,6 +126,55 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
     await expect(page.getByLabel('Definition name')).toHaveValue('Stable releases to review')
     await expect(editor.getByText('8 nodes · 7 connections')).toBeVisible()
 
+    // Priority errors identify the field; Back and reload preserve unsaved changes on cancel.
+    const editorURL = page.url()
+    await page.getByRole('tab', { name: 'Workflow', exact: true }).click()
+    await page.getByLabel('Priority', { exact: true }).fill('99999')
+    await page.getByRole('button', { name: 'Save draft', exact: true }).click()
+    await expect(page.getByLabel('Priority', { exact: true })).toHaveAttribute(
+      'aria-invalid',
+      'true'
+    )
+    await expect(
+      page.getByText('Priority must be a whole number from 0 to 9999.').first()
+    ).toBeVisible()
+    await page.getByLabel('Priority', { exact: true }).fill('-5')
+    await expect(page.getByLabel('Priority', { exact: true })).toHaveValue('-5')
+    await page.getByLabel('Priority', { exact: true }).fill('77')
+    await page.evaluate(() => window.history.back())
+    const discard = page.getByRole('alertdialog', { name: 'Discard unsaved changes?' })
+    await expect(discard).toBeVisible()
+    await discard.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(page).toHaveURL(editorURL)
+    await expect(page.getByLabel('Priority', { exact: true })).toHaveValue('77')
+    const unloadPrompt = page.waitForEvent('dialog')
+    const reload = page.evaluate(() => window.location.reload())
+    const prompt = await unloadPrompt
+    expect(prompt.type()).toBe('beforeunload')
+    await prompt.dismiss()
+    await reload
+    await expect(page.getByLabel('Priority', { exact: true })).toHaveValue('77')
+    await page.getByLabel('Priority', { exact: true }).fill('100')
+    await page.getByRole('button', { name: 'Save draft', exact: true }).click()
+    await expect(page.getByText('Draft saved and validated by the backend.')).toBeVisible()
+
+    // Older browsers without the Navigation API keep the same Back protection.
+    await page.evaluate(() => Object.defineProperty(window, 'navigation', { value: undefined }))
+    await page.getByLabel('Priority', { exact: true }).fill('88')
+    await page.evaluate(() => window.history.back())
+    await expect(discard).toBeVisible()
+    await discard.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(page).toHaveURL(editorURL)
+    await expect(page.getByLabel('Priority', { exact: true })).toHaveValue('88')
+    await page.getByLabel('Priority', { exact: true }).fill('100')
+    await page.getByRole('button', { name: 'Save draft', exact: true }).click()
+    await expect(page.getByText('Draft saved and validated by the backend.')).toBeVisible()
+    await page.getByRole('button', { name: 'Close editor', exact: true }).click()
+    await expect(page).toHaveURL(/\/workflows$/)
+    await page.goto(editorURL)
+    await expect(editor).toBeVisible()
+    await page.getByRole('tab', { name: 'Node', exact: true }).click()
+
     // Undo, redo, and duplicate edit the draft without touching versions.
     await editor.getByRole('button', { name: 'Add end', exact: true }).click()
     await expect(editor.getByText('9 nodes · 7 connections')).toBeVisible()
@@ -234,7 +283,7 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
     await expect(row).toContainText('Revision')
     await expect(row).toContainText('credits')
     await row.getByRole('link', { name: title }).click()
-    await expect(page).toHaveURL(/\/workflows\/runs\/[a-z0-9]+$/)
+    await expect(page).toHaveURL(/\/workflows\/runs\/[a-z0-9]+(?:\?|$)/)
     await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible()
     const timeline = page.getByRole('list', { name: 'Run timeline' })
     for (const node of ['trigger', 'condition', 'release', 'campaign', 'copy', 'review', 'done']) {
@@ -291,6 +340,9 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
     await page.screenshot({ path: '.context/workflows-run-attention.png', fullPage: true })
     expect(await count('release')).toBe(1)
 
+    await page.getByRole('link', { name: 'Run history', exact: true }).click()
+    await expect(page).toHaveURL(/status=needs_attention/)
+
     // 19. Disable from the dashboard; later events no longer run actions.
     await page.goto('/workflows')
     await expect(
@@ -299,14 +351,38 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
     await page.screenshot({ path: '.context/workflows-dashboard.png', fullPage: true })
     await page.getByRole('button', { name: 'Deactivate Stable releases to review' }).click()
     await expect(
-      page.getByRole('button', { name: 'Activate Stable releases to review' })
-    ).toBeVisible()
+      page.getByRole('button', { name: 'Activate Stable releases to review', exact: true })
+    ).toBeEnabled()
     const after = `${title} after disable`
     expect((await deliver(JSON.stringify(payload(releaseId + 2, after, false)))).status).toBe(200)
     await page.goto('/workflows/runs')
     const skipped = page.getByRole('row').filter({ has: page.getByRole('link', { name: after }) })
     await expect(skipped).toContainText('Skipped', { timeout: 60_000 })
     expect(await count('release')).toBe(1)
+
+    // Older pages and the return link retain both filters and the cursor.
+    for (let index = 0; index < 50; index++) {
+      expect(
+        (
+          await deliver(
+            JSON.stringify(payload(releaseId + 100 + index, `${title} skipped ${index}`, false))
+          )
+        ).status
+      ).toBe(200)
+    }
+    await page.goto('/workflows/runs?status=skipped&mode=automation')
+    await page.getByRole('button', { name: 'Older runs', exact: true }).click()
+    await expect(page).toHaveURL(/before=/)
+    const olderURL = page.url()
+    await page.reload()
+    await expect(page.getByRole('button', { name: 'Newest runs', exact: true })).toBeVisible()
+    await page.getByRole('table', { name: 'Workflow runs' }).getByRole('link').first().click()
+    await page.getByRole('link', { name: 'Run history', exact: true }).click()
+    await expect(page).toHaveURL(olderURL)
+    await page.goBack()
+    await expect(page.getByRole('link', { name: 'Run history', exact: true })).toBeVisible()
+    await page.goForward()
+    await expect(page).toHaveURL(olderURL)
 
     // Mobile navigation reaches the same surface from the drawer.
     await page.setViewportSize({ width: 390, height: 844 })
@@ -320,6 +396,52 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
     ).toBeVisible()
     await page.screenshot({ path: '.context/workflows-dashboard-mobile.png', fullPage: false })
     await page.setViewportSize({ width: 1280, height: 720 })
+
+    // Duplicate stays unsaved until Save; archives retain history and restore inactive.
+    await page
+      .getByRole('link', { name: 'Duplicate Stable releases to review', exact: true })
+      .click()
+    expect(await count('release_automation')).toBe(1)
+    await expect(page.getByLabel('Definition name')).toHaveValue('Stable releases to review (copy)')
+    await page.getByRole('button', { name: 'Close editor', exact: true }).click()
+    await page.getByRole('button', { name: 'Discard changes', exact: true }).click()
+    expect(await count('release_automation')).toBe(1)
+    await page
+      .getByRole('link', { name: 'Duplicate Stable releases to review', exact: true })
+      .click()
+    await page.getByRole('button', { name: 'Save draft', exact: true }).click()
+    await expect(page).not.toHaveURL(/copy=1/)
+    expect(await count('release_automation')).toBe(2)
+    await page
+      .getByRole('button', { name: 'Archive Stable releases to review (copy)', exact: true })
+      .click()
+    await page
+      .getByRole('alertdialog')
+      .getByRole('button', { name: 'Archive', exact: true })
+      .click()
+    await expect(
+      page.getByRole('link', { name: 'Stable releases to review (copy)', exact: true })
+    ).toHaveCount(0)
+    await chooseOption(page.getByRole('combobox', { name: 'Filter by state' }), 'Archived')
+    await expect(
+      page.getByRole('link', { name: 'Stable releases to review (copy)', exact: true })
+    ).toBeVisible()
+    await page.reload()
+    await expect(page.getByRole('combobox', { name: 'Filter by state' })).toHaveText('Archived')
+    await page
+      .getByRole('button', { name: 'Restore Stable releases to review (copy)', exact: true })
+      .click()
+    await page
+      .getByRole('alertdialog')
+      .getByRole('button', { name: 'Restore', exact: true })
+      .click()
+    await expect(
+      page.getByRole('link', { name: 'Stable releases to review (copy)', exact: true })
+    ).toHaveCount(0)
+    await page.getByRole('button', { name: 'Clear filters', exact: true }).first().click()
+    await expect(
+      page.getByRole('button', { name: 'Activate Stable releases to review (copy)', exact: true })
+    ).toBeVisible()
 
     // The old settings route keeps working.
     await page.goto('/workspace/release-automation')

@@ -113,6 +113,20 @@ func (_u *ReleaseAutomationUpdate) SetNillableEnabled(v *bool) *ReleaseAutomatio
 	return _u
 }
 
+// SetArchived sets the "archived" field.
+func (_u *ReleaseAutomationUpdate) SetArchived(v bool) *ReleaseAutomationUpdate {
+	_u.mutation.SetArchived(v)
+	return _u
+}
+
+// SetNillableArchived sets the "archived" field if the given value is not nil.
+func (_u *ReleaseAutomationUpdate) SetNillableArchived(v *bool) *ReleaseAutomationUpdate {
+	if v != nil {
+		_u.SetArchived(*v)
+	}
+	return _u
+}
+
 // SetActivePriority sets the "active_priority" field.
 func (_u *ReleaseAutomationUpdate) SetActivePriority(v int) *ReleaseAutomationUpdate {
 	_u.mutation.ResetActivePriority()
@@ -265,6 +279,9 @@ func (_u *ReleaseAutomationUpdate) sqlSave(ctx context.Context) (_node int, err 
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(entreleaseautomation.FieldEnabled, field.TypeBool, value)
 	}
+	if value, ok := _u.mutation.Archived(); ok {
+		_spec.SetField(entreleaseautomation.FieldArchived, field.TypeBool, value)
+	}
 	if value, ok := _u.mutation.ActivePriority(); ok {
 		_spec.SetField(entreleaseautomation.FieldActivePriority, field.TypeInt, value)
 	}
@@ -389,6 +406,20 @@ func (_u *ReleaseAutomationUpdateOne) SetEnabled(v bool) *ReleaseAutomationUpdat
 func (_u *ReleaseAutomationUpdateOne) SetNillableEnabled(v *bool) *ReleaseAutomationUpdateOne {
 	if v != nil {
 		_u.SetEnabled(*v)
+	}
+	return _u
+}
+
+// SetArchived sets the "archived" field.
+func (_u *ReleaseAutomationUpdateOne) SetArchived(v bool) *ReleaseAutomationUpdateOne {
+	_u.mutation.SetArchived(v)
+	return _u
+}
+
+// SetNillableArchived sets the "archived" field if the given value is not nil.
+func (_u *ReleaseAutomationUpdateOne) SetNillableArchived(v *bool) *ReleaseAutomationUpdateOne {
+	if v != nil {
+		_u.SetArchived(*v)
 	}
 	return _u
 }
@@ -574,6 +605,9 @@ func (_u *ReleaseAutomationUpdateOne) sqlSave(ctx context.Context) (_node *Relea
 	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(entreleaseautomation.FieldEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Archived(); ok {
+		_spec.SetField(entreleaseautomation.FieldArchived, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.ActivePriority(); ok {
 		_spec.SetField(entreleaseautomation.FieldActivePriority, field.TypeInt, value)

@@ -57,7 +57,7 @@ func TestBrowserFixtureWorker(t *testing.T) {
 		store.WithAutomationModel(model)
 	}
 	if renderer := product.AutomationRendererFromEnvironment(); renderer != nil {
-		store.WithAutomationRenderer(renderer)
+		store.WithAutomationRenderer(renderer).WithAutomationCanvases(renderer)
 	}
 	counter, err := quota.NewRedisCounter(os.Getenv("REDIS_URL"))
 	if err != nil {

@@ -13,6 +13,7 @@ type AutomationHistorySummary struct {
 }
 
 type AutomationEventSummary struct {
+	Mode        string                    `json:"mode"`
 	ID          string                    `json:"id"`
 	SourceAppID string                    `json:"sourceAppId"`
 	ReceivedAt  time.Time                 `json:"receivedAt"`
@@ -38,7 +39,7 @@ func SummarizeAutomationRun(item AutomationHistoryItem) AutomationHistorySummary
 		}
 	}
 	return AutomationHistorySummary{
-		Event: AutomationEventSummary{ID: item.Event.ID, SourceAppID: item.Event.SourceAppID, ReceivedAt: item.Event.ReceivedAt,
+		Event: AutomationEventSummary{Mode: item.Event.Mode, ID: item.Event.ID, SourceAppID: item.Event.SourceAppID, ReceivedAt: item.Event.ReceivedAt,
 			Snapshot: AutomationSnapshotSummary{Family: snapshot.Family, RepositoryName: snapshot.RepositoryName, ObjectID: snapshot.ObjectID, Number: snapshot.Number, Title: snapshot.Title, Fields: fields}},
 		Run: item.Run,
 	}

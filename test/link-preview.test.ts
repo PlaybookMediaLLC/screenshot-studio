@@ -10,6 +10,7 @@ import {
   markdownReport,
   NO_EDITS,
   recommendedHtml,
+  recommendedJsonLd,
   recommendedNextMetadata,
 } from '@/lib/link-preview/snippets'
 
@@ -62,8 +63,11 @@ test('the parser reads title, Open Graph, and X tags, resolving relative URLs', 
 test('the score weighs the checks and the HTML export round-trips the tags', () => {
   const preview = parseLinkPreview(PAGE, 'https://ledgerly.example/')
   const { checks, score } = scoreLinkPreview(preview)
-  assert.equal(checks.find((check) => check.name === 'OG Image')?.passed, true)
-  assert.equal(checks.find((check) => check.name === 'robots.txt')?.passed, false)
+  assert.deepEqual(
+    checks.map((check) => check.id),
+    auditLinkPreview(preview).map((issue) => issue.id)
+  )
+  assert.equal(score, Math.max(0, 100 - checks.reduce((sum, check) => sum + check.weight, 0)))
   assert.ok(score > 0 && score < 100)
   assert.equal(scoreLinkPreview({ jsonLd: [], tags: [], url: 'https://x.example/' }).score, 0)
 
@@ -254,7 +258,7 @@ test('tracked links tag each channel and posts are counted the way each platform
   assert.equal(tracked.searchParams.get('plan'), 'pro')
   assert.equal(tracked.searchParams.get('utm_source'), 'linkedin')
   assert.equal(tracked.searchParams.get('utm_medium'), 'social')
-  assert.equal(tracked.searchParams.get('utm_campaign'), 'spring-launch')
+  assert.equal(tracked.searchParams.get('utm_campaign'), 'Spring Launch')
   assert.equal(tracked.searchParams.has('utm_content'), false)
   assert.equal(
     new URL(trackedLink(url, 'email', { campaign: '', content: 'hero' })).searchParams.get(
@@ -515,4 +519,114 @@ test('the crawler fetch keeps error statuses, and resolve reports where a link e
   assert.ok(resolved.ok)
   assert.equal(resolved.url, 'https://public.example/new?utm_source=x')
   assert.equal(resolved.status, 200)
+})
+
+test('errors score below suggestions and every deduction is an audit finding', () => {
+  const good = {
+    ...parseLinkPreview(
+      PAGE.replace('content="/og.png"', 'content="https://ledgerly.example/og.png"'),
+      'https://ledgerly.example/'
+    ),
+    title: 'Ledgerly makes invoicing simple for teams',
+    description: 'Simple invoicing for teams, with automatic reminders and clear payment tracking.',
+    twitterCard: 'summary_large_image',
+    canonical: 'https://ledgerly.example/',
+    viewport: 'width=device-width',
+    ogDescription: 'Automatic invoicing for teams.',
+    ogImageAlt: 'An invoice',
+    twitterImageAlt: 'An invoice',
+  }
+  const broken = {
+    ...good,
+    tracking: { url: good.url, finalUrl: good.url, kept: false },
+    targets: [
+      { kind: 'canonical' as const, url: good.url, finalUrl: `${good.url}home`, status: 200 },
+    ],
+  }
+  assert.ok(
+    auditLinkPreview(good).every((issue) => issue.severity === 'info'),
+    JSON.stringify(auditLinkPreview(good))
+  )
+  assert.ok(scoreLinkPreview(broken).score < scoreLinkPreview(good).score)
+  const checks = scoreLinkPreview(broken).checks
+  assert.equal(checks.find((check) => check.id === 'tracking-dropped')?.severity, 'error')
+  assert.equal(checks.find((check) => check.id === 'canonical-redirects')?.passed, false)
+  assert.deepEqual(
+    checks.map((check) => check.id),
+    auditLinkPreview(broken).map((issue) => issue.id)
+  )
+})
+
+test('URL lists preserve lines, reject malformed inputs, and keep query punctuation', async () => {
+  const { normalizeUrl, parseUrlLines } = await import('@/components/link-preview/client')
+  const parsed = parseUrlLines('vercel.com\r\nnot a url\nlinear.app/path?x=a,b\nvercel.com')
+  assert.deepEqual(parsed.urls, ['https://vercel.com/', 'https://linear.app/path?x=a,b'])
+  assert.deepEqual(parsed.invalid, ['not a url'])
+  for (const value of ['not a url', 'javascript:alert(1)', 'foo', 'https://user:pass@example.com'])
+    assert.equal(normalizeUrl(value), null)
+  assert.equal(normalizeUrl('localhost:3000'), 'https://localhost:3000/')
+})
+
+test('invalid edited images are reported and never exported into snippets', async () => {
+  const { isHttpUrl } = await import('@/lib/link-preview/urls')
+  for (const image of [
+    'javascript:alert(1)',
+    'https://',
+    'data:image/png;base64,abc',
+    'https://a b/x',
+  ]) {
+    assert.equal(isHttpUrl(image), false)
+    const edited = applyEdits(parseLinkPreview(PAGE, 'https://ledgerly.example/'), {
+      ...NO_EDITS,
+      image,
+    })
+    assert.ok(auditLinkPreview(edited).some((issue) => issue.id === 'og-image-invalid'))
+    assert.ok(!recommendedJsonLd(edited).includes(JSON.stringify(image)))
+    assert.ok(!recommendedHtml(edited).includes(`content="${image}"`))
+  }
+  assert.equal(isHttpUrl('https://github.com/fluidicon.png'), true)
+})
+
+test('declared sitemaps are checked before the conventional path', async () => {
+  const { discoverSitemap } = await import('@/lib/link-preview/sitemap')
+  const calls: string[] = []
+  const probe = async (url: string) => {
+    calls.push(url)
+    return true
+  }
+  assert.equal(
+    await discoverSitemap(
+      'Sitemap: https://github.com/sitemap_marketing.xml',
+      'https://github.com',
+      probe
+    ),
+    'https://github.com/sitemap_marketing.xml'
+  )
+  assert.deepEqual(calls, ['https://github.com/sitemap_marketing.xml'])
+  assert.equal(
+    await discoverSitemap(
+      'Sitemap: https://example.com/dead.xml',
+      'https://example.com',
+      async (url) => url.endsWith('/sitemap.xml')
+    ),
+    'https://example.com/sitemap.xml'
+  )
+  assert.equal(await discoverSitemap('', 'https://example.com', async () => false), undefined)
+})
+
+test('share tags preserve the entered values and character counters handle emoji', async () => {
+  const { trackedLink, postLength } = await import('@/lib/link-preview/share')
+  const { characterCount, xCharacterCount } = await import('@/lib/link-preview/text')
+  const url = 'https://example.com/'
+  const tracked = new URL(
+    trackedLink(url, 'x', { campaign: 'Fall Launch & Promo #1', content: 'hero/v2?x=1' })
+  )
+  assert.equal(tracked.searchParams.get('utm_campaign'), 'Fall Launch & Promo #1')
+  assert.equal(tracked.searchParams.get('utm_content'), 'hero/v2?x=1')
+  assert.equal(characterCount('🚀é'), 2)
+  for (const emoji of ['🚀', '👋🏽', '👨‍👩‍👧‍👦', '🇺🇸', '1️⃣']) assert.equal(xCharacterCount(emoji), 2)
+  assert.equal(xCharacterCount('中文'), 4)
+  assert.equal(xCharacterCount('é'), 1)
+  assert.equal(postLength('🚀', 'x', url), 2 + 1 + 23)
+  assert.equal(postLength('', 'x', url), 23)
 })

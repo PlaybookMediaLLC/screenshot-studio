@@ -3,12 +3,23 @@ import type { LinkPreview, LinkPreviewAgent } from '@/lib/api/contracts/link-pre
 /** The URL as typed, with `https://` added when no scheme was given; null when it is not a web URL. */
 export function normalizeUrl(value: string): string | null {
   const trimmed = value.trim()
-  if (!trimmed) return null
+  if (!trimmed || /\s/.test(trimmed)) return null
   try {
     const url = new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`)
-    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return null
+    if (!/^https?:\/\//i.test(trimmed) && !url.hostname.includes('.') && url.hostname !== 'localhost' && !url.hostname.startsWith('[')) return null
+    return url.toString()
   } catch {
     return null
+  }
+}
+
+/** Parse one URL per line, retaining invalid lines so they cannot silently disappear. */
+export function parseUrlLines(text: string) {
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  return {
+    urls: [...new Set(lines.map(normalizeUrl).filter((url) => url !== null))],
+    invalid: lines.filter((line) => !normalizeUrl(line)),
   }
 }
 

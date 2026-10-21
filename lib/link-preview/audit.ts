@@ -1,3 +1,5 @@
+import { characterCount } from '@/lib/link-preview/text'
+import { isHttpUrl } from '@/lib/link-preview/urls'
 import {
   issueCategorySchema,
   type IssueSeverity,
@@ -74,20 +76,20 @@ function contentIssues(preview: LinkPreview, add: Add) {
       'The page has no <title>',
       'Add a 30 to 60 character title that names the page and the product.'
     )
-  } else if (title.length > 60) {
+  } else if (characterCount(title) > 60) {
     add(
       warning,
       content,
       'title-long',
-      `The title is ${title.length} characters`,
+      `The title is ${characterCount(title)} characters`,
       'Search results cut titles at about 60 characters. Put the important words first or shorten it.'
     )
-  } else if (title.length < 30) {
+  } else if (characterCount(title) < 30) {
     add(
       info,
       content,
       'title-short',
-      `The title is only ${title.length} characters`,
+      `The title is only ${characterCount(title)} characters`,
       'A 30 to 60 character title gives search and social cards more to show.'
     )
   }
@@ -99,20 +101,20 @@ function contentIssues(preview: LinkPreview, add: Add) {
       'No meta description',
       'Add <meta name="description"> with 50 to 160 characters; search results and many cards show it.'
     )
-  } else if (description.length > 160) {
+  } else if (characterCount(description) > 160) {
     add(
       warning,
       content,
       'description-long',
-      `The description is ${description.length} characters`,
+      `The description is ${characterCount(description)} characters`,
       'Search results cut descriptions at about 160 characters.'
     )
-  } else if (description.length < 50) {
+  } else if (characterCount(description) < 50) {
     add(
       info,
       content,
       'description-short',
-      `The description is only ${description.length} characters`,
+      `The description is only ${characterCount(description)} characters`,
       'Aim for 50 to 160 characters so the snippet says what the page offers.'
     )
   }
@@ -160,6 +162,8 @@ function socialIssues(preview: LinkPreview, add: Add) {
       `og:url is ${preview.ogUrl} but canonical is ${preview.canonical}. Point both at the same URL.`
     )
   }
+  if (!preview.ogLocale)
+    add(info, social, 'og-locale-missing', 'No og:locale', 'Add og:locale, such as en_US, to declare the language of the shared card.')
   if (!preview.ogType)
     add(
       info,
@@ -228,6 +232,10 @@ function imageIssues(
       `${label} is served over http`,
       'Serve the image over https; some platforms skip insecure images.'
     )
+  }
+  if (!isHttpUrl(url)) {
+    add(error, images, `${id}-invalid`, `${label} needs a public http(s) URL`, 'Use an absolute http:// or https:// image URL. Upload generated images before sharing.')
+    return
   }
   if (!image) return
   if (image.error) {
@@ -440,13 +448,16 @@ function indexingIssues(preview: LinkPreview, add: Add) {
       info,
       indexing,
       'sitemap-missing',
-      'No /sitemap.xml',
+      'No sitemap found',
       'A sitemap helps search engines find every page.'
     )
 }
 
 function technicalIssues(preview: LinkPreview, add: Add) {
   const { response } = preview
+  const status = response?.hops.at(-1)?.status
+  if (status && status >= 400)
+    add(error, technical, 'http-status', `The page returns HTTP ${status}`, 'Fix the response status so crawlers can reliably use the page and its preview.')
   if (preview.url.startsWith('http:')) {
     add(
       warning,

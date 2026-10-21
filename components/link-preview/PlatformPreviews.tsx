@@ -509,7 +509,7 @@ function Card({
               platform.media
             )}
           >
-            <PreviewImage src={text.image} alt={text.title} />
+            <PreviewImage key={text.image} src={text.image} alt={text.title} />
           </div>
         )}
       </div>
@@ -531,7 +531,7 @@ function Card({
             platform.media
           )}
         >
-          <PreviewImage src={text.image} alt={text.title} />
+          <PreviewImage key={text.image} src={text.image} alt={text.title} />
         </div>
         <div className="min-w-0 flex-1 space-y-1">{body}</div>
       </div>
@@ -546,7 +546,7 @@ function Card({
           platform.media
         )}
       >
-        <PreviewImage src={text.image} alt={text.title} />
+        <PreviewImage key={text.image} src={text.image} alt={text.title} />
       </div>
       <div className="space-y-1 p-3">{body}</div>
     </div>

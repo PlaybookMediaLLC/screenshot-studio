@@ -3,7 +3,6 @@
 import { useWriteRouter } from '@/components/write/write-context'
 
 import * as React from 'react'
-import { socialSetHref } from '@/components/workspace/settings-sections'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Add01Icon, PinIcon } from 'hugeicons-react'
@@ -126,7 +125,7 @@ export function WriteRail() {
         </Link>
         <Link
           className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
-          href={data.activeSet ? socialSetHref(data.activeSet.id, 'scheduling') : '/write/settings'}
+          href={data.activeSet ? `/write/settings?set=${data.activeSet.id}` : '/write/settings'}
         >
           Settings
         </Link>

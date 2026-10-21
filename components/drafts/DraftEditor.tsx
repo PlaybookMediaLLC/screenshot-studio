@@ -479,7 +479,7 @@ function DraftToolbar({
           <DropdownMenuTrigger asChild>
             <ToolbarButton aria-label="Insert" tooltip="Insert">Insert ▾</ToolbarButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="top">
+          <DropdownMenuContent side="top" onCloseAutoFocus={(event) => { event.preventDefault(); editor.tf.focus() }}>
             {[
               { label: 'Table', insert: () => insertBlock(editor, KEYS.table) },
               { label: 'Math', insert: () => insertBlock(editor, KEYS.equation) },

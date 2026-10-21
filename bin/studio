@@ -305,6 +305,29 @@ warm_route() {
   exit 1
 }
 
+warm_recovery_route() {
+  local url="$1"
+  local manage_app="$2"
+  local attempt
+  local status
+
+  for attempt in $(seq 1 10); do
+    status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 30 --request POST "$url" || true)"
+    if [[ "$status" == "401" ]]; then
+      return
+    fi
+    # Turbopack can miss nested routes until a file event refreshes its router.
+    # Only refresh our managed dev server; a generic 404 is never a ready API.
+    if [[ "$status" == "404" && "$manage_app" == "true" ]]; then
+      touch "$ROOT_DIR/app/api/v1/content-drafts/[id]/revisions/[revisionId]/recover/route.ts"
+    fi
+    sleep 1
+  done
+
+  echo "Draft recovery API did not become ready: $url (last status ${status:-none})" >&2
+  exit 1
+}
+
 run_e2e() {
   local test_script="$1"
   shift
@@ -376,6 +399,7 @@ run_e2e() {
   warm_route "${app_url%/}/api/v1/bootstrap" "Shell bootstrap API"
   warm_route "${app_url%/}/api/v1/content-drafts" "Content drafts API"
   warm_route "${app_url%/}/api/v1/organizations/warm-up" "Shell organizations API"
+  warm_recovery_route "${app_url%/}/api/v1/content-drafts/warm-up/revisions/warm-up/recover" "$manage_screenshot_mock"
   wait_for_http "$app_url" "Screenshot Studio editor route"
   if ! E2E_BASE_URL="$app_url" \
     E2E_DATABASE_URL="${E2E_DATABASE_URL:-$HOST_DATABASE_URL}" \

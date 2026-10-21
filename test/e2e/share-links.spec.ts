@@ -110,7 +110,9 @@ test('integrations say exactly what a server needs before they can connect', asy
   for (const provider of ['Slack', 'Notion', 'Figma']) {
     await expect(page.getByRole('heading', { name: provider })).toBeVisible()
   }
-  await expect(page.getByText('backend Slack configuration', { exact: true })).toBeVisible()
+  const slackSetup = page.locator('details').filter({ hasText: 'backend Slack configuration' })
+  await slackSetup.getByText('Administrator setup details', { exact: true }).click()
+  await expect(slackSetup.getByText('backend Slack configuration', { exact: true })).toBeVisible()
   const connect = await page.request.get('/api/integrations/slack/connect', { maxRedirects: 0 })
   expect(connect.status()).toBe(503)
   expect(await connect.text()).toContain('backend Slack configuration')

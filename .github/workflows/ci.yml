@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, closed]
   push:
     branches: [main]
 
@@ -9,11 +10,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # A merged PR's ref becomes main; its close event must still cancel only that PR.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   publishing-services:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -80,6 +83,7 @@ jobs:
         run: docker build --tag screenshot-studio-backend:${{ github.sha }} services
 
   validate:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # The collaboration server's replica test relays edits through a real Redis.
@@ -128,6 +132,8 @@ jobs:
           trap 'docker logs screenshot-studio-smoke || true; docker stop screenshot-studio-smoke || true' EXIT
           for attempt in $(seq 1 20); do
             if curl --fail --silent --show-error http://127.0.0.1:3000/api/health; then
+              curl --fail --silent --show-error http://127.0.0.1:3000/indexnow-key.txt > /tmp/indexnow-key.txt
+              diff public/indexnow-key.txt /tmp/indexnow-key.txt
               exit 0
             fi
             sleep 1
@@ -156,6 +162,7 @@ jobs:
   # match the zod contracts, and a pull request may not break the document
   # unless the break is listed in breaking-changes-allowed.txt (RFC 034).
   openapi:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -196,6 +203,7 @@ jobs:
   # duration to every release. The cost is integration runner minutes
   # on changes that fail validation.
   integration:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     # Stack start, route warm-up, a third of the suite with retries, and on
     # the last shard the recovery check; 30 minutes no longer covered it.
@@ -261,7 +269,7 @@ jobs:
       - name: Verify dependency failure and recovery
         if: matrix.shard_index == 3
         run: make e2e-recovery
-      - if: failure()
+      - if: failure() || cancelled()
         name: Upload Playwright artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -278,6 +286,7 @@ jobs:
         run: ./bin/studio down --purge --yes
 
   social-gate:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

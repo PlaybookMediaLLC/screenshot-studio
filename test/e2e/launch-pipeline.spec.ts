@@ -68,6 +68,11 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
   await expect(page.getByText('#1 billing tool')).toHaveCount(0)
   await expect(page.getByText('customer list')).toHaveCount(0)
   await expect(page.getByText('What measurable result can we cite?')).toBeVisible()
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('confirm')
+    expect(dialog.message()).toContain('questions are unanswered')
+    await dialog.accept()
+  })
   await page.getByRole('button', { name: 'Approve spec' }).click()
   await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible()
 
@@ -272,9 +277,11 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
       [`c${randomBytes(12).toString('hex')}`, shot.organizationId, campaignId, shot.assetId]
     )
     await page.goto(`/campaigns/${campaignId}/assets`)
-    await page.getByRole('button', { name: 'Approve visual' }).click()
+    const hero = page.getByRole('listitem').filter({ hasText: 'Launch hero' })
+    await hero.getByRole('button', { name: 'Approve visual' }).click()
     await expect(page.getByText('Visual approved')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Approve visual' })).toHaveCount(0)
+    await expect(hero.getByText('Approved', { exact: true })).toBeVisible()
+    await expect(hero.getByRole('button', { name: 'Approve visual' })).toHaveCount(0)
 
     // ------------------------------------------------------------ schedule
     await enablePublishingTwoFactor(page, identity.password)

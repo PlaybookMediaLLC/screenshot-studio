@@ -1,6 +1,7 @@
 import { readFile, stat } from 'node:fs/promises'
 import { signUpAndCreateWorkspace } from './framework/auth'
 import { configureE2EFlow, expect, test } from './framework/flow'
+import { png } from './framework/publishing'
 
 configureE2EFlow()
 
@@ -55,6 +56,15 @@ test('image and share edits survive tabs, saving, Escape, and reload', async ({
   page,
 }) => {
   test.setTimeout(240_000)
+  // The metadata server resolves this Docker hostname; the host-side browser cannot.
+  await page.route(`${source}/image`, async (route) => {
+    expect(route.request().method()).toBe('GET')
+    await route.fulfill({ body: png, contentType: 'image/png' })
+  })
+  await page.route(`${source}/link-preview/broken-image`, async (route) => {
+    expect(route.request().method()).toBe('GET')
+    await route.fulfill({ status: 404, body: '' })
+  })
   await signUpAndCreateWorkspace(identity, page)
   await page.goto(`/link-preview?url=${encodeURIComponent(first)}`)
   await page.getByRole('tab', { name: 'Images', exact: true }).click()
@@ -82,11 +92,11 @@ test('image and share edits survive tabs, saving, Escape, and reload', async ({
   )
   await page.getByRole('button', { name: 'Save to workspace' }).click()
   const completed = await (await saved).json()
+  await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeVisible()
   const assetId = completed[0].result.data.json.asset.id
   const storedImage = await page.request.get(`/api/v1/assets/${assetId}/content`)
   expect(storedImage.ok()).toBe(true)
   expect(await storedImage.body()).toEqual(await readFile((await download.path())!))
-  await expect(page.getByRole('button', { name: 'Saved', exact: true })).toBeVisible()
 
   await page.getByRole('tab', { name: 'Fix', exact: true }).click()
   await page.getByLabel('Title', { exact: false }).first().fill('My fixed title')
@@ -94,6 +104,10 @@ test('image and share edits survive tabs, saving, Escape, and reload', async ({
   await expect(page.getByLabel('No image', { exact: true })).toBeVisible()
   await page.getByLabel('Image URL').fill(`${source}/image`)
   await expect(page.getByRole('img', { name: 'My fixed title', exact: true })).toBeVisible()
+  await expect(page.getByRole('img', { name: 'My fixed title', exact: true })).toHaveJSProperty(
+    'naturalWidth',
+    1
+  )
   await page.getByRole('heading', { name: 'Link preview', exact: true }).click()
   await page.keyboard.press('Escape')
   await expect(page.getByLabel('Title', { exact: false }).first()).toHaveValue('My fixed title')

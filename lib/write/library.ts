@@ -9,7 +9,7 @@ export function libraryDraft(draft: DraftWire) {
     channelConnectionIds: draft.channelConnectionIds,
     excerpt: text.slice(0, 180),
     id: draft.id,
-    searchText: text,
+    searchText: `${text} ${draft.scratchpad}`,
     kind: draft.kind,
     nextPostAt: draft.nextPostAt,
     pinned: draft.pinnedAt !== null,

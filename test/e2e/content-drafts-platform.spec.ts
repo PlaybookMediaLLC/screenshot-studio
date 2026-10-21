@@ -106,7 +106,8 @@ test('the queue takes the next slot, and the calendar moves a post to another da
     await expectSaved(page)
 
     const dialog = await openSchedule(page)
-    await expect(dialog.getByText('Best times')).toBeVisible()
+    await dialog.getByText('Advanced scheduling', { exact: true }).click()
+    await expect(dialog.getByText('Suggested times', { exact: true })).toBeVisible()
     await dialog.getByRole('button', { name: 'Next free slot' }).click()
     await dialog.getByRole('button', { name: 'Confirm: next free slot' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
@@ -168,7 +169,11 @@ test('a draft waits for approval, and an edit after approval needs another', asy
   page,
 }) => {
   await withWorkspace(identity, page, ['x'], async () => {
-    await page.goto('/write/settings')
+    await page.goto('/write')
+    await page
+      .getByTestId('write-rail')
+      .getByRole('link', { name: 'Settings', exact: true })
+      .click()
     await page.getByLabel('Require approval').check()
     await page.getByRole('button', { name: 'Save settings' }).click()
     await expect(page.getByText('Saved.')).toBeVisible()
@@ -354,6 +359,7 @@ test('writing tools: history, per-post tools, channel text, AI, hashtags and pla
     const zone = /Times are in (\S+) /.exec(
       (await dialog.getByText(/^Times are in /).textContent()) ?? ''
     )?.[1]
+    await dialog.getByText('Advanced scheduling', { exact: true }).click()
     await dialog.getByLabel('When, in words').fill('tomorrow 9am')
     await expect(dialog.getByTestId('when-reading')).toContainText('9:00')
     await dialog.getByRole('switch', { name: 'Auto-Plug' }).click()

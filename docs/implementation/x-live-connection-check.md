@@ -283,3 +283,76 @@ A final incremental TypeScript invocation hit an internal compiler stack overflo
 The clean `npx tsc --noEmit --incremental false` check passed with no diagnostics
 (`.context/x-content-typecheck-clean.log`); the production build's TypeScript
 check also passed. This did not require a source change.
+
+
+## Fresh X content checks before handoff — 2026-10-21
+
+The X adapter now requires the current persisted native proof and matching
+credential, then reads signed `users/me` immediately before preparing a post and
+again before a confirmed pending post is sent. The bounded, redirect-refusing
+identity client rechecks the native ID, observed OAuth 1.0a write grant, and
+current authenticated subscription. It never falls back to cached subscription
+facts after a rate limit, provider outage, cancellation, or rejected identity.
+The workflow and direct publisher remain responsible for reloading the current
+tenant-bound integration before each adapter invocation.
+
+- Root posts and all supplied thread replies are checked before root media is
+  uploaded. Finalization rechecks text limits, Article eligibility, and the
+  unavailable Enterprise quote capability using the current provider response.
+- Comments recheck before upload and after any media-processing wait. Direct
+  replies and automatic plug replies use the same current-identity and text
+  checks. Standard and long-post limits use the existing canonical weighted
+  parser; Article text retains the explicit 100000-character application bound.
+- `STRIP_LINKS_FROM_X_POSTS` no longer changes X posts or scheduler content.
+  Approved links and long text are retained. Existing content already altered
+  by an older process is not reconstructed automatically.
+- Missing post IDs no longer count as successful tweet/reply receipts. The
+  non-retrying direct-reply client is preserved; an ambiguous response requires
+  checking the remote account. The existing pending-create handshake remains.
+
+The provider contracts are the existing [authenticated account facts](https://docs.x.com/x-api/fundamentals/data-dictionary),
+[X post creation](https://docs.x.com/x-api/posts/create-post), and
+[Articles API](https://docs.x.com/x-api/articles/introduction). These checks do
+not imply that account subscription guarantees app quota, every media allowance,
+or successful publication.
+
+Protocol fixtures cover missing/mismatched stored proof, disabled/deleted/revoked
+accounts, a changed remote native ID, missing/read-only grants, HTTP 401/429/503,
+unknown subscriptions, downgrade between preparation and finalization, invalid
+thread text before upload, unverified Article/quote attempts, exact long text and
+links, missing receipts, automated replies, and no direct-reply retry on HTTP 500.
+The existing image/video/Article fixtures now supply explicit stored and remote
+identity proof. Two video-upload fixtures were corrected to represent ordinary
+video posts rather than Articles; they still assert chunking and provider errors,
+not source-byte validity.
+
+Validation passed: 124 Go packages with `go test -p 1 ./...`, full `go vet`,
+race checks for X, socialidentity, social activities and the direct tenant
+publisher, and 17/17 RFC checks. CodeRabbit reviewed all seven changed files with
+zero findings; the final added post-upload subscription regression was inspected
+and passed the race run. An initial compile check caught an unused test import,
+which was removed before the successful runs. No frontend source or contract
+changed, so the prior production build/browser verification remains applicable.
+Logs are `.context/x-handoff-go-test.log`, `x-handoff-go-vet.log`,
+`x-handoff-provider-race.log`, `x-handoff-publisher-race.log`, `x-handoff-rfcs.log`
+and `x-handoff-review-final.ndjson`.
+
+The already-approved live account remains visibly connected in Shots. A read-only
+database check confirms one connection, four completed attempts, the native
+account/write grant, encrypted credentials, and no fabricated expiry. No new OAuth grant, public post,
+Article draft, or media upload was performed against that account in this
+increment. Local protocol fixtures do not count as live publishing verification.
+
+Remaining X work includes source-byte/dimension/duration inspection, removal of
+legacy media conversion and silent missing-media handling, exact poll behavior,
+legacy social API long-post admission, and auditing automatic retries of the
+existing root/Article HTTP mutation client. Remote health beyond these publish-time
+checks, native ownership conflicts, app quota, real publication, and production
+rollout remain unverified. S18/S20 remain In progress.
+
+Deployment needs updated social API and publishing worker binaries. No schema or
+new environment variable is introduced. Existing optional-capability reader
+compatibility rules still apply. Fresh identity lookups add read requests and can
+block publication when X is unavailable; pending workflow outcomes remain
+conservative after an armed attempt. Rollback restores older publication behavior,
+including any legacy link-stripping configuration.

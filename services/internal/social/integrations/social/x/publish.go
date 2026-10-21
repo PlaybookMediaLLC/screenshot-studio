@@ -308,7 +308,27 @@ func nonEmpty(ids []string) []string {
 	return out
 }
 
-func (p *Provider) PostPending(ctx context.Context, _, accessToken string, posts []integrations.PostDetails, _ *ent.Integration) ([]integrations.PostResponse, error) {
+func (p *Provider) PostPending(ctx context.Context, _, accessToken string, posts []integrations.PostDetails, integration *ent.Integration) ([]integrations.PostResponse, error) {
+	if len(posts) == 0 {
+		return nil, publishRejected("Add an X post before publishing.")
+	}
+	caps, err := publishingLimits(ctx, accessToken, integration)
+	if err != nil {
+		return nil, err
+	}
+	// Validate the whole thread before uploading or creating the root post.
+	for i, post := range posts {
+		settings := decodeSettings(post.Settings)
+		article := i == 0 && str(settings.PostType) == "article"
+		message := post.Message
+		if !article {
+			message = toTweetText(message)
+		}
+		if err := checkPublishingContent(caps, message, pendingSettings{QuoteTweetID: settings.QuoteTweetID,
+			ArticleTitle: settings.ArticleTitle, ArticleStatus: settings.ArticleStatus}, len(post.Media), article); err != nil {
+			return nil, err
+		}
+	}
 	c := newClient(accessToken)
 	first := posts[0]
 	settings := decodeSettings(first.Settings)
@@ -470,6 +490,13 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 		pending.Attempting, pending.Confirmed = true, false
 		return &integrations.PendingCheckResponse{Status: "pending", PendingData: marshal(pending)}, nil
 	}
+	caps, err := publishingLimits(ctx, accessToken, integration)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkPublishingContent(caps, pending.Message, pending.Settings, len(pending.MediaIDs), str(pending.Settings.PostType) == "article"); err != nil {
+		return nil, err
+	}
 
 	if str(pending.Settings.PostType) == "article" {
 		return p.finalizeArticle(ctx, accessToken, pending, integration)
@@ -479,12 +506,8 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 	settings := pending.Settings
 	mediaIDs := nonEmpty(pending.MediaIDs)
 
-	text := pending.Message
-	if p.StripLinks() {
-		text = helpers.StripLinks(text)
-	}
 	body := tweetBody{
-		Text:            text,
+		Text:            pending.Message,
 		MadeWithAI:      integrations.AssetBoolean(settings.MadeWithAI),
 		PaidPartnership: integrations.AssetBoolean(settings.PaidPartnership),
 	}
@@ -570,8 +593,8 @@ func (p *Provider) createTweet(ctx context.Context, token, secret string, body t
 	if err := res.JSON(&data); err != nil {
 		return "", err
 	}
-	if data.Data == nil {
-		return "", errors.New("Cannot read properties of undefined (reading 'id')")
+	if data.Data == nil || data.Data.ID == "" {
+		return "", publishRejected("X did not return a post ID. Check the account before trying again to avoid duplicates.")
 	}
 	return data.Data.ID, nil
 }
@@ -704,9 +727,24 @@ func (p *Provider) Post(ctx context.Context, id, accessToken string, posts []int
 }
 
 func (p *Provider) Comment(ctx context.Context, _, postID, lastCommentID, accessToken string, posts []integrations.PostDetails, integration *ent.Integration) ([]integrations.PostResponse, error) {
+	if len(posts) == 0 {
+		return nil, publishRejected("Add an X reply before publishing.")
+	}
+	caps, err := publishingLimits(ctx, accessToken, integration)
+	if err != nil {
+		return nil, err
+	}
 	token, secret := splitToken(accessToken)
 	c := newClient(accessToken)
 	commentPost := posts[0]
+	settings := decodeSettings(commentPost.Settings)
+	commentText := toTweetText(commentPost.Message)
+	check := func() error {
+		return checkPublishingContent(caps, commentText, pendingSettings{QuoteTweetID: settings.QuoteTweetID}, len(commentPost.Media), false)
+	}
+	if err := check(); err != nil {
+		return nil, err
+	}
 
 	// upload media for the comment
 	uploadAll, err := p.uploadMedia(ctx, c, []mediaEntry{entryOf(commentPost)})
@@ -714,18 +752,23 @@ func (p *Provider) Comment(ctx context.Context, _, postID, lastCommentID, access
 		return nil, err
 	}
 	mediaIDs := nonEmpty(uploadAll[commentPost.ID])
+	if len(commentPost.Media) > 0 {
+		// Media processing may take minutes, during which the grant or account
+		// subscription can change. Recheck before creating the reply.
+		caps, err = publishingLimits(ctx, accessToken, integration)
+		if err != nil {
+			return nil, err
+		}
+		if err := check(); err != nil {
+			return nil, err
+		}
+	}
 
 	replyToID := lastCommentID
 	if replyToID == "" {
 		replyToID = postID
 	}
 
-	// Comments are always tweets - flatten the editor HTML to plain text.
-	commentText := toTweetText(commentPost.Message)
-	if p.StripLinks() {
-		commentText = helpers.StripLinks(commentText)
-	}
-	settings := decodeSettings(commentPost.Settings)
 	body := tweetBody{
 		Text:            commentText,
 		MadeWithAI:      integrations.AssetBoolean(settings.MadeWithAI),

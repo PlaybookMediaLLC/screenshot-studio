@@ -16,7 +16,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
 )
@@ -165,7 +164,7 @@ func pngBytes() []byte {
 
 func TestSignedImageUpload(t *testing.T) {
 	t.Setenv("SOCIAL_PRIVATE_MEDIA", "false")
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		switch r.path {
 		case "/pic.png":
 			return 200, string(pngBytes())
@@ -180,7 +179,7 @@ func TestSignedImageUpload(t *testing.T) {
 	signed := apiBase + "/pic.png?X-Amz-Date=20261013T000000Z&X-Amz-Signature=abc%2Fdef"
 	res, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
 		ID: "p", Message: "image", Media: []integrations.MediaContent{{Path: signed}},
-	}}, nil)
+	}}, publishingAccount())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +208,7 @@ func TestSignedImageUpload(t *testing.T) {
 
 func TestArticleFlow(t *testing.T) {
 	var base string
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		switch r.path {
 		case "/pic.png":
 			return 200, string(pngBytes())
@@ -230,10 +229,10 @@ func TestArticleFlow(t *testing.T) {
 	base = apiBase
 	p := New()
 	ctx := context.Background()
-	integration := &ent.Integration{Profile: ptr("me")}
+	integration := publishingAccount()
 
 	settings := json.RawMessage(`{"post_type":"article","article_title":"T","article_status":"published"}`)
-	res, err := p.Post(ctx, "1", "tok:sec", []integrations.PostDetails{{
+	res, err := p.Post(ctx, "1", "a:b", []integrations.PostDetails{{
 		ID: "p1", Message: `<p>Hello</p><img src="` + base + `/pic.png">`, Settings: settings,
 	}}, integration)
 	if err != nil {
@@ -264,7 +263,7 @@ func TestArticleFlow(t *testing.T) {
 }
 
 func TestFinalizeTweet(t *testing.T) {
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		return 201, `{"data":{"id":"99"}}`
 	})
 	defer done()
@@ -273,26 +272,26 @@ func TestFinalizeTweet(t *testing.T) {
 		Settings: pendingSettings{WhoCanReplyPost: ptr("following"), Community: ptr("https://x.com/i/communities/42"), MadeWithAI: "true"},
 		MediaIDs: []string{"m1", ""}, Attempting: true, Confirmed: true,
 	})
-	res, err := New().FinalizePost(context.Background(), "a:b", pending, &ent.Integration{})
+	res, err := New().FinalizePost(context.Background(), "a:b", pending, publishingAccount())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.PostID != "99" || res.ReleaseURL != "https://twitter.com/null/status/99" {
+	if res.PostID != "99" || res.ReleaseURL != "https://twitter.com/me/status/99" {
 		t.Fatalf("%+v", res)
 	}
 	want := `{"reply_settings":"following","share_with_followers":true,"community_id":"42","text":"hi","media":{"media_ids":["m1"]},"made_with_ai":true,"paid_partnership":false}`
-	if got := string((*calls)[0].body); got != want {
+	if got := string((*calls)[1].body); got != want {
 		t.Fatalf("tweet body %s", got)
 	}
 }
 
 func TestFinalizeTweetError(t *testing.T) {
-	_, done := fakeX(t, func(r recorded) (int, string) {
+	_, done := fakePublishingX(t, func(r recorded) (int, string) {
 		return 403, `{"detail":"You are not permitted to perform this action.","status":403}`
 	})
 	defer done()
 	pending := marshal(pendingData{Message: "hi", Attempting: true, Confirmed: true})
-	_, err := New().FinalizePost(context.Background(), "a:b", pending, &ent.Integration{})
+	_, err := New().FinalizePost(context.Background(), "a:b", pending, publishingAccount())
 	if temporalx.FailureType(err) != temporalx.TypeBadBody ||
 		temporalx.FailureMessage(err) != "There is a problem posting, please edit your post and check character count and media attachments" {
 		t.Fatalf("err = %v", err)
@@ -342,7 +341,7 @@ func TestHandshakeAndProcessing(t *testing.T) {
 }
 
 func TestVideoChunkUpload(t *testing.T) {
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		switch {
 		case strings.HasSuffix(r.path, "/initialize"):
 			return 200, `{"data":{"id":"vid"}}`
@@ -357,9 +356,9 @@ func TestVideoChunkUpload(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
-		ID: "p", Message: "m", Settings: json.RawMessage(`{"post_type":"article","article_title":"t"}`),
+		ID: "p", Message: "m",
 		Media: []integrations.MediaContent{{Type: "video", Path: file}},
-	}}, nil)
+	}}, publishingAccount())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -386,15 +385,15 @@ func TestVideoChunkUpload(t *testing.T) {
 }
 
 func TestUploadErrorClassified(t *testing.T) {
-	_, done := fakeX(t, func(r recorded) (int, string) {
+	_, done := fakePublishingX(t, func(r recorded) (int, string) {
 		return 400, `{"detail":"Your media IDs are invalid."}`
 	})
 	defer done()
 	file := filepath.Join(t.TempDir(), "clip.mp4")
 	_ = os.WriteFile(file, []byte("data"), 0o600)
 	_, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
-		ID: "p", Settings: json.RawMessage(`{"post_type":"article"}`), Media: []integrations.MediaContent{{Path: file}},
-	}}, nil)
+		ID: "p", Media: []integrations.MediaContent{{Path: file}},
+	}}, publishingAccount())
 	if temporalx.FailureMessage(err) != "X rejected the attached media, please re-upload the media and try again" {
 		t.Fatalf("err = %v", err)
 	}
@@ -450,13 +449,13 @@ func TestAPIErrorJSON(t *testing.T) {
 // RFC 042 follow-ups: engagement reads public metrics (no 100-user cap), a
 // repost is removed by DELETE, and a plug reply returns its id.
 func TestFollowUps(t *testing.T) {
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		switch {
 		case r.method == "GET" && r.path == "/2/tweets/42":
 			return 200, `{"data":{"id":"42","public_metrics":{"like_count":250,"retweet_count":12}}}`
-		case r.method == "POST" && r.path == "/2/users/me-1/retweets":
+		case r.method == "POST" && r.path == "/2/users/1/retweets":
 			return 200, `{"data":{"retweeted":true}}`
-		case r.method == "DELETE" && r.path == "/2/users/me-1/retweets/42":
+		case r.method == "DELETE" && r.path == "/2/users/1/retweets/42":
 			return 200, `{"data":{"retweeted":false}}`
 		case r.method == "POST" && r.path == "/2/tweets":
 			return 201, `{"data":{"id":"99"}}`
@@ -465,7 +464,7 @@ func TestFollowUps(t *testing.T) {
 	})
 	defer done()
 	ctx := context.Background()
-	account := &ent.Integration{InternalID: "me-1", Token: "a:b"}
+	account := publishingAccount()
 	provider := New()
 	likes, reposts, err := provider.PostEngagement(ctx, account, "42")
 	if err != nil || likes != 250 || reposts != 12 {
@@ -489,8 +488,8 @@ func TestFollowUps(t *testing.T) {
 			InReplyTo string `json:"in_reply_to_tweet_id"`
 		} `json:"reply"`
 	}
-	if err := json.Unmarshal((*calls)[3].body, &reply); err != nil || reply.Reply.InReplyTo != "42" {
-		t.Fatalf("reply body = %s", (*calls)[3].body)
+	if err := json.Unmarshal((*calls)[4].body, &reply); err != nil || reply.Reply.InReplyTo != "42" {
+		t.Fatalf("reply body = %s", (*calls)[4].body)
 	}
 	if done, err := provider.AutoRepostPost(ctx, account, "42", map[string]string{"likesAmount": "200"}); err != nil || !done {
 		t.Fatalf("like-gated repost past 100 likes = %v, %v", done, err)
@@ -500,7 +499,7 @@ func TestFollowUps(t *testing.T) {
 // An image's description is set on the media before the post that uses it.
 func TestAltTextGoesOnTheMedia(t *testing.T) {
 	t.Setenv("SOCIAL_PRIVATE_MEDIA", "false")
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		switch r.path {
 		case "/pic.png":
 			return 200, string(pngBytes())
@@ -514,7 +513,7 @@ func TestAltTextGoesOnTheMedia(t *testing.T) {
 	defer done()
 	if _, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
 		ID: "p", Message: "image", Media: []integrations.MediaContent{{Path: apiBase + "/pic.png", Alt: "A chart of signups"}},
-	}}, nil); err != nil {
+	}}, publishingAccount()); err != nil {
 		t.Fatal(err)
 	}
 	var metadata struct {

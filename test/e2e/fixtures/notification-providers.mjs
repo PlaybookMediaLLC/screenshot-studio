@@ -7,6 +7,7 @@ import { createServer } from 'node:http'
 
 const codes = new Map()
 const emailReceipts = new Map()
+const uncertainSlackWorkspaces = new Set()
 const sink = { slack: [], email: [], auth: [], channelPages: [] }
 const channel = {
   id: 'C012345',
@@ -28,6 +29,13 @@ const server = createServer(async (request, response) => {
   }
   try {
     if (url.pathname === '/sink') return json(sink)
+    if (url.pathname === '/fail-next-slack' && request.method === 'POST') {
+      const { workspaceName } = JSON.parse(raw)
+      assert.equal(typeof workspaceName, 'string')
+      assert.ok(workspaceName.length > 0)
+      uncertainSlackWorkspaces.add(workspaceName)
+      return json({ armed: true })
+    }
     if (url.pathname === '/oauth/v2/authorize') {
       assert.equal(url.searchParams.get('state')?.length, 43)
       assert.ok(url.searchParams.get('scope').includes('chat:write'))
@@ -79,6 +87,14 @@ const server = createServer(async (request, response) => {
           : Object.fromEntries(form)
         assert.ok([channel.id, 'U012345'].includes(body.channel))
         sink.slack.push(body)
+        const uncertain = [...uncertainSlackWorkspaces].find((name) =>
+          body.text.startsWith(`${name}: `)
+        )
+        if (uncertain) {
+          uncertainSlackWorkspaces.delete(uncertain)
+          response.statusCode = 503
+          return json({ error: 'fixture_response_lost_after_acceptance' })
+        }
         return json({
           ok: true,
           channel: body.channel === 'U012345' ? 'D012345' : channel.id,

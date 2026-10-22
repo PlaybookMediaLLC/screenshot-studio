@@ -139,6 +139,11 @@ func FailureCode(v string) predicate.PlatformNotificationDelivery {
 	return predicate.PlatformNotificationDelivery(sql.FieldEQ(FieldFailureCode, v))
 }
 
+// DecisionCode applies equality check predicate on the "decision_code" field. It's identical to DecisionCodeEQ.
+func DecisionCode(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldEQ(FieldDecisionCode, v))
+}
+
 // ProviderReceipt applies equality check predicate on the "provider_receipt" field. It's identical to ProviderReceiptEQ.
 func ProviderReceipt(v string) predicate.PlatformNotificationDelivery {
 	return predicate.PlatformNotificationDelivery(sql.FieldEQ(FieldProviderReceipt, v))
@@ -1002,6 +1007,71 @@ func FailureCodeEqualFold(v string) predicate.PlatformNotificationDelivery {
 // FailureCodeContainsFold applies the ContainsFold predicate on the "failure_code" field.
 func FailureCodeContainsFold(v string) predicate.PlatformNotificationDelivery {
 	return predicate.PlatformNotificationDelivery(sql.FieldContainsFold(FieldFailureCode, v))
+}
+
+// DecisionCodeEQ applies the EQ predicate on the "decision_code" field.
+func DecisionCodeEQ(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldEQ(FieldDecisionCode, v))
+}
+
+// DecisionCodeNEQ applies the NEQ predicate on the "decision_code" field.
+func DecisionCodeNEQ(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldNEQ(FieldDecisionCode, v))
+}
+
+// DecisionCodeIn applies the In predicate on the "decision_code" field.
+func DecisionCodeIn(vs ...string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldIn(FieldDecisionCode, vs...))
+}
+
+// DecisionCodeNotIn applies the NotIn predicate on the "decision_code" field.
+func DecisionCodeNotIn(vs ...string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldNotIn(FieldDecisionCode, vs...))
+}
+
+// DecisionCodeGT applies the GT predicate on the "decision_code" field.
+func DecisionCodeGT(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldGT(FieldDecisionCode, v))
+}
+
+// DecisionCodeGTE applies the GTE predicate on the "decision_code" field.
+func DecisionCodeGTE(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldGTE(FieldDecisionCode, v))
+}
+
+// DecisionCodeLT applies the LT predicate on the "decision_code" field.
+func DecisionCodeLT(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldLT(FieldDecisionCode, v))
+}
+
+// DecisionCodeLTE applies the LTE predicate on the "decision_code" field.
+func DecisionCodeLTE(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldLTE(FieldDecisionCode, v))
+}
+
+// DecisionCodeContains applies the Contains predicate on the "decision_code" field.
+func DecisionCodeContains(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldContains(FieldDecisionCode, v))
+}
+
+// DecisionCodeHasPrefix applies the HasPrefix predicate on the "decision_code" field.
+func DecisionCodeHasPrefix(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldHasPrefix(FieldDecisionCode, v))
+}
+
+// DecisionCodeHasSuffix applies the HasSuffix predicate on the "decision_code" field.
+func DecisionCodeHasSuffix(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldHasSuffix(FieldDecisionCode, v))
+}
+
+// DecisionCodeEqualFold applies the EqualFold predicate on the "decision_code" field.
+func DecisionCodeEqualFold(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldEqualFold(FieldDecisionCode, v))
+}
+
+// DecisionCodeContainsFold applies the ContainsFold predicate on the "decision_code" field.
+func DecisionCodeContainsFold(v string) predicate.PlatformNotificationDelivery {
+	return predicate.PlatformNotificationDelivery(sql.FieldContainsFold(FieldDecisionCode, v))
 }
 
 // ProviderReceiptEQ applies the EQ predicate on the "provider_receipt" field.

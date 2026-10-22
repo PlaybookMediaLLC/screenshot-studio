@@ -167,6 +167,7 @@ export const getNotificationDeliveriesContract = defineContract({
   path: '/api/workspace/notifications/deliveries',
   summary: 'getNotificationDeliveries',
   shell: true,
+  query: z.object({ scope: z.enum(['workspace', 'personal']).default('workspace') }),
   output: z.object({ deliveries: z.array(notificationDeliverySchema) }),
 })
 

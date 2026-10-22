@@ -271,6 +271,20 @@ func (_u *PlatformNotificationDeliveryUpdate) SetNillableFailureCode(v *string) 
 	return _u
 }
 
+// SetDecisionCode sets the "decision_code" field.
+func (_u *PlatformNotificationDeliveryUpdate) SetDecisionCode(v string) *PlatformNotificationDeliveryUpdate {
+	_u.mutation.SetDecisionCode(v)
+	return _u
+}
+
+// SetNillableDecisionCode sets the "decision_code" field if the given value is not nil.
+func (_u *PlatformNotificationDeliveryUpdate) SetNillableDecisionCode(v *string) *PlatformNotificationDeliveryUpdate {
+	if v != nil {
+		_u.SetDecisionCode(*v)
+	}
+	return _u
+}
+
 // SetProviderReceipt sets the "provider_receipt" field.
 func (_u *PlatformNotificationDeliveryUpdate) SetProviderReceipt(v string) *PlatformNotificationDeliveryUpdate {
 	_u.mutation.SetProviderReceipt(v)
@@ -427,6 +441,9 @@ func (_u *PlatformNotificationDeliveryUpdate) sqlSave(ctx context.Context) (_nod
 	}
 	if value, ok := _u.mutation.FailureCode(); ok {
 		_spec.SetField(platformnotificationdelivery.FieldFailureCode, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.DecisionCode(); ok {
+		_spec.SetField(platformnotificationdelivery.FieldDecisionCode, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.ProviderReceipt(); ok {
 		_spec.SetField(platformnotificationdelivery.FieldProviderReceipt, field.TypeString, value)
@@ -703,6 +720,20 @@ func (_u *PlatformNotificationDeliveryUpdateOne) SetNillableFailureCode(v *strin
 	return _u
 }
 
+// SetDecisionCode sets the "decision_code" field.
+func (_u *PlatformNotificationDeliveryUpdateOne) SetDecisionCode(v string) *PlatformNotificationDeliveryUpdateOne {
+	_u.mutation.SetDecisionCode(v)
+	return _u
+}
+
+// SetNillableDecisionCode sets the "decision_code" field if the given value is not nil.
+func (_u *PlatformNotificationDeliveryUpdateOne) SetNillableDecisionCode(v *string) *PlatformNotificationDeliveryUpdateOne {
+	if v != nil {
+		_u.SetDecisionCode(*v)
+	}
+	return _u
+}
+
 // SetProviderReceipt sets the "provider_receipt" field.
 func (_u *PlatformNotificationDeliveryUpdateOne) SetProviderReceipt(v string) *PlatformNotificationDeliveryUpdateOne {
 	_u.mutation.SetProviderReceipt(v)
@@ -889,6 +920,9 @@ func (_u *PlatformNotificationDeliveryUpdateOne) sqlSave(ctx context.Context) (_
 	}
 	if value, ok := _u.mutation.FailureCode(); ok {
 		_spec.SetField(platformnotificationdelivery.FieldFailureCode, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.DecisionCode(); ok {
+		_spec.SetField(platformnotificationdelivery.FieldDecisionCode, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.ProviderReceipt(); ok {
 		_spec.SetField(platformnotificationdelivery.FieldProviderReceipt, field.TypeString, value)

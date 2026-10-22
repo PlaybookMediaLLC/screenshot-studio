@@ -11,6 +11,8 @@ import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
 import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { PersonalNotificationDeliveries } from '@/components/settings/PersonalNotificationDeliveries'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
@@ -310,6 +312,20 @@ function SettingsForm({
         >
           <Group>
             <div className="space-y-3 p-5">
+              <label className="flex items-center justify-between gap-4 text-sm">
+                <span>Allow personal Slack messages in this workspace</span>
+                <Switch
+                  aria-label="Personal Slack messages"
+                  checked={preferences.slackEnabled !== false}
+                  onCheckedChange={(slackEnabled) =>
+                    setPreferences((current) => ({ ...current, slackEnabled }))
+                  }
+                />
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Save preferences below to apply this switch. Off pauses all activity DMs, including
+                required failure alerts. An explicit test can still send one message.
+              </p>
               <p className="text-sm">
                 {settings.personalSlack
                   ? `${settings.personalSlack.teamName} · ${settings.personalSlack.slackUserId} · ${settings.personalSlack.health === 'CONNECTED' ? 'Connected' : 'Reconnect required'}`
@@ -356,7 +372,7 @@ function SettingsForm({
 
         <Section
           title="Your preferences"
-          description="Your selections are remembered separately from current delivery. Save changes to apply them. Workspace rules and the email switch can block delivery."
+          description="Group controls change optional alerts. Publishing failures and uncertain publishing results are required alerts, including your own actions. Workspace rules, email and personal Slack switches, and connection health still control delivery. Save changes to apply them."
         >
           <Group>
             {personalGroups.map((group) => (
@@ -420,6 +436,9 @@ function SettingsForm({
           onSave={() => void save('preferences')}
           onDiscard={() => setPreferences(settings.preferences)}
         />
+      </div>
+      <div hidden={panel !== 'personal'}>
+        <PersonalNotificationDeliveries identity={identity} settings={settings} />
       </div>
       {settings.canManage ? (
         <>

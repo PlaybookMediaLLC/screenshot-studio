@@ -301,7 +301,7 @@ func TestCampaignReviewRecipientsDoNotExpandAcrossRelease(t *testing.T) {
 	if err := f.s.DB.QueryRow(`SELECT count(*),count(*) FILTER (WHERE destination<>$2) FROM platform_notification_delivery WHERE event_id=$1`, event, f.owner.UserID).Scan(&deliveries, &foreign); err != nil {
 		t.Fatal(err)
 	}
-	if sends != 1 || deliveries != 2 || foreign != 0 {
+	if sends != 1 || deliveries != 3 || foreign != 0 {
 		t.Fatalf("review sends=%d deliveries=%d foreign=%d", sends, deliveries, foreign)
 	}
 	def, _ := activity.Lookup("release.ingested")
@@ -394,8 +394,12 @@ func TestConcurrentFanoutAndQueuedOptOut(t *testing.T) {
 		}
 	}
 	var n int
-	if err := f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_delivery WHERE event_id=$1`, event).Scan(&n); err != nil || n != 2 {
-		t.Fatalf("expected one inbox and email receipt: %d %v", n, err)
+	if err := f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_delivery WHERE event_id=$1`, event).Scan(&n); err != nil || n != 3 {
+		t.Fatalf("expected one decision per channel: %d %v", n, err)
+	}
+	var skipped int
+	if err := f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_delivery WHERE event_id=$1 AND channel='slack_dm' AND status='SKIPPED' AND failure_code='CATEGORY_DISABLED'`, event).Scan(&skipped); err != nil || skipped != 1 {
+		t.Fatal("missing single Slack opt-out decision", skipped, err)
 	}
 	pref := defaultPreferences()
 	pref.Events["campaign_posts.submitted"] = Channels{InApp: true, Email: false}

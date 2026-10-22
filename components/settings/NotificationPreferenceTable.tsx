@@ -30,6 +30,9 @@ export function NotificationPreferenceTable({
   setId?: string
   context?: string
 }) {
+  const required = (id: string) =>
+    settings.catalogue.find((event) => event.id === id)?.mandatoryFailure === true
+  const optionalEvents = events.filter((event) => !required(event.id))
   return (
     <div
       className="overflow-x-auto"
@@ -60,7 +63,9 @@ export function NotificationPreferenceTable({
             </th>
             {preferenceChannels.map((channel) => {
               const checked = preferenceGroupState(
-                events.map((event) => preferenceSelected(value, event.id, channel.id, setId))
+                optionalEvents.map((event) =>
+                  preferenceSelected(value, event.id, channel.id, setId)
+                )
               )
               return (
                 <td className="px-3 py-3" key={channel.id}>
@@ -72,7 +77,7 @@ export function NotificationPreferenceTable({
                         onChange(
                           changePreferences(
                             value,
-                            events.map((event) => event.id),
+                            optionalEvents.map((event) => event.id),
                             channel.id,
                             checked !== true,
                             setId
@@ -97,18 +102,22 @@ export function NotificationPreferenceTable({
                 const checked = preferenceSelected(value, event.id, channel.id, setId)
                 return (
                   <td className="px-3 py-3 align-top" key={channel.id}>
-                    <label className="flex items-center gap-2">
-                      <Checkbox
-                        aria-label={`${context ? `${context}: ` : ''}${event.label}: your ${channel.id === 'slack' ? 'Slack DM' : channel.label.toLowerCase()} preference`}
-                        checked={checked}
-                        onCheckedChange={(next) =>
-                          onChange(
-                            changePreferences(value, [event.id], channel.id, next === true, setId)
-                          )
-                        }
-                      />
-                      <span className="text-xs">Your preference: {checked ? 'On' : 'Off'}</span>
-                    </label>
+                    {required(event.id) ? (
+                      <span className="text-xs font-medium">Required alert</span>
+                    ) : (
+                      <label className="flex items-center gap-2">
+                        <Checkbox
+                          aria-label={`${context ? `${context}: ` : ''}${event.label}: your ${channel.id === 'slack' ? 'Slack DM' : channel.label.toLowerCase()} preference`}
+                          checked={checked}
+                          onCheckedChange={(next) =>
+                            onChange(
+                              changePreferences(value, [event.id], channel.id, next === true, setId)
+                            )
+                          }
+                        />
+                        <span className="text-xs">Your preference: {checked ? 'On' : 'Off'}</span>
+                      </label>
+                    )}
                     <p className="mt-1 max-w-44 text-xs text-muted-foreground">
                       Delivery when saved:{' '}
                       {preferenceDeliveryReason(
@@ -116,7 +125,8 @@ export function NotificationPreferenceTable({
                         emailEnabled,
                         event.id,
                         channel.id,
-                        checked
+                        checked,
+                        value.slackEnabled !== false
                       )}
                     </p>
                   </td>

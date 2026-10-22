@@ -912,20 +912,24 @@ func init() {
 	platformnotificationdeliveryDescFailureCode := platformnotificationdeliveryFields[15].Descriptor()
 	// platformnotificationdelivery.DefaultFailureCode holds the default value on creation for the failure_code field.
 	platformnotificationdelivery.DefaultFailureCode = platformnotificationdeliveryDescFailureCode.Default.(string)
+	// platformnotificationdeliveryDescDecisionCode is the schema descriptor for decision_code field.
+	platformnotificationdeliveryDescDecisionCode := platformnotificationdeliveryFields[16].Descriptor()
+	// platformnotificationdelivery.DefaultDecisionCode holds the default value on creation for the decision_code field.
+	platformnotificationdelivery.DefaultDecisionCode = platformnotificationdeliveryDescDecisionCode.Default.(string)
 	// platformnotificationdeliveryDescProviderReceipt is the schema descriptor for provider_receipt field.
-	platformnotificationdeliveryDescProviderReceipt := platformnotificationdeliveryFields[16].Descriptor()
+	platformnotificationdeliveryDescProviderReceipt := platformnotificationdeliveryFields[17].Descriptor()
 	// platformnotificationdelivery.DefaultProviderReceipt holds the default value on creation for the provider_receipt field.
 	platformnotificationdelivery.DefaultProviderReceipt = platformnotificationdeliveryDescProviderReceipt.Default.(string)
 	// platformnotificationdeliveryDescEncryptedPayload is the schema descriptor for encrypted_payload field.
-	platformnotificationdeliveryDescEncryptedPayload := platformnotificationdeliveryFields[17].Descriptor()
+	platformnotificationdeliveryDescEncryptedPayload := platformnotificationdeliveryFields[18].Descriptor()
 	// platformnotificationdelivery.DefaultEncryptedPayload holds the default value on creation for the encrypted_payload field.
 	platformnotificationdelivery.DefaultEncryptedPayload = platformnotificationdeliveryDescEncryptedPayload.Default.(string)
 	// platformnotificationdeliveryDescCreatedAt is the schema descriptor for created_at field.
-	platformnotificationdeliveryDescCreatedAt := platformnotificationdeliveryFields[18].Descriptor()
+	platformnotificationdeliveryDescCreatedAt := platformnotificationdeliveryFields[19].Descriptor()
 	// platformnotificationdelivery.DefaultCreatedAt holds the default value on creation for the created_at field.
 	platformnotificationdelivery.DefaultCreatedAt = platformnotificationdeliveryDescCreatedAt.Default.(func() time.Time)
 	// platformnotificationdeliveryDescUpdatedAt is the schema descriptor for updated_at field.
-	platformnotificationdeliveryDescUpdatedAt := platformnotificationdeliveryFields[19].Descriptor()
+	platformnotificationdeliveryDescUpdatedAt := platformnotificationdeliveryFields[20].Descriptor()
 	// platformnotificationdelivery.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	platformnotificationdelivery.DefaultUpdatedAt = platformnotificationdeliveryDescUpdatedAt.Default.(func() time.Time)
 	platformnotificationinboxFields := schema.PlatformNotificationInbox{}.Fields()
@@ -978,16 +982,20 @@ func init() {
 	platformnotificationpreferenceDescSocialSets := platformnotificationpreferenceFields[4].Descriptor()
 	// platformnotificationpreference.DefaultSocialSets holds the default value on creation for the social_sets field.
 	platformnotificationpreference.DefaultSocialSets = platformnotificationpreferenceDescSocialSets.Default.(map[string]map[string]bool)
+	// platformnotificationpreferenceDescSlackEnabled is the schema descriptor for slack_enabled field.
+	platformnotificationpreferenceDescSlackEnabled := platformnotificationpreferenceFields[5].Descriptor()
+	// platformnotificationpreference.DefaultSlackEnabled holds the default value on creation for the slack_enabled field.
+	platformnotificationpreference.DefaultSlackEnabled = platformnotificationpreferenceDescSlackEnabled.Default.(bool)
 	// platformnotificationpreferenceDescSocialSetChannels is the schema descriptor for social_set_channels field.
-	platformnotificationpreferenceDescSocialSetChannels := platformnotificationpreferenceFields[5].Descriptor()
+	platformnotificationpreferenceDescSocialSetChannels := platformnotificationpreferenceFields[6].Descriptor()
 	// platformnotificationpreference.DefaultSocialSetChannels holds the default value on creation for the social_set_channels field.
 	platformnotificationpreference.DefaultSocialSetChannels = platformnotificationpreferenceDescSocialSetChannels.Default.(map[string]map[string]map[string]bool)
 	// platformnotificationpreferenceDescGeneration is the schema descriptor for generation field.
-	platformnotificationpreferenceDescGeneration := platformnotificationpreferenceFields[6].Descriptor()
+	platformnotificationpreferenceDescGeneration := platformnotificationpreferenceFields[7].Descriptor()
 	// platformnotificationpreference.DefaultGeneration holds the default value on creation for the generation field.
 	platformnotificationpreference.DefaultGeneration = platformnotificationpreferenceDescGeneration.Default.(int)
 	// platformnotificationpreferenceDescUpdatedAt is the schema descriptor for updated_at field.
-	platformnotificationpreferenceDescUpdatedAt := platformnotificationpreferenceFields[7].Descriptor()
+	platformnotificationpreferenceDescUpdatedAt := platformnotificationpreferenceFields[8].Descriptor()
 	// platformnotificationpreference.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	platformnotificationpreference.DefaultUpdatedAt = platformnotificationpreferenceDescUpdatedAt.Default.(func() time.Time)
 	platformnotificationseenactionFields := schema.PlatformNotificationSeenAction{}.Fields()

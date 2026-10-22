@@ -40,6 +40,7 @@ type Policy struct {
 	SlackChannelName  string              `json:"slackChannelName"`
 }
 type Preferences struct {
+	SlackEnabled      *bool               `json:"slackEnabled"`
 	SocialSetChannels SocialSetChannels   `json:"socialSetChannels"`
 	Events            map[string]Channels `json:"events"`
 	Generation        int                 `json:"generation"`
@@ -127,6 +128,8 @@ func defaultPolicy() Policy {
 }
 func defaultPreferences() Preferences {
 	p := Preferences{Events: map[string]Channels{}, Generation: 1, SocialSets: map[string]map[string]bool{}, SocialSetChannels: SocialSetChannels{}}
+	enabled := true
+	p.SlackEnabled = &enabled
 	for _, d := range activity.Catalogue {
 		p.Events[d.ID] = Channels{InApp: true, Email: true}
 	}
@@ -163,7 +166,7 @@ func policy(ctx context.Context, db queryer, org string) (Policy, error) {
 func preferences(ctx context.Context, db queryer, org, user string) (Preferences, error) {
 	p := defaultPreferences()
 	var raw, sets, setChannels []byte
-	err := db.QueryRowContext(ctx, `SELECT events,generation,social_sets,social_set_channels FROM platform_notification_preference WHERE "organizationId"=$1 AND "userId"=$2`, org, user).Scan(&raw, &p.Generation, &sets, &setChannels)
+	err := db.QueryRowContext(ctx, `SELECT events,generation,social_sets,social_set_channels,slack_enabled FROM platform_notification_preference WHERE "organizationId"=$1 AND "userId"=$2`, org, user).Scan(&raw, &p.Generation, &sets, &setChannels, p.SlackEnabled)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, nil
 	}
@@ -321,6 +324,9 @@ func (s *Service) SavePreferences(ctx context.Context, p Principal, input Prefer
 	if input.Generation != current.Generation {
 		return nil, publishing.ErrConflict
 	}
+	if input.SlackEnabled == nil {
+		input.SlackEnabled = current.SlackEnabled
+	}
 	if input.SocialSetChannels == nil {
 		input.SocialSetChannels = current.SocialSetChannels
 	}
@@ -336,8 +342,8 @@ func (s *Service) SavePreferences(ctx context.Context, p Principal, input Prefer
 	}
 	sets, _ := json.Marshal(input.SocialSets)
 	setChannels, _ := json.Marshal(input.SocialSetChannels)
-	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_preference(id,"organizationId","userId",events,generation,social_sets,social_set_channels) VALUES($1,$2,$3,$4,2,$5,$6)
-	ON CONFLICT("organizationId","userId") DO UPDATE SET events=EXCLUDED.events,social_sets=EXCLUDED.social_sets,social_set_channels=EXCLUDED.social_set_channels,generation=platform_notification_preference.generation+1,updated_at=now()`, cuid.New(), p.OrganizationID, p.UserID, raw, sets, setChannels)
+	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_preference(id,"organizationId","userId",events,generation,social_sets,social_set_channels,slack_enabled) VALUES($1,$2,$3,$4,2,$5,$6,$7)
+	ON CONFLICT("organizationId","userId") DO UPDATE SET events=EXCLUDED.events,social_sets=EXCLUDED.social_sets,social_set_channels=EXCLUDED.social_set_channels,slack_enabled=EXCLUDED.slack_enabled,generation=platform_notification_preference.generation+1,updated_at=now()`, cuid.New(), p.OrganizationID, p.UserID, raw, sets, setChannels, *input.SlackEnabled)
 	if err != nil {
 		return nil, err
 	}

@@ -17,6 +17,7 @@ export const notificationPolicySchema = z.object({
 })
 /** Preferences always belong to the authenticated member. */
 export const notificationPreferencesSchema = z.object({
+  slackEnabled: z.boolean().optional(),
   events: z.record(z.string(), notificationChannelsSchema),
   generation: z.number().int().positive(),
   /** Kinds turned off for one social set: set ID, then kind, false for off. */
@@ -40,6 +41,7 @@ export const notificationSettingsSchema = z.object({
   catalogue: z.array(
     z.object({
       emitter: z.string(),
+      mandatoryFailure: z.boolean().optional(),
       accessCheck: z.string(),
       sensitivity: z.string(),
       channels: z.array(z.string()),
@@ -101,6 +103,7 @@ export const notificationDeliverySchema = z.object({
   destination: z.string(),
   status: z.enum(['PENDING', 'CLAIMED', 'SUCCEEDED', 'SKIPPED', 'BLOCKED', 'UNCERTAIN', 'DEAD']),
   failureCode: z.string(),
+  decisionCode: z.string().optional(),
   providerReceipt: z.string(),
   attempts: z.number(),
   createdAt: z.string(),

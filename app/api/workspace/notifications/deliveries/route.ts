@@ -5,6 +5,6 @@ import { notificationAccess } from '@/lib/notifications/server'
 
 /** `GET /api/workspace/notifications/deliveries`: act only for the current session and workspace. */
 export const GET = route(getNotificationDeliveriesContract, {
-  auth: notificationAccess('workspace:update'),
-  handler: ({ access }) => backendSDK(access).notificationDeliveries(),
+  auth: notificationAccess('workspace:read'),
+  handler: ({ access, query }) => backendSDK(access).notificationDeliveries(query.scope),
 })

@@ -74,6 +74,11 @@ func UserID(v string) predicate.PlatformNotificationPreference {
 	return predicate.PlatformNotificationPreference(sql.FieldEQ(FieldUserID, v))
 }
 
+// SlackEnabled applies equality check predicate on the "slack_enabled" field. It's identical to SlackEnabledEQ.
+func SlackEnabled(v bool) predicate.PlatformNotificationPreference {
+	return predicate.PlatformNotificationPreference(sql.FieldEQ(FieldSlackEnabled, v))
+}
+
 // Generation applies equality check predicate on the "generation" field. It's identical to GenerationEQ.
 func Generation(v int) predicate.PlatformNotificationPreference {
 	return predicate.PlatformNotificationPreference(sql.FieldEQ(FieldGeneration, v))
@@ -212,6 +217,16 @@ func UserIDEqualFold(v string) predicate.PlatformNotificationPreference {
 // UserIDContainsFold applies the ContainsFold predicate on the "user_id" field.
 func UserIDContainsFold(v string) predicate.PlatformNotificationPreference {
 	return predicate.PlatformNotificationPreference(sql.FieldContainsFold(FieldUserID, v))
+}
+
+// SlackEnabledEQ applies the EQ predicate on the "slack_enabled" field.
+func SlackEnabledEQ(v bool) predicate.PlatformNotificationPreference {
+	return predicate.PlatformNotificationPreference(sql.FieldEQ(FieldSlackEnabled, v))
+}
+
+// SlackEnabledNEQ applies the NEQ predicate on the "slack_enabled" field.
+func SlackEnabledNEQ(v bool) predicate.PlatformNotificationPreference {
+	return predicate.PlatformNotificationPreference(sql.FieldNEQ(FieldSlackEnabled, v))
 }
 
 // GenerationEQ applies the EQ predicate on the "generation" field.

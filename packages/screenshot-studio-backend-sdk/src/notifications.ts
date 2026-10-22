@@ -11,6 +11,8 @@ export type NotificationPolicy = {
 }
 /** Preferences belong to the authenticated user and workspace. */
 export type NotificationPreferences = {
+  /** Workspace-specific master for personal Slack messages, including required alerts. */
+  slackEnabled?: boolean
   events: Record<string, NotificationChannels>
   generation: number
   /** Kinds turned off for one social set: set ID, then kind, false for off (RFC 043). */
@@ -32,6 +34,7 @@ export type NotificationConnection = {
 export type NotificationSettings = {
   catalogue: {
     emitter: string
+    mandatoryFailure?: boolean
     accessCheck: string
     sensitivity: string
     channels: string[]
@@ -77,6 +80,7 @@ export type NotificationDelivery = {
   destination: string
   status: 'PENDING' | 'CLAIMED' | 'SUCCEEDED' | 'SKIPPED' | 'BLOCKED' | 'UNCERTAIN' | 'DEAD'
   failureCode: string
+  decisionCode?: string
   providerReceipt: string
   attempts: number
   createdAt: string

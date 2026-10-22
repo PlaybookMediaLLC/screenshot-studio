@@ -3488,9 +3488,10 @@ export class ScreenshotStudioBackendSDK {
       `v1/workspace/notifications/deliveries/${encodeURIComponent(id)}`
     )
   }
-  notificationDeliveries() {
+  /** List own personal receipts or administrator-visible workspace receipts. */
+  notificationDeliveries(scope: 'workspace' | 'personal' = 'workspace') {
     return this.request<{ deliveries: NotificationDelivery[] }>(
-      'v1/workspace/notifications/deliveries'
+      `v1/workspace/notifications/deliveries?scope=${scope}`
     )
   }
   /** Recover one unresolved delivery; successful receipts cannot be replayed. */

@@ -154,7 +154,7 @@ func TestSocialSetChannelsRouteIndependentlyWithDuplicateNames(t *testing.T) {
 		if err = f.s.Process(ctx); err != nil {
 			t.Fatal(err)
 		}
-		rows, err := f.s.DB.Query(`SELECT channel FROM platform_notification_delivery WHERE event_id=$1 AND destination=$2 ORDER BY channel`, event, f.creator.UserID)
+		rows, err := f.s.DB.Query(`SELECT channel FROM platform_notification_delivery WHERE event_id=$1 AND destination=$2 AND status<>'SKIPPED' ORDER BY channel`, event, f.creator.UserID)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -148,7 +148,13 @@ func TestIndependentRecipientsDoNotResendSuccess(t *testing.T) {
 	if err := f.s.DB.QueryRow(`SELECT id FROM platform_notification_delivery WHERE "organizationId"=$1 AND channel='email' AND destination=$2 AND status='SUCCEEDED' LIMIT 1`, f.owner.OrganizationID, f.owner.UserID).Scan(&id); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.s.Recover(ctx, f.owner, id, "retry"); err == nil {
+	if err := f.s.Recover(ctx, f.owner, id, "retry"); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.s.Process(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if sent[f.owner.UserID] != 1 || sent[f.creator.UserID] != 2 {
 		t.Fatal("successful receipt was replayed")
 	}
 }

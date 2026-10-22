@@ -190,6 +190,20 @@ func (_c *PlatformNotificationDeliveryCreate) SetNillableFailureCode(v *string) 
 	return _c
 }
 
+// SetDecisionCode sets the "decision_code" field.
+func (_c *PlatformNotificationDeliveryCreate) SetDecisionCode(v string) *PlatformNotificationDeliveryCreate {
+	_c.mutation.SetDecisionCode(v)
+	return _c
+}
+
+// SetNillableDecisionCode sets the "decision_code" field if the given value is not nil.
+func (_c *PlatformNotificationDeliveryCreate) SetNillableDecisionCode(v *string) *PlatformNotificationDeliveryCreate {
+	if v != nil {
+		_c.SetDecisionCode(*v)
+	}
+	return _c
+}
+
 // SetProviderReceipt sets the "provider_receipt" field.
 func (_c *PlatformNotificationDeliveryCreate) SetProviderReceipt(v string) *PlatformNotificationDeliveryCreate {
 	_c.mutation.SetProviderReceipt(v)
@@ -319,6 +333,10 @@ func (_c *PlatformNotificationDeliveryCreate) defaults() {
 		v := platformnotificationdelivery.DefaultFailureCode
 		_c.mutation.SetFailureCode(v)
 	}
+	if _, ok := _c.mutation.DecisionCode(); !ok {
+		v := platformnotificationdelivery.DefaultDecisionCode
+		_c.mutation.SetDecisionCode(v)
+	}
 	if _, ok := _c.mutation.ProviderReceipt(); !ok {
 		v := platformnotificationdelivery.DefaultProviderReceipt
 		_c.mutation.SetProviderReceipt(v)
@@ -377,6 +395,9 @@ func (_c *PlatformNotificationDeliveryCreate) check() error {
 	}
 	if _, ok := _c.mutation.FailureCode(); !ok {
 		return &ValidationError{Name: "failure_code", err: errors.New(`ent: missing required field "PlatformNotificationDelivery.failure_code"`)}
+	}
+	if _, ok := _c.mutation.DecisionCode(); !ok {
+		return &ValidationError{Name: "decision_code", err: errors.New(`ent: missing required field "PlatformNotificationDelivery.decision_code"`)}
 	}
 	if _, ok := _c.mutation.ProviderReceipt(); !ok {
 		return &ValidationError{Name: "provider_receipt", err: errors.New(`ent: missing required field "PlatformNotificationDelivery.provider_receipt"`)}
@@ -484,6 +505,10 @@ func (_c *PlatformNotificationDeliveryCreate) createSpec() (*PlatformNotificatio
 	if value, ok := _c.mutation.FailureCode(); ok {
 		_spec.SetField(platformnotificationdelivery.FieldFailureCode, field.TypeString, value)
 		_node.FailureCode = value
+	}
+	if value, ok := _c.mutation.DecisionCode(); ok {
+		_spec.SetField(platformnotificationdelivery.FieldDecisionCode, field.TypeString, value)
+		_node.DecisionCode = value
 	}
 	if value, ok := _c.mutation.ProviderReceipt(); ok {
 		_spec.SetField(platformnotificationdelivery.FieldProviderReceipt, field.TypeString, value)

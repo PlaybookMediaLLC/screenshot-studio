@@ -38,6 +38,7 @@ func (PlatformNotificationPreference) Fields() []ent.Field {
 		field.JSON("events", map[string]any{}).Default(map[string]any{}),
 		// Per social set: activity kinds turned off for that set (RFC 043).
 		field.JSON("social_sets", map[string]map[string]bool{}).Default(map[string]map[string]bool{}),
+		field.Bool("slack_enabled").Default(true),
 		field.JSON("social_set_channels", map[string]map[string]map[string]bool{}).Default(map[string]map[string]map[string]bool{}),
 		field.Int("generation").Default(1),
 		field.Time("updated_at").Default(time.Now)}
@@ -93,7 +94,7 @@ func (PlatformNotificationDelivery) Fields() []ent.Field {
 		field.Time("send_started_at").Optional().Nillable(),
 		field.Int("attempts").Default(0),
 		field.Time("next_attempt_at").Default(time.Now),
-		field.String("failure_code").Default(""),
+		field.String("failure_code").Default(""), field.String("decision_code").Default("LEGACY"),
 		field.String("provider_receipt").Default(""),
 		field.String("encrypted_payload").Default("").Sensitive(),
 		field.Time("created_at").Default(time.Now),

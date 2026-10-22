@@ -124,7 +124,7 @@ func (s *Server) workspaceNotifications(w http.ResponseWriter, r *http.Request) 
 		result, err = service.DeliveryStatus(r.Context(), p, r.PathValue("id"))
 	case "GET /v1/workspace/notifications/deliveries":
 		var deliveries []notifications.Delivery
-		deliveries, err = service.Deliveries(r.Context(), p)
+		deliveries, err = service.Deliveries(r.Context(), p, r.URL.Query().Get("scope"))
 		result = map[string]any{"deliveries": deliveries}
 	case "POST /v1/workspace/notifications/deliveries/{id}/recover":
 		var input struct {

@@ -74,7 +74,8 @@ export function preferenceDeliveryReason(
   emailEnabled: boolean,
   kind: string,
   channel: Channel,
-  selected: boolean
+  selected: boolean,
+  slackEnabled = settings.preferences.slackEnabled !== false
 ) {
   if (
     !settings.policy.availability[channel] ||
@@ -83,9 +84,12 @@ export function preferenceDeliveryReason(
     return 'Blocked by workspace policy'
   if (channel === 'email' && !emailEnabled) return 'Email off for all workspaces'
   if (channel === 'email' && !settings.emailAvailable) return 'Email delivery unavailable'
+  if (channel === 'slack' && !slackEnabled) return 'Personal Slack messages are off'
   if (channel === 'slack' && !settings.slackAvailable) return 'Slack unavailable'
   if (channel === 'slack' && !settings.personalSlack) return 'Connect your Slack account'
   if (channel === 'slack' && settings.personalSlack?.health !== 'CONNECTED')
     return 'Reconnect your Slack account'
+  if (settings.catalogue.find((event) => event.id === kind)?.mandatoryFailure)
+    return 'Required failure alert'
   return selected ? 'On' : 'Off'
 }

@@ -48678,6 +48678,7 @@ type PlatformNotificationDeliveryMutation struct {
 	addattempts              *int
 	next_attempt_at          *time.Time
 	failure_code             *string
+	decision_code            *string
 	provider_receipt         *string
 	encrypted_payload        *string
 	created_at               *time.Time
@@ -49418,6 +49419,42 @@ func (m *PlatformNotificationDeliveryMutation) ResetFailureCode() {
 	m.failure_code = nil
 }
 
+// SetDecisionCode sets the "decision_code" field.
+func (m *PlatformNotificationDeliveryMutation) SetDecisionCode(s string) {
+	m.decision_code = &s
+}
+
+// DecisionCode returns the value of the "decision_code" field in the mutation.
+func (m *PlatformNotificationDeliveryMutation) DecisionCode() (r string, exists bool) {
+	v := m.decision_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDecisionCode returns the old "decision_code" field's value of the PlatformNotificationDelivery entity.
+// If the PlatformNotificationDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationDeliveryMutation) OldDecisionCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDecisionCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDecisionCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDecisionCode: %w", err)
+	}
+	return oldValue.DecisionCode, nil
+}
+
+// ResetDecisionCode resets all changes to the "decision_code" field.
+func (m *PlatformNotificationDeliveryMutation) ResetDecisionCode() {
+	m.decision_code = nil
+}
+
 // SetProviderReceipt sets the "provider_receipt" field.
 func (m *PlatformNotificationDeliveryMutation) SetProviderReceipt(s string) {
 	m.provider_receipt = &s
@@ -49596,7 +49633,7 @@ func (m *PlatformNotificationDeliveryMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlatformNotificationDeliveryMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 20)
 	if m.organization_id != nil {
 		fields = append(fields, platformnotificationdelivery.FieldOrganizationID)
 	}
@@ -49641,6 +49678,9 @@ func (m *PlatformNotificationDeliveryMutation) Fields() []string {
 	}
 	if m.failure_code != nil {
 		fields = append(fields, platformnotificationdelivery.FieldFailureCode)
+	}
+	if m.decision_code != nil {
+		fields = append(fields, platformnotificationdelivery.FieldDecisionCode)
 	}
 	if m.provider_receipt != nil {
 		fields = append(fields, platformnotificationdelivery.FieldProviderReceipt)
@@ -49692,6 +49732,8 @@ func (m *PlatformNotificationDeliveryMutation) Field(name string) (ent.Value, bo
 		return m.NextAttemptAt()
 	case platformnotificationdelivery.FieldFailureCode:
 		return m.FailureCode()
+	case platformnotificationdelivery.FieldDecisionCode:
+		return m.DecisionCode()
 	case platformnotificationdelivery.FieldProviderReceipt:
 		return m.ProviderReceipt()
 	case platformnotificationdelivery.FieldEncryptedPayload:
@@ -49739,6 +49781,8 @@ func (m *PlatformNotificationDeliveryMutation) OldField(ctx context.Context, nam
 		return m.OldNextAttemptAt(ctx)
 	case platformnotificationdelivery.FieldFailureCode:
 		return m.OldFailureCode(ctx)
+	case platformnotificationdelivery.FieldDecisionCode:
+		return m.OldDecisionCode(ctx)
 	case platformnotificationdelivery.FieldProviderReceipt:
 		return m.OldProviderReceipt(ctx)
 	case platformnotificationdelivery.FieldEncryptedPayload:
@@ -49860,6 +49904,13 @@ func (m *PlatformNotificationDeliveryMutation) SetField(name string, value ent.V
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetFailureCode(v)
+		return nil
+	case platformnotificationdelivery.FieldDecisionCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDecisionCode(v)
 		return nil
 	case platformnotificationdelivery.FieldProviderReceipt:
 		v, ok := value.(string)
@@ -50036,6 +50087,9 @@ func (m *PlatformNotificationDeliveryMutation) ResetField(name string) error {
 		return nil
 	case platformnotificationdelivery.FieldFailureCode:
 		m.ResetFailureCode()
+		return nil
+	case platformnotificationdelivery.FieldDecisionCode:
+		m.ResetDecisionCode()
 		return nil
 	case platformnotificationdelivery.FieldProviderReceipt:
 		m.ResetProviderReceipt()
@@ -51824,6 +51878,7 @@ type PlatformNotificationPreferenceMutation struct {
 	user_id             *string
 	events              *map[string]interface{}
 	social_sets         *map[string]map[string]bool
+	slack_enabled       *bool
 	social_set_channels *map[string]map[string]map[string]bool
 	generation          *int
 	addgeneration       *int
@@ -52082,6 +52137,42 @@ func (m *PlatformNotificationPreferenceMutation) ResetSocialSets() {
 	m.social_sets = nil
 }
 
+// SetSlackEnabled sets the "slack_enabled" field.
+func (m *PlatformNotificationPreferenceMutation) SetSlackEnabled(b bool) {
+	m.slack_enabled = &b
+}
+
+// SlackEnabled returns the value of the "slack_enabled" field in the mutation.
+func (m *PlatformNotificationPreferenceMutation) SlackEnabled() (r bool, exists bool) {
+	v := m.slack_enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlackEnabled returns the old "slack_enabled" field's value of the PlatformNotificationPreference entity.
+// If the PlatformNotificationPreference object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPreferenceMutation) OldSlackEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlackEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlackEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlackEnabled: %w", err)
+	}
+	return oldValue.SlackEnabled, nil
+}
+
+// ResetSlackEnabled resets all changes to the "slack_enabled" field.
+func (m *PlatformNotificationPreferenceMutation) ResetSlackEnabled() {
+	m.slack_enabled = nil
+}
+
 // SetSocialSetChannels sets the "social_set_channels" field.
 func (m *PlatformNotificationPreferenceMutation) SetSocialSetChannels(value map[string]map[string]map[string]bool) {
 	m.social_set_channels = &value
@@ -52244,7 +52335,7 @@ func (m *PlatformNotificationPreferenceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlatformNotificationPreferenceMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.organization_id != nil {
 		fields = append(fields, platformnotificationpreference.FieldOrganizationID)
 	}
@@ -52256,6 +52347,9 @@ func (m *PlatformNotificationPreferenceMutation) Fields() []string {
 	}
 	if m.social_sets != nil {
 		fields = append(fields, platformnotificationpreference.FieldSocialSets)
+	}
+	if m.slack_enabled != nil {
+		fields = append(fields, platformnotificationpreference.FieldSlackEnabled)
 	}
 	if m.social_set_channels != nil {
 		fields = append(fields, platformnotificationpreference.FieldSocialSetChannels)
@@ -52282,6 +52376,8 @@ func (m *PlatformNotificationPreferenceMutation) Field(name string) (ent.Value, 
 		return m.Events()
 	case platformnotificationpreference.FieldSocialSets:
 		return m.SocialSets()
+	case platformnotificationpreference.FieldSlackEnabled:
+		return m.SlackEnabled()
 	case platformnotificationpreference.FieldSocialSetChannels:
 		return m.SocialSetChannels()
 	case platformnotificationpreference.FieldGeneration:
@@ -52305,6 +52401,8 @@ func (m *PlatformNotificationPreferenceMutation) OldField(ctx context.Context, n
 		return m.OldEvents(ctx)
 	case platformnotificationpreference.FieldSocialSets:
 		return m.OldSocialSets(ctx)
+	case platformnotificationpreference.FieldSlackEnabled:
+		return m.OldSlackEnabled(ctx)
 	case platformnotificationpreference.FieldSocialSetChannels:
 		return m.OldSocialSetChannels(ctx)
 	case platformnotificationpreference.FieldGeneration:
@@ -52347,6 +52445,13 @@ func (m *PlatformNotificationPreferenceMutation) SetField(name string, value ent
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSocialSets(v)
+		return nil
+	case platformnotificationpreference.FieldSlackEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlackEnabled(v)
 		return nil
 	case platformnotificationpreference.FieldSocialSetChannels:
 		v, ok := value.(map[string]map[string]map[string]bool)
@@ -52444,6 +52549,9 @@ func (m *PlatformNotificationPreferenceMutation) ResetField(name string) error {
 		return nil
 	case platformnotificationpreference.FieldSocialSets:
 		m.ResetSocialSets()
+		return nil
+	case platformnotificationpreference.FieldSlackEnabled:
+		m.ResetSlackEnabled()
 		return nil
 	case platformnotificationpreference.FieldSocialSetChannels:
 		m.ResetSocialSetChannels()

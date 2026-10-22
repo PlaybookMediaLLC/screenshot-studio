@@ -36,7 +36,7 @@ func effectiveSettings(p Policy, pref Preferences, emailAvailable bool, connecti
 				reason = "This activity is private to its recipients."
 			case ch == "in_app" && !pol.InApp || ch == "email" && !pol.Email || ch == "slack" && !pol.Slack:
 				reason = "Disabled by workspace policy."
-			case ch == "in_app" && !personal.InApp || ch == "email" && !personal.Email:
+			case !d.MandatoryFailure && (ch == "in_app" && !personal.InApp || ch == "email" && !personal.Email):
 				reason = "Disabled in your preferences."
 			case ch == "email" && !emailAvailable:
 				reason = "Email delivery is not configured."
@@ -50,7 +50,9 @@ func effectiveSettings(p Policy, pref Preferences, emailAvailable bool, connecti
 		switch {
 		case !availableChannel(p, "slack_dm"):
 			dmReason = "This channel is unavailable in this workspace."
-		case !pref.Events[d.ID].Slack:
+		case pref.SlackEnabled != nil && !*pref.SlackEnabled:
+			dmReason = "Personal Slack messages are turned off."
+		case !d.MandatoryFailure && !pref.Events[d.ID].Slack:
 			dmReason = "Disabled in your preferences."
 		case len(personalSlack) == 0 || personalSlack[0] == nil:
 			dmReason = "Connect your Slack account to receive direct messages."
@@ -163,7 +165,7 @@ func (s *Service) Test(ctx context.Context, p Principal, channel, key string) (s
 	if err != nil {
 		return "", err
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_delivery(id,"organizationId",event_id,kind,channel,destination,policy_generation,preference_generation,connection_id) VALUES($1,$2,$3,'notification.test',$4,$5,$6,$7,$8)`, id, p.OrganizationID, eventID, channel, destination, pol.Generation, pref.Generation, connection)
+	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_delivery(id,"organizationId",event_id,kind,channel,destination,policy_generation,preference_generation,connection_id,decision_code) VALUES($1,$2,$3,'notification.test',$4,$5,$6,$7,$8,'EXPLICIT_TEST')`, id, p.OrganizationID, eventID, channel, destination, pol.Generation, pref.Generation, connection)
 	if err != nil {
 		return "", err
 	}
@@ -183,7 +185,7 @@ func (s *Service) DeliveryStatus(ctx context.Context, p Principal, id string) (*
 	}
 	admin := s.Authorize(ctx, p, true) == nil
 	var d Delivery
-	err := s.DB.QueryRowContext(ctx, `SELECT id,"organizationId",event_id,kind,channel,destination,status,failure_code,provider_receipt,attempts,created_at,updated_at FROM platform_notification_delivery WHERE id=$1 AND "organizationId"=$2 AND (($3 AND channel<>'slack_dm') OR channel IN ('email','slack_dm') AND destination=$4)`, id, p.OrganizationID, admin, p.UserID).Scan(&d.ID, &d.OrganizationID, &d.EventID, &d.Kind, &d.Channel, &d.Destination, &d.Status, &d.FailureCode, &d.ProviderReceipt, &d.Attempts, &d.CreatedAt, &d.UpdatedAt)
+	err := s.DB.QueryRowContext(ctx, `SELECT id,"organizationId",event_id,kind,channel,destination,status,failure_code,decision_code,provider_receipt,attempts,created_at,updated_at FROM platform_notification_delivery WHERE id=$1 AND "organizationId"=$2 AND (($3 AND channel<>'slack_dm') OR channel IN ('email','slack_dm') AND destination=$4)`, id, p.OrganizationID, admin, p.UserID).Scan(&d.ID, &d.OrganizationID, &d.EventID, &d.Kind, &d.Channel, &d.Destination, &d.Status, &d.FailureCode, &d.DecisionCode, &d.ProviderReceipt, &d.Attempts, &d.CreatedAt, &d.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, publishing.ErrNotFound
 	}

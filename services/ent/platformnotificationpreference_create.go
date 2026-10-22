@@ -44,6 +44,20 @@ func (_c *PlatformNotificationPreferenceCreate) SetSocialSets(v map[string]map[s
 	return _c
 }
 
+// SetSlackEnabled sets the "slack_enabled" field.
+func (_c *PlatformNotificationPreferenceCreate) SetSlackEnabled(v bool) *PlatformNotificationPreferenceCreate {
+	_c.mutation.SetSlackEnabled(v)
+	return _c
+}
+
+// SetNillableSlackEnabled sets the "slack_enabled" field if the given value is not nil.
+func (_c *PlatformNotificationPreferenceCreate) SetNillableSlackEnabled(v *bool) *PlatformNotificationPreferenceCreate {
+	if v != nil {
+		_c.SetSlackEnabled(*v)
+	}
+	return _c
+}
+
 // SetSocialSetChannels sets the "social_set_channels" field.
 func (_c *PlatformNotificationPreferenceCreate) SetSocialSetChannels(v map[string]map[string]map[string]bool) *PlatformNotificationPreferenceCreate {
 	_c.mutation.SetSocialSetChannels(v)
@@ -127,6 +141,10 @@ func (_c *PlatformNotificationPreferenceCreate) defaults() {
 		v := platformnotificationpreference.DefaultSocialSets
 		_c.mutation.SetSocialSets(v)
 	}
+	if _, ok := _c.mutation.SlackEnabled(); !ok {
+		v := platformnotificationpreference.DefaultSlackEnabled
+		_c.mutation.SetSlackEnabled(v)
+	}
 	if _, ok := _c.mutation.SocialSetChannels(); !ok {
 		v := platformnotificationpreference.DefaultSocialSetChannels
 		_c.mutation.SetSocialSetChannels(v)
@@ -154,6 +172,9 @@ func (_c *PlatformNotificationPreferenceCreate) check() error {
 	}
 	if _, ok := _c.mutation.SocialSets(); !ok {
 		return &ValidationError{Name: "social_sets", err: errors.New(`ent: missing required field "PlatformNotificationPreference.social_sets"`)}
+	}
+	if _, ok := _c.mutation.SlackEnabled(); !ok {
+		return &ValidationError{Name: "slack_enabled", err: errors.New(`ent: missing required field "PlatformNotificationPreference.slack_enabled"`)}
 	}
 	if _, ok := _c.mutation.SocialSetChannels(); !ok {
 		return &ValidationError{Name: "social_set_channels", err: errors.New(`ent: missing required field "PlatformNotificationPreference.social_set_channels"`)}
@@ -214,6 +235,10 @@ func (_c *PlatformNotificationPreferenceCreate) createSpec() (*PlatformNotificat
 	if value, ok := _c.mutation.SocialSets(); ok {
 		_spec.SetField(platformnotificationpreference.FieldSocialSets, field.TypeJSON, value)
 		_node.SocialSets = value
+	}
+	if value, ok := _c.mutation.SlackEnabled(); ok {
+		_spec.SetField(platformnotificationpreference.FieldSlackEnabled, field.TypeBool, value)
+		_node.SlackEnabled = value
 	}
 	if value, ok := _c.mutation.SocialSetChannels(); ok {
 		_spec.SetField(platformnotificationpreference.FieldSocialSetChannels, field.TypeJSON, value)

@@ -1,5 +1,5 @@
 import { publicImageUrl } from '@/lib/assets/public-image'
-import { PiCheck as Check } from 'react-icons/pi'
+import { CheckIcon as Check } from '@phosphor-icons/react/dist/ssr/Check'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'

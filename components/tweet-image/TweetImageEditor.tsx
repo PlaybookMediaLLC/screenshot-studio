@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { PiArrowSquareOut as LinkSquare02Icon, PiSpinnerGap as Loading03Icon } from 'react-icons/pi';
+import { ArrowSquareOutIcon as LinkSquare02Icon } from '@phosphor-icons/react/dist/ssr/ArrowSquareOut'
+import { SpinnerGapIcon as Loading03Icon } from '@phosphor-icons/react/dist/ssr/SpinnerGap';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Switch } from '@/components/ui/switch'

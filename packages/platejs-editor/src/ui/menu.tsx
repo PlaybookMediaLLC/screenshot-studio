@@ -25,7 +25,7 @@ import {
 } from "@ariakit/react";
 import { useComposedRef } from "@udecode/cn";
 import { cva, type VariantProps } from "class-variance-authority";
-import { PiArrowElbowDownLeft as CornerDownLeftIcon } from "react-icons/pi";
+import { ArrowElbowDownLeftIcon as CornerDownLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowElbowDownLeft";
 import {
   type ComponentProps,
   createContext,

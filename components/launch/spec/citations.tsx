@@ -1,6 +1,6 @@
 'use client'
 
-import { PiWarning as Alert02Icon } from 'react-icons/pi'
+import { WarningIcon as Alert02Icon } from '@phosphor-icons/react/dist/ssr/Warning'
 import { type ReactNode, useState } from 'react'
 import { Group, Pill, type PillTone, Section } from '@/components/platform-ui'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'

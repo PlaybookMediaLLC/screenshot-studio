@@ -1,6 +1,9 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { PiInstagramLogo as InstagramIcon, PiLinkedinLogo as Linkedin01Icon, PiXLogo as NewTwitterIcon, PiShare as Share08Icon } from "react-icons/pi";
+import { InstagramLogoIcon as InstagramIcon } from "@phosphor-icons/react/dist/ssr/InstagramLogo"
+import { LinkedinLogoIcon as Linkedin01Icon } from "@phosphor-icons/react/dist/ssr/LinkedinLogo"
+import { XLogoIcon as NewTwitterIcon } from "@phosphor-icons/react/dist/ssr/XLogo"
+import { ShareIcon as Share08Icon } from "@phosphor-icons/react/dist/ssr/Share";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

@@ -2,7 +2,9 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { PiCode as CodeIcon, PiImage as ImageAdd01Icon, PiArrowClockwise as RotateClockwiseIcon } from 'react-icons/pi'
+import { CodeIcon as CodeIcon } from '@phosphor-icons/react/dist/ssr/Code'
+import { ImageIcon as ImageAdd01Icon } from '@phosphor-icons/react/dist/ssr/Image'
+import { ArrowClockwiseIcon as RotateClockwiseIcon } from '@phosphor-icons/react/dist/ssr/ArrowClockwise'
 import { DocumentPreview } from '@/components/design/DocumentPreview'
 import { SectionWrapper } from '@/components/editor/sections/SectionWrapper'
 import { Button } from '@/components/ui/button'

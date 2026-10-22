@@ -2,7 +2,8 @@
 
 import { useEquationElement, useEquationInput } from "@platejs/math/react";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
-import { PiArrowElbowDownLeft as CornerDownLeftIcon, PiRadical as RadicalIcon } from "react-icons/pi";
+import { ArrowElbowDownLeftIcon as CornerDownLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowElbowDownLeft"
+import { RadicalIcon as RadicalIcon } from "@phosphor-icons/react/dist/ssr/Radical";
 import type { TEquationElement } from "platejs";
 import {
   createPrimitiveComponent,

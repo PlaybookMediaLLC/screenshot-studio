@@ -3,7 +3,13 @@
 import * as React from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { PiCrop as CropIcon, PiDownload as Download04Icon, PiTrash as Delete02Icon, PiEraser as Eraser01Icon, PiSpinnerGap as Loading03Icon, PiNotePencil as PencilEdit02Icon, PiArrowUUpLeft as Undo02Icon } from "react-icons/pi";
+import { CropIcon as CropIcon } from "@phosphor-icons/react/dist/ssr/Crop"
+import { DownloadIcon as Download04Icon } from "@phosphor-icons/react/dist/ssr/Download"
+import { TrashIcon as Delete02Icon } from "@phosphor-icons/react/dist/ssr/Trash"
+import { EraserIcon as Eraser01Icon } from "@phosphor-icons/react/dist/ssr/Eraser"
+import { SpinnerGapIcon as Loading03Icon } from "@phosphor-icons/react/dist/ssr/SpinnerGap"
+import { NotePencilIcon as PencilEdit02Icon } from "@phosphor-icons/react/dist/ssr/NotePencil"
+import { ArrowUUpLeftIcon as Undo02Icon } from "@phosphor-icons/react/dist/ssr/ArrowUUpLeft";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

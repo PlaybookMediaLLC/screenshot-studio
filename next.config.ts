@@ -15,12 +15,6 @@ const nextConfig: NextConfig = {
     .map((origin) => origin.trim())
     .filter(Boolean),
 
-  experimental: {
-    // These packages expose many icons from barrel entry points. Rewriting
-    // imports keeps unused icons out of the Webpack production bundle.
-    optimizePackageImports: ['react-icons/pi', 'react-icons/si'],
-  },
-
   images: {
     remotePatterns: [
       {

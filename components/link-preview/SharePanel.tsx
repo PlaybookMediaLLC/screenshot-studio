@@ -1,6 +1,8 @@
 'use client'
 
-import { PiCheck as Check, PiCopy as Copy, PiArrowSquareOut as ExternalLink } from 'react-icons/pi'
+import { CheckIcon as Check } from '@phosphor-icons/react/dist/ssr/Check'
+import { CopyIcon as Copy } from '@phosphor-icons/react/dist/ssr/Copy'
+import { ArrowSquareOutIcon as ExternalLink } from '@phosphor-icons/react/dist/ssr/ArrowSquareOut'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {

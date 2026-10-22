@@ -9,8 +9,16 @@ import {
   useBlockSelectionFragmentProp,
   useBlockSelectionNodes,
 } from "@platejs/selection/react";
-import { PiTextAlignCenter as AlignCenter, PiTextAlignLeft as AlignLeft, PiTextAlignRight as AlignRight, PiClosedCaptioning as CaptionsIcon, PiFiles as FilesIcon, PiChatText as MessageSquareText, PiPaintRoller as PaintRoller, PiArrowsClockwise as RefreshCwIcon, PiTrash as Trash2 } from "react-icons/pi"
-import type { IconBaseProps } from "react-icons";
+import { TextAlignCenterIcon as AlignCenter } from "@phosphor-icons/react/dist/ssr/TextAlignCenter"
+import { TextAlignLeftIcon as AlignLeft } from "@phosphor-icons/react/dist/ssr/TextAlignLeft"
+import { TextAlignRightIcon as AlignRight } from "@phosphor-icons/react/dist/ssr/TextAlignRight"
+import { ClosedCaptioningIcon as CaptionsIcon } from "@phosphor-icons/react/dist/ssr/ClosedCaptioning"
+import { FilesIcon as FilesIcon } from "@phosphor-icons/react/dist/ssr/Files"
+import { ChatTextIcon as MessageSquareText } from "@phosphor-icons/react/dist/ssr/ChatText"
+import { PaintRollerIcon as PaintRoller } from "@phosphor-icons/react/dist/ssr/PaintRoller"
+import { ArrowsClockwiseIcon as RefreshCwIcon } from "@phosphor-icons/react/dist/ssr/ArrowsClockwise"
+import { TrashIcon as Trash2 } from "@phosphor-icons/react/dist/ssr/Trash"
+import type { IconProps } from "@phosphor-icons/react";
 import { KEYS, type TElement } from "platejs";
 import { type PlateEditor, useEditorRef, useHotkeys } from "platejs/react";
 import { type ComponentType, type ReactNode, useMemo, useState } from "react";
@@ -163,7 +171,7 @@ function BlockMenuInput({ onHide }: { onHide: () => void }) {
   );
 }
 
-function AIIcon(props: IconBaseProps) {
+function AIIcon(props: IconProps) {
   return (
     <svg
       fill="url(#myGradient)"

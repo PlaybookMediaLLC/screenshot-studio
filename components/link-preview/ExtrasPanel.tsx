@@ -1,6 +1,7 @@
 'use client'
 
-import { PiCheck as Check, PiXCircle as XCircle } from 'react-icons/pi'
+import { CheckIcon as Check } from '@phosphor-icons/react/dist/ssr/Check'
+import { XCircleIcon as XCircle } from '@phosphor-icons/react/dist/ssr/XCircle'
 import type { ReactNode } from 'react'
 import { Pill } from '@/components/platform-ui'
 import type { LinkPreview } from '@/lib/api/contracts/link-preview'

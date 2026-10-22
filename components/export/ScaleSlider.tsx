@@ -7,7 +7,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { PiLock as LockIcon } from 'react-icons/pi';
+import { LockIcon as LockIcon } from '@phosphor-icons/react/dist/ssr/Lock';
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 

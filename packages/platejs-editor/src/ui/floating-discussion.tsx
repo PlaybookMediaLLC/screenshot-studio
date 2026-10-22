@@ -8,7 +8,9 @@ import {
   keyId2SuggestionId,
   rejectSuggestion,
 } from "@platejs/suggestion";
-import { PiCheck as CheckIcon, PiPencilLine as PencilLineIcon, PiX as XIcon } from "react-icons/pi";
+import { CheckIcon as CheckIcon } from "@phosphor-icons/react/dist/ssr/Check"
+import { PencilLineIcon as PencilLineIcon } from "@phosphor-icons/react/dist/ssr/PencilLine"
+import { XIcon as XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import {
   ElementApi,
   KEYS,

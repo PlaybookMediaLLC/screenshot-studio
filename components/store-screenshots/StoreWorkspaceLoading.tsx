@@ -2,7 +2,7 @@
 import { publicImageUrl } from '@/lib/assets/public-image'
 import Image from "next/image";
 import Link from "next/link";
-import { PiXLogo as NewTwitterIcon } from "react-icons/pi";
+import { XLogoIcon as NewTwitterIcon } from "@phosphor-icons/react/dist/ssr/XLogo";
 import { MobileBanner } from "@/components/editor/MobileBanner";
 import { getStoreProfile } from "@/lib/store-screenshots/config";
 

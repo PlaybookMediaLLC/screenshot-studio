@@ -18,7 +18,8 @@ import {
   Trigger as DropdownMenuTriggerPrimitive,
 } from "@radix-ui/react-dropdown-menu";
 import { cva, type VariantProps } from "class-variance-authority";
-import { PiCheck as CheckIcon, PiCaretRight as ChevronRightIcon } from "react-icons/pi";
+import { CheckIcon as CheckIcon } from "@phosphor-icons/react/dist/ssr/Check"
+import { CaretRightIcon as ChevronRightIcon } from "@phosphor-icons/react/dist/ssr/CaretRight";
 import { type ComponentProps, useCallback, useState } from "react";
 
 import { cn } from "../lib/utils";

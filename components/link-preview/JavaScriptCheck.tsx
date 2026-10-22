@@ -1,6 +1,8 @@
 'use client'
 
-import { PiBracketsCurly as Braces, PiCheck as Check, PiSpinnerGap as Loader2 } from 'react-icons/pi'
+import { BracketsCurlyIcon as Braces } from '@phosphor-icons/react/dist/ssr/BracketsCurly'
+import { CheckIcon as Check } from '@phosphor-icons/react/dist/ssr/Check'
+import { SpinnerGapIcon as Loader2 } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
 import { useState } from 'react'
 import { Pill } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'

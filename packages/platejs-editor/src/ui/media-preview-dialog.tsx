@@ -6,7 +6,12 @@ import {
   useImagePreviewValue,
   useScaleInput,
 } from "@platejs/media/react";
-import { PiArrowLeft as ArrowLeftIcon, PiArrowRight as ArrowRightIcon, PiArrowCircleDown as CircleArrowDown, PiArrowsIn as Minimize2, PiMinus as Minus, PiPlus as Plus } from "react-icons/pi";
+import { ArrowLeftIcon as ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowLeft"
+import { ArrowRightIcon as ArrowRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowRight"
+import { ArrowCircleDownIcon as CircleArrowDown } from "@phosphor-icons/react/dist/ssr/ArrowCircleDown"
+import { ArrowsInIcon as Minimize2 } from "@phosphor-icons/react/dist/ssr/ArrowsIn"
+import { MinusIcon as Minus } from "@phosphor-icons/react/dist/ssr/Minus"
+import { PlusIcon as Plus } from "@phosphor-icons/react/dist/ssr/Plus";
 import { useEditorRef } from "platejs/react";
 import type { ComponentProps } from "react";
 import { downloadFile } from "../lib/download-file";

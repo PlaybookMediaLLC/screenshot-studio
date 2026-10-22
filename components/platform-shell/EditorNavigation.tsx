@@ -2,7 +2,10 @@
 
 import { usePathname, useSearchParams } from 'next/navigation'
 import { Suspense, type ComponentProps } from 'react'
-import { PiCaretDown as ArrowDown01Icon, PiImage as Image02Icon, PiPalette as PaintBoardIcon, PiDeviceMobile as SmartPhone01Icon } from 'react-icons/pi'
+import { CaretDownIcon as ArrowDown01Icon } from '@phosphor-icons/react/dist/ssr/CaretDown'
+import { ImageIcon as Image02Icon } from '@phosphor-icons/react/dist/ssr/Image'
+import { PaletteIcon as PaintBoardIcon } from '@phosphor-icons/react/dist/ssr/Palette'
+import { DeviceMobileIcon as SmartPhone01Icon } from '@phosphor-icons/react/dist/ssr/DeviceMobile'
 import { Collapsible } from 'radix-ui'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'

@@ -1,7 +1,11 @@
 'use client'
 
 import * as React from 'react'
-import { PiX as Cancel01Icon, PiClosedCaptioning as ClosedCaptionIcon, PiMusicNote as MusicNote01Icon, PiArrowsVertical as ScrollVerticalIcon, PiTextAa as TextFontIcon } from 'react-icons/pi'
+import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
+import { ClosedCaptioningIcon as ClosedCaptionIcon } from '@phosphor-icons/react/dist/ssr/ClosedCaptioning'
+import { MusicNoteIcon as MusicNote01Icon } from '@phosphor-icons/react/dist/ssr/MusicNote'
+import { ArrowsVerticalIcon as ScrollVerticalIcon } from '@phosphor-icons/react/dist/ssr/ArrowsVertical'
+import { TextAaIcon as TextFontIcon } from '@phosphor-icons/react/dist/ssr/TextAa'
 import {
   duplicateKeyframe,
   removeAudioClip,

@@ -1,4 +1,5 @@
-import { PiImages as Album02Icon, PiCaretDown as ArrowDown01Icon } from 'react-icons/pi'
+import { ImagesIcon as Album02Icon } from '@phosphor-icons/react/dist/ssr/Images'
+import { CaretDownIcon as ArrowDown01Icon } from '@phosphor-icons/react/dist/ssr/CaretDown'
 import type { ReactNode } from 'react'
 import { RevisePanel } from '@/components/launch/RevisePanel'
 import { ApproveVisualButton } from '@/components/launch/assets/ApproveVisualButton'

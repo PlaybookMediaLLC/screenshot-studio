@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
-import { PiCheck as Tick02Icon, PiX as Cancel01Icon } from "react-icons/pi";
+import { CheckIcon as Tick02Icon } from "@phosphor-icons/react/dist/ssr/Check"
+import { XIcon as Cancel01Icon } from "@phosphor-icons/react/dist/ssr/X";
 import {
   AnswerCard,
   CTA_CLASS,

@@ -1,5 +1,5 @@
 import { PlanCampaignAction } from '@/components/launch/PlanCampaignAction'
-import { PiCheck as Tick02Icon } from 'react-icons/pi'
+import { CheckIcon as Tick02Icon } from '@phosphor-icons/react/dist/ssr/Check'
 import Link from 'next/link'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { Pill, type PillTone } from '@/components/platform-ui'

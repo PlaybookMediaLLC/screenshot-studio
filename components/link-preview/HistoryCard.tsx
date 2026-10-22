@@ -1,7 +1,7 @@
 'use client'
 
 import { formatDistanceToNow } from 'date-fns'
-import { PiClockCounterClockwise as History } from 'react-icons/pi'
+import { ClockCounterClockwiseIcon as History } from '@phosphor-icons/react/dist/ssr/ClockCounterClockwise'
 import { type LinkPreviewSnapshot, snapshotChanges } from '@/lib/link-preview/history'
 import { cn } from '@/lib/utils'
 import { PANEL } from './MetadataPanels'

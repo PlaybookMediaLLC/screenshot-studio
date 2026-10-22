@@ -1,6 +1,10 @@
 'use client'
 
-import { PiArrowUpRight as ArrowUpRight, PiClock as Clock3, PiFileText as FileText, PiImage as Image, PiStack as Layers } from 'react-icons/pi'
+import { ArrowUpRightIcon as ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
+import { ClockIcon as Clock3 } from '@phosphor-icons/react/dist/ssr/Clock'
+import { FileTextIcon as FileText } from '@phosphor-icons/react/dist/ssr/FileText'
+import { ImageIcon as Image } from '@phosphor-icons/react/dist/ssr/Image'
+import { StackIcon as Layers } from '@phosphor-icons/react/dist/ssr/Stack'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import { useTRPCClient } from '@/lib/trpc/react'

@@ -1,6 +1,6 @@
 'use client'
 
-import { PiShare as Share08Icon } from 'react-icons/pi'
+import { ShareIcon as Share08Icon } from '@phosphor-icons/react/dist/ssr/Share'
 import { useHydratedSession } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
 import { ShareDialog } from './ShareDialog'

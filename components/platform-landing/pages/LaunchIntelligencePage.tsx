@@ -1,4 +1,7 @@
-import { PiCpu as CpuIcon, PiDatabase as Database01Icon, PiSealCheck as FileValidationIcon, PiShield as Shield01Icon } from 'react-icons/pi'
+import { CpuIcon as CpuIcon } from '@phosphor-icons/react/dist/ssr/Cpu'
+import { DatabaseIcon as Database01Icon } from '@phosphor-icons/react/dist/ssr/Database'
+import { SealCheckIcon as FileValidationIcon } from '@phosphor-icons/react/dist/ssr/SealCheck'
+import { ShieldIcon as Shield01Icon } from '@phosphor-icons/react/dist/ssr/Shield'
 import { LAUNCH_AI_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import { CHANNEL_RULES, HYPE_TERMS } from '@/lib/launch/guards'
 import { formatTeamPreferences } from '@/lib/launch/preferences-format'

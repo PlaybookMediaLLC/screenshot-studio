@@ -1,6 +1,8 @@
 'use client'
 
-import { PiSparkle as AiMagicIcon, PiArrowUp as ArrowUp02Icon, PiX as Cancel01Icon } from 'react-icons/pi'
+import { SparkleIcon as AiMagicIcon } from '@phosphor-icons/react/dist/ssr/Sparkle'
+import { ArrowUpIcon as ArrowUp02Icon } from '@phosphor-icons/react/dist/ssr/ArrowUp'
+import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'

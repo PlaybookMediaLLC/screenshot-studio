@@ -7,7 +7,10 @@ import {
   usePlaceholderElementState,
   usePlaceholderPopoverState,
 } from "@platejs/media/react";
-import { PiWaveform as AudioLinesIcon, PiFileArrowUp as FileUpIcon, PiFilmStrip as FilmIcon, PiImage as ImageIcon } from "react-icons/pi";
+import { WaveformIcon as AudioLinesIcon } from "@phosphor-icons/react/dist/ssr/Waveform"
+import { FileArrowUpIcon as FileUpIcon } from "@phosphor-icons/react/dist/ssr/FileArrowUp"
+import { FilmStripIcon as FilmIcon } from "@phosphor-icons/react/dist/ssr/FilmStrip"
+import { ImageIcon as ImageIcon } from "@phosphor-icons/react/dist/ssr/Image";
 import { KEYS, nanoid } from "platejs";
 import {
   PlateElement,

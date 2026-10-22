@@ -1,6 +1,6 @@
 'use client'
 
-import { PiSlidersHorizontal as Settings2 } from 'react-icons/pi'
+import { SlidersHorizontalIcon as Settings2 } from '@phosphor-icons/react/dist/ssr/SlidersHorizontal'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { z } from 'zod'

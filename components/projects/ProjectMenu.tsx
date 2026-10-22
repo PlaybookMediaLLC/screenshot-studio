@@ -3,7 +3,13 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { PiWarning as Alert02Icon, PiCaretDown as ArrowDown01Icon, PiCopy as Copy01Icon, PiFloppyDisk as FloppyDiskIcon, PiFolderOpen as Folder01Icon, PiNotePencil as PencilEdit01Icon, PiClockCounterClockwise as WorkHistoryIcon } from 'react-icons/pi'
+import { WarningIcon as Alert02Icon } from '@phosphor-icons/react/dist/ssr/Warning'
+import { CaretDownIcon as ArrowDown01Icon } from '@phosphor-icons/react/dist/ssr/CaretDown'
+import { CopyIcon as Copy01Icon } from '@phosphor-icons/react/dist/ssr/Copy'
+import { FloppyDiskIcon as FloppyDiskIcon } from '@phosphor-icons/react/dist/ssr/FloppyDisk'
+import { FolderOpenIcon as Folder01Icon } from '@phosphor-icons/react/dist/ssr/FolderOpen'
+import { NotePencilIcon as PencilEdit01Icon } from '@phosphor-icons/react/dist/ssr/NotePencil'
+import { ClockCounterClockwiseIcon as WorkHistoryIcon } from '@phosphor-icons/react/dist/ssr/ClockCounterClockwise'
 import { toast } from 'sonner'
 import {
   AlertDialog,

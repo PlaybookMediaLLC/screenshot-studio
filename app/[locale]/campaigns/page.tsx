@@ -1,5 +1,7 @@
 import { AreaNavigation, CAMPAIGN_LINKS } from '@/components/platform-hub/AreaNavigation'
-import { PiCalendarDots as Calendar03Icon, PiMegaphone as Megaphone01Icon, PiRocket as Rocket01Icon } from 'react-icons/pi'
+import { CalendarDotsIcon as Calendar03Icon } from '@phosphor-icons/react/dist/ssr/CalendarDots'
+import { MegaphoneIcon as Megaphone01Icon } from '@phosphor-icons/react/dist/ssr/Megaphone'
+import { RocketIcon as Rocket01Icon } from '@phosphor-icons/react/dist/ssr/Rocket'
 import type { Metadata } from 'next'
 import { ShipInput } from '@/components/campaign-copilot/CopilotLaunchers'
 import { CampaignList } from '@/components/campaigns/CampaignList'

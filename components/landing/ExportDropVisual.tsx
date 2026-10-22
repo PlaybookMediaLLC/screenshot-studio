@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "motion/react";
-import { PiUpload as Upload } from "react-icons/pi";
+import { UploadIcon as Upload } from "@phosphor-icons/react/dist/ssr/Upload";
 import { cn } from "@/lib/utils";
 
 const mainVariant = {

@@ -98,7 +98,8 @@ export async function signUp(identity: E2EIdentity, page: Page): Promise<void> {
  * exercise it.
  */
 export async function signUpViaApi(identity: E2EIdentity, page: Page): Promise<void> {
-  await page.goto(getE2EUrl('/sign-up'))
+  // Establish the origin without a sign-up screen redirect racing the next navigation.
+  await page.goto(getE2EUrl('/api/health'))
   const registration = await authJson(page, '/api/auth/sign-up/email', {
     body: JSON.stringify({
       email: identity.email,

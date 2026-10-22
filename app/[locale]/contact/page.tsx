@@ -2,7 +2,9 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
-import { PiBug as Bug01Icon, PiLightbulb as Idea01Icon, PiEnvelope as Mail01Icon } from "react-icons/pi";
+import { BugIcon as Bug01Icon } from "@phosphor-icons/react/dist/ssr/Bug"
+import { LightbulbIcon as Idea01Icon } from "@phosphor-icons/react/dist/ssr/Lightbulb"
+import { EnvelopeIcon as Mail01Icon } from "@phosphor-icons/react/dist/ssr/Envelope";
 
 export const metadata: Metadata = {
   title: "Contact Us",

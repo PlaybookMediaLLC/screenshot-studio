@@ -1,9 +1,14 @@
-import { PiInstagramLogo as InstagramIcon, PiLinkedinLogo as Linkedin01Icon, PiMastodonLogo as MastodonIcon, PiXLogo as NewTwitterIcon, PiThreadsLogo as ThreadsIcon } from 'react-icons/pi'
+import { InstagramLogoIcon as InstagramIcon } from '@phosphor-icons/react/dist/ssr/InstagramLogo'
+import { LinkedinLogoIcon as Linkedin01Icon } from '@phosphor-icons/react/dist/ssr/LinkedinLogo'
+import { MastodonLogoIcon as MastodonIcon } from '@phosphor-icons/react/dist/ssr/MastodonLogo'
+import { XLogoIcon as NewTwitterIcon } from '@phosphor-icons/react/dist/ssr/XLogo'
+import { ThreadsLogoIcon as ThreadsIcon } from '@phosphor-icons/react/dist/ssr/ThreadsLogo'
 import { SiBluesky as BlueskyIcon } from 'react-icons/si'
+import type { ComponentType } from 'react'
 import type { DraftChannel } from '@/lib/content-drafts/serialize'
 
 /** How each channel is named and drawn in the composer. */
-export const CHANNEL_META: Record<DraftChannel, { icon: typeof NewTwitterIcon; label: string }> = {
+export const CHANNEL_META: Record<DraftChannel, { icon: ComponentType<{ className?: string }>; label: string }> = {
   bluesky: { icon: BlueskyIcon, label: 'Bluesky' },
   instagram: { icon: InstagramIcon, label: 'Instagram' },
   linkedin: { icon: Linkedin01Icon, label: 'LinkedIn' },

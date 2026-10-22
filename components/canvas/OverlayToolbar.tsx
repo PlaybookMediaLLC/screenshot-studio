@@ -1,7 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { PiTrash as Delete02Icon, PiCopy as Copy01Icon, PiArrowClockwise as RotateRight01Icon, PiArrowCounterClockwise as RotateLeft01Icon, PiPlus as PlusSignIcon, PiMinus as MinusSignIcon } from 'react-icons/pi';
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { CopyIcon as Copy01Icon } from '@phosphor-icons/react/dist/ssr/Copy'
+import { ArrowClockwiseIcon as RotateRight01Icon } from '@phosphor-icons/react/dist/ssr/ArrowClockwise'
+import { ArrowCounterClockwiseIcon as RotateLeft01Icon } from '@phosphor-icons/react/dist/ssr/ArrowCounterClockwise'
+import { PlusIcon as PlusSignIcon } from '@phosphor-icons/react/dist/ssr/Plus'
+import { MinusIcon as MinusSignIcon } from '@phosphor-icons/react/dist/ssr/Minus';
 import { cn } from '@/lib/utils';
 import type { ImageOverlay } from '@/lib/store';
 import { Button } from '@/components/ui/button'

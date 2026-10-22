@@ -9,7 +9,14 @@ import {
 } from "@platejs/media/react";
 import { BlockMenuPlugin } from "@platejs/selection/react";
 import type { DropdownMenuProps } from "@radix-ui/react-dropdown-menu";
-import { PiTextAlignCenter as AlignCenter, PiTextAlignLeft as AlignLeft, PiTextAlignRight as AlignRight, PiClosedCaptioning as CaptionsIcon, PiArrowCircleDown as CircleArrowDownIcon, PiDotsThree as MoreHorizontalIcon, PiArrowUpRight as MoveUpRightIcon, PiMagnifyingGlassPlus as ZoomInIcon } from "react-icons/pi";
+import { TextAlignCenterIcon as AlignCenter } from "@phosphor-icons/react/dist/ssr/TextAlignCenter"
+import { TextAlignLeftIcon as AlignLeft } from "@phosphor-icons/react/dist/ssr/TextAlignLeft"
+import { TextAlignRightIcon as AlignRight } from "@phosphor-icons/react/dist/ssr/TextAlignRight"
+import { ClosedCaptioningIcon as CaptionsIcon } from "@phosphor-icons/react/dist/ssr/ClosedCaptioning"
+import { ArrowCircleDownIcon as CircleArrowDownIcon } from "@phosphor-icons/react/dist/ssr/ArrowCircleDown"
+import { DotsThreeIcon as MoreHorizontalIcon } from "@phosphor-icons/react/dist/ssr/DotsThree"
+import { ArrowUpRightIcon as MoveUpRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowUpRight"
+import { MagnifyingGlassPlusIcon as ZoomInIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlassPlus";
 import type { TMediaElement, TTextAlignProps } from "platejs";
 import { KEYS } from "platejs";
 import { useEditorRef, useElement } from "platejs/react";

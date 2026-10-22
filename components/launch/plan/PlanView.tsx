@@ -1,6 +1,8 @@
 'use client'
 
-import { PiListChecks as CheckListIcon, PiLaptop as LaptopIcon, PiDeviceMobile as SmartPhone01Icon } from 'react-icons/pi'
+import { ListChecksIcon as CheckListIcon } from '@phosphor-icons/react/dist/ssr/ListChecks'
+import { LaptopIcon as LaptopIcon } from '@phosphor-icons/react/dist/ssr/Laptop'
+import { DeviceMobileIcon as SmartPhone01Icon } from '@phosphor-icons/react/dist/ssr/DeviceMobile'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { type ReactNode, useState, useTransition } from 'react'

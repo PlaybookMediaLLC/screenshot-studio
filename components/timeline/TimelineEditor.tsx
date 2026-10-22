@@ -10,7 +10,10 @@ import { TimelineControls } from './TimelineControls';
 import { useTimelinePlayback } from './hooks/useTimelinePlayback';
 import { cn } from '@/lib/utils';
 import { TIMELINE_HEIGHT } from '@/lib/constants/editor-layout';
-import { PiFilmScript as VideoReplayIcon, PiImage as Image01Icon, PiX as Cancel01Icon, PiPlus as Add01Icon } from 'react-icons/pi';
+import { FilmScriptIcon as VideoReplayIcon } from '@phosphor-icons/react/dist/ssr/FilmScript'
+import { ImageIcon as Image01Icon } from '@phosphor-icons/react/dist/ssr/Image'
+import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
+import { PlusIcon as Add01Icon } from '@phosphor-icons/react/dist/ssr/Plus';
 import type { AnimationClip } from '@/types/animation';
 import { useEditorPanels } from '@/lib/store/editor-panels';
 import { MOTION_ROW_HEIGHT, MotionTracks, motionRowCount } from './MotionTracks';

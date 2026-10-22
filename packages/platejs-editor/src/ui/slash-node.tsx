@@ -2,8 +2,31 @@
 
 import { AIChatPlugin } from "@platejs/ai/react";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
-import { PiWaveform as AudioLinesIcon, PiCalendar as CalendarIcon, PiBookOpenText as BookOpenTextIcon, PiCaretDown as ChevronDownIcon, PiCode as Code2Icon, PiFileArrowUp as FileUpIcon, PiFilmStrip as FilmIcon, PiTextHOne as Heading1Icon, PiTextHTwo as Heading2Icon, PiTextHThree as Heading3Icon, PiTextHFour as Heading4Icon, PiTextHFive as Heading5Icon, PiTextHSix as Heading6Icon, PiImage as ImageIcon, PiLightbulb as LightbulbIcon, PiList as ListIcon, PiListNumbers as ListOrderedIcon, PiParagraph as PilcrowIcon, PiQuotes as QuoteIcon, PiRadical as RadicalIcon, PiRectangle as RectangleVerticalIcon, PiSquare as SquareIcon, PiTable as TableIcon, PiListBullets as TableOfContentsIcon } from "react-icons/pi"
-import type { IconBaseProps } from "react-icons";
+import { WaveformIcon as AudioLinesIcon } from "@phosphor-icons/react/dist/ssr/Waveform"
+import { CalendarIcon as CalendarIcon } from "@phosphor-icons/react/dist/ssr/Calendar"
+import { BookOpenTextIcon as BookOpenTextIcon } from "@phosphor-icons/react/dist/ssr/BookOpenText"
+import { CaretDownIcon as ChevronDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown"
+import { CodeIcon as Code2Icon } from "@phosphor-icons/react/dist/ssr/Code"
+import { FileArrowUpIcon as FileUpIcon } from "@phosphor-icons/react/dist/ssr/FileArrowUp"
+import { FilmStripIcon as FilmIcon } from "@phosphor-icons/react/dist/ssr/FilmStrip"
+import { TextHOneIcon as Heading1Icon } from "@phosphor-icons/react/dist/ssr/TextHOne"
+import { TextHTwoIcon as Heading2Icon } from "@phosphor-icons/react/dist/ssr/TextHTwo"
+import { TextHThreeIcon as Heading3Icon } from "@phosphor-icons/react/dist/ssr/TextHThree"
+import { TextHFourIcon as Heading4Icon } from "@phosphor-icons/react/dist/ssr/TextHFour"
+import { TextHFiveIcon as Heading5Icon } from "@phosphor-icons/react/dist/ssr/TextHFive"
+import { TextHSixIcon as Heading6Icon } from "@phosphor-icons/react/dist/ssr/TextHSix"
+import { ImageIcon as ImageIcon } from "@phosphor-icons/react/dist/ssr/Image"
+import { LightbulbIcon as LightbulbIcon } from "@phosphor-icons/react/dist/ssr/Lightbulb"
+import { ListIcon as ListIcon } from "@phosphor-icons/react/dist/ssr/List"
+import { ListNumbersIcon as ListOrderedIcon } from "@phosphor-icons/react/dist/ssr/ListNumbers"
+import { ParagraphIcon as PilcrowIcon } from "@phosphor-icons/react/dist/ssr/Paragraph"
+import { QuotesIcon as QuoteIcon } from "@phosphor-icons/react/dist/ssr/Quotes"
+import { RadicalIcon as RadicalIcon } from "@phosphor-icons/react/dist/ssr/Radical"
+import { RectangleIcon as RectangleVerticalIcon } from "@phosphor-icons/react/dist/ssr/Rectangle"
+import { SquareIcon as SquareIcon } from "@phosphor-icons/react/dist/ssr/Square"
+import { TableIcon as TableIcon } from "@phosphor-icons/react/dist/ssr/Table"
+import { ListBulletsIcon as TableOfContentsIcon } from "@phosphor-icons/react/dist/ssr/ListBullets"
+import type { IconProps } from "@phosphor-icons/react";
 import { KEYS } from "platejs";
 import type { PlateEditor, PlateElementProps } from "platejs/react";
 import { PlateElement } from "platejs/react";
@@ -71,7 +94,7 @@ function getRuntimeSlashGroups(): Group[] {
   ];
 }
 
-function AIIcon(props: IconBaseProps) {
+function AIIcon(props: IconProps) {
   return (
     <svg
       fill="url(#myGradient)"

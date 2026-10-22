@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { PiCheck as CheckIcon, PiMinus as MinusIcon } from 'react-icons/pi'
+import { CheckIcon as CheckIcon } from '@phosphor-icons/react/dist/ssr/Check'
+import { MinusIcon as MinusIcon } from '@phosphor-icons/react/dist/ssr/Minus'
 import { Checkbox as CheckboxPrimitive } from 'radix-ui'
 
 import { cn } from '@/lib/utils'

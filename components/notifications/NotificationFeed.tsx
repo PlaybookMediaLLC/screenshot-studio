@@ -4,7 +4,11 @@ import { useEffect, useRef } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
-import { PiArchive as Archive, PiTrayArrowUp as ArchiveRestore, PiChecks as CheckCheck, PiEnvelope as Mail, PiEnvelopeOpen as MailOpen } from 'react-icons/pi'
+import { ArchiveIcon as Archive } from '@phosphor-icons/react/dist/ssr/Archive'
+import { TrayArrowUpIcon as ArchiveRestore } from '@phosphor-icons/react/dist/ssr/TrayArrowUp'
+import { ChecksIcon as CheckCheck } from '@phosphor-icons/react/dist/ssr/Checks'
+import { EnvelopeIcon as Mail } from '@phosphor-icons/react/dist/ssr/Envelope'
+import { EnvelopeOpenIcon as MailOpen } from '@phosphor-icons/react/dist/ssr/EnvelopeOpen'
 import { Button } from '@/components/ui/button'
 import {
   NotificationRequestError,

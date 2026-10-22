@@ -3,7 +3,13 @@ import Link from "next/link";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
-import { PiMegaphone as Megaphone01Icon, PiShare as Share01Icon, PiChartLineUp as ChartIncreaseIcon, PiPresentation as Presentation01Icon, PiChartBar as ChartHistogramIcon, PiImage as Image01Icon, PiArrowRight as ArrowRight01Icon } from "react-icons/pi";
+import { MegaphoneIcon as Megaphone01Icon } from "@phosphor-icons/react/dist/ssr/Megaphone"
+import { ShareIcon as Share01Icon } from "@phosphor-icons/react/dist/ssr/Share"
+import { ChartLineUpIcon as ChartIncreaseIcon } from "@phosphor-icons/react/dist/ssr/ChartLineUp"
+import { PresentationIcon as Presentation01Icon } from "@phosphor-icons/react/dist/ssr/Presentation"
+import { ChartBarIcon as ChartHistogramIcon } from "@phosphor-icons/react/dist/ssr/ChartBar"
+import { ImageIcon as Image01Icon } from "@phosphor-icons/react/dist/ssr/Image"
+import { ArrowRightIcon as ArrowRight01Icon } from "@phosphor-icons/react/dist/ssr/ArrowRight";
 
 export const metadata: Metadata = {
   title: "Screenshot Editor for Marketers",

@@ -1,6 +1,10 @@
 'use client'
 
-import { PiArrowsDownUp as ArrowDownUp, PiCopy as CopyIcon, PiDownload as Download, PiFileMagnifyingGlass as FileSearch, PiSpinnerGap as Loader2 } from 'react-icons/pi'
+import { ArrowsDownUpIcon as ArrowDownUp } from '@phosphor-icons/react/dist/ssr/ArrowsDownUp'
+import { CopyIcon as CopyIcon } from '@phosphor-icons/react/dist/ssr/Copy'
+import { DownloadIcon as Download } from '@phosphor-icons/react/dist/ssr/Download'
+import { FileMagnifyingGlassIcon as FileSearch } from '@phosphor-icons/react/dist/ssr/FileMagnifyingGlass'
+import { SpinnerGapIcon as Loader2 } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
 import { useRef, useState } from 'react'
 import { Pill } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'

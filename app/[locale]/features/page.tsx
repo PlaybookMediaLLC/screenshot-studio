@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PiArrowRight as ArrowRight01Icon, PiBrowser as BrowserIcon, PiCube as CubeIcon, PiEraser as EraserAutoIcon, PiMagicWand as MagicWand01Icon, PiShare as Share08Icon, PiDeviceMobile as SmartPhone01Icon, PiCode as SourceCodeIcon, PiVideo as Video01Icon } from "react-icons/pi";
+import { ArrowRightIcon as ArrowRight01Icon } from "@phosphor-icons/react/dist/ssr/ArrowRight"
+import { BrowserIcon as BrowserIcon } from "@phosphor-icons/react/dist/ssr/Browser"
+import { CubeIcon as CubeIcon } from "@phosphor-icons/react/dist/ssr/Cube"
+import { EraserIcon as EraserAutoIcon } from "@phosphor-icons/react/dist/ssr/Eraser"
+import { MagicWandIcon as MagicWand01Icon } from "@phosphor-icons/react/dist/ssr/MagicWand"
+import { ShareIcon as Share08Icon } from "@phosphor-icons/react/dist/ssr/Share"
+import { DeviceMobileIcon as SmartPhone01Icon } from "@phosphor-icons/react/dist/ssr/DeviceMobile"
+import { CodeIcon as SourceCodeIcon } from "@phosphor-icons/react/dist/ssr/Code"
+import { VideoIcon as Video01Icon } from "@phosphor-icons/react/dist/ssr/Video";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { SectionTitle } from "@/components/tools/ToolLayout";

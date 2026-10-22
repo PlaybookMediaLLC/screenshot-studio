@@ -94,7 +94,7 @@ const dmSans = DM_Sans({
   variable: '--font-dm-sans',
   preload: false,
   subsets: ['latin'],
-  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  weight: 'variable',
 })
 
 const sora = Sora({

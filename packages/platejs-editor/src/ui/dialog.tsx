@@ -10,7 +10,7 @@ import {
   Title as DialogTitlePrimitive,
   Trigger as DialogTriggerPrimitive,
 } from "@radix-ui/react-dialog";
-import { PiX as XIcon } from "react-icons/pi";
+import { XIcon as XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import type { ComponentProps } from "react";
 
 import { cn } from "../lib/utils";

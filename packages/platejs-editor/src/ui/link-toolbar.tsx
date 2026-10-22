@@ -3,7 +3,9 @@
 import { unwrapLink, upsertLink, validateUrl } from "@platejs/link";
 import { CursorOverlayPlugin } from "@platejs/selection/react";
 import { cn } from "@udecode/cn";
-import { PiFileText as FileTextIcon, PiLink as LinkIcon, PiTrash as Trash2Icon } from "react-icons/pi";
+import { FileTextIcon as FileTextIcon } from "@phosphor-icons/react/dist/ssr/FileText"
+import { LinkIcon as LinkIcon } from "@phosphor-icons/react/dist/ssr/Link"
+import { TrashIcon as Trash2Icon } from "@phosphor-icons/react/dist/ssr/Trash";
 import { NodeApi, type TText } from "platejs";
 import {
   type PlateEditor,

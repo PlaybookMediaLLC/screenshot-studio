@@ -1,6 +1,9 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { PiBrowser as BrowserIcon, PiDesktop as ComputerIcon, PiGear as Settings01Icon, PiSun as Sun01Icon } from "react-icons/pi";
+import { BrowserIcon as BrowserIcon } from "@phosphor-icons/react/dist/ssr/Browser"
+import { DesktopIcon as ComputerIcon } from "@phosphor-icons/react/dist/ssr/Desktop"
+import { GearIcon as Settings01Icon } from "@phosphor-icons/react/dist/ssr/Gear"
+import { SunIcon as Sun01Icon } from "@phosphor-icons/react/dist/ssr/Sun";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION, WindowDots } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

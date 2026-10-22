@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { PiTrash as Delete02Icon, PiPlus as PlusSignIcon } from 'react-icons/pi'
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { PlusIcon as PlusSignIcon } from '@phosphor-icons/react/dist/ssr/Plus'
 import { FontPicker } from '@/components/editor/typography/FontPicker'
 import { ColorField, ChoiceField } from '@/components/editor/inspector/fields'
 import { Button } from '@/components/ui/button'

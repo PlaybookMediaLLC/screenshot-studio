@@ -1,7 +1,10 @@
 "use client";
 
 import { useLink } from "@platejs/link/react";
-import { PiArrowUpRight as ArrowUpRightIcon, PiCopy as CopyIcon, PiFileText as FileTextIcon, PiLink as LinkIcon } from "react-icons/pi";
+import { ArrowUpRightIcon as ArrowUpRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowUpRight"
+import { CopyIcon as CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy"
+import { FileTextIcon as FileTextIcon } from "@phosphor-icons/react/dist/ssr/FileText"
+import { LinkIcon as LinkIcon } from "@phosphor-icons/react/dist/ssr/Link";
 import { useEffect } from "react";
 
 export const mockRecentDocuments = [

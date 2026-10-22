@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { flushSync } from "react-dom";
-import { PiDownload as Download04Icon, PiCheck as Tick02Icon } from "react-icons/pi";
+import { DownloadIcon as Download04Icon } from "@phosphor-icons/react/dist/ssr/Download"
+import { CheckIcon as Tick02Icon } from "@phosphor-icons/react/dist/ssr/Check";
 import { domToBlob } from "modern-screenshot";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";

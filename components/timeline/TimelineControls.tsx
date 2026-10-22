@@ -1,7 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { PiPlay as PlayIcon, PiPause as PauseIcon, PiRepeat as RepeatIcon, PiRepeat as RepeatOffIcon, PiPlus as Add01Icon, PiX as Cancel01Icon, PiClock as Time02Icon, PiTrash as Delete02Icon } from 'react-icons/pi';
+import { PlayIcon as PlayIcon } from '@phosphor-icons/react/dist/ssr/Play'
+import { PauseIcon as PauseIcon } from '@phosphor-icons/react/dist/ssr/Pause'
+import { RepeatIcon as RepeatIcon } from '@phosphor-icons/react/dist/ssr/Repeat'
+import { RepeatIcon as RepeatOffIcon } from '@phosphor-icons/react/dist/ssr/Repeat'
+import { PlusIcon as Add01Icon } from '@phosphor-icons/react/dist/ssr/Plus'
+import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
+import { ClockIcon as Time02Icon } from '@phosphor-icons/react/dist/ssr/Clock'
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash';
 import { useImageStore } from '@/lib/store';
 import { usePlaybackStore } from '@/lib/store/playback';
 import { Slider } from '@/components/ui/slider'

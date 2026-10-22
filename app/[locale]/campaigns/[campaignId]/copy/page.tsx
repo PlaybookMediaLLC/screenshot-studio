@@ -1,4 +1,4 @@
-import { PiNote as Note01Icon } from 'react-icons/pi'
+import { NoteIcon as Note01Icon } from '@phosphor-icons/react/dist/ssr/Note'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'

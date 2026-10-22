@@ -1,7 +1,7 @@
 'use client'
 
 import { WritingInheritance } from '@/components/settings/WritingInheritance'
-import { PiLock as Lock } from 'react-icons/pi'
+import { LockIcon as Lock } from '@phosphor-icons/react/dist/ssr/Lock'
 import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
 import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react'

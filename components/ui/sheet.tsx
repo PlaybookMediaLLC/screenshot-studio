@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
-import { PiX as Cancel01Icon } from 'react-icons/pi'
+import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
 
 import { cn } from "@/lib/utils"
 

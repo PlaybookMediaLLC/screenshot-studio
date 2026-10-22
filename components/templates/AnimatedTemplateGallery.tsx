@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { PiPlay as PlayIcon, PiCheck as Tick02Icon } from 'react-icons/pi';
+import { PlayIcon as PlayIcon } from '@phosphor-icons/react/dist/ssr/Play'
+import { CheckIcon as Tick02Icon } from '@phosphor-icons/react/dist/ssr/Check';
 import {
   getFrameImageStyle,
   getPreviewImageWidthPercent,

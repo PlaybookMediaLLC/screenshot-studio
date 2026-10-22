@@ -8,7 +8,9 @@ import { useImageStore } from '@/lib/store';
 import { SectionWrapper } from './SectionWrapper';
 import { getR2ImageUrl } from '@/lib/r2';
 import { isOverlayPath } from '@/lib/r2-overlays';
-import { PiArrowRight as ArrowRight01Icon, PiStack as LayersLogoIcon, PiImage as Image01Icon } from 'react-icons/pi';
+import { ArrowRightIcon as ArrowRight01Icon } from '@phosphor-icons/react/dist/ssr/ArrowRight'
+import { StackIcon as LayersLogoIcon } from '@phosphor-icons/react/dist/ssr/Stack'
+import { ImageIcon as Image01Icon } from '@phosphor-icons/react/dist/ssr/Image';
 import { useEditorPanels } from '@/lib/store/editor-panels';
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'

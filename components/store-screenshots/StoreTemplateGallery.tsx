@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { PiX as Cancel01Icon, PiTrash as Delete02Icon, PiStack as Layers01Icon } from "react-icons/pi";
+import { XIcon as Cancel01Icon } from "@phosphor-icons/react/dist/ssr/X"
+import { TrashIcon as Delete02Icon } from "@phosphor-icons/react/dist/ssr/Trash"
+import { StackIcon as Layers01Icon } from "@phosphor-icons/react/dist/ssr/Stack";
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,

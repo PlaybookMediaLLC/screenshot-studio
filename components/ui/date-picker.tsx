@@ -1,6 +1,6 @@
 'use client'
 
-import { PiCalendar as CalendarIcon } from 'react-icons/pi'
+import { CalendarIcon as CalendarIcon } from '@phosphor-icons/react/dist/ssr/Calendar'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'

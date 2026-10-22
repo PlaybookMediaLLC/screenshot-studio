@@ -3,7 +3,11 @@
 import { useRef, useEffect } from 'react';
 import { useEditorPanels } from '@/lib/store/editor-panels';
 import { useImageStore, withTypingHistory } from '@/lib/store';
-import { PiTrash as Delete02Icon, PiEye as ViewIcon, PiEyeSlash as ViewOffSlashIcon, PiPlus as Add01Icon, PiTextT as TextIcon } from 'react-icons/pi';
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { EyeIcon as ViewIcon } from '@phosphor-icons/react/dist/ssr/Eye'
+import { EyeSlashIcon as ViewOffSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash'
+import { PlusIcon as Add01Icon } from '@phosphor-icons/react/dist/ssr/Plus'
+import { TextTIcon as TextIcon } from '@phosphor-icons/react/dist/ssr/TextT';
 import { getAvailableFontWeights } from '@/lib/constants/fonts';
 import { FontPicker } from '@/components/editor/typography/FontPicker';
 import { TextStyleFields } from '@/components/editor/typography/TextStyleFields';

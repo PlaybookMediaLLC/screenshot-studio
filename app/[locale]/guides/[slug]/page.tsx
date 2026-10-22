@@ -2,7 +2,8 @@ import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PiArrowRight as ArrowRight01Icon, PiArrowUpRight as ArrowUpRight01Icon } from "react-icons/pi";
+import { ArrowRightIcon as ArrowRight01Icon } from "@phosphor-icons/react/dist/ssr/ArrowRight"
+import { ArrowUpRightIcon as ArrowUpRight01Icon } from "@phosphor-icons/react/dist/ssr/ArrowUpRight";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { CTA_CLASS, CtaBand } from "@/components/seo/ContentBlocks";

@@ -1,7 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { PiDotsSixVertical as DragDropVerticalIcon, PiEye as ViewIcon, PiEyeSlash as ViewOffSlashIcon } from 'react-icons/pi'
+import { DotsSixVerticalIcon as DragDropVerticalIcon } from '@phosphor-icons/react/dist/ssr/DotsSixVertical'
+import { EyeIcon as ViewIcon } from '@phosphor-icons/react/dist/ssr/Eye'
+import { EyeSlashIcon as ViewOffSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash'
 import { SectionWrapper } from '@/components/editor/sections/SectionWrapper'
 import { selectScreen } from '@/lib/editor/selection'
 import { isScreenScene, moveScreen } from '@/lib/frames/commands'

@@ -1,4 +1,5 @@
-import { PiPlus as Add01Icon, PiLock as LockIcon } from "react-icons/pi";
+import { PlusIcon as Add01Icon } from "@phosphor-icons/react/dist/ssr/Plus"
+import { LockIcon as LockIcon } from "@phosphor-icons/react/dist/ssr/Lock";
 import { gradientColors } from "@/lib/constants/gradient-colors";
 import { cn } from "@/lib/utils";
 

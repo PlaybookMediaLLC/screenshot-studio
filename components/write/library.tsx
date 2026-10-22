@@ -5,7 +5,8 @@ import { useWriteRouter } from '@/components/write/write-context'
 import * as React from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { PiPlus as Add01Icon, PiPushPin as PinIcon } from 'react-icons/pi'
+import { PlusIcon as Add01Icon } from '@phosphor-icons/react/dist/ssr/Plus'
+import { PushPinIcon as PinIcon } from '@phosphor-icons/react/dist/ssr/PushPin'
 import {
   AlertDialog,
   AlertDialogAction,

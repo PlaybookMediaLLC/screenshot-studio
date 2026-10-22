@@ -1,6 +1,6 @@
 'use client'
 
-import { PiKey as KeyRound } from 'react-icons/pi'
+import { KeyIcon as KeyRound } from '@phosphor-icons/react/dist/ssr/Key'
 import { type FormEvent, useState } from 'react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'

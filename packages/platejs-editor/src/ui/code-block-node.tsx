@@ -1,6 +1,8 @@
 "use client";
 
-import { PiCheck as CheckIcon, PiCaretDown as ChevronDownIcon, PiFiles as FilesIcon } from "react-icons/pi";
+import { CheckIcon as CheckIcon } from "@phosphor-icons/react/dist/ssr/Check"
+import { CaretDownIcon as ChevronDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown"
+import { FilesIcon as FilesIcon } from "@phosphor-icons/react/dist/ssr/Files";
 
 import type { TCodeBlockElement } from "platejs";
 import { NodeApi } from "platejs";

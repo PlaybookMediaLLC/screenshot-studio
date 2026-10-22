@@ -1,7 +1,8 @@
 'use client'
 
 import { Input } from '@/components/ui/input'
-import { PiImages as Album02Icon, PiDotsThree as MoreHorizontalIcon } from 'react-icons/pi'
+import { ImagesIcon as Album02Icon } from '@phosphor-icons/react/dist/ssr/Images'
+import { DotsThreeIcon as MoreHorizontalIcon } from '@phosphor-icons/react/dist/ssr/DotsThree'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { TRPCClientError } from '@trpc/client'

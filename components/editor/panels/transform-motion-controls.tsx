@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { PiTrash as Delete02Icon, PiPlus as Add01Icon } from 'react-icons/pi';
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { PlusIcon as Add01Icon } from '@phosphor-icons/react/dist/ssr/Plus';
 import {
   SectionWrapper,
 } from '../sections';

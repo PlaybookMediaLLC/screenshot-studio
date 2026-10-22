@@ -22,7 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
-import { PiDotsThree as MoreHorizontalIcon } from 'react-icons/pi'
+import { DotsThreeIcon as MoreHorizontalIcon } from '@phosphor-icons/react/dist/ssr/DotsThree'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { CanvasStageShell } from '@/components/canvas/CanvasStageShell'
 import ClientCanvas from '@/components/canvas/ClientCanvas'

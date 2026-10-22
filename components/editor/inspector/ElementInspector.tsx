@@ -1,7 +1,13 @@
 'use client'
 
 import * as React from 'react'
-import { PiArrowDown as ArrowDown01Icon, PiArrowUp as ArrowUp01Icon, PiCopy as Copy01Icon, PiTrash as Delete02Icon, PiLock as LockIcon, PiEye as ViewIcon, PiEyeSlash as ViewOffSlashIcon } from 'react-icons/pi'
+import { ArrowDownIcon as ArrowDown01Icon } from '@phosphor-icons/react/dist/ssr/ArrowDown'
+import { ArrowUpIcon as ArrowUp01Icon } from '@phosphor-icons/react/dist/ssr/ArrowUp'
+import { CopyIcon as Copy01Icon } from '@phosphor-icons/react/dist/ssr/Copy'
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { LockIcon as LockIcon } from '@phosphor-icons/react/dist/ssr/Lock'
+import { EyeIcon as ViewIcon } from '@phosphor-icons/react/dist/ssr/Eye'
+import { EyeSlashIcon as ViewOffSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash'
 import { Slider } from '@/components/ui/slider'
 import {
   badgeNumberingSchema,

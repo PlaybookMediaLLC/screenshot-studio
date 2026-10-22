@@ -1,7 +1,8 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { PiPlus as Plus, PiMagnifyingGlass as Search } from 'react-icons/pi'
+import { PlusIcon as Plus } from '@phosphor-icons/react/dist/ssr/Plus'
+import { MagnifyingGlassIcon as Search } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'

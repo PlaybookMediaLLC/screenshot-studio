@@ -1,7 +1,8 @@
 'use client'
 
 import type { CampaignStatus } from '@/lib/tenant/campaign-status'
-import { PiCaretRight as ArrowRight01Icon, PiMagnifyingGlass as Search01Icon } from 'react-icons/pi'
+import { CaretRightIcon as ArrowRight01Icon } from '@phosphor-icons/react/dist/ssr/CaretRight'
+import { MagnifyingGlassIcon as Search01Icon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'

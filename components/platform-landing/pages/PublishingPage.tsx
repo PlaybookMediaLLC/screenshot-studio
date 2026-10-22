@@ -1,4 +1,9 @@
-import { PiInstagramLogo as InstagramIcon, PiLinkedinLogo as Linkedin01Icon, PiEnvelope as Mail01Icon, PiXLogo as NewTwitterIcon, PiShare as Share08Icon, PiFlowArrow as WorkflowSquare01Icon } from 'react-icons/pi'
+import { InstagramLogoIcon as InstagramIcon } from '@phosphor-icons/react/dist/ssr/InstagramLogo'
+import { LinkedinLogoIcon as Linkedin01Icon } from '@phosphor-icons/react/dist/ssr/LinkedinLogo'
+import { EnvelopeIcon as Mail01Icon } from '@phosphor-icons/react/dist/ssr/Envelope'
+import { XLogoIcon as NewTwitterIcon } from '@phosphor-icons/react/dist/ssr/XLogo'
+import { ShareIcon as Share08Icon } from '@phosphor-icons/react/dist/ssr/Share'
+import { FlowArrowIcon as WorkflowSquare01Icon } from '@phosphor-icons/react/dist/ssr/FlowArrow'
 import { cn } from '@/lib/utils'
 import {
   AvailabilityPill,

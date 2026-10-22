@@ -1,6 +1,9 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { PiMagicWand as MagicWand01Icon, PiPlay as PlayIcon, PiSparkle as SparklesIcon, PiVideo as Video01Icon } from "react-icons/pi";
+import { MagicWandIcon as MagicWand01Icon } from "@phosphor-icons/react/dist/ssr/MagicWand"
+import { PlayIcon as PlayIcon } from "@phosphor-icons/react/dist/ssr/Play"
+import { SparkleIcon as SparklesIcon } from "@phosphor-icons/react/dist/ssr/Sparkle"
+import { VideoIcon as Video01Icon } from "@phosphor-icons/react/dist/ssr/Video";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

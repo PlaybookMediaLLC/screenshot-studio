@@ -1,6 +1,7 @@
 'use client'
 
-import { PiWarning as Alert02Icon, PiSealCheck as DocumentValidationIcon } from 'react-icons/pi'
+import { WarningIcon as Alert02Icon } from '@phosphor-icons/react/dist/ssr/Warning'
+import { SealCheckIcon as DocumentValidationIcon } from '@phosphor-icons/react/dist/ssr/SealCheck'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'

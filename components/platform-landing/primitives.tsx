@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react'
-import { PiCheck as Tick02Icon } from 'react-icons/pi'
+import { CheckIcon as Tick02Icon } from '@phosphor-icons/react/dist/ssr/Check'
 import { z } from 'zod'
 import { cn } from '@/lib/utils'
 

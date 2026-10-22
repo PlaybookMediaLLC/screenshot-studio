@@ -1,6 +1,9 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { PiPalette as ColorsIcon, PiDownload as Download04Icon, PiStack as Layers01Icon, PiMagicWand as MagicWand01Icon } from "react-icons/pi";
+import { PaletteIcon as ColorsIcon } from "@phosphor-icons/react/dist/ssr/Palette"
+import { DownloadIcon as Download04Icon } from "@phosphor-icons/react/dist/ssr/Download"
+import { StackIcon as Layers01Icon } from "@phosphor-icons/react/dist/ssr/Stack"
+import { MagicWandIcon as MagicWand01Icon } from "@phosphor-icons/react/dist/ssr/MagicWand";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION, WindowDots } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

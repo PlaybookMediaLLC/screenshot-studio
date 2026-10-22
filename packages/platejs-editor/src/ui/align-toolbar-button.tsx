@@ -3,7 +3,10 @@
 import type { Alignment } from "@platejs/basic-styles";
 import { TextAlignPlugin } from "@platejs/basic-styles/react";
 import type { DropdownMenuProps } from "@radix-ui/react-dropdown-menu";
-import { PiTextAlignCenter as AlignCenterIcon, PiTextAlignJustify as AlignJustifyIcon, PiTextAlignLeft as AlignLeftIcon, PiTextAlignRight as AlignRightIcon } from "react-icons/pi";
+import { TextAlignCenterIcon as AlignCenterIcon } from "@phosphor-icons/react/dist/ssr/TextAlignCenter"
+import { TextAlignJustifyIcon as AlignJustifyIcon } from "@phosphor-icons/react/dist/ssr/TextAlignJustify"
+import { TextAlignLeftIcon as AlignLeftIcon } from "@phosphor-icons/react/dist/ssr/TextAlignLeft"
+import { TextAlignRightIcon as AlignRightIcon } from "@phosphor-icons/react/dist/ssr/TextAlignRight";
 import { useEditorPlugin, useSelectionFragmentProp } from "platejs/react";
 import { useState } from "react";
 

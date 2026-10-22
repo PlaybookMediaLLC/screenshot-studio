@@ -1,7 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { PiX as Cancel01Icon, PiDownload as Download04Icon, PiFileVideo as FileVideoIcon, PiSpinnerGap as Loading03Icon, PiMagicWand as MagicWand01Icon, PiArrowsClockwise as RefreshIcon, PiSlidersHorizontal as Settings02Icon } from 'react-icons/pi';
+import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
+import { DownloadIcon as Download04Icon } from '@phosphor-icons/react/dist/ssr/Download'
+import { FileVideoIcon as FileVideoIcon } from '@phosphor-icons/react/dist/ssr/FileVideo'
+import { SpinnerGapIcon as Loading03Icon } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
+import { MagicWandIcon as MagicWand01Icon } from '@phosphor-icons/react/dist/ssr/MagicWand'
+import { ArrowsClockwiseIcon as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowsClockwise'
+import { SlidersHorizontalIcon as Settings02Icon } from '@phosphor-icons/react/dist/ssr/SlidersHorizontal';
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'

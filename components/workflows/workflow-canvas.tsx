@@ -1,6 +1,12 @@
 'use client'
 
-import { PiCheck as Check, PiStopCircle as CircleStop, PiGitBranch as GitBranch, PiSparkle as Sparkles, PiFlowArrow as Workflow, PiX as X, PiLightning as Zap } from 'react-icons/pi'
+import { CheckIcon as Check } from '@phosphor-icons/react/dist/ssr/Check'
+import { StopCircleIcon as CircleStop } from '@phosphor-icons/react/dist/ssr/StopCircle'
+import { GitBranchIcon as GitBranch } from '@phosphor-icons/react/dist/ssr/GitBranch'
+import { SparkleIcon as Sparkles } from '@phosphor-icons/react/dist/ssr/Sparkle'
+import { FlowArrowIcon as Workflow } from '@phosphor-icons/react/dist/ssr/FlowArrow'
+import { XIcon as X } from '@phosphor-icons/react/dist/ssr/X'
+import { LightningIcon as Zap } from '@phosphor-icons/react/dist/ssr/Lightning'
 import { Handle, MarkerType, Position, type Edge, type Node, type NodeProps } from '@xyflow/react'
 import type {
   AutomationCondition,

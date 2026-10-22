@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
-import { PiList as LeftToRightListBulletIcon } from 'react-icons/pi'
+import { ListIcon as LeftToRightListBulletIcon } from '@phosphor-icons/react/dist/ssr/List'
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"

@@ -2,7 +2,21 @@
 
 import type { DropdownMenuProps } from "@radix-ui/react-dropdown-menu";
 
-import { PiCaretDown as ChevronDownIcon, PiCode as Code2Icon, PiColumns as Columns3Icon, PiTextHOne as Heading1Icon, PiTextHTwo as Heading2Icon, PiTextHThree as Heading3Icon, PiTextHFour as Heading4Icon, PiTextHFive as Heading5Icon, PiTextHSix as Heading6Icon, PiLightbulb as LightbulbIcon, PiList as ListIcon, PiListNumbers as ListOrderedIcon, PiParagraph as PilcrowIcon, PiQuotes as QuoteIcon, PiSquare as SquareIcon } from "react-icons/pi";
+import { CaretDownIcon as ChevronDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown"
+import { CodeIcon as Code2Icon } from "@phosphor-icons/react/dist/ssr/Code"
+import { ColumnsIcon as Columns3Icon } from "@phosphor-icons/react/dist/ssr/Columns"
+import { TextHOneIcon as Heading1Icon } from "@phosphor-icons/react/dist/ssr/TextHOne"
+import { TextHTwoIcon as Heading2Icon } from "@phosphor-icons/react/dist/ssr/TextHTwo"
+import { TextHThreeIcon as Heading3Icon } from "@phosphor-icons/react/dist/ssr/TextHThree"
+import { TextHFourIcon as Heading4Icon } from "@phosphor-icons/react/dist/ssr/TextHFour"
+import { TextHFiveIcon as Heading5Icon } from "@phosphor-icons/react/dist/ssr/TextHFive"
+import { TextHSixIcon as Heading6Icon } from "@phosphor-icons/react/dist/ssr/TextHSix"
+import { LightbulbIcon as LightbulbIcon } from "@phosphor-icons/react/dist/ssr/Lightbulb"
+import { ListIcon as ListIcon } from "@phosphor-icons/react/dist/ssr/List"
+import { ListNumbersIcon as ListOrderedIcon } from "@phosphor-icons/react/dist/ssr/ListNumbers"
+import { ParagraphIcon as PilcrowIcon } from "@phosphor-icons/react/dist/ssr/Paragraph"
+import { QuotesIcon as QuoteIcon } from "@phosphor-icons/react/dist/ssr/Quotes"
+import { SquareIcon as SquareIcon } from "@phosphor-icons/react/dist/ssr/Square";
 import { KEYS } from "platejs";
 import { useEditorRef, useSelectionFragmentProp } from "platejs/react";
 import { useMemo } from "react";

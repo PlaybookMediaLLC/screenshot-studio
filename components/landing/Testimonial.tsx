@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { Instrument_Serif } from "next/font/google";
-import { PiStar as StarIcon } from "react-icons/pi";
+import { StarIcon as StarIcon } from "@phosphor-icons/react/dist/ssr/Star";
 
 const instrumentSerif = Instrument_Serif({
   weight: ["400"],
@@ -55,7 +55,7 @@ export function Testimonial({
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-foreground/5 border border-foreground/10">
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => (
-                <StarIcon key={i} className="w-4 h-4 text-primary fill-primary" />
+                <StarIcon weight="fill" key={i} className="w-4 h-4 text-primary fill-primary" />
               ))}
             </div>
             <span className="text-sm text-muted-foreground">Loved by creators</span>

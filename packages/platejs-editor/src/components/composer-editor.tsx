@@ -1,6 +1,8 @@
 "use client";
 
-import { PiTextB as Bold, PiTextItalic as Italic, PiTextUnderline as Underline } from "react-icons/pi";
+import { TextBIcon as Bold } from "@phosphor-icons/react/dist/ssr/TextB"
+import { TextItalicIcon as Italic } from "@phosphor-icons/react/dist/ssr/TextItalic"
+import { TextUnderlineIcon as Underline } from "@phosphor-icons/react/dist/ssr/TextUnderline";
 import type { Value } from "platejs";
 import { KEYS } from "platejs";
 import type { PlateEditor } from "platejs/react";

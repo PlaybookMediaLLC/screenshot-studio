@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { PiPlus as Add01Icon, PiX as Cancel01Icon } from 'react-icons/pi'
+import { PlusIcon as Add01Icon } from '@phosphor-icons/react/dist/ssr/Plus'
+import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'

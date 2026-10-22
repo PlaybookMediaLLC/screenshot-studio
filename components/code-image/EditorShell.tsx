@@ -8,7 +8,14 @@ import Link from 'next/link';
 import { domToBlob } from 'modern-screenshot';
 import { toast } from 'sonner';
 import { Drawer } from 'vaul';
-import { PiCopy as Copy01Icon, PiLink as Link01Icon, PiDownload as Download04Icon, PiArrowDown as ArrowDown01Icon, PiInfo as InformationCircleIcon, PiCheckCircle as CheckmarkCircle02Icon, PiShare as Share01Icon, PiSlidersHorizontal as Settings02Icon } from 'react-icons/pi';
+import { CopyIcon as Copy01Icon } from '@phosphor-icons/react/dist/ssr/Copy'
+import { LinkIcon as Link01Icon } from '@phosphor-icons/react/dist/ssr/Link'
+import { DownloadIcon as Download04Icon } from '@phosphor-icons/react/dist/ssr/Download'
+import { ArrowDownIcon as ArrowDown01Icon } from '@phosphor-icons/react/dist/ssr/ArrowDown'
+import { InfoIcon as InformationCircleIcon } from '@phosphor-icons/react/dist/ssr/Info'
+import { CheckCircleIcon as CheckmarkCircle02Icon } from '@phosphor-icons/react/dist/ssr/CheckCircle'
+import { ShareIcon as Share01Icon } from '@phosphor-icons/react/dist/ssr/Share'
+import { SlidersHorizontalIcon as Settings02Icon } from '@phosphor-icons/react/dist/ssr/SlidersHorizontal';
 import {
   DropdownMenu,
   DropdownMenuContent,

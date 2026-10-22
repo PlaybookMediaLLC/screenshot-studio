@@ -3,7 +3,13 @@ import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import Link from "next/link";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
-import { PiPalette as PaintBoardIcon, PiPalette as ColorsIcon, PiPen as PenTool01Icon, PiDeviceMobile as SmartPhone01Icon, PiStack as Layers01Icon, PiEye as EyeIcon, PiSparkle as SparklesIcon } from "react-icons/pi";
+import { PaletteIcon as PaintBoardIcon } from "@phosphor-icons/react/dist/ssr/Palette"
+import { PaletteIcon as ColorsIcon } from "@phosphor-icons/react/dist/ssr/Palette"
+import { PenIcon as PenTool01Icon } from "@phosphor-icons/react/dist/ssr/Pen"
+import { DeviceMobileIcon as SmartPhone01Icon } from "@phosphor-icons/react/dist/ssr/DeviceMobile"
+import { StackIcon as Layers01Icon } from "@phosphor-icons/react/dist/ssr/Stack"
+import { EyeIcon as EyeIcon } from "@phosphor-icons/react/dist/ssr/Eye"
+import { SparkleIcon as SparklesIcon } from "@phosphor-icons/react/dist/ssr/Sparkle";
 
 export const metadata: Metadata = {
   title: "Mockup & Screenshot Tool for Designers",

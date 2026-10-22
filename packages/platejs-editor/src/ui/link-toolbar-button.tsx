@@ -1,6 +1,6 @@
 "use client";
 
-import { PiLink as Link } from "react-icons/pi";
+import { LinkIcon as Link } from "@phosphor-icons/react/dist/ssr/Link";
 import { useEditorPlugin } from "platejs/react";
 import type * as React from "react";
 

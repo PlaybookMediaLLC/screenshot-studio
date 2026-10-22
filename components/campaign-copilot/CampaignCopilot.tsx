@@ -1,6 +1,6 @@
 'use client'
 
-import { PiSpinnerGap as LoaderCircle } from 'react-icons/pi'
+import { SpinnerGapIcon as LoaderCircle } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useEffect, useEffectEvent, useRef, useState } from 'react'

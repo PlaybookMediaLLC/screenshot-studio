@@ -5,7 +5,8 @@ import { useImageStore } from '@/lib/store';
 import type { AnnotationToolType, BlurRegionStyle } from '@/lib/store';
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
-import { PiEyedropper as ColorPickerIcon, PiTrash as Delete02Icon } from 'react-icons/pi';
+import { EyedropperIcon as ColorPickerIcon } from '@phosphor-icons/react/dist/ssr/Eyedropper'
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash';
 import { Slider } from '@/components/ui/slider'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Label } from '@/components/ui/label'

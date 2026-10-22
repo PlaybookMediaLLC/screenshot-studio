@@ -1,6 +1,9 @@
 'use client'
 
-import { PiCamera as Camera, PiDownload as Download, PiEye as Eye, PiSpinnerGap as Loader2 } from 'react-icons/pi'
+import { CameraIcon as Camera } from '@phosphor-icons/react/dist/ssr/Camera'
+import { DownloadIcon as Download } from '@phosphor-icons/react/dist/ssr/Download'
+import { EyeIcon as Eye } from '@phosphor-icons/react/dist/ssr/Eye'
+import { SpinnerGapIcon as Loader2 } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
 import { useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { SaveToWorkspaceButton } from '@/components/workspace/SaveToWorkspaceButton'

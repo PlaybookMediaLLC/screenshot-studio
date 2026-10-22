@@ -1,6 +1,8 @@
 'use client'
 
-import { PiCheck as Check, PiSpinnerGap as Loader2, PiPencil as Pencil } from 'react-icons/pi'
+import { CheckIcon as Check } from '@phosphor-icons/react/dist/ssr/Check'
+import { SpinnerGapIcon as Loader2 } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
+import { PencilIcon as Pencil } from '@phosphor-icons/react/dist/ssr/Pencil'
 import { useEffect, useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'

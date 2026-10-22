@@ -3,7 +3,8 @@
 import { DatePlugin } from "@platejs/date/react";
 import { MentionPlugin } from "@platejs/mention/react";
 import { cn } from "@udecode/cn";
-import { PiArrowUpRight as ArrowUpRightIcon, PiFileText as FileTextIcon } from "react-icons/pi";
+import { ArrowUpRightIcon as ArrowUpRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowUpRight"
+import { FileTextIcon as FileTextIcon } from "@phosphor-icons/react/dist/ssr/FileText";
 import { IS_APPLE, type TText, type Value } from "platejs";
 import {
   PlateElement,

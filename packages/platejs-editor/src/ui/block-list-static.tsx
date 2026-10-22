@@ -1,5 +1,5 @@
 import { isOrderedList } from "@platejs/list";
-import { PiCheck as CheckIcon } from "react-icons/pi";
+import { CheckIcon as CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
 import type {
   RenderStaticNodeWrapper,
   SlateRenderElementProps,

@@ -7,7 +7,8 @@ import { ANIMATION_PRESETS, CATEGORY_LABELS } from '@/lib/animation/presets';
 import { cn } from '@/lib/utils';
 import type { AnimationPreset } from '@/types/animation';
 import { Button } from '@/components/ui/button'
-import { PiTrash as Delete02Icon, PiPlus as Add01Icon } from 'react-icons/pi';
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { PlusIcon as Add01Icon } from '@phosphor-icons/react/dist/ssr/Plus';
 
 const PRESET_BY_CATEGORY = ANIMATION_PRESETS.reduce(
   (acc, preset) => {

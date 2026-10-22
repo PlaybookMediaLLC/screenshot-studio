@@ -1,6 +1,7 @@
 'use client'
 
-import { PiCheck as Check, PiSpinnerGap as Loader2 } from 'react-icons/pi'
+import { CheckIcon as Check } from '@phosphor-icons/react/dist/ssr/Check'
+import { SpinnerGapIcon as Loader2 } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
 import Link from 'next/link'
 import { type FormEvent, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'

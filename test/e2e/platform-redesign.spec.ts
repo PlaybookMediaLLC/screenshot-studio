@@ -418,6 +418,27 @@ test('sidebar choices persist across client navigation and content scrolls insid
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
+  let releaseSession!: () => void
+  const sessionReady = new Promise<void>((resolve) => {
+    releaseSession = resolve
+  })
+  await page.route('**/api/auth/get-session', async (route) => {
+    await sessionReady
+    await route.continue()
+  })
+  try {
+    await page.goto('/home')
+    await expect(page.getByRole('button', { name: 'Collapse navigation' })).toBeDisabled()
+  } finally {
+    releaseSession()
+  }
+  await expect(page.getByRole('button', { name: 'Collapse navigation' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Collapse navigation' }).click()
+  await expect(page.getByRole('complementary', { name: 'Primary navigation' })).toHaveAttribute(
+    'data-navigation',
+    'compact'
+  )
+  await page.unroute('**/api/auth/get-session')
   await page.goto('/workspace/appearance')
   await page.getByRole('radio', { name: /^Always compact/ }).check()
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()

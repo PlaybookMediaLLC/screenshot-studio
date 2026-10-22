@@ -342,10 +342,17 @@ test('all template families have previews and hidden scrollbars retain scrolling
   ).toBe('none')
   await page.mouse.move(1000, 650)
   await page.mouse.wheel(0, 800)
-  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0)
-  await page.evaluate(() => scrollTo(0, 0))
+  await expect
+    .poll(() => page.locator('[data-platform-scroll]').evaluate((el) => el.scrollTop))
+    .toBeGreaterThan(0)
+  expect(await page.evaluate(() => scrollY)).toBe(0)
+  await page.locator('[data-platform-scroll]').evaluate((el) => el.scrollTo(0, 0))
+  await page.locator('[data-platform-scroll]').focus()
   await page.keyboard.press('PageDown')
-  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0)
+  await expect
+    .poll(() => page.locator('[data-platform-scroll]').evaluate((el) => el.scrollTop))
+    .toBeGreaterThan(0)
+  expect(await page.evaluate(() => scrollY)).toBe(0)
   for (const category of [
     'Animated',
     'Layouts & presets',
@@ -405,4 +412,88 @@ test('all template families have previews and hidden scrollbars retain scrolling
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.goto('/workspace/appearance')
   await expect(page.getByRole('switch', { name: 'Show scrollbars' })).toHaveCount(0)
+})
+
+test('sidebar choices persist across client navigation and content scrolls inside the shell', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/workspace/appearance')
+  await page.getByRole('radio', { name: /^Always compact/ }).check()
+  await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
+  const sidebar = page.getByRole('complementary', { name: 'Primary navigation' })
+  await page.getByRole('button', { name: 'Expand navigation' }).click()
+  await expect(sidebar).toHaveAttribute('data-navigation', 'expanded')
+  const documents: string[] = []
+  page.on('request', (request) => {
+    if (request.isNavigationRequest() && request.frame() === page.mainFrame())
+      documents.push(request.url())
+  })
+  for (const name of ['Home', 'Library', 'Automate', 'Create']) {
+    await sidebar.getByRole('link', { name, exact: true }).click()
+    await expect(page.getByRole('heading', { name, exact: true }).first()).toBeVisible()
+    await expect(sidebar).toHaveAttribute('data-navigation', 'expanded')
+  }
+  expect(documents).toEqual([])
+  const toggle = sidebar.getByRole('button', { name: 'Collapse navigation' })
+  const workspace = sidebar.getByRole('button', { name: /^Workspace:/ })
+  expect(
+    Math.abs((await toggle.boundingBox())!.y - (await workspace.boundingBox())!.y)
+  ).toBeLessThan(12)
+  await toggle.click()
+  await expect(sidebar).toHaveAttribute('data-navigation', 'compact')
+  await sidebar.getByRole('link', { name: 'Home', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
+  await expect(sidebar).toHaveAttribute('data-navigation', 'compact')
+  await page.screenshot({
+    path: '.context/ux-redesign/home-compact-polished.png',
+    style: 'nextjs-portal {display:none}',
+  })
+  await page.reload()
+  await expect(sidebar).toHaveAttribute('data-navigation', 'compact')
+  await sidebar.getByRole('button', { name: 'Expand navigation' }).click()
+  await page.screenshot({
+    path: '.context/ux-redesign/home-polished.png',
+    style: 'nextjs-portal {display:none}',
+  })
+  await sidebar.getByRole('button', { name: 'Search and commands' }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect
+    .poll(async () => (await page.getByRole('dialog').boundingBox())!.width)
+    .toBeCloseTo(1440 * 0.8, 0)
+  await page.screenshot({
+    path: '.context/ux-redesign/search-polished.png',
+    style: 'nextjs-portal {display:none}',
+  })
+  await page.keyboard.press('Escape')
+  await sidebar.getByRole('link', { name: 'Publish', exact: true }).click()
+  await expect(page.getByTestId('write-frame')).toBeVisible()
+  await page.keyboard.press('Control+k')
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect
+    .poll(async () => (await page.getByRole('dialog').boundingBox())!.width)
+    .toBeCloseTo(1440 * 0.8, 0)
+  await page.keyboard.press('Escape')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/home')
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
+  await page.screenshot({
+    path: '.context/ux-redesign/home-mobile-polished.png',
+    style: 'nextjs-portal {display:none}',
+  })
+  await page.mouse.move(200, 600)
+  await page.mouse.wheel(0, 900)
+  await expect
+    .poll(() => page.locator('[data-platform-scroll]').evaluate((el) => el.scrollTop))
+    .toBeGreaterThan(0)
+  expect(await page.evaluate(() => scrollY)).toBe(0)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.getByRole('button', { name: 'Open navigation' }).click()
+  await expect(page.getByRole('dialog', { name: 'Navigation', exact: true })).toBeVisible()
+  await page
+    .getByRole('dialog', { name: 'Navigation', exact: true })
+    .getByRole('link', { name: 'Automate', exact: true })
+    .click()
+  await expect(page.getByRole('heading', { name: 'Automate', exact: true })).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
 })

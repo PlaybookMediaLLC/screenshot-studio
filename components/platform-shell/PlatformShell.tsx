@@ -41,7 +41,7 @@ export async function PlatformShell({
       <div
         data-platform-shell
         className={cn(
-          'platform-shell flex min-h-screen flex-col text-foreground md:flex-row',
+          'platform-shell flex h-dvh min-h-0 flex-col overflow-hidden text-foreground md:flex-row',
           variant === 'editor' &&
             '[--editor-height:calc(100dvh-3.5rem)] md:[--editor-height:100dvh]',
           surface.base
@@ -61,10 +61,15 @@ export async function PlatformShell({
           variant={variant}
         />
         {variant === 'page' ? (
-          <div id="platform-content" tabIndex={-1} className="min-w-0 flex-1 md:py-2 md:pe-2">
+          <div className="min-h-0 min-w-0 flex-1 overflow-hidden md:py-2 md:pe-2">
             <div
+              data-platform-scroll
+              id="platform-content"
+              tabIndex={0}
+              aria-label="Page content"
+              role="region"
               className={cn(
-                'min-h-full md:min-h-[calc(100vh-1rem)] md:rounded-2xl md:border md:shadow-xs',
+                'h-full min-h-0 overflow-y-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:rounded-2xl md:border md:shadow-xs',
                 surface.panel,
                 surface.border
               )}
@@ -73,7 +78,11 @@ export async function PlatformShell({
             </div>
           </div>
         ) : (
-          <div id="platform-content" tabIndex={-1} className="min-w-0 flex-1 bg-background">
+          <div
+            id="platform-content"
+            tabIndex={-1}
+            className="min-h-0 min-w-0 flex-1 overflow-hidden bg-background"
+          >
             {children}
           </div>
         )}

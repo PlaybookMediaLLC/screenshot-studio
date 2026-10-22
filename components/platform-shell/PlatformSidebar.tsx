@@ -13,13 +13,14 @@ import {
   ChevronsUpDown,
   PanelLeftClose,
   PanelLeftOpen,
+  Building2,
 } from 'lucide-react'
 import { PLATFORM_DESTINATIONS, platformArea } from '@/lib/platform/navigation'
 import { ShellActions, ShellSearch } from './ShellActions'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { type ComponentType, useEffect, useState } from 'react'
+import { type ComponentType, useCallback, useState, useSyncExternalStore } from 'react'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { UserAvatar } from '@/components/auth/UserAvatar'
 import { AccountMenu } from '@/components/auth/AccountMenu'
@@ -76,11 +77,11 @@ function NavLink({
   const pathname = usePathname()
   const active = platformArea(pathname) === platformArea(href)
   const rowClassName = cn(
-    'flex h-10 items-center gap-2.5 rounded-lg border px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+    'flex h-10 items-center gap-3 rounded-xl border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
     active
       ? cn(surface.panel, surface.border, 'text-foreground shadow-xs')
-      : 'border-transparent text-muted-foreground hover:text-foreground',
-    collapsed && 'size-10 justify-center px-0'
+      : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
+    collapsed && 'size-11 justify-center px-0'
   )
   const link = (
     <SidebarLink
@@ -118,7 +119,7 @@ function Navigation({
 }) {
   const t = useTranslations('platformNavigation')
   return (
-    <nav aria-label={t('workspace')} className="flex min-h-full flex-col gap-4">
+    <nav aria-label={t('workspace')} className="flex min-h-full flex-col gap-5">
       <ShellActions
         collapsed={collapsed}
         campaignsEnabled={campaignsEnabled}
@@ -127,7 +128,7 @@ function Navigation({
       />
       {NAV_GROUPS.map((group, index) => (
         <div
-          className={cn('grid gap-0.5', index === 1 && 'mt-auto border-t border-border pt-3')}
+          className={cn('grid gap-1', index === 1 && 'mt-auto border-t border-border pt-3')}
           key={index}
         >
           {index === 1 ? <NotificationCenter collapsed={collapsed} /> : null}
@@ -165,7 +166,7 @@ function WorkspaceSwitcher({
       side={collapsed ? 'right' : 'top'}
       triggerClassName={cn(
         'flex h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-foreground/[0.04]',
-        collapsed && 'size-10 justify-center px-0'
+        collapsed && 'size-11 justify-center px-0'
       )}
     >
       <UserAvatar
@@ -211,12 +212,13 @@ export interface PlatformSidebarProps {
   variant: 'editor' | 'page'
 }
 
-/**
- * Whether the desktop navigation shows labels. Compact never does and
- * expanded always does. Dynamic does from 1280 px wide; narrower, it shows
- * the icon rail and keeps a temporary expansion the person opened until they
- * close it or move to another page.
- */
+const navigationOverrides = new Map<string, boolean>()
+function subscribeNavigation(callback: () => void) {
+  window.addEventListener('shots:navigation', callback)
+  return () => window.removeEventListener('shots:navigation', callback)
+}
+
+/** Keep the user's toggle across destinations and editor/page shell remounts. */
 function useNavigationExpanded(
   initial: z.infer<typeof navigationLayoutSchema>,
   variant: 'editor' | 'page'
@@ -228,30 +230,34 @@ function useNavigationExpanded(
       ? 'compact'
       : (preferences?.navigation ?? initial)
   const wide = useMediaQuery(DYNAMIC_NAVIGATION_QUERY)
-  const pathname = usePathname()
-  const [temporary, setTemporary] = useState<boolean | null>(null)
   const key = session
-    ? `shots:nav:${session.user.id}:${session.session.activeOrganizationId}:${variant}:${platformArea(pathname)}:${preferences?.navigation ?? initial}`
+    ? `shots:nav:${session.user.id}:${session.session.activeOrganizationId}:${preferences?.navigation ?? initial}`
     : null
-  useEffect(() => {
-    let remembered: string | null = null
-    try {
-      remembered = key ? sessionStorage.getItem(key) : null
-    } catch {
-      /* Browser storage is optional. */
-    }
-    setTemporary(remembered === 'expanded' ? true : remembered === 'compact' ? false : null)
-  }, [key])
-  const expanded = temporary ?? (layout === 'expanded' || (layout === 'dynamic' && wide))
-  return {
-    expanded,
-    setTemporary: (value: boolean) => {
-      setTemporary(value)
+  const temporary = useSyncExternalStore(
+    subscribeNavigation,
+    useCallback(() => {
+      if (!key) return null
+      if (navigationOverrides.has(key)) return navigationOverrides.get(key)!
       try {
-        if (key) sessionStorage.setItem(key, value ? 'expanded' : 'compact')
+        const remembered = sessionStorage.getItem(key)
+        return remembered === 'expanded' ? true : remembered === 'compact' ? false : null
       } catch {
-        /* Keep the current session usable without storage. */
+        return null
       }
+    }, [key]),
+    () => null
+  )
+  return {
+    expanded: temporary ?? (layout === 'expanded' || (layout === 'dynamic' && wide)),
+    setTemporary: (value: boolean) => {
+      if (!key) return
+      navigationOverrides.set(key, value)
+      try {
+        sessionStorage.setItem(key, value ? 'expanded' : 'compact')
+      } catch {
+        /* The in-memory override still survives client navigation. */
+      }
+      window.dispatchEvent(new Event('shots:navigation'))
     },
   }
 }
@@ -279,58 +285,79 @@ export function PlatformSidebar({
       <aside
         aria-label="Primary navigation"
         className={cn(
-          'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-foreground/[0.04] py-3 md:flex',
-          collapsed ? 'w-14 items-center' : 'w-60 px-2',
+          'hidden h-full shrink-0 flex-col border-r border-border/50 py-4 md:flex',
+          collapsed ? 'w-[76px] items-center px-3' : 'w-64 px-3',
           surface.base
         )}
         data-navigation={collapsed ? 'compact' : 'expanded'}
       >
-        <div className={cn(!collapsed && 'px-2')}>
-          <Brand collapsed={collapsed} />
-          <AccountMenu
-            scope="workspace"
-            workspaceName={organizationName}
-            align="start"
-            triggerClassName="mt-3 flex h-10 max-w-full items-center gap-2 rounded-lg px-2 text-start text-sm hover:bg-muted"
-          >
-            {collapsed ? (
-              <ChevronsUpDown size={20} aria-hidden="true" />
-            ) : (
-              <>
-                <span className="min-w-0 flex-1 truncate">{organizationName}</span>
-                <ChevronsUpDown size={16} aria-hidden="true" />
-              </>
-            )}
-          </AccountMenu>
+        <div className={cn('w-full', collapsed ? 'flex flex-col items-center' : 'px-1')}>
+          <div className={cn('flex h-8 items-center', collapsed ? 'justify-center' : 'px-2')}>
+            <Brand collapsed={collapsed} />
+          </div>
+          <div className={cn('mt-4 flex items-center gap-1', collapsed && 'flex-col gap-2')}>
+            <AccountMenu
+              scope="workspace"
+              workspaceName={organizationName}
+              align="start"
+              side={collapsed ? 'right' : 'bottom'}
+              triggerClassName={cn(
+                'flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-border/70 bg-card px-2.5 text-start text-sm transition-colors hover:bg-muted',
+                collapsed && 'size-11 flex-none justify-center px-0'
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className="grid size-6 shrink-0 place-items-center rounded-md bg-foreground/[0.06] text-muted-foreground"
+              >
+                <Building2 size={15} />
+              </span>
+              {!collapsed && (
+                <>
+                  <span className="min-w-0 flex-1 truncate font-medium">{organizationName}</span>
+                  <ChevronsUpDown
+                    size={14}
+                    className="shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                </>
+              )}
+            </AccountMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  aria-expanded={navigation.expanded}
+                  aria-label={navigation.expanded ? t('collapse') : t('expand')}
+                  className={cn(
+                    'grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground',
+                    collapsed && 'w-11'
+                  )}
+                  onClick={() => navigation.setTemporary(!navigation.expanded)}
+                  size={null}
+                  type="button"
+                  variant="custom"
+                >
+                  {navigation.expanded ? (
+                    <PanelLeftClose size={18} aria-hidden="true" />
+                  ) : (
+                    <PanelLeftOpen size={18} aria-hidden="true" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {navigation.expanded ? t('collapse') : t('expand')}
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
-        <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-1 pt-1 [scrollbar-width:none]">
+        <div className="mt-4 min-h-0 w-full flex-1 overflow-y-auto px-1 pt-1">
           <Navigation
             campaignsEnabled={campaignsEnabled}
             collapsed={collapsed}
             draftsEnabled={draftsEnabled}
           />
         </div>
-
-        {
-          <div className={cn('flex w-full pb-2', collapsed ? 'justify-center' : 'px-1')}>
-            <Button
-              aria-expanded={navigation.expanded}
-              aria-label={navigation.expanded ? t('collapse') : t('expand')}
-              className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
-              onClick={() => navigation.setTemporary(!navigation.expanded)}
-              size={null}
-              type="button"
-              variant="custom"
-            >
-              {navigation.expanded ? (
-                <PanelLeftClose size={20} aria-hidden="true" />
-              ) : (
-                <PanelLeftOpen size={20} aria-hidden="true" />
-              )}
-            </Button>
-          </div>
-        }
 
         {
           // In development, room for the Next.js dev badge, which otherwise
@@ -348,7 +375,7 @@ export function PlatformSidebar({
 
       <header
         className={cn(
-          'sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-foreground/[0.06] px-4 md:hidden',
+          'z-30 flex h-14 shrink-0 items-center gap-3 border-b border-foreground/[0.06] px-4 md:hidden',
           surface.base
         )}
       >

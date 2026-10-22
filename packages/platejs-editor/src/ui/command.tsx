@@ -52,7 +52,7 @@ function CommandDialog({
 }: DialogProps & { className?: string }) {
   return (
     <Dialog {...props}>
-      <DialogContent className="max-w-4xl overflow-hidden p-0 shadow-lg">
+      <DialogContent className="w-[80vw] max-w-[80vw] overflow-hidden p-0 shadow-lg sm:max-w-[80vw]">
         <DialogTitle className="sr-only">Search</DialogTitle>
         <DialogDescription className="sr-only">
           Search documents and workspace records.

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
-import { PiPlus as Add01Icon } from "react-icons/pi";
+import { PlusIcon as Add01Icon } from "@phosphor-icons/react/dist/ssr/Plus";
 import { cn } from "@/lib/utils";
 import { TOOL_DROPZONE_ACCEPT } from "./useToolQueue";
 import { DROP_CARD_CLASS, DropSurface } from "./ui";

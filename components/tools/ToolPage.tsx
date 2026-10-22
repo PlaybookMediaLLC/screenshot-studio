@@ -1,6 +1,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { PiCheckCircle as CheckmarkCircle02Icon, PiArrowRight as ArrowRight01Icon } from "react-icons/pi";
+import { CheckCircleIcon as CheckmarkCircle02Icon } from "@phosphor-icons/react/dist/ssr/CheckCircle"
+import { ArrowRightIcon as ArrowRight01Icon } from "@phosphor-icons/react/dist/ssr/ArrowRight";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { buildToolJsonLd } from "@/lib/seo/tool-metadata";

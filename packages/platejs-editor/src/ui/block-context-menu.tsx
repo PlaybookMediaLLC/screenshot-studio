@@ -4,7 +4,7 @@ import {
   BLOCK_CONTEXT_MENU_ID,
   BlockMenuPlugin,
 } from "@platejs/selection/react";
-import { PiDotsThree as MoreHorizontal } from "react-icons/pi";
+import { DotsThreeIcon as MoreHorizontal } from "@phosphor-icons/react/dist/ssr/DotsThree";
 import {
   useEditorPlugin,
   useEditorRef,

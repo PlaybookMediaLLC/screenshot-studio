@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { PiMagicWand as MagicWand01Icon, PiArrowsClockwise as RefreshIcon } from 'react-icons/pi'
+import { MagicWandIcon as MagicWand01Icon } from '@phosphor-icons/react/dist/ssr/MagicWand'
+import { ArrowsClockwiseIcon as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowsClockwise'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'

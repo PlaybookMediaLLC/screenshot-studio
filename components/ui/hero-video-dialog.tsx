@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { PiPlay as PlayIcon, PiX as Cancel01Icon } from 'react-icons/pi'
+import { PlayIcon as PlayIcon } from '@phosphor-icons/react/dist/ssr/Play'
+import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
 import { AnimatePresence, motion } from "motion/react"
 
 import { cn } from "@/lib/utils"
@@ -111,7 +112,7 @@ export function HeroVideoDialog({
               <div
                 className={`from-primary/30 to-primary relative flex size-20 scale-100 items-center justify-center rounded-full bg-gradient-to-b shadow-md transition-all duration-200 ease-out group-hover:scale-[1.2]`}
               >
-                <PlayIcon
+                <PlayIcon weight="fill"
                   className="size-8 scale-100 fill-primary-foreground text-primary-foreground transition-transform duration-200 ease-out group-hover:scale-105"
                   style={{
                     filter:

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { PiCheck as Tick02Icon } from 'react-icons/pi';
+import { CheckIcon as Tick02Icon } from '@phosphor-icons/react/dist/ssr/Check';
 import { DeviceShell } from '@/components/mockups/DeviceShell';
 import {
   PresetPreview,

@@ -12,7 +12,9 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
-import { PiRectangle as AspectRatioIcon, PiGlobe as Globe02Icon, PiImage as Image01Icon } from "react-icons/pi";
+import { RectangleIcon as AspectRatioIcon } from "@phosphor-icons/react/dist/ssr/Rectangle"
+import { GlobeIcon as Globe02Icon } from "@phosphor-icons/react/dist/ssr/Globe"
+import { ImageIcon as Image01Icon } from "@phosphor-icons/react/dist/ssr/Image";
 import {
   getBackgroundCSS,
   type BackgroundConfig,

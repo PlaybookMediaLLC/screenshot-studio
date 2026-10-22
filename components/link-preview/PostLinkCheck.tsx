@@ -1,6 +1,8 @@
 'use client'
 
-import { PiArrowSquareOut as ExternalLink, PiLink as Link2, PiSpinnerGap as Loader2 } from 'react-icons/pi'
+import { ArrowSquareOutIcon as ExternalLink } from '@phosphor-icons/react/dist/ssr/ArrowSquareOut'
+import { LinkIcon as Link2 } from '@phosphor-icons/react/dist/ssr/Link'
+import { SpinnerGapIcon as Loader2 } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
 import { useState } from 'react'
 import { Pill } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'

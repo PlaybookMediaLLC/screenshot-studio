@@ -9,7 +9,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, Reorder, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import { PiPlus as Add01Icon, PiArrowLeft as ArrowLeft02Icon, PiArrowRight as ArrowRight02Icon, PiX as Cancel01Icon, PiCopy as Copy01Icon, PiTrash as Delete02Icon, PiDownload as Download04Icon, PiFileZip as FileZipIcon, PiSquaresFour as GridIcon, PiArrowUUpRight as RedoIcon, PiArrowsClockwise as RefreshIcon, PiSlidersHorizontal as Settings02Icon, PiArrowUUpLeft as UndoIcon } from "react-icons/pi";
+import { PlusIcon as Add01Icon } from "@phosphor-icons/react/dist/ssr/Plus"
+import { ArrowLeftIcon as ArrowLeft02Icon } from "@phosphor-icons/react/dist/ssr/ArrowLeft"
+import { ArrowRightIcon as ArrowRight02Icon } from "@phosphor-icons/react/dist/ssr/ArrowRight"
+import { XIcon as Cancel01Icon } from "@phosphor-icons/react/dist/ssr/X"
+import { CopyIcon as Copy01Icon } from "@phosphor-icons/react/dist/ssr/Copy"
+import { TrashIcon as Delete02Icon } from "@phosphor-icons/react/dist/ssr/Trash"
+import { DownloadIcon as Download04Icon } from "@phosphor-icons/react/dist/ssr/Download"
+import { FileZipIcon as FileZipIcon } from "@phosphor-icons/react/dist/ssr/FileZip"
+import { SquaresFourIcon as GridIcon } from "@phosphor-icons/react/dist/ssr/SquaresFour"
+import { ArrowUUpRightIcon as RedoIcon } from "@phosphor-icons/react/dist/ssr/ArrowUUpRight"
+import { ArrowsClockwiseIcon as RefreshIcon } from "@phosphor-icons/react/dist/ssr/ArrowsClockwise"
+import { SlidersHorizontalIcon as Settings02Icon } from "@phosphor-icons/react/dist/ssr/SlidersHorizontal"
+import { ArrowUUpLeftIcon as UndoIcon } from "@phosphor-icons/react/dist/ssr/ArrowUUpLeft";
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,

@@ -1,6 +1,6 @@
 "use client";
 
-import { PiChatText as MessageSquareTextIcon } from "react-icons/pi";
+import { ChatTextIcon as MessageSquareTextIcon } from "@phosphor-icons/react/dist/ssr/ChatText";
 import { useEditorRef } from "platejs/react";
 
 import { commentPlugin } from "../plugins/comment-kit";

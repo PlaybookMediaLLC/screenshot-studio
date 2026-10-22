@@ -11,7 +11,7 @@ import {
   useTableSelectionDom,
 } from "@platejs/table/react";
 import { cva } from "class-variance-authority";
-import { PiPlus as PlusIcon } from "react-icons/pi";
+import { PlusIcon as PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import { KEYS, type TTableCellElement } from "platejs";
 import {
   PlateElement,

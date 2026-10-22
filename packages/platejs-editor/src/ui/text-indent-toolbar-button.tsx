@@ -1,6 +1,7 @@
 "use client";
 
-import { PiTextOutdent as IndentDecreaseIcon, PiTextIndent as IndentIncreaseIcon } from "react-icons/pi";
+import { TextOutdentIcon as IndentDecreaseIcon } from "@phosphor-icons/react/dist/ssr/TextOutdent"
+import { TextIndentIcon as IndentIncreaseIcon } from "@phosphor-icons/react/dist/ssr/TextIndent";
 import { useEditorRef, useSelectionFragmentProp } from "platejs/react";
 
 import { ToolbarButton } from "./toolbar";

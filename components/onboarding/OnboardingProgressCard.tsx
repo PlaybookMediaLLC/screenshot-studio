@@ -1,6 +1,6 @@
 'use client'
 
-import { PiX as X } from 'react-icons/pi'
+import { XIcon as X } from '@phosphor-icons/react/dist/ssr/X'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { StoredOnboardingRun } from '@/lib/tenant/onboarding-runs'

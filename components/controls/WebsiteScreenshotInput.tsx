@@ -8,7 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useImageStore } from '@/lib/store'
 import { importImages } from '@/lib/editor/import-images'
 import { browserDisplayUrl } from '@/lib/browser-url'
-import { PiSpinnerGap as Loading03Icon, PiGlobe as Globe02Icon, PiDesktop as ComputerIcon, PiDeviceMobile as SmartPhone01Icon } from 'react-icons/pi'
+import { SpinnerGapIcon as Loading03Icon } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
+import { GlobeIcon as Globe02Icon } from '@phosphor-icons/react/dist/ssr/Globe'
+import { DesktopIcon as ComputerIcon } from '@phosphor-icons/react/dist/ssr/Desktop'
+import { DeviceMobileIcon as SmartPhone01Icon } from '@phosphor-icons/react/dist/ssr/DeviceMobile'
 
 type DeviceType = 'desktop' | 'mobile'
 

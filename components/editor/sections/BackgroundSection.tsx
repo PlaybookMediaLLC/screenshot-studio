@@ -16,7 +16,9 @@ import { meshGradients, magicGradients, type MeshGradientKey, type MagicGradient
 import { validateImageContents } from '@/lib/editor/import-images';
 import { ColorPicker } from '@/components/ui/color-picker'
 import { SectionWrapper } from './SectionWrapper';
-import { PiX as Cancel01Icon, PiImage as Image01Icon, PiShuffle as ShuffleIcon } from 'react-icons/pi';
+import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
+import { ImageIcon as Image01Icon } from '@phosphor-icons/react/dist/ssr/Image'
+import { ShuffleIcon as ShuffleIcon } from '@phosphor-icons/react/dist/ssr/Shuffle';
 import { cn } from '@/lib/utils';
 import { CachedImage } from '@/components/ui/cached-image'
 import { Label } from '@/components/ui/label'

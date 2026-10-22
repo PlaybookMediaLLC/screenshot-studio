@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
-import { PiCheck as Tick02Icon, PiCaretRight as ArrowRight01Icon, PiCircleFill as RecordIcon } from 'react-icons/pi'
+import { CheckIcon as Tick02Icon } from '@phosphor-icons/react/dist/ssr/Check'
+import { CaretRightIcon as ArrowRight01Icon } from '@phosphor-icons/react/dist/ssr/CaretRight'
+import { CircleIcon as RecordIcon } from '@phosphor-icons/react/dist/ssr/Circle'
 
 import { cn } from "@/lib/utils"
 
@@ -136,7 +138,7 @@ function DropdownMenuRadioItem({
     >
       <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <RecordIcon className="size-2" />
+          <RecordIcon weight="fill" className="size-2" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}

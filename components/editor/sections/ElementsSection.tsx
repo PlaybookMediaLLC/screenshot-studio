@@ -1,7 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { PiCircle as CircleIcon, PiCursor as Cursor01Icon, PiSun as Sun01Icon, PiMagnifyingGlassPlus as ZoomInAreaIcon } from 'react-icons/pi'
+import { CircleIcon as CircleIcon } from '@phosphor-icons/react/dist/ssr/Circle'
+import { CursorIcon as Cursor01Icon } from '@phosphor-icons/react/dist/ssr/Cursor'
+import { SunIcon as Sun01Icon } from '@phosphor-icons/react/dist/ssr/Sun'
+import { MagnifyingGlassPlusIcon as ZoomInAreaIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlassPlus'
 import { ELEMENT_LABELS } from '@/components/editor/inspector/ElementInspector'
 import { createElement, type ElementType, nextBadgeNumber } from '@/lib/editor/elements/schema'
 import { useImageStore } from '@/lib/store'

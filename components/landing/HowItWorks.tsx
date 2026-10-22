@@ -1,4 +1,6 @@
-import { PiImage as ImageUploadIcon, PiPaintBrush as PaintBrush01Icon, PiDownload as Download04Icon } from "react-icons/pi";
+import { ImageIcon as ImageUploadIcon } from "@phosphor-icons/react/dist/ssr/Image"
+import { PaintBrushIcon as PaintBrush01Icon } from "@phosphor-icons/react/dist/ssr/PaintBrush"
+import { DownloadIcon as Download04Icon } from "@phosphor-icons/react/dist/ssr/Download";
 
 interface Step {
   step: number;

@@ -11,7 +11,7 @@ import { CanvasStageLoadingOverlay } from "@/components/canvas/CanvasStageLoadin
 import { SlidePreview } from './SlidePreview';
 import ClientCanvas from "@/components/canvas/ClientCanvas";
 import { cn } from "@/lib/utils";
-import { PiX as Cancel01Icon } from "react-icons/pi";
+import { XIcon as Cancel01Icon } from "@phosphor-icons/react/dist/ssr/X";
 import { hasCanvasContent } from "@/lib/editor/canvas-content";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StoreScreenshotsShortcut } from "@/components/store-screenshots/StoreScreenshotsFeatureCard";

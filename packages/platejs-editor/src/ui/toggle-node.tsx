@@ -1,5 +1,5 @@
 import { useToggleButton, useToggleButtonState } from "@platejs/toggle/react";
-import { PiCaretRight as ChevronRightIcon } from "react-icons/pi";
+import { CaretRightIcon as ChevronRightIcon } from "@phosphor-icons/react/dist/ssr/CaretRight";
 import {
   PlateElement,
   type PlateElementProps,

@@ -1,7 +1,13 @@
 "use client";
 
-import { PiTextB as Bold, PiCode as Code2, PiHighlighter as HighlighterIcon, PiTextItalic as Italic, PiKeyboard as KeyboardIcon, PiTextStrikethrough as Strikethrough, PiTextUnderline as Underline } from "react-icons/pi"
-import type { IconBaseProps } from "react-icons";
+import { TextBIcon as Bold } from "@phosphor-icons/react/dist/ssr/TextB"
+import { CodeIcon as Code2 } from "@phosphor-icons/react/dist/ssr/Code"
+import { HighlighterIcon as HighlighterIcon } from "@phosphor-icons/react/dist/ssr/Highlighter"
+import { TextItalicIcon as Italic } from "@phosphor-icons/react/dist/ssr/TextItalic"
+import { KeyboardIcon as KeyboardIcon } from "@phosphor-icons/react/dist/ssr/Keyboard"
+import { TextStrikethroughIcon as Strikethrough } from "@phosphor-icons/react/dist/ssr/TextStrikethrough"
+import { TextUnderlineIcon as Underline } from "@phosphor-icons/react/dist/ssr/TextUnderline"
+import type { IconProps } from "@phosphor-icons/react";
 import { KEYS } from "platejs";
 import {
   useEditorReadOnly,
@@ -137,7 +143,7 @@ export function FloatingToolbarButtons() {
   );
 }
 
-function AIIcon(props: IconBaseProps) {
+function AIIcon(props: IconProps) {
   return (
     <svg
       fill="url(#myGradient)"

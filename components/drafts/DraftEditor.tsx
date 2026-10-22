@@ -48,7 +48,7 @@ import {
   ToolbarButton,
   ToolbarGroup,
 } from '@shots/platejs-editor/ui'
-import { PiDotsThree as MoreHorizontalIcon } from 'react-icons/pi'
+import { DotsThreeIcon as MoreHorizontalIcon } from '@phosphor-icons/react/dist/ssr/DotsThree'
 import {
   DropdownMenu,
   DropdownMenuContent,

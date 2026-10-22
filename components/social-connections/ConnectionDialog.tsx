@@ -1,6 +1,11 @@
 'use client'
 
-import { PiArrowUpRight as ArrowUpRight, PiCaretRight as ChevronRight, PiLockKey as LockKeyhole, PiNewspaper as Newspaper, PiUsers as Users, PiX as X } from 'react-icons/pi'
+import { ArrowUpRightIcon as ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
+import { CaretRightIcon as ChevronRight } from '@phosphor-icons/react/dist/ssr/CaretRight'
+import { LockKeyIcon as LockKeyhole } from '@phosphor-icons/react/dist/ssr/LockKey'
+import { NewspaperIcon as Newspaper } from '@phosphor-icons/react/dist/ssr/Newspaper'
+import { UsersIcon as Users } from '@phosphor-icons/react/dist/ssr/Users'
+import { XIcon as X } from '@phosphor-icons/react/dist/ssr/X'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import {
   socialOAuthBeginRequestSchema,

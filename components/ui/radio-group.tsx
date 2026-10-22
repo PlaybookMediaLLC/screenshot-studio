@@ -1,6 +1,6 @@
 'use client'
 
-import { PiCircleFill as CircleIcon } from 'react-icons/pi'
+import { CircleIcon as CircleIcon } from '@phosphor-icons/react/dist/ssr/Circle'
 import { RadioGroup as RadioGroupPrimitive } from 'radix-ui'
 import type * as React from 'react'
 import { cn } from '@/lib/utils'
@@ -37,7 +37,7 @@ function RadioGroupItem({
         className="relative flex items-center justify-center"
         data-slot="radio-group-indicator"
       >
-        <CircleIcon className="absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 fill-primary" />
+        <CircleIcon weight="fill" className="absolute top-1/2 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 fill-primary" />
       </RadioGroupPrimitive.Indicator>
     </RadioGroupPrimitive.Item>
   )

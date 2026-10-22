@@ -5,7 +5,11 @@ import { useImageStore } from '@/lib/store';
 import { usePlaybackStore } from '@/lib/store/playback';
 import { KeyframeMarker } from './KeyframeMarker';
 import { Button } from '@/components/ui/button';
-import { PiEye as ViewIcon, PiEyeSlash as ViewOffIcon, PiTrash as Delete02Icon, PiLockKey as SquareLockPasswordIcon, PiLockOpen as SquareUnlock01Icon } from 'react-icons/pi';
+import { EyeIcon as ViewIcon } from '@phosphor-icons/react/dist/ssr/Eye'
+import { EyeSlashIcon as ViewOffIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash'
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { LockKeyIcon as SquareLockPasswordIcon } from '@phosphor-icons/react/dist/ssr/LockKey'
+import { LockOpenIcon as SquareUnlock01Icon } from '@phosphor-icons/react/dist/ssr/LockOpen';
 import { cn } from '@/lib/utils';
 import type { AnimationTrack } from '@/types/animation';
 

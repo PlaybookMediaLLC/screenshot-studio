@@ -1,6 +1,7 @@
 'use client'
 
-import { PiArrowsLeftRight as ArrowLeftRight, PiSpinnerGap as Loader2 } from 'react-icons/pi'
+import { ArrowsLeftRightIcon as ArrowLeftRight } from '@phosphor-icons/react/dist/ssr/ArrowsLeftRight'
+import { SpinnerGapIcon as Loader2 } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
 import { useState } from 'react'
 import { Pill } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'

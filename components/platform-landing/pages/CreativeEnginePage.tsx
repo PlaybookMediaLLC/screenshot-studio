@@ -1,5 +1,10 @@
 import Link from 'next/link'
-import { PiBrowser as BrowserIcon, PiPencilSimple as Edit02Icon, PiImage as Image01Icon, PiPaintBrush as PaintBrush01Icon, PiDeviceMobile as SmartPhone01Icon, PiVideo as Video01Icon } from 'react-icons/pi'
+import { BrowserIcon as BrowserIcon } from '@phosphor-icons/react/dist/ssr/Browser'
+import { PencilSimpleIcon as Edit02Icon } from '@phosphor-icons/react/dist/ssr/PencilSimple'
+import { ImageIcon as Image01Icon } from '@phosphor-icons/react/dist/ssr/Image'
+import { PaintBrushIcon as PaintBrush01Icon } from '@phosphor-icons/react/dist/ssr/PaintBrush'
+import { DeviceMobileIcon as SmartPhone01Icon } from '@phosphor-icons/react/dist/ssr/DeviceMobile'
+import { VideoIcon as Video01Icon } from '@phosphor-icons/react/dist/ssr/Video'
 import { DESIGN_RENDER_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import {
   atLeast,

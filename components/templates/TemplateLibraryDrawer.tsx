@@ -2,7 +2,14 @@
 
 import * as React from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { PiArrowLeft as ArrowLeft01Icon, PiRectangle as AspectRatioIcon, PiX as Cancel01Icon, PiSquaresFour as GridIcon, PiImage as Image01Icon, PiMagicWand as MagicWand01Icon, PiPaintBrush as PaintBrush01Icon, PiVideo as Video01Icon } from 'react-icons/pi';
+import { ArrowLeftIcon as ArrowLeft01Icon } from '@phosphor-icons/react/dist/ssr/ArrowLeft'
+import { RectangleIcon as AspectRatioIcon } from '@phosphor-icons/react/dist/ssr/Rectangle'
+import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
+import { SquaresFourIcon as GridIcon } from '@phosphor-icons/react/dist/ssr/SquaresFour'
+import { ImageIcon as Image01Icon } from '@phosphor-icons/react/dist/ssr/Image'
+import { MagicWandIcon as MagicWand01Icon } from '@phosphor-icons/react/dist/ssr/MagicWand'
+import { PaintBrushIcon as PaintBrush01Icon } from '@phosphor-icons/react/dist/ssr/PaintBrush'
+import { VideoIcon as Video01Icon } from '@phosphor-icons/react/dist/ssr/Video';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import {
   AnimatedTemplateGallery,

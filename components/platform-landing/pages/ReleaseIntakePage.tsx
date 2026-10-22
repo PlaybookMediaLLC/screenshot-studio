@@ -1,4 +1,6 @@
-import { PiTerminal as CommandLineIcon, PiPencilSimple as Edit02Icon, PiWebhooksLogo as WebhookIcon } from 'react-icons/pi'
+import { TerminalIcon as CommandLineIcon } from '@phosphor-icons/react/dist/ssr/Terminal'
+import { PencilSimpleIcon as Edit02Icon } from '@phosphor-icons/react/dist/ssr/PencilSimple'
+import { WebhooksLogoIcon as WebhookIcon } from '@phosphor-icons/react/dist/ssr/WebhooksLogo'
 import { apiErrorBody } from '@/lib/api/errors'
 import { apiKeyScopes, type ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import { workspacePlanSchema } from '@/lib/billing/plans'

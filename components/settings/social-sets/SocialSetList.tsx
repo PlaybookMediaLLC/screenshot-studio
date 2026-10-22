@@ -25,7 +25,7 @@ import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { settingsErrorMessage } from '@/lib/settings/client'
 import { useSocialSetScope } from './scope'
 import { z } from 'zod'
-import { PiStack as Layers } from 'react-icons/pi'
+import { StackIcon as Layers } from '@phosphor-icons/react/dist/ssr/Stack'
 import { type SocialSetRecord, useSocialSets, useStoreSocialSet } from './api'
 import { ConnectionLauncher } from '@/components/social-connections/ConnectionLauncher'
 

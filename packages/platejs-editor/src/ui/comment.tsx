@@ -8,7 +8,12 @@ import {
   differenceInMinutes,
   format,
 } from "date-fns";
-import { PiArrowUp as ArrowUpIcon, PiCheck as CheckIcon, PiDotsThree as MoreHorizontalIcon, PiPencil as PencilIcon, PiTrash as TrashIcon, PiX as XIcon } from "react-icons/pi";
+import { ArrowUpIcon as ArrowUpIcon } from "@phosphor-icons/react/dist/ssr/ArrowUp"
+import { CheckIcon as CheckIcon } from "@phosphor-icons/react/dist/ssr/Check"
+import { DotsThreeIcon as MoreHorizontalIcon } from "@phosphor-icons/react/dist/ssr/DotsThree"
+import { PencilIcon as PencilIcon } from "@phosphor-icons/react/dist/ssr/Pencil"
+import { TrashIcon as TrashIcon } from "@phosphor-icons/react/dist/ssr/Trash"
+import { XIcon as XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import { NodeApi, nanoid, type Value } from "platejs";
 import {
   type CreatePlateEditorOptions,

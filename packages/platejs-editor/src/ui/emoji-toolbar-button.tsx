@@ -18,7 +18,18 @@ import {
   Root as PopoverRoot,
   Trigger as PopoverTrigger,
 } from "@radix-ui/react-popover";
-import { PiAppleLogo as AppleIcon, PiClock as ClockIcon, PiCompass as CompassIcon, PiBackspace as DeleteIcon, PiFlag as FlagIcon, PiLeaf as LeafIcon, PiLightbulb as LightbulbIcon, PiMusicNotes as MusicIcon, PiMagnifyingGlass as SearchIcon, PiSmiley as SmileIcon, PiStar as StarIcon, PiX as XIcon } from "react-icons/pi";
+import { AppleLogoIcon as AppleIcon } from "@phosphor-icons/react/dist/ssr/AppleLogo"
+import { ClockIcon as ClockIcon } from "@phosphor-icons/react/dist/ssr/Clock"
+import { CompassIcon as CompassIcon } from "@phosphor-icons/react/dist/ssr/Compass"
+import { BackspaceIcon as DeleteIcon } from "@phosphor-icons/react/dist/ssr/Backspace"
+import { FlagIcon as FlagIcon } from "@phosphor-icons/react/dist/ssr/Flag"
+import { LeafIcon as LeafIcon } from "@phosphor-icons/react/dist/ssr/Leaf"
+import { LightbulbIcon as LightbulbIcon } from "@phosphor-icons/react/dist/ssr/Lightbulb"
+import { MusicNotesIcon as MusicIcon } from "@phosphor-icons/react/dist/ssr/MusicNotes"
+import { MagnifyingGlassIcon as SearchIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass"
+import { SmileyIcon as SmileIcon } from "@phosphor-icons/react/dist/ssr/Smiley"
+import { StarIcon as StarIcon } from "@phosphor-icons/react/dist/ssr/Star"
+import { XIcon as XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import React, { memo, type ReactNode, useCallback } from "react";
 
 import { cn } from "../lib/utils";

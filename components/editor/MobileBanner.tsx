@@ -3,7 +3,8 @@
 import * as React from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { PiX as Cancel01Icon, PiDesktop as ComputerIcon } from "react-icons/pi";
+import { XIcon as Cancel01Icon } from "@phosphor-icons/react/dist/ssr/X"
+import { DesktopIcon as ComputerIcon } from "@phosphor-icons/react/dist/ssr/Desktop";
 
 const DISMISSED_KEY = "screenshotstudio-mobile-banner-dismissed";
 

@@ -1,6 +1,8 @@
 'use client'
 
-import { PiCheck as Check, PiCopy as Copy, PiKey as KeyRound } from 'react-icons/pi'
+import { CheckIcon as Check } from '@phosphor-icons/react/dist/ssr/Check'
+import { CopyIcon as Copy } from '@phosphor-icons/react/dist/ssr/Copy'
+import { KeyIcon as KeyRound } from '@phosphor-icons/react/dist/ssr/Key'
 import { useState } from 'react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'

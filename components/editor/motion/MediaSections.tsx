@@ -1,7 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { PiPlus as Add01Icon, PiTrash as Delete02Icon, PiMusicNote as MusicNote01Icon } from 'react-icons/pi'
+import { PlusIcon as Add01Icon } from '@phosphor-icons/react/dist/ssr/Plus'
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { MusicNoteIcon as MusicNote01Icon } from '@phosphor-icons/react/dist/ssr/MusicNote'
 import { ChoiceField, ColorField, ToggleField } from '@/components/editor/inspector/fields'
 import { SectionWrapper } from '@/components/editor/sections'
 import { Slider } from '@/components/ui/slider'

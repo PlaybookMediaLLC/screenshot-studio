@@ -9,7 +9,7 @@ import {
   ToolbarToggleItem as ToolbarToggleItemPrimitive,
 } from "@radix-ui/react-toolbar";
 import { cva, type VariantProps } from "class-variance-authority";
-import { PiCaretDown as ChevronDownIcon } from "react-icons/pi";
+import { CaretDownIcon as ChevronDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
 import type * as React from "react";
 import { Children } from "react";
 

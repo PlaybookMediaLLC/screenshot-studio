@@ -12,7 +12,10 @@ import {
   fitOverlayImage,
   hasOverlayTilt,
 } from '@/lib/overlay-style';
-import { PiTrash as Delete02Icon, PiCopy as Copy01Icon, PiSelectionBackground as LayerSendToBackIcon, PiSelectionForeground as LayerBringToFrontIcon } from 'react-icons/pi';
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { CopyIcon as Copy01Icon } from '@phosphor-icons/react/dist/ssr/Copy'
+import { SelectionBackgroundIcon as LayerSendToBackIcon } from '@phosphor-icons/react/dist/ssr/SelectionBackground'
+import { SelectionForegroundIcon as LayerBringToFrontIcon } from '@phosphor-icons/react/dist/ssr/SelectionForeground';
 import { useMoveableSnapping } from '../use-moveable-snapping';
 import { useLayerMotions } from '@/lib/animation/use-motion';
 import { MotionWrap } from '../motion/motion-layers';

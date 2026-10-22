@@ -1,6 +1,7 @@
 "use client";
 
-import { PiCaretLeft as ChevronLeft, PiCaretRight as ChevronRight } from "react-icons/pi";
+import { CaretLeftIcon as ChevronLeft } from "@phosphor-icons/react/dist/ssr/CaretLeft"
+import { CaretRightIcon as ChevronRight } from "@phosphor-icons/react/dist/ssr/CaretRight";
 import type { ComponentProps } from "react";
 import { DayPicker } from "react-day-picker";
 

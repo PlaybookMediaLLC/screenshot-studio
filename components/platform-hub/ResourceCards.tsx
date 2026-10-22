@@ -1,4 +1,4 @@
-import { PiArrowUpRight as ArrowUpRight } from 'react-icons/pi'
+import { ArrowUpRightIcon as ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 
 export function ResourceCards({

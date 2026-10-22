@@ -2,7 +2,13 @@
 
 import * as React from 'react'
 import dynamic from 'next/dynamic'
-import { PiPalette as ColorsIcon, PiStack as LayersLogoIcon, PiPalette as PaintBoardIcon, PiSelection as RotateSquareIcon, PiSlidersHorizontal as SlidersHorizontalIcon, PiSquare as SquareIcon, PiFilmScript as VideoReplayIcon } from 'react-icons/pi'
+import { PaletteIcon as ColorsIcon } from '@phosphor-icons/react/dist/ssr/Palette'
+import { StackIcon as LayersLogoIcon } from '@phosphor-icons/react/dist/ssr/Stack'
+import { PaletteIcon as PaintBoardIcon } from '@phosphor-icons/react/dist/ssr/Palette'
+import { SelectionIcon as RotateSquareIcon } from '@phosphor-icons/react/dist/ssr/Selection'
+import { SlidersHorizontalIcon as SlidersHorizontalIcon } from '@phosphor-icons/react/dist/ssr/SlidersHorizontal'
+import { SquareIcon as SquareIcon } from '@phosphor-icons/react/dist/ssr/Square'
+import { FilmScriptIcon as VideoReplayIcon } from '@phosphor-icons/react/dist/ssr/FilmScript'
 import type { ComposeTab, EditorPanelTab, InspectorTab } from '@/lib/store/editor-panels'
 import {
   AnnotateSection,

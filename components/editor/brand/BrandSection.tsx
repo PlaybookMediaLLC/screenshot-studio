@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { PiDotsThree as MoreHorizontalIcon, PiPlus as PlusSignIcon } from 'react-icons/pi'
+import { DotsThreeIcon as MoreHorizontalIcon } from '@phosphor-icons/react/dist/ssr/DotsThree'
+import { PlusIcon as PlusSignIcon } from '@phosphor-icons/react/dist/ssr/Plus'
 import { toast } from 'sonner'
 import {
   AlertDialog,

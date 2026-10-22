@@ -1,7 +1,7 @@
 "use client";
 
 import { insertInlineEquation } from "@platejs/math";
-import { PiRadical as RadicalIcon } from "react-icons/pi";
+import { RadicalIcon as RadicalIcon } from "@phosphor-icons/react/dist/ssr/Radical";
 import { useEditorRef } from "platejs/react";
 
 import { ToolbarButton } from "./toolbar";

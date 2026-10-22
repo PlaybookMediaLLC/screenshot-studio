@@ -1,6 +1,6 @@
 "use client";
 
-import { PiArrowElbowDownLeft as CornerDownLeftIcon } from "react-icons/pi";
+import { ArrowElbowDownLeftIcon as CornerDownLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowElbowDownLeft";
 import type { TSuggestionData, TSuggestionText } from "platejs";
 import {
   PlateLeaf,

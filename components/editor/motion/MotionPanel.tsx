@@ -1,7 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { PiCopy as Copy01Icon, PiTrash as Delete02Icon, PiDiamond as DiamondIcon } from 'react-icons/pi'
+import { CopyIcon as Copy01Icon } from '@phosphor-icons/react/dist/ssr/Copy'
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { DiamondIcon as DiamondIcon } from '@phosphor-icons/react/dist/ssr/Diamond'
 import { ChoiceField, ToggleField } from '@/components/editor/inspector/fields'
 import { SectionWrapper } from '@/components/editor/sections'
 import { Slider } from '@/components/ui/slider'

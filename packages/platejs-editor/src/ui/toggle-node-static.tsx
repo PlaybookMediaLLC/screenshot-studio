@@ -1,4 +1,4 @@
-import { PiCaretRight as ChevronRightIcon } from "react-icons/pi";
+import { CaretRightIcon as ChevronRightIcon } from "@phosphor-icons/react/dist/ssr/CaretRight";
 
 import type { SlateElementProps } from "../exports/platejs-static";
 import { SlateElement } from "../exports/platejs-static";

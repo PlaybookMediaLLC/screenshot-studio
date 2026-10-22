@@ -6,7 +6,13 @@ import { useImageStore } from '@/lib/store';
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils';
 import { exportTargetSchema, TARGET_SIDE_LIMITS } from '@/lib/export/sizes';
 import { cn } from '@/lib/utils';
-import { PiInstagramLogo as InstagramIcon, PiXLogo as NewTwitterIcon, PiYoutubeLogo as YoutubeIcon, PiPinterestLogo as PinterestIcon, PiDribbbleLogo as DribbbleIcon, PiAppStoreLogo as AppStoreIcon, PiGoogleChromeLogo as ChromeIcon } from 'react-icons/pi';
+import { InstagramLogoIcon as InstagramIcon } from '@phosphor-icons/react/dist/ssr/InstagramLogo'
+import { XLogoIcon as NewTwitterIcon } from '@phosphor-icons/react/dist/ssr/XLogo'
+import { YoutubeLogoIcon as YoutubeIcon } from '@phosphor-icons/react/dist/ssr/YoutubeLogo'
+import { PinterestLogoIcon as PinterestIcon } from '@phosphor-icons/react/dist/ssr/PinterestLogo'
+import { DribbbleLogoIcon as DribbbleIcon } from '@phosphor-icons/react/dist/ssr/DribbbleLogo'
+import { AppStoreLogoIcon as AppStoreIcon } from '@phosphor-icons/react/dist/ssr/AppStoreLogo'
+import { GoogleChromeLogoIcon as ChromeIcon } from '@phosphor-icons/react/dist/ssr/GoogleChromeLogo';
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'

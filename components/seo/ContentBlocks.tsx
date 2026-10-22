@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PiArrowRight as ArrowRight01Icon } from "react-icons/pi";
+import { ArrowRightIcon as ArrowRight01Icon } from "@phosphor-icons/react/dist/ssr/ArrowRight";
 import { CARD_CLASS, INTER } from "@/components/tools/ui";
 import { cn } from "@/lib/utils";
 

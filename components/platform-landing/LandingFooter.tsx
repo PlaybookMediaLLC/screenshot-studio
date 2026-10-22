@@ -2,7 +2,7 @@
 import { publicImageUrl } from '@/lib/assets/public-image'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PiArrowUpRight as ArrowUpRight01Icon } from 'react-icons/pi'
+import { ArrowUpRightIcon as ArrowUpRight01Icon } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
 import { navGroupSchema, pagesInGroup, type NavGroup } from '@/lib/marketing/platform-pages'
 import { cn } from '@/lib/utils'
 import { CookieSettingsButton } from '@/components/ConsentBanner'

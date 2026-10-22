@@ -2,7 +2,7 @@
 
 import { useMediaState } from "@platejs/media/react";
 import { ResizableProvider } from "@platejs/resizable";
-import { PiFileArrowUp as FileUpIcon } from "react-icons/pi";
+import { FileArrowUpIcon as FileUpIcon } from "@phosphor-icons/react/dist/ssr/FileArrowUp";
 import {
   PlateElement,
   type PlateElementProps,

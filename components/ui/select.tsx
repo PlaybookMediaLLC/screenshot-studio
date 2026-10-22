@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
-import { PiCheck as Tick02Icon, PiCaretDown as ArrowDown01Icon, PiCaretUp as ArrowUp01Icon } from 'react-icons/pi'
+import { CheckIcon as Tick02Icon } from '@phosphor-icons/react/dist/ssr/Check'
+import { CaretDownIcon as ArrowDown01Icon } from '@phosphor-icons/react/dist/ssr/CaretDown'
+import { CaretUpIcon as ArrowUp01Icon } from '@phosphor-icons/react/dist/ssr/CaretUp'
 
 import { cn } from "@/lib/utils"
 

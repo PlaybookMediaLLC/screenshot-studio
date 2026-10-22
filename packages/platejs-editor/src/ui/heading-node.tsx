@@ -1,7 +1,7 @@
 "use client";
 
 import { cva, type VariantProps } from "class-variance-authority";
-import { PiLink as Link2 } from "react-icons/pi";
+import { LinkIcon as Link2 } from "@phosphor-icons/react/dist/ssr/Link";
 import { PathApi } from "platejs";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement } from "platejs/react";

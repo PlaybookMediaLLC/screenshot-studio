@@ -1,6 +1,7 @@
 'use client'
 
-import { PiSpinnerGap as Loader2, PiShieldWarning as ShieldAlert } from 'react-icons/pi'
+import { SpinnerGapIcon as Loader2 } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
+import { ShieldWarningIcon as ShieldAlert } from '@phosphor-icons/react/dist/ssr/ShieldWarning'
 import { useState } from 'react'
 import { Pill, type PillTone } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'

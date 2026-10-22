@@ -3,7 +3,9 @@
 import { getDraftCommentKey } from "@platejs/comment";
 import { CommentPlugin } from "@platejs/comment/react";
 import { SuggestionPlugin } from "@platejs/suggestion/react";
-import { PiChatText as MessageSquareTextIcon, PiChats as MessagesSquareIcon, PiPencilLine as PencilLineIcon } from "react-icons/pi";
+import { ChatTextIcon as MessageSquareTextIcon } from "@phosphor-icons/react/dist/ssr/ChatText"
+import { ChatsIcon as MessagesSquareIcon } from "@phosphor-icons/react/dist/ssr/Chats"
+import { PencilLineIcon as PencilLineIcon } from "@phosphor-icons/react/dist/ssr/PencilLine";
 import {
   type AnyPluginConfig,
   type NodeEntry,

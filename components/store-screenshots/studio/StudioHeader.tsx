@@ -5,7 +5,8 @@ import { publicImageUrl } from '@/lib/assets/public-image'
 import * as React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { PiArrowUUpRight as RedoIcon, PiArrowUUpLeft as UndoIcon } from 'react-icons/pi'
+import { ArrowUUpRightIcon as RedoIcon } from '@phosphor-icons/react/dist/ssr/ArrowUUpRight'
+import { ArrowUUpLeftIcon as UndoIcon } from '@phosphor-icons/react/dist/ssr/ArrowUUpLeft'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

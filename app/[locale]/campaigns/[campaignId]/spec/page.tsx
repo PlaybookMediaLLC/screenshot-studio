@@ -1,4 +1,4 @@
-import { PiSealCheck as DocumentValidationIcon } from 'react-icons/pi'
+import { SealCheckIcon as DocumentValidationIcon } from '@phosphor-icons/react/dist/ssr/SealCheck'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { SpecEditor } from '@/components/launch/spec/SpecEditor'

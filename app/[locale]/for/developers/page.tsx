@@ -3,7 +3,13 @@ import Link from "next/link";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
-import { PiGithubLogo as Github01Icon, PiCode as SourceCodeIcon, PiTerminal as ComputerTerminal01Icon, PiFileCode as DocumentCodeIcon, PiStack as Layers01Icon, PiVideo as Video01Icon, PiArrowRight as ArrowRight01Icon } from "react-icons/pi";
+import { GithubLogoIcon as Github01Icon } from "@phosphor-icons/react/dist/ssr/GithubLogo"
+import { CodeIcon as SourceCodeIcon } from "@phosphor-icons/react/dist/ssr/Code"
+import { TerminalIcon as ComputerTerminal01Icon } from "@phosphor-icons/react/dist/ssr/Terminal"
+import { FileCodeIcon as DocumentCodeIcon } from "@phosphor-icons/react/dist/ssr/FileCode"
+import { StackIcon as Layers01Icon } from "@phosphor-icons/react/dist/ssr/Stack"
+import { VideoIcon as Video01Icon } from "@phosphor-icons/react/dist/ssr/Video"
+import { ArrowRightIcon as ArrowRight01Icon } from "@phosphor-icons/react/dist/ssr/ArrowRight";
 
 export const metadata: Metadata = {
   title: "Screenshot Editor for Developers",

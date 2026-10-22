@@ -1,7 +1,8 @@
 'use client'
 
 import { useQueryClient } from '@tanstack/react-query'
-import { PiCheck as Check, PiArrowSquareOut as ExternalLink } from 'react-icons/pi'
+import { CheckIcon as Check } from '@phosphor-icons/react/dist/ssr/Check'
+import { ArrowSquareOutIcon as ExternalLink } from '@phosphor-icons/react/dist/ssr/ArrowSquareOut'
 import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'

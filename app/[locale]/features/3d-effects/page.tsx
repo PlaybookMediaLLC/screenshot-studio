@@ -1,6 +1,9 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { PiCube as CubeIcon, PiLightbulb as IdeaIcon, PiStack as Layers01Icon, PiArrowClockwise as RotateClockwiseIcon } from "react-icons/pi";
+import { CubeIcon as CubeIcon } from "@phosphor-icons/react/dist/ssr/Cube"
+import { LightbulbIcon as IdeaIcon } from "@phosphor-icons/react/dist/ssr/Lightbulb"
+import { StackIcon as Layers01Icon } from "@phosphor-icons/react/dist/ssr/Stack"
+import { ArrowClockwiseIcon as RotateClockwiseIcon } from "@phosphor-icons/react/dist/ssr/ArrowClockwise";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

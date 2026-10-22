@@ -3,7 +3,8 @@
 import { DndPlugin, useDraggable, useDropLine } from "@platejs/dnd";
 import { expandListItemsWithChildren } from "@platejs/list";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
-import { PiDotsSixVertical as GripVertical, PiPlus as PlusIcon } from "react-icons/pi";
+import { DotsSixVerticalIcon as GripVertical } from "@phosphor-icons/react/dist/ssr/DotsSixVertical"
+import { PlusIcon as PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import {
   getPluginByType,
   isType,

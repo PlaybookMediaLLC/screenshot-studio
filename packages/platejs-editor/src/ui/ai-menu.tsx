@@ -6,7 +6,21 @@ import {
   useEditorChat,
 } from "@platejs/ai/react";
 import { BlockSelectionPlugin, useIsSelecting } from "@platejs/selection/react";
-import { PiImages as AlbumIcon, PiArrowUp as ArrowUpIcon, PiQuestion as BadgeHelpIcon, PiCheck as CheckIcon, PiArrowBendUpLeft as CornerUpLeftIcon, PiFeather as FeatherIcon, PiTranslate as LanguagesIcon, PiList as ListEnd, PiList as ListMinusIcon, PiListPlus as ListPlusIcon, PiChatText as MessageSquareTextIcon, PiPen as PenLineIcon, PiTable as TableIcon, PiMagicWand as Wand, PiX as X } from "react-icons/pi";
+import { ImagesIcon as AlbumIcon } from "@phosphor-icons/react/dist/ssr/Images"
+import { ArrowUpIcon as ArrowUpIcon } from "@phosphor-icons/react/dist/ssr/ArrowUp"
+import { QuestionIcon as BadgeHelpIcon } from "@phosphor-icons/react/dist/ssr/Question"
+import { CheckIcon as CheckIcon } from "@phosphor-icons/react/dist/ssr/Check"
+import { ArrowBendUpLeftIcon as CornerUpLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowBendUpLeft"
+import { FeatherIcon as FeatherIcon } from "@phosphor-icons/react/dist/ssr/Feather"
+import { TranslateIcon as LanguagesIcon } from "@phosphor-icons/react/dist/ssr/Translate"
+import { ListIcon as ListEnd } from "@phosphor-icons/react/dist/ssr/List"
+import { ListIcon as ListMinusIcon } from "@phosphor-icons/react/dist/ssr/List"
+import { ListPlusIcon as ListPlusIcon } from "@phosphor-icons/react/dist/ssr/ListPlus"
+import { ChatTextIcon as MessageSquareTextIcon } from "@phosphor-icons/react/dist/ssr/ChatText"
+import { PenIcon as PenLineIcon } from "@phosphor-icons/react/dist/ssr/Pen"
+import { TableIcon as TableIcon } from "@phosphor-icons/react/dist/ssr/Table"
+import { MagicWandIcon as Wand } from "@phosphor-icons/react/dist/ssr/MagicWand"
+import { XIcon as X } from "@phosphor-icons/react/dist/ssr/X";
 import { isHotkey, NodeApi, type NodeEntry, type SlateEditor } from "platejs";
 import {
   type PlateEditor,

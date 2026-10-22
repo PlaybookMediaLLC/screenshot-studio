@@ -20,7 +20,23 @@ import { DEFAULT_OVERLAY_SHADOW, DEFAULT_OVERLAY_TILT } from '@/lib/overlay-styl
 import { getR2ImageUrl } from '@/lib/r2';
 import { getOverlayUrl } from '@/lib/r2-overlays';
 import { isOverlayPath } from '@/lib/r2-overlays';
-import { PiTrash as Delete02Icon, PiEye as ViewIcon, PiEyeSlash as ViewOffSlashIcon, PiArrowUp as ArrowUp01Icon, PiArrowDown as ArrowDown01Icon, PiUpload as Upload04Icon, PiArrowClockwise as RotateRight01Icon, PiArrowCounterClockwise as RotateLeft01Icon, PiArrowsClockwise as RefreshIcon, PiImage as Image01Icon, PiTextT as TextIcon, PiNotePencil as PencilEdit02Icon, PiDropHalf as BlurIcon, PiStack as LayersLogoIcon, PiSelectionForeground as LayerBringForwardIcon, PiSelectionBackground as LayerSendBackwardIcon, PiTarget as Target01Icon } from 'react-icons/pi';
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { EyeIcon as ViewIcon } from '@phosphor-icons/react/dist/ssr/Eye'
+import { EyeSlashIcon as ViewOffSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash'
+import { ArrowUpIcon as ArrowUp01Icon } from '@phosphor-icons/react/dist/ssr/ArrowUp'
+import { ArrowDownIcon as ArrowDown01Icon } from '@phosphor-icons/react/dist/ssr/ArrowDown'
+import { UploadIcon as Upload04Icon } from '@phosphor-icons/react/dist/ssr/Upload'
+import { ArrowClockwiseIcon as RotateRight01Icon } from '@phosphor-icons/react/dist/ssr/ArrowClockwise'
+import { ArrowCounterClockwiseIcon as RotateLeft01Icon } from '@phosphor-icons/react/dist/ssr/ArrowCounterClockwise'
+import { ArrowsClockwiseIcon as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowsClockwise'
+import { ImageIcon as Image01Icon } from '@phosphor-icons/react/dist/ssr/Image'
+import { TextTIcon as TextIcon } from '@phosphor-icons/react/dist/ssr/TextT'
+import { NotePencilIcon as PencilEdit02Icon } from '@phosphor-icons/react/dist/ssr/NotePencil'
+import { DropHalfIcon as BlurIcon } from '@phosphor-icons/react/dist/ssr/DropHalf'
+import { StackIcon as LayersLogoIcon } from '@phosphor-icons/react/dist/ssr/Stack'
+import { SelectionForegroundIcon as LayerBringForwardIcon } from '@phosphor-icons/react/dist/ssr/SelectionForeground'
+import { SelectionBackgroundIcon as LayerSendBackwardIcon } from '@phosphor-icons/react/dist/ssr/SelectionBackground'
+import { TargetIcon as Target01Icon } from '@phosphor-icons/react/dist/ssr/Target';
 import { ELEMENT_LABELS } from '@/components/editor/inspector/ElementInspector';
 import { ScreenLayerList } from '@/components/frames/panels/ScreenLayerList';
 import { isScreenScene } from '@/lib/frames/commands';

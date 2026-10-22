@@ -1,6 +1,6 @@
 'use client'
 
-import { PiMagicWand as MagicWand01Icon } from 'react-icons/pi'
+import { MagicWandIcon as MagicWand01Icon } from '@phosphor-icons/react/dist/ssr/MagicWand'
 import { useRouter } from 'next/navigation'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'

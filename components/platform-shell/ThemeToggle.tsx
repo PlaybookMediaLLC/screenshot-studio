@@ -1,7 +1,8 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
-import { PiMoon as Moon, PiSun as Sun } from 'react-icons/pi'
+import { MoonIcon as Moon } from '@phosphor-icons/react/dist/ssr/Moon'
+import { SunIcon as Sun } from '@phosphor-icons/react/dist/ssr/Sun'
 import { useTheme } from 'next-themes'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { useSaveState } from '@/components/settings/controls'

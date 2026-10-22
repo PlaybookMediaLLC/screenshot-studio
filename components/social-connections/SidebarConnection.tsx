@@ -1,6 +1,6 @@
 'use client'
 
-import { PiPlus as Plus } from 'react-icons/pi'
+import { PlusIcon as Plus } from '@phosphor-icons/react/dist/ssr/Plus'
 import { authClient, useHydratedSession } from '@/lib/auth/client'
 import { hasPermission } from '@/lib/auth/permissions'
 import { Button } from '@/components/ui/button'

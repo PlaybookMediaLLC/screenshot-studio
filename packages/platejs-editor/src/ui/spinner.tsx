@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { PiSpinnerGap as Loader2Icon } from "react-icons/pi"
-import type { IconBaseProps } from "react-icons";
+import { SpinnerGapIcon as Loader2Icon } from "@phosphor-icons/react/dist/ssr/SpinnerGap"
+import type { IconProps } from "@phosphor-icons/react";
 
 import { cn } from "../lib/utils";
 
@@ -22,7 +22,7 @@ export function Spinner({
   className,
   size,
   ...props
-}: Partial<IconBaseProps & VariantProps<typeof spinnerVariants>>) {
+}: Partial<IconProps & VariantProps<typeof spinnerVariants>>) {
   return (
     <Loader2Icon
       className={cn(spinnerVariants({ size }), className)}

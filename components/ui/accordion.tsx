@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
-import { PiCaretDown as ArrowDown01Icon } from 'react-icons/pi'
+import { CaretDownIcon as ArrowDown01Icon } from '@phosphor-icons/react/dist/ssr/CaretDown'
 
 import { cn } from "@/lib/utils"
 

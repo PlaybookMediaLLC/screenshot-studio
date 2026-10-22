@@ -1,4 +1,9 @@
-import { PiDatabase as Database01Icon, PiFingerprint as FingerPrintIcon, PiKey as Key01Icon, PiHardDrives as ServerStack01Icon, PiShield as Shield01Icon, PiUsers as UserGroupIcon } from 'react-icons/pi'
+import { DatabaseIcon as Database01Icon } from '@phosphor-icons/react/dist/ssr/Database'
+import { FingerprintIcon as FingerPrintIcon } from '@phosphor-icons/react/dist/ssr/Fingerprint'
+import { KeyIcon as Key01Icon } from '@phosphor-icons/react/dist/ssr/Key'
+import { HardDrivesIcon as ServerStack01Icon } from '@phosphor-icons/react/dist/ssr/HardDrives'
+import { ShieldIcon as Shield01Icon } from '@phosphor-icons/react/dist/ssr/Shield'
+import { UsersIcon as UserGroupIcon } from '@phosphor-icons/react/dist/ssr/Users'
 import { hasWorkspaceFeature } from '@/lib/billing/plans'
 import { cn } from '@/lib/utils'
 import {

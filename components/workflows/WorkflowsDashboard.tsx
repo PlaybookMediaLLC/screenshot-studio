@@ -1,6 +1,7 @@
 'use client'
 
-import { PiMagnifyingGlass as Search01Icon, PiFlowArrow as WorkflowSquare03Icon } from 'react-icons/pi'
+import { MagnifyingGlassIcon as Search01Icon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass'
+import { FlowArrowIcon as WorkflowSquare03Icon } from '@phosphor-icons/react/dist/ssr/FlowArrow'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'

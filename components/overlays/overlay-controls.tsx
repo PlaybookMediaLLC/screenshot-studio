@@ -3,7 +3,12 @@
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { useImageStore } from '@/lib/store'
-import { PiTrash as Delete02Icon, PiEye as ViewIcon, PiEyeSlash as ViewOffSlashIcon, PiArrowClockwise as RotateRight01Icon, PiArrowCounterClockwise as RotateLeft01Icon, PiArrowsClockwise as RefreshIcon } from 'react-icons/pi'
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { EyeIcon as ViewIcon } from '@phosphor-icons/react/dist/ssr/Eye'
+import { EyeSlashIcon as ViewOffSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash'
+import { ArrowClockwiseIcon as RotateRight01Icon } from '@phosphor-icons/react/dist/ssr/ArrowClockwise'
+import { ArrowCounterClockwiseIcon as RotateLeft01Icon } from '@phosphor-icons/react/dist/ssr/ArrowCounterClockwise'
+import { ArrowsClockwiseIcon as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowsClockwise'
 import { getR2ImageUrl } from '@/lib/r2'
 import { isOverlayPath } from '@/lib/r2-overlays'
 

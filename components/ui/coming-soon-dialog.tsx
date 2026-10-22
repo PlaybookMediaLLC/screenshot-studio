@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { PiClock as Clock01Icon } from 'react-icons/pi';
+import { ClockIcon as Clock01Icon } from '@phosphor-icons/react/dist/ssr/Clock';
 import {
   Dialog,
   DialogContent,

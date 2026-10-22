@@ -1,7 +1,8 @@
 'use client';
 
 import { EditorSectionLink } from "@/components/platform-shell/EditorNavigation";
-import { PiArrowRight as ArrowRight01Icon, PiDeviceMobile as SmartPhone01Icon } from "react-icons/pi";
+import { ArrowRightIcon as ArrowRight01Icon } from "@phosphor-icons/react/dist/ssr/ArrowRight"
+import { DeviceMobileIcon as SmartPhone01Icon } from "@phosphor-icons/react/dist/ssr/DeviceMobile";
 import { STORE_SHORTCUT_HEIGHT } from "@/lib/store-screenshots/config";
 import { cn } from "@/lib/utils";
 

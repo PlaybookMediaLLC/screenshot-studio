@@ -5,6 +5,9 @@ import { browserRequest, requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test } from './framework/flow'
 
 const composeArguments = ['compose', '--env-file', '.local/dev.env', '--file', 'compose.yaml']
+if (process.env.E2E_DOCKER_HOST_GATEWAY === 'true') {
+  composeArguments.push('--file', 'compose.ci.yaml')
+}
 const assetUpload = {
   bytes: 1,
   classification: 'input',

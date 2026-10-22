@@ -1,7 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { PiArrowsLeftRight as ArrowLeftRightIcon, PiX as Cancel01Icon, PiDownload as Download04Icon, PiArrowsClockwise as RefreshIcon } from 'react-icons/pi';
+import { ArrowsLeftRightIcon as ArrowLeftRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowsLeftRight'
+import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
+import { DownloadIcon as Download04Icon } from '@phosphor-icons/react/dist/ssr/Download'
+import { ArrowsClockwiseIcon as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowsClockwise';
 import { Button } from '@/components/ui/button'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { CARD_CLASS, DROP_CARD_CLASS, DropSurface } from '@/components/tools/ui';

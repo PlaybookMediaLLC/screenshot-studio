@@ -1,7 +1,7 @@
 'use client'
 
-import { PiNotePencil as PencilEdit02Icon } from 'react-icons/pi'
-import { PiArrowRight as ArrowRight } from 'react-icons/pi'
+import { NotePencilIcon as PencilEdit02Icon } from '@phosphor-icons/react/dist/ssr/NotePencil'
+import { ArrowRightIcon as ArrowRight } from '@phosphor-icons/react/dist/ssr/ArrowRight'
 import { type FormEvent, type ReactNode, useId, useState } from 'react'
 import { RevisePanel } from '@/components/launch/RevisePanel'
 import { Group, Section } from '@/components/platform-ui'

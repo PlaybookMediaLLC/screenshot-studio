@@ -1,6 +1,9 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { PiPalette as ColorsIcon, PiDownload as Download04Icon, PiLink as Link01Icon, PiCode as SourceCodeIcon } from "react-icons/pi";
+import { PaletteIcon as ColorsIcon } from "@phosphor-icons/react/dist/ssr/Palette"
+import { DownloadIcon as Download04Icon } from "@phosphor-icons/react/dist/ssr/Download"
+import { LinkIcon as Link01Icon } from "@phosphor-icons/react/dist/ssr/Link"
+import { CodeIcon as SourceCodeIcon } from "@phosphor-icons/react/dist/ssr/Code";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION, WindowDots } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

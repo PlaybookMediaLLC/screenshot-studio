@@ -2,7 +2,11 @@
 
 import { characterCount } from '@/lib/link-preview/text'
 import { isHttpUrl } from '@/lib/link-preview/urls'
-import { PiCheck as Check, PiCopy as Copy, PiSpinnerGap as Loader2, PiArrowCounterClockwise as RotateCcw, PiSparkle as Sparkles } from 'react-icons/pi'
+import { CheckIcon as Check } from '@phosphor-icons/react/dist/ssr/Check'
+import { CopyIcon as Copy } from '@phosphor-icons/react/dist/ssr/Copy'
+import { SpinnerGapIcon as Loader2 } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
+import { ArrowCounterClockwiseIcon as RotateCcw } from '@phosphor-icons/react/dist/ssr/ArrowCounterClockwise'
+import { SparkleIcon as Sparkles } from '@phosphor-icons/react/dist/ssr/Sparkle'
 import { useState } from 'react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'

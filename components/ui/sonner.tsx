@@ -1,6 +1,10 @@
 "use client"
 
-import { PiCheckCircle as CheckmarkCircle02Icon, PiInfo as InformationCircleIcon, PiSpinnerGap as Loading03Icon, PiWarningCircle as AlertCircleIcon, PiWarning as Alert02Icon } from 'react-icons/pi'
+import { CheckCircleIcon as CheckmarkCircle02Icon } from '@phosphor-icons/react/dist/ssr/CheckCircle'
+import { InfoIcon as InformationCircleIcon } from '@phosphor-icons/react/dist/ssr/Info'
+import { SpinnerGapIcon as Loading03Icon } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
+import { WarningCircleIcon as AlertCircleIcon } from '@phosphor-icons/react/dist/ssr/WarningCircle'
+import { WarningIcon as Alert02Icon } from '@phosphor-icons/react/dist/ssr/Warning'
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {

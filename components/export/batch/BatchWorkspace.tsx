@@ -1,7 +1,12 @@
 'use client'
 
 import * as React from 'react'
-import { PiWarning as Alert02Icon, PiCheckCircle as CheckmarkCircle02Icon, PiTrash as Delete02Icon, PiImage as ImageUploadIcon, PiSpinnerGap as Loading03Icon, PiArrowsClockwise as RefreshIcon } from 'react-icons/pi'
+import { WarningIcon as Alert02Icon } from '@phosphor-icons/react/dist/ssr/Warning'
+import { CheckCircleIcon as CheckmarkCircle02Icon } from '@phosphor-icons/react/dist/ssr/CheckCircle'
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
+import { ImageIcon as ImageUploadIcon } from '@phosphor-icons/react/dist/ssr/Image'
+import { SpinnerGapIcon as Loading03Icon } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
+import { ArrowsClockwiseIcon as RefreshIcon } from '@phosphor-icons/react/dist/ssr/ArrowsClockwise'
 import { toast } from 'sonner'
 import { DocumentPreview } from '@/components/design/DocumentPreview'
 import { ChoiceField, ToggleField } from '@/components/editor/inspector/fields'

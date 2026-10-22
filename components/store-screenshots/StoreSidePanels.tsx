@@ -2,7 +2,14 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { PiPlus as Add01Icon, PiX as Cancel01Icon, PiSquaresFour as GridIcon, PiImage as Image01Icon, PiStack as Layers01Icon, PiPalette as PaintBoardIcon, PiSlidersHorizontal as Settings02Icon, PiTextT as TextIcon } from "react-icons/pi";
+import { PlusIcon as Add01Icon } from "@phosphor-icons/react/dist/ssr/Plus"
+import { XIcon as Cancel01Icon } from "@phosphor-icons/react/dist/ssr/X"
+import { SquaresFourIcon as GridIcon } from "@phosphor-icons/react/dist/ssr/SquaresFour"
+import { ImageIcon as Image01Icon } from "@phosphor-icons/react/dist/ssr/Image"
+import { StackIcon as Layers01Icon } from "@phosphor-icons/react/dist/ssr/Stack"
+import { PaletteIcon as PaintBoardIcon } from "@phosphor-icons/react/dist/ssr/Palette"
+import { SlidersHorizontalIcon as Settings02Icon } from "@phosphor-icons/react/dist/ssr/SlidersHorizontal"
+import { TextTIcon as TextIcon } from "@phosphor-icons/react/dist/ssr/TextT";
 import { Button } from '@/components/ui/button'
 import { CachedImage } from '@/components/ui/cached-image'
 import { SectionWrapper } from "@/components/editor/sections";

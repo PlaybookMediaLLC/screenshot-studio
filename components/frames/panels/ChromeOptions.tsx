@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { PiPlus as Add01Icon, PiTrash as Delete02Icon } from 'react-icons/pi'
+import { PlusIcon as Add01Icon } from '@phosphor-icons/react/dist/ssr/Plus'
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
 import { ChoiceField, ToggleField } from '@/components/editor/inspector/fields'
 import { resolveAppearance } from '@/lib/frames/appearance'
 import { APPEARANCE_LABELS, BROWSER_LABELS, WINDOW_LABELS } from '@/lib/frames/labels'

@@ -1,7 +1,7 @@
 "use client";
 
 import { SuggestionPlugin } from "@platejs/suggestion/react";
-import { PiPencilLine as PencilLineIcon } from "react-icons/pi";
+import { PencilLineIcon as PencilLineIcon } from "@phosphor-icons/react/dist/ssr/PencilLine";
 import { useEditorPlugin, usePluginOption } from "platejs/react";
 
 import { cn } from "../lib/utils";

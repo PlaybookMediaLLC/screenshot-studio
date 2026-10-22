@@ -8,7 +8,7 @@ import { aspectRatios, type AspectRatioKey } from '@/lib/constants/aspect-ratios
 import { getBackgroundCSS } from '@/lib/constants/backgrounds';
 import { cn } from '@/lib/utils';
 import { useCustomPresets } from '@/hooks/useCustomPresets';
-import { PiTrash as Delete02Icon } from 'react-icons/pi';
+import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash';
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 

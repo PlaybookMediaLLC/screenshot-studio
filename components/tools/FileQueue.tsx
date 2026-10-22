@@ -2,7 +2,10 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { PiX as Cancel01Icon, PiCheckCircle as CheckmarkCircle02Icon, PiWarning as Alert02Icon, PiSpinnerGap as Loading03Icon } from "react-icons/pi";
+import { XIcon as Cancel01Icon } from "@phosphor-icons/react/dist/ssr/X"
+import { CheckCircleIcon as CheckmarkCircle02Icon } from "@phosphor-icons/react/dist/ssr/CheckCircle"
+import { WarningIcon as Alert02Icon } from "@phosphor-icons/react/dist/ssr/Warning"
+import { SpinnerGapIcon as Loading03Icon } from "@phosphor-icons/react/dist/ssr/SpinnerGap";
 import { cn } from "@/lib/utils";
 import { formatBytes, savingsPercent } from "@/lib/image-tools";
 import type { QueueItem } from "./useToolQueue";

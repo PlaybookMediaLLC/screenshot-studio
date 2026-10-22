@@ -3,7 +3,10 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { PiDownload as Download04Icon, PiMagicWand as MagicWand01Icon, PiTrash as Delete02Icon, PiSpinnerGap as Loading03Icon } from "react-icons/pi";
+import { DownloadIcon as Download04Icon } from "@phosphor-icons/react/dist/ssr/Download"
+import { MagicWandIcon as MagicWand01Icon } from "@phosphor-icons/react/dist/ssr/MagicWand"
+import { TrashIcon as Delete02Icon } from "@phosphor-icons/react/dist/ssr/Trash"
+import { SpinnerGapIcon as Loading03Icon } from "@phosphor-icons/react/dist/ssr/SpinnerGap";
 import {
   buildOutputName,
   buildProcessOptions,

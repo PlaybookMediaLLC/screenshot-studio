@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PiArrowRight as ArrowRight01Icon, PiCheckCircle as CheckmarkCircle02Icon, PiArrowClockwise as RotateClockwiseIcon } from "react-icons/pi";
+import { ArrowRightIcon as ArrowRight01Icon } from "@phosphor-icons/react/dist/ssr/ArrowRight"
+import { CheckCircleIcon as CheckmarkCircle02Icon } from "@phosphor-icons/react/dist/ssr/CheckCircle"
+import { ArrowClockwiseIcon as RotateClockwiseIcon } from "@phosphor-icons/react/dist/ssr/ArrowClockwise";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { SectionTitle } from "@/components/tools/ToolLayout";

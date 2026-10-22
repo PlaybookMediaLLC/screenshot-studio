@@ -4,7 +4,8 @@ import {
   Indicator as CheckboxIndicator,
   Root as CheckboxRoot,
 } from "@radix-ui/react-checkbox";
-import { PiCheck as CheckIcon, PiSquare as SquareIcon } from "react-icons/pi";
+import { CheckIcon as CheckIcon } from "@phosphor-icons/react/dist/ssr/Check"
+import { SquareIcon as SquareIcon } from "@phosphor-icons/react/dist/ssr/Square";
 import type * as React from "react";
 
 import { cn } from "../lib/utils";

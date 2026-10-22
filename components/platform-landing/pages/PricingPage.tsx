@@ -1,14 +1,5 @@
 import Link from 'next/link'
-import {
-  Calendar03Icon,
-  Database01Icon,
-  FlashIcon,
-  Layers01Icon,
-  Mail01Icon,
-  Share08Icon,
-  SparklesIcon,
-  UserGroupIcon,
-} from 'hugeicons-react'
+import { PiCalendar as Calendar03Icon, PiDatabase as Database01Icon, PiLightning as FlashIcon, PiStack as Layers01Icon, PiEnvelope as Mail01Icon, PiShare as Share08Icon, PiSparkle as SparklesIcon, PiUsers as UserGroupIcon } from 'react-icons/pi'
 import { PRODUCT_FACTS } from '@/lib/seo/product-facts'
 import { cn } from '@/lib/utils'
 import { FaqBlock, MarketingShell, PageHero, TileGrid } from '../blocks'

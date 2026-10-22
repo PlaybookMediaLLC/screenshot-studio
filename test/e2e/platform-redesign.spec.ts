@@ -435,6 +435,10 @@ test('sidebar choices persist across client navigation and content scrolls insid
     await expect(sidebar).toHaveAttribute('data-navigation', 'expanded')
   }
   expect(documents).toEqual([])
+  await expect(sidebar).toHaveCSS('border-right-width', '0px')
+  await expect(
+    sidebar.getByRole('link', { name: 'Home', exact: true }).locator('svg')
+  ).toHaveAttribute('viewBox', '0 0 256 256')
   const toggle = sidebar.getByRole('button', { name: 'Collapse navigation' })
   const workspace = sidebar.getByRole('button', { name: /^Workspace:/ })
   expect(

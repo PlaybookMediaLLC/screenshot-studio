@@ -2,33 +2,8 @@
 
 import { AIChatPlugin } from "@platejs/ai/react";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
-import {
-  AudioLinesIcon,
-  CalendarIcon,
-  BookOpenTextIcon,
-  ChevronDownIcon,
-  Code2Icon,
-  FileUpIcon,
-  FilmIcon,
-  Heading1Icon,
-  Heading2Icon,
-  Heading3Icon,
-  Heading4Icon,
-  Heading5Icon,
-  Heading6Icon,
-  ImageIcon,
-  LightbulbIcon,
-  ListIcon,
-  ListOrderedIcon,
-  type LucideProps,
-  PilcrowIcon,
-  QuoteIcon,
-  RadicalIcon,
-  RectangleVerticalIcon,
-  SquareIcon,
-  TableIcon,
-  TableOfContentsIcon,
-} from "lucide-react";
+import { PiWaveform as AudioLinesIcon, PiCalendar as CalendarIcon, PiBookOpenText as BookOpenTextIcon, PiCaretDown as ChevronDownIcon, PiCode as Code2Icon, PiFileArrowUp as FileUpIcon, PiFilmStrip as FilmIcon, PiTextHOne as Heading1Icon, PiTextHTwo as Heading2Icon, PiTextHThree as Heading3Icon, PiTextHFour as Heading4Icon, PiTextHFive as Heading5Icon, PiTextHSix as Heading6Icon, PiImage as ImageIcon, PiLightbulb as LightbulbIcon, PiList as ListIcon, PiListNumbers as ListOrderedIcon, PiParagraph as PilcrowIcon, PiQuotes as QuoteIcon, PiRadical as RadicalIcon, PiRectangle as RectangleVerticalIcon, PiSquare as SquareIcon, PiTable as TableIcon, PiListBullets as TableOfContentsIcon } from "react-icons/pi"
+import type { IconBaseProps } from "react-icons";
 import { KEYS } from "platejs";
 import type { PlateEditor, PlateElementProps } from "platejs/react";
 import { PlateElement } from "platejs/react";
@@ -96,7 +71,7 @@ function getRuntimeSlashGroups(): Group[] {
   ];
 }
 
-function AIIcon(props: LucideProps) {
+function AIIcon(props: IconBaseProps) {
   return (
     <svg
       fill="url(#myGradient)"

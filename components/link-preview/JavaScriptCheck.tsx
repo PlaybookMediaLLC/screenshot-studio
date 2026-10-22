@@ -1,6 +1,6 @@
 'use client'
 
-import { Braces, Check, Loader2 } from 'lucide-react'
+import { PiBracketsCurly as Braces, PiCheck as Check, PiSpinnerGap as Loader2 } from 'react-icons/pi'
 import { useState } from 'react'
 import { Pill } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'

@@ -1,14 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import {
-  Alert02Icon,
-  CheckmarkCircle02Icon,
-  Delete02Icon,
-  ImageUploadIcon,
-  Loading03Icon,
-  RefreshIcon,
-} from 'hugeicons-react'
+import { PiWarning as Alert02Icon, PiCheckCircle as CheckmarkCircle02Icon, PiTrash as Delete02Icon, PiImage as ImageUploadIcon, PiSpinnerGap as Loading03Icon, PiArrowsClockwise as RefreshIcon } from 'react-icons/pi'
 import { toast } from 'sonner'
 import { DocumentPreview } from '@/components/design/DocumentPreview'
 import { ChoiceField, ToggleField } from '@/components/editor/inspector/fields'

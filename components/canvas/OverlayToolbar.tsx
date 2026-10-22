@@ -1,14 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import {
-  Delete02Icon,
-  Copy01Icon,
-  RotateRight01Icon,
-  RotateLeft01Icon,
-  PlusSignIcon,
-  MinusSignIcon,
-} from 'hugeicons-react';
+import { PiTrash as Delete02Icon, PiCopy as Copy01Icon, PiArrowClockwise as RotateRight01Icon, PiArrowCounterClockwise as RotateLeft01Icon, PiPlus as PlusSignIcon, PiMinus as MinusSignIcon } from 'react-icons/pi';
 import { cn } from '@/lib/utils';
 import type { ImageOverlay } from '@/lib/store';
 import { Button } from '@/components/ui/button'

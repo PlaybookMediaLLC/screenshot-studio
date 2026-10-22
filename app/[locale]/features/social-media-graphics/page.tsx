@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { InstagramIcon, Linkedin01Icon, NewTwitterIcon, Share08Icon } from "hugeicons-react";
+import { PiInstagramLogo as InstagramIcon, PiLinkedinLogo as Linkedin01Icon, PiXLogo as NewTwitterIcon, PiShare as Share08Icon } from "react-icons/pi";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

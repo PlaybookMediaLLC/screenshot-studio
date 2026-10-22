@@ -20,7 +20,7 @@ export function AreaNavigation({
   const params = new URLSearchParams(searchParams.toString())
   if (currentPath === '/assets') params.set('view', 'assets')
   return (
-    <nav aria-label={label} className="flex flex-wrap gap-1 border-b border-border pb-3">
+    <nav aria-label={label} className="platform-tabs">
       {items.map((item) => {
         const [path, query] = item.href.split('?')
         const expected = new URLSearchParams(query)
@@ -37,13 +37,11 @@ export function AreaNavigation({
             ))
         return (
           <SidebarLink
-            data-platform-nav
+            data-platform-tab
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'inline-flex min-h-10 items-center rounded-lg px-3 text-sm',
-              active
-                ? 'bg-muted font-medium text-foreground'
-                : 'text-muted-foreground hover:bg-muted'
+              'platform-tab',
+              active ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
             )}
             key={item.href}
             href={item.href}

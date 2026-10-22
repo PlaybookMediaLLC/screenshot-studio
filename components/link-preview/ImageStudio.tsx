@@ -1,6 +1,6 @@
 'use client'
 
-import { Camera, Download, Eye, Loader2 } from 'lucide-react'
+import { PiCamera as Camera, PiDownload as Download, PiEye as Eye, PiSpinnerGap as Loader2 } from 'react-icons/pi'
 import { useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { SaveToWorkspaceButton } from '@/components/workspace/SaveToWorkspaceButton'

@@ -1,7 +1,7 @@
 'use client'
 
 import { WritingInheritance } from '@/components/settings/WritingInheritance'
-import { Lock } from 'lucide-react'
+import { PiLock as Lock } from 'react-icons/pi'
 import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
 import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react'

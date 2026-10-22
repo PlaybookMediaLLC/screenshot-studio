@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  ListChecks as CheckListIcon,
-  Laptop as LaptopIcon,
-  Smartphone as SmartPhone01Icon,
-} from 'lucide-react'
+import { PiListChecks as CheckListIcon, PiLaptop as LaptopIcon, PiDeviceMobile as SmartPhone01Icon } from 'react-icons/pi'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { type ReactNode, useState, useTransition } from 'react'

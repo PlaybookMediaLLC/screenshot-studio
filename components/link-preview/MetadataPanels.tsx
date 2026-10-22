@@ -1,7 +1,7 @@
 'use client'
 
 import { characterCount } from '@/lib/link-preview/text'
-import { Check, Copy, Download, ExternalLink, Eye, Loader2, Wand2, XCircle, AlertTriangle, Info } from 'lucide-react'
+import { PiCheck as Check, PiCopy as Copy, PiDownload as Download, PiArrowSquareOut as ExternalLink, PiEye as Eye, PiSpinnerGap as Loader2, PiMagicWand as Wand2, PiXCircle as XCircle, PiWarning as AlertTriangle, PiInfo as Info } from 'react-icons/pi'
 import { motion } from 'motion/react'
 import { type ReactNode, useState } from 'react'
 import { z } from 'zod'

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
-import { Tick02Icon, Cancel01Icon } from "hugeicons-react";
+import { PiCheck as Tick02Icon, PiX as Cancel01Icon } from "react-icons/pi";
 import {
   AnswerCard,
   CTA_CLASS,
@@ -74,7 +74,7 @@ function FeatureValue({ value }: { value: string }): React.JSX.Element {
   if (!UNAVAILABLE_VALUES.includes(value.toLowerCase())) return <>{value}</>;
   return (
     <span className="inline-flex items-center gap-2 text-muted-foreground/80">
-      <Cancel01Icon size={15} strokeWidth={1.75} aria-hidden="true" />
+      <Cancel01Icon size={15} aria-hidden="true" />
       {value}
     </span>
   );
@@ -127,7 +127,6 @@ function SideCard({
           >
             <Icon
               size={17}
-              strokeWidth={1.75}
               aria-hidden="true"
               className={cn(
                 "mt-0.5 shrink-0",

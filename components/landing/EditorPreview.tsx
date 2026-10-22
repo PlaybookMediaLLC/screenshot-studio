@@ -12,7 +12,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
-import { AspectRatioIcon, Globe02Icon, Image01Icon } from "hugeicons-react";
+import { PiRectangle as AspectRatioIcon, PiGlobe as Globe02Icon, PiImage as Image01Icon } from "react-icons/pi";
 import {
   getBackgroundCSS,
   type BackgroundConfig,

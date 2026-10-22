@@ -1,6 +1,6 @@
 "use client";
 
-import { Bold, Italic, Underline } from "lucide-react";
+import { PiTextB as Bold, PiTextItalic as Italic, PiTextUnderline as Underline } from "react-icons/pi";
 import type { Value } from "platejs";
 import { KEYS } from "platejs";
 import type { PlateEditor } from "platejs/react";

@@ -3,15 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import {
-  CropIcon,
-  Download04Icon,
-  Delete02Icon,
-  Eraser01Icon,
-  Loading03Icon,
-  PencilEdit02Icon,
-  Undo02Icon,
-} from "hugeicons-react";
+import { PiCrop as CropIcon, PiDownload as Download04Icon, PiTrash as Delete02Icon, PiEraser as Eraser01Icon, PiSpinnerGap as Loading03Icon, PiNotePencil as PencilEdit02Icon, PiArrowUUpLeft as Undo02Icon } from "react-icons/pi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

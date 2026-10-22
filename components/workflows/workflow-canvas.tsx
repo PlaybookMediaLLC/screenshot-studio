@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, CircleStop, GitBranch, Sparkles, Workflow, X, Zap } from 'lucide-react'
+import { PiCheck as Check, PiStopCircle as CircleStop, PiGitBranch as GitBranch, PiSparkle as Sparkles, PiFlowArrow as Workflow, PiX as X, PiLightning as Zap } from 'react-icons/pi'
 import { Handle, MarkerType, Position, type Edge, type Node, type NodeProps } from '@xyflow/react'
 import type {
   AutomationCondition,

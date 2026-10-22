@@ -6,15 +6,7 @@ import { useImageStore } from '@/lib/store';
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils';
 import { exportTargetSchema, TARGET_SIDE_LIMITS } from '@/lib/export/sizes';
 import { cn } from '@/lib/utils';
-import {
-  InstagramIcon,
-  NewTwitterIcon,
-  YoutubeIcon,
-  PinterestIcon,
-  DribbbleIcon,
-  AppStoreIcon,
-  ChromeIcon,
-} from 'hugeicons-react';
+import { PiInstagramLogo as InstagramIcon, PiXLogo as NewTwitterIcon, PiYoutubeLogo as YoutubeIcon, PiPinterestLogo as PinterestIcon, PiDribbbleLogo as DribbbleIcon, PiAppStoreLogo as AppStoreIcon, PiGoogleChromeLogo as ChromeIcon } from 'react-icons/pi';
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'

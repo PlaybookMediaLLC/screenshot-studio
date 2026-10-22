@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquareTextIcon } from "lucide-react";
+import { PiChatText as MessageSquareTextIcon } from "react-icons/pi";
 import { useEditorRef } from "platejs/react";
 
 import { commentPlugin } from "../plugins/comment-kit";

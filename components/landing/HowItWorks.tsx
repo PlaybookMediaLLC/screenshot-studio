@@ -1,8 +1,4 @@
-import {
-  ImageUploadIcon,
-  PaintBrush01Icon,
-  Download04Icon,
-} from "hugeicons-react";
+import { PiImage as ImageUploadIcon, PiPaintBrush as PaintBrush01Icon, PiDownload as Download04Icon } from "react-icons/pi";
 
 interface Step {
   step: number;

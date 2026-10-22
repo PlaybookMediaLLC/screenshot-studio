@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
-import { Inbox, SlidersHorizontal } from 'lucide-react'
+import { PiTray as Inbox, PiSlidersHorizontal as SlidersHorizontal } from 'react-icons/pi'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'

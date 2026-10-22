@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Cancel01Icon, Delete02Icon } from 'hugeicons-react'
+import { PiX as Cancel01Icon, PiTrash as Delete02Icon } from 'react-icons/pi'
 import { ScreenInspector } from '@/components/frames/panels/ScreenInspector'
 import { TextProperties } from '@/components/text-overlay/text-overlay-controls'
 import { SegmentedControl } from '@/components/ui/segmented-control'

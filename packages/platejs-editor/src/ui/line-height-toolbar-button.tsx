@@ -2,7 +2,7 @@
 
 import { LineHeightPlugin } from "@platejs/basic-styles/react";
 import type { DropdownMenuProps } from "@radix-ui/react-dropdown-menu";
-import { WrapTextIcon } from "lucide-react";
+import { PiTextAlignLeft as WrapTextIcon } from "react-icons/pi";
 import { useEditorRef, useSelectionFragmentProp } from "platejs/react";
 import { useState } from "react";
 

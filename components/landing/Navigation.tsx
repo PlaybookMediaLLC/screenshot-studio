@@ -13,21 +13,7 @@ import {
   useScroll,
   useTransform,
 } from 'motion/react'
-import {
-  ArrowDown01Icon,
-  ArrowRight01Icon,
-  Clock01Icon,
-  CommandLineIcon,
-  CropIcon,
-  Edit02Icon,
-  EraserIcon,
-  Layers01Icon,
-  Menu01Icon,
-  NewTwitterIcon,
-  PaintBoardIcon,
-  SourceCodeIcon,
-  Video01Icon,
-} from 'hugeicons-react'
+import { PiArrowDown as ArrowDown01Icon, PiArrowRight as ArrowRight01Icon, PiClock as Clock01Icon, PiTerminal as CommandLineIcon, PiCrop as CropIcon, PiPencilSimple as Edit02Icon, PiEraser as EraserIcon, PiStack as Layers01Icon, PiList as Menu01Icon, PiXLogo as NewTwitterIcon, PiPalette as PaintBoardIcon, PiCode as SourceCodeIcon, PiVideo as Video01Icon } from 'react-icons/pi'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { cn } from '@/lib/utils'

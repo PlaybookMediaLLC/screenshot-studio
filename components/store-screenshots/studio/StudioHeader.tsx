@@ -5,7 +5,7 @@ import { publicImageUrl } from '@/lib/assets/public-image'
 import * as React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { RedoIcon, UndoIcon } from 'hugeicons-react'
+import { PiArrowUUpRight as RedoIcon, PiArrowUUpLeft as UndoIcon } from 'react-icons/pi'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

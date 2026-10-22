@@ -1,6 +1,6 @@
 "use client"
 
-import { CircleCheck as CheckmarkCircle02Icon, Info as InformationCircleIcon, LoaderCircle as Loading03Icon, CircleAlert as AlertCircleIcon, TriangleAlert as Alert02Icon } from 'lucide-react'
+import { PiCheckCircle as CheckmarkCircle02Icon, PiInfo as InformationCircleIcon, PiSpinnerGap as Loading03Icon, PiWarningCircle as AlertCircleIcon, PiWarning as Alert02Icon } from 'react-icons/pi'
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {

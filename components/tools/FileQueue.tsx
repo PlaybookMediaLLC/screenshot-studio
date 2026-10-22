@@ -2,12 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import {
-  Cancel01Icon,
-  CheckmarkCircle02Icon,
-  Alert02Icon,
-  Loading03Icon,
-} from "hugeicons-react";
+import { PiX as Cancel01Icon, PiCheckCircle as CheckmarkCircle02Icon, PiWarning as Alert02Icon, PiSpinnerGap as Loading03Icon } from "react-icons/pi";
 import { cn } from "@/lib/utils";
 import { formatBytes, savingsPercent } from "@/lib/image-tools";
 import type { QueueItem } from "./useToolQueue";

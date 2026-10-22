@@ -1,7 +1,7 @@
 "use client";
 
 import { BlockMenuPlugin } from "@platejs/selection/react";
-import { MoreHorizontal } from "lucide-react";
+import { PiDotsThree as MoreHorizontal } from "react-icons/pi";
 import { useEditorRef } from "platejs/react";
 
 import { useOpenState } from "./dropdown-menu";

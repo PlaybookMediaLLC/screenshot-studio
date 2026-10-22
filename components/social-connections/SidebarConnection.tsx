@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus } from 'lucide-react'
+import { PiPlus as Plus } from 'react-icons/pi'
 import { authClient, useHydratedSession } from '@/lib/auth/client'
 import { hasPermission } from '@/lib/auth/permissions'
 import { Button } from '@/components/ui/button'

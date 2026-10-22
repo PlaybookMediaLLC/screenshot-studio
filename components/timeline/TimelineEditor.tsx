@@ -10,7 +10,7 @@ import { TimelineControls } from './TimelineControls';
 import { useTimelinePlayback } from './hooks/useTimelinePlayback';
 import { cn } from '@/lib/utils';
 import { TIMELINE_HEIGHT } from '@/lib/constants/editor-layout';
-import { VideoReplayIcon, Image01Icon, Cancel01Icon, Add01Icon } from 'hugeicons-react';
+import { PiFilmScript as VideoReplayIcon, PiImage as Image01Icon, PiX as Cancel01Icon, PiPlus as Add01Icon } from 'react-icons/pi';
 import type { AnimationClip } from '@/types/animation';
 import { useEditorPanels } from '@/lib/store/editor-panels';
 import { MOTION_ROW_HEIGHT, MotionTracks, motionRowCount } from './MotionTracks';

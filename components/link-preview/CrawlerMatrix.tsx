@@ -1,6 +1,6 @@
 'use client'
 
-import { Loader2, ShieldAlert } from 'lucide-react'
+import { PiSpinnerGap as Loader2, PiShieldWarning as ShieldAlert } from 'react-icons/pi'
 import { useState } from 'react'
 import { Pill, type PillTone } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'

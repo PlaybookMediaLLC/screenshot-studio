@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { flushSync } from "react-dom";
-import { Download04Icon, Tick02Icon } from "hugeicons-react";
+import { PiDownload as Download04Icon, PiCheck as Tick02Icon } from "react-icons/pi";
 import { domToBlob } from "modern-screenshot";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Delete02Icon, Add01Icon } from 'hugeicons-react';
+import { PiTrash as Delete02Icon, PiPlus as Add01Icon } from 'react-icons/pi';
 import {
   SectionWrapper,
 } from '../sections';

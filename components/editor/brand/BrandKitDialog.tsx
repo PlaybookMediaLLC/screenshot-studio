@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Delete02Icon, PlusSignIcon } from 'hugeicons-react'
+import { PiTrash as Delete02Icon, PiPlus as PlusSignIcon } from 'react-icons/pi'
 import { FontPicker } from '@/components/editor/typography/FontPicker'
 import { ColorField, ChoiceField } from '@/components/editor/inspector/fields'
 import { Button } from '@/components/ui/button'

@@ -1,4 +1,4 @@
-import { FileUp } from "lucide-react";
+import { PiFileArrowUp as FileUp } from "react-icons/pi";
 
 import type { SlateElementProps, TFileElement } from "../exports/platejs-static";
 import { SlateElement } from "../exports/platejs-static";

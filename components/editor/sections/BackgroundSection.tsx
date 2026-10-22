@@ -16,7 +16,7 @@ import { meshGradients, magicGradients, type MeshGradientKey, type MagicGradient
 import { validateImageContents } from '@/lib/editor/import-images';
 import { ColorPicker } from '@/components/ui/color-picker'
 import { SectionWrapper } from './SectionWrapper';
-import { Cancel01Icon, Image01Icon, ShuffleIcon } from 'hugeicons-react';
+import { PiX as Cancel01Icon, PiImage as Image01Icon, PiShuffle as ShuffleIcon } from 'react-icons/pi';
 import { cn } from '@/lib/utils';
 import { CachedImage } from '@/components/ui/cached-image'
 import { Label } from '@/components/ui/label'

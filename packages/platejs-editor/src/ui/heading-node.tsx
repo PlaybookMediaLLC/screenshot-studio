@@ -1,7 +1,7 @@
 "use client";
 
 import { cva, type VariantProps } from "class-variance-authority";
-import { Link2 } from "lucide-react";
+import { PiLink as Link2 } from "react-icons/pi";
 import { PathApi } from "platejs";
 import type { PlateElementProps } from "platejs/react";
 import { PlateElement } from "platejs/react";

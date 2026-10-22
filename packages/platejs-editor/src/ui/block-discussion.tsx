@@ -3,11 +3,7 @@
 import { getDraftCommentKey } from "@platejs/comment";
 import { CommentPlugin } from "@platejs/comment/react";
 import { SuggestionPlugin } from "@platejs/suggestion/react";
-import {
-  MessageSquareTextIcon,
-  MessagesSquareIcon,
-  PencilLineIcon,
-} from "lucide-react";
+import { PiChatText as MessageSquareTextIcon, PiChats as MessagesSquareIcon, PiPencilLine as PencilLineIcon } from "react-icons/pi";
 import {
   type AnyPluginConfig,
   type NodeEntry,

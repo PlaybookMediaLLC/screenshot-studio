@@ -4,7 +4,7 @@ import { useImageStore } from '@/lib/store';
 import { AspectRatioPicker } from './aspect-ratio-picker';
 import { Button } from '@/components/ui/button'
 import * as React from 'react';
-import { ArrowDown01Icon } from 'hugeicons-react';
+import { PiArrowDown as ArrowDown01Icon } from 'react-icons/pi';
 
 const popularRatios = ['1_1', '9_16', '16_9', '4_5', 'og_image'];
 

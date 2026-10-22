@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Copy, ExternalLink } from 'lucide-react'
+import { PiCheck as Check, PiCopy as Copy, PiArrowSquareOut as ExternalLink } from 'react-icons/pi'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {

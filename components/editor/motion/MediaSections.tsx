@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Add01Icon, Delete02Icon, MusicNote01Icon } from 'hugeicons-react'
+import { PiPlus as Add01Icon, PiTrash as Delete02Icon, PiMusicNote as MusicNote01Icon } from 'react-icons/pi'
 import { ChoiceField, ColorField, ToggleField } from '@/components/editor/inspector/fields'
 import { SectionWrapper } from '@/components/editor/sections'
 import { Slider } from '@/components/ui/slider'

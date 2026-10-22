@@ -4,11 +4,7 @@ import * as React from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import {
-  FolderOpen as Folder01Icon,
-  Ellipsis as MoreHorizontalIcon,
-  Search as Search01Icon,
-} from 'lucide-react'
+import { PiFolderOpen as Folder01Icon, PiDotsThree as MoreHorizontalIcon, PiMagnifyingGlass as Search01Icon } from 'react-icons/pi'
 import { toast } from 'sonner'
 import { EmptyState } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'

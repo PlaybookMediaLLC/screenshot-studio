@@ -4,7 +4,7 @@ import {
   BLOCK_CONTEXT_MENU_ID,
   BlockMenuPlugin,
 } from "@platejs/selection/react";
-import { MoreHorizontal } from "lucide-react";
+import { PiDotsThree as MoreHorizontal } from "react-icons/pi";
 import {
   useEditorPlugin,
   useEditorRef,

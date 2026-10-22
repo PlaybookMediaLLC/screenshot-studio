@@ -1,11 +1,4 @@
-import {
-  InstagramIcon,
-  Linkedin01Icon,
-  Mail01Icon,
-  NewTwitterIcon,
-  Note01Icon,
-  Rocket01Icon,
-} from 'hugeicons-react'
+import { PiInstagramLogo as InstagramIcon, PiLinkedinLogo as Linkedin01Icon, PiEnvelope as Mail01Icon, PiXLogo as NewTwitterIcon, PiNote as Note01Icon, PiRocket as Rocket01Icon } from 'react-icons/pi'
 import { CHANNEL_RULES } from '@/lib/launch/guards'
 import { LAUNCH_CHANNEL_LABELS, type LaunchChannel } from '@/lib/launch/spec-schema'
 import { cn } from '@/lib/utils'

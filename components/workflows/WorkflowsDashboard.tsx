@@ -1,6 +1,6 @@
 'use client'
 
-import { Search as Search01Icon, Workflow as WorkflowSquare03Icon } from 'lucide-react'
+import { PiMagnifyingGlass as Search01Icon, PiFlowArrow as WorkflowSquare03Icon } from 'react-icons/pi'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'

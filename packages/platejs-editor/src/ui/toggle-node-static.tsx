@@ -1,4 +1,4 @@
-import { ChevronRightIcon } from "lucide-react";
+import { PiCaretRight as ChevronRightIcon } from "react-icons/pi";
 
 import type { SlateElementProps } from "../exports/platejs-static";
 import { SlateElement } from "../exports/platejs-static";

@@ -3,7 +3,7 @@
 import { useRef, useEffect } from 'react';
 import { useEditorPanels } from '@/lib/store/editor-panels';
 import { useImageStore, withTypingHistory } from '@/lib/store';
-import { Delete02Icon, ViewIcon, ViewOffSlashIcon, Add01Icon, TextIcon } from 'hugeicons-react';
+import { PiTrash as Delete02Icon, PiEye as ViewIcon, PiEyeSlash as ViewOffSlashIcon, PiPlus as Add01Icon, PiTextT as TextIcon } from 'react-icons/pi';
 import { getAvailableFontWeights } from '@/lib/constants/fonts';
 import { FontPicker } from '@/components/editor/typography/FontPicker';
 import { TextStyleFields } from '@/components/editor/typography/TextStyleFields';

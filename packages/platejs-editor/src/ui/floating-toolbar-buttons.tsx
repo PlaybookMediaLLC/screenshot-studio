@@ -1,15 +1,7 @@
 "use client";
 
-import {
-  Bold,
-  Code2,
-  HighlighterIcon,
-  Italic,
-  KeyboardIcon,
-  type LucideProps,
-  Strikethrough,
-  Underline,
-} from "lucide-react";
+import { PiTextB as Bold, PiCode as Code2, PiHighlighter as HighlighterIcon, PiTextItalic as Italic, PiKeyboard as KeyboardIcon, PiTextStrikethrough as Strikethrough, PiTextUnderline as Underline } from "react-icons/pi"
+import type { IconBaseProps } from "react-icons";
 import { KEYS } from "platejs";
 import {
   useEditorReadOnly,
@@ -145,7 +137,7 @@ export function FloatingToolbarButtons() {
   );
 }
 
-function AIIcon(props: LucideProps) {
+function AIIcon(props: IconBaseProps) {
   return (
     <svg
       fill="url(#myGradient)"

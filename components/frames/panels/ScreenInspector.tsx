@@ -2,16 +2,7 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import {
-  Copy01Icon,
-  CropIcon,
-  Delete02Icon,
-  ImageUpload01Icon,
-  LayerBringToFrontIcon,
-  LayerSendToBackIcon,
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-} from 'hugeicons-react'
+import { PiCopy as Copy01Icon, PiCrop as CropIcon, PiTrash as Delete02Icon, PiImage as ImageUpload01Icon, PiSelectionForeground as LayerBringToFrontIcon, PiSelectionBackground as LayerSendToBackIcon, PiArrowDown as ArrowDown01Icon, PiArrowUp as ArrowUp01Icon } from 'react-icons/pi'
 import { SectionWrapper } from '@/components/editor/sections/SectionWrapper'
 import { Button } from '@/components/ui/button'
 import { SegmentedControl } from '@/components/ui/segmented-control'

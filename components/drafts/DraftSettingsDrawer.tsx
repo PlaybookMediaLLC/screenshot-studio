@@ -1,6 +1,6 @@
 'use client'
 
-import { Settings2 } from 'lucide-react'
+import { PiSlidersHorizontal as Settings2 } from 'react-icons/pi'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { z } from 'zod'

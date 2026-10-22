@@ -1,21 +1,5 @@
 import Link from 'next/link'
-import {
-  ArrowUpRight01Icon,
-  Database01Icon,
-  FingerPrintIcon,
-  Key01Icon,
-  LockIcon,
-  Mail01Icon,
-  ServerStack01Icon,
-  Shield01Icon,
-  UserGroupIcon,
-  WorkflowSquare01Icon,
-  Linkedin01Icon,
-  InstagramIcon,
-  NewTwitterIcon,
-  Note01Icon,
-  Rocket01Icon,
-} from 'hugeicons-react'
+import { PiArrowUpRight as ArrowUpRight01Icon, PiDatabase as Database01Icon, PiFingerprint as FingerPrintIcon, PiKey as Key01Icon, PiLock as LockIcon, PiEnvelope as Mail01Icon, PiHardDrives as ServerStack01Icon, PiShield as Shield01Icon, PiUsers as UserGroupIcon, PiFlowArrow as WorkflowSquare01Icon, PiLinkedinLogo as Linkedin01Icon, PiInstagramLogo as InstagramIcon, PiXLogo as NewTwitterIcon, PiNote as Note01Icon, PiRocket as Rocket01Icon } from 'react-icons/pi'
 import { z } from 'zod'
 import { LAUNCH_CHANNELS, SPEC_SECTIONS } from '@/lib/launch/spec-schema'
 import { atLeast, PRODUCT_FACTS } from '@/lib/seo/product-facts'
@@ -591,7 +575,7 @@ export function SecuritySection() {
       <ul className="mt-24 grid gap-px overflow-hidden rounded-xl border border-[#212121] bg-[#212121] sm:grid-cols-2 lg:grid-cols-3">
         {CONTROLS.map(({ body, icon: Icon, title }) => (
           <li className="bg-[#090909] p-7" key={title}>
-            <Icon aria-hidden="true" className="size-5 text-white/80" strokeWidth={1.5} />
+            <Icon aria-hidden="true" className="size-5 text-white/80" />
             <h3 className="mt-6 text-base text-white">{title}</h3>
             <p className={cn('mt-1.5 text-[15px] leading-[1.55]', MUTED)}>{body}</p>
           </li>

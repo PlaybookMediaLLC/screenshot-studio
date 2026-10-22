@@ -20,25 +20,7 @@ import { DEFAULT_OVERLAY_SHADOW, DEFAULT_OVERLAY_TILT } from '@/lib/overlay-styl
 import { getR2ImageUrl } from '@/lib/r2';
 import { getOverlayUrl } from '@/lib/r2-overlays';
 import { isOverlayPath } from '@/lib/r2-overlays';
-import {
-  Delete02Icon,
-  ViewIcon,
-  ViewOffSlashIcon,
-  ArrowUp01Icon,
-  ArrowDown01Icon,
-  Upload04Icon,
-  RotateRight01Icon,
-  RotateLeft01Icon,
-  RefreshIcon,
-  Image01Icon,
-  TextIcon,
-  PencilEdit02Icon,
-  BlurIcon,
-  LayersLogoIcon,
-  LayerBringForwardIcon,
-  LayerSendBackwardIcon,
-  Target01Icon,
-} from 'hugeicons-react';
+import { PiTrash as Delete02Icon, PiEye as ViewIcon, PiEyeSlash as ViewOffSlashIcon, PiArrowUp as ArrowUp01Icon, PiArrowDown as ArrowDown01Icon, PiUpload as Upload04Icon, PiArrowClockwise as RotateRight01Icon, PiArrowCounterClockwise as RotateLeft01Icon, PiArrowsClockwise as RefreshIcon, PiImage as Image01Icon, PiTextT as TextIcon, PiNotePencil as PencilEdit02Icon, PiDropHalf as BlurIcon, PiStack as LayersLogoIcon, PiSelectionForeground as LayerBringForwardIcon, PiSelectionBackground as LayerSendBackwardIcon, PiTarget as Target01Icon } from 'react-icons/pi';
 import { ELEMENT_LABELS } from '@/components/editor/inspector/ElementInspector';
 import { ScreenLayerList } from '@/components/frames/panels/ScreenLayerList';
 import { isScreenScene } from '@/lib/frames/commands';

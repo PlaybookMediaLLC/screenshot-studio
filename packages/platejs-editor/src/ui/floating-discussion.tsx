@@ -8,7 +8,7 @@ import {
   keyId2SuggestionId,
   rejectSuggestion,
 } from "@platejs/suggestion";
-import { CheckIcon, PencilLineIcon, XIcon } from "lucide-react";
+import { PiCheck as CheckIcon, PiPencilLine as PencilLineIcon, PiX as XIcon } from "react-icons/pi";
 import {
   ElementApi,
   KEYS,

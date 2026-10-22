@@ -2,7 +2,7 @@
 
 import { useMediaState } from "@platejs/media/react";
 import { ResizableProvider } from "@platejs/resizable";
-import { FileUpIcon } from "lucide-react";
+import { PiFileArrowUp as FileUpIcon } from "react-icons/pi";
 import {
   PlateElement,
   type PlateElementProps,

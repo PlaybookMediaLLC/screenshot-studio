@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { Plus, Search } from 'lucide-react'
+import { PiPlus as Plus, PiMagnifyingGlass as Search } from 'react-icons/pi'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'

@@ -1,4 +1,4 @@
-import { Note01Icon } from 'hugeicons-react'
+import { PiNote as Note01Icon } from 'react-icons/pi'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'

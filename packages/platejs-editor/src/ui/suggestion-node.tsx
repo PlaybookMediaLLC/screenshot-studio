@@ -1,6 +1,6 @@
 "use client";
 
-import { CornerDownLeftIcon } from "lucide-react";
+import { PiArrowElbowDownLeft as CornerDownLeftIcon } from "react-icons/pi";
 import type { TSuggestionData, TSuggestionText } from "platejs";
 import {
   PlateLeaf,

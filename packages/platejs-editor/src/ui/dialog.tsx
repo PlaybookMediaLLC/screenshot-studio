@@ -10,7 +10,7 @@ import {
   Title as DialogTitlePrimitive,
   Trigger as DialogTriggerPrimitive,
 } from "@radix-ui/react-dialog";
-import { XIcon } from "lucide-react";
+import { PiX as XIcon } from "react-icons/pi";
 import type { ComponentProps } from "react";
 
 import { cn } from "../lib/utils";

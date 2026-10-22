@@ -2,16 +2,7 @@
 
 import * as React from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import {
-  ArrowLeft01Icon,
-  AspectRatioIcon,
-  Cancel01Icon,
-  GridIcon,
-  Image01Icon,
-  MagicWand01Icon,
-  PaintBrush01Icon,
-  Video01Icon,
-} from 'hugeicons-react';
+import { PiArrowLeft as ArrowLeft01Icon, PiRectangle as AspectRatioIcon, PiX as Cancel01Icon, PiSquaresFour as GridIcon, PiImage as Image01Icon, PiMagicWand as MagicWand01Icon, PiPaintBrush as PaintBrush01Icon, PiVideo as Video01Icon } from 'react-icons/pi';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import {
   AnimatedTemplateGallery,

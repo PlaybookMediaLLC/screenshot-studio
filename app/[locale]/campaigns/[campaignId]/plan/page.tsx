@@ -1,4 +1,4 @@
-import { DocumentValidationIcon } from 'hugeicons-react'
+import { PiSealCheck as DocumentValidationIcon } from 'react-icons/pi'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PlanView } from '@/components/launch/plan/PlanView'

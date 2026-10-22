@@ -3,12 +3,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  Download04Icon,
-  MagicWand01Icon,
-  Delete02Icon,
-  Loading03Icon,
-} from "hugeicons-react";
+import { PiDownload as Download04Icon, PiMagicWand as MagicWand01Icon, PiTrash as Delete02Icon, PiSpinnerGap as Loading03Icon } from "react-icons/pi";
 import {
   buildOutputName,
   buildProcessOptions,

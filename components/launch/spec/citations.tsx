@@ -1,6 +1,6 @@
 'use client'
 
-import { TriangleAlert as Alert02Icon } from 'lucide-react'
+import { PiWarning as Alert02Icon } from 'react-icons/pi'
 import { type ReactNode, useState } from 'react'
 import { Group, Pill, type PillTone, Section } from '@/components/platform-ui'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'

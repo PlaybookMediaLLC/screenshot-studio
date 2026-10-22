@@ -3,7 +3,7 @@
 import type { BackendCampaignPost } from 'screenshot-studio-backend-sdk'
 import type { CampaignPostStatus } from '@/lib/tenant/campaign-status'
 import * as Tabs from '@radix-ui/react-tabs'
-import { Copy as Copy01Icon, Pencil as Edit02Icon } from 'lucide-react'
+import { PiCopy as Copy01Icon, PiPencil as Edit02Icon } from 'react-icons/pi'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'

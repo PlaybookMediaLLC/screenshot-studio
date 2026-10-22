@@ -2,7 +2,7 @@
 import { publicImageUrl } from '@/lib/assets/public-image'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowDown01Icon, ArrowRight01Icon, Menu01Icon } from 'hugeicons-react'
+import { PiArrowDown as ArrowDown01Icon, PiArrowRight as ArrowRight01Icon, PiList as Menu01Icon } from 'react-icons/pi'
 import { navGroupSchema, pagesInGroup, type NavGroup } from '@/lib/marketing/platform-pages'
 import { cn } from '@/lib/utils'
 import { CtaLink } from './CtaLink'

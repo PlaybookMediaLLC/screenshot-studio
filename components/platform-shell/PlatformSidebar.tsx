@@ -2,21 +2,7 @@
 
 import { publicImageUrl } from '@/lib/assets/public-image'
 
-import {
-  Activity,
-  House,
-  Palette,
-  Megaphone,
-  Send,
-  FolderOpen,
-  Workflow,
-  Settings2,
-  Menu,
-  ChevronsUpDown,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Building2,
-} from 'lucide-react'
+import { PiPulse as Activity, PiHouse as House, PiPalette as Palette, PiMegaphone as Megaphone, PiPaperPlaneTilt as Send, PiFolderOpen as FolderOpen, PiFlowArrow as Workflow, PiSlidersHorizontal as Settings2, PiList as Menu, PiCaretUpDown as ChevronsUpDown, PiSidebarSimple as PanelLeftClose, PiSidebarSimple as PanelLeftOpen, PiBuilding as Building2 } from 'react-icons/pi'
 import { PLATFORM_DESTINATIONS, platformArea } from '@/lib/platform/navigation'
 import { ShellActions, ShellSearch } from './ShellActions'
 import Image from 'next/image'
@@ -40,7 +26,7 @@ import { Button } from '@/components/ui/button'
 import { SidebarLink } from './SidebarLink'
 import { ThemeToggle } from './ThemeToggle'
 
-type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
+type IconComponent = ComponentType<{ className?: string; size?: number }>
 type NavItem = {
   href: string
   icon: IconComponent
@@ -95,7 +81,7 @@ function NavLink({
       href={href}
       onClick={onNavigate}
     >
-      <Icon aria-hidden="true" className="shrink-0" size={20} strokeWidth={2} />
+      <Icon aria-hidden="true" className="shrink-0" size={20} />
       {collapsed ? null : <span className="truncate">{label}</span>}
     </SidebarLink>
   )
@@ -294,7 +280,7 @@ export function PlatformSidebar({
       <aside
         aria-label="Primary navigation"
         className={cn(
-          'hidden h-full shrink-0 flex-col border-r border-border/50 py-4 md:flex',
+          'hidden h-full shrink-0 flex-col py-4 md:flex',
           collapsed ? 'w-[76px] items-center px-3' : 'w-64 px-3',
           surface.base
         )}
@@ -399,7 +385,7 @@ export function PlatformSidebar({
               className="grid size-11 place-items-center rounded-lg text-foreground/65 hover:bg-foreground/[0.04] hover:text-foreground"
               type="button"
             >
-              <Menu size={18} strokeWidth={1.8} />
+              <Menu size={18} />
             </Button>
           </SheetTrigger>
           <SheetContent

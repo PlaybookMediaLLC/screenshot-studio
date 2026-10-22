@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, XCircle } from 'lucide-react'
+import { PiCheck as Check, PiXCircle as XCircle } from 'react-icons/pi'
 import type { ReactNode } from 'react'
 import { Pill } from '@/components/platform-ui'
 import type { LinkPreview } from '@/lib/api/contracts/link-preview'

@@ -1,15 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  Copy01Icon,
-  Delete02Icon,
-  LockIcon,
-  ViewIcon,
-  ViewOffSlashIcon,
-} from 'hugeicons-react'
+import { PiArrowDown as ArrowDown01Icon, PiArrowUp as ArrowUp01Icon, PiCopy as Copy01Icon, PiTrash as Delete02Icon, PiLock as LockIcon, PiEye as ViewIcon, PiEyeSlash as ViewOffSlashIcon } from 'react-icons/pi'
 import { Slider } from '@/components/ui/slider'
 import {
   badgeNumberingSchema,

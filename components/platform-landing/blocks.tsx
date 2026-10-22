@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from 'react'
 import Link from 'next/link'
-import { ArrowRight01Icon, ArrowUpRight01Icon, Cancel01Icon } from 'hugeicons-react'
+import { PiArrowRight as ArrowRight01Icon, PiArrowUpRight as ArrowUpRight01Icon, PiX as Cancel01Icon } from 'react-icons/pi'
 import { z } from 'zod'
 import { PLATFORM_PAGES, type PlatformPagePath } from '@/lib/marketing/platform-pages'
 import { cn } from '@/lib/utils'
@@ -24,8 +24,8 @@ import {
   AccordionContent,
 } from '@/components/ui/accordion'
 
-/** An icon component from hugeicons-react. */
-type Icon = ComponentType<{ className?: string; strokeWidth?: number; 'aria-hidden'?: boolean }>
+/** A UI icon component. */
+type Icon = ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
 
 /** A call to action rendered as a pill link. */
 export type Cta = { href: string; label: string }
@@ -147,7 +147,7 @@ export function TileGrid({
             <code className={cn(MONO, 'truncate text-[12px] text-white/50')}>{snippet}</code>
           ) : null}
           {ItemIcon ? (
-            <ItemIcon aria-hidden={true} className="size-5 text-white/80" strokeWidth={1.5} />
+            <ItemIcon aria-hidden={true} className="size-5 text-white/80" />
           ) : null}
           <h3
             className={cn(
@@ -174,7 +174,7 @@ export function ControlGrid({
     <ul className="grid gap-px overflow-hidden rounded-xl border border-[#212121] bg-[#212121] sm:grid-cols-2 lg:grid-cols-3">
       {items.map(({ body, icon: ItemIcon, title }) => (
         <li className="bg-[#090909] p-7" key={title}>
-          <ItemIcon aria-hidden={true} className="size-5 text-white/80" strokeWidth={1.5} />
+          <ItemIcon aria-hidden={true} className="size-5 text-white/80" />
           <h3 className="mt-6 text-base text-white">{title}</h3>
           <p className={cn('mt-1.5 text-[15px] leading-[1.55]', MUTED)}>{body}</p>
         </li>

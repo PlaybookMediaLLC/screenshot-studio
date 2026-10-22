@@ -1,7 +1,7 @@
 'use client'
 
-import { SquarePen as PencilEdit02Icon } from 'lucide-react'
-import { ArrowRight } from 'lucide-react'
+import { PiNotePencil as PencilEdit02Icon } from 'react-icons/pi'
+import { PiArrowRight as ArrowRight } from 'react-icons/pi'
 import { type FormEvent, type ReactNode, useId, useState } from 'react'
 import { RevisePanel } from '@/components/launch/RevisePanel'
 import { Group, Section } from '@/components/platform-ui'

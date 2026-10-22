@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { PiArrowRight as ArrowRight, PiSpinnerGap as Loader2 } from 'react-icons/pi'
 import type { ComponentProps, ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

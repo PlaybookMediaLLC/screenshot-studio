@@ -2,7 +2,7 @@
 
 import { useEquationElement, useEquationInput } from "@platejs/math/react";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
-import { CornerDownLeftIcon, RadicalIcon } from "lucide-react";
+import { PiArrowElbowDownLeft as CornerDownLeftIcon, PiRadical as RadicalIcon } from "react-icons/pi";
 import type { TEquationElement } from "platejs";
 import {
   createPrimitiveComponent,

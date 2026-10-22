@@ -8,14 +8,7 @@ import {
   differenceInMinutes,
   format,
 } from "date-fns";
-import {
-  ArrowUpIcon,
-  CheckIcon,
-  MoreHorizontalIcon,
-  PencilIcon,
-  TrashIcon,
-  XIcon,
-} from "lucide-react";
+import { PiArrowUp as ArrowUpIcon, PiCheck as CheckIcon, PiDotsThree as MoreHorizontalIcon, PiPencil as PencilIcon, PiTrash as TrashIcon, PiX as XIcon } from "react-icons/pi";
 import { NodeApi, nanoid, type Value } from "platejs";
 import {
   type CreatePlateEditorOptions,

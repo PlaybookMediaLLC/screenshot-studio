@@ -3,7 +3,7 @@
 import { SidebarLink as Link } from '@/components/platform-shell/SidebarLink'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { ChevronDown } from 'lucide-react'
+import { PiCaretDown as ChevronDown } from 'react-icons/pi'
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { usePathname } from 'next/navigation'

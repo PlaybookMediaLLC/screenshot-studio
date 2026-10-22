@@ -18,7 +18,7 @@ import {
   Trigger as DropdownMenuTriggerPrimitive,
 } from "@radix-ui/react-dropdown-menu";
 import { cva, type VariantProps } from "class-variance-authority";
-import { CheckIcon, ChevronRightIcon } from "lucide-react";
+import { PiCheck as CheckIcon, PiCaretRight as ChevronRightIcon } from "react-icons/pi";
 import { type ComponentProps, useCallback, useState } from "react";
 
 import { cn } from "../lib/utils";

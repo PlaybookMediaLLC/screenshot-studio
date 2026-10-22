@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-import { LoaderCircle } from 'lucide-react'
+import { PiSpinnerGap as LoaderCircle } from 'react-icons/pi'
 import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTRPCClient } from '@/lib/trpc/react'

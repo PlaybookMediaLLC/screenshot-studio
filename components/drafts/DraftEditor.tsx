@@ -48,7 +48,7 @@ import {
   ToolbarButton,
   ToolbarGroup,
 } from '@shots/platejs-editor/ui'
-import { Ellipsis as MoreHorizontalIcon } from 'lucide-react'
+import { PiDotsThree as MoreHorizontalIcon } from 'react-icons/pi'
 import {
   DropdownMenu,
   DropdownMenuContent,

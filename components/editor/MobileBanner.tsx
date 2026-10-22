@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { Cancel01Icon, ComputerIcon } from "hugeicons-react";
+import { PiX as Cancel01Icon, PiDesktop as ComputerIcon } from "react-icons/pi";
 
 const DISMISSED_KEY = "screenshotstudio-mobile-banner-dismissed";
 

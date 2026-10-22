@@ -2,23 +2,7 @@
 
 import type { DropdownMenuProps } from "@radix-ui/react-dropdown-menu";
 
-import {
-  ChevronDownIcon,
-  Code2Icon,
-  Columns3Icon,
-  Heading1Icon,
-  Heading2Icon,
-  Heading3Icon,
-  Heading4Icon,
-  Heading5Icon,
-  Heading6Icon,
-  LightbulbIcon,
-  ListIcon,
-  ListOrderedIcon,
-  PilcrowIcon,
-  QuoteIcon,
-  SquareIcon,
-} from "lucide-react";
+import { PiCaretDown as ChevronDownIcon, PiCode as Code2Icon, PiColumns as Columns3Icon, PiTextHOne as Heading1Icon, PiTextHTwo as Heading2Icon, PiTextHThree as Heading3Icon, PiTextHFour as Heading4Icon, PiTextHFive as Heading5Icon, PiTextHSix as Heading6Icon, PiLightbulb as LightbulbIcon, PiList as ListIcon, PiListNumbers as ListOrderedIcon, PiParagraph as PilcrowIcon, PiQuotes as QuoteIcon, PiSquare as SquareIcon } from "react-icons/pi";
 import { KEYS } from "platejs";
 import { useEditorRef, useSelectionFragmentProp } from "platejs/react";
 import { useMemo } from "react";

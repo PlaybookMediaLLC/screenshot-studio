@@ -1,6 +1,6 @@
 "use client";
 
-import { Link } from "lucide-react";
+import { PiLink as Link } from "react-icons/pi";
 import { useEditorPlugin } from "platejs/react";
 import type * as React from "react";
 

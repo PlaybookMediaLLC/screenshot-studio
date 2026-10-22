@@ -3,7 +3,7 @@
 import { DndPlugin, useDraggable, useDropLine } from "@platejs/dnd";
 import { expandListItemsWithChildren } from "@platejs/list";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
-import { GripVertical, PlusIcon } from "lucide-react";
+import { PiDotsSixVertical as GripVertical, PiPlus as PlusIcon } from "react-icons/pi";
 import {
   getPluginByType,
   isType,

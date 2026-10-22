@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { LinkSquare02Icon, Loading03Icon } from 'hugeicons-react';
+import { PiArrowSquareOut as LinkSquare02Icon, PiSpinnerGap as Loading03Icon } from 'react-icons/pi';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Switch } from '@/components/ui/switch'

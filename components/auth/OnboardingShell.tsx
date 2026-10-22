@@ -1,5 +1,5 @@
 import { publicImageUrl } from '@/lib/assets/public-image'
-import { Check } from 'lucide-react'
+import { PiCheck as Check } from 'react-icons/pi'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
@@ -60,7 +60,7 @@ export function OnboardingShell({
                           : 'border border-white/[0.12] text-neutral-500'
                       )}
                     >
-                      {done ? <Check className="size-3.5" strokeWidth={2.5} /> : index + 1}
+                      {done ? <Check className="size-3.5" /> : index + 1}
                     </span>
                     <span className="pt-1">
                       <span

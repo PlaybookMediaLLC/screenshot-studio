@@ -7,7 +7,7 @@ import { ANIMATION_PRESETS, CATEGORY_LABELS } from '@/lib/animation/presets';
 import { cn } from '@/lib/utils';
 import type { AnimationPreset } from '@/types/animation';
 import { Button } from '@/components/ui/button'
-import { Delete02Icon, Add01Icon } from 'hugeicons-react';
+import { PiTrash as Delete02Icon, PiPlus as Add01Icon } from 'react-icons/pi';
 
 const PRESET_BY_CATEGORY = ANIMATION_PRESETS.reduce(
   (acc, preset) => {

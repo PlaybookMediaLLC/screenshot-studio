@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowDown01Icon } from 'hugeicons-react';
+import { PiArrowDown as ArrowDown01Icon } from 'react-icons/pi';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button'
 

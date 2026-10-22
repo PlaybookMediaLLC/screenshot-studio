@@ -1,9 +1,5 @@
 import { AreaNavigation, CAMPAIGN_LINKS } from '@/components/platform-hub/AreaNavigation'
-import {
-  CalendarDays as Calendar03Icon,
-  Megaphone as Megaphone01Icon,
-  Rocket as Rocket01Icon,
-} from 'lucide-react'
+import { PiCalendarDots as Calendar03Icon, PiMegaphone as Megaphone01Icon, PiRocket as Rocket01Icon } from 'react-icons/pi'
 import type { Metadata } from 'next'
 import { ShipInput } from '@/components/campaign-copilot/CopilotLaunchers'
 import { CampaignList } from '@/components/campaigns/CampaignList'
@@ -72,7 +68,7 @@ function CampaignWorkflows() {
             key={workflow.title}
           >
             <div className="flex items-center justify-between gap-2">
-              <workflow.icon className="text-foreground/65" size={22} strokeWidth={1.6} />
+              <workflow.icon className="text-foreground/65" size={22} />
               {workflow.href === null ? <Pill>Planned</Pill> : null}
             </div>
             <div className="flex-1">

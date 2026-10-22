@@ -1,11 +1,5 @@
-import {
-  BlueskyIcon,
-  InstagramIcon,
-  Linkedin01Icon,
-  MastodonIcon,
-  NewTwitterIcon,
-  ThreadsIcon,
-} from 'hugeicons-react'
+import { PiInstagramLogo as InstagramIcon, PiLinkedinLogo as Linkedin01Icon, PiMastodonLogo as MastodonIcon, PiXLogo as NewTwitterIcon, PiThreadsLogo as ThreadsIcon } from 'react-icons/pi'
+import { SiBluesky as BlueskyIcon } from 'react-icons/si'
 import type { DraftChannel } from '@/lib/content-drafts/serialize'
 
 /** How each channel is named and drawn in the composer. */

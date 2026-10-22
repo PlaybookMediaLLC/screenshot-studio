@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as AccordionPrimitive from "@radix-ui/react-accordion"
-import { ChevronDown as ArrowDown01Icon } from 'lucide-react'
+import { PiCaretDown as ArrowDown01Icon } from 'react-icons/pi'
 
 import { cn } from "@/lib/utils"
 

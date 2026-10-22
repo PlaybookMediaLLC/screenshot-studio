@@ -1,4 +1,4 @@
-import { Images as Album02Icon, ChevronDown as ArrowDown01Icon } from 'lucide-react'
+import { PiImages as Album02Icon, PiCaretDown as ArrowDown01Icon } from 'react-icons/pi'
 import type { ReactNode } from 'react'
 import { RevisePanel } from '@/components/launch/RevisePanel'
 import { ApproveVisualButton } from '@/components/launch/assets/ApproveVisualButton'

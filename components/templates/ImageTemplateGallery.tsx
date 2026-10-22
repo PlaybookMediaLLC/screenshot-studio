@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Tick02Icon } from 'hugeicons-react';
+import { PiCheck as Tick02Icon } from 'react-icons/pi';
 import { DeviceShell } from '@/components/mockups/DeviceShell';
 import {
   PresetPreview,

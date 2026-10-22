@@ -3,7 +3,7 @@
 import { DatePlugin } from "@platejs/date/react";
 import { MentionPlugin } from "@platejs/mention/react";
 import { cn } from "@udecode/cn";
-import { ArrowUpRightIcon, FileTextIcon } from "lucide-react";
+import { PiArrowUpRight as ArrowUpRightIcon, PiFileText as FileTextIcon } from "react-icons/pi";
 import { IS_APPLE, type TText, type Value } from "platejs";
 import {
   PlateElement,

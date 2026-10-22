@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { CheckmarkCircle02Icon, ArrowRight01Icon } from "hugeicons-react";
+import { PiCheckCircle as CheckmarkCircle02Icon, PiArrowRight as ArrowRight01Icon } from "react-icons/pi";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { buildToolJsonLd } from "@/lib/seo/tool-metadata";

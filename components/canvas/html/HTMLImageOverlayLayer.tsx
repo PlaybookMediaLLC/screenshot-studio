@@ -12,12 +12,7 @@ import {
   fitOverlayImage,
   hasOverlayTilt,
 } from '@/lib/overlay-style';
-import {
-  Delete02Icon,
-  Copy01Icon,
-  LayerSendToBackIcon,
-  LayerBringToFrontIcon,
-} from 'hugeicons-react';
+import { PiTrash as Delete02Icon, PiCopy as Copy01Icon, PiSelectionBackground as LayerSendToBackIcon, PiSelectionForeground as LayerBringToFrontIcon } from 'react-icons/pi';
 import { useMoveableSnapping } from '../use-moveable-snapping';
 import { useLayerMotions } from '@/lib/animation/use-motion';
 import { MotionWrap } from '../motion/motion-layers';

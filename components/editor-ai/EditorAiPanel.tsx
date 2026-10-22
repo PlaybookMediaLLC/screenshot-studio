@@ -1,6 +1,6 @@
 'use client'
 
-import { AiMagicIcon, ArrowUp02Icon, Cancel01Icon } from 'hugeicons-react'
+import { PiSparkle as AiMagicIcon, PiArrowUp as ArrowUp02Icon, PiX as Cancel01Icon } from 'react-icons/pi'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'

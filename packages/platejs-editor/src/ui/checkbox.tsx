@@ -4,7 +4,7 @@ import {
   Indicator as CheckboxIndicator,
   Root as CheckboxRoot,
 } from "@radix-ui/react-checkbox";
-import { CheckIcon, SquareIcon } from "lucide-react";
+import { PiCheck as CheckIcon, PiSquare as SquareIcon } from "react-icons/pi";
 import type * as React from "react";
 
 import { cn } from "../lib/utils";

@@ -1,7 +1,7 @@
 'use client';
 
 import { EditorSectionLink } from "@/components/platform-shell/EditorNavigation";
-import { ArrowRight01Icon, SmartPhone01Icon } from "hugeicons-react";
+import { PiArrowRight as ArrowRight01Icon, PiDeviceMobile as SmartPhone01Icon } from "react-icons/pi";
 import { STORE_SHORTCUT_HEIGHT } from "@/lib/store-screenshots/config";
 import { cn } from "@/lib/utils";
 

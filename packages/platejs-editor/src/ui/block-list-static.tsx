@@ -1,5 +1,5 @@
 import { isOrderedList } from "@platejs/list";
-import { CheckIcon } from "lucide-react";
+import { PiCheck as CheckIcon } from "react-icons/pi";
 import type {
   RenderStaticNodeWrapper,
   SlateRenderElementProps,

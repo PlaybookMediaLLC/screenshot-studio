@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowDownUp, Copy as CopyIcon, Download, FileSearch, Loader2 } from 'lucide-react'
+import { PiArrowsDownUp as ArrowDownUp, PiCopy as CopyIcon, PiDownload as Download, PiFileMagnifyingGlass as FileSearch, PiSpinnerGap as Loader2 } from 'react-icons/pi'
 import { useRef, useState } from 'react'
 import { Pill } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'

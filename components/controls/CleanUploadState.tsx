@@ -2,8 +2,8 @@
 
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Camera01Icon, CommandIcon, Globe02Icon, Loading03Icon } from 'hugeicons-react'
-import { Moon, Sun } from 'lucide-react'
+import { PiCamera as Camera01Icon, PiCommand as CommandIcon, PiGlobe as Globe02Icon, PiSpinnerGap as Loading03Icon } from 'react-icons/pi'
+import { PiMoon as Moon, PiSun as Sun } from 'react-icons/pi'
 import { MAX_IMAGE_SIZE } from '@/lib/constants'
 import { useImageStore } from '@/lib/store'
 import { importImages } from '@/lib/editor/import-images'

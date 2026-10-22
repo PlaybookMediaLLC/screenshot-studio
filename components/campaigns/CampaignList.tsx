@@ -1,7 +1,7 @@
 'use client'
 
 import type { CampaignStatus } from '@/lib/tenant/campaign-status'
-import { ChevronRight as ArrowRight01Icon, Search as Search01Icon } from 'lucide-react'
+import { PiCaretRight as ArrowRight01Icon, PiMagnifyingGlass as Search01Icon } from 'react-icons/pi'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'

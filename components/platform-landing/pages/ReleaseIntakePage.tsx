@@ -1,4 +1,4 @@
-import { CommandLineIcon, Edit02Icon, WebhookIcon } from 'hugeicons-react'
+import { PiTerminal as CommandLineIcon, PiPencilSimple as Edit02Icon, PiWebhooksLogo as WebhookIcon } from 'react-icons/pi'
 import { apiErrorBody } from '@/lib/api/errors'
 import { apiKeyScopes, type ApiKeyScope } from '@/lib/auth/api-key-scopes'
 import { workspacePlanSchema } from '@/lib/billing/plans'

@@ -17,5 +17,12 @@ export function ButtonLink({
   variant,
   ...props
 }: ComponentProps<typeof Link> & VariantProps<typeof buttonVariants>) {
-  return <Link className={cn(buttonVariants({ size, variant }), className)} {...props} />
+  return (
+    <Link
+      data-slot="button"
+      data-variant={variant ?? 'default'}
+      className={cn(buttonVariants({ size, variant }), className)}
+      {...props}
+    />
+  )
 }

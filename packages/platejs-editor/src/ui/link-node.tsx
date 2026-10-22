@@ -1,12 +1,7 @@
 "use client";
 
 import { useLink } from "@platejs/link/react";
-import {
-  ArrowUpRightIcon,
-  CopyIcon,
-  FileTextIcon,
-  LinkIcon,
-} from "lucide-react";
+import { PiArrowUpRight as ArrowUpRightIcon, PiCopy as CopyIcon, PiFileText as FileTextIcon, PiLink as LinkIcon } from "react-icons/pi";
 import { useEffect } from "react";
 
 export const mockRecentDocuments = [

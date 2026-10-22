@@ -5,7 +5,7 @@ import { useImageStore } from '@/lib/store';
 import type { AnnotationToolType, BlurRegionStyle } from '@/lib/store';
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
-import { ColorPickerIcon, Delete02Icon } from 'hugeicons-react';
+import { PiEyedropper as ColorPickerIcon, PiTrash as Delete02Icon } from 'react-icons/pi';
 import { Slider } from '@/components/ui/slider'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Label } from '@/components/ui/label'

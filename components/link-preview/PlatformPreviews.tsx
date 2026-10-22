@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Copy, ExternalLink, ImageOff } from 'lucide-react'
+import { PiCheck as Check, PiCopy as Copy, PiArrowSquareOut as ExternalLink, PiImageBroken as ImageOff } from 'react-icons/pi'
 import { useState } from 'react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'

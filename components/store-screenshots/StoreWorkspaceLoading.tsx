@@ -2,7 +2,7 @@
 import { publicImageUrl } from '@/lib/assets/public-image'
 import Image from "next/image";
 import Link from "next/link";
-import { NewTwitterIcon } from "hugeicons-react";
+import { PiXLogo as NewTwitterIcon } from "react-icons/pi";
 import { MobileBanner } from "@/components/editor/MobileBanner";
 import { getStoreProfile } from "@/lib/store-screenshots/config";
 

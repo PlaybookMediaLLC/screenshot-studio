@@ -1,6 +1,6 @@
 'use client'
 
-import { Share08Icon } from 'hugeicons-react'
+import { PiShare as Share08Icon } from 'react-icons/pi'
 import { useHydratedSession } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
 import { ShareDialog } from './ShareDialog'

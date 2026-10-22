@@ -1,7 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
-import { Moon, Sun } from 'lucide-react'
+import { PiMoon as Moon, PiSun as Sun } from 'react-icons/pi'
 import { useTheme } from 'next-themes'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { useSaveState } from '@/components/settings/controls'

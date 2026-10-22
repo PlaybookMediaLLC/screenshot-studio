@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { CubeIcon, IdeaIcon, Layers01Icon, RotateClockwiseIcon } from "hugeicons-react";
+import { PiCube as CubeIcon, PiLightbulb as IdeaIcon, PiStack as Layers01Icon, PiArrowClockwise as RotateClockwiseIcon } from "react-icons/pi";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

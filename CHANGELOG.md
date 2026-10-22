@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.36.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.36.0...v2.36.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **ci:** prevent development server memory restarts ([#293](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/293)) ([431d93f](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/431d93fc289eceaa7af9bd54c5331be409e86d05))
+
 ## [2.36.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.35.2...v2.36.0) (2026-10-22)
 
 

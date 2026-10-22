@@ -8,10 +8,6 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 const nextConfig: NextConfig = {
   output: 'standalone',
   reactCompiler: true,
-  experimental: {
-    // CI must keep in-flight browser requests alive while V8 reclaims compiler memory.
-    devMemoryThresholdRestart: process.env.CI !== 'true',
-  },
   // The vendored editor ships TypeScript source (packages/platejs-editor).
   transpilePackages: ['@shots/platejs-editor'],
   poweredByHeader: false,

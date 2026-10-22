@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.33.5](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.4...v2.33.5) (2026-10-22)
+
+
+### Performance Improvements
+
+* improve signed-in caching and data loading ([#279](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/279)) ([fd23bc7](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/fd23bc713d4afd4e9bcc7294c22957822e4bf820))
+
 ## [2.33.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.3...v2.33.4) (2026-10-21)
 
 

@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
-import { ChevronRight as ArrowRight01Icon } from 'lucide-react'
+import { PiCaretRight as ArrowRight01Icon } from 'react-icons/pi'
 
 import { cn } from "@/lib/utils"
 
@@ -72,6 +72,7 @@ function Button({
   return (
     <Comp
       data-slot="button"
+      data-variant={variant ?? "default"}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     >

@@ -1,5 +1,7 @@
 'use client'
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import * as React from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -22,21 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import {
-  Download04Icon,
-  Copy01Icon,
-  AspectRatioIcon,
-  Add01Icon,
-  Video01Icon,
-  Delete02Icon,
-  ArrowTurnBackwardIcon,
-  ArrowTurnForwardIcon,
-  RefreshIcon,
-  MagicWand01Icon,
-  GridIcon,
-  KeyboardIcon,
-  MoreHorizontalIcon,
-} from 'hugeicons-react'
+import { PiDownload as Download04Icon, PiCopy as Copy01Icon, PiRectangle as AspectRatioIcon, PiPlus as Add01Icon, PiVideo as Video01Icon, PiTrash as Delete02Icon, PiArrowBendUpLeft as ArrowTurnBackwardIcon, PiArrowBendUpRight as ArrowTurnForwardIcon, PiArrowsClockwise as RefreshIcon, PiMagicWand as MagicWand01Icon, PiSquaresFour as GridIcon, PiKeyboard as KeyboardIcon, PiDotsThree as MoreHorizontalIcon } from 'react-icons/pi'
 import { selectScreenshot, useImageStore } from '@/lib/store'
 import { useShallow } from 'zustand/react/shallow'
 import { useExport } from '@/hooks/useExport'
@@ -219,7 +207,7 @@ export function EditorHeader() {
                 className="size-6 rounded-md"
                 height={24}
                 priority
-                src="/logo-mark.png"
+                src={publicImageUrl("/logo-mark.png")}
                 width={24}
               />
             </Link>

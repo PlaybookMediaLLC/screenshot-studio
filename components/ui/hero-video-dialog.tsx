@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Play as PlayIcon, X as Cancel01Icon } from 'lucide-react'
+import { PiPlay as PlayIcon, PiX as Cancel01Icon } from 'react-icons/pi'
 import { AnimatePresence, motion } from "motion/react"
 
 import { cn } from "@/lib/utils"

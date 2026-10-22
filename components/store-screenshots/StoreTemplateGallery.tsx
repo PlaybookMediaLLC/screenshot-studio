@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Cancel01Icon, Delete02Icon, Layers01Icon } from "hugeicons-react";
+import { PiX as Cancel01Icon, PiTrash as Delete02Icon, PiStack as Layers01Icon } from "react-icons/pi";
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,

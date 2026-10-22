@@ -18,20 +18,7 @@ import {
   Root as PopoverRoot,
   Trigger as PopoverTrigger,
 } from "@radix-ui/react-popover";
-import {
-  AppleIcon,
-  ClockIcon,
-  CompassIcon,
-  DeleteIcon,
-  FlagIcon,
-  LeafIcon,
-  LightbulbIcon,
-  MusicIcon,
-  SearchIcon,
-  SmileIcon,
-  StarIcon,
-  XIcon,
-} from "lucide-react";
+import { PiAppleLogo as AppleIcon, PiClock as ClockIcon, PiCompass as CompassIcon, PiBackspace as DeleteIcon, PiFlag as FlagIcon, PiLeaf as LeafIcon, PiLightbulb as LightbulbIcon, PiMusicNotes as MusicIcon, PiMagnifyingGlass as SearchIcon, PiSmiley as SmileIcon, PiStar as StarIcon, PiX as XIcon } from "react-icons/pi";
 import React, { memo, type ReactNode, useCallback } from "react";
 
 import { cn } from "../lib/utils";

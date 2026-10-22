@@ -8,12 +8,14 @@ export function NeedsAttention() {
   const identity = useNotificationIdentity()
   if (!identity.ready) return null
   return (
-    <section aria-label="Needs attention" className="space-y-4">
+    <section aria-label="Needs attention" className="home-attention space-y-4">
       <div>
-        <h2 className="text-base font-semibold">Needs attention</h2>
-        <p className="mt-1 text-xs text-muted-foreground">The updates that need your next move.</p>
+        <h2 className="text-sm font-medium">Needs attention</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Comments, reviews, and workspace updates.
+        </p>
       </div>
-      <div className="flex min-h-52 max-h-80 flex-col overflow-hidden rounded-2xl border border-border/70 bg-background/50">
+      <div className="home-notifications">
         <NotificationFeed identity={identity} view="inbox" close={() => {}} />
       </div>
     </section>

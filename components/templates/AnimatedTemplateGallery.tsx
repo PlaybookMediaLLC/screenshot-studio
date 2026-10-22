@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { PlayIcon, Tick02Icon } from 'hugeicons-react';
+import { PiPlay as PlayIcon, PiCheck as Tick02Icon } from 'react-icons/pi';
 import {
   getFrameImageStyle,
   getPreviewImageWidthPercent,

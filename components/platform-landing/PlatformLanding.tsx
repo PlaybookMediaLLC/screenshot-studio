@@ -1,13 +1,5 @@
 import Link from 'next/link'
-import {
-  ArrowRight01Icon,
-  GithubIcon,
-  GitlabIcon,
-  InstagramIcon,
-  Linkedin01Icon,
-  Mail01Icon,
-  NewTwitterIcon,
-} from 'hugeicons-react'
+import { PiArrowRight as ArrowRight01Icon, PiGithubLogo as GithubIcon, PiGitlabLogo as GitlabIcon, PiInstagramLogo as InstagramIcon, PiLinkedinLogo as Linkedin01Icon, PiEnvelope as Mail01Icon, PiXLogo as NewTwitterIcon } from 'react-icons/pi'
 import { cn } from '@/lib/utils'
 import { FinalCta } from './blocks'
 import { CtaLink } from './CtaLink'

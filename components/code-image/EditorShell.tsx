@@ -1,21 +1,14 @@
 'use client';
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { domToBlob } from 'modern-screenshot';
 import { toast } from 'sonner';
 import { Drawer } from 'vaul';
-import {
-  Copy01Icon,
-  Link01Icon,
-  Download04Icon,
-  ArrowDown01Icon,
-  InformationCircleIcon,
-  CheckmarkCircle02Icon,
-  Share01Icon,
-  Settings02Icon,
-} from 'hugeicons-react';
+import { PiCopy as Copy01Icon, PiLink as Link01Icon, PiDownload as Download04Icon, PiArrowDown as ArrowDown01Icon, PiInfo as InformationCircleIcon, PiCheckCircle as CheckmarkCircle02Icon, PiShare as Share01Icon, PiSlidersHorizontal as Settings02Icon } from 'react-icons/pi';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -232,7 +225,7 @@ export function EditorTopBar({ title, description, shortcuts, frameExport }: Edi
           className="shrink-0 transition-opacity hover:opacity-80"
         >
           <Image
-            src="/logo-mark.png"
+            src={publicImageUrl("/logo-mark.png")}
             alt="Shots"
             width={28}
             height={28}

@@ -7,7 +7,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { LockIcon } from 'hugeicons-react';
+import { PiLock as LockIcon } from 'react-icons/pi';
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 

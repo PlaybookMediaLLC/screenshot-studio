@@ -2,16 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import {
-  Add01Icon,
-  Cancel01Icon,
-  GridIcon,
-  Image01Icon,
-  Layers01Icon,
-  PaintBoardIcon,
-  Settings02Icon,
-  TextIcon,
-} from "hugeicons-react";
+import { PiPlus as Add01Icon, PiX as Cancel01Icon, PiSquaresFour as GridIcon, PiImage as Image01Icon, PiStack as Layers01Icon, PiPalette as PaintBoardIcon, PiSlidersHorizontal as Settings02Icon, PiTextT as TextIcon } from "react-icons/pi";
 import { Button } from '@/components/ui/button'
 import { CachedImage } from '@/components/ui/cached-image'
 import { SectionWrapper } from "@/components/editor/sections";

@@ -8,7 +8,7 @@ import { useImageStore } from '@/lib/store';
 import { SectionWrapper } from './SectionWrapper';
 import { getR2ImageUrl } from '@/lib/r2';
 import { isOverlayPath } from '@/lib/r2-overlays';
-import { ArrowRight01Icon, LayersLogoIcon, Image01Icon } from 'hugeicons-react';
+import { PiArrowRight as ArrowRight01Icon, PiStack as LayersLogoIcon, PiImage as Image01Icon } from 'react-icons/pi';
 import { useEditorPanels } from '@/lib/store/editor-panels';
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'

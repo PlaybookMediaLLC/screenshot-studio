@@ -1,3 +1,4 @@
+import { publicImageUrl } from '@/lib/assets/public-image'
 import { createCreativeSet } from './recipes'
 
 /** The explicitly labelled example uses the same native formats as saved sets. */
@@ -20,6 +21,7 @@ export const exampleStorySet = (() => {
     },
     () => `example-${++id}`
   )
-  for (const output of set.outputs) output.document.image.src = '/demo/notion-showcase.webp'
+  for (const output of set.outputs)
+    output.document.image.src = publicImageUrl('/demo/notion-showcase.webp')
   return set
 })()

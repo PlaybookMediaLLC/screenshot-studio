@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Add01Icon, Cancel01Icon } from 'hugeicons-react'
+import { PiPlus as Add01Icon, PiX as Cancel01Icon } from 'react-icons/pi'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'

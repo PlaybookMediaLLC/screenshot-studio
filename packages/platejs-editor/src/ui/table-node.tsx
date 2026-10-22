@@ -11,7 +11,7 @@ import {
   useTableSelectionDom,
 } from "@platejs/table/react";
 import { cva } from "class-variance-authority";
-import { PlusIcon } from "lucide-react";
+import { PiPlus as PlusIcon } from "react-icons/pi";
 import { KEYS, type TTableCellElement } from "platejs";
 import {
   PlateElement,

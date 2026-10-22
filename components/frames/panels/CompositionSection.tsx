@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { toast } from 'sonner'
-import { CodeIcon, ImageAdd01Icon, RotateClockwiseIcon } from 'hugeicons-react'
+import { PiCode as CodeIcon, PiImage as ImageAdd01Icon, PiArrowClockwise as RotateClockwiseIcon } from 'react-icons/pi'
 import { DocumentPreview } from '@/components/design/DocumentPreview'
 import { SectionWrapper } from '@/components/editor/sections/SectionWrapper'
 import { Button } from '@/components/ui/button'

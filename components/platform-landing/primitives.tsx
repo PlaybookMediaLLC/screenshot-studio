@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react'
-import { Tick02Icon } from 'hugeicons-react'
+import { PiCheck as Tick02Icon } from 'react-icons/pi'
 import { z } from 'zod'
 import { cn } from '@/lib/utils'
 
@@ -218,7 +218,7 @@ export function Check({ className }: { className?: string }) {
         className
       )}
     >
-      <Tick02Icon className="size-3" strokeWidth={2.5} />
+      <Tick02Icon className="size-3" />
     </span>
   )
 }

@@ -1,3 +1,5 @@
+
+import { publicImageUrl } from '@/lib/assets/public-image'
 import {
   DEFAULT_STORE_THEME,
   MAX_STORE_SLIDES,
@@ -40,16 +42,16 @@ export const DEFAULT_IMAGE_FILTERS = { brightness: 100, contrast: 100, saturatio
 export const MAX_STORE_IMAGE_SIZE = 25 * 1024 * 1024;
 export const MAX_STORE_PROJECT_IMAGE_BYTES = 100 * 1024 * 1024;
 export const STORE_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"] as const;
-export const STORE_STARTER_SCREEN_SRC = "/store-screenshot-create.png";
+export const STORE_STARTER_SCREEN_SRC = publicImageUrl("/store-screenshot-create.png");
 export const STORE_TEMPLATE_SCREEN_SRCS = [
   STORE_STARTER_SCREEN_SRC,
-  "/store-screenshot-learn.png",
-  "/store-screenshot-voice.png",
-  "/store-screenshot-write.png",
-  "/store-screenshot-ideas.png",
-  "/store-screenshot-butterfly.png",
-  "/store-screenshot-writing.png",
-  "/store-screenshot-inspiration.png",
+  publicImageUrl("/store-screenshot-learn.png"),
+  publicImageUrl("/store-screenshot-voice.png"),
+  publicImageUrl("/store-screenshot-write.png"),
+  publicImageUrl("/store-screenshot-ideas.png"),
+  publicImageUrl("/store-screenshot-butterfly.png"),
+  publicImageUrl("/store-screenshot-writing.png"),
+  publicImageUrl("/store-screenshot-inspiration.png"),
 ] as const;
 
 const STORE_LAYOUT_IDS: StoreLayoutId[] = [

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight01Icon } from "hugeicons-react";
+import { PiArrowRight as ArrowRight01Icon } from "react-icons/pi";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { CtaBand } from "@/components/seo/ContentBlocks";

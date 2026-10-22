@@ -13,7 +13,7 @@ import {
   useCommandActions,
 } from "@udecode/cmdk";
 import { Fzf } from "fzf";
-import { PlusIcon } from "lucide-react";
+import { PiPlus as PlusIcon } from "react-icons/pi";
 import { isHotkey, KEYS } from "platejs";
 import {
   Plate,

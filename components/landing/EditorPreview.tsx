@@ -1,5 +1,7 @@
 "use client";
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import {
   useLayoutEffect,
   useRef,
@@ -10,7 +12,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
-import { AspectRatioIcon, Globe02Icon, Image01Icon } from "hugeicons-react";
+import { PiRectangle as AspectRatioIcon, PiGlobe as Globe02Icon, PiImage as Image01Icon } from "react-icons/pi";
 import {
   getBackgroundCSS,
   type BackgroundConfig,
@@ -298,18 +300,18 @@ const DEMO_BY_ASPECT: Record<
   }
 > = {
   "16:9": {
-    src: "/demo/demo-5.png",
+    src: publicImageUrl("/demo/demo-5.png"),
     objectClass: "object-cover object-top",
     frameOrigin: "center top",
     frameScale: 1.03,
   },
   "1:1": {
-    src: "/demo/demo-mazie-1x1.jpg",
+    src: publicImageUrl("/demo/demo-mazie-1x1.jpg"),
     objectClass: "object-contain object-center",
     frameOrigin: "center center",
   },
   "9:16": {
-    src: "/demo/demo-checkout-9x16.jpg",
+    src: publicImageUrl("/demo/demo-checkout-9x16.jpg"),
     objectClass: "object-contain object-center",
     frameOrigin: "center center",
   },
@@ -503,7 +505,7 @@ export function EditorPreview(): React.JSX.Element {
             <div className="relative z-30 grid h-12 shrink-0 grid-cols-[180px_minmax(0,1fr)_152px] items-center border-b border-border">
               <div className="flex min-w-0 items-center gap-2 px-3">
                 <Image
-                  src="/logo-mark.png"
+                  src={publicImageUrl("/logo-mark.png")}
                   alt=""
                   width={20}
                   height={20}

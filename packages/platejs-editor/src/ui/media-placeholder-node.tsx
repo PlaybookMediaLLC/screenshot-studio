@@ -7,7 +7,7 @@ import {
   usePlaceholderElementState,
   usePlaceholderPopoverState,
 } from "@platejs/media/react";
-import { AudioLinesIcon, FileUpIcon, FilmIcon, ImageIcon } from "lucide-react";
+import { PiWaveform as AudioLinesIcon, PiFileArrowUp as FileUpIcon, PiFilmStrip as FilmIcon, PiImage as ImageIcon } from "react-icons/pi";
 import { KEYS, nanoid } from "platejs";
 import {
   PlateElement,

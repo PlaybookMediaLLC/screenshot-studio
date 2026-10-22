@@ -1,7 +1,7 @@
 'use client'
 
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, ExternalLink } from 'lucide-react'
+import { PiCheck as Check, PiArrowSquareOut as ExternalLink } from 'react-icons/pi'
 import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'

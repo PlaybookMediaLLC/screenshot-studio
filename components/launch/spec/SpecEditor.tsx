@@ -1,6 +1,6 @@
 'use client'
 
-import { TriangleAlert as Alert02Icon, FileCheck as DocumentValidationIcon } from 'lucide-react'
+import { PiWarning as Alert02Icon, PiSealCheck as DocumentValidationIcon } from 'react-icons/pi'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'

@@ -1,6 +1,6 @@
 'use client'
 
-import { KeyRound } from 'lucide-react'
+import { PiKey as KeyRound } from 'react-icons/pi'
 import { type FormEvent, useState } from 'react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'

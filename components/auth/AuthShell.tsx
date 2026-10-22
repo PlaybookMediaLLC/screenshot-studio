@@ -1,3 +1,4 @@
+import { publicImageUrl } from '@/lib/assets/public-image'
 import type { ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -26,7 +27,7 @@ export function AuthShell({ children, description, eyebrow, footer, title }: Aut
               className="size-12 rounded-xl"
               height={48}
               priority
-              src="/logo-mark.png"
+              src={publicImageUrl('/logo-mark.png')}
               width={48}
             />
           </Link>

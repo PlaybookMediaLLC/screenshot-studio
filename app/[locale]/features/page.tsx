@@ -1,16 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowRight01Icon,
-  BrowserIcon,
-  CubeIcon,
-  EraserAutoIcon,
-  MagicWand01Icon,
-  Share08Icon,
-  SmartPhone01Icon,
-  SourceCodeIcon,
-  Video01Icon,
-} from "hugeicons-react";
+import { PiArrowRight as ArrowRight01Icon, PiBrowser as BrowserIcon, PiCube as CubeIcon, PiEraser as EraserAutoIcon, PiMagicWand as MagicWand01Icon, PiShare as Share08Icon, PiDeviceMobile as SmartPhone01Icon, PiCode as SourceCodeIcon, PiVideo as Video01Icon } from "react-icons/pi";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { SectionTitle } from "@/components/tools/ToolLayout";

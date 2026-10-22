@@ -3,15 +3,7 @@ import Link from "next/link";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
-import {
-  Megaphone01Icon,
-  Share01Icon,
-  ChartIncreaseIcon,
-  Presentation01Icon,
-  ChartHistogramIcon,
-  Image01Icon,
-  ArrowRight01Icon,
-} from "hugeicons-react";
+import { PiMegaphone as Megaphone01Icon, PiShare as Share01Icon, PiChartLineUp as ChartIncreaseIcon, PiPresentation as Presentation01Icon, PiChartBar as ChartHistogramIcon, PiImage as Image01Icon, PiArrowRight as ArrowRight01Icon } from "react-icons/pi";
 
 export const metadata: Metadata = {
   title: "Screenshot Editor for Marketers",
@@ -227,7 +219,7 @@ export default function ForMarketersPage() {
               {useCases.map((uc) => (
                 <div key={uc.title} className={`${cardSurface} flex gap-4`}>
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground/[0.06] text-foreground ring-1 ring-inset ring-border">
-                    <uc.icon size={20} strokeWidth={1.75} />
+                    <uc.icon size={20} />
                   </div>
                   <div>
                     <h3
@@ -293,7 +285,6 @@ export default function ForMarketersPage() {
                   </span>
                   <ArrowRight01Icon
                     size={14}
-                    strokeWidth={1.75}
                     className="size-3.5 shrink-0 text-muted-foreground/70 transition-colors group-hover:text-foreground"
                   />
                 </Link>

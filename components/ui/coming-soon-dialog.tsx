@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Clock as Clock01Icon } from 'lucide-react';
+import { PiClock as Clock01Icon } from 'react-icons/pi';
 import {
   Dialog,
   DialogContent,

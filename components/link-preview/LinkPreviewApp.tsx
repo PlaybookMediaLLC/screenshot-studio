@@ -1,17 +1,6 @@
 'use client'
 
-import {
-  AlertCircle,
-  Check,
-  ChevronDown,
-  Copy,
-  ExternalLink,
-  FileText,
-  Link2,
-  Loader2,
-  RefreshCw,
-  X,
-} from 'lucide-react'
+import { PiWarningCircle as AlertCircle, PiCheck as Check, PiCaretDown as ChevronDown, PiCopy as Copy, PiArrowSquareOut as ExternalLink, PiFileText as FileText, PiLink as Link2, PiSpinnerGap as Loader2, PiArrowsClockwise as RefreshCw, PiX as X } from 'react-icons/pi'
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
 import { Button, buttonVariants } from '@/components/ui/button'

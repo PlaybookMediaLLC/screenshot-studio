@@ -1,16 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import {
-  PlayIcon,
-  PauseIcon,
-  RepeatIcon,
-  RepeatOffIcon,
-  Add01Icon,
-  Cancel01Icon,
-  Time02Icon,
-  Delete02Icon,
-} from 'hugeicons-react';
+import { PiPlay as PlayIcon, PiPause as PauseIcon, PiRepeat as RepeatIcon, PiRepeat as RepeatOffIcon, PiPlus as Add01Icon, PiX as Cancel01Icon, PiClock as Time02Icon, PiTrash as Delete02Icon } from 'react-icons/pi';
 import { useImageStore } from '@/lib/store';
 import { usePlaybackStore } from '@/lib/store/playback';
 import { Slider } from '@/components/ui/slider'

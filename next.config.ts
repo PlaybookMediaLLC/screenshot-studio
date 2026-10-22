@@ -1,4 +1,5 @@
 import path from 'node:path'
+import publicImages from './lib/assets/public-images.json'
 import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
 
@@ -17,7 +18,7 @@ const nextConfig: NextConfig = {
   experimental: {
     // These packages expose many icons from barrel entry points. Rewriting
     // imports keeps unused icons out of the Webpack production bundle.
-    optimizePackageImports: ['@hugeicons/react', 'hugeicons-react'],
+    optimizePackageImports: ['react-icons/pi', 'react-icons/si'],
   },
 
   images: {
@@ -35,6 +36,10 @@ const nextConfig: NextConfig = {
   // Only applied to editor routes — applying globally breaks YouTube embeds on landing page
   async headers() {
     return [
+      {
+        source: '/r2-assets/static/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
       {
         source: '/api/:path*',
         headers: [{ key: 'Cache-Control', value: 'private, no-store' }],
@@ -99,6 +104,13 @@ const nextConfig: NextConfig = {
   // Permanent redirects for SEO (301)
   async redirects() {
     return [
+      ...(process.env.NEXT_PUBLIC_R2_PUBLIC_URL
+        ? Object.entries(publicImages).map(([source, key]) => ({
+            source: source.replace(/[():*+?]/g, '\\$&'),
+            destination: `/r2-assets/${key.split('/').map(encodeURIComponent).join('/')}`,
+            permanent: false,
+          }))
+        : []),
       {
         source: '/features/background-remover',
         destination: '/remove-background',

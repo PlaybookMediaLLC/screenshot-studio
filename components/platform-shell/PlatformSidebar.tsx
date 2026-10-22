@@ -1,20 +1,8 @@
 'use client'
 
-import {
-  Activity,
-  House,
-  Palette,
-  Megaphone,
-  Send,
-  FolderOpen,
-  Workflow,
-  Settings2,
-  Menu,
-  ChevronsUpDown,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Building2,
-} from 'lucide-react'
+import { publicImageUrl } from '@/lib/assets/public-image'
+
+import { PiPulse as Activity, PiHouse as House, PiPalette as Palette, PiMegaphone as Megaphone, PiPaperPlaneTilt as Send, PiFolderOpen as FolderOpen, PiFlowArrow as Workflow, PiSlidersHorizontal as Settings2, PiList as Menu, PiCaretUpDown as ChevronsUpDown, PiSidebarSimple as PanelLeftClose, PiSidebarSimple as PanelLeftOpen, PiBuilding as Building2 } from 'react-icons/pi'
 import { PLATFORM_DESTINATIONS, platformArea } from '@/lib/platform/navigation'
 import { ShellActions, ShellSearch } from './ShellActions'
 import Image from 'next/image'
@@ -36,8 +24,9 @@ import type { z } from 'zod'
 import { surface } from './shell-config'
 import { Button } from '@/components/ui/button'
 import { SidebarLink } from './SidebarLink'
+import { ThemeToggle } from './ThemeToggle'
 
-type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
+type IconComponent = ComponentType<{ className?: string; size?: number }>
 type NavItem = {
   href: string
   icon: IconComponent
@@ -92,7 +81,7 @@ function NavLink({
       href={href}
       onClick={onNavigate}
     >
-      <Icon aria-hidden="true" className="shrink-0" size={20} strokeWidth={2} />
+      <Icon aria-hidden="true" className="shrink-0" size={20} />
       {collapsed ? null : <span className="truncate">{label}</span>}
     </SidebarLink>
   )
@@ -165,7 +154,7 @@ function WorkspaceSwitcher({
       align={collapsed ? 'end' : 'start'}
       side={collapsed ? 'right' : 'top'}
       triggerClassName={cn(
-        'flex h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-foreground/[0.04]',
+        'flex h-11 min-w-0 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-foreground/[0.04]',
         collapsed && 'size-11 justify-center px-0'
       )}
     >
@@ -194,7 +183,13 @@ function WorkspaceSwitcher({
 function Brand({ collapsed }: { collapsed: boolean }) {
   return (
     <SidebarLink className="flex min-w-0 items-center gap-2.5" href="/home" aria-label="Shots Home">
-      <Image alt="" className="size-6 rounded-md" height={24} src="/logo-mark.png" width={24} />
+      <Image
+        alt=""
+        className="size-6 rounded-md"
+        height={24}
+        src={publicImageUrl('/logo-mark.png')}
+        width={24}
+      />
       {collapsed ? null : (
         <span className="truncate text-sm font-semibold tracking-tight text-foreground">Shots</span>
       )}
@@ -285,7 +280,7 @@ export function PlatformSidebar({
       <aside
         aria-label="Primary navigation"
         className={cn(
-          'hidden h-full shrink-0 flex-col border-r border-border/50 py-4 md:flex',
+          'hidden h-full shrink-0 flex-col py-4 md:flex',
           collapsed ? 'w-[76px] items-center px-3' : 'w-64 px-3',
           surface.base
         )}
@@ -364,11 +359,13 @@ export function PlatformSidebar({
           // sits on the switcher and swallows clicks.
           <div
             className={cn(
-              'flex w-full justify-center border-t border-foreground/[0.06] pt-2',
+              'flex w-full items-center justify-center gap-1 border-t border-border pt-3',
+              collapsed && 'flex-col-reverse',
               process.env.NODE_ENV === 'development' && 'mb-12'
             )}
           >
             <WorkspaceSwitcher collapsed={collapsed} organizationName={organizationName} />
+            <ThemeToggle />
           </div>
         }
       </aside>
@@ -388,7 +385,7 @@ export function PlatformSidebar({
               className="grid size-11 place-items-center rounded-lg text-foreground/65 hover:bg-foreground/[0.04] hover:text-foreground"
               type="button"
             >
-              <Menu size={18} strokeWidth={1.8} />
+              <Menu size={18} />
             </Button>
           </SheetTrigger>
           <SheetContent
@@ -427,7 +424,8 @@ export function PlatformSidebar({
           </SheetContent>
         </Sheet>
         <Brand collapsed={false} />
-        <div className="ms-auto">
+        <div className="ms-auto flex items-center gap-1">
+          <ThemeToggle />
           <NotificationCenter />
         </div>
       </header>

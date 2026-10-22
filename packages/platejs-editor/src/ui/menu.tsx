@@ -25,7 +25,7 @@ import {
 } from "@ariakit/react";
 import { useComposedRef } from "@udecode/cn";
 import { cva, type VariantProps } from "class-variance-authority";
-import { CornerDownLeftIcon } from "lucide-react";
+import { PiArrowElbowDownLeft as CornerDownLeftIcon } from "react-icons/pi";
 import {
   type ComponentProps,
   createContext,

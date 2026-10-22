@@ -1,5 +1,7 @@
 'use client'
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -11,21 +13,7 @@ import {
   useScroll,
   useTransform,
 } from 'motion/react'
-import {
-  ArrowDown01Icon,
-  ArrowRight01Icon,
-  Clock01Icon,
-  CommandLineIcon,
-  CropIcon,
-  Edit02Icon,
-  EraserIcon,
-  Layers01Icon,
-  Menu01Icon,
-  NewTwitterIcon,
-  PaintBoardIcon,
-  SourceCodeIcon,
-  Video01Icon,
-} from 'hugeicons-react'
+import { PiArrowDown as ArrowDown01Icon, PiArrowRight as ArrowRight01Icon, PiClock as Clock01Icon, PiTerminal as CommandLineIcon, PiCrop as CropIcon, PiPencilSimple as Edit02Icon, PiEraser as EraserIcon, PiStack as Layers01Icon, PiList as Menu01Icon, PiXLogo as NewTwitterIcon, PiPalette as PaintBoardIcon, PiCode as SourceCodeIcon, PiVideo as Video01Icon } from 'react-icons/pi'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { cn } from '@/lib/utils'
@@ -113,7 +101,7 @@ const featuredGuide = {
   title: 'Make any screenshot look professional',
   href: '/guides/how-to-beautify-screenshots',
   description: 'Backgrounds, shadows, and frames in under a minute.',
-  cover: '/guide-covers/how-to-beautify-screenshots.webp',
+  cover: publicImageUrl('/guide-covers/how-to-beautify-screenshots.webp'),
 }
 
 const SCROLL_COMPACT_AT = 10
@@ -251,7 +239,7 @@ export function Navigation({ brandName = 'Shots' }: NavigationProps) {
           className="col-start-1 flex min-w-0 items-center gap-2.5 justify-self-start"
         >
           <Image
-            src="/logo-mark.png"
+            src={publicImageUrl("/logo-mark.png")}
             alt={brandName}
             width={32}
             height={32}

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import confetti from 'canvas-confetti'
-import { Download01Icon, FileZipIcon, Layers01Icon } from 'hugeicons-react'
+import { PiDownload as Download01Icon, PiFileZip as FileZipIcon, PiStack as Layers01Icon } from 'react-icons/pi'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import { ChoiceField, ToggleField } from '@/components/editor/inspector/fields'

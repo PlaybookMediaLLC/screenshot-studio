@@ -1,5 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { Loader2Icon, type LucideProps } from "lucide-react";
+import { PiSpinnerGap as Loader2Icon } from "react-icons/pi"
+import type { IconBaseProps } from "react-icons";
 
 import { cn } from "../lib/utils";
 
@@ -21,7 +22,7 @@ export function Spinner({
   className,
   size,
   ...props
-}: Partial<LucideProps & VariantProps<typeof spinnerVariants>>) {
+}: Partial<IconBaseProps & VariantProps<typeof spinnerVariants>>) {
   return (
     <Loader2Icon
       className={cn(spinnerVariants({ size }), className)}

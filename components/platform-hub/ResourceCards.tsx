@@ -1,4 +1,4 @@
-import { ArrowUpRight } from 'lucide-react'
+import { PiArrowUpRight as ArrowUpRight } from 'react-icons/pi'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 
 export function ResourceCards({

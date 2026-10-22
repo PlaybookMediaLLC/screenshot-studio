@@ -1,3 +1,4 @@
+import { publicImageUrl } from '@/lib/assets/public-image'
 import { ApiReference } from '@scalar/nextjs-api-reference'
 
 export const dynamic = 'force-static'
@@ -19,7 +20,7 @@ const SHOTS_THEME = `
 export const GET = ApiReference({
   url: '/openapi.json',
   pageTitle: 'Shots API Reference',
-  favicon: '/favicon.svg',
+  favicon: publicImageUrl('/favicon.svg'),
   metaData: {
     title: 'Shots API Reference',
     description:

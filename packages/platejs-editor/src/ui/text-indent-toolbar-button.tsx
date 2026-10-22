@@ -1,6 +1,6 @@
 "use client";
 
-import { IndentDecreaseIcon, IndentIncreaseIcon } from "lucide-react";
+import { PiTextOutdent as IndentDecreaseIcon, PiTextIndent as IndentIncreaseIcon } from "react-icons/pi";
 import { useEditorRef, useSelectionFragmentProp } from "platejs/react";
 
 import { ToolbarButton } from "./toolbar";

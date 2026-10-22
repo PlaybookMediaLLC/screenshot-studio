@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { ColorsIcon, Download04Icon, Link01Icon, SourceCodeIcon } from "hugeicons-react";
+import { PiPalette as ColorsIcon, PiDownload as Download04Icon, PiLink as Link01Icon, PiCode as SourceCodeIcon } from "react-icons/pi";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION, WindowDots } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

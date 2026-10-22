@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { CircleIcon, Cursor01Icon, Sun01Icon, ZoomInAreaIcon } from 'hugeicons-react'
+import { PiCircle as CircleIcon, PiCursor as Cursor01Icon, PiSun as Sun01Icon, PiMagnifyingGlassPlus as ZoomInAreaIcon } from 'react-icons/pi'
 import { ELEMENT_LABELS } from '@/components/editor/inspector/ElementInspector'
 import { createElement, type ElementType, nextBadgeNumber } from '@/lib/editor/elements/schema'
 import { useImageStore } from '@/lib/store'

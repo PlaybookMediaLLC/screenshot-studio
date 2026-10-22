@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight01Icon } from "hugeicons-react";
+import { PiArrowRight as ArrowRight01Icon } from "react-icons/pi";
 import { CARD_CLASS, INTER } from "@/components/tools/ui";
 import { cn } from "@/lib/utils";
 

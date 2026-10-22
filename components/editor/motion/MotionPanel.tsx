@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Copy01Icon, Delete02Icon, DiamondIcon } from 'hugeicons-react'
+import { PiCopy as Copy01Icon, PiTrash as Delete02Icon, PiDiamond as DiamondIcon } from 'react-icons/pi'
 import { ChoiceField, ToggleField } from '@/components/editor/inspector/fields'
 import { SectionWrapper } from '@/components/editor/sections'
 import { Slider } from '@/components/ui/slider'

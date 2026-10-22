@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
-import { Bug01Icon, Idea01Icon, Mail01Icon } from "hugeicons-react";
+import { PiBug as Bug01Icon, PiLightbulb as Idea01Icon, PiEnvelope as Mail01Icon } from "react-icons/pi";
 
 export const metadata: Metadata = {
   title: "Contact Us",
@@ -81,7 +81,7 @@ export default function ContactPage() {
             >
               <div className="mb-3 flex items-center gap-3">
                 <div className={iconWrapClassName}>
-                  <item.icon size={20} strokeWidth={1.75} />
+                  <item.icon size={20} />
                 </div>
                 <h2
                   className="font-semibold tracking-[-0.02em] text-foreground"

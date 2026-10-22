@@ -1,28 +1,4 @@
-import {
-  Analytics01Icon,
-  BrowserIcon,
-  ChartLineData01Icon,
-  CommandLineIcon,
-  CpuIcon,
-  Database01Icon,
-  GitPullRequestIcon,
-  GithubIcon,
-  GitlabIcon,
-  GoogleIcon,
-  Image01Icon,
-  InstagramIcon,
-  Key01Icon,
-  Linkedin01Icon,
-  Mail01Icon,
-  MicrosoftIcon,
-  NewTwitterIcon,
-  Rocket01Icon,
-  ServerStack01Icon,
-  Share08Icon,
-  UserGroupIcon,
-  WebhookIcon,
-  WorkflowSquare01Icon,
-} from 'hugeicons-react'
+import { PiChartBar as Analytics01Icon, PiBrowser as BrowserIcon, PiChartLine as ChartLineData01Icon, PiTerminal as CommandLineIcon, PiCpu as CpuIcon, PiDatabase as Database01Icon, PiGitPullRequest as GitPullRequestIcon, PiGithubLogo as GithubIcon, PiGitlabLogo as GitlabIcon, PiGoogleLogo as GoogleIcon, PiImage as Image01Icon, PiInstagramLogo as InstagramIcon, PiKey as Key01Icon, PiLinkedinLogo as Linkedin01Icon, PiEnvelope as Mail01Icon, PiWindowsLogo as MicrosoftIcon, PiXLogo as NewTwitterIcon, PiRocket as Rocket01Icon, PiHardDrives as ServerStack01Icon, PiShare as Share08Icon, PiUsers as UserGroupIcon, PiWebhooksLogo as WebhookIcon, PiFlowArrow as WorkflowSquare01Icon } from 'react-icons/pi'
 import { cn } from '@/lib/utils'
 import {
   AvailabilityPill,

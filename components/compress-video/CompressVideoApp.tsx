@@ -1,15 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import {
-  Cancel01Icon,
-  Download04Icon,
-  FileVideoIcon,
-  Loading03Icon,
-  MagicWand01Icon,
-  RefreshIcon,
-  Settings02Icon,
-} from 'hugeicons-react';
+import { PiX as Cancel01Icon, PiDownload as Download04Icon, PiFileVideo as FileVideoIcon, PiSpinnerGap as Loading03Icon, PiMagicWand as MagicWand01Icon, PiArrowsClockwise as RefreshIcon, PiSlidersHorizontal as Settings02Icon } from 'react-icons/pi';
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'

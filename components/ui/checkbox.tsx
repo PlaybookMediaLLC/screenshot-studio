@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { CheckIcon, MinusIcon } from 'lucide-react'
+import { PiCheck as CheckIcon, PiMinus as MinusIcon } from 'react-icons/pi'
 import { Checkbox as CheckboxPrimitive } from 'radix-ui'
 
 import { cn } from '@/lib/utils'

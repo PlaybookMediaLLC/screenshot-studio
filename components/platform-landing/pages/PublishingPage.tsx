@@ -1,11 +1,4 @@
-import {
-  InstagramIcon,
-  Linkedin01Icon,
-  Mail01Icon,
-  NewTwitterIcon,
-  Share08Icon,
-  WorkflowSquare01Icon,
-} from 'hugeicons-react'
+import { PiInstagramLogo as InstagramIcon, PiLinkedinLogo as Linkedin01Icon, PiEnvelope as Mail01Icon, PiXLogo as NewTwitterIcon, PiShare as Share08Icon, PiFlowArrow as WorkflowSquare01Icon } from 'react-icons/pi'
 import { cn } from '@/lib/utils'
 import {
   AvailabilityPill,

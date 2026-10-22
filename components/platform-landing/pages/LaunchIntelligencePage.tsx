@@ -1,4 +1,4 @@
-import { CpuIcon, Database01Icon, FileValidationIcon, Shield01Icon } from 'hugeicons-react'
+import { PiCpu as CpuIcon, PiDatabase as Database01Icon, PiSealCheck as FileValidationIcon, PiShield as Shield01Icon } from 'react-icons/pi'
 import { LAUNCH_AI_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import { CHANNEL_RULES, HYPE_TERMS } from '@/lib/launch/guards'
 import { formatTeamPreferences } from '@/lib/launch/preferences-format'

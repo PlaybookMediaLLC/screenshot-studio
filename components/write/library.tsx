@@ -5,7 +5,7 @@ import { useWriteRouter } from '@/components/write/write-context'
 import * as React from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Plus as Add01Icon, Pin as PinIcon } from 'lucide-react'
+import { PiPlus as Add01Icon, PiPushPin as PinIcon } from 'react-icons/pi'
 import {
   AlertDialog,
   AlertDialogAction,

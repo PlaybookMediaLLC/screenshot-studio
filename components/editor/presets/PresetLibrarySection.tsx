@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { MoreHorizontalIcon, PlusSignIcon } from 'hugeicons-react'
+import { PiDotsThree as MoreHorizontalIcon, PiPlus as PlusSignIcon } from 'react-icons/pi'
 import { toast } from 'sonner'
 import { ProjectNameDialog } from '@/components/projects/ProjectNameDialog'
 import { ProjectPreview } from '@/components/projects/ProjectPreview'

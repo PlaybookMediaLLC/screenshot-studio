@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Loader2, Pencil } from 'lucide-react'
+import { PiCheck as Check, PiSpinnerGap as Loader2, PiPencil as Pencil } from 'react-icons/pi'
 import { useEffect, useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'

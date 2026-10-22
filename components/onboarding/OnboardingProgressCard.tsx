@@ -1,6 +1,6 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { PiX as X } from 'react-icons/pi'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { StoredOnboardingRun } from '@/lib/tenant/onboarding-runs'

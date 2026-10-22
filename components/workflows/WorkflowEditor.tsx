@@ -8,23 +8,7 @@ import { WorkflowArchiveButton } from './WorkflowArchiveButton'
 import { TRPCClientError } from '@trpc/client'
 import { useQueryClient } from '@tanstack/react-query'
 import type { AppRouter } from '@/lib/trpc/router'
-import {
-  AlertCircle,
-  ArrowLeft,
-  Check,
-  ChevronRight,
-  Copy,
-  GitPullRequest,
-  Loader2,
-  Play,
-  Plus,
-  Redo2,
-  Save,
-  ShieldCheck,
-  Trash2,
-  Undo2,
-  Zap,
-} from 'lucide-react'
+import { PiWarningCircle as AlertCircle, PiArrowLeft as ArrowLeft, PiCheck as Check, PiCaretRight as ChevronRight, PiCopy as Copy, PiGitPullRequest as GitPullRequest, PiSpinnerGap as Loader2, PiPlay as Play, PiPlus as Plus, PiArrowUUpRight as Redo2, PiFloppyDisk as Save, PiShieldCheck as ShieldCheck, PiTrash as Trash2, PiArrowUUpLeft as Undo2, PiLightning as Zap } from 'react-icons/pi'
 import { Background, Controls, ReactFlow, type Connection } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type {

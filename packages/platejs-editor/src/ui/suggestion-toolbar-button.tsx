@@ -1,7 +1,7 @@
 "use client";
 
 import { SuggestionPlugin } from "@platejs/suggestion/react";
-import { PencilLineIcon } from "lucide-react";
+import { PiPencilLine as PencilLineIcon } from "react-icons/pi";
 import { useEditorPlugin, usePluginOption } from "platejs/react";
 
 import { cn } from "../lib/utils";

@@ -2,15 +2,7 @@
 
 import * as React from 'react'
 import dynamic from 'next/dynamic'
-import {
-  ColorsIcon,
-  LayersLogoIcon,
-  PaintBoardIcon,
-  RotateSquareIcon,
-  SlidersHorizontalIcon,
-  SquareIcon,
-  VideoReplayIcon,
-} from 'hugeicons-react'
+import { PiPalette as ColorsIcon, PiStack as LayersLogoIcon, PiPalette as PaintBoardIcon, PiSelection as RotateSquareIcon, PiSlidersHorizontal as SlidersHorizontalIcon, PiSquare as SquareIcon, PiFilmScript as VideoReplayIcon } from 'react-icons/pi'
 import type { ComposeTab, EditorPanelTab, InspectorTab } from '@/lib/store/editor-panels'
 import {
   AnnotateSection,

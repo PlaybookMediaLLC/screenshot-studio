@@ -1,5 +1,7 @@
 'use client';
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import { validateImageContents } from '@/lib/editor/import-images';
 import { toast } from 'sonner';
 
@@ -18,25 +20,7 @@ import { DEFAULT_OVERLAY_SHADOW, DEFAULT_OVERLAY_TILT } from '@/lib/overlay-styl
 import { getR2ImageUrl } from '@/lib/r2';
 import { getOverlayUrl } from '@/lib/r2-overlays';
 import { isOverlayPath } from '@/lib/r2-overlays';
-import {
-  Delete02Icon,
-  ViewIcon,
-  ViewOffSlashIcon,
-  ArrowUp01Icon,
-  ArrowDown01Icon,
-  Upload04Icon,
-  RotateRight01Icon,
-  RotateLeft01Icon,
-  RefreshIcon,
-  Image01Icon,
-  TextIcon,
-  PencilEdit02Icon,
-  BlurIcon,
-  LayersLogoIcon,
-  LayerBringForwardIcon,
-  LayerSendBackwardIcon,
-  Target01Icon,
-} from 'hugeicons-react';
+import { PiTrash as Delete02Icon, PiEye as ViewIcon, PiEyeSlash as ViewOffSlashIcon, PiArrowUp as ArrowUp01Icon, PiArrowDown as ArrowDown01Icon, PiUpload as Upload04Icon, PiArrowClockwise as RotateRight01Icon, PiArrowCounterClockwise as RotateLeft01Icon, PiArrowsClockwise as RefreshIcon, PiImage as Image01Icon, PiTextT as TextIcon, PiNotePencil as PencilEdit02Icon, PiDropHalf as BlurIcon, PiStack as LayersLogoIcon, PiSelectionForeground as LayerBringForwardIcon, PiSelectionBackground as LayerSendBackwardIcon, PiTarget as Target01Icon } from 'react-icons/pi';
 import { ELEMENT_LABELS } from '@/components/editor/inspector/ElementInspector';
 import { ScreenLayerList } from '@/components/frames/panels/ScreenLayerList';
 import { isScreenScene } from '@/lib/frames/commands';
@@ -46,31 +30,31 @@ import { Button } from '@/components/ui/button'
 // ── Local overlay assets ─────────────────────────────────────────────────────
 
 const LOCAL_OBJECTS = [
-  '/overlay/Sphere-Black_J0R1G4FTa.webp',
-  '/overlay/Cube Black.png',
-  '/overlay/Cube-Blue_5neS6XLEm.webp',
-  '/overlay/Cone-Black_MA6nEafnH.webp',
-  '/overlay/Cylinder-Black.webp',
-  '/overlay/Cuboid-Black.webp',
-  '/overlay/Hemisphere-Black.webp',
-  '/overlay/Icosahedron-Black.webp',
-  '/overlay/Pill-Black.webp',
-  '/overlay/Torus-Black.webp',
-  '/overlay/Torus-Knot-Black.webp',
-  '/overlay/Circle1-Blue_FcSXRpwI5.webp',
-  '/overlay/Circle2-Blue_dbyn-_NY_6.webp',
-  '/overlay/Circle3-Blue_QVRHMAzwt.webp',
-  '/overlay/Circle4-Blue_XuA_U_Gsl.webp',
-  '/overlay/Circle5-Blue_UO9IKLT23.webp',
-  '/overlay/Circle6-Blue_qRAqS7z5q.webp',
-  '/overlay/Circle7-Blue_ldTpkiWch.webp',
-  '/overlay/Circle8-Blue_Gu4BG_oiD.webp',
-  '/overlay/Circle9-Blue_xUeQSO_R4.webp',
-  '/overlay/Circle10-Blue_2-PyL3V8e.webp',
-  '/overlay/Circle11-Blue_Z6rqYW4kb.webp',
-  '/overlay/Circle12-Blue_xVHP9isTC.webp',
-  '/overlay/Circle13-Blue_WifYa5D9W.webp',
-  '/overlay/Circle14-Blue_Q6rPGEiJM.webp',
+  publicImageUrl('/overlay/Sphere-Black_J0R1G4FTa.webp'),
+  publicImageUrl('/overlay/Cube Black.png'),
+  publicImageUrl('/overlay/Cube-Blue_5neS6XLEm.webp'),
+  publicImageUrl('/overlay/Cone-Black_MA6nEafnH.webp'),
+  publicImageUrl('/overlay/Cylinder-Black.webp'),
+  publicImageUrl('/overlay/Cuboid-Black.webp'),
+  publicImageUrl('/overlay/Hemisphere-Black.webp'),
+  publicImageUrl('/overlay/Icosahedron-Black.webp'),
+  publicImageUrl('/overlay/Pill-Black.webp'),
+  publicImageUrl('/overlay/Torus-Black.webp'),
+  publicImageUrl('/overlay/Torus-Knot-Black.webp'),
+  publicImageUrl('/overlay/Circle1-Blue_FcSXRpwI5.webp'),
+  publicImageUrl('/overlay/Circle2-Blue_dbyn-_NY_6.webp'),
+  publicImageUrl('/overlay/Circle3-Blue_QVRHMAzwt.webp'),
+  publicImageUrl('/overlay/Circle4-Blue_XuA_U_Gsl.webp'),
+  publicImageUrl('/overlay/Circle5-Blue_UO9IKLT23.webp'),
+  publicImageUrl('/overlay/Circle6-Blue_qRAqS7z5q.webp'),
+  publicImageUrl('/overlay/Circle7-Blue_ldTpkiWch.webp'),
+  publicImageUrl('/overlay/Circle8-Blue_Gu4BG_oiD.webp'),
+  publicImageUrl('/overlay/Circle9-Blue_xUeQSO_R4.webp'),
+  publicImageUrl('/overlay/Circle10-Blue_2-PyL3V8e.webp'),
+  publicImageUrl('/overlay/Circle11-Blue_Z6rqYW4kb.webp'),
+  publicImageUrl('/overlay/Circle12-Blue_xVHP9isTC.webp'),
+  publicImageUrl('/overlay/Circle13-Blue_WifYa5D9W.webp'),
+  publicImageUrl('/overlay/Circle14-Blue_Q6rPGEiJM.webp'),
 ];
 
 // ── Layer type helpers ───────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
-import { Search as Search01Icon } from 'lucide-react'
+import { PiMagnifyingGlass as Search01Icon } from 'react-icons/pi'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

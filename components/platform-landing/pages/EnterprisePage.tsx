@@ -1,11 +1,4 @@
-import {
-  Database01Icon,
-  FingerPrintIcon,
-  Key01Icon,
-  ServerStack01Icon,
-  Shield01Icon,
-  UserGroupIcon,
-} from 'hugeicons-react'
+import { PiDatabase as Database01Icon, PiFingerprint as FingerPrintIcon, PiKey as Key01Icon, PiHardDrives as ServerStack01Icon, PiShield as Shield01Icon, PiUsers as UserGroupIcon } from 'react-icons/pi'
 import { hasWorkspaceFeature } from '@/lib/billing/plans'
 import { cn } from '@/lib/utils'
 import {

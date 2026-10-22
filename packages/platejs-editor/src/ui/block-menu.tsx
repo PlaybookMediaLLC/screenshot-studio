@@ -9,18 +9,8 @@ import {
   useBlockSelectionFragmentProp,
   useBlockSelectionNodes,
 } from "@platejs/selection/react";
-import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  CaptionsIcon,
-  FilesIcon,
-  type LucideProps,
-  MessageSquareText,
-  PaintRoller,
-  RefreshCwIcon,
-  Trash2,
-} from "lucide-react";
+import { PiTextAlignCenter as AlignCenter, PiTextAlignLeft as AlignLeft, PiTextAlignRight as AlignRight, PiClosedCaptioning as CaptionsIcon, PiFiles as FilesIcon, PiChatText as MessageSquareText, PiPaintRoller as PaintRoller, PiArrowsClockwise as RefreshCwIcon, PiTrash as Trash2 } from "react-icons/pi"
+import type { IconBaseProps } from "react-icons";
 import { KEYS, type TElement } from "platejs";
 import { type PlateEditor, useEditorRef, useHotkeys } from "platejs/react";
 import { type ComponentType, type ReactNode, useMemo, useState } from "react";
@@ -173,7 +163,7 @@ function BlockMenuInput({ onHide }: { onHide: () => void }) {
   );
 }
 
-function AIIcon(props: LucideProps) {
+function AIIcon(props: IconBaseProps) {
   return (
     <svg
       fill="url(#myGradient)"

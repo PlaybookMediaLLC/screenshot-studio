@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { Instrument_Serif } from "next/font/google";
-import { StarIcon } from "hugeicons-react";
+import { PiStar as StarIcon } from "react-icons/pi";
 
 const instrumentSerif = Instrument_Serif({
   weight: ["400"],

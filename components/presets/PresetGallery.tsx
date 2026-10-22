@@ -8,7 +8,7 @@ import { aspectRatios, type AspectRatioKey } from '@/lib/constants/aspect-ratios
 import { getBackgroundCSS } from '@/lib/constants/backgrounds';
 import { cn } from '@/lib/utils';
 import { useCustomPresets } from '@/hooks/useCustomPresets';
-import { Delete02Icon } from 'hugeicons-react';
+import { PiTrash as Delete02Icon } from 'react-icons/pi';
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 

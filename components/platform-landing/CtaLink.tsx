@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight01Icon } from 'hugeicons-react'
+import { PiArrowRight as ArrowRight01Icon } from 'react-icons/pi'
 import { trackCTAClick } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 import { ctaToneSchema, type CtaTone } from './primitives'

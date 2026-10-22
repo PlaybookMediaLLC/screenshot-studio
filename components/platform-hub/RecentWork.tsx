@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowUpRight, Clock3, FileText, Image, Layers } from 'lucide-react'
+import { PiArrowUpRight as ArrowUpRight, PiClock as Clock3, PiFileText as FileText, PiImage as Image, PiStack as Layers } from 'react-icons/pi'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import { useTRPCClient } from '@/lib/trpc/react'
@@ -97,10 +97,10 @@ export function RecentWork({
     },
   })
   return (
-    <section aria-label="Continue working" className="space-y-4">
+    <section aria-label="Continue working" className="home-recent space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold">Continue working</h2>
+          <h2 className="text-sm font-medium">Continue working</h2>
           <p className="mt-1 text-xs text-muted-foreground">Your most recently updated work.</p>
         </div>
         <SidebarLink
@@ -127,7 +127,7 @@ export function RecentWork({
         </div>
       ) : null}
       {query.data?.items.length ? (
-        <ul className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/70 bg-background/50">
+        <ul className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/70 bg-background/30">
           {query.data.items.map((item) => (
             <li key={`${item.type}-${item.id}`}>
               <SidebarLink
@@ -163,20 +163,22 @@ export function RecentWork({
           ))}
         </ul>
       ) : query.data && !query.data.partial ? (
-        <div className="flex min-h-52 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-background/40 p-7 text-center">
-          <span className="mb-4 grid size-11 place-items-center rounded-xl border bg-card text-muted-foreground">
+        <div className="home-empty">
+          <span className="home-empty-icon">
             <Clock3 size={20} aria-hidden="true" />
           </span>
-          <p className="text-sm font-medium">Your next idea starts a story</p>
-          <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
-            Saved screenshots, canvases and posts will be right here when you return.
-          </p>
-          <SidebarLink
-            href="/create"
-            className="mt-4 text-xs font-medium underline underline-offset-4"
-          >
-            Create your first visual
-          </SidebarLink>
+          <div className="home-empty-copy">
+            <p className="text-sm font-medium">Your work will appear here</p>
+            <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-muted-foreground">
+              Save a screenshot, canvas, or post to keep everything close at hand.
+            </p>
+            <SidebarLink
+              href="/create"
+              className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Create your first visual <ArrowUpRight size={13} aria-hidden="true" />
+            </SidebarLink>
+          </div>
         </div>
       ) : null}
       <SidebarLink

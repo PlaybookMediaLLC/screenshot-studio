@@ -1,5 +1,5 @@
 import { useToggleButton, useToggleButtonState } from "@platejs/toggle/react";
-import { ChevronRightIcon } from "lucide-react";
+import { PiCaretRight as ChevronRightIcon } from "react-icons/pi";
 import {
   PlateElement,
   type PlateElementProps,

@@ -161,12 +161,12 @@ export function EmptyState({
 }: {
   action?: ReactNode
   description: ReactNode
-  icon: ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
+  icon: ComponentType<{ className?: string; size?: number }>
   title: string
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-5 rounded-2xl bg-foreground/[0.02] px-6 py-24 text-center ring-1 ring-foreground/[0.06] md:py-32">
-      <Icon className="text-muted-foreground/75" size={32} strokeWidth={2} aria-hidden="true" />
+      <Icon className="text-muted-foreground/75" size={32} aria-hidden="true" />
       <div>
         <h3 className="text-lg font-medium text-foreground">{title}</h3>
         <p className="mt-1 max-w-md text-sm text-muted-foreground">{description}</p>

@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeftRight, Loader2 } from 'lucide-react'
+import { PiArrowsLeftRight as ArrowLeftRight, PiSpinnerGap as Loader2 } from 'react-icons/pi'
 import { useState } from 'react'
 import { Pill } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'

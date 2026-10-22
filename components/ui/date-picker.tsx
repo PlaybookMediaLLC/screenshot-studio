@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarIcon } from 'lucide-react'
+import { PiCalendar as CalendarIcon } from 'react-icons/pi'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'

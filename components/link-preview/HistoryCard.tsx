@@ -1,7 +1,7 @@
 'use client'
 
 import { formatDistanceToNow } from 'date-fns'
-import { History } from 'lucide-react'
+import { PiClockCounterClockwise as History } from 'react-icons/pi'
 import { type LinkPreviewSnapshot, snapshotChanges } from '@/lib/link-preview/history'
 import { cn } from '@/lib/utils'
 import { PANEL } from './MetadataPanels'

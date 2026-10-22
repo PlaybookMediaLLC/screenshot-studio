@@ -44,8 +44,8 @@ export function AppearanceSettings() {
         value={preferences?.theme}
       />
       <p className="-mt-3 text-xs text-muted-foreground">
-        The theme applies to drafts, settings, campaigns and the rest of the workspace. The
-        screenshot editor keeps its dark canvas.
+        Your theme follows you throughout the workspace. Artwork and exported images keep their own
+        colors.
       </p>
       <ChoiceGroup<Preferences['navigation']>
         choices={[

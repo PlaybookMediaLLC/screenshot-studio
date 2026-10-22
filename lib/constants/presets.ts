@@ -1,3 +1,5 @@
+
+import { publicImageUrl } from '@/lib/assets/public-image'
 import { AspectRatioKey } from './aspect-ratios';
 import { BackgroundConfig } from './backgrounds';
 import type { ImageBorder, ImageShadow } from '@/lib/store';
@@ -108,7 +110,7 @@ export const presets: PresetConfig[] = [
       scale: 0.9,
     },
     shadowOverlay: {
-      src: '/overlay-shadow/041.webp',
+      src: publicImageUrl('/overlay-shadow/041.webp'),
       opacity: 0.2,
     },
   },
@@ -146,7 +148,7 @@ export const presets: PresetConfig[] = [
     backgroundBlur: 0,
     backgroundNoise: 0,
     shadowOverlay: {
-      src: '/overlay-shadow/017.webp',
+      src: publicImageUrl('/overlay-shadow/017.webp'),
       opacity: 0.5,
     },
   },
@@ -218,7 +220,7 @@ export const presets: PresetConfig[] = [
     backgroundBlur: 0,
     backgroundNoise: 25,
     shadowOverlay: {
-      src: '/overlay-shadow/019.webp',
+      src: publicImageUrl('/overlay-shadow/019.webp'),
       opacity: 0.5,
     },
   },

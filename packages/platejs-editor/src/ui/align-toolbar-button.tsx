@@ -3,12 +3,7 @@
 import type { Alignment } from "@platejs/basic-styles";
 import { TextAlignPlugin } from "@platejs/basic-styles/react";
 import type { DropdownMenuProps } from "@radix-ui/react-dropdown-menu";
-import {
-  AlignCenterIcon,
-  AlignJustifyIcon,
-  AlignLeftIcon,
-  AlignRightIcon,
-} from "lucide-react";
+import { PiTextAlignCenter as AlignCenterIcon, PiTextAlignJustify as AlignJustifyIcon, PiTextAlignLeft as AlignLeftIcon, PiTextAlignRight as AlignRightIcon } from "react-icons/pi";
 import { useEditorPlugin, useSelectionFragmentProp } from "platejs/react";
 import { useState } from "react";
 

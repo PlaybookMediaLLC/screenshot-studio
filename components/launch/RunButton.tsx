@@ -1,6 +1,6 @@
 'use client'
 
-import { LoaderCircle } from 'lucide-react'
+import { PiSpinnerGap as LoaderCircle } from 'react-icons/pi'
 import { useRouter } from 'next/navigation'
 import { type ComponentProps, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { toast } from 'sonner'

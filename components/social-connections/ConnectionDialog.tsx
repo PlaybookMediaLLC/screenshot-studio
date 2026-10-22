@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowUpRight, ChevronRight, LockKeyhole, Newspaper, Users, X } from 'lucide-react'
+import { PiArrowUpRight as ArrowUpRight, PiCaretRight as ChevronRight, PiLockKey as LockKeyhole, PiNewspaper as Newspaper, PiUsers as Users, PiX as X } from 'react-icons/pi'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import {
   socialOAuthBeginRequestSchema,

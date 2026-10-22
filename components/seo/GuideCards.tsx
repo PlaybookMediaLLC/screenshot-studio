@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight01Icon } from "hugeicons-react";
+import { PiArrowRight as ArrowRight01Icon } from "react-icons/pi";
 import { INTER, MONO } from "@/components/tools/ui";
 import {
   guideCover,

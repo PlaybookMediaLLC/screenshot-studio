@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { X as Cancel01Icon } from 'lucide-react'
+import { PiX as Cancel01Icon } from 'react-icons/pi'
 
 import { cn } from "@/lib/utils"
 

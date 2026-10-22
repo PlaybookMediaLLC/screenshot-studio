@@ -51,7 +51,7 @@ test('an authenticated user can prepare a social aspect ratio, style it, and cle
   await expect(page.getByText('Custom Background', { exact: true })).toBeVisible()
   await page.getByRole('button', { exact: true, name: 'Transparent' }).click()
 
-  await page.getByRole('button', { exact: true, name: 'Remove' }).click()
+  await page.getByRole('button', { exact: true, name: 'Remove screenshot' }).click()
   await expect(
     page.getByText('Drag & drop, click to browse, or paste', { exact: true })
   ).toBeVisible()

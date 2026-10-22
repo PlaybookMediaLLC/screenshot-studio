@@ -6,23 +6,7 @@ import {
   useEditorChat,
 } from "@platejs/ai/react";
 import { BlockSelectionPlugin, useIsSelecting } from "@platejs/selection/react";
-import {
-  AlbumIcon,
-  ArrowUpIcon,
-  BadgeHelpIcon,
-  CheckIcon,
-  CornerUpLeftIcon,
-  FeatherIcon,
-  LanguagesIcon,
-  ListEnd,
-  ListMinusIcon,
-  ListPlusIcon,
-  MessageSquareTextIcon,
-  PenLineIcon,
-  TableIcon,
-  Wand,
-  X,
-} from "lucide-react";
+import { PiImages as AlbumIcon, PiArrowUp as ArrowUpIcon, PiQuestion as BadgeHelpIcon, PiCheck as CheckIcon, PiArrowBendUpLeft as CornerUpLeftIcon, PiFeather as FeatherIcon, PiTranslate as LanguagesIcon, PiList as ListEnd, PiList as ListMinusIcon, PiListPlus as ListPlusIcon, PiChatText as MessageSquareTextIcon, PiPen as PenLineIcon, PiTable as TableIcon, PiMagicWand as Wand, PiX as X } from "react-icons/pi";
 import { isHotkey, NodeApi, type NodeEntry, type SlateEditor } from "platejs";
 import {
   type PlateEditor,

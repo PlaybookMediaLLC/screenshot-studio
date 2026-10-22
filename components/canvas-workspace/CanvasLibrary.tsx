@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Ellipsis as MoreHorizontalIcon } from 'lucide-react'
+import { PiDotsThree as MoreHorizontalIcon } from 'react-icons/pi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {

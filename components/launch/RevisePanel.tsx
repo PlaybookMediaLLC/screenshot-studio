@@ -1,6 +1,6 @@
 'use client'
 
-import { WandSparkles as MagicWand01Icon } from 'lucide-react'
+import { PiMagicWand as MagicWand01Icon } from 'react-icons/pi'
 import { useRouter } from 'next/navigation'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'

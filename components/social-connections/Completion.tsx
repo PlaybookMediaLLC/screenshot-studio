@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import type { z } from 'zod'
-import { ArrowUpRight, Check } from 'lucide-react'
+import { PiArrowUpRight as ArrowUpRight, PiCheck as Check } from 'react-icons/pi'
 import { Button } from '@/components/ui/button'
 import { useHydratedSession } from '@/lib/auth/client'
 import { activateOrganizationContract } from '@/lib/api/contracts/shell'

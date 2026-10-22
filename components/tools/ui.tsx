@@ -1,4 +1,4 @@
-import { Add01Icon, LockIcon } from "hugeicons-react";
+import { PiPlus as Add01Icon, PiLock as LockIcon } from "react-icons/pi";
 import { gradientColors } from "@/lib/constants/gradient-colors";
 import { cn } from "@/lib/utils";
 

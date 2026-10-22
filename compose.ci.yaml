@@ -1,5 +1,7 @@
 services:
   app:
+    # Match production: Turbopack 16.3 misparses Google Font URLs in this container.
+    command: npm run dev -- --webpack
     extra_hosts:
       - 'host.docker.internal:host-gateway'
   # The backend and worker call the same host-side e2e mocks as the app.

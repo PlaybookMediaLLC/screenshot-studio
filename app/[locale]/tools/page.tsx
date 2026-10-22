@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowRight01Icon,
-  CheckmarkCircle02Icon,
-  RotateClockwiseIcon,
-} from "hugeicons-react";
+import { PiArrowRight as ArrowRight01Icon, PiCheckCircle as CheckmarkCircle02Icon, PiArrowClockwise as RotateClockwiseIcon } from "react-icons/pi";
 import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import { SectionTitle } from "@/components/tools/ToolLayout";

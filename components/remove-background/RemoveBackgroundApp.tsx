@@ -1,12 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import {
-  ArrowLeftRightIcon,
-  Cancel01Icon,
-  Download04Icon,
-  RefreshIcon,
-} from 'hugeicons-react';
+import { PiArrowsLeftRight as ArrowLeftRightIcon, PiX as Cancel01Icon, PiDownload as Download04Icon, PiArrowsClockwise as RefreshIcon } from 'react-icons/pi';
 import { Button } from '@/components/ui/button'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { CARD_CLASS, DROP_CARD_CLASS, DropSurface } from '@/components/tools/ui';

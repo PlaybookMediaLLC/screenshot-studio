@@ -1,11 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import {
-  ColorsIcon,
-  Download04Icon,
-  Layers01Icon,
-  MagicWand01Icon,
-} from "hugeicons-react";
+import { PiPalette as ColorsIcon, PiDownload as Download04Icon, PiStack as Layers01Icon, PiMagicWand as MagicWand01Icon } from "react-icons/pi";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION, WindowDots } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

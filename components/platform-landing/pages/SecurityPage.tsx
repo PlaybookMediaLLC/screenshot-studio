@@ -1,15 +1,5 @@
 import Link from 'next/link'
-import {
-  Database01Icon,
-  FingerPrintIcon,
-  Key01Icon,
-  LockIcon,
-  ServerStack01Icon,
-  Shield01Icon,
-  UserGroupIcon,
-  WorkflowSquare01Icon,
-  CpuIcon,
-} from 'hugeicons-react'
+import { PiDatabase as Database01Icon, PiFingerprint as FingerPrintIcon, PiKey as Key01Icon, PiLock as LockIcon, PiHardDrives as ServerStack01Icon, PiShield as Shield01Icon, PiUsers as UserGroupIcon, PiFlowArrow as WorkflowSquare01Icon, PiCpu as CpuIcon } from 'react-icons/pi'
 import { AUTH_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import { organizationRoles } from '@/lib/auth/permissions'
 import { cn } from '@/lib/utils'

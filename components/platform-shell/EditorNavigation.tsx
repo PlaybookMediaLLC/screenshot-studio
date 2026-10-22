@@ -2,12 +2,7 @@
 
 import { usePathname, useSearchParams } from 'next/navigation'
 import { Suspense, type ComponentProps } from 'react'
-import {
-  ChevronDown as ArrowDown01Icon,
-  Image as Image02Icon,
-  Palette as PaintBoardIcon,
-  Smartphone as SmartPhone01Icon,
-} from 'lucide-react'
+import { PiCaretDown as ArrowDown01Icon, PiImage as Image02Icon, PiPalette as PaintBoardIcon, PiDeviceMobile as SmartPhone01Icon } from 'react-icons/pi'
 import { Collapsible } from 'radix-ui'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -70,7 +65,7 @@ function EditorNavigationContent({
           collapsed && 'size-8 justify-center px-0'
         )}
       >
-        <PaintBoardIcon className="shrink-0" size={16} strokeWidth={1.8} />
+        <PaintBoardIcon className="shrink-0" size={16} />
         {collapsed ? null : (
           <>
             <span className="truncate">Editor</span>
@@ -126,7 +121,7 @@ function EditorNavigationContent({
                       )
                 )}
               >
-                {collapsed ? <Icon className="shrink-0" size={14} strokeWidth={1.8} /> : label}
+                {collapsed ? <Icon className="shrink-0" size={14} /> : label}
               </EditorSectionLink>
             )
             return collapsed ? (

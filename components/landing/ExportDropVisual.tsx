@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "motion/react";
-import { Upload } from "lucide-react";
+import { PiUpload as Upload } from "react-icons/pi";
 import { cn } from "@/lib/utils";
 
 const mainVariant = {

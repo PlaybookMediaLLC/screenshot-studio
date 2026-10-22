@@ -1,5 +1,5 @@
 import { PlanCampaignAction } from '@/components/launch/PlanCampaignAction'
-import { Check as Tick02Icon } from 'lucide-react'
+import { PiCheck as Tick02Icon } from 'react-icons/pi'
 import Link from 'next/link'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { Pill, type PillTone } from '@/components/platform-ui'
@@ -190,7 +190,7 @@ export function PipelineSteps({
                       : 'text-muted-foreground ring-foreground/[0.12]'
                 )}
               >
-                {step.done ? <Tick02Icon size={14} strokeWidth={2.2} /> : index + 1}
+                {step.done ? <Tick02Icon size={14} /> : index + 1}
               </span>
               <h3 className="text-sm font-medium text-foreground">{step.title}</h3>
               <span className="ml-auto">

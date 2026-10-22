@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { BrowserIcon, ComputerIcon, Settings01Icon, Sun01Icon } from "hugeicons-react";
+import { PiBrowser as BrowserIcon, PiDesktop as ComputerIcon, PiGear as Settings01Icon, PiSun as Sun01Icon } from "react-icons/pi";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION, WindowDots } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

@@ -84,9 +84,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #1e1e1e;
-  --card: #f5f5f5;
+  --background: #f4f5f7;
+  --foreground: #20242c;
+  --card: #ffffff;
   --card-foreground: #1e1e1e;
   --popover: #ffffff;
   --popover-foreground: #1e1e1e;
@@ -95,20 +95,20 @@
   --secondary: #f0f0f0;
   --secondary-foreground: #1e1e1e;
   --muted: #f5f5f5;
-  --muted-foreground: #6b6b6b;
+  --muted-foreground: #646b78;
   --accent: #f0f0f0;
   --accent-foreground: #1e1e1e;
   --destructive: #f44336;
   --destructive-foreground: #ffffff;
-  --border: #e5e5e5;
+  --border: #e1e4e9;
   --input: #d4d4d4;
-  --ring: #737373;
+  --ring: #527bc4;
   --chart-1: #0a0a0a;
   --chart-2: #737373;
   --chart-3: #ff9500;
   --chart-4: #af52de;
   --chart-5: #ff3b30;
-  --sidebar: #ffffff;
+  --sidebar: #f4f5f7;
   --sidebar-foreground: #1e1e1e;
   --sidebar-primary: #0a0a0a;
   --sidebar-primary-foreground: #ffffff;
@@ -116,7 +116,7 @@
   --sidebar-accent-foreground: #1e1e1e;
   --sidebar-border: #e5e5e5;
   --sidebar-ring: #737373;
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Fira Code', monospace;
   --radius: 0.5rem;
@@ -136,8 +136,8 @@
   --shadow-2xl: 0px 2px 10px 0px hsl(0 0% 0% / 0.13);
   --tracking-normal: -0.01em;
   --spacing: 0.25rem;
-  --nav-cta-bg: #ffffff;
-  --nav-cta-fg: #0a0a0a;
+  --nav-cta-bg: #20242c;
+  --nav-cta-fg: #ffffff;
   --nav-cta-glow: rgba(255, 255, 255, 0.5);
   --bento-glow-rgb: 255, 255, 255;
   --nav-cta-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -155,31 +155,31 @@
 
 /* Polar-style product surfaces, matching the marketing site. */
 .dark {
-  --background: #090909;
+  --background: #000000;
   --foreground: #ededed;
-  --card: #111111;
+  --card: #090909;
   --card-foreground: #ededed;
   --popover: #111111;
   --popover-foreground: #ededed;
   --primary: #ffffff;
   --primary-foreground: #0a0a0a;
-  --secondary: #161616;
+  --secondary: #141414;
   --secondary-foreground: #ededed;
-  --muted: #161616;
-  --muted-foreground: #949494;
-  --accent: #1a1a1a;
+  --muted: #141414;
+  --muted-foreground: #a3a3a3;
+  --accent: #1b1b1b;
   --accent-foreground: #ffffff;
   --destructive: #ff453a;
   --destructive-foreground: #ffffff;
-  --border: #212121;
-  --input: #303030;
-  --ring: #858585;
+  --border: #252525;
+  --input: #333333;
+  --ring: #8daeea;
   --chart-1: #ffffff;
   --chart-2: #a3a3a3;
   --chart-3: #ff9f0a;
   --chart-4: #bf5af2;
   --chart-5: #ff453a;
-  --sidebar: #090909;
+  --sidebar: #000000;
   --sidebar-foreground: #ededed;
   --sidebar-primary: #ffffff;
   --sidebar-primary-foreground: #0a0a0a;
@@ -191,7 +191,7 @@
     var(--font-geist-sans), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: var(--font-geist-mono), 'Fira Code', monospace;
-  --radius: 0.75rem;
+  --radius: 0.5rem;
   --shadow-x: 0px;
   --shadow-y: 4px;
   --shadow-blur: 12px;
@@ -614,30 +614,15 @@ html *::-webkit-scrollbar {
   --platform-form-width: 880px;
   font-size: 14px;
 }
-/* Keep UI glyphs crisp at every rail size; document and preview SVGs are untouched. */
-.platform-shell :where(button, a) > svg.lucide,
-.platform-shell [data-platform-nav] svg.lucide {
+/* Phosphor glyphs use filled outlines; preserve their native weight. */
+.platform-shell :where(button, a) > svg,
+.platform-shell [data-platform-nav] svg {
   flex-shrink: 0;
-  stroke-width: 1.75;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: color 160ms ease, stroke-width 160ms ease;
+  transition: color 160ms ease;
 }
-.platform-shell [data-platform-nav][aria-current='page'] svg.lucide {
+.platform-shell [data-platform-nav][aria-current='page'] svg,
+.platform-shell [data-platform-nav]:hover svg {
   color: var(--foreground);
-  stroke-width: 2;
-}
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .platform-shell [data-platform-nav] svg.lucide {
-    transition: color 160ms ease, stroke-width 160ms ease, transform 160ms ease;
-  }
-  .platform-shell [data-platform-nav]:hover svg.lucide {
-    color: var(--foreground);
-    transform: translateY(-1px);
-  }
-  .platform-shell [data-platform-nav]:active svg.lucide {
-    transform: scale(0.94);
-  }
 }
 .platform-shell :focus-visible {
   outline: 2px solid var(--ring);
@@ -657,4 +642,311 @@ html *::-webkit-scrollbar {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Product chrome: quiet surfaces, precise controls and one type scale in both themes. */
+.platform-shell {
+  --nav-cta-bg: var(--primary);
+  --nav-cta-fg: var(--primary-foreground);
+  --nav-cta-text-shadow: none;
+  --nav-cta-hover-shadow: 0 2px 5px rgb(0 0 0 / 12%);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.platform-shell [data-platform-scroll] {
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 3%),
+    0 12px 40px rgb(0 0 0 / 3%);
+  scroll-padding-block: 24px;
+}
+.platform-shell [data-platform-scroll] :where(h1, h2, h3) {
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.platform-shell [data-platform-nav] {
+  border-radius: 6px;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+.platform-shell [data-platform-nav][aria-current='page'] {
+  background: var(--secondary);
+  border-color: transparent;
+  box-shadow: none;
+}
+.platform-shell :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']) {
+  background-color: var(--background);
+  border-color: var(--input);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 2%);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+.platform-shell
+  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 16%, transparent);
+  outline: none;
+}
+.platform-shell [data-variant]:not([data-variant='custom']):not([data-variant='integration']) {
+  border-radius: 8px;
+  letter-spacing: -0.01em;
+  transition-property: background-color, border-color, color, box-shadow;
+}
+.platform-shell [data-variant='default'] {
+  text-shadow: none;
+}
+:where(
+  [data-slot='select-content'],
+  [data-slot='dropdown-menu-content'],
+  [data-slot='popover-content']
+) {
+  border-color: var(--border);
+  border-radius: 12px;
+  background-color: var(--popover);
+  box-shadow:
+    0 4px 8px rgb(0 0 0 / 6%),
+    0 16px 48px rgb(0 0 0 / 14%);
+}
+:where(
+  [data-slot='select-item'],
+  [data-slot='dropdown-menu-item'],
+  [data-slot='dropdown-menu-checkbox-item']
+) {
+  border-radius: 6px;
+}
+.platform-shell :where(th, td, time) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The workspace uses compact chrome; content and artwork carry the visual weight. */
+.platform-shell aside[aria-label='Primary navigation'] {
+  border-inline-end: 0;
+}
+.platform-shell [data-platform-scroll] {
+  border-inline-start: 0;
+}
+.platform-shell aside[aria-label='Primary navigation'] [aria-label^='Workspace:'] {
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+}
+.platform-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.platform-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 0 14px;
+  font-size: 13px;
+  transition: color 150ms ease;
+}
+.platform-tab[aria-current='page']::after {
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 2px;
+  background: var(--foreground);
+  content: '';
+}
+.home-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 68px;
+  border-bottom: 1px solid var(--border);
+}
+.home-start {
+  padding-block: 36px 32px;
+}
+.home-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+.platform-home .home-title {
+  font-size: clamp(26px, 2.4vw, 34px);
+  font-weight: 550;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+.home-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--border);
+}
+.home-actions > li {
+  background: var(--card);
+}
+.home-action {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  height: 100%;
+  padding: 22px 18px;
+  transition: background-color 150ms ease;
+}
+.home-action:hover {
+  background: var(--muted);
+}
+.home-action-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--foreground);
+}
+.home-action-arrow {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  color: var(--muted-foreground);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.home-action:is(:hover, :focus-visible) .home-action-arrow {
+  opacity: 1;
+}
+.home-work {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 28px;
+  padding-block: 4px 28px;
+}
+.home-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  min-height: 176px;
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--background) 30%, var(--card));
+}
+.home-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.home-empty-copy {
+  padding-top: 4px;
+}
+.home-notifications {
+  display: flex;
+  flex-direction: column;
+  min-height: 176px;
+  max-height: 320px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--background) 30%, var(--card));
+}
+.home-notifications [data-notification-empty] {
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px;
+  text-align: start;
+}
+.home-notifications [data-notification-empty] > svg {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 4px;
+  opacity: 0.8;
+}
+.home-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 0 28px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  transition: color 150ms ease;
+}
+.home-brand:hover {
+  color: var(--foreground);
+}
+.home-brand .font-medium {
+  color: var(--foreground);
+}
+@media (min-width: 1200px) {
+  .home-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 767px) {
+  .home-start {
+    padding-top: 28px;
+  }
+  .home-intro {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .home-action {
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px;
+  }
+  .home-work {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .home-brand {
+    flex-wrap: wrap;
+  }
+}
+
+.platform-shell :where([data-variant='outline'], [data-variant='secondary']) {
+  border-color: var(--border);
+  background: var(--card);
+  box-shadow: none;
+}
+.platform-shell :where([data-variant='outline'], [data-variant='secondary']):hover {
+  border-color: color-mix(in srgb, var(--foreground) 22%, var(--border));
+  background: var(--muted);
+  box-shadow: none;
+}
+.platform-shell
+  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):not(
+    :focus-visible
+  ) {
+  box-shadow: none;
+}
+.platform-shell
+  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):not(
+    :disabled
+  ):hover {
+  border-color: color-mix(in srgb, var(--foreground) 18%, var(--input));
+}
+.platform-shell :where([data-slot='input'], [data-slot='textarea'])::placeholder {
+  color: color-mix(in srgb, var(--muted-foreground) 75%, var(--background));
+}
+.platform-shell :where([data-slot='select-trigger'], [data-variant]) {
+  font-weight: 500;
+}
+.platform-shell [data-platform-nav]:not([aria-current='page']):hover {
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+.platform-shell [data-platform-nav] svg {
+  transform: none;
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Add01Icon, Delete02Icon } from 'hugeicons-react'
+import { PiPlus as Add01Icon, PiTrash as Delete02Icon } from 'react-icons/pi'
 import { ChoiceField, ToggleField } from '@/components/editor/inspector/fields'
 import { resolveAppearance } from '@/lib/frames/appearance'
 import { APPEARANCE_LABELS, BROWSER_LABELS, WINDOW_LABELS } from '@/lib/frames/labels'

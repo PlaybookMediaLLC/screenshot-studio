@@ -1,13 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import {
-  Cancel01Icon,
-  ClosedCaptionIcon,
-  MusicNote01Icon,
-  ScrollVerticalIcon,
-  TextFontIcon,
-} from 'hugeicons-react'
+import { PiX as Cancel01Icon, PiClosedCaptioning as ClosedCaptionIcon, PiMusicNote as MusicNote01Icon, PiArrowsVertical as ScrollVerticalIcon, PiTextAa as TextFontIcon } from 'react-icons/pi'
 import {
   duplicateKeyframe,
   removeAudioClip,

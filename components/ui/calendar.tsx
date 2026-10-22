@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { PiCaretLeft as ChevronLeft, PiCaretRight as ChevronRight } from 'react-icons/pi'
 import type * as React from 'react'
 import { DayPicker } from 'react-day-picker'
 import { buttonVariants } from '@/components/ui/button'

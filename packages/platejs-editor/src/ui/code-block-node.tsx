@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, ChevronDownIcon, FilesIcon } from "lucide-react";
+import { PiCheck as CheckIcon, PiCaretDown as ChevronDownIcon, PiFiles as FilesIcon } from "react-icons/pi";
 
 import type { TCodeBlockElement } from "platejs";
 import { NodeApi } from "platejs";

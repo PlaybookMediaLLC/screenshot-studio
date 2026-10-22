@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { DragDropVerticalIcon, ViewIcon, ViewOffSlashIcon } from 'hugeicons-react'
+import { PiDotsSixVertical as DragDropVerticalIcon, PiEye as ViewIcon, PiEyeSlash as ViewOffSlashIcon } from 'react-icons/pi'
 import { SectionWrapper } from '@/components/editor/sections/SectionWrapper'
 import { selectScreen } from '@/lib/editor/selection'
 import { isScreenScene, moveScreen } from '@/lib/frames/commands'

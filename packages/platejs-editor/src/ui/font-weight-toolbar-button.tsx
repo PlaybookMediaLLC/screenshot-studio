@@ -2,7 +2,7 @@
 
 import { FontWeightPlugin } from "@platejs/basic-styles/react";
 import type { DropdownMenuProps } from "@radix-ui/react-dropdown-menu";
-import { WeightIcon } from "lucide-react";
+import { PiTextB as WeightIcon } from "react-icons/pi";
 import { KEYS } from "platejs";
 import { useEditorPlugin, useEditorSelector } from "platejs/react";
 import { useState } from "react";

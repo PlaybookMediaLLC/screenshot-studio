@@ -1,7 +1,7 @@
 "use client";
 
 import { insertInlineEquation } from "@platejs/math";
-import { RadicalIcon } from "lucide-react";
+import { PiRadical as RadicalIcon } from "react-icons/pi";
 import { useEditorRef } from "platejs/react";
 
 import { ToolbarButton } from "./toolbar";

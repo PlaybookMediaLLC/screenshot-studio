@@ -1,5 +1,7 @@
 "use client";
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import { shouldIgnoreEditorShortcut } from "@/lib/editor-shortcuts";
 
 import * as React from "react";
@@ -7,21 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, Reorder, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import {
-  Add01Icon,
-  ArrowLeft02Icon,
-  ArrowRight02Icon,
-  Cancel01Icon,
-  Copy01Icon,
-  Delete02Icon,
-  Download04Icon,
-  FileZipIcon,
-  GridIcon,
-  RedoIcon,
-  RefreshIcon,
-  Settings02Icon,
-  UndoIcon,
-} from "hugeicons-react";
+import { PiPlus as Add01Icon, PiArrowLeft as ArrowLeft02Icon, PiArrowRight as ArrowRight02Icon, PiX as Cancel01Icon, PiCopy as Copy01Icon, PiTrash as Delete02Icon, PiDownload as Download04Icon, PiFileZip as FileZipIcon, PiSquaresFour as GridIcon, PiArrowUUpRight as RedoIcon, PiArrowsClockwise as RefreshIcon, PiSlidersHorizontal as Settings02Icon, PiArrowUUpLeft as UndoIcon } from "react-icons/pi";
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -149,7 +137,7 @@ function StoreHeader({
     <header className="relative flex h-16 shrink-0 items-center justify-between gap-3 border-b border-foreground/10 bg-background px-3 sm:px-4">
       <div className="flex min-w-0 items-center gap-2">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-80">
-          <Image src="/logo-mark.png" alt="Shots" width={32} height={32} className="size-8" priority />
+          <Image src={publicImageUrl("/logo-mark.png")} alt="Shots" width={32} height={32} className="size-8" priority />
           <span className="hidden text-sm font-semibold tracking-tight text-foreground lg:inline">Shots</span>
         </Link>
         <div className="mx-1 hidden h-4 w-px bg-foreground/10 sm:block" />
@@ -438,7 +426,7 @@ function StoreOverview({
                 title="Previous screenshots"
                 className="absolute -left-14 top-1/2 z-10 hidden h-16 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-xl text-muted-foreground transition-[background-color,color,transform] duration-200 ease-out hover:bg-foreground/[0.08] hover:text-foreground active:scale-[0.97] lg:flex"
               >
-                <ArrowLeft02Icon size={26} strokeWidth={1.8} />
+                <ArrowLeft02Icon size={26} />
               </Button>
             ) : null}
             {showStarterChoice && safePage < pages - 1 ? (
@@ -449,7 +437,7 @@ function StoreOverview({
                 title="Next screenshots"
                 className="absolute -right-14 top-1/2 z-10 hidden h-16 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-xl text-muted-foreground transition-[background-color,color,transform] duration-200 ease-out hover:bg-foreground/[0.08] hover:text-foreground active:scale-[0.97] lg:flex"
               >
-                <ArrowRight02Icon size={26} strokeWidth={1.8} />
+                <ArrowRight02Icon size={26} />
               </Button>
             ) : null}
           </div>
@@ -677,7 +665,7 @@ function StoreFocus({
                   }}
                   className="absolute -right-3 -top-3 z-20 flex size-6 cursor-pointer items-center justify-center rounded-full border border-destructive/40 bg-background text-destructive shadow-sm transition-colors hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
                 >
-                  <Cancel01Icon size={11} strokeWidth={2.25} />
+                  <Cancel01Icon size={11} />
                 </Button>
               ) : null}
             </Reorder.Item>

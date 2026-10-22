@@ -68,13 +68,16 @@ test('read-only members discuss approved content and reconcile a lost reply with
     }
     await viewer.goto(`/write/${draft.id}?panel=comments`)
     await expect(viewer.getByRole('textbox', { name: 'Draft title' })).toBeDisabled()
-    await expect(
-      viewer
-        .getByLabel('Mention teammates')
-        .getByRole('option', { name: 'Comment Reviewer', exact: true })
-    ).toHaveCount(1)
     await viewer.getByLabel('Comment on draft').fill('Please review the last sentence.')
-    await viewer.getByLabel('Mention teammates').selectOption({ label: 'Comment Reviewer' })
+    await viewer.getByRole('button', { name: 'Mention teammates' }).click()
+    const reviewerOption = viewer.getByRole('menuitemcheckbox', {
+      name: 'Comment Reviewer',
+      exact: true,
+    })
+    await expect(reviewerOption).toBeVisible()
+    await reviewerOption.click()
+    await expect(reviewerOption).toBeChecked()
+    await viewer.keyboard.press('Escape')
     let sends = 0
     await viewer.route(
       `**${path}/comments`,

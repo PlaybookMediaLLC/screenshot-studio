@@ -55,6 +55,7 @@ public/backgrounds
 !/scripts/indexnow.ts
 !/scripts/bind-social-tenant.ts
 !/scripts/openapi.ts
+!/scripts/public-images.py
 
 /lib/generated/prisma
 /services/.social-gate-bin/

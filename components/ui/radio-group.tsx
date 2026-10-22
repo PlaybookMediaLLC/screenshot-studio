@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleIcon } from 'lucide-react'
+import { PiCircleFill as CircleIcon } from 'react-icons/pi'
 import { RadioGroup as RadioGroupPrimitive } from 'radix-ui'
 import type * as React from 'react'
 import { cn } from '@/lib/utils'

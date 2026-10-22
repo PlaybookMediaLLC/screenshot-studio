@@ -9,16 +9,7 @@ import {
 } from "@platejs/media/react";
 import { BlockMenuPlugin } from "@platejs/selection/react";
 import type { DropdownMenuProps } from "@radix-ui/react-dropdown-menu";
-import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  CaptionsIcon,
-  CircleArrowDownIcon,
-  MoreHorizontalIcon,
-  MoveUpRightIcon,
-  ZoomInIcon,
-} from "lucide-react";
+import { PiTextAlignCenter as AlignCenter, PiTextAlignLeft as AlignLeft, PiTextAlignRight as AlignRight, PiClosedCaptioning as CaptionsIcon, PiArrowCircleDown as CircleArrowDownIcon, PiDotsThree as MoreHorizontalIcon, PiArrowUpRight as MoveUpRightIcon, PiMagnifyingGlassPlus as ZoomInIcon } from "react-icons/pi";
 import type { TMediaElement, TTextAlignProps } from "platejs";
 import { KEYS } from "platejs";
 import { useEditorRef, useElement } from "platejs/react";

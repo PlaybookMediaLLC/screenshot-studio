@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { MagicWand01Icon, PlayIcon, SparklesIcon, Video01Icon } from "hugeicons-react";
+import { PiMagicWand as MagicWand01Icon, PiPlay as PlayIcon, PiSparkle as SparklesIcon, PiVideo as Video01Icon } from "react-icons/pi";
 import { FeaturePage } from "@/components/features/FeaturePage";
 import { PREVIEW_SHADOW, MOTION } from "@/components/tools/ui";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";

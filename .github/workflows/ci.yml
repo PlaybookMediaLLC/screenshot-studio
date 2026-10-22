@@ -238,9 +238,10 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('node_modules/playwright-core/package.json') }}
       - name: Install browser system dependencies
-        timeout-minutes: 6
+        timeout-minutes: 12
         run: |
-          # A stalled Ubuntu mirror must retry instead of consuming the job budget.
+          # The Azure HTTP mirror stalls on font packages on hosted runners.
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
           printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/80-playwright-network
           npx playwright install-deps chromium
       - name: Install Chromium
@@ -312,8 +313,10 @@ jobs:
         timeout-minutes: 8
         run: npm ci --prefer-offline --no-audit
       - name: Install browser system dependencies
-        timeout-minutes: 6
+        timeout-minutes: 12
         run: |
+          # The Azure HTTP mirror stalls on font packages on hosted runners.
+          sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
           printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/80-playwright-network
           npx playwright install-deps chromium
       - name: Install Chromium

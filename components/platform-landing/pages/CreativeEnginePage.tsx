@@ -1,12 +1,5 @@
 import Link from 'next/link'
-import {
-  BrowserIcon,
-  Edit02Icon,
-  Image01Icon,
-  PaintBrush01Icon,
-  SmartPhone01Icon,
-  Video01Icon,
-} from 'hugeicons-react'
+import { PiBrowser as BrowserIcon, PiPencilSimple as Edit02Icon, PiImage as Image01Icon, PiPaintBrush as PaintBrush01Icon, PiDeviceMobile as SmartPhone01Icon, PiVideo as Video01Icon } from 'react-icons/pi'
 import { DESIGN_RENDER_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import {
   atLeast,

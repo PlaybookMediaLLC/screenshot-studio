@@ -1,5 +1,13 @@
 'use client'
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
 import { TRPCClientError } from '@trpc/client'
 import { SidebarLink as Link } from '@/components/platform-shell/SidebarLink'
 import { Button } from '@/components/ui/button'
@@ -234,18 +242,22 @@ export function WorkspaceActivity({ sections }: { sections?: string[] } = {}) {
       {!sections ? (
         <label className="grid max-w-xs gap-2 text-sm">
           Activity type
-          <select
-            className="h-10 rounded-lg border bg-background px-3"
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-          >
-            <option value="all">All activity</option>
-            {SECTIONS.map((section) => (
-              <option key={section.key} value={section.key}>
-                {section.title}
-              </option>
-            ))}
-          </select>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger
+              aria-label="Activity type"
+              className="h-10 w-full rounded-lg bg-background"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All activity</SelectItem>
+              {SECTIONS.map((section) => (
+                <SelectItem key={section.key} value={section.key}>
+                  {section.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
       ) : null}
       {visible.map((section) => (

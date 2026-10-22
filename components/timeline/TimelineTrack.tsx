@@ -5,7 +5,7 @@ import { useImageStore } from '@/lib/store';
 import { usePlaybackStore } from '@/lib/store/playback';
 import { KeyframeMarker } from './KeyframeMarker';
 import { Button } from '@/components/ui/button';
-import { ViewIcon, ViewOffIcon, Delete02Icon, SquareLockPasswordIcon, SquareUnlock01Icon } from 'hugeicons-react';
+import { PiEye as ViewIcon, PiEyeSlash as ViewOffIcon, PiTrash as Delete02Icon, PiLockKey as SquareLockPasswordIcon, PiLockOpen as SquareUnlock01Icon } from 'react-icons/pi';
 import { cn } from '@/lib/utils';
 import type { AnimationTrack } from '@/types/animation';
 

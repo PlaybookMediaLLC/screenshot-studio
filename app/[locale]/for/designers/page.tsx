@@ -3,15 +3,7 @@ import { Navigation } from "@/components/landing/Navigation";
 import { Footer } from "@/components/landing/Footer";
 import Link from "next/link";
 import { OG_DEFAULTS } from "@/lib/seo/metadata";
-import {
-  PaintBoardIcon,
-  ColorsIcon,
-  PenTool01Icon,
-  SmartPhone01Icon,
-  Layers01Icon,
-  EyeIcon,
-  SparklesIcon,
-} from "hugeicons-react";
+import { PiPalette as PaintBoardIcon, PiPalette as ColorsIcon, PiPen as PenTool01Icon, PiDeviceMobile as SmartPhone01Icon, PiStack as Layers01Icon, PiEye as EyeIcon, PiSparkle as SparklesIcon } from "react-icons/pi";
 
 export const metadata: Metadata = {
   title: "Mockup & Screenshot Tool for Designers",
@@ -182,7 +174,7 @@ export default function ForDesignersPage() {
             {useCases.map((useCase) => (
               <div key={useCase.title} className={cardSurface}>
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-foreground/[0.06] text-foreground ring-1 ring-inset ring-border">
-                  <useCase.icon size={24} strokeWidth={1.75} />
+                  <useCase.icon size={24} />
                 </div>
                 <h3
                   className="mb-2 text-xl font-semibold tracking-[-0.02em] text-foreground"
@@ -212,7 +204,7 @@ export default function ForDesignersPage() {
             {features.map((feature) => (
               <div key={feature.title} className={`${cardSurface} text-center`}>
                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-foreground/[0.06] text-foreground ring-1 ring-inset ring-border">
-                  <feature.icon size={24} strokeWidth={1.75} />
+                  <feature.icon size={24} />
                 </div>
                 <h3
                   className="mb-2 text-lg font-semibold tracking-[-0.02em] text-foreground"

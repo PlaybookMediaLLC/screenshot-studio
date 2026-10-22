@@ -1,7 +1,7 @@
 'use client'
 
 import { Input } from '@/components/ui/input'
-import { Images as Album02Icon, Ellipsis as MoreHorizontalIcon } from 'lucide-react'
+import { PiImages as Album02Icon, PiDotsThree as MoreHorizontalIcon } from 'react-icons/pi'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { TRPCClientError } from '@trpc/client'

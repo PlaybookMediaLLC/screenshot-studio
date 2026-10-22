@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
-import { Check as Tick02Icon, ChevronDown as ArrowDown01Icon, ChevronUp as ArrowUp01Icon } from 'lucide-react'
+import { PiCheck as Tick02Icon, PiCaretDown as ArrowDown01Icon, PiCaretUp as ArrowUp01Icon } from 'react-icons/pi'
 
 import { cn } from "@/lib/utils"
 

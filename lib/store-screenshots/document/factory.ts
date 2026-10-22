@@ -1,3 +1,5 @@
+
+import { publicImageUrl } from '@/lib/assets/public-image'
 import { defaultDeviceFrame } from '../devices'
 import { DEFAULT_FONT_FAMILY } from '../fonts'
 import {
@@ -305,14 +307,14 @@ export function createDocument({
 
 /** Bundled sample screens used by the starter template. */
 export const STARTER_SCREENS = [
-  { src: '/store-screenshot-create.png', name: 'Prepare', heading: 'Prepare for your\nnext challenge', to: '#E8DDF5', angle: 168 },
-  { src: '/store-screenshot-learn.png', name: 'Learn', heading: 'Go deep\nand learn', to: '#CDEAF4', angle: 178 },
-  { src: '/store-screenshot-voice.png', name: 'Voice', heading: 'Chat in\nvoice mode', to: '#EED8F1', angle: 186 },
-  { src: '/store-screenshot-write.png', name: 'Reimagine', heading: 'Reimagine\nany photo', to: '#C7EAF3', angle: 180 },
-  { src: '/store-screenshot-ideas.png', name: 'Ideas', heading: 'See your ideas\ncome to life', to: '#EBD9E8', angle: 158 },
-  { src: '/store-screenshot-butterfly.png', name: 'Discover', heading: 'Learn anything\nyour way', to: '#D8E5F5', angle: 198 },
-  { src: '/store-screenshot-writing.png', name: 'Writing', heading: 'Get writing that\nsounds like you', to: '#F0D5ED', angle: 182 },
-  { src: '/store-screenshot-inspiration.png', name: 'Inspiration', heading: 'Find creative\ninspiration', to: '#C2E8F3', angle: 176 },
+  { src: publicImageUrl('/store-screenshot-create.png'), name: 'Prepare', heading: 'Prepare for your\nnext challenge', to: '#E8DDF5', angle: 168 },
+  { src: publicImageUrl('/store-screenshot-learn.png'), name: 'Learn', heading: 'Go deep\nand learn', to: '#CDEAF4', angle: 178 },
+  { src: publicImageUrl('/store-screenshot-voice.png'), name: 'Voice', heading: 'Chat in\nvoice mode', to: '#EED8F1', angle: 186 },
+  { src: publicImageUrl('/store-screenshot-write.png'), name: 'Reimagine', heading: 'Reimagine\nany photo', to: '#C7EAF3', angle: 180 },
+  { src: publicImageUrl('/store-screenshot-ideas.png'), name: 'Ideas', heading: 'See your ideas\ncome to life', to: '#EBD9E8', angle: 158 },
+  { src: publicImageUrl('/store-screenshot-butterfly.png'), name: 'Discover', heading: 'Learn anything\nyour way', to: '#D8E5F5', angle: 198 },
+  { src: publicImageUrl('/store-screenshot-writing.png'), name: 'Writing', heading: 'Get writing that\nsounds like you', to: '#F0D5ED', angle: 182 },
+  { src: publicImageUrl('/store-screenshot-inspiration.png'), name: 'Inspiration', heading: 'Find creative\ninspiration', to: '#C2E8F3', angle: 176 },
 ] as const
 
 /** Native size of the bundled sample screens. */

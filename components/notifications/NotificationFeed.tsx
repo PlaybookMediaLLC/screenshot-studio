@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
-import { Archive, ArchiveRestore, CheckCheck, Mail, MailOpen } from 'lucide-react'
+import { PiArchive as Archive, PiTrayArrowUp as ArchiveRestore, PiChecks as CheckCheck, PiEnvelope as Mail, PiEnvelopeOpen as MailOpen } from 'react-icons/pi'
 import { Button } from '@/components/ui/button'
 import {
   NotificationRequestError,
@@ -162,7 +162,10 @@ export function NotificationFeed({
           </div>
         ) : null}
         {!feed.isPending && !feed.isError && uniqueItems.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+          <div
+            data-notification-empty
+            className="flex flex-col items-center gap-3 px-6 py-16 text-center"
+          >
             {view === 'archive' ? (
               <Archive className="size-7 text-muted-foreground/50" />
             ) : (

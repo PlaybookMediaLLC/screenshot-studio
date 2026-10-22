@@ -6,14 +6,7 @@ import {
   useImagePreviewValue,
   useScaleInput,
 } from "@platejs/media/react";
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  CircleArrowDown,
-  Minimize2,
-  Minus,
-  Plus,
-} from "lucide-react";
+import { PiArrowLeft as ArrowLeftIcon, PiArrowRight as ArrowRightIcon, PiArrowCircleDown as CircleArrowDown, PiArrowsIn as Minimize2, PiMinus as Minus, PiPlus as Plus } from "react-icons/pi";
 import { useEditorRef } from "platejs/react";
 import type { ComponentProps } from "react";
 import { downloadFile } from "../lib/download-file";

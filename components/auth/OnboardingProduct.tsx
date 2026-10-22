@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Loader2 } from 'lucide-react'
+import { PiCheck as Check, PiSpinnerGap as Loader2 } from 'react-icons/pi'
 import Link from 'next/link'
 import { type FormEvent, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -213,7 +213,7 @@ export function OnboardingProduct({
                   )}
                 >
                   {done ? (
-                    <Check className="size-3.5" strokeWidth={2.5} />
+                    <Check className="size-3.5" />
                   ) : active ? (
                     <Loader2 className="size-3.5 animate-spin" />
                   ) : null}

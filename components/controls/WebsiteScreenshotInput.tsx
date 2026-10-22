@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useImageStore } from '@/lib/store'
 import { importImages } from '@/lib/editor/import-images'
 import { browserDisplayUrl } from '@/lib/browser-url'
-import { Loading03Icon, Globe02Icon, ComputerIcon, SmartPhone01Icon } from 'hugeicons-react'
+import { PiSpinnerGap as Loading03Icon, PiGlobe as Globe02Icon, PiDesktop as ComputerIcon, PiDeviceMobile as SmartPhone01Icon } from 'react-icons/pi'
 
 type DeviceType = 'desktop' | 'mobile'
 

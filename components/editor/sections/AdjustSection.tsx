@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { MagicWand01Icon, RefreshIcon } from 'hugeicons-react'
+import { PiMagicWand as MagicWand01Icon, PiArrowsClockwise as RefreshIcon } from 'react-icons/pi'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'

@@ -3,7 +3,7 @@
 import { unwrapLink, upsertLink, validateUrl } from "@platejs/link";
 import { CursorOverlayPlugin } from "@platejs/selection/react";
 import { cn } from "@udecode/cn";
-import { FileTextIcon, LinkIcon, Trash2Icon } from "lucide-react";
+import { PiFileText as FileTextIcon, PiLink as LinkIcon, PiTrash as Trash2Icon } from "react-icons/pi";
 import { NodeApi, type TText } from "platejs";
 import {
   type PlateEditor,

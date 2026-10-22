@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalLink, Link2, Loader2 } from 'lucide-react'
+import { PiArrowSquareOut as ExternalLink, PiLink as Link2, PiSpinnerGap as Loader2 } from 'react-icons/pi'
 import { useState } from 'react'
 import { Pill } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'

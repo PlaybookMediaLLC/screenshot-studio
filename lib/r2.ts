@@ -1,3 +1,5 @@
+import { publicImageUrl } from './assets/public-image'
+
 /**
  * Cloudflare R2 Storage Utilities
  *
@@ -18,23 +20,23 @@
  */
 function mapR2PathToLocal(path: string): string {
   // Remove leading slash if present
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path
+
   // Map R2 paths to local public/ paths
   const mappings: Record<string, string> = {
     'backgrounds/': '',
     'overlays/shadow/': 'overlay-shadow/',
     'overlays/arrow/': 'overlay/',
-  };
-  
+  }
+
   for (const [r2Prefix, localPrefix] of Object.entries(mappings)) {
     if (cleanPath.startsWith(r2Prefix)) {
-      return `/${localPrefix}${cleanPath.slice(r2Prefix.length)}`;
+      return `/${localPrefix}${cleanPath.slice(r2Prefix.length)}`
     }
   }
-  
+
   // For paths that don't need mapping (e.g., "assets/...")
-  return `/${cleanPath}`;
+  return `/${cleanPath}`
 }
 
 /**
@@ -49,22 +51,19 @@ function mapR2PathToLocal(path: string): string {
  * @returns The proxied URL path or local public path
  */
 export function getR2PublicUrl(path: string): string {
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  if (path.startsWith('/r2-assets/')) return path
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path
 
-  // Keep the editor's bundled default available even when the R2 proxy fails.
-  if (cleanPath === 'backgrounds/raycast/red_distortion_4.webp') {
-    return mapR2PathToLocal(cleanPath);
-  }
-
-  const publicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
+  const publicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
 
   if (!publicUrl) {
     // Fall back to local public/ directory with path mapping
-    return mapR2PathToLocal(path);
+    return mapR2PathToLocal(path)
   }
 
-  // Use same-origin proxy to avoid CORS issues with canvas capture
-  return `/r2-assets/${cleanPath}`;
+  const local = mapR2PathToLocal(path)
+  const versioned = publicImageUrl(local)
+  return versioned !== local ? versioned : `/r2-assets/${cleanPath}`
 }
 
 /**
@@ -77,43 +76,43 @@ export function getR2PublicUrl(path: string): string {
  * @returns The image URL
  */
 export function getR2ImageUrl(options: {
-  src: string;
-  width?: number;
-  height?: number;
-  quality?: number | 'auto';
-  format?: 'auto' | 'webp' | 'avif' | 'jpg' | 'png';
+  src: string
+  width?: number
+  height?: number
+  quality?: number | 'auto'
+  format?: 'auto' | 'webp' | 'avif' | 'jpg' | 'png'
 }): string {
-  const { src } = options;
+  const { src } = options
 
   // If it's already a full URL, return as-is
   if (src.startsWith('http://') || src.startsWith('https://')) {
-    return src;
+    return src
   }
 
   // If it's a blob URL or data URL, return as-is
   if (src.startsWith('blob:') || src.startsWith('data:')) {
-    return src;
+    return src
   }
 
   // Otherwise, construct the R2 public URL
-  return getR2PublicUrl(src);
+  return getR2PublicUrl(src)
 }
 
 /** Same-origin image URL resized by the Next.js image optimizer; width must be a configured image size. */
 export function getResizedImageUrl(url: string, width: number): string {
-  if (!url.startsWith('/') || url.startsWith('//')) return url;
-  return `/_next/image?url=${encodeURIComponent(url)}&w=${width}&q=75`;
+  if (!url.startsWith('/') || url.startsWith('//')) return url
+  return `/_next/image?url=${encodeURIComponent(url)}&w=${width}&q=75`
 }
 
 /**
  * R2 configuration type
  */
 export interface R2Config {
-  accountId: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-  bucketName: string;
-  publicUrl: string;
+  accountId: string
+  accessKeyId: string
+  secretAccessKey: string
+  bucketName: string
+  publicUrl: string
 }
 
 /**
@@ -126,12 +125,12 @@ export function getR2Config(): R2Config {
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
     bucketName: process.env.R2_BUCKET_NAME || '',
     publicUrl: process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '',
-  };
+  }
 }
 
 /**
  * Check if R2 is properly configured
  */
 export function isR2Configured(): boolean {
-  return !!process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
+  return !!process.env.NEXT_PUBLIC_R2_PUBLIC_URL
 }

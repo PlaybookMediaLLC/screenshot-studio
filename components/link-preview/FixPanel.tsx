@@ -2,7 +2,7 @@
 
 import { characterCount } from '@/lib/link-preview/text'
 import { isHttpUrl } from '@/lib/link-preview/urls'
-import { Check, Copy, Loader2, RotateCcw, Sparkles } from 'lucide-react'
+import { PiCheck as Check, PiCopy as Copy, PiSpinnerGap as Loader2, PiArrowCounterClockwise as RotateCcw, PiSparkle as Sparkles } from 'react-icons/pi'
 import { useState } from 'react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'

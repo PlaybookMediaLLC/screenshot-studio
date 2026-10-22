@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { useImageStore } from '@/lib/store'
-import { Delete02Icon, ViewIcon, ViewOffSlashIcon, RotateRight01Icon, RotateLeft01Icon, RefreshIcon } from 'hugeicons-react'
+import { PiTrash as Delete02Icon, PiEye as ViewIcon, PiEyeSlash as ViewOffSlashIcon, PiArrowClockwise as RotateRight01Icon, PiArrowCounterClockwise as RotateLeft01Icon, PiArrowsClockwise as RefreshIcon } from 'react-icons/pi'
 import { getR2ImageUrl } from '@/lib/r2'
 import { isOverlayPath } from '@/lib/r2-overlays'
 

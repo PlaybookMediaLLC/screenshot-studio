@@ -1,6 +1,8 @@
+
+import { publicImageUrl } from '@/lib/assets/public-image'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowUpRight01Icon } from 'hugeicons-react'
+import { PiArrowUpRight as ArrowUpRight01Icon } from 'react-icons/pi'
 import { navGroupSchema, pagesInGroup, type NavGroup } from '@/lib/marketing/platform-pages'
 import { cn } from '@/lib/utils'
 import { CookieSettingsButton } from '@/components/ConsentBanner'
@@ -60,7 +62,7 @@ export function LandingFooter() {
         <div className="grid gap-16 border-t border-[#212121] py-24 lg:grid-cols-[1fr_2fr]">
           <div className="flex flex-col justify-between gap-10">
             <Link className="flex items-center gap-3" href="/landing">
-              <Image alt="" className="size-9" height={36} src="/logo-mark.png" width={36} />
+              <Image alt="" className="size-9" height={36} src={publicImageUrl("/logo-mark.png")} width={36} />
               <span className="text-2xl tracking-[-0.03em] text-white">Shots</span>
             </Link>
             <div className="space-y-6">

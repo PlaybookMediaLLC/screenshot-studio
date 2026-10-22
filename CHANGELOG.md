@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.34.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.5...v2.34.0) (2026-10-22)
+
+
+### Features
+
+* expand the cloud marketing platform ([#281](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/281)) ([a6500f6](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/a6500f60437a56d6f2155632984a6f8c03d9621f))
+
 ## [2.33.5](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.4...v2.33.5) (2026-10-22)
 
 

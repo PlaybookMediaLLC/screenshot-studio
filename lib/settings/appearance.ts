@@ -47,6 +47,7 @@ export function withoutLocale(pathname: string): string {
 export function followsTheme(pathname: string): boolean {
   const path = withoutLocale(pathname)
   return (
+    path === '/' ||
     needsSignIn(path) ||
     THEMED_ROUTE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
   )

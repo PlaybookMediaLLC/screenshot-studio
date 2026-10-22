@@ -214,7 +214,7 @@ export function MemberComments({
         <textarea
           id="member-comment-text"
           ref={formRef}
-          className="min-h-24 rounded-md border border-white/10 bg-white/[0.03] p-2"
+          className="min-h-24 rounded-md border border-border bg-background p-2"
           maxLength={5000}
           required
           disabled={busy}
@@ -291,7 +291,7 @@ export function MemberComments({
         <section
           key={thread.id}
           data-testid="member-comment-thread"
-          className="grid gap-3 rounded-lg border border-white/10 p-3"
+          className="grid gap-3 rounded-lg border border-border p-3"
         >
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>

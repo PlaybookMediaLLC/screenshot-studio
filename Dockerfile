@@ -43,7 +43,7 @@ RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build
 # Public images are versioned in R2; fonts and other runtime files stay bundled.
 # Keep local files only for self-contained builds without R2.
 RUN if [ -n "$NEXT_PUBLIC_R2_PUBLIC_URL" ]; then \
-      node -e 'const fs=require("fs"); for(const p of Object.keys(require("./lib/assets/public-images.json"))) fs.rmSync("public"+p,{force:true})'; \
+      node -e 'const fs=require("fs"); for(const root of ["public",".next/standalone/public"]) for(const p of Object.keys(require("./lib/assets/public-images.json"))) fs.rmSync(root+p,{force:true})'; \
     fi
 
 FROM base AS runner

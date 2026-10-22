@@ -6,7 +6,8 @@ import {
   safeReturnPath,
   PLATFORM_DESTINATIONS,
 } from '@/lib/platform/navigation'
-import { parseNavigation } from '@/lib/settings/appearance'
+import { SIGNED_IN_PATHS } from '@/lib/auth/sign-in-gate'
+import { followsTheme, parseNavigation } from '@/lib/settings/appearance'
 import {
   hasLinkNavigationGuards,
   prepareLinkNavigation,
@@ -136,4 +137,21 @@ test('shell links wait only for opted-in editor saves and retain failures', asyn
     removeSwitch()
   }
   assert.equal(hasLinkNavigationGuards(), false)
+})
+
+test('workspace and editor routes follow appearance in every locale', () => {
+  for (const path of [
+    '/',
+    '/fr',
+    '/home',
+    '/fr/library',
+    '/canvas/design',
+    '/workflows',
+    ...SIGNED_IN_PATHS,
+  ]) {
+    assert.equal(followsTheme(path), true, path)
+  }
+  for (const path of ['/landing', '/fr/landing', '/pricing', '/guides', '/sign-in']) {
+    assert.equal(followsTheme(path), false, path)
+  }
 })

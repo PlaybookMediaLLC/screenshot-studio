@@ -155,31 +155,31 @@
 
 /* Polar-style product surfaces, matching the marketing site. */
 .dark {
-  --background: #0c0e12;
+  --background: #000000;
   --foreground: #ededed;
-  --card: #13161c;
+  --card: #090909;
   --card-foreground: #ededed;
-  --popover: #1a1e26;
+  --popover: #111111;
   --popover-foreground: #ededed;
   --primary: #ffffff;
   --primary-foreground: #0a0a0a;
-  --secondary: #1c2028;
+  --secondary: #141414;
   --secondary-foreground: #ededed;
-  --muted: #1c2028;
-  --muted-foreground: #9ba3b2;
-  --accent: #242a34;
+  --muted: #141414;
+  --muted-foreground: #a3a3a3;
+  --accent: #1b1b1b;
   --accent-foreground: #ffffff;
   --destructive: #ff453a;
   --destructive-foreground: #ffffff;
-  --border: #292f3a;
-  --input: #363e4b;
+  --border: #252525;
+  --input: #333333;
   --ring: #8daeea;
   --chart-1: #ffffff;
   --chart-2: #a3a3a3;
   --chart-3: #ff9f0a;
   --chart-4: #bf5af2;
   --chart-5: #ff453a;
-  --sidebar: #0c0e12;
+  --sidebar: #000000;
   --sidebar-foreground: #ededed;
   --sidebar-primary: #ffffff;
   --sidebar-primary-foreground: #0a0a0a;

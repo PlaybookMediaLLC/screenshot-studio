@@ -181,8 +181,8 @@ type ConfigurationStore interface {
 	ListMembers(context.Context, string) ([]product.WorkspaceMember, error)
 	ListInvitations(context.Context, string) ([]product.WorkspaceInvitation, error)
 	UpdateMemberRole(context.Context, product.Actor, string, string) (*product.WorkspaceMember, error)
-	RemoveMember(context.Context, product.Actor, string) error
-	LeaveWorkspace(context.Context, product.Actor) error
+	RemoveMember(context.Context, product.Actor, string) (*product.WorkspaceMember, error)
+	LeaveWorkspace(context.Context, product.Actor) (*product.WorkspaceMember, error)
 	TransferOwnership(context.Context, product.Actor, string) error
 	RequestDeletion(context.Context, product.Actor, string) (*ent.WorkspaceDeletion, error)
 	CancelDeletion(context.Context, product.Actor) (*ent.WorkspaceDeletion, error)

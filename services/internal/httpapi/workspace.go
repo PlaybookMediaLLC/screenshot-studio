@@ -243,19 +243,21 @@ func (s *Server) removeWorkspaceMember(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "valid member ID is required")
 		return
 	}
-	if err := s.configuration.RemoveMember(r.Context(), actor, memberID); err != nil {
+	removed, err := s.configuration.RemoveMember(r.Context(), actor, memberID)
+	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]bool{"removed": true})
+	writeJSON(w, http.StatusOK, map[string]any{"removed": true, "member": removed})
 }
 
 func (s *Server) leaveWorkspace(w http.ResponseWriter, r *http.Request) {
-	if err := s.configuration.LeaveWorkspace(r.Context(), workspaceActor(r)); err != nil {
+	left, err := s.configuration.LeaveWorkspace(r.Context(), workspaceActor(r))
+	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]bool{"left": true})
+	writeJSON(w, http.StatusOK, map[string]any{"left": true, "member": left})
 }
 
 func (s *Server) transferWorkspaceOwnership(w http.ResponseWriter, r *http.Request) {

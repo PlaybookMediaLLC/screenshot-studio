@@ -9,7 +9,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/session"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/workspaceplan"
 	"github.com/google/uuid"
 )
 
@@ -27,43 +26,6 @@ type RecipientInvitation struct {
 type InvitationResponse struct {
 	Invitation *RecipientInvitation     `json:"invitation"`
 	Member     *WorkspaceCreationMember `json:"member"`
-}
-
-func lockInvitationWorkspace(ctx context.Context, tx *ent.Tx, actor Actor, org string) error {
-	found, err := workspaceplan.LockWorkspace(ctx, tx, org)
-	if err != nil {
-		return err
-	}
-	if !found {
-		return publishing.ErrNotFound
-	}
-	// Hold session and email identity through commitment, including revocation,
-	// account bans, email changes and concurrent workspace switches.
-	for _, q := range []struct {
-		sql string
-		id  string
-	}{
-		{`SELECT id FROM session WHERE id=$1 FOR UPDATE`, actor.SessionID},
-		{`SELECT id FROM "user" WHERE id=$1 FOR SHARE`, actor.UserID},
-	} {
-		if _, err := tx.PlatformExec(ctx, q.sql, q.id); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func invitationAdministrator(ctx context.Context, tx *ent.Tx, actor Actor) error {
-	if !actor.IsSession() {
-		return publishing.ErrForbidden
-	}
-	if err := lockInvitationWorkspace(ctx, tx, actor, actor.OrganizationID); err != nil {
-		return err
-	}
-	if _, err := tx.PlatformExec(ctx, `SELECT id FROM member WHERE "organizationId"=$1 AND "userId"=$2 FOR SHARE`, actor.OrganizationID, actor.UserID); err != nil {
-		return err
-	}
-	return NewConfiguration(tx.Client()).Authorize(ctx, actor)
 }
 
 func (c *Configuration) recipientInvitation(ctx context.Context, client *ent.Client, actor Actor, id string) (*ent.Invitation, error) {
@@ -146,7 +108,7 @@ func (c *Configuration) RespondInvitation(ctx context.Context, actor Actor, id, 
 		return nil, err
 	}
 	defer tx.Rollback()
-	if err := lockInvitationWorkspace(ctx, tx, actor, item.OrganizationID); err != nil {
+	if err := lockWorkspaceSession(ctx, tx, actor, item.OrganizationID); err != nil {
 		return nil, err
 	}
 	if _, err := tx.PlatformExec(ctx, `SELECT id FROM invitation WHERE id=$1 FOR UPDATE`, id); err != nil {

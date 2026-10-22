@@ -1,4 +1,11 @@
 import {
+  workspaceMemberSchema,
+  workspaceMembersSchema,
+  workspaceMemberRemovalSchema,
+  workspaceMemberLeaveSchema,
+} from './membership.ts'
+export * from './membership.ts'
+import {
   recipientInvitationSchema,
   invitationResponseSchema,
   workspaceInvitationDetailSchema,
@@ -1879,13 +1886,6 @@ export type UpdateWorkspaceInput = {
   name: string
   slug: string
   timeZone?: string
-}
-
-export type WorkspaceMember = {
-  createdAt: string
-  id: string
-  role: string
-  user: { email: string; id: string; image: string | null; name: string }
 }
 
 export type WorkspaceInvitation = {
@@ -4342,7 +4342,7 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async listWorkspaceMembers() {
-    return this.request<{ members: WorkspaceMember[] }>('v1/workspace/members')
+    return workspaceMembersSchema.parse(await this.request('v1/workspace/members'))
   }
 
   async listWorkspaceInvitations() {
@@ -4400,20 +4400,26 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async updateWorkspaceMemberRole(memberId: string, role: string) {
-    return this.request<WorkspaceMember>(`v1/workspace/members/${encodeURIComponent(memberId)}`, {
-      body: { role },
-      method: 'PATCH',
-    })
+    return workspaceMemberSchema.parse(
+      await this.request(`v1/workspace/members/${encodeURIComponent(memberId)}`, {
+        body: { role },
+        method: 'PATCH',
+      })
+    )
   }
 
   async removeWorkspaceMember(memberId: string) {
-    return this.request<{ removed: true }>(`v1/workspace/members/${encodeURIComponent(memberId)}`, {
-      method: 'DELETE',
-    })
+    return workspaceMemberRemovalSchema.parse(
+      await this.request(`v1/workspace/members/${encodeURIComponent(memberId)}`, {
+        method: 'DELETE',
+      })
+    )
   }
 
   async leaveWorkspace() {
-    return this.request<{ left: true }>('v1/workspace/leave', { method: 'POST' })
+    return workspaceMemberLeaveSchema.parse(
+      await this.request('v1/workspace/leave', { method: 'POST' })
+    )
   }
 
   async transferWorkspaceOwnership(memberId: string) {

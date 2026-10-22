@@ -60,6 +60,8 @@ function parseWorkspaceInput<T>(result: { data?: T; success: boolean }): T {
   return result.data
 }
 
+// SCIM and enterprise provisioning still use these hooks. Interactive membership
+// endpoints instead use workspaceMembershipEndpoints and atomic Go commands.
 export const organizationHooks = {
   afterRemoveMember: async ({ member }: RemovedMemberHook) => {
     // The backend also ends the removed member's sessions in this workspace.

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { APIError, createAuthEndpoint, sensitiveSessionMiddleware } from 'better-auth/api'
-import { organization } from 'better-auth/plugins'
+import { organization, type DefaultOrganizationPlugin } from 'better-auth/plugins'
 import {
   BackendSDKError,
   workspaceCreationLogoSchema,
@@ -9,6 +9,7 @@ import {
 import { backendSDK } from '@/lib/backend/sdk'
 import { workspaceCreateSchema } from '@/lib/workspace/input-schemas'
 import { workspaceInvitationEndpoints } from './workspace-invitations-plugin'
+import { workspaceMembershipEndpoints } from './workspace-membership-plugin'
 
 const creationInputSchema = workspaceCreateSchema.strict().extend({
   logo: workspaceCreationLogoSchema.nullish(),
@@ -66,6 +67,23 @@ function creationError(error: unknown): APIError {
   })
 }
 
+const workspaceEndpoints = {
+  ...workspaceInvitationEndpoints,
+  ...workspaceMembershipEndpoints,
+  createOrganization: createWorkspaceOrganizationEndpoint,
+}
+
+// Keep the plugin's generic options and exact endpoint types without asking
+// TypeScript's incremental declaration emitter to expand the entire auth graph.
+type WorkspaceOrganizationPlugin<Options extends NonNullable<Parameters<typeof organization>[0]>> =
+  Omit<DefaultOrganizationPlugin<Options>, 'endpoints'> & {
+    endpoints: Omit<
+      DefaultOrganizationPlugin<Options>['endpoints'],
+      keyof typeof workspaceEndpoints
+    > &
+      typeof workspaceEndpoints
+  }
+
 /**
  * Retains Better Auth's organization plugin and router protections while giving
  * its creation endpoint the same atomic service used by workspace.create.
@@ -73,14 +91,13 @@ function creationError(error: unknown): APIError {
  */
 export function workspaceOrganizationPlugin<
   const Options extends NonNullable<Parameters<typeof organization>[0]>,
->(options: Options) {
+>(options: Options): WorkspaceOrganizationPlugin<Options> {
   const plugin = organization(options)
   return {
     ...plugin,
     endpoints: {
       ...plugin.endpoints,
-      ...workspaceInvitationEndpoints,
-      createOrganization: createWorkspaceOrganizationEndpoint,
+      ...workspaceEndpoints,
     },
   }
 }

@@ -181,6 +181,8 @@ export const listOrganizationMembersContract = defineContract({
         z.object({
           createdAt: timestampSchema,
           id: z.string(),
+          organizationId: z.string(),
+          userId: z.string(),
           role: organizationRoleSchema,
           user: z.object({
             email: z.string(),

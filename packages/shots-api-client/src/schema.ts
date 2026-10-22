@@ -7477,6 +7477,8 @@ export interface operations {
                         members: {
                             createdAt: string;
                             id: string;
+                            organizationId: string;
+                            userId: string;
                             /** @enum {string} */
                             role: "owner" | "admin" | "creator" | "approver" | "publisher" | "writer_publisher" | "viewer";
                             user: {

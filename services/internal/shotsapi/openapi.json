@@ -9809,6 +9809,12 @@
                           "id": {
                             "type": "string"
                           },
+                          "organizationId": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "type": "string"
+                          },
                           "role": {
                             "type": "string",
                             "enum": [
@@ -9852,6 +9858,8 @@
                         "required": [
                           "createdAt",
                           "id",
+                          "organizationId",
+                          "userId",
                           "role",
                           "user"
                         ],

@@ -64,8 +64,12 @@ func (f *fakeConfiguration) ListInvitations(context.Context, string) ([]product.
 func (f *fakeConfiguration) UpdateMemberRole(_ context.Context, _ product.Actor, memberID, role string) (*product.WorkspaceMember, error) {
 	return &product.WorkspaceMember{ID: memberID, Role: role}, nil
 }
-func (f *fakeConfiguration) RemoveMember(context.Context, product.Actor, string) error { return nil }
-func (f *fakeConfiguration) LeaveWorkspace(context.Context, product.Actor) error       { return nil }
+func (f *fakeConfiguration) RemoveMember(context.Context, product.Actor, string) (*product.WorkspaceMember, error) {
+	return &product.WorkspaceMember{}, nil
+}
+func (f *fakeConfiguration) LeaveWorkspace(context.Context, product.Actor) (*product.WorkspaceMember, error) {
+	return &product.WorkspaceMember{}, nil
+}
 func (f *fakeConfiguration) TransferOwnership(context.Context, product.Actor, string) error {
 	return nil
 }

@@ -125,7 +125,7 @@ func TestMemberCommentsPreserveContentAndAuthority(t *testing.T) {
 			t.Fatalf("%s impersonated commenter: %v", kind, err)
 		}
 	}
-	if err = repo.RemoveMember(ctx, w.owner, "member_viewer_"+w.id); err != nil {
+	if _, err = repo.RemoveMember(ctx, w.owner, "member_viewer_"+w.id); err != nil {
 		t.Fatal(err)
 	}
 	add.BaseVersion = draft.Version

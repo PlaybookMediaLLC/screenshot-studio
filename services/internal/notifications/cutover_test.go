@@ -74,13 +74,35 @@ func TestLegacyImportRequiresVerifiedMappingsAndNeverFansOut(t *testing.T) {
 
 func TestConcurrentMarkAllReusesCompletedAction(t *testing.T) {
 	f := notificationFixture(t)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	// Process claims bounded batches across workspaces. Other integration
+	// fixtures can precede ours even in a dedicated test database.
+	processUntil := func(want int) {
+		t.Helper()
+		for {
+			if err := f.s.Process(ctx); err != nil {
+				t.Fatal(err)
+			}
+			page, err := f.s.List(ctx, f.owner, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(page.Items) == want {
+				return
+			}
+			if len(page.Items) > want {
+				t.Fatalf("unexpected receipts: %d, want %d", len(page.Items), want)
+			}
+			if err := ctx.Err(); err != nil {
+				t.Fatalf("receipts did not arrive: %v", err)
+			}
+		}
+	}
 	for range 8 {
 		f.event(t, "generation.completed", f.creator.UserID)
 	}
-	if err := f.s.Process(ctx); err != nil {
-		t.Fatal(err)
-	}
+	processUntil(8)
 	key := cuid.New()
 	var group sync.WaitGroup
 	for range 4 {
@@ -93,9 +115,7 @@ func TestConcurrentMarkAllReusesCompletedAction(t *testing.T) {
 	}
 	group.Wait()
 	f.event(t, "generation.completed", f.creator.UserID)
-	if err := f.s.Process(ctx); err != nil {
-		t.Fatal(err)
-	}
+	processUntil(9)
 	result, err := f.s.Seen(ctx, f.owner, nil, true, key)
 	if err != nil || result.Deleted != 8 || result.UnseenCount != 1 {
 		t.Fatalf("retry consumed later arrival: %+v %v", result, err)

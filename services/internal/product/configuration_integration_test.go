@@ -773,7 +773,7 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if err != nil || changedMember.Role != "publisher" {
 		t.Fatalf("member role update=%v err=%v", changedMember, err)
 	}
-	if err := repo.RemoveMember(ctx, workspaceActor, "third_member_"+id); err != nil {
+	if _, err := repo.RemoveMember(ctx, workspaceActor, "third_member_"+id); err != nil {
 		t.Fatalf("member removal: %v", err)
 	}
 	if err := repo.AuthorizeSession(ctx, Actor{UserID: thirdUserID, SessionID: "session_" + thirdUserID}); !errors.Is(err, publishing.ErrUnauthorized) {
@@ -836,7 +836,7 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if err := repo.TransferOwnership(ctx, workspaceActor, "second_member_"+id); err != nil {
 		t.Fatalf("ownership transfer: %v", err)
 	}
-	if err := repo.LeaveWorkspace(ctx, workspaceActor); err != nil {
+	if _, err := repo.LeaveWorkspace(ctx, workspaceActor); err != nil {
 		t.Fatalf("former owner could not leave: %v", err)
 	}
 	if err := repo.AuthorizeSession(ctx, workspaceActor); !errors.Is(err, publishing.ErrUnauthorized) {

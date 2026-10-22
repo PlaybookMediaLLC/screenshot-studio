@@ -1459,6 +1459,7 @@ var (
 		{Name: "processingAt", Type: field.TypeTime, Nullable: true},
 		{Name: "notification_version", Type: field.TypeInt, Default: 1},
 		{Name: "notification_fanned", Type: field.TypeBool, Default: false},
+		{Name: "notification_social_set_id", Type: field.TypeString, Default: ""},
 		{Name: "attempts", Type: field.TypeInt, Default: 0},
 		{Name: "lastError", Type: field.TypeString, Nullable: true},
 		{Name: "deadLetteredAt", Type: field.TypeTime, Nullable: true},
@@ -1478,7 +1479,7 @@ var (
 			{
 				Name:    "outboxevent_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{OutboxEventColumns[1], OutboxEventColumns[14]},
+				Columns: []*schema.Column{OutboxEventColumns[1], OutboxEventColumns[15]},
 			},
 		},
 	}

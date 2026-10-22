@@ -29,6 +29,7 @@ func (OutboxEvent) Fields() []ent.Field {
 		field.Time("processing_at").StorageKey("processingAt").Optional().Nillable(),
 		field.Int("notification_version").Default(1),
 		field.Bool("notification_fanned").Default(false),
+		field.String("notification_social_set_id").Default("").Immutable(),
 		field.Int("attempts").StorageKey("attempts").Default(0),
 		field.String("last_error").StorageKey("lastError").Optional().Nillable(),
 		field.Time("dead_lettered_at").StorageKey("deadLetteredAt").Optional().Nillable(),

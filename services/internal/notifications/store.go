@@ -67,17 +67,18 @@ type Settings struct {
 	Connections    []SlackConnection                     `json:"connections"`
 }
 type Item struct {
-	Category                 string     `json:"category"`
-	ReadAt                   *time.Time `json:"readAt"`
-	ArchivedAt               *time.Time `json:"archivedAt"`
-	ID                       string     `json:"id"`
-	Kind                     string     `json:"kind"`
-	Description              string     `json:"description"`
-	Href                     string     `json:"href"`
-	WorkspaceID              string     `json:"workspaceId"`
-	WorkspaceName            string     `json:"workspaceName"`
-	CreatedAt                time.Time  `json:"createdAt"`
-	resourceType, resourceID string
+	SourceSocialSet                             *SourceSocialSet `json:"sourceSocialSet"`
+	Category                                    string           `json:"category"`
+	ReadAt                                      *time.Time       `json:"readAt"`
+	ArchivedAt                                  *time.Time       `json:"archivedAt"`
+	ID                                          string           `json:"id"`
+	Kind                                        string           `json:"kind"`
+	Description                                 string           `json:"description"`
+	Href                                        string           `json:"href"`
+	WorkspaceID                                 string           `json:"workspaceId"`
+	WorkspaceName                               string           `json:"workspaceName"`
+	CreatedAt                                   time.Time        `json:"createdAt"`
+	resourceType, resourceID, sourceSocialSetID string
 }
 type Page struct {
 	Items       []Item `json:"items"`
@@ -373,11 +374,18 @@ func (s *Service) resource(ctx context.Context, org, user, kind, id string) (boo
 	}
 	if kind == "integration_connection" || kind == "channel_connection" {
 		var owner sql.NullString
-		err := s.DB.QueryRowContext(ctx, `SELECT "createdByUserId" FROM `+kind+` WHERE id=$1 AND "organizationId"=$2`, id, org).Scan(&owner)
+		var setID string
+		err := s.DB.QueryRowContext(ctx, `SELECT "createdByUserId",COALESCE(to_jsonb(c)->>'socialSetId','') FROM `+kind+` c WHERE id=$1 AND "organizationId"=$2`, id, org).Scan(&owner, &setID)
 		if errors.Is(err, sql.ErrNoRows) {
-			return role == "owner" || role == "admin", map[string]any{}, nil
+			return false, nil, nil
 		}
-		return err == nil && (role == "owner" || role == "admin" || owner.String == user), map[string]any{"createdByUserId": owner.String}, err
+		if err != nil {
+			return false, nil, err
+		}
+		if private, setOwner, err := privateSocialSet(ctx, s.DB, org, setID); err != nil || private && setOwner != user {
+			return false, nil, err
+		}
+		return role == "owner" || role == "admin" || owner.String == user, map[string]any{"createdByUserId": owner.String, "socialSetId": setID}, nil
 	}
 	if slices.Contains([]string{"member", "invitation", "organization", "workspace"}, kind) {
 		return role == "owner" || role == "admin", map[string]any{}, nil

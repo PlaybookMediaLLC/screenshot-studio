@@ -33,6 +33,8 @@ const (
 	FieldNotificationVersion = "notification_version"
 	// FieldNotificationFanned holds the string denoting the notification_fanned field in the database.
 	FieldNotificationFanned = "notification_fanned"
+	// FieldNotificationSocialSetID holds the string denoting the notification_social_set_id field in the database.
+	FieldNotificationSocialSetID = "notification_social_set_id"
 	// FieldAttempts holds the string denoting the attempts field in the database.
 	FieldAttempts = "attempts"
 	// FieldLastError holds the string denoting the last_error field in the database.
@@ -58,6 +60,7 @@ var Columns = []string{
 	FieldProcessingAt,
 	FieldNotificationVersion,
 	FieldNotificationFanned,
+	FieldNotificationSocialSetID,
 	FieldAttempts,
 	FieldLastError,
 	FieldDeadLetteredAt,
@@ -79,6 +82,8 @@ var (
 	DefaultNotificationVersion int
 	// DefaultNotificationFanned holds the default value on creation for the "notification_fanned" field.
 	DefaultNotificationFanned bool
+	// DefaultNotificationSocialSetID holds the default value on creation for the "notification_social_set_id" field.
+	DefaultNotificationSocialSetID string
 	// DefaultAttempts holds the default value on creation for the "attempts" field.
 	DefaultAttempts int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -136,6 +141,11 @@ func ByNotificationVersion(opts ...sql.OrderTermOption) OrderOption {
 // ByNotificationFanned orders the results by the notification_fanned field.
 func ByNotificationFanned(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotificationFanned, opts...).ToFunc()
+}
+
+// ByNotificationSocialSetID orders the results by the notification_social_set_id field.
+func ByNotificationSocialSetID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNotificationSocialSetID, opts...).ToFunc()
 }
 
 // ByAttempts orders the results by the attempts field.

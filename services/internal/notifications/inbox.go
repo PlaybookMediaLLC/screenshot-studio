@@ -88,8 +88,9 @@ func (s *Service) ListFeed(ctx context.Context, p Principal, view, cursor string
 			return nil, ErrInvalid
 		}
 	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT i.id,i.kind,i.description,i.href,i.created_at,i.resource_type,i.resource_id,o.name,i.category,i.read_at,i.archived_at
+	rows, err := s.DB.QueryContext(ctx, `SELECT i.id,i.kind,i.description,i.href,i.created_at,i.resource_type,i.resource_id,o.name,i.category,i.read_at,i.archived_at,COALESCE(e.notification_social_set_id,'')
 		FROM platform_notification_inbox i JOIN organization o ON o.id=i."organizationId"
+		LEFT JOIN outbox_event e ON e.id=i.event_id AND e."organizationId"=i."organizationId"
 		WHERE i."organizationId"=$1 AND i."userId"=$2 AND (i.created_at,i.id)<($3,$4)
 		AND (($5='archive' AND i.archived_at IS NOT NULL) OR ($5<>'archive' AND i.archived_at IS NULL AND ($5='all' OR i.category=$5)))
 		ORDER BY i.created_at DESC,i.id DESC LIMIT 21`, p.OrganizationID, p.UserID, c.Before, c.ID, view)
@@ -100,7 +101,7 @@ func (s *Service) ListFeed(ctx context.Context, p Principal, view, cursor string
 	for rows.Next() {
 		var i Item
 		i.WorkspaceID = p.OrganizationID
-		if err = rows.Scan(&i.ID, &i.Kind, &i.Description, &i.Href, &i.CreatedAt, &i.resourceType, &i.resourceID, &i.WorkspaceName, &i.Category, &i.ReadAt, &i.ArchivedAt); err != nil {
+		if err = rows.Scan(&i.ID, &i.Kind, &i.Description, &i.Href, &i.CreatedAt, &i.resourceType, &i.resourceID, &i.WorkspaceName, &i.Category, &i.ReadAt, &i.ArchivedAt, &i.sourceSocialSetID); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -127,6 +128,12 @@ func (s *Service) ListFeed(ctx context.Context, p Principal, view, cursor string
 		ok, _, err := s.resource(ctx, p.OrganizationID, p.UserID, item.resourceType, item.resourceID)
 		if err != nil {
 			return nil, err
+		}
+		if ok {
+			item.SourceSocialSet, ok, err = sourceSocialSet(ctx, s.DB, p.OrganizationID, p.UserID, item.sourceSocialSetID)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if !ok {
 			item.Description = "This activity is no longer available."

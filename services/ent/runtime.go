@@ -815,12 +815,16 @@ func init() {
 	outboxeventDescNotificationFanned := outboxeventFields[10].Descriptor()
 	// outboxevent.DefaultNotificationFanned holds the default value on creation for the notification_fanned field.
 	outboxevent.DefaultNotificationFanned = outboxeventDescNotificationFanned.Default.(bool)
+	// outboxeventDescNotificationSocialSetID is the schema descriptor for notification_social_set_id field.
+	outboxeventDescNotificationSocialSetID := outboxeventFields[11].Descriptor()
+	// outboxevent.DefaultNotificationSocialSetID holds the default value on creation for the notification_social_set_id field.
+	outboxevent.DefaultNotificationSocialSetID = outboxeventDescNotificationSocialSetID.Default.(string)
 	// outboxeventDescAttempts is the schema descriptor for attempts field.
-	outboxeventDescAttempts := outboxeventFields[11].Descriptor()
+	outboxeventDescAttempts := outboxeventFields[12].Descriptor()
 	// outboxevent.DefaultAttempts holds the default value on creation for the attempts field.
 	outboxevent.DefaultAttempts = outboxeventDescAttempts.Default.(int)
 	// outboxeventDescCreatedAt is the schema descriptor for created_at field.
-	outboxeventDescCreatedAt := outboxeventFields[14].Descriptor()
+	outboxeventDescCreatedAt := outboxeventFields[15].Descriptor()
 	// outboxevent.DefaultCreatedAt holds the default value on creation for the created_at field.
 	outboxevent.DefaultCreatedAt = outboxeventDescCreatedAt.Default.(func() time.Time)
 	pageknowledgeFields := schema.PageKnowledge{}.Fields()

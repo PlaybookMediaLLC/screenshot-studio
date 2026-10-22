@@ -44593,29 +44593,30 @@ func (m *OrganizationEnterpriseSettingsMutation) ResetEdge(name string) error {
 // OutboxEventMutation represents an operation that mutates the OutboxEvent nodes in the graph.
 type OutboxEventMutation struct {
 	config
-	op                      Op
-	typ                     string
-	id                      *string
-	organization_id         *string
-	_type                   *string
-	aggregate_type          *string
-	aggregate_id            *string
-	payload                 *map[string]interface{}
-	idempotency_key         *string
-	delivered_at            *time.Time
-	processing_at           *time.Time
-	notification_version    *int
-	addnotification_version *int
-	notification_fanned     *bool
-	attempts                *int
-	addattempts             *int
-	last_error              *string
-	dead_lettered_at        *time.Time
-	created_at              *time.Time
-	clearedFields           map[string]struct{}
-	done                    bool
-	oldValue                func(context.Context) (*OutboxEvent, error)
-	predicates              []predicate.OutboxEvent
+	op                         Op
+	typ                        string
+	id                         *string
+	organization_id            *string
+	_type                      *string
+	aggregate_type             *string
+	aggregate_id               *string
+	payload                    *map[string]interface{}
+	idempotency_key            *string
+	delivered_at               *time.Time
+	processing_at              *time.Time
+	notification_version       *int
+	addnotification_version    *int
+	notification_fanned        *bool
+	notification_social_set_id *string
+	attempts                   *int
+	addattempts                *int
+	last_error                 *string
+	dead_lettered_at           *time.Time
+	created_at                 *time.Time
+	clearedFields              map[string]struct{}
+	done                       bool
+	oldValue                   func(context.Context) (*OutboxEvent, error)
+	predicates                 []predicate.OutboxEvent
 }
 
 var _ ent.Mutation = (*OutboxEventMutation)(nil)
@@ -45128,6 +45129,42 @@ func (m *OutboxEventMutation) ResetNotificationFanned() {
 	m.notification_fanned = nil
 }
 
+// SetNotificationSocialSetID sets the "notification_social_set_id" field.
+func (m *OutboxEventMutation) SetNotificationSocialSetID(s string) {
+	m.notification_social_set_id = &s
+}
+
+// NotificationSocialSetID returns the value of the "notification_social_set_id" field in the mutation.
+func (m *OutboxEventMutation) NotificationSocialSetID() (r string, exists bool) {
+	v := m.notification_social_set_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNotificationSocialSetID returns the old "notification_social_set_id" field's value of the OutboxEvent entity.
+// If the OutboxEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OutboxEventMutation) OldNotificationSocialSetID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNotificationSocialSetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNotificationSocialSetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNotificationSocialSetID: %w", err)
+	}
+	return oldValue.NotificationSocialSetID, nil
+}
+
+// ResetNotificationSocialSetID resets all changes to the "notification_social_set_id" field.
+func (m *OutboxEventMutation) ResetNotificationSocialSetID() {
+	m.notification_social_set_id = nil
+}
+
 // SetAttempts sets the "attempts" field.
 func (m *OutboxEventMutation) SetAttempts(i int) {
 	m.attempts = &i
@@ -45352,7 +45389,7 @@ func (m *OutboxEventMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OutboxEventMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 15)
 	if m.organization_id != nil {
 		fields = append(fields, outboxevent.FieldOrganizationID)
 	}
@@ -45382,6 +45419,9 @@ func (m *OutboxEventMutation) Fields() []string {
 	}
 	if m.notification_fanned != nil {
 		fields = append(fields, outboxevent.FieldNotificationFanned)
+	}
+	if m.notification_social_set_id != nil {
+		fields = append(fields, outboxevent.FieldNotificationSocialSetID)
 	}
 	if m.attempts != nil {
 		fields = append(fields, outboxevent.FieldAttempts)
@@ -45423,6 +45463,8 @@ func (m *OutboxEventMutation) Field(name string) (ent.Value, bool) {
 		return m.NotificationVersion()
 	case outboxevent.FieldNotificationFanned:
 		return m.NotificationFanned()
+	case outboxevent.FieldNotificationSocialSetID:
+		return m.NotificationSocialSetID()
 	case outboxevent.FieldAttempts:
 		return m.Attempts()
 	case outboxevent.FieldLastError:
@@ -45460,6 +45502,8 @@ func (m *OutboxEventMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldNotificationVersion(ctx)
 	case outboxevent.FieldNotificationFanned:
 		return m.OldNotificationFanned(ctx)
+	case outboxevent.FieldNotificationSocialSetID:
+		return m.OldNotificationSocialSetID(ctx)
 	case outboxevent.FieldAttempts:
 		return m.OldAttempts(ctx)
 	case outboxevent.FieldLastError:
@@ -45546,6 +45590,13 @@ func (m *OutboxEventMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNotificationFanned(v)
+		return nil
+	case outboxevent.FieldNotificationSocialSetID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNotificationSocialSetID(v)
 		return nil
 	case outboxevent.FieldAttempts:
 		v, ok := value.(int)
@@ -45707,6 +45758,9 @@ func (m *OutboxEventMutation) ResetField(name string) error {
 		return nil
 	case outboxevent.FieldNotificationFanned:
 		m.ResetNotificationFanned()
+		return nil
+	case outboxevent.FieldNotificationSocialSetID:
+		m.ResetNotificationSocialSetID()
 		return nil
 	case outboxevent.FieldAttempts:
 		m.ResetAttempts()

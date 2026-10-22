@@ -39,6 +39,7 @@ type Outcome struct {
 }
 type occurrence struct {
 	id, org, kind, resourceType, resourceID string
+	sourceSocialSetID                       string
 	payload                                 map[string]any
 	createdAt                               time.Time
 }
@@ -78,7 +79,7 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 	defer tx.Rollback()
 	var e occurrence
 	var raw []byte
-	err = tx.QueryRowContext(ctx, `SELECT id,"organizationId",type,"aggregateType","aggregateId",payload,"createdAt" FROM outbox_event WHERE notification_version=1 AND NOT notification_fanned ORDER BY "createdAt",id FOR UPDATE SKIP LOCKED LIMIT 1`).Scan(&e.id, &e.org, &e.kind, &e.resourceType, &e.resourceID, &raw, &e.createdAt)
+	err = tx.QueryRowContext(ctx, `SELECT id,"organizationId",type,"aggregateType","aggregateId",payload,"createdAt",notification_social_set_id FROM outbox_event WHERE notification_version=1 AND NOT notification_fanned ORDER BY "createdAt",id FOR UPDATE SKIP LOCKED LIMIT 1`).Scan(&e.id, &e.org, &e.kind, &e.resourceType, &e.resourceID, &raw, &e.createdAt, &e.sourceSocialSetID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -118,11 +119,16 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 			if !allowed {
 				continue
 			}
+			if _, sourceAllowed, err := sourceSocialSet(ctx, tx, e.org, user, e.sourceSocialSetID); err != nil {
+				return false, err
+			} else if !sourceAllowed {
+				continue
+			}
 			pref, e2 := preferences(ctx, tx, e.org, user)
 			if e2 != nil {
 				return false, e2
 			}
-			if !pref.socialSetAllows(socialSetOf(row), e.kind) {
+			if !pref.socialSetAllows(socialSetOf(row), e.kind) || !pref.socialSetAllows(e.sourceSocialSetID, e.kind) {
 				continue
 			}
 			wantsEmail, e2 := emailWanted(ctx, tx, user)
@@ -420,8 +426,8 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 		return skip("EVENT_UNAVAILABLE")
 	}
 	var raw []byte
-	var resourceType, resourceID string
-	err = s.DB.QueryRowContext(ctx, `SELECT "aggregateType","aggregateId",payload FROM outbox_event WHERE id=$1 AND "organizationId"=$2`, d.EventID, d.OrganizationID).Scan(&resourceType, &resourceID, &raw)
+	var resourceType, resourceID, sourceID string
+	err = s.DB.QueryRowContext(ctx, `SELECT "aggregateType","aggregateId",payload,notification_social_set_id FROM outbox_event WHERE id=$1 AND "organizationId"=$2`, d.EventID, d.OrganizationID).Scan(&resourceType, &resourceID, &raw, &sourceID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return skip("EVENT_UNAVAILABLE")
 	}
@@ -447,7 +453,7 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 			return skip("DESTINATION_CHANGED")
 		}
 		if !test {
-			private, e := s.privateEvent(ctx, occurrence{org: d.OrganizationID, resourceType: resourceType, resourceID: resourceID})
+			private, e := s.privateEvent(ctx, occurrence{org: d.OrganizationID, resourceType: resourceType, resourceID: resourceID, sourceSocialSetID: sourceID})
 			if e != nil {
 				return env, Outcome{}, e
 			}
@@ -475,7 +481,12 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 		if !allowed && !test {
 			return skip("ACCESS_REMOVED")
 		}
-		if !test && !pref.socialSetAllows(socialSetOf(row), d.Kind) {
+		if _, sourceAllowed, e := sourceSocialSet(ctx, s.DB, d.OrganizationID, d.Destination, sourceID); e != nil {
+			return env, Outcome{}, e
+		} else if !sourceAllowed {
+			return skip("ACCESS_REMOVED")
+		}
+		if !test && (!pref.socialSetAllows(socialSetOf(row), d.Kind) || !pref.socialSetAllows(sourceID, d.Kind)) {
 			return skip("PREFERENCES_CHANGED")
 		}
 		if !emailConfigured() {
@@ -658,8 +669,14 @@ func availableChannel(p Policy, ch string) bool {
 // privateEvent excludes private or unavailable social-set resources from shared
 // delivery, both during projection and immediately before sending queued work.
 func (s *Service) privateEvent(ctx context.Context, e occurrence) (bool, error) {
+	if private, _, err := privateSocialSet(ctx, s.DB, e.org, e.sourceSocialSetID); err != nil || private {
+		return private, err
+	}
 	table, ok := resourceTables[e.resourceType]
-	if !ok || (table != "content_draft" && table != "scheduled_post") {
+	if e.resourceType == "channel_connection" {
+		table, ok = "channel_connection", true
+	}
+	if !ok || (table != "content_draft" && table != "scheduled_post" && table != "channel_connection") {
 		return false, nil
 	}
 	var setID sql.NullString

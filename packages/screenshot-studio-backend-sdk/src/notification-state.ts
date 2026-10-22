@@ -11,6 +11,8 @@ export const notificationItemSchema = z.object({
   href: z.string(),
   workspaceId: z.string(),
   workspaceName: z.string(),
+  /** Event-time source identity with a currently authorized name; absent on older APIs. */
+  sourceSocialSet: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
   createdAt: z.iso.datetime({ offset: true }),
   readAt: z.iso.datetime({ offset: true }).nullable(),
   archivedAt: z.iso.datetime({ offset: true }).nullable(),

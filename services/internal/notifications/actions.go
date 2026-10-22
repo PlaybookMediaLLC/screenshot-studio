@@ -55,8 +55,8 @@ func (s *Service) Resolve(ctx context.Context, p Principal, id string) (string, 
 	if err := s.Authorize(ctx, p, false); err != nil {
 		return "", err
 	}
-	var kind, resourceID string
-	err := s.DB.QueryRowContext(ctx, `SELECT e."aggregateType",e."aggregateId" FROM platform_notification_delivery d JOIN outbox_event e ON e.id=d.event_id AND e."organizationId"=d."organizationId" WHERE d.id=$1 AND d."organizationId"=$2 AND d.destination=$3 AND d.channel='in_app'`, id, p.OrganizationID, p.UserID).Scan(&kind, &resourceID)
+	var kind, resourceID, sourceID string
+	err := s.DB.QueryRowContext(ctx, `SELECT e."aggregateType",e."aggregateId",e.notification_social_set_id FROM platform_notification_delivery d JOIN outbox_event e ON e.id=d.event_id AND e."organizationId"=d."organizationId" WHERE d.id=$1 AND d."organizationId"=$2 AND d.destination=$3 AND d.channel='in_app'`, id, p.OrganizationID, p.UserID).Scan(&kind, &resourceID, &sourceID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", publishing.ErrNotFound
 	}
@@ -69,6 +69,9 @@ func (s *Service) Resolve(ctx context.Context, p Principal, id string) (string, 
 	}
 	if !allowed {
 		return "", nil
+	}
+	if _, allowed, err := sourceSocialSet(ctx, s.DB, p.OrganizationID, p.UserID, sourceID); err != nil || !allowed {
+		return "", err
 	}
 	return href(kind, resourceID, row), nil
 }

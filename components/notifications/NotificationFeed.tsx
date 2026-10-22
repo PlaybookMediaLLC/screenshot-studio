@@ -6,7 +6,11 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { Archive, ArchiveRestore, CheckCheck, Mail, MailOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { notificationRequest, useNotificationIdentity } from '@/lib/notifications/client'
+import {
+  NotificationRequestError,
+  notificationRequest,
+  useNotificationIdentity,
+} from '@/lib/notifications/client'
 import {
   notificationPageSchema,
   notificationStateResultSchema,
@@ -48,6 +52,9 @@ export function NotificationFeed({
     getNextPageParam: (page) => page.nextCursor || undefined,
     staleTime: 0,
     refetchInterval: 30_000,
+    retry: (failures, error) =>
+      !(error instanceof NotificationRequestError && [401, 403, 404].includes(error.status)) &&
+      failures < 2,
   })
   const change = useMutation({
     mutationFn: (input: NotificationStateInput) =>
@@ -190,6 +197,14 @@ export function NotificationFeed({
                     {item.description}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
+                    {item.sourceSocialSet ? (
+                      <>
+                        <span data-social-set-id={item.sourceSocialSet.id}>
+                          {item.sourceSocialSet.name}
+                        </span>
+                        {' · '}
+                      </>
+                    ) : null}
                     {item.workspaceName} ·{' '}
                     <time
                       dateTime={item.createdAt}

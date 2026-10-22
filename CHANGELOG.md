@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.36.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.36.1...v2.36.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **ui:** load Phosphor icons individually and repair browser checks ([#295](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/295)) ([c048c7c](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/c048c7ce294495b0c9e2353a0ddd09df91cbe674))
+
 ## [2.36.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.36.0...v2.36.1) (2026-10-22)
 
 

@@ -1,3 +1,4 @@
+import { publicImageUrl } from '@/lib/assets/public-image'
 import { Check } from 'lucide-react'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
@@ -39,7 +40,7 @@ export function OnboardingShell({
                 alt=""
                 className="size-7 rounded-lg"
                 height={28}
-                src="/logo-mark.png"
+                src={publicImageUrl('/logo-mark.png')}
                 width={28}
               />
               <span className="text-sm font-semibold tracking-tight">Shots</span>

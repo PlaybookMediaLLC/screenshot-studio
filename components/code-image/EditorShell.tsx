@@ -1,5 +1,7 @@
 'use client';
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -232,7 +234,7 @@ export function EditorTopBar({ title, description, shortcuts, frameExport }: Edi
           className="shrink-0 transition-opacity hover:opacity-80"
         >
           <Image
-            src="/logo-mark.png"
+            src={publicImageUrl("/logo-mark.png")}
             alt="Shots"
             width={28}
             height={28}

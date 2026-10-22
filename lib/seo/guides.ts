@@ -1,3 +1,4 @@
+import { publicImageUrl } from '@/lib/assets/public-image'
 import { MAX_DEVICE_MOCKUPS } from "@/lib/constants/mockups";
 import { howToGuides } from "@/lib/seo/how-to-guides";
 import {
@@ -575,7 +576,7 @@ export function getGuide(slug: string): Guide | undefined {
 }
 
 export function guideCover(slug: string): string {
-  return `/guide-covers/${slug}.webp`;
+  return publicImageUrl(`/guide-covers/${slug}.webp`);
 }
 
 /** Title without its trailing qualifier such as "(2026)" or "(Free)". */

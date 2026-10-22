@@ -1,5 +1,7 @@
 'use client'
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import * as React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -75,7 +77,7 @@ export function StudioHeader({
   return (
     <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b border-foreground/10 bg-background px-3 py-2 lg:h-14 lg:flex-nowrap lg:py-0">
       <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="Shots home">
-        <Image src="/logo-mark.png" alt="" width={28} height={28} className="size-7" priority />
+        <Image src={publicImageUrl("/logo-mark.png")} alt="" width={28} height={28} className="size-7" priority />
       </Link>
       <div className="flex min-w-0 items-center gap-2">
         {renaming ? (

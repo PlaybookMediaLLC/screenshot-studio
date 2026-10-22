@@ -1,5 +1,13 @@
 'use client'
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
 import { LoaderCircle } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -86,18 +94,21 @@ export function ShipInput({
         {products.length > 0 ? (
           <Label className="grid gap-1">
             Product
-            <select
-              aria-label="Product for quick draft"
-              className="h-10 rounded-lg border border-input bg-background px-3"
-              value={productSlug}
-              onChange={(event) => setProductSlug(event.target.value)}
-            >
-              {products.map((product) => (
-                <option key={product.slug} value={product.slug}>
-                  {product.name}
-                </option>
-              ))}
-            </select>
+            <Select value={productSlug} onValueChange={setProductSlug} disabled={busy}>
+              <SelectTrigger
+                aria-label="Product for quick draft"
+                className="h-10 w-full rounded-lg bg-background"
+              >
+                <SelectValue placeholder="Choose a product" />
+              </SelectTrigger>
+              <SelectContent>
+                {products.map((product) => (
+                  <SelectItem key={product.slug} value={product.slug}>
+                    {product.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Label>
         ) : null}
         <div className="flex flex-col gap-2 md:flex-row">

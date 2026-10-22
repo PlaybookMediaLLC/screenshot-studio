@@ -1,5 +1,7 @@
 "use client";
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -96,7 +98,7 @@ export function Hero({
           >
             <span className="text-muted-foreground">Backed by</span>
             <Image
-              src="/vercel-icon.png"
+              src={publicImageUrl("/vercel-icon.png")}
               alt=""
               width={12}
               height={10}

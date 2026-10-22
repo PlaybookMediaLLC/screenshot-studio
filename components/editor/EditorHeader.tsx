@@ -1,5 +1,7 @@
 'use client'
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import * as React from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -219,7 +221,7 @@ export function EditorHeader() {
                 className="size-6 rounded-md"
                 height={24}
                 priority
-                src="/logo-mark.png"
+                src={publicImageUrl("/logo-mark.png")}
                 width={24}
               />
             </Link>

@@ -32,12 +32,13 @@
     "test:trpc-smoke": "tsx scripts/verify-trpc-smoke.ts",
     "commitlint": "commitlint",
     "prepare": "git config core.hooksPath .githooks || true",
-    "upload-to-r2": "tsx scripts/upload-to-r2.ts",
-    "upload-all-to-r2": "tsx scripts/upload-all-to-r2.ts",
-    "upload-pattern": "tsx scripts/upload-pattern-to-r2.ts",
-    "upload-demo": "tsx scripts/upload-demo-to-r2.ts",
+    "upload-to-r2": "npm run upload-all-to-r2",
+    "upload-all-to-r2": "python3 scripts/public-images.py --upload",
+    "upload-pattern": "npm run upload-all-to-r2",
+    "upload-demo": "npm run upload-all-to-r2",
     "verify:announcements": "tsx --tsconfig tsconfig.verify.json scripts/verify-announcement-authoring.ts",
-    "verify:rfcs": "python3 scripts/verify-rfcs.py"
+    "verify:rfcs": "python3 scripts/verify-rfcs.py",
+    "assets:manifest": "python3 scripts/public-images.py"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.990.0",

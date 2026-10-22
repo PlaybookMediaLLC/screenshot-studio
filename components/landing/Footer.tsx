@@ -1,3 +1,5 @@
+
+import { publicImageUrl } from '@/lib/assets/public-image'
 import Link from "next/link";
 import Image from "next/image";
 import { AdSenseScript } from "@/components/AdSenseScript";
@@ -80,7 +82,7 @@ export function Footer({ brandName = "Shots" }: FooterProps) {
               className="inline-flex w-fit items-center gap-2.5"
             >
               <Image
-                src="/logo-mark.png"
+                src={publicImageUrl("/logo-mark.png")}
                 alt=""
                 width={40}
                 height={40}

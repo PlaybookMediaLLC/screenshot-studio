@@ -40,10 +40,10 @@ ENV NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
 # The editor bundle exceeds Node's default 2 GiB heap on some build hosts.
 RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build
 
-# The app uses R2 for these backgrounds when its public URL is configured.
+# Public images are versioned in R2; fonts and other runtime files stay bundled.
 # Keep local files only for self-contained builds without R2.
 RUN if [ -n "$NEXT_PUBLIC_R2_PUBLIC_URL" ]; then \
-      rm -rf public/assets public/mac public/mesh public/paper public/pattern public/radiant public/raycast; \
+      node -e 'const fs=require("fs"); for(const p of Object.keys(require("./lib/assets/public-images.json"))) fs.rmSync("public"+p,{force:true})'; \
     fi
 
 FROM base AS runner

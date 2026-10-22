@@ -497,3 +497,60 @@ test('sidebar choices persist across client navigation and content scrolls insid
   await expect(page.getByRole('heading', { name: 'Automate', exact: true })).toBeVisible()
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })
+
+test('theme switch persists across pages and reloads, with an honest rollback on failure', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('/home')
+  const light = page.getByRole('button', { name: 'Switch to light mode' }).filter({ visible: true })
+  await expect(light).toBeEnabled()
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/v1/me/preferences') && response.request().method() === 'PATCH'
+  )
+  await light.click()
+  expect((await saved).status()).toBe(200)
+  await expect(page.locator('html')).toHaveClass(/light/)
+  await page.screenshot({ path: '.context/ux-redesign/home-light.png', fullPage: true })
+  await page
+    .getByRole('complementary', { name: 'Primary navigation' })
+    .getByRole('link', { name: 'Library', exact: true })
+    .click()
+  await expect(page.getByRole('heading', { name: 'Library', exact: true })).toBeVisible()
+  await expect(page.locator('html')).toHaveClass(/light/)
+  await page.reload()
+  const dark = page.getByRole('button', { name: 'Switch to dark mode' }).filter({ visible: true })
+  await expect(dark).toBeEnabled()
+  await page.route('**/api/v1/me/preferences', (route) =>
+    route.request().method() === 'PATCH'
+      ? route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Temporarily unavailable' }),
+        })
+      : route.continue()
+  )
+  await dark.click()
+  await expect(page.getByText('Temporarily unavailable', { exact: false }).first()).toBeVisible()
+  await expect(page.locator('html')).toHaveClass(/light/)
+  await page.unroute('**/api/v1/me/preferences')
+  await page.setViewportSize({ width: 390, height: 844 })
+  const mobileDark = page
+    .getByRole('button', { name: 'Switch to dark mode' })
+    .filter({ visible: true })
+  await expect(mobileDark).toBeEnabled()
+  await mobileDark.focus()
+  const darkSaved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/v1/me/preferences') && response.request().method() === 'PATCH'
+  )
+  await page.keyboard.press('Enter')
+  expect((await darkSaved).status()).toBe(200)
+  await expect(page.locator('html')).toHaveClass(/dark/)
+  await page.goto('/home')
+  await expect(page.getByText('No notifications', { exact: true })).toBeVisible()
+  await page.screenshot({ path: '.context/ux-redesign/home-dark-mobile.png', fullPage: true })
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.screenshot({ path: '.context/ux-redesign/home-dark.png', fullPage: true })
+})

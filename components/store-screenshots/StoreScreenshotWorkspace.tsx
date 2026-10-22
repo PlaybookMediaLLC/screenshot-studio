@@ -1,5 +1,7 @@
 "use client";
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import { shouldIgnoreEditorShortcut } from "@/lib/editor-shortcuts";
 
 import * as React from "react";
@@ -149,7 +151,7 @@ function StoreHeader({
     <header className="relative flex h-16 shrink-0 items-center justify-between gap-3 border-b border-foreground/10 bg-background px-3 sm:px-4">
       <div className="flex min-w-0 items-center gap-2">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-80">
-          <Image src="/logo-mark.png" alt="Shots" width={32} height={32} className="size-8" priority />
+          <Image src={publicImageUrl("/logo-mark.png")} alt="Shots" width={32} height={32} className="size-8" priority />
           <span className="hidden text-sm font-semibold tracking-tight text-foreground lg:inline">Shots</span>
         </Link>
         <div className="mx-1 hidden h-4 w-px bg-foreground/10 sm:block" />

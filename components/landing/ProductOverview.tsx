@@ -1,3 +1,5 @@
+
+import { publicImageUrl } from '@/lib/assets/public-image'
 import Image from "next/image";
 
 export function ProductOverview(): React.JSX.Element {
@@ -7,7 +9,7 @@ export function ProductOverview(): React.JSX.Element {
         <div className="flex flex-col items-center gap-10 md:flex-row md:items-stretch md:gap-0 lg:gap-0">
           <div className="hidden w-full shrink-0 justify-center md:flex md:w-[30%] md:justify-start md:pr-12 lg:w-[28%] lg:pr-16">
             <Image
-              src="/logo-mark.png"
+              src={publicImageUrl("/logo-mark.png")}
               alt="Shots"
               width={256}
               height={256}

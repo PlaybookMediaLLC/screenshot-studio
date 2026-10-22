@@ -84,9 +84,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #1e1e1e;
-  --card: #f5f5f5;
+  --background: #f4f5f7;
+  --foreground: #20242c;
+  --card: #ffffff;
   --card-foreground: #1e1e1e;
   --popover: #ffffff;
   --popover-foreground: #1e1e1e;
@@ -95,20 +95,20 @@
   --secondary: #f0f0f0;
   --secondary-foreground: #1e1e1e;
   --muted: #f5f5f5;
-  --muted-foreground: #6b6b6b;
+  --muted-foreground: #646b78;
   --accent: #f0f0f0;
   --accent-foreground: #1e1e1e;
   --destructive: #f44336;
   --destructive-foreground: #ffffff;
-  --border: #e5e5e5;
+  --border: #e1e4e9;
   --input: #d4d4d4;
-  --ring: #737373;
+  --ring: #527bc4;
   --chart-1: #0a0a0a;
   --chart-2: #737373;
   --chart-3: #ff9500;
   --chart-4: #af52de;
   --chart-5: #ff3b30;
-  --sidebar: #ffffff;
+  --sidebar: #f4f5f7;
   --sidebar-foreground: #1e1e1e;
   --sidebar-primary: #0a0a0a;
   --sidebar-primary-foreground: #ffffff;
@@ -116,10 +116,10 @@
   --sidebar-accent-foreground: #1e1e1e;
   --sidebar-border: #e5e5e5;
   --sidebar-ring: #737373;
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'Fira Code', monospace;
-  --radius: 0.5rem;
+  --radius: 0.75rem;
   --shadow-x: 0px;
   --shadow-y: 2px;
   --shadow-blur: 10px;
@@ -136,8 +136,8 @@
   --shadow-2xl: 0px 2px 10px 0px hsl(0 0% 0% / 0.13);
   --tracking-normal: -0.01em;
   --spacing: 0.25rem;
-  --nav-cta-bg: #ffffff;
-  --nav-cta-fg: #0a0a0a;
+  --nav-cta-bg: #20242c;
+  --nav-cta-fg: #ffffff;
   --nav-cta-glow: rgba(255, 255, 255, 0.5);
   --bento-glow-rgb: 255, 255, 255;
   --nav-cta-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -155,31 +155,31 @@
 
 /* Polar-style product surfaces, matching the marketing site. */
 .dark {
-  --background: #090909;
+  --background: #0c0e12;
   --foreground: #ededed;
-  --card: #111111;
+  --card: #13161c;
   --card-foreground: #ededed;
-  --popover: #111111;
+  --popover: #1a1e26;
   --popover-foreground: #ededed;
   --primary: #ffffff;
   --primary-foreground: #0a0a0a;
-  --secondary: #161616;
+  --secondary: #1c2028;
   --secondary-foreground: #ededed;
-  --muted: #161616;
-  --muted-foreground: #949494;
-  --accent: #1a1a1a;
+  --muted: #1c2028;
+  --muted-foreground: #9ba3b2;
+  --accent: #242a34;
   --accent-foreground: #ffffff;
   --destructive: #ff453a;
   --destructive-foreground: #ffffff;
-  --border: #212121;
-  --input: #303030;
-  --ring: #858585;
+  --border: #292f3a;
+  --input: #363e4b;
+  --ring: #8daeea;
   --chart-1: #ffffff;
   --chart-2: #a3a3a3;
   --chart-3: #ff9f0a;
   --chart-4: #bf5af2;
   --chart-5: #ff453a;
-  --sidebar: #090909;
+  --sidebar: #0c0e12;
   --sidebar-foreground: #ededed;
   --sidebar-primary: #ffffff;
   --sidebar-primary-foreground: #0a0a0a;
@@ -621,7 +621,9 @@ html *::-webkit-scrollbar {
   stroke-width: 1.75;
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: color 160ms ease, stroke-width 160ms ease;
+  transition:
+    color 160ms ease,
+    stroke-width 160ms ease;
 }
 .platform-shell [data-platform-nav][aria-current='page'] svg.lucide {
   color: var(--foreground);
@@ -629,7 +631,10 @@ html *::-webkit-scrollbar {
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .platform-shell [data-platform-nav] svg.lucide {
-    transition: color 160ms ease, stroke-width 160ms ease, transform 160ms ease;
+    transition:
+      color 160ms ease,
+      stroke-width 160ms ease,
+      transform 160ms ease;
   }
   .platform-shell [data-platform-nav]:hover svg.lucide {
     color: var(--foreground);
@@ -657,4 +662,82 @@ html *::-webkit-scrollbar {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Product chrome: quiet surfaces, precise controls and one type scale in both themes. */
+.platform-shell {
+  --nav-cta-bg: var(--primary);
+  --nav-cta-fg: var(--primary-foreground);
+  --nav-cta-text-shadow: none;
+  --nav-cta-hover-shadow: 0 2px 5px rgb(0 0 0 / 12%);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.platform-shell [data-platform-scroll] {
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 3%),
+    0 12px 40px rgb(0 0 0 / 3%);
+  scroll-padding-block: 24px;
+}
+.platform-shell [data-platform-scroll] :where(h1, h2, h3) {
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.platform-shell [data-platform-nav] {
+  border-radius: 9px;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+.platform-shell [data-platform-nav][aria-current='page'] {
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+}
+.platform-shell :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']) {
+  background-color: var(--background);
+  border-color: var(--input);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 2%);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+.platform-shell
+  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 16%, transparent);
+  outline: none;
+}
+.platform-shell
+  [data-slot='button']:not([data-variant='custom']):not([data-variant='integration']) {
+  border-radius: 8px;
+  letter-spacing: -0.01em;
+  transition-property: background-color, border-color, color, box-shadow;
+}
+.platform-shell [data-slot='button'][data-variant='default'] {
+  text-shadow: none;
+}
+:where(
+  [data-slot='select-content'],
+  [data-slot='dropdown-menu-content'],
+  [data-slot='popover-content']
+) {
+  border-color: var(--border);
+  border-radius: 12px;
+  background-color: var(--popover);
+  box-shadow:
+    0 4px 8px rgb(0 0 0 / 6%),
+    0 16px 48px rgb(0 0 0 / 14%);
+}
+:where(
+  [data-slot='select-item'],
+  [data-slot='dropdown-menu-item'],
+  [data-slot='dropdown-menu-checkbox-item']
+) {
+  border-radius: 6px;
+}
+.platform-shell :where(th, td, time) {
+  font-variant-numeric: tabular-nums;
 }

@@ -1,3 +1,5 @@
+
+import { publicImageUrl } from '@/lib/assets/public-image'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowDown01Icon, ArrowRight01Icon, Menu01Icon } from 'hugeicons-react'
@@ -57,7 +59,7 @@ export function LandingNav() {
       <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0a0a0a]/80 backdrop-blur-xl">
         <nav aria-label="Main" className={`${CONTAINER} flex h-16 items-center gap-4 sm:gap-8`}>
           <Link className="flex shrink-0 items-center gap-2.5" href="/landing">
-            <Image alt="" className="size-7" height={28} priority src="/logo-mark.png" width={28} />
+            <Image alt="" className="size-7" height={28} priority src={publicImageUrl("/logo-mark.png")} width={28} />
             <span className="text-[15px] font-medium tracking-[-0.02em] text-white">
               Shots
             </span>

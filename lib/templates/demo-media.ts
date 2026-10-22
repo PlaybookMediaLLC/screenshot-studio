@@ -1,4 +1,6 @@
-export const TEMPLATE_DEMO_IMAGE_URL = '/demo/notion-showcase.webp';
+
+import { publicImageUrl } from '@/lib/assets/public-image'
+export const TEMPLATE_DEMO_IMAGE_URL = publicImageUrl('/demo/notion-showcase.webp');
 export const TEMPLATE_DEMO_IMAGE_NAME = 'template-demo.webp';
 
 export function isTemplateDemoMedia(

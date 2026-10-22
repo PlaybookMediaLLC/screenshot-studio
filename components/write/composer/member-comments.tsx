@@ -1,5 +1,12 @@
 'use client'
 
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+
 import * as React from 'react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
@@ -156,7 +163,7 @@ export function MemberComments({
   }
   return (
     <div className="flex flex-col gap-4 p-4 text-sm" data-testid="member-comments-panel">
-      <p className="text-xs text-neutral-400">
+      <p className="text-xs text-muted-foreground">
         You can comment and reply while the draft stays read-only. You can edit or delete your own
         comments.
       </p>
@@ -197,7 +204,7 @@ export function MemberComments({
           )
         }}
       >
-        <label className="text-xs text-neutral-300" htmlFor="member-comment-text">
+        <label className="text-xs text-foreground" htmlFor="member-comment-text">
           {composer.commentId
             ? 'Edit your comment'
             : composer.threadId
@@ -215,32 +222,43 @@ export function MemberComments({
           onChange={(event) => setComposer({ ...composer, text: event.target.value })}
         />
         {members.length > 0 ? (
-          <label className="grid gap-1 text-xs text-neutral-400">
+          <label className="grid gap-1 text-xs text-muted-foreground">
             Mention teammates
-            <select
-              multiple
-              aria-label="Mention teammates"
-              className="max-h-24 rounded-md border border-white/10 bg-[#171717] p-2"
-              disabled={busy}
-              value={composer.mentionUserIds}
-              onChange={(event) =>
-                setComposer({
-                  ...composer,
-                  mentionUserIds: Array.from(
-                    event.target.selectedOptions,
-                    (option) => option.value
-                  ),
-                })
-              }
-            >
-              {members
-                .filter((member) => member.user.id !== currentUserId)
-                .map((member) => (
-                  <option key={member.user.id} value={member.user.id}>
-                    {member.user.name}
-                  </option>
-                ))}
-            </select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="justify-between"
+                  disabled={busy}
+                  aria-label="Mention teammates"
+                >
+                  {composer.mentionUserIds.length
+                    ? `${composer.mentionUserIds.length} teammates selected`
+                    : 'Choose teammates'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="max-h-60 overflow-y-auto">
+                {members
+                  .filter((member) => member.user.id !== currentUserId)
+                  .map((member) => (
+                    <DropdownMenuCheckboxItem
+                      key={member.user.id}
+                      checked={composer.mentionUserIds.includes(member.user.id)}
+                      onSelect={(event) => event.preventDefault()}
+                      onCheckedChange={(checked) =>
+                        setComposer({
+                          ...composer,
+                          mentionUserIds: checked
+                            ? [...composer.mentionUserIds, member.user.id]
+                            : composer.mentionUserIds.filter((id) => id !== member.user.id),
+                        })
+                      }
+                    >
+                      {member.user.name}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </label>
         ) : null}
         <div className="flex gap-2">
@@ -267,7 +285,7 @@ export function MemberComments({
         </div>
       </form>
       {threads.length === 0 ? (
-        <p className="text-sm text-neutral-400">No team comments yet.</p>
+        <p className="text-sm text-muted-foreground">No team comments yet.</p>
       ) : null}
       {threads.map((thread) => (
         <section
@@ -275,7 +293,7 @@ export function MemberComments({
           data-testid="member-comment-thread"
           className="grid gap-3 rounded-lg border border-white/10 p-3"
         >
-          <div className="flex items-center justify-between text-xs text-neutral-400">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
               {thread.isResolved ? 'Resolved' : 'Open'} ·{' '}
               {thread.scope === 'draft' ? 'Draft discussion' : 'Text discussion'}
@@ -297,7 +315,7 @@ export function MemberComments({
             </Button>
           </div>
           {thread.documentContent ? (
-            <blockquote className="border-l-2 border-amber-300/50 pl-2 text-xs text-neutral-400">
+            <blockquote className="border-l-2 border-amber-300/50 pl-2 text-xs text-muted-foreground">
               {thread.documentContent}
             </blockquote>
           ) : null}
@@ -305,12 +323,12 @@ export function MemberComments({
             const value = content(comment.contentRich)
             return (
               <article key={comment.id} data-testid="member-comment" className="grid gap-1">
-                <p className="text-xs text-neutral-400">
+                <p className="text-xs text-muted-foreground">
                   {names.get(comment.userId) ?? 'Member'} ·{' '}
                   <LocalTime value={comment.createdAt.toISOString()} />
                   {comment.isEdited ? ' · Edited' : ''}
                 </p>
-                <p className="whitespace-pre-wrap break-words text-neutral-200">
+                <p className="whitespace-pre-wrap break-words text-foreground">
                   {content(comment.contentRich, names).text}
                 </p>
                 {comment.userId === currentUserId ? (
@@ -363,10 +381,10 @@ export function MemberComments({
       ))}
       {draft.guestComments.length > 0 ? (
         <section className="grid gap-2">
-          <h3 className="text-xs text-neutral-400">From the public link</h3>
+          <h3 className="text-xs text-muted-foreground">From the public link</h3>
           {draft.guestComments.map((comment, index) => (
             <p key={index}>
-              <span className="text-neutral-400">{comment.name}: </span>
+              <span className="text-muted-foreground">{comment.name}: </span>
               {comment.text}
             </p>
           ))}

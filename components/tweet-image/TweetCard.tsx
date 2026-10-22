@@ -1,3 +1,5 @@
+
+import { publicImageUrl } from '@/lib/assets/public-image'
 export type TweetTheme = 'light' | 'dark';
 
 export function parseTweetId(input: string): string | null {
@@ -261,7 +263,7 @@ export const SAMPLE_TWEET: TweetData = {
   user: {
     name: 'Shots',
     screen_name: 'shots',
-    profile_image_url_https: '/logo-mark.png',
+    profile_image_url_https: publicImageUrl('/logo-mark.png'),
     verified: false,
     is_blue_verified: true,
   },

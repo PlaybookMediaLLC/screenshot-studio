@@ -1,5 +1,7 @@
 'use client'
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import {
   Activity,
   House,
@@ -36,6 +38,7 @@ import type { z } from 'zod'
 import { surface } from './shell-config'
 import { Button } from '@/components/ui/button'
 import { SidebarLink } from './SidebarLink'
+import { ThemeToggle } from './ThemeToggle'
 
 type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
 type NavItem = {
@@ -165,7 +168,7 @@ function WorkspaceSwitcher({
       align={collapsed ? 'end' : 'start'}
       side={collapsed ? 'right' : 'top'}
       triggerClassName={cn(
-        'flex h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-foreground/[0.04]',
+        'flex h-11 min-w-0 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-foreground/[0.04]',
         collapsed && 'size-11 justify-center px-0'
       )}
     >
@@ -194,7 +197,13 @@ function WorkspaceSwitcher({
 function Brand({ collapsed }: { collapsed: boolean }) {
   return (
     <SidebarLink className="flex min-w-0 items-center gap-2.5" href="/home" aria-label="Shots Home">
-      <Image alt="" className="size-6 rounded-md" height={24} src="/logo-mark.png" width={24} />
+      <Image
+        alt=""
+        className="size-6 rounded-md"
+        height={24}
+        src={publicImageUrl('/logo-mark.png')}
+        width={24}
+      />
       {collapsed ? null : (
         <span className="truncate text-sm font-semibold tracking-tight text-foreground">Shots</span>
       )}
@@ -364,11 +373,13 @@ export function PlatformSidebar({
           // sits on the switcher and swallows clicks.
           <div
             className={cn(
-              'flex w-full justify-center border-t border-foreground/[0.06] pt-2',
+              'flex w-full items-center justify-center gap-1 border-t border-border pt-3',
+              collapsed && 'flex-col-reverse',
               process.env.NODE_ENV === 'development' && 'mb-12'
             )}
           >
             <WorkspaceSwitcher collapsed={collapsed} organizationName={organizationName} />
+            <ThemeToggle />
           </div>
         }
       </aside>
@@ -427,7 +438,8 @@ export function PlatformSidebar({
           </SheetContent>
         </Sheet>
         <Brand collapsed={false} />
-        <div className="ms-auto">
+        <div className="ms-auto flex items-center gap-1">
+          <ThemeToggle />
           <NotificationCenter />
         </div>
       </header>

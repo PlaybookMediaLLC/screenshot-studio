@@ -1,16 +1,23 @@
 import { z } from 'zod'
+import { needsSignIn } from '@/lib/auth/sign-in-gate'
 import { routing } from '@/i18n/routing'
 import { navigationLayoutSchema } from '@/lib/api/contracts/settings-platform'
 
 /**
  * Appearance (RFC 043). The platform's pages follow a person's theme; the
- * screenshot editor, the image tools and the marketing site keep their
- * dark-only design, so the theme is forced dark there.
+ * marketing site keeps its dark design. Editor artwork has its own colors.
  */
 
 /** Route prefixes whose pages follow the chosen theme. */
 export const THEMED_ROUTE_PREFIXES = [
   '/home',
+  '/editor',
+  '/canvas',
+  '/creative-sets',
+  '/store-screenshots',
+  '/code',
+  '/tweet',
+  '/tools',
   '/create',
   '/library',
   '/write',
@@ -39,7 +46,10 @@ export function withoutLocale(pathname: string): string {
 /** Whether the page at `pathname` follows the chosen theme. */
 export function followsTheme(pathname: string): boolean {
   const path = withoutLocale(pathname)
-  return THEMED_ROUTE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
+  return (
+    needsSignIn(path) ||
+    THEMED_ROUTE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
+  )
 }
 
 /** The calendar week's first day as a JavaScript weekday (0 is Sunday). */

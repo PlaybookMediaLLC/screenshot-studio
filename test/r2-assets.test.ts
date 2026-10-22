@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import test, { afterEach } from 'node:test';
 import { getBackgroundCSS, getBackgroundImageUrl } from '../lib/constants/backgrounds';
+import images from '../lib/assets/public-images.json';
 import { getR2ImageUrl, getR2PublicUrl } from '../lib/r2';
 
 const originalPublicUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
@@ -10,10 +11,10 @@ afterEach(() => {
   else process.env.NEXT_PUBLIC_R2_PUBLIC_URL = originalPublicUrl;
 });
 
-test('the default background uses the bundled image even with R2 configured', () => {
+test('the default background uses the immutable R2 image when configured', () => {
   process.env.NEXT_PUBLIC_R2_PUBLIC_URL = 'https://unavailable.example';
   const config = { type: 'image', value: 'backgrounds/raycast/red_distortion_4.webp' } as const;
-  const localUrl = '/raycast/red_distortion_4.webp';
+  const localUrl = `/r2-assets/${images['/raycast/red_distortion_4.webp']}`;
 
   assert.equal(getR2PublicUrl(config.value), localUrl);
   assert.equal(getR2PublicUrl(`/${config.value}`), localUrl);
@@ -24,13 +25,13 @@ test('the default background uses the bundled image even with R2 configured', ()
     getBackgroundCSS(config, 32).backgroundImage,
     `url(/_next/image?url=${encodeURIComponent(localUrl)}&w=32&q=75)`,
   );
-  assert.ok(existsSync(new URL(`../public${localUrl}`, import.meta.url)));
+  assert.ok(existsSync(new URL('../public/raycast/red_distortion_4.webp', import.meta.url)));
 });
 
 test('other assets retain their R2 proxy and local fallback paths', () => {
   process.env.NEXT_PUBLIC_R2_PUBLIC_URL = 'https://assets.example';
   assert.equal(getR2PublicUrl('backgrounds/raycast/blue_distortion_1.webp'),
-    '/r2-assets/backgrounds/raycast/blue_distortion_1.webp');
+    `/r2-assets/${images['/raycast/blue_distortion_1.webp']}`);
   assert.equal(getR2PublicUrl('/overlays/shadow/window.png'), '/r2-assets/overlays/shadow/window.png');
 
   delete process.env.NEXT_PUBLIC_R2_PUBLIC_URL;

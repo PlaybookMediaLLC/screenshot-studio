@@ -1,5 +1,7 @@
 'use client'
 
+import { publicImageUrl } from '@/lib/assets/public-image'
+
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -113,7 +115,7 @@ const featuredGuide = {
   title: 'Make any screenshot look professional',
   href: '/guides/how-to-beautify-screenshots',
   description: 'Backgrounds, shadows, and frames in under a minute.',
-  cover: '/guide-covers/how-to-beautify-screenshots.webp',
+  cover: publicImageUrl('/guide-covers/how-to-beautify-screenshots.webp'),
 }
 
 const SCROLL_COMPACT_AT = 10
@@ -251,7 +253,7 @@ export function Navigation({ brandName = 'Shots' }: NavigationProps) {
           className="col-start-1 flex min-w-0 items-center gap-2.5 justify-self-start"
         >
           <Image
-            src="/logo-mark.png"
+            src={publicImageUrl("/logo-mark.png")}
             alt={brandName}
             width={32}
             height={32}

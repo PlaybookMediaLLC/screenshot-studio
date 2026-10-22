@@ -978,12 +978,16 @@ func init() {
 	platformnotificationpreferenceDescSocialSets := platformnotificationpreferenceFields[4].Descriptor()
 	// platformnotificationpreference.DefaultSocialSets holds the default value on creation for the social_sets field.
 	platformnotificationpreference.DefaultSocialSets = platformnotificationpreferenceDescSocialSets.Default.(map[string]map[string]bool)
+	// platformnotificationpreferenceDescSocialSetChannels is the schema descriptor for social_set_channels field.
+	platformnotificationpreferenceDescSocialSetChannels := platformnotificationpreferenceFields[5].Descriptor()
+	// platformnotificationpreference.DefaultSocialSetChannels holds the default value on creation for the social_set_channels field.
+	platformnotificationpreference.DefaultSocialSetChannels = platformnotificationpreferenceDescSocialSetChannels.Default.(map[string]map[string]map[string]bool)
 	// platformnotificationpreferenceDescGeneration is the schema descriptor for generation field.
-	platformnotificationpreferenceDescGeneration := platformnotificationpreferenceFields[5].Descriptor()
+	platformnotificationpreferenceDescGeneration := platformnotificationpreferenceFields[6].Descriptor()
 	// platformnotificationpreference.DefaultGeneration holds the default value on creation for the generation field.
 	platformnotificationpreference.DefaultGeneration = platformnotificationpreferenceDescGeneration.Default.(int)
 	// platformnotificationpreferenceDescUpdatedAt is the schema descriptor for updated_at field.
-	platformnotificationpreferenceDescUpdatedAt := platformnotificationpreferenceFields[6].Descriptor()
+	platformnotificationpreferenceDescUpdatedAt := platformnotificationpreferenceFields[7].Descriptor()
 	// platformnotificationpreference.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	platformnotificationpreference.DefaultUpdatedAt = platformnotificationpreferenceDescUpdatedAt.Default.(func() time.Time)
 	platformnotificationseenactionFields := schema.PlatformNotificationSeenAction{}.Fields()

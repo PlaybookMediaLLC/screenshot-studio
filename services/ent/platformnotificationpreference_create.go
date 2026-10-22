@@ -44,6 +44,12 @@ func (_c *PlatformNotificationPreferenceCreate) SetSocialSets(v map[string]map[s
 	return _c
 }
 
+// SetSocialSetChannels sets the "social_set_channels" field.
+func (_c *PlatformNotificationPreferenceCreate) SetSocialSetChannels(v map[string]map[string]map[string]bool) *PlatformNotificationPreferenceCreate {
+	_c.mutation.SetSocialSetChannels(v)
+	return _c
+}
+
 // SetGeneration sets the "generation" field.
 func (_c *PlatformNotificationPreferenceCreate) SetGeneration(v int) *PlatformNotificationPreferenceCreate {
 	_c.mutation.SetGeneration(v)
@@ -121,6 +127,10 @@ func (_c *PlatformNotificationPreferenceCreate) defaults() {
 		v := platformnotificationpreference.DefaultSocialSets
 		_c.mutation.SetSocialSets(v)
 	}
+	if _, ok := _c.mutation.SocialSetChannels(); !ok {
+		v := platformnotificationpreference.DefaultSocialSetChannels
+		_c.mutation.SetSocialSetChannels(v)
+	}
 	if _, ok := _c.mutation.Generation(); !ok {
 		v := platformnotificationpreference.DefaultGeneration
 		_c.mutation.SetGeneration(v)
@@ -144,6 +154,9 @@ func (_c *PlatformNotificationPreferenceCreate) check() error {
 	}
 	if _, ok := _c.mutation.SocialSets(); !ok {
 		return &ValidationError{Name: "social_sets", err: errors.New(`ent: missing required field "PlatformNotificationPreference.social_sets"`)}
+	}
+	if _, ok := _c.mutation.SocialSetChannels(); !ok {
+		return &ValidationError{Name: "social_set_channels", err: errors.New(`ent: missing required field "PlatformNotificationPreference.social_set_channels"`)}
 	}
 	if _, ok := _c.mutation.Generation(); !ok {
 		return &ValidationError{Name: "generation", err: errors.New(`ent: missing required field "PlatformNotificationPreference.generation"`)}
@@ -201,6 +214,10 @@ func (_c *PlatformNotificationPreferenceCreate) createSpec() (*PlatformNotificat
 	if value, ok := _c.mutation.SocialSets(); ok {
 		_spec.SetField(platformnotificationpreference.FieldSocialSets, field.TypeJSON, value)
 		_node.SocialSets = value
+	}
+	if value, ok := _c.mutation.SocialSetChannels(); ok {
+		_spec.SetField(platformnotificationpreference.FieldSocialSetChannels, field.TypeJSON, value)
+		_node.SocialSetChannels = value
 	}
 	if value, ok := _c.mutation.Generation(); ok {
 		_spec.SetField(platformnotificationpreference.FieldGeneration, field.TypeInt, value)

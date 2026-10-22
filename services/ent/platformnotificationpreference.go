@@ -26,6 +26,8 @@ type PlatformNotificationPreference struct {
 	Events map[string]interface{} `json:"events,omitempty"`
 	// SocialSets holds the value of the "social_sets" field.
 	SocialSets map[string]map[string]bool `json:"social_sets,omitempty"`
+	// SocialSetChannels holds the value of the "social_set_channels" field.
+	SocialSetChannels map[string]map[string]map[string]bool `json:"social_set_channels,omitempty"`
 	// Generation holds the value of the "generation" field.
 	Generation int `json:"generation,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -38,7 +40,7 @@ func (*PlatformNotificationPreference) scanValues(columns []string) ([]any, erro
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case platformnotificationpreference.FieldEvents, platformnotificationpreference.FieldSocialSets:
+		case platformnotificationpreference.FieldEvents, platformnotificationpreference.FieldSocialSets, platformnotificationpreference.FieldSocialSetChannels:
 			values[i] = new([]byte)
 		case platformnotificationpreference.FieldGeneration:
 			values[i] = new(sql.NullInt64)
@@ -93,6 +95,14 @@ func (_m *PlatformNotificationPreference) assignValues(columns []string, values 
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &_m.SocialSets); err != nil {
 					return fmt.Errorf("unmarshal field social_sets: %w", err)
+				}
+			}
+		case platformnotificationpreference.FieldSocialSetChannels:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field social_set_channels", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.SocialSetChannels); err != nil {
+					return fmt.Errorf("unmarshal field social_set_channels: %w", err)
 				}
 			}
 		case platformnotificationpreference.FieldGeneration:
@@ -154,6 +164,9 @@ func (_m *PlatformNotificationPreference) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("social_sets=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SocialSets))
+	builder.WriteString(", ")
+	builder.WriteString("social_set_channels=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SocialSetChannels))
 	builder.WriteString(", ")
 	builder.WriteString("generation=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Generation))

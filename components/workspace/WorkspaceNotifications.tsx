@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { Group, Section } from '@/components/platform-ui'
 import { EmailSwitch, SocialSetNotifications } from '@/components/settings/NotificationExtras'
+import { NotificationPreferenceTable } from '@/components/settings/NotificationPreferenceTable'
 import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
 import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
@@ -20,6 +21,7 @@ import {
 } from '@/components/ui/select'
 import {
   notificationRequest,
+  NotificationRequestError,
   useNotificationIdentity,
   useNotificationPageVisible,
 } from '@/lib/notifications/client'
@@ -55,6 +57,7 @@ function SettingsForm({
   const preferencesDirty = JSON.stringify(preferences) !== JSON.stringify(settings.preferences)
   const policyDirty = JSON.stringify(policy) !== JSON.stringify(settings.policy)
   useUnsavedSettings(preferencesDirty || policyDirty)
+  const [preferencesConflict, setPreferencesConflict] = useState(false)
   const [error, setError] = useState(
     search.has('error')
       ? 'Slack did not connect. Check your workspace and permissions, then try again.'
@@ -125,6 +128,17 @@ function SettingsForm({
     try {
       await action()
     } catch (failure) {
+      if (
+        name === 'preferences' &&
+        failure instanceof NotificationRequestError &&
+        failure.status === 409
+      ) {
+        setPreferencesConflict(true)
+        setError(
+          'Your preferences changed in another tab. Reload saved preferences, then apply your changes again.'
+        )
+        return
+      }
       setError(
         failure instanceof Error ? failure.message : 'Changes could not be saved. Try again.'
       )
@@ -138,6 +152,7 @@ function SettingsForm({
         method: 'PUT',
         body: section === 'policy' ? policy : preferences,
       })
+      if (section === 'preferences') setPreferencesConflict(false)
       setSettings(next)
       if (section === 'policy') setPolicy(next.policy)
       else setPreferences(next.preferences)
@@ -215,6 +230,8 @@ function SettingsForm({
     })
   }
   const groups = [...new Set(settings.catalogue.map((event) => event.group))]
+  const personalGroup = (group: string) => (group === 'mentions' ? 'comments' : group)
+  const personalGroups = [...new Set(settings.catalogue.map((event) => personalGroup(event.group)))]
   const selected = settings.connections.find(
     (connection) => connection.id === policy.slackConnectionId
   )
@@ -255,6 +272,22 @@ function SettingsForm({
         >
           {error}
         </p>
+      ) : null}
+      {preferencesConflict ? (
+        <Button
+          variant="outline"
+          onClick={() =>
+            void perform('reload', async () => {
+              const next = await notificationRequest(identity, '', notificationSettingsSchema)
+              setSettings(next)
+              setPreferences(next.preferences)
+              setPreferencesConflict(false)
+              setSaved('Saved preferences loaded. Unsaved personal changes were discarded.')
+            })
+          }
+        >
+          Reload saved preferences and discard my changes
+        </Button>
       ) : null}
       {testDelivery ? <TestDeliveryStatus identity={identity} id={testDelivery} /> : null}
       {saved ? (
@@ -326,112 +359,31 @@ function SettingsForm({
           description="Your selections are remembered separately from current delivery. Save changes to apply them. Workspace rules and the email switch can block delivery."
         >
           <Group>
-            {groups.map((group) => (
+            {personalGroups.map((group) => (
               <details
                 className="border-b border-border last:border-0"
                 key={group}
                 open={group === 'reviews'}
               >
                 <summary className="cursor-pointer px-5 py-4 text-sm font-medium capitalize">
-                  {group}
+                  {group === 'publishing' ? 'Publishing defaults' : group}
                 </summary>
-                <div className="overflow-x-auto px-5 pb-4">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr>
-                        <th scope="col" className="pb-3 font-medium">
-                          Activity
-                        </th>
-                        <th scope="col" className="px-3 pb-3 font-medium">
-                          In-app
-                        </th>
-                        <th scope="col" className="px-3 pb-3 font-medium">
-                          Email
-                        </th>
-                        <th scope="col" className="px-3 pb-3 font-medium">
-                          Slack DM
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {settings.catalogue
-                        .filter((event) => event.group === group)
-                        .map((event) => (
-                          <tr className="border-t border-border" key={event.id}>
-                            <th scope="row" className="py-3 pr-4 font-normal">
-                              {event.label}
-                            </th>
-                            {(['inApp', 'email', 'slack'] as const).map((channel) => {
-                              const effective =
-                                settings.effective[event.id]?.[
-                                  channel === 'inApp'
-                                    ? 'in_app'
-                                    : channel === 'slack'
-                                      ? 'slack_dm'
-                                      : channel
-                                ]
-                              const blocked =
-                                !settings.policy.availability[channel] ||
-                                (channel !== 'slack' &&
-                                  !settings.policy.events[event.id]?.[channel])
-                              const masterOff =
-                                channel === 'email' && personal?.emailNotifications === false
-                              const label =
-                                channel === 'inApp'
-                                  ? 'In-app'
-                                  : channel === 'slack'
-                                    ? 'Slack DM'
-                                    : 'Email'
-                              const reason = blocked
-                                ? 'Blocked by workspace policy'
-                                : masterOff
-                                  ? 'Off for all workspaces'
-                                  : effective?.enabled
-                                    ? 'On'
-                                    : effective?.reason || 'Off'
-                              return (
-                                <td className="px-3 py-3" key={channel}>
-                                  <label className="flex items-center gap-2">
-                                    <Checkbox
-                                      disabled={blocked || masterOff}
-                                      aria-label={`${event.label}: your ${channel === 'inApp' ? 'in-app' : channel === 'slack' ? 'Slack DM' : 'email'} preference`}
-                                      checked={
-                                        preferences.events[event.id]?.[channel] ??
-                                        channel !== 'slack'
-                                      }
-                                      onCheckedChange={(checked) =>
-                                        setPreferences((current) => ({
-                                          ...current,
-                                          events: {
-                                            ...current.events,
-                                            [event.id]: {
-                                              ...current.events[event.id],
-                                              [channel]: checked === true,
-                                            },
-                                          },
-                                        }))
-                                      }
-                                    />
-                                    <span className="text-xs">
-                                      Your preference:{' '}
-                                      {(preferences.events[event.id]?.[channel] ??
-                                      channel !== 'slack')
-                                        ? 'On'
-                                        : 'Off'}
-                                    </span>
-                                  </label>
-                                  {reason ? (
-                                    <p className="mt-1 max-w-44 text-xs text-muted-foreground">
-                                      Current {label.toLowerCase()} delivery: {reason}
-                                    </p>
-                                  ) : null}
-                                </td>
-                              )
-                            })}
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
+                <div className="px-5 pb-4">
+                  {group === 'publishing' ? (
+                    <p className="mb-3 text-xs text-muted-foreground">
+                      Used unless you choose a channel for a specific social set below.
+                    </p>
+                  ) : null}
+                  <NotificationPreferenceTable
+                    events={settings.catalogue.filter(
+                      (event) => personalGroup(event.group) === group
+                    )}
+                    group={group === 'publishing' ? 'publishing defaults' : group}
+                    value={preferences}
+                    onChange={setPreferences}
+                    settings={settings}
+                    emailEnabled={personal?.emailNotifications !== false}
+                  />
                 </div>
               </details>
             ))}
@@ -439,8 +391,10 @@ function SettingsForm({
           <div className="mt-6">
             <SocialSetNotifications
               disabled={!!busy}
-              onChange={(socialSets) => setPreferences((current) => ({ ...current, socialSets }))}
-              value={preferences.socialSets ?? {}}
+              onChange={setPreferences}
+              value={preferences}
+              settings={settings}
+              emailEnabled={personal?.emailNotifications !== false}
             />
           </div>
           <div className="mt-4 flex flex-wrap gap-3">

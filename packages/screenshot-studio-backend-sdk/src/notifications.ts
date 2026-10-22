@@ -15,6 +15,8 @@ export type NotificationPreferences = {
   generation: number
   /** Kinds turned off for one social set: set ID, then kind, false for off (RFC 043). */
   socialSets?: Record<string, Record<string, boolean>>
+  /** Explicit set/event/channel choices; absent channels inherit event defaults. */
+  socialSetChannels?: Record<string, Record<string, Partial<NotificationChannels>>>
 }
 /** Slack installation metadata, never credentials. */
 export type NotificationConnection = {

@@ -51817,20 +51817,21 @@ func (m *PlatformNotificationPolicyMutation) ResetEdge(name string) error {
 // PlatformNotificationPreferenceMutation represents an operation that mutates the PlatformNotificationPreference nodes in the graph.
 type PlatformNotificationPreferenceMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *string
-	organization_id *string
-	user_id         *string
-	events          *map[string]interface{}
-	social_sets     *map[string]map[string]bool
-	generation      *int
-	addgeneration   *int
-	updated_at      *time.Time
-	clearedFields   map[string]struct{}
-	done            bool
-	oldValue        func(context.Context) (*PlatformNotificationPreference, error)
-	predicates      []predicate.PlatformNotificationPreference
+	op                  Op
+	typ                 string
+	id                  *string
+	organization_id     *string
+	user_id             *string
+	events              *map[string]interface{}
+	social_sets         *map[string]map[string]bool
+	social_set_channels *map[string]map[string]map[string]bool
+	generation          *int
+	addgeneration       *int
+	updated_at          *time.Time
+	clearedFields       map[string]struct{}
+	done                bool
+	oldValue            func(context.Context) (*PlatformNotificationPreference, error)
+	predicates          []predicate.PlatformNotificationPreference
 }
 
 var _ ent.Mutation = (*PlatformNotificationPreferenceMutation)(nil)
@@ -52081,6 +52082,42 @@ func (m *PlatformNotificationPreferenceMutation) ResetSocialSets() {
 	m.social_sets = nil
 }
 
+// SetSocialSetChannels sets the "social_set_channels" field.
+func (m *PlatformNotificationPreferenceMutation) SetSocialSetChannels(value map[string]map[string]map[string]bool) {
+	m.social_set_channels = &value
+}
+
+// SocialSetChannels returns the value of the "social_set_channels" field in the mutation.
+func (m *PlatformNotificationPreferenceMutation) SocialSetChannels() (r map[string]map[string]map[string]bool, exists bool) {
+	v := m.social_set_channels
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSocialSetChannels returns the old "social_set_channels" field's value of the PlatformNotificationPreference entity.
+// If the PlatformNotificationPreference object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformNotificationPreferenceMutation) OldSocialSetChannels(ctx context.Context) (v map[string]map[string]map[string]bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSocialSetChannels is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSocialSetChannels requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSocialSetChannels: %w", err)
+	}
+	return oldValue.SocialSetChannels, nil
+}
+
+// ResetSocialSetChannels resets all changes to the "social_set_channels" field.
+func (m *PlatformNotificationPreferenceMutation) ResetSocialSetChannels() {
+	m.social_set_channels = nil
+}
+
 // SetGeneration sets the "generation" field.
 func (m *PlatformNotificationPreferenceMutation) SetGeneration(i int) {
 	m.generation = &i
@@ -52207,7 +52244,7 @@ func (m *PlatformNotificationPreferenceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlatformNotificationPreferenceMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.organization_id != nil {
 		fields = append(fields, platformnotificationpreference.FieldOrganizationID)
 	}
@@ -52219,6 +52256,9 @@ func (m *PlatformNotificationPreferenceMutation) Fields() []string {
 	}
 	if m.social_sets != nil {
 		fields = append(fields, platformnotificationpreference.FieldSocialSets)
+	}
+	if m.social_set_channels != nil {
+		fields = append(fields, platformnotificationpreference.FieldSocialSetChannels)
 	}
 	if m.generation != nil {
 		fields = append(fields, platformnotificationpreference.FieldGeneration)
@@ -52242,6 +52282,8 @@ func (m *PlatformNotificationPreferenceMutation) Field(name string) (ent.Value, 
 		return m.Events()
 	case platformnotificationpreference.FieldSocialSets:
 		return m.SocialSets()
+	case platformnotificationpreference.FieldSocialSetChannels:
+		return m.SocialSetChannels()
 	case platformnotificationpreference.FieldGeneration:
 		return m.Generation()
 	case platformnotificationpreference.FieldUpdatedAt:
@@ -52263,6 +52305,8 @@ func (m *PlatformNotificationPreferenceMutation) OldField(ctx context.Context, n
 		return m.OldEvents(ctx)
 	case platformnotificationpreference.FieldSocialSets:
 		return m.OldSocialSets(ctx)
+	case platformnotificationpreference.FieldSocialSetChannels:
+		return m.OldSocialSetChannels(ctx)
 	case platformnotificationpreference.FieldGeneration:
 		return m.OldGeneration(ctx)
 	case platformnotificationpreference.FieldUpdatedAt:
@@ -52303,6 +52347,13 @@ func (m *PlatformNotificationPreferenceMutation) SetField(name string, value ent
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSocialSets(v)
+		return nil
+	case platformnotificationpreference.FieldSocialSetChannels:
+		v, ok := value.(map[string]map[string]map[string]bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSocialSetChannels(v)
 		return nil
 	case platformnotificationpreference.FieldGeneration:
 		v, ok := value.(int)
@@ -52393,6 +52444,9 @@ func (m *PlatformNotificationPreferenceMutation) ResetField(name string) error {
 		return nil
 	case platformnotificationpreference.FieldSocialSets:
 		m.ResetSocialSets()
+		return nil
+	case platformnotificationpreference.FieldSocialSetChannels:
+		m.ResetSocialSetChannels()
 		return nil
 	case platformnotificationpreference.FieldGeneration:
 		m.ResetGeneration()

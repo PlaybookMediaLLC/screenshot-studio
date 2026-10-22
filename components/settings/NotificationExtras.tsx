@@ -4,20 +4,11 @@ import { Group, Row } from '@/components/platform-ui'
 import { SaveStatus, useSaveState } from '@/components/settings/controls'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { useSocialSets } from '@/components/settings/social-sets/api'
-import { Checkbox } from '@/components/ui/checkbox'
+import { NotificationPreferenceTable } from '@/components/settings/NotificationPreferenceTable'
+import { socialSetPreferenceEvents } from '@/lib/notifications/preferences'
+import type { NotificationSettings } from '@/lib/notifications/schema'
 import { Switch } from '@/components/ui/switch'
 import { SettingsRequestError, settingsErrorMessage } from '@/lib/settings/client'
-
-/** Kinds turned off per social set: set ID, then kind, false for off. */
-export type SocialSetNotificationPreferences = Record<string, Record<string, boolean>>
-
-/** The activity a person can turn off for one social set. */
-const SET_KINDS = [
-  { id: 'post.published', label: 'Post published' },
-  { id: 'post.auto_repost_published', label: 'Auto-retweet published' },
-  { id: 'post.auto_plug_published', label: 'Auto-plug published' },
-  { id: 'post.publish_failed', label: 'Publishing needs attention' },
-] as const
 
 /**
  * The email master switch (RFC 043). It is a personal preference, so it holds
@@ -52,30 +43,30 @@ export function EmailSwitch() {
   )
 }
 
-/**
- * Publishing activity per social set (RFC 043). A switch turned off here
- * silences that kind for the one set; the per-activity table above still
- * decides the channel. Saved with the rest of your preferences.
- */
+/** Publishing choices are saved with the member's other notification preferences. */
 export function SocialSetNotifications({
   disabled,
   onChange,
   value,
+  settings,
+  emailEnabled,
 }: {
   disabled: boolean
-  onChange: (next: SocialSetNotificationPreferences) => void
-  value: SocialSetNotificationPreferences
+  onChange: (next: NotificationSettings['preferences']) => void
+  value: NotificationSettings['preferences']
+  settings: NotificationSettings
+  emailEnabled: boolean
 }) {
   const sets = useSocialSets()
-  // Social sets are off on this server: there is nothing to choose.
   if (sets.error instanceof SettingsRequestError && sets.error.status === 404) return null
   return (
     <div className="grid gap-3">
       <div>
         <h3 className="text-sm font-medium text-foreground">By social set</h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Turn publishing activity off for one social set. A private set&apos;s activity reaches
-          only its owner.
+          Choose each channel independently. These choices override publishing defaults for this
+          set. A private set&apos;s activity reaches only its owner. Workspace rules and your email
+          switch still apply. You can edit choices while delivery is paused.
         </p>
       </div>
       {sets.isPending ? (
@@ -92,9 +83,10 @@ export function SocialSetNotifications({
         <Group>
           {sets.data.items.map((set) => (
             <fieldset
-              className="border-b border-border px-5 py-4 last:border-0"
+              className="min-w-0 border-b border-border px-5 py-4 last:border-0"
               disabled={disabled}
               key={set.id}
+              aria-label={`${set.name} (${set.id}) notification preferences`}
             >
               <legend className="flex items-center gap-2 text-sm font-medium">
                 <span
@@ -104,22 +96,24 @@ export function SocialSetNotifications({
                 />
                 {set.name}
               </legend>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {SET_KINDS.map((kind) => (
-                  <label className="flex items-center gap-2 text-sm" key={kind.id}>
-                    <Checkbox
-                      checked={value[set.id]?.[kind.id] ?? true}
-                      onCheckedChange={(checked) =>
-                        onChange({
-                          ...value,
-                          [set.id]: { ...value[set.id], [kind.id]: checked === true },
-                        })
-                      }
-                    />
-                    {kind.label}
-                  </label>
-                ))}
-              </div>
+              <p className="mb-3 text-xs text-muted-foreground">
+                {set.visibility === 'PRIVATE' ? 'Private to you' : 'Shared with workspace'}
+                {' · '}
+                {set.accounts
+                  .map((account) => account.handle || account.displayName || account.platform)
+                  .join(', ') || 'No connected accounts'}
+                {' · '}Set {set.id}
+              </p>
+              <NotificationPreferenceTable
+                events={socialSetPreferenceEvents}
+                group="publishing activity"
+                context={`${set.name} (${set.id})`}
+                setId={set.id}
+                value={value}
+                onChange={onChange}
+                settings={settings}
+                emailEnabled={emailEnabled}
+              />
             </fieldset>
           ))}
         </Group>

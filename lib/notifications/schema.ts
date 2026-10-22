@@ -21,6 +21,9 @@ export const notificationPreferencesSchema = z.object({
   generation: z.number().int().positive(),
   /** Kinds turned off for one social set: set ID, then kind, false for off. */
   socialSets: z.record(z.string(), z.record(z.string(), z.boolean())).optional(),
+  socialSetChannels: z
+    .record(z.string(), z.record(z.string(), notificationChannelsSchema.partial().strict()))
+    .optional(),
 })
 /** Provider identity and health without credentials. */
 export const notificationConnectionSchema = z.object({

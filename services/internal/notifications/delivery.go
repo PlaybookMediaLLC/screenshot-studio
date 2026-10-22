@@ -128,15 +128,12 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 			if e2 != nil {
 				return false, e2
 			}
-			if !pref.socialSetAllows(socialSetOf(row), e.kind) || !pref.socialSetAllows(e.sourceSocialSetID, e.kind) {
-				continue
-			}
 			wantsEmail, e2 := emailWanted(ctx, tx, user)
 			if e2 != nil {
 				return false, e2
 			}
 			for _, channel := range []string{"in_app", "email", "slack_dm"} {
-				if !enabled(pol, pref, def, channel) || channel == "email" && !wantsEmail {
+				if !enabled(pol, pref, def, channel, socialSetOf(row), e.sourceSocialSetID) || channel == "email" && !wantsEmail {
 					continue
 				}
 				connectionID := ""
@@ -194,18 +191,19 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 	return true, tx.Commit()
 }
 
-func enabled(p Policy, pref Preferences, d activity.Definition, channel string) bool {
+func enabled(p Policy, pref Preferences, d activity.Definition, channel string, setIDs ...string) bool {
 	if !availableChannel(p, channel) {
 		return false
 	}
-	a, b := p.Events[d.ID], pref.Events[d.ID]
+	a := p.Events[d.ID]
+	selected := pref.selected(d.ID, channel, setIDs...)
 	switch channel {
 	case "in_app":
-		return a.InApp && b.InApp
+		return a.InApp && selected
 	case "email":
-		return a.Email && b.Email
+		return a.Email && selected
 	case "slack_dm":
-		return b.Slack
+		return selected
 	case "slack":
 		return a.Slack && !d.Restricted
 	}
@@ -479,7 +477,7 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 		if e != nil {
 			return env, Outcome{}, e
 		}
-		if pref.Generation != d.preferenceGeneration || !test && !enabled(pol, pref, def, d.Channel) {
+		if pref.Generation != d.preferenceGeneration {
 			return skip("PREFERENCES_CHANGED")
 		}
 		if wants, e := emailWanted(ctx, s.DB, d.Destination); e != nil {
@@ -499,7 +497,7 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 		} else if !sourceAllowed {
 			return skip("ACCESS_REMOVED")
 		}
-		if !test && (!pref.socialSetAllows(socialSetOf(row), d.Kind) || !pref.socialSetAllows(sourceID, d.Kind)) {
+		if !test && (!enabled(pol, pref, def, d.Channel, socialSetOf(row), sourceID)) {
 			return skip("PREFERENCES_CHANGED")
 		}
 		if d.Channel == "slack_dm" {

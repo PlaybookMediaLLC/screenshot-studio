@@ -40,8 +40,9 @@ type Policy struct {
 	SlackChannelName  string              `json:"slackChannelName"`
 }
 type Preferences struct {
-	Events     map[string]Channels `json:"events"`
-	Generation int                 `json:"generation"`
+	SocialSetChannels SocialSetChannels   `json:"socialSetChannels"`
+	Events            map[string]Channels `json:"events"`
+	Generation        int                 `json:"generation"`
 	// SocialSets turns activity kinds off for one social set (RFC 043): set
 	// ID, then kind, false for off. A kind not listed follows Events.
 	SocialSets map[string]map[string]bool `json:"socialSets"`
@@ -125,7 +126,7 @@ func defaultPolicy() Policy {
 	return p
 }
 func defaultPreferences() Preferences {
-	p := Preferences{Events: map[string]Channels{}, Generation: 1, SocialSets: map[string]map[string]bool{}}
+	p := Preferences{Events: map[string]Channels{}, Generation: 1, SocialSets: map[string]map[string]bool{}, SocialSetChannels: SocialSetChannels{}}
 	for _, d := range activity.Catalogue {
 		p.Events[d.ID] = Channels{InApp: true, Email: true}
 	}
@@ -161,8 +162,8 @@ func policy(ctx context.Context, db queryer, org string) (Policy, error) {
 }
 func preferences(ctx context.Context, db queryer, org, user string) (Preferences, error) {
 	p := defaultPreferences()
-	var raw, sets []byte
-	err := db.QueryRowContext(ctx, `SELECT events,generation,social_sets FROM platform_notification_preference WHERE "organizationId"=$1 AND "userId"=$2`, org, user).Scan(&raw, &p.Generation, &sets)
+	var raw, sets, setChannels []byte
+	err := db.QueryRowContext(ctx, `SELECT events,generation,social_sets,social_set_channels FROM platform_notification_preference WHERE "organizationId"=$1 AND "userId"=$2`, org, user).Scan(&raw, &p.Generation, &sets, &setChannels)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, nil
 	}
@@ -180,6 +181,9 @@ func preferences(ctx context.Context, db queryer, org, user string) (Preferences
 		if err = json.Unmarshal(sets, &p.SocialSets); err != nil {
 			return p, err
 		}
+	}
+	if err = json.Unmarshal(setChannels, &p.SocialSetChannels); err != nil {
+		return p, err
 	}
 	return p, nil
 }
@@ -296,7 +300,7 @@ func (s *Service) SavePreferences(ctx context.Context, p Principal, input Prefer
 	if err := s.Authorize(ctx, p, false); err != nil {
 		return nil, err
 	}
-	if !validEvents(input.Events, true) || !validSocialSetPreferences(input.SocialSets) {
+	if !validEvents(input.Events, true) || !validSocialSetPreferences(input.SocialSets) || !validSocialSetChannels(input.SocialSetChannels) {
 		return nil, ErrInvalid
 	}
 	tx, err := s.DB.BeginTx(ctx, nil)
@@ -307,13 +311,33 @@ func (s *Service) SavePreferences(ctx context.Context, p Principal, input Prefer
 	if err = lockSessionMember(ctx, tx, p, false); err != nil {
 		return nil, err
 	}
+	if _, err = tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "notification-preferences:"+p.OrganizationID+":"+p.UserID); err != nil {
+		return nil, err
+	}
+	current, err := preferences(ctx, tx, p.OrganizationID, p.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if input.Generation != current.Generation {
+		return nil, publishing.ErrConflict
+	}
+	if input.SocialSetChannels == nil {
+		input.SocialSetChannels = current.SocialSetChannels
+	}
+	if input.SocialSets == nil {
+		input.SocialSets = current.SocialSets
+	}
+	if err = validatePreferenceSets(ctx, tx, p, current, input); err != nil {
+		return nil, err
+	}
 	raw, _ := json.Marshal(input.Events)
 	if input.SocialSets == nil {
 		input.SocialSets = map[string]map[string]bool{}
 	}
 	sets, _ := json.Marshal(input.SocialSets)
-	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_preference(id,"organizationId","userId",events,generation,social_sets) VALUES($1,$2,$3,$4,2,$5)
-	ON CONFLICT("organizationId","userId") DO UPDATE SET events=EXCLUDED.events,social_sets=EXCLUDED.social_sets,generation=platform_notification_preference.generation+1,updated_at=now()`, cuid.New(), p.OrganizationID, p.UserID, raw, sets)
+	setChannels, _ := json.Marshal(input.SocialSetChannels)
+	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_preference(id,"organizationId","userId",events,generation,social_sets,social_set_channels) VALUES($1,$2,$3,$4,2,$5,$6)
+	ON CONFLICT("organizationId","userId") DO UPDATE SET events=EXCLUDED.events,social_sets=EXCLUDED.social_sets,social_set_channels=EXCLUDED.social_set_channels,generation=platform_notification_preference.generation+1,updated_at=now()`, cuid.New(), p.OrganizationID, p.UserID, raw, sets, setChannels)
 	if err != nil {
 		return nil, err
 	}

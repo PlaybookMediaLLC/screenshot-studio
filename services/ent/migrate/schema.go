@@ -1676,6 +1676,7 @@ var (
 		{Name: "userId", Type: field.TypeString},
 		{Name: "events", Type: field.TypeJSON},
 		{Name: "social_sets", Type: field.TypeJSON},
+		{Name: "social_set_channels", Type: field.TypeJSON},
 		{Name: "generation", Type: field.TypeInt, Default: 1},
 		{Name: "updated_at", Type: field.TypeTime},
 	}

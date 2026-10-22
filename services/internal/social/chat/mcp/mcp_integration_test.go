@@ -6,10 +6,12 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"slices"
 	"strings"
@@ -139,7 +141,7 @@ func newFixture(t *testing.T) *fixture {
 	f := &fixture{t: t, ctx: ctx, db: db, counter: &memoryCounter{}, capture: &fakeCapture{}, id: cuid.New(),
 		orgs: map[string]string{}, keys: map[string]string{}, keyNames: map[string]string{}}
 	f.product = product.NewConfiguration(db.Client).WithObjectStore(memoryObjects{}).WithQuotaCounter(f.counter).
-		WithMonthlyMeter(&memoryMeter{})
+		WithMonthlyMeter(&memoryMeter{}).WithAssetDownloads(strings.Repeat("m", 32), "https://shots.test")
 	for _, workspace := range []string{"a", "b", "free"} {
 		org := "org_" + workspace + "_" + f.id
 		f.orgs[workspace] = org
@@ -308,6 +310,31 @@ func ids(items any, path ...string) []string {
 		found = append(found, fmt.Sprint(value))
 	}
 	return found
+}
+
+func TestMCPAssetDownloadGrantIsRevocableAcrossServices(t *testing.T) {
+	f := newFixture(t)
+	_, _, assetID := f.seed("a")
+	body, isError := f.call(f.session("a-read"), "createAssetDownloadUrl", map[string]any{"assetId": assetID})
+	if isError {
+		t.Fatalf("MCP download grant failed: %v", body)
+	}
+	raw, _ := body["downloadUrl"].(string)
+	link, err := url.Parse(raw)
+	if err != nil || link.Host != "shots.test" || link.Path != "/api/v1/assets/"+assetID+"/content" || link.Query().Get("downloadToken") == "" {
+		t.Fatal("MCP did not return an application download grant")
+	}
+	// A separately configured product API must accept the MCP-issued grant.
+	reader := product.NewConfiguration(f.db.Client).WithObjectStore(memoryObjects{}).
+		WithAssetDownloads(strings.Repeat("m", 32), "https://shots.test")
+	token := link.Query().Get("downloadToken")
+	if _, _, err := reader.ReadAssetDownload(f.ctx, assetID, token, "mcp-download-allowed"); err != nil {
+		t.Fatal("product API refused MCP grant", err)
+	}
+	f.exec(`UPDATE apikey SET enabled=false WHERE id=$1`, f.actor("a-read").KeyID)
+	if _, _, err := reader.ReadAssetDownload(f.ctx, assetID, token, "mcp-download-revoked"); !errors.Is(err, publishing.ErrUnauthorized) {
+		t.Fatalf("revoked MCP key still authorized its grant: %v", err)
+	}
 }
 
 // A key from workspace A reaches only A's records through every tool, and

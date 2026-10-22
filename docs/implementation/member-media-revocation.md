@@ -105,3 +105,30 @@ Full `make e2e` was not run; focused flows preserved the approved X fixture.
 T12/T16 remain in progress for provisioning, queued notifications and delayed-work
 authorization. These checks do not establish the complete removal contract or
 completion of the full 60-criterion assignment.
+
+## MCP signer follow-up — 2026-10-22
+
+The subsequent full Go run found that MCP's separate product-service graph had
+not been given the new download-grant configuration. The social API now uses the
+same service secret and application origin as the product API: existing
+`TENANT_PUBLISHING_SERVICE_TOKEN` / `TENANT_BETTER_AUTH_URL` in the combined
+process, and the unprefixed settings when standalone. No new credential or
+broader environment forwarding was added. The service secret must still contain
+at least 32 characters; `bin/studio` already generates a suitable random value.
+
+The MCP integration fixture is configured the same way. A new protocol test
+requests a grant through the actual MCP server, redeems it through a separate
+product configuration, disables the issuing API key, and checks that the same
+grant is refused. Existing all-tool tenant isolation remains unchanged. The first
+new revocation test addressed the key's display name instead of its ID; it now
+resolves the verified key ID before revocation, retaining the denial assertion.
+
+Include the social API/MCP process when updating all grant issuers, after the web
+reader is deployed. This follow-up changes no grant format, expiration, storage
+boundary or public contract.
+
+The corrected full serial Go run passed all 125 tested packages, including the
+unchanged all-tool isolation test and the new cross-service revocation test.
+Full vet passed. CodeRabbit's final review included these startup/tests/docs and
+reported zero findings. Evidence is retained in
+`.context/notification-authority-{go-all-final,vet-final,review-final}.log`.

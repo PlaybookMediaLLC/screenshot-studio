@@ -13,6 +13,13 @@ import {
 } from './permissions'
 import { type Principal, type SessionPrincipal } from './principal'
 import { auth } from './server'
+import { requestRead } from './request-reads'
+
+function readAuthSession(headers: Headers) {
+  return requestRead('auth-session', () =>
+    auth.api.getSession({ headers, query: { disableCookieCache: true } })
+  )
+}
 
 const freshSessionAgeMilliseconds = 15 * 60 * 1000
 
@@ -72,7 +79,7 @@ export async function resolveActiveOrganizationId(
 }
 
 async function getSessionPrincipal(headers: Headers): Promise<SessionPrincipal | null> {
-  const session = await auth.api.getSession({ headers, query: { disableCookieCache: true } })
+  const session = await readAuthSession(headers)
   if (!session) {
     return null
   }
@@ -165,7 +172,7 @@ export async function requireSessionAccess(headers: Headers): Promise<SessionAcc
 type AuthSessionResult = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>
 
 async function requireAuthSession(headers: Headers): Promise<AuthSessionResult> {
-  const session = await auth.api.getSession({ headers, query: { disableCookieCache: true } })
+  const session = await readAuthSession(headers)
   if (!session) {
     throw new AuthorizationError('Authentication is required.', 401)
   }
@@ -181,9 +188,9 @@ async function requireActiveSessionOrganization(
   session?: AuthSessionResult
 ): Promise<OrganizationAccess> {
   // The backend rechecks membership, role, and workspace deletion state.
-  return getBackendActiveOrganization(
-    session ?? (await requireAuthSession(headers)),
-    getRequestId(headers)
+  const current = session ?? (await requireAuthSession(headers))
+  return requestRead(`active-access:${current.session.id}`, () =>
+    getBackendActiveOrganization(current, getRequestId(headers))
   )
 }
 

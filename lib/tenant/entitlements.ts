@@ -3,6 +3,7 @@ import 'server-only'
 import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import type { TenantContext } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
+import { requestRead } from '@/lib/auth/request-reads'
 import type { WorkspaceFeature, WorkspacePlan, WorkspaceQuota } from '@/lib/billing/plans'
 
 export class WorkspaceEntitlementError extends Error {
@@ -36,7 +37,10 @@ export async function requireWorkspaceFeature(
   context: TenantContext,
   feature: WorkspaceFeature
 ): Promise<void> {
-  const decision = await backendSDK(context).getFeatureDecision(feature)
+  const decision = await requestRead(
+    JSON.stringify(['feature', context.organizationId, context.principal, feature]),
+    () => backendSDK(context).getFeatureDecision(feature)
+  )
   if (!decision.allowed) {
     throw new WorkspaceEntitlementError(
       feature,

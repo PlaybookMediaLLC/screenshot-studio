@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNotificationPageVisible } from '@/lib/notifications/client'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { EmptyState, Group, Pill, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -68,20 +69,23 @@ function Stat({ href, label, value }: { href?: string; label: string; value: num
 
 /** Every workflow in the workspace, what is running, and what needs a person. */
 export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
+  const pageVisible = useNotificationPageVisible()
   const client = useTRPCClient()
   const params = useSearchParams()
   const pathname = usePathname()
   const trpc = useTRPC()
   const overviewQuery = useQuery(
     trpc.releaseAutomation.overview.queryOptions(undefined, {
-      staleTime: 15_000,
-      refetchInterval: 15_000,
+      staleTime: 60_000,
+      refetchInterval: pageVisible ? 60_000 : false,
+      refetchIntervalInBackground: false,
     })
   )
   const recentQuery = useQuery(
     trpc.releaseAutomation.recentRuns.queryOptions(undefined, {
       staleTime: 15_000,
-      refetchInterval: 15_000,
+      refetchInterval: pageVisible ? 15_000 : false,
+      refetchIntervalInBackground: false,
     })
   )
   const overview = overviewQuery.data

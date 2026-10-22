@@ -141,11 +141,6 @@ export function WorkspaceAssets() {
     { limit: PAGE_SIZE, type: typeFilter, sort, search: search || undefined, classification },
     {
       getNextPageParam: (page) => page.nextCursor,
-      staleTime: 0,
-      // Drop inactive lists instead of inheriting the editor's 24-hour image cache.
-      gcTime: 0,
-      refetchOnMount: 'always',
-      refetchOnWindowFocus: true,
     }
   )
   const query = useInfiniteQuery(options)
@@ -198,6 +193,7 @@ export function WorkspaceAssets() {
     if (deleting.current) return
     deleting.current = true
     setDeletingId(assetId)
+    let alreadyDeleted = false
     try {
       try {
         await trpcClient.asset.delete.mutate({ assetId })
@@ -205,6 +201,7 @@ export function WorkspaceAssets() {
         // A teammate may already have deleted the asset. The desired state is reached.
         if (!(requestError instanceof TRPCClientError) || requestError.data?.code !== 'NOT_FOUND')
           throw requestError
+        alreadyDeleted = true
       }
       queryClient.setQueryData(options.queryKey, (current) =>
         current
@@ -218,7 +215,7 @@ export function WorkspaceAssets() {
           : current
       )
       toast.success('Asset deleted')
-      await queryClient.invalidateQueries(trpc.asset.list.pathFilter())
+      if (alreadyDeleted) await queryClient.invalidateQueries(trpc.asset.list.pathFilter())
     } catch (requestError) {
       toast.error('Could not delete the asset', { description: getErrorMessage(requestError) })
     } finally {

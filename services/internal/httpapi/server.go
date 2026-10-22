@@ -183,6 +183,7 @@ type ConfigurationStore interface {
 	ResendInvitation(context.Context, product.Actor, string) (*product.InvitationDetail, error)
 	RevokeInvitation(context.Context, product.Actor, string) error
 	Bootstrap(context.Context, product.Actor) (*product.BootstrapSnapshot, error)
+	PageAccess(context.Context, product.Actor) (*product.PageAccessSnapshot, error)
 	GetCurrentUser(context.Context, product.Actor) (*product.CurrentUser, error)
 	GetActiveAccess(context.Context, product.Actor) (*product.ActiveAccess, error)
 	VerifySupportGrant(context.Context, product.Actor, string, string) (*product.SupportGrantAccess, error)

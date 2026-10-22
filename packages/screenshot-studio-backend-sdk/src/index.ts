@@ -4233,6 +4233,16 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
+  /** Current session workspace and page entitlements, without dashboard counters. */
+  async getPageAccess() {
+    return this.request<{
+      active: ListedWorkspace | null
+      count: number
+      workspace: Workspace | null
+      features: Record<string, boolean>
+    }>('v1/page-access')
+  }
+
   async getBootstrap() {
     return this.request<BackendBootstrapSnapshot>('v1/bootstrap')
   }

@@ -127,6 +127,4 @@ function writeImport(target: ImageImportTarget, accepted: readonly File[]) {
  * The image files on a paste or drop, in order. `files` lists each file once;
  * `items` can carry one image in several formats, which must not import twice.
  */
-export function transferImageFiles(data: Pick<DataTransfer, 'files'> | null): File[] {
-  return Array.from(data?.files ?? []).filter((file) => file.type.startsWith('image/'))
-}
+export { transferImageFiles } from './transfer-image-files'

@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { locales } from '@/i18n/routing';
-import { importImages, transferImageFiles } from '@/lib/editor/import-images';
+import { transferImageFiles } from '@/lib/editor/transfer-image-files';
 import { isLocalDropTarget } from '@/lib/drop-routing';
 import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts';
 
@@ -30,6 +30,7 @@ export function GlobalDropZone({ children }: GlobalDropZoneProps) {
     async (files: File[]) => {
       if (files.length === 0) return;
       try {
+        const { importImages } = await import('@/lib/editor/import-images');
         const result = await importImages(files);
         const firstRejection = result.rejected[0];
         if (firstRejection) {

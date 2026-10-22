@@ -1,18 +1,32 @@
-import { NextResponse } from 'next/server'
 import { assetContentContract } from '@/lib/api/contracts/assets'
-import { errorResponse, route } from '@/lib/api/route'
+import { route } from '@/lib/api/route'
 import { tenantAccess } from '@/lib/api/route-auth'
-import { signAssetDownload } from '@/lib/tenant/assets'
+import { backendSDK, serviceBackend } from '@/lib/backend/sdk'
 
-/** Redirects to a short-lived signed URL, so documents can embed a stable one. */
+/** Returns private bytes only after Go rechecks the session or download grant. */
 export const GET = route(assetContentContract, {
-  auth: tenantAccess({ apiKeyScope: 'artifact:read', permission: 'artifact:read' }),
-  handler: async ({ access, params }) => {
-    const downloadUrl = await signAssetDownload(access, params.assetId)
-    if (!downloadUrl) return errorResponse(404, 'Asset not found.')
-    const response = NextResponse.redirect(downloadUrl, 302)
-    // The signed URL expires; never let a cache keep the redirect.
-    response.headers.set('cache-control', 'private, no-store')
-    return response
+  auth: async (context) =>
+    context.request.nextUrl.searchParams.has('downloadToken')
+      ? null // The backend validates the encrypted grant before accessing storage.
+      : tenantAccess({ apiKeyScope: 'artifact:read', permission: 'artifact:read' })(context),
+  handler: async ({ access, params, query, headers }) => {
+    const source = access
+      ? await backendSDK(access).readAssetResponse(params.assetId, headers.range)
+      : await serviceBackend().readAssetDownload(
+          params.assetId,
+          query.downloadToken ?? '',
+          headers.range
+        )
+    const responseHeaders = new Headers({
+      'cache-control': 'private, no-store',
+      'referrer-policy': 'no-referrer',
+      'x-content-type-options': 'nosniff',
+      'content-security-policy': "sandbox; default-src 'none'",
+    })
+    for (const name of ['content-type', 'content-length', 'content-range', 'accept-ranges']) {
+      const value = source.headers.get(name)
+      if (value) responseHeaders.set(name, value)
+    }
+    return new Response(source.body, { headers: responseHeaders, status: source.status })
   },
 })

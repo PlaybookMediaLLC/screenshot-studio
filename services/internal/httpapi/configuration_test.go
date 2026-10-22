@@ -128,6 +128,10 @@ func (f *fakeConfiguration) CompleteAssetUpload(context.Context, product.Actor, 
 func (f *fakeConfiguration) SignAssetDownload(context.Context, product.Actor, string) (string, error) {
 	return "https://media.example.test/download", nil
 }
+
+func (f *fakeConfiguration) ReadAssetDownload(context.Context, string, string, string) ([]byte, string, error) {
+	return []byte("asset bytes"), "image/png", nil
+}
 func (f *fakeConfiguration) StoreGeneratedAsset(context.Context, product.Actor, product.GeneratedAssetInput) (*product.GeneratedAssetRecord, error) {
 	return &product.GeneratedAssetRecord{ID: "asset-2", MediaType: "image/png", ObjectKey: "org/org-1/derived/asset-2/1/render.png"}, nil
 }

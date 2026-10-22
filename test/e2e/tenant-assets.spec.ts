@@ -94,9 +94,13 @@ async function assertCrossTenantIsolation({
     expect(deletion.status).toBe(404)
     // Signed uploads are write-once, so a leaked URL cannot replace the bytes.
     expect(upload).toBe(412)
-    // A signed download is a bearer token for one object (RFC 006), so its
-    // protection is the short lifetime; the expiry test below covers rejection.
-    expect(getSignedUrlLifetime(downloadUrl)).toBeLessThanOrEqual(120)
+    // The short-lived link rechecks its original principal on every download.
+    // It carries no storage signature; the expiry test below covers rejection.
+    expect(new URL(downloadUrl).searchParams.has('downloadToken')).toBe(true)
+    expect(new URL(downloadUrl).searchParams.has('X-Amz-Signature')).toBe(false)
+    expect((await browserRequest(page, `/api/v1/assets/${signed.asset.id}/content`)).status).toBe(
+      404
+    )
     expect(invalid.status).toBe(400)
     expect(oversized.status).toBe(400)
     expect(unsafe.status).toBe(400)
@@ -197,7 +201,10 @@ test('an uploaded asset stays private to its workspace through completion and do
   }
 })
 
-test('a signed asset download URL expires at the storage boundary', async ({ identity, page }) => {
+test('a signed asset download URL expires at the authorization boundary', async ({
+  identity,
+  page,
+}) => {
   test.slow()
   await signUpAndCreateWorkspace(identity, page)
   const sha256 = createHash('sha256').update(png).digest('hex')

@@ -1992,7 +1992,7 @@ export class ScreenshotStudioBackendSDK {
       headers?: Record<string, string>
       method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
       rawBody?: BodyInit
-      responseType?: 'bytes'
+      responseType?: 'bytes' | 'response'
     } = {}
   ) {
     let response: Response
@@ -2013,6 +2013,7 @@ export class ScreenshotStudioBackendSDK {
     } catch {
       throw new BackendSDKError('Publishing backend is unavailable.', 503)
     }
+    if (init.responseType === 'response' && response.status === 416) return response as T
     if (!response.ok) {
       const error = (await response.json().catch(() => null)) as
         ({ error?: string } & Record<string, unknown>) | null
@@ -2021,9 +2022,11 @@ export class ScreenshotStudioBackendSDK {
       throw new BackendSDKError(error?.error ?? 'Publishing request failed.', status, error ?? {})
     }
     return (
-      init.responseType === 'bytes'
-        ? new Uint8Array(await response.arrayBuffer())
-        : await response.json()
+      init.responseType === 'response'
+        ? response
+        : init.responseType === 'bytes'
+          ? new Uint8Array(await response.arrayBuffer())
+          : await response.json()
     ) as T
   }
 
@@ -2415,6 +2418,24 @@ export class ScreenshotStudioBackendSDK {
   async readAsset(id: string) {
     return this.request<Uint8Array>(`v1/assets/${encodeURIComponent(id)}/bytes`, {
       responseType: 'bytes',
+    })
+  }
+
+  /** Authenticated media response; keep its byte stream and range metadata. */
+  async readAssetResponse(id: string, range?: string) {
+    return this.request<Response>(`v1/assets/${encodeURIComponent(id)}/bytes`, {
+      headers: range ? { range } : {},
+      responseType: 'response',
+    })
+  }
+
+  /** Redeem an opaque grant; Go rechecks its original principal on every read. */
+  async readAssetDownload(id: string, token: string, range?: string) {
+    return this.request<Response>(`v1/internal/assets/${encodeURIComponent(id)}/download`, {
+      body: { token },
+      headers: range ? { range } : {},
+      method: 'POST',
+      responseType: 'response',
     })
   }
 

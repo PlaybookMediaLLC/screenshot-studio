@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"crypto/cipher"
 	"net/http"
 	"strings"
 
@@ -57,6 +58,8 @@ type Configuration struct {
 	requireInvitationEmailVerification bool
 	reviews                            ReviewMailer
 	objects                            AssetObjectStore
+	assetDownloadCipher                cipher.AEAD
+	assetDownloadOrigin                string
 	quota                              QuotaCounter
 	meter                              MonthlyMeter
 	github                             GitHubApp

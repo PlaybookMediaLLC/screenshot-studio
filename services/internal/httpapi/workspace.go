@@ -73,6 +73,7 @@ func (s *Server) registerWorkspace(mux *http.ServeMux) {
 	mux.Handle("POST /v1/assets/{id}/complete", s.authenticateProduct(http.HandlerFunc(s.completeAssetUpload)))
 	mux.Handle("GET /v1/assets/{id}/download-url", s.authenticateProduct(http.HandlerFunc(s.signAssetDownload)))
 	mux.Handle("GET /v1/assets/{id}/bytes", s.authenticateProduct(http.HandlerFunc(s.readAsset)))
+	mux.Handle("POST /v1/internal/assets/{id}/download", s.authenticateService(http.HandlerFunc(s.readAssetDownload)))
 	mux.Handle("DELETE /v1/assets/{id}", s.authenticateProduct(http.HandlerFunc(s.deleteAsset)))
 	mux.Handle("GET /v1/audit-logs", s.authenticateProduct(http.HandlerFunc(s.listAuditLogs)))
 }

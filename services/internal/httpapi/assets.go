@@ -1,10 +1,12 @@
 package httpapi
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/google/uuid"
@@ -116,10 +118,45 @@ func (s *Server) readAsset(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
+	serveAssetBytes(w, r, body, mediaType)
+}
+
+func (s *Server) readAssetDownload(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if _, err := uuid.Parse(id); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid asset ID")
+		return
+	}
+	var input struct {
+		Token string `json:"token"`
+	}
+	if err := decodeJSON(r, &input); err != nil || len(input.Token) > 4096 {
+		writeError(w, http.StatusBadRequest, "invalid download grant")
+		return
+	}
+	body, mediaType, err := s.configuration.ReadAssetDownload(r.Context(), id, input.Token, r.Header.Get("X-Request-ID"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	serveAssetBytes(w, r, body, mediaType)
+}
+
+func serveAssetBytes(w http.ResponseWriter, r *http.Request, body []byte, mediaType string) {
 	w.Header().Set("Content-Type", mediaType)
-	w.Header().Set("Cache-Control", "no-store")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(body)
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	// Preserve seeking and PDF range reads without issuing a storage redirect.
+	http.ServeContent(privateAssetResponse{w}, r, "", time.Time{}, bytes.NewReader(body))
+}
+
+type privateAssetResponse struct{ http.ResponseWriter }
+
+func (w privateAssetResponse) WriteHeader(status int) {
+	// ServeContent clears cache headers on range errors. Those responses are
+	// principal-dependent too and must never become a shared cached result.
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.ResponseWriter.WriteHeader(status)
 }
 
 func (s *Server) storeGeneratedAsset(w http.ResponseWriter, r *http.Request) {

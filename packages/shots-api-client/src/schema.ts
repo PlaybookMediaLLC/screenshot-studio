@@ -325,7 +325,7 @@ export interface paths {
         };
         /**
          * Create a signed asset download URL
-         * @description Returns a short-lived signed download URL for a workspace asset. Requires the `artifact:read` scope.
+         * @description Returns a download URL valid for up to two minutes. Each download rechecks the issuing session or credential and current asset access; revocation invalidates outstanding links. Requires the `artifact:read` scope.
          */
         get: operations["createAssetDownloadUrl"];
         put?: never;

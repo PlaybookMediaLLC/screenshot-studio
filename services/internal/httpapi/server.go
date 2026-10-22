@@ -203,6 +203,7 @@ type ConfigurationStore interface {
 	CompleteAssetUpload(context.Context, product.Actor, string, *string) (*product.AssetRecord, error)
 	SignAssetDownload(context.Context, product.Actor, string) (string, error)
 	ReadAsset(context.Context, product.Actor, string) ([]byte, string, error)
+	ReadAssetDownload(context.Context, string, string, string) ([]byte, string, error)
 	StoreGeneratedAsset(context.Context, product.Actor, product.GeneratedAssetInput) (*product.GeneratedAssetRecord, error)
 	ConsumeWorkspaceQuota(context.Context, product.Actor, string, int) (int, error)
 	CreateScheduledPost(context.Context, product.Actor, publishing.CreateScheduledPostInput) (publishing.CreateScheduledPostResult, error)

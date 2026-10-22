@@ -132,7 +132,8 @@ func (s *S3Store) Read(ctx context.Context, key string) ([]byte, error) {
 		return nil, err
 	}
 	defer response.Body.Close()
-	const maxMediaBytes = 50 << 20
+	// Asset intake accepts LinkedIn PDFs up to 100 MiB.
+	const maxMediaBytes = 100 << 20
 	content, err := io.ReadAll(io.LimitReader(response.Body, maxMediaBytes+1))
 	if err != nil {
 		return nil, err

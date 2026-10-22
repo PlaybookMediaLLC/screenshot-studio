@@ -266,7 +266,7 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 		t.Fatalf("foreign asset deletion disclosed ownership: result=%s err=%v", result, err)
 	}
 	objects := &recordingAssetObjects{}
-	repo.WithObjectStore(objects)
+	repo.WithObjectStore(objects).WithAssetDownloads(strings.Repeat("a", 32), "https://shots.example.test")
 	signed, err := repo.SignAssetUpload(ctx, actor, AssetUploadInput{
 		Bytes: 100, Classification: "input", ContentType: "image/png", FileName: "canary.png",
 	})
@@ -284,7 +284,7 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if _, err := repo.CompleteAssetUpload(ctx, actor, signed.Asset.ID, nil); err != nil {
 		t.Fatalf("repeat asset completion: %v", err)
 	}
-	if signedURL, err := repo.SignAssetDownload(ctx, actor, signed.Asset.ID); err != nil || signedURL != "https://storage.example.test/download" {
+	if signedURL, err := repo.SignAssetDownload(ctx, actor, signed.Asset.ID); err != nil || !strings.HasPrefix(signedURL, "https://shots.example.test/api/v1/assets/"+signed.Asset.ID+"/content?downloadToken=") {
 		t.Fatalf("asset download URL=%q err=%v", signedURL, err)
 	}
 	var uploadEvents int

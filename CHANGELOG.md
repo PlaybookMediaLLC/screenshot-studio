@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.36.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.36.2...v2.36.3) (2026-10-22)
+
+
+### Bug Fixes
+
+* **ui:** keep the first sidebar toggle from being dropped ([#297](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/297)) ([f5a723a](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/f5a723ae2ad4f1dcfb6f2d41ae3ee528f27940a4))
+
 ## [2.36.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.36.1...v2.36.2) (2026-10-22)
 
 

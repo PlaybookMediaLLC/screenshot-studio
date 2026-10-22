@@ -1,4 +1,9 @@
-import { Calendar03Icon, Megaphone01Icon, Rocket01Icon } from 'hugeicons-react'
+import { AreaNavigation, CAMPAIGN_LINKS } from '@/components/platform-hub/AreaNavigation'
+import {
+  CalendarDays as Calendar03Icon,
+  Megaphone as Megaphone01Icon,
+  Rocket as Rocket01Icon,
+} from 'lucide-react'
 import type { Metadata } from 'next'
 import { ShipInput } from '@/components/campaign-copilot/CopilotLaunchers'
 import { CampaignList } from '@/components/campaigns/CampaignList'
@@ -108,6 +113,7 @@ export default async function CampaignsPage({ params }: CampaignsPageProps) {
         description="Each campaign starts from a release brief and keeps its context as you build it out."
         title="Campaigns"
       >
+        <AreaNavigation label="Campaigns" items={CAMPAIGN_LINKS} />
         <ShipInput
           aiEnabled={bootstrap.capabilities.aiAgent}
           hasProfile={Boolean(profile)}

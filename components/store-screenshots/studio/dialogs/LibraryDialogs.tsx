@@ -18,16 +18,14 @@ import { BUNDLED_FONTS, fontNameFor } from '@/lib/store-screenshots/fonts'
 import type { SlideScope } from '@/lib/store-screenshots/commands/schema'
 import { ingestImageFile } from '@/lib/store-screenshots/persistence/ingest'
 import { deleteBrandKit, deleteTemplate, listBrandKits, listSavedTemplates, saveBrandKit, saveTemplate } from '@/lib/store-screenshots/persistence/library'
-import { DEFAULT_TARGET_ID, getStoreTargetOrDefault, targetPixelSize } from '@/lib/store-screenshots/targets'
 import { BUILT_IN_TEMPLATES, createDocumentFromTemplate, templateCategorySchema, templateFromDocument, type StoreTemplate, type TemplateCategory } from '@/lib/store-screenshots/templates'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
-import { RenderProvider } from '../../render/RenderProvider'
+import { StoreTemplatePreview } from '../../StoreTemplatePreview'
 import { ColorField } from '../controls'
 import { useEditor, useEditorApi } from '../editor-store'
 import { BackgroundField } from '../inspector/BackgroundField'
 import { FontPicker } from '../inspector/FontPicker'
-import { SlideThumbnail } from '../SlideThumbnail'
 import type { DialogProps } from './BasicDialogs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -51,20 +49,6 @@ const CATEGORY_LABELS: Record<TemplateCategory, string> = {
   ecommerce: 'E-commerce',
   general: 'General',
   saved: 'Saved by you',
-}
-
-function TemplatePreview({ template }: { template: StoreTemplate }): React.JSX.Element {
-  const [document] = React.useState(() => createDocumentFromTemplate(template))
-  const size = targetPixelSize(getStoreTargetOrDefault(DEFAULT_TARGET_ID))
-  return (
-    <RenderProvider document={document}>
-      <div className="flex gap-1.5 overflow-hidden">
-        {document.slides.slice(0, 4).map((slide, index) => (
-          <SlideThumbnail key={slide.id} document={document} index={index} size={size} targetId={DEFAULT_TARGET_ID} locale="en-US" height={170} className="shrink-0 rounded ring-1 ring-foreground/10" />
-        ))}
-      </div>
-    </RenderProvider>
-  )
 }
 
 /** Template gallery: preview, apply to this project, or start a new project. */
@@ -130,7 +114,7 @@ export function TemplatesDialog({ open, onOpenChange, onCreateProject }: DialogP
                   </Button>
                 </div>
               </div>
-              <TemplatePreview template={template} />
+              <StoreTemplatePreview template={template} />
             </li>
           ))}
         </ul>

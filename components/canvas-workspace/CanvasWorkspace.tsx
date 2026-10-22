@@ -1,5 +1,7 @@
 'use client'
 
+import { registerNavigationGuard } from '@/lib/platform/navigation-guard'
+
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
@@ -163,6 +165,15 @@ export function CanvasWorkspace({
       window.removeEventListener('pointerup', end, true)
     }
   }, [session, flushNative, presence.status])
+
+  useEffect(
+    () =>
+      registerNavigationGuard(async () => {
+        flush()
+        if (canEdit && !(await session.save())) throw new Error('Save the canvas before leaving.')
+      }, true),
+    [session, flush, canEdit]
+  )
 
   // Leaving with unsaved work asks first; a pending native edit is committed.
   useEffect(() => {

@@ -1,6 +1,9 @@
 'use client'
 
-import Link from 'next/link'
+import { SidebarLink as Link } from '@/components/platform-shell/SidebarLink'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { usePathname } from 'next/navigation'
@@ -29,14 +32,15 @@ function activeSection(pathname: string): SettingId | undefined {
 export function SettingsNav() {
   const pathname = usePathname()
   const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
   const current = activeSection(pathname ?? '/workspace')
   const sections = SETTINGS_SECTIONS.filter(
     (section) =>
       section.id !== 'new-team' &&
       `${section.title} ${section.description}`.toLowerCase().includes(query.trim().toLowerCase())
   )
-  return (
-    <nav aria-label="Settings" className="w-full shrink-0 lg:w-56">
+  const links = (
+    <nav aria-label="Settings sections" className="w-full shrink-0 lg:w-56">
       <div className="grid gap-5 lg:sticky lg:top-6">
         <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
           Search settings
@@ -52,7 +56,7 @@ export function SettingsNav() {
             No settings match your search.
           </p>
         ) : null}
-        <div className="grid max-h-64 gap-5 overflow-y-auto lg:max-h-[calc(100vh-12rem)]">
+        <div className="grid max-h-[70dvh] gap-5 overflow-y-auto lg:max-h-[calc(100vh-12rem)]">
           {SETTING_GROUPS.map((group) => {
             const matches = sections.filter((section) => section.group === group.id)
             return matches.length ? (
@@ -60,6 +64,7 @@ export function SettingsNav() {
                 <p className="mb-1 px-2 text-xs font-medium text-muted-foreground">{group.title}</p>
                 {matches.map((section) => (
                   <Link
+                    data-platform-nav
                     aria-current={section.id === current ? 'page' : undefined}
                     className={cn(
                       'rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -69,6 +74,7 @@ export function SettingsNav() {
                     )}
                     href={settingsHref(section)}
                     key={section.id}
+                    onClick={() => setOpen(false)}
                   >
                     {section.title}
                   </Link>
@@ -79,5 +85,25 @@ export function SettingsNav() {
         </div>
       </div>
     </nav>
+  )
+  return (
+    <>
+      <div className="hidden lg:block">{links}</div>
+      <div className="lg:hidden">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="h-11 w-full justify-between">
+              Settings /{' '}
+              {SETTINGS_SECTIONS.find((section) => section.id === current)?.title ?? 'General'}
+              <ChevronDown size={16} aria-hidden="true" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="overflow-y-auto p-5 pt-12">
+            <SheetTitle>Choose a settings section</SheetTitle>
+            {links}
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
   )
 }

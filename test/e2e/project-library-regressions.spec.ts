@@ -25,14 +25,14 @@ test('previews settle on first load and opening an empty project reuses a blank 
   }
   await page.goto(getE2EUrl('/projects'))
   const card = page.getByRole('link', { name: 'Open Empty project', exact: true })
-  await expect(card.getByText('Empty project')).toBeVisible()
+  await expect(card.locator('..').getByText('Empty project')).toBeVisible()
   for (const name of ['First preview', 'Second preview', 'Third preview']) {
     await expect(page.getByRole('img', { name: `Preview of ${name}` })).toBeVisible({
       timeout: 60_000,
     })
   }
   await page.getByRole('button', { name: 'Actions for Empty project' }).click()
-  await page.getByRole('menuitem', { name: 'Open in Canvas' }).click()
+  await page.getByRole('menuitem', { name: 'Create Canvas copy' }).click()
   await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 60_000 })
   const canvasId = new URL(page.url()).pathname.split('/').at(-1)!
   const saved = (await trpcQuery(page, 'canvas.get', { canvasId })).body as {
@@ -41,7 +41,7 @@ test('previews settle on first load and opening an empty project reuses a blank 
   expect(saved.document.artboards[0].document.image.src).toBeNull()
   await page.goto(getE2EUrl('/projects'))
   await page.getByRole('button', { name: 'Actions for Empty project' }).click()
-  await page.getByRole('menuitem', { name: 'Open in Canvas' }).click()
+  await page.getByRole('menuitem', { name: 'Create Canvas copy' }).click()
   await expect(page).toHaveURL(new RegExp(`/canvas/${canvasId}$`))
   const reopened = await Promise.all([
     trpcMutation(page, 'canvas.openProject', { projectId }),
@@ -79,6 +79,9 @@ test('rename refreshes filters, duplicate names differ, and keyboard focus retur
   await expect(actions).toBeFocused()
   await actions.click()
   await page.getByRole('menuitem', { name: 'Rename…' }).click()
+  await expect(page.getByLabel('Project name')).toHaveAttribute('maxlength', '200')
+  // Exercise validation even when a script bypasses the browser's input limit.
+  await page.getByLabel('Project name').evaluate((input) => input.removeAttribute('maxlength'))
   await page.getByLabel('Project name').fill('x'.repeat(201))
   await page.getByRole('button', { name: 'Rename', exact: true }).click()
   await expect(page.getByRole('dialog').getByRole('alert')).toHaveText(
@@ -106,6 +109,7 @@ test('rename refreshes filters, duplicate names differ, and keyboard focus retur
   await expect(copy).toHaveCount(0)
   await expect(search).toBeFocused()
   await page.getByRole('link', { name: 'Pricing banner copy 2', exact: true }).click()
+  await expect(page).toHaveURL(/[?]project=/)
   await page.goBack()
   await expect(search).toHaveValue('pricing')
   await expect(page.getByRole('combobox', { name: 'Sort projects' })).toHaveText('Name')

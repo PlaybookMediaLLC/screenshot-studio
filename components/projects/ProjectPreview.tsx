@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { Button } from '@/components/ui/button'
 import { DocumentPreview, useNearViewport } from '@/components/design/DocumentPreview'
 import { type DesignDocument, mapDesignSources } from '@/lib/design/document'
 import { fetchDesignSources } from '@/lib/design/open-design'
@@ -19,19 +20,23 @@ export function ProjectPreview({
   alt,
   className,
   document,
+  retryable = false,
 }: {
   alt: string
   className?: string
   document: DesignDocument | null
+  retryable?: boolean
 }) {
   const trpcClient = useTRPCClient()
   const [ref, near] = useNearViewport<HTMLDivElement>()
   const [resolved, setResolved] = React.useState<Resolved | null>(null)
+  const [attempt, setAttempt] = React.useState(0)
   const empty = document !== null && isEmptyProject(document)
 
   React.useEffect(() => {
     if (!near || !document || empty) return
     let active = true
+    setResolved(null)
     fetchDesignSources(trpcClient, document)
       .then((urls) => {
         const local = Object.keys(urls).length
@@ -45,7 +50,7 @@ export function ProjectPreview({
     return () => {
       active = false
     }
-  }, [document, empty, near, trpcClient])
+  }, [document, empty, near, trpcClient, attempt])
 
   const current = resolved?.source === document ? resolved : null
   return (
@@ -58,13 +63,43 @@ export function ProjectPreview({
           Empty project
         </p>
       ) : current?.document ? (
-        <DocumentPreview alt={alt} document={current.document} />
-      ) : !document || current ? (
-        <p className="absolute inset-0 grid place-items-center text-[10px] text-muted-foreground">
-          Preview unavailable
+        <DocumentPreview
+          key={attempt}
+          alt={alt}
+          document={current.document}
+          onRetry={retryable ? () => setAttempt((value) => value + 1) : undefined}
+        />
+      ) : !document ? (
+        <p className="absolute inset-0 grid place-items-center p-3 text-center text-xs text-muted-foreground">
+          This format has no preview. Open the original editor.
         </p>
+      ) : current ? (
+        <div
+          role="status"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 text-center text-xs text-muted-foreground"
+        >
+          <p>Preview sources could not load. Your saved project is unchanged.</p>
+          {retryable ? (
+            <Button
+              className="relative z-10"
+              size="sm"
+              variant="outline"
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                setAttempt((value) => value + 1)
+              }}
+            >
+              Retry preview
+            </Button>
+          ) : null}
+        </div>
       ) : (
-        <div aria-hidden className="absolute inset-0 animate-pulse bg-foreground/[0.06]" />
+        <div
+          role="status"
+          aria-label="Loading preview"
+          className="absolute inset-0 animate-pulse bg-foreground/[0.06]"
+        />
       )}
     </div>
   )

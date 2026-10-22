@@ -8,7 +8,6 @@ import { applyDesignChanges } from '@/lib/design/apply'
 import type { DesignChanges } from '@/lib/design/document'
 import { describeSelection, exportDesignDocument } from '@/lib/design/export'
 import { captureCanvasSnapshot } from '@/lib/design/snapshot'
-import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts'
 import { useImageStore } from '@/lib/store'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
@@ -21,7 +20,7 @@ import { Textarea } from '@/components/ui/textarea'
  * The editor's AI surface: one floating panel with
  *
  * - Copilot: a conversation that edits the live canvas, scoped to the
- *   selected layer when there is one (⌘K opens it on the selection);
+ *   selected layer when there is one;
  * - Suggestions: up to three one-click improvements from a design review;
  * - Variants: complete versions of the design to compare and apply (the
  *   copilot opens it for "give me four versions");
@@ -91,47 +90,37 @@ export function EditorAiPanel() {
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
 
-  // ⌘K / Ctrl+K: ask the copilot about the selected layer.
-  useEffect(() => {
-    if (!status?.copilot) return
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (shouldIgnoreEditorShortcut(event) || !(event.metaKey || event.ctrlKey)) return
-      if (event.key.toLowerCase() !== 'k') return
-      event.preventDefault()
-      openCopilot(true)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [openCopilot, status?.copilot])
-
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight })
   }, [entries])
 
   const reviewCache = useRef<{ key: string; suggestions: Suggestion[] } | null>(null)
-  const review = useCallback(async (force = false) => {
-    const document = exportDesignDocument()
-    const key = JSON.stringify(document)
-    if (!force && reviewCache.current?.key === key) {
-      setSuggestions(reviewCache.current.suggestions)
-      return
-    }
-    setReviewing(true)
-    try {
-      const { suggestions: found } = await trpcClient.editorAi.critique.mutate({
-        document,
-        snapshot: await captureCanvasSnapshot(480),
-      })
-      reviewCache.current = { key, suggestions: found }
-      setSuggestions(found)
-    } catch (error) {
-      toast.error('Could not review the design', {
-        description: error instanceof Error ? error.message : undefined,
-      })
-    } finally {
-      setReviewing(false)
-    }
-  }, [trpcClient])
+  const review = useCallback(
+    async (force = false) => {
+      const document = exportDesignDocument()
+      const key = JSON.stringify(document)
+      if (!force && reviewCache.current?.key === key) {
+        setSuggestions(reviewCache.current.suggestions)
+        return
+      }
+      setReviewing(true)
+      try {
+        const { suggestions: found } = await trpcClient.editorAi.critique.mutate({
+          document,
+          snapshot: await captureCanvasSnapshot(480),
+        })
+        reviewCache.current = { key, suggestions: found }
+        setSuggestions(found)
+      } catch (error) {
+        toast.error('Could not review the design', {
+          description: error instanceof Error ? error.message : undefined,
+        })
+      } finally {
+        setReviewing(false)
+      }
+    },
+    [trpcClient]
+  )
 
   // Review once each time the panel opens on a design, never while editing.
   useEffect(() => {
@@ -172,7 +161,6 @@ export function EditorAiPanel() {
       >
         <AiMagicIcon size={16} />
         AI
-        <kbd className="ml-1 hidden rounded bg-background/20 px-1 text-[10px] lg:inline">⌘K</kbd>
       </Button>
 
       {open ? (
@@ -183,7 +171,9 @@ export function EditorAiPanel() {
         >
           <header className="flex items-center gap-1 border-b p-2">
             {(['copilot', 'variants', 'captions'] as const).map((value) => (
-              <Button variant="custom" size={null}
+              <Button
+                variant="custom"
+                size={null}
                 className={cn(
                   'rounded-md px-2.5 py-1 text-sm font-medium',
                   tab === value ? 'bg-muted text-foreground' : 'text-muted-foreground'
@@ -217,7 +207,9 @@ export function EditorAiPanel() {
               <div className="border-b p-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-medium text-muted-foreground">Suggestions</p>
-                  <Button variant="custom" size={null}
+                  <Button
+                    variant="custom"
+                    size={null}
                     className="text-xs underline disabled:opacity-50"
                     disabled={reviewing || !hasImage}
                     onClick={() => void review(true)}
@@ -226,13 +218,19 @@ export function EditorAiPanel() {
                     {reviewing ? 'Reviewing…' : 'Review again'}
                   </Button>
                 </div>
-                {reviewing ? <p role="status" className="mt-2 text-xs text-muted-foreground">Review runs in the background. You can keep editing.</p> : null}
+                {reviewing ? (
+                  <p role="status" className="mt-2 text-xs text-muted-foreground">
+                    Review runs in the background. You can keep editing.
+                  </p>
+                ) : null}
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {suggestions?.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Looks good. Nothing to fix.</p>
                   ) : null}
                   {suggestions?.map((suggestion) => (
-                    <Button variant="custom" size={null}
+                    <Button
+                      variant="custom"
+                      size={null}
                       className="rounded-full border px-2.5 py-1 text-left text-xs hover:bg-muted"
                       key={suggestion.title}
                       onClick={() => void applySuggestion(suggestion)}
@@ -253,8 +251,12 @@ export function EditorAiPanel() {
                       ⌘Z.
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {QUICK_PROMPTS.filter((prompt) => aspectRatio !== '9_16' || !prompt.includes('9:16')).map((prompt) => (
-                        <Button variant="custom" size={null}
+                      {QUICK_PROMPTS.filter(
+                        (prompt) => aspectRatio !== '9_16' || !prompt.includes('9:16')
+                      ).map((prompt) => (
+                        <Button
+                          variant="custom"
+                          size={null}
                           className="rounded-full border px-2.5 py-1 text-xs hover:bg-muted"
                           disabled={isRunning}
                           key={prompt}
@@ -293,7 +295,13 @@ export function EditorAiPanel() {
                 {selection ? (
                   <p className="mb-1.5 flex items-center gap-1 text-xs text-muted-foreground">
                     Editing {selection}
-                    <Button variant="custom" size={null} className="underline" onClick={() => setSelection(null)} type="button">
+                    <Button
+                      variant="custom"
+                      size={null}
+                      className="underline"
+                      onClick={() => setSelection(null)}
+                      type="button"
+                    >
                       whole design
                     </Button>
                   </p>

@@ -1,6 +1,10 @@
 'use client'
 
-import Link from 'next/link'
+import { SidebarLink as Link } from '@/components/platform-shell/SidebarLink'
+import { usePathname } from 'next/navigation'
+import { platformHref } from '@/lib/platform/navigation'
+import { prepareWorkspaceSwitch } from '@/lib/platform/navigation-guard'
+import { useQueryClient } from '@tanstack/react-query'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { WorkspaceCreationDialog } from '@/components/workspace/WorkspaceCreationDialog'
 import { UserAvatar } from './UserAvatar'
@@ -13,12 +17,14 @@ import { Button } from '@/components/ui/button'
 type Workspace = { id: string; isScheduledForDeletion: boolean; name: string; slug: string }
 
 export function AccountMenu({
+  scope = 'all',
   align = 'end',
   children,
   side = 'bottom',
   triggerClassName,
   workspaceName,
 }: {
+  scope?: 'all' | 'account' | 'workspace'
   align?: 'center' | 'end' | 'start'
   /** Custom trigger content, e.g. the sidebar's workspace row; defaults to an avatar. */
   children?: ReactNode
@@ -28,6 +34,8 @@ export function AccountMenu({
   /** The active workspace, shown in the menu so it is named even when the trigger is a badge. */
   workspaceName?: string
 } = {}) {
+  const queryClient = useQueryClient()
+  const pathname = usePathname()
   const trpcClient = useTRPCClient()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false)
@@ -39,7 +47,7 @@ export function AccountMenu({
   const { data: session, isPending } = useHydratedSession()
 
   useEffect(() => {
-    if (!session) {
+    if (!session || scope === 'account') {
       setWorkspaces([])
       return
     }
@@ -57,14 +65,22 @@ export function AccountMenu({
     return () => {
       active = false
     }
-  }, [session, trpcClient, menuOpen])
+  }, [session, trpcClient, menuOpen, scope])
 
   async function handleSignOut() {
     setIsSigningOut(true)
-    await authClient.signOut()
-    // Forget the analytics device ID so the next person on this browser starts fresh.
-    resetUser()
-    window.location.assign('/sign-in')
+    setWorkspaceError(null)
+    try {
+      await prepareWorkspaceSwitch()
+      const result = await authClient.signOut()
+      if (result.error) throw new Error(result.error.message ?? 'Could not sign out.')
+      resetUser()
+      queryClient.clear()
+      window.location.assign(platformHref(pathname, '/sign-in'))
+    } catch (error) {
+      setWorkspaceError(error instanceof Error ? error.message : 'Could not sign out.')
+      setIsSigningOut(false)
+    }
   }
 
   async function handleWorkspaceSwitch(organizationId: string): Promise<void> {
@@ -75,8 +91,10 @@ export function AccountMenu({
     setWorkspaceError(null)
     setIsSwitchingWorkspace(true)
     try {
+      await prepareWorkspaceSwitch()
       await trpcClient.workspace.setActive.mutate({ organizationId })
-      window.location.assign('/')
+      queryClient.clear()
+      window.location.assign(platformHref(pathname, '/home'))
     } catch (error) {
       setWorkspaceError(error instanceof Error ? error.message : 'Could not switch workspace.')
       setIsSwitchingWorkspace(false)
@@ -110,7 +128,11 @@ export function AccountMenu({
           <Button
             variant="custom"
             size={null}
-            aria-label="Open account menu"
+            aria-label={
+              scope === 'workspace'
+                ? `Workspace: ${workspaceName ?? 'Workspace'}`
+                : 'Open account menu'
+            }
             ref={trigger}
             className={
               triggerClassName ??
@@ -138,7 +160,7 @@ export function AccountMenu({
               </p>
             ) : null}
           </div>
-          {canSwitchWorkspace ? (
+          {scope !== 'account' && canSwitchWorkspace ? (
             <div className="grid gap-1 border-b py-2">
               <p className="px-2 text-xs font-medium text-muted-foreground">Workspaces</p>
               {workspaces.map((workspace) => {
@@ -168,37 +190,53 @@ export function AccountMenu({
             <p className="px-2 pb-2 text-xs text-destructive">{workspaceError}</p>
           ) : null}
           <div className="grid gap-1 py-2">
+            {scope !== 'account' ? (
+              <>
+                <Button
+                  variant="custom"
+                  size={null}
+                  className="rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    setCreationOpen(true)
+                  }}
+                >
+                  Create workspace
+                </Button>
+              </>
+            ) : null}
+            {scope !== 'workspace' ? (
+              <>
+                <Link
+                  className="rounded-md px-2 py-2 text-sm hover:bg-muted"
+                  href="/workspace/account"
+                >
+                  Profile
+                </Link>
+                <Link
+                  className="rounded-md px-2 py-2 text-sm hover:bg-muted"
+                  href="/workspace/appearance"
+                >
+                  Preferences
+                </Link>
+                <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/workspace">
+                  Settings
+                </Link>
+              </>
+            ) : null}
+          </div>
+          {scope !== 'workspace' ? (
             <Button
               variant="custom"
               size={null}
-              className="rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
-              onClick={() => {
-                setMenuOpen(false)
-                setCreationOpen(true)
-              }}
+              className="w-full rounded-md px-2 py-2 text-left text-sm text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSigningOut}
+              onClick={handleSignOut}
+              type="button"
             >
-              Create workspace
+              {isSigningOut ? 'Signing out…' : 'Sign out'}
             </Button>
-            <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/assets">
-              Assets
-            </Link>
-            <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/activity">
-              Activity
-            </Link>
-            <Link className="rounded-md px-2 py-2 text-sm hover:bg-muted" href="/workspace">
-              Workspace settings
-            </Link>
-          </div>
-          <Button
-            variant="custom"
-            size={null}
-            className="w-full rounded-md px-2 py-2 text-left text-sm text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isSigningOut}
-            onClick={handleSignOut}
-            type="button"
-          >
-            {isSigningOut ? 'Signing out…' : 'Sign out'}
-          </Button>
+          ) : null}
         </PopoverContent>
       </Popover>
       {creationOpen ? (

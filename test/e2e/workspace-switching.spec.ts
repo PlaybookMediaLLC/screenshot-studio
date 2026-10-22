@@ -38,7 +38,7 @@ async function switchWorkspace(
   page: Parameters<typeof browserRequest>[0],
   workspaceName: string
 ): Promise<void> {
-  await page.getByRole('button', { name: 'Open account menu' }).click()
+  await page.getByRole('button', { name: /^Workspace:/ }).click()
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
     page.getByRole('button', { name: `Switch to ${workspaceName}` }).click(),

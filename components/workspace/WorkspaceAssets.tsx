@@ -1,7 +1,7 @@
 'use client'
 
 import { Input } from '@/components/ui/input'
-import { Album02Icon, MoreHorizontalIcon } from 'hugeicons-react'
+import { Images as Album02Icon, Ellipsis as MoreHorizontalIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { TRPCClientError } from '@trpc/client'
@@ -83,16 +83,27 @@ function AssetPreview({
 }) {
   const notified = useRef(false)
   const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const isImage = asset.mediaType.startsWith('image/')
   const isVideo = asset.mediaType.startsWith('video/')
-  const url = `/api/v1/assets/${asset.id}/content${isImage ? '?variant=thumbnail' : ''}`
+  const url = `/api/v1/assets/${asset.id}/content?${isImage ? 'variant=thumbnail&' : ''}retry=${attempt}`
 
   return (
     <div className="relative grid aspect-[16/10] place-items-center overflow-hidden bg-[radial-gradient(circle_at_center,#1a1a1a,#0c0c0c)]">
       {failed ? (
-        <span role="status" className="text-sm text-muted-foreground">
-          Preview unavailable
-        </span>
+        <div role="status" className="space-y-2 p-3 text-center text-sm text-muted-foreground">
+          <p>Preview could not load. The saved asset is unchanged.</p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setAttempt((value) => value + 1)
+              setFailed(false)
+            }}
+          >
+            Retry preview
+          </Button>
+        </div>
       ) : isImage ? (
         // Private endpoint: next/image's shared optimizer must not cache tenant content.
         <img
@@ -133,7 +144,10 @@ export function WorkspaceAssets() {
   const searchParams = useSearchParams()
   const search = searchParams.get('search') ?? ''
   const classificationParam = searchParams.get('classification')
-  const classification = classificationParam === 'input' || classificationParam === 'export' ? classificationParam : undefined
+  const classification =
+    classificationParam === 'input' || classificationParam === 'export'
+      ? classificationParam
+      : undefined
   const typeParam = searchParams.get('type')
   const typeFilter: TypeFilter = typeParam === 'image' || typeParam === 'video' ? typeParam : 'all'
   const sort = searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest'
@@ -267,12 +281,31 @@ export function WorkspaceAssets() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Input className="max-w-sm" type="search" placeholder="Search filenames" aria-label="Search assets by filename" value={search} maxLength={200} onChange={(event) => updateView('search', event.target.value)} />
-        <Select value={classification ?? 'all'} onValueChange={(value) => updateView('classification', value)}>
-          <SelectTrigger aria-label="Asset source"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="export">Saved exports</SelectItem><SelectItem value="input">Uploaded originals</SelectItem></SelectContent>
+        <Input
+          className="max-w-sm"
+          type="search"
+          placeholder="Search filenames"
+          aria-label="Search assets by filename"
+          value={search}
+          maxLength={200}
+          onChange={(event) => updateView('search', event.target.value)}
+        />
+        <Select
+          value={classification ?? 'all'}
+          onValueChange={(value) => updateView('classification', value)}
+        >
+          <SelectTrigger aria-label="Asset source">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All sources</SelectItem>
+            <SelectItem value="export">Saved exports</SelectItem>
+            <SelectItem value="input">Uploaded originals</SelectItem>
+          </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">Files in this workspace are shared with its members.</p>
+        <p className="text-xs text-muted-foreground">
+          Files in this workspace are shared with its members.
+        </p>
       </div>
       {query.error ? (
         <Alert variant="destructive">
@@ -321,18 +354,41 @@ export function WorkspaceAssets() {
                 className="group overflow-hidden rounded-xl bg-foreground/[0.02] ring-1 ring-foreground/[0.08] transition hover:ring-foreground/[0.16]"
                 key={asset.id}
               >
-                {asset.mediaType.startsWith('video/') ? <AssetPreview asset={asset} onMetadataAvailable={refreshMetadata} /> : (
-                  <a className="block focus-visible:ring-2" href={`/api/v1/assets/${asset.id}/content`} target="_blank" rel="noopener noreferrer" aria-label={`Open ${asset.fileName || describeType(asset.mediaType)}`}>
+                {asset.mediaType.startsWith('video/') ? (
+                  <AssetPreview asset={asset} onMetadataAvailable={refreshMetadata} />
+                ) : (
+                  <a
+                    className="block focus-visible:ring-2"
+                    href={`/api/v1/assets/${asset.id}/content`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Open ${asset.fileName || describeType(asset.mediaType)}`}
+                  >
                     <AssetPreview asset={asset} onMetadataAvailable={refreshMetadata} />
                   </a>
                 )}
                 <div className="flex items-start justify-between gap-3 border-t border-foreground/[0.06] px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">
-                      {asset.fileName || `${describeType(asset.mediaType)} · ${asset.id.slice(0, 8)}`}
+                      {asset.fileName ||
+                        `${describeType(asset.mediaType)} · ${asset.id.slice(0, 8)}`}
                     </p>
-                    {asset.projectName ? <a className="block truncate text-xs text-primary underline" href={`/?project=${asset.projectId}`}>From {asset.projectName}</a> : null}
-                    <p className="text-xs text-muted-foreground">{asset.classification === 'export' ? 'Saved export' : asset.classification === 'input' ? 'Uploaded original' : 'Workspace asset'}{asset.uploadedBy ? ` · ${asset.uploadedBy}` : ''}</p>
+                    {asset.projectName ? (
+                      <a
+                        className="block truncate text-xs text-primary underline"
+                        href={`/?project=${asset.projectId}`}
+                      >
+                        From {asset.projectName}
+                      </a>
+                    ) : null}
+                    <p className="text-xs text-muted-foreground">
+                      {asset.classification === 'export'
+                        ? 'Saved export'
+                        : asset.classification === 'input'
+                          ? 'Uploaded original'
+                          : 'Workspace asset'}
+                      {asset.uploadedBy ? ` · ${asset.uploadedBy}` : ''}
+                    </p>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       {[dimensions, formatBytes(asset.bytes)].filter(Boolean).join(' · ')}
                       {' · '}
@@ -361,7 +417,11 @@ export function WorkspaceAssets() {
                         }
                       }}
                     >
-                      {asset.projectId ? <DropdownMenuItem asChild><a href={`/?project=${asset.projectId}`}>Open source project</a></DropdownMenuItem> : null}
+                      {asset.projectId ? (
+                        <DropdownMenuItem asChild>
+                          <a href={`/?project=${asset.projectId}`}>Open source project</a>
+                        </DropdownMenuItem>
+                      ) : null}
                       {isImage ? (
                         <DropdownMenuItem asChild>
                           {/* The editor reads this parameter on load and pulls

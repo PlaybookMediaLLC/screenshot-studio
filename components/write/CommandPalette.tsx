@@ -3,6 +3,8 @@
 import { useWriteRouter } from '@/components/write/write-context'
 
 import * as React from 'react'
+import { useTranslations } from 'next-intl'
+import { PLATFORM_DESTINATIONS } from '@/lib/platform/navigation'
 import { createWritingDraft } from './pending-draft'
 import {
   CommandDialog,
@@ -22,12 +24,15 @@ import { draftHref, rememberSet, useWrite } from './write-context'
  * focus to what opened it.
  */
 export default function CommandPalette({
+  campaignsEnabled,
   onClose,
   onShortcuts,
 }: {
+  campaignsEnabled: boolean
   onClose: () => void
   onShortcuts: () => void
 }) {
+  const t = useTranslations('platformNavigation')
   const keys = useKeys()
   const router = useWriteRouter()
   const { beforeLeaveRef, canEdit, data, setQuery } = useWrite()
@@ -35,18 +40,29 @@ export default function CommandPalette({
     []
   )
   const [search, setSearch] = React.useState('')
+  const [searchError, setSearchError] = React.useState(false)
   React.useEffect(() => {
+    setSearchError(false)
     if (!search.trim()) return setResults([])
     const controller = new AbortController()
     const query = new URLSearchParams({ limit: '20', search: search.trim() })
     if (data.activeSet) query.set('socialSetId', data.activeSet.id)
     const timer = setTimeout(() => {
       void fetch(`/api/v1/content-drafts?${query}`, { signal: controller.signal })
-        .then((response) => (response.ok ? response.json() : { items: [], pinned: [] }))
-        .then((body: { items: typeof results; pinned: typeof results }) =>
-          setResults([...body.pinned, ...body.items])
+        .then((response) => {
+          if (!response.ok) throw new Error('Search failed')
+          return response.json()
+        })
+        .then(
+          (body: { items: typeof results; pinned: typeof results }) =>
+            !controller.signal.aborted && setResults([...body.pinned, ...body.items])
         )
-        .catch(() => undefined)
+        .catch(() => {
+          if (!controller.signal.aborted) {
+            setResults([])
+            setSearchError(true)
+          }
+        })
     }, 200)
     return () => {
       clearTimeout(timer)
@@ -65,7 +81,34 @@ export default function CommandPalette({
         value={search}
       />
       <CommandList>
-        <CommandEmpty>Nothing matches.</CommandEmpty>
+        {searchError ? (
+          <p role="status" className="p-3 text-sm text-destructive">
+            Some draft results could not load. Try searching again.
+          </p>
+        ) : (
+          <CommandEmpty>Nothing matches.</CommandEmpty>
+        )}
+        <CommandGroup heading="This workspace · Destinations">
+          {PLATFORM_DESTINATIONS.filter((item) => campaignsEnabled || item.key !== 'campaigns').map(
+            (item) => (
+              <CommandItem
+                key={item.key}
+                value={`destination ${t(item.key)}`}
+                onSelect={() =>
+                  go(() =>
+                    router.push(
+                      item.key === 'publish' && data.activeSet
+                        ? `/write?set=${data.activeSet.id}`
+                        : item.href
+                    )
+                  )
+                }
+              >
+                {t(item.key)}
+              </CommandItem>
+            )
+          )}
+        </CommandGroup>
         {results.length > 0 ? (
           <CommandGroup heading="Drafts">
             {results.map((draft) => (
@@ -88,7 +131,11 @@ export default function CommandPalette({
               onSelect={() =>
                 go(
                   () =>
-                    void createWritingDraft({ socialSetId: data.activeSet?.id }, (id) => router.push(draftHref(id, data.activeSet?.id)), beforeLeaveRef.current ?? undefined)
+                    void createWritingDraft(
+                      { socialSetId: data.activeSet?.id },
+                      (id) => router.push(draftHref(id, data.activeSet?.id)),
+                      beforeLeaveRef.current ?? undefined
+                    )
                 )
               }
             >
@@ -96,11 +143,21 @@ export default function CommandPalette({
               <CommandShortcut>{keys.label({ key: '.', mod: true })}</CommandShortcut>
             </CommandItem>
           ) : null}
-          <CommandItem onSelect={() => go(() => router.push('/write'))}>
+          <CommandItem
+            onSelect={() =>
+              go(() => router.push(`/write${data.activeSet ? `?set=${data.activeSet.id}` : ''}`))
+            }
+          >
             Go to Write
             <CommandShortcut>{keys.label({ key: '1', mod: true, shift: true })}</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => go(() => router.push('/write/plan'))}>
+          <CommandItem
+            onSelect={() =>
+              go(() =>
+                router.push(`/write/plan${data.activeSet ? `?set=${data.activeSet.id}` : ''}`)
+              )
+            }
+          >
             Go to Calendar
             <CommandShortcut>{keys.label({ key: '2', mod: true, shift: true })}</CommandShortcut>
           </CommandItem>
@@ -125,7 +182,7 @@ export default function CommandPalette({
             ))}
           </CommandGroup>
         ) : null}
-        <CommandGroup heading="Brands">
+        <CommandGroup heading="Publishing brands">
           {data.sets.map((set) => (
             <CommandItem
               key={set.id}

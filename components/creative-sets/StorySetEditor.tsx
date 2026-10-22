@@ -22,7 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontalIcon } from 'hugeicons-react'
+import { Ellipsis as MoreHorizontalIcon } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { CanvasStageShell } from '@/components/canvas/CanvasStageShell'
 import ClientCanvas from '@/components/canvas/ClientCanvas'

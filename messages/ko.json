@@ -1,4 +1,22 @@
 {
+  "platformNavigation": {
+    "home": "홈",
+    "create": "만들기",
+    "campaigns": "캠페인",
+    "publish": "게시",
+    "library": "라이브러리",
+    "automate": "자동화",
+    "activity": "활동",
+    "settings": "설정",
+    "workspace": "워크스페이스",
+    "search": "검색",
+    "new": "새로 만들기",
+    "searchCommands": "검색 및 명령",
+    "collapse": "탐색 접기",
+    "expand": "탐색 펼치기",
+    "openNavigation": "탐색 열기",
+    "navigation": "탐색"
+  },
   "common": {
     "openEditor": "에디터 열기",
     "startCreating": "만들기 시작",

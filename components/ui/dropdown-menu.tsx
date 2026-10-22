@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
-import { Tick02Icon, ArrowRight01Icon, RecordIcon } from "hugeicons-react"
+import { Check as Tick02Icon, ChevronRight as ArrowRight01Icon, Circle as RecordIcon } from 'lucide-react'
 
 import { cn } from "@/lib/utils"
 

@@ -62,7 +62,7 @@ test('Workflow D: redacted work publishes without the sensitive text or face', a
   await visitor.close()
 
   // The app's own detectors find nothing in the published file either.
-  await page.getByRole('button', { exact: true, name: 'Remove' }).click()
+  await page.getByRole('button', { exact: true, name: 'Remove screenshot' }).click()
   await expect(page.locator('img[alt="Main image"]')).toHaveCount(0)
   await page.locator('[data-local-dropzone]').waitFor()
   await page.evaluate(

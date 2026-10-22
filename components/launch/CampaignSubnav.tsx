@@ -1,15 +1,15 @@
 'use client'
 
-import Link from 'next/link'
+import { SidebarLink as Link } from '@/components/platform-shell/SidebarLink'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
 const TABS = [
   { label: 'Overview', path: '' },
-  { label: 'Spec', path: '/spec' },
+  { label: 'Brief & evidence', path: '/spec' },
   { label: 'Plan', path: '/plan' },
-  { label: 'Assets', path: '/assets' },
-  { label: 'Copy', path: '/copy' },
+  { label: 'Visuals', path: '/assets' },
+  { label: 'Content & review', path: '/copy' },
 ] as const
 
 /** Polar-style pill tabs for a campaign's pages. */

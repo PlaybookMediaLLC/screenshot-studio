@@ -73,7 +73,7 @@ test('a founder connects a product, describes a release, and returns to the same
     await returningPage.getByLabel('Email', { exact: true }).fill(identity.email)
     await returningPage.getByLabel('Password').fill(identity.password)
     await returningPage.getByRole('button', { name: 'Sign in' }).click()
-    await expect.poll(() => new URL(returningPage.url()).pathname).toBe('/')
+    await expect.poll(() => new URL(returningPage.url()).pathname).toBe('/home')
     await returningPage.goto(getE2EUrl('/campaigns'))
     await returningPage.getByRole('link', { name: /Recurring invoices/ }).click()
     await expect.poll(() => new URL(returningPage.url()).pathname).toBe(campaignPath)

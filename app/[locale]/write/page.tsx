@@ -26,6 +26,7 @@ export default async function WritePage({ params, searchParams }: WritePageProps
       organizationName={access.organization.name}
     >
       <WriteFrame
+        campaignsEnabled={access.campaignWorkflowEnabled}
         canEdit={canEdit}
         canManageSets={canManageSets}
         canPublish={hasPermission(access.role, 'publish:manage')}

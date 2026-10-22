@@ -1,6 +1,10 @@
 'use client'
 
-import { CheckListIcon, LaptopIcon, SmartPhone01Icon } from 'hugeicons-react'
+import {
+  ListChecks as CheckListIcon,
+  Laptop as LaptopIcon,
+  Smartphone as SmartPhone01Icon,
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { type ReactNode, useState, useTransition } from 'react'

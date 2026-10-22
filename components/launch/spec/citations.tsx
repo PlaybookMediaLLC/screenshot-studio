@@ -1,6 +1,6 @@
 'use client'
 
-import { Alert02Icon } from 'hugeicons-react'
+import { TriangleAlert as Alert02Icon } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { Group, Pill, type PillTone, Section } from '@/components/platform-ui'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -134,7 +134,9 @@ function SourceCard({ id, index }: { id: string; index: SourceIndex }) {
   return (
     <>
       <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 font-medium break-words text-foreground">{source.title || source.url}</p>
+        <p className="min-w-0 font-medium break-words text-foreground">
+          {source.title || source.url}
+        </p>
         <Pill tone={STATUS[source.status].tone}>{STATUS[source.status].label}</Pill>
       </div>
       {source.url ? (
@@ -158,7 +160,9 @@ function ExcerptToggle({ text }: { text: string }) {
   const [open, setOpen] = useState(false)
   return (
     <div className="text-xs">
-      <Button variant="custom" size={null}
+      <Button
+        variant="custom"
+        size={null}
         aria-expanded={open}
         className="inline-flex h-5 items-center text-muted-foreground hover:text-foreground/80"
         onClick={() => setOpen(!open)}
@@ -208,7 +212,12 @@ export function SourceList({
       <Group>
         <ul className="divide-y divide-foreground/[0.07]">
           <li className="flex gap-2.5 px-4 py-3.5">
-            <span className={cn(chipClass, 'bg-foreground/[0.04] text-foreground/65 ring-foreground/[0.1]')}>
+            <span
+              className={cn(
+                chipClass,
+                'bg-foreground/[0.04] text-foreground/65 ring-foreground/[0.1]'
+              )}
+            >
               brief
             </span>
             <div className="min-w-0">

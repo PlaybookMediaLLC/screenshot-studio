@@ -2,7 +2,12 @@
 
 import { usePathname, useSearchParams } from 'next/navigation'
 import { Suspense, type ComponentProps } from 'react'
-import { ArrowDown01Icon, Image02Icon, PaintBoardIcon, SmartPhone01Icon } from 'hugeicons-react'
+import {
+  ChevronDown as ArrowDown01Icon,
+  Image as Image02Icon,
+  Palette as PaintBoardIcon,
+  Smartphone as SmartPhone01Icon,
+} from 'lucide-react'
 import { Collapsible } from 'radix-ui'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -51,7 +56,9 @@ function EditorNavigationContent({
   ] as const
   const trigger = (
     <Collapsible.Trigger asChild>
-      <Button variant="custom" size={null}
+      <Button
+        variant="custom"
+        size={null}
         type="button"
         aria-label="Editor"
         data-keep-selection
@@ -113,7 +120,9 @@ function EditorNavigationContent({
                       )
                     : cn(
                         'block py-1',
-                        active === id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                        active === id
+                          ? 'text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
                       )
                 )}
               >

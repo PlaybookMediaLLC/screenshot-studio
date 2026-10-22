@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
-import { Group, Pill, Row, Section } from '@/components/platform-ui'
+import { Group, Page, Pill, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { DesignTemplatePreview } from '@/components/design/DesignTemplatePreview'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -33,6 +34,7 @@ import {
 } from '@/lib/workflows/templates'
 
 import { WorkflowEditor } from './WorkflowEditor'
+import { WorkflowTemplatePreview } from './WorkflowTemplatePreview'
 import { FAMILY_NAMES } from './workflow-canvas'
 import { WORKFLOW_SCHEMA_VERSION } from '@/lib/workflows/actions'
 
@@ -88,14 +90,18 @@ export function WorkflowTemplates() {
   }, [client])
 
   if (!overview) {
-    return error ? (
-      <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    ) : (
-      <p className="text-sm text-neutral-500" role="status">
-        Loading templates…
-      </p>
+    return (
+      <Page title="New workflow">
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : (
+          <p className="text-sm text-muted-foreground" role="status">
+            Loading templates…
+          </p>
+        )}
+      </Page>
     )
   }
 
@@ -141,6 +147,7 @@ export function WorkflowTemplates() {
   if (blankDefinition)
     return (
       <WorkflowEditor
+        presentation="page"
         definition={blankDefinition}
         overview={overview}
         history={[]}
@@ -150,7 +157,11 @@ export function WorkflowTemplates() {
     )
 
   return (
-    <div className="flex flex-col gap-10">
+    <Page
+      title="New workflow"
+      description="Start from a template that runs today. Every step stays editable before you activate it."
+      width="md"
+    >
       <ButtonLink className="self-start" href="/workflows" variant="outline">
         Back to workflows
       </ButtonLink>
@@ -234,8 +245,8 @@ export function WorkflowTemplates() {
         description="Each template is a normal, editable workflow."
         title="Choose a template"
       >
-        <ul className="grid gap-3">
-          <li>
+        <ul className="grid gap-4 md:grid-cols-2">
+          <li className="md:col-span-2">
             <Button
               variant="outline"
               onClick={() => {
@@ -259,16 +270,29 @@ export function WorkflowTemplates() {
                 type="button"
                 variant="outline"
               >
-                <span className="text-sm font-medium text-white">{candidate.name}</span>
-                <span className="text-sm font-normal text-neutral-400">
+                <WorkflowTemplatePreview
+                  name={candidate.name}
+                  {...buildWorkflowTemplate(candidate.id, {
+                    brandKitId,
+                    destinationIds,
+                    creditLimit: generate ? creditLimit : 0,
+                    branch: branch.trim() || 'main',
+                    aiRelevance,
+                    majorMinorOnly: candidate.versioned && majorMinorOnly,
+                    renderTemplateIds: rendering.available ? renderTemplateIds : [],
+                    canvas: canvases.available && canvas,
+                  })}
+                />
+                <span className="text-sm font-medium text-foreground">{candidate.name}</span>
+                <span className="text-sm font-normal text-muted-foreground">
                   {candidate.description}
                 </span>
               </Button>
             </li>
           ))}
-          <li className="flex flex-col gap-2 rounded-xl p-5 ring-1 ring-white/[0.08]">
-            <span className="text-sm font-medium text-white">Manual campaign</span>
-            <span className="text-sm text-neutral-400">
+          <li className="flex flex-col gap-2 rounded-xl p-5 ring-1 ring-border">
+            <span className="text-sm font-medium text-foreground">Manual campaign</span>
+            <span className="text-sm text-muted-foreground">
               Pick a release you already shipped and build its campaign by hand, with the same
               review rules.
             </span>
@@ -278,12 +302,12 @@ export function WorkflowTemplates() {
           </li>
           <li
             aria-disabled
-            className="flex flex-col gap-2 rounded-xl p-5 opacity-60 ring-1 ring-white/[0.08]"
+            className="flex flex-col gap-2 rounded-xl p-5 opacity-60 ring-1 ring-border"
           >
-            <span className="flex items-center gap-2 text-sm font-medium text-white">
+            <span className="flex items-center gap-2 text-sm font-medium text-foreground">
               Weekly recurring campaign <Pill>Planned</Pill>
             </span>
-            <span className="text-sm text-neutral-400">
+            <span className="text-sm text-muted-foreground">
               Scheduled generation with period deduplication (RFC 029) is not built yet, so it
               cannot be activated.
             </span>
@@ -300,7 +324,10 @@ export function WorkflowTemplates() {
             <Alert>
               <AlertDescription>
                 Connect GitHub and watch a repository on the{' '}
-                <Link className="underline" href="/workflows#sources">
+                <Link
+                  className="underline"
+                  href="/workflows?view=sources&returnTo=%2Fworkflows%2Fnew"
+                >
                   Workflows page
                 </Link>{' '}
                 first.
@@ -349,7 +376,7 @@ export function WorkflowTemplates() {
                 <Row label="Brand kit required">
                   <Link
                     className="underline"
-                    href="/workspace/brand-kit"
+                    href="/workspace/brand-kit?returnTo=%2Fworkflows%2Fnew"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -381,9 +408,12 @@ export function WorkflowTemplates() {
                 layout="stacked"
               >
                 {overview.destinations.length === 0 ? (
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-muted-foreground">
                     Connect a destination in{' '}
-                    <Link className="underline" href="/workspace/channels">
+                    <Link
+                      className="underline"
+                      href="/workspace/channels?returnTo=%2Fworkflows%2Fnew"
+                    >
                       Channels
                     </Link>{' '}
                     first.
@@ -487,7 +517,11 @@ export function WorkflowTemplates() {
               >
                 <div className="flex flex-wrap gap-4">
                   {(overview.templates ?? []).map((design) => (
-                    <Label className="flex items-center gap-2 text-sm" key={design.id}>
+                    <Label
+                      className="grid w-full gap-2 rounded-lg border p-3 text-sm sm:w-64"
+                      key={design.id}
+                    >
+                      <DesignTemplatePreview id={design.id} />
                       <Checkbox
                         checked={renderTemplateIds.includes(design.id)}
                         disabled={
@@ -532,7 +566,7 @@ export function WorkflowTemplates() {
                   <ButtonLink href="/workflows" variant="ghost">
                     Cancel
                   </ButtonLink>
-                  <span className="text-xs text-neutral-500">
+                  <span className="text-xs text-muted-foreground">
                     The draft is validated by the backend; nothing runs until you activate it.
                   </span>
                 </div>
@@ -546,6 +580,6 @@ export function WorkflowTemplates() {
           ) : null}
         </Section>
       ) : null}
-    </div>
+    </Page>
   )
 }

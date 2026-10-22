@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
-import { Search01Icon } from 'hugeicons-react'
+import { Search as Search01Icon } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,7 +24,17 @@ import { StorySetIntake } from './StorySetIntake'
 import { usePrivateCreativeSurface } from './use-private-surface'
 import { ImportProject } from './ImportProject'
 
-export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; canEdit: boolean }) {
+export function StorySetLibrary({
+  canCreate,
+  canEdit,
+  embedded = false,
+}: {
+  canCreate: boolean
+  canEdit: boolean
+  embedded?: boolean
+}) {
+  const Root = embedded ? 'section' : 'main'
+  const Heading = embedded ? 'h2' : 'h1'
   usePrivateCreativeSurface()
   const client = useTRPCClient()
   const trpc = useTRPC()
@@ -36,10 +46,12 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
   const sort = creativeSetSortSchema.catch('updated').parse(params.get('sort') ?? 'updated')
   const [creating, setCreating] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
-  const sets = useInfiniteQuery(trpc.creativeSet.list.infiniteQueryOptions(
-    { search: query || undefined, sort },
-    { getNextPageParam: (page) => page.nextCursor }
-  ))
+  const sets = useInfiniteQuery(
+    trpc.creativeSet.list.infiniteQueryOptions(
+      { search: query || undefined, sort },
+      { getNextPageParam: (page) => page.nextCursor }
+    )
+  )
   const items = sets.data?.pages.flatMap((page) => page.items) ?? []
   const busy = sets.isPending || sets.isFetchingNextPage
   const error = sets.error ? 'We couldn’t load your Story Sets. Please try again.' : null
@@ -49,8 +61,12 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
     else url.searchParams.delete(name)
     window.history.replaceState(null, '', url)
   }
-  useEffect(() => { setReady(true) }, [])
-  useEffect(() => { setSearch(query) }, [query])
+  useEffect(() => {
+    setReady(true)
+  }, [])
+  useEffect(() => {
+    setSearch(query)
+  }, [query])
   useEffect(() => {
     if (search.trim() === query) return
     const timer = setTimeout(() => updateFilter('search', search.trim()), 200)
@@ -58,13 +74,13 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
   }, [search, query])
   if (creating) return <StorySetIntake onCancel={() => setCreating(false)} />
   return (
-    <main className="w-full space-y-8 p-4 sm:p-8">
+    <Root className="w-full space-y-8 p-4 sm:p-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs uppercase tracking-[0.16em] text-emerald-400">
             Product evidence, connected
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight">Story Sets</h1>
+          <Heading className="text-3xl font-semibold tracking-tight">Story Sets</Heading>
           <p className="mt-2 max-w-xl text-muted-foreground">
             Product benefits, editable formats and connected evidence. Keep your launch creative
             current as your product changes.
@@ -88,36 +104,38 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
           edit Story Sets.
         </p>
       ) : null}
-      {busy || error || items.length > 0 || query ? <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative w-full sm:max-w-sm">
-          <Search01Icon
-            aria-hidden
-            size={15}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            aria-label="Search Story Sets"
-            placeholder="Search Story Sets"
-            maxLength={200}
-            value={search}
-            onChange={(event) => setSearch(event.target.value.slice(0, 200))}
-            className="pl-9"
-          />
+      {busy || error || items.length > 0 || query ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:max-w-sm">
+            <Search01Icon
+              aria-hidden
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              type="search"
+              aria-label="Search Story Sets"
+              placeholder="Search Story Sets"
+              maxLength={200}
+              value={search}
+              onChange={(event) => setSearch(event.target.value.slice(0, 200))}
+              className="pl-9"
+            />
+          </div>
+          <Label className="flex items-center gap-2">
+            Sort
+            <Select value={sort} onValueChange={(value) => updateFilter('sort', value)}>
+              <SelectTrigger aria-label="Sort Story Sets">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="updated">Last edited</SelectItem>
+                <SelectItem value="name">Name</SelectItem>
+              </SelectContent>
+            </Select>
+          </Label>
         </div>
-        <Label className="flex items-center gap-2">
-          Sort
-          <Select value={sort} onValueChange={(value) => updateFilter('sort', value)}>
-            <SelectTrigger aria-label="Sort Story Sets">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="updated">Last edited</SelectItem>
-              <SelectItem value="name">Name</SelectItem>
-            </SelectContent>
-          </Select>
-        </Label>
-      </div> : null}
+      ) : null}
       {error ? (
         <Alert variant="destructive">
           <AlertDescription>
@@ -246,6 +264,6 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
         </Button>
       ) : null}
       {importing ? <ImportProject onClose={() => setImporting(false)} /> : null}
-    </main>
+    </Root>
   )
 }

@@ -484,7 +484,7 @@ export function EditorHeader() {
           </DropdownMenu>
 
           {!isMobile ? <FeedbackWidget /> : null}
-          <AccountMenu />
+          <span className="[[data-platform-shell]_&]:hidden"><AccountMenu /></span>
         </div>
       </header>
 

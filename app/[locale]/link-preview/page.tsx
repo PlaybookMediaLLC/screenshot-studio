@@ -1,3 +1,4 @@
+import { ReturnToWork } from '@/components/platform-hub/ReturnToWork'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -28,8 +29,9 @@ export default async function LinkPreviewPage({ params }: LinkPreviewPageProps) 
     >
       <Page
         description="See how a link unfurls on 13 platforms, fix what breaks it, make its preview image, and share it with tracked links."
-        title="Link preview"
+        title="Link checks"
       >
+        <ReturnToWork />
         <LinkPreviewApp />
       </Page>
     </PlatformShell>

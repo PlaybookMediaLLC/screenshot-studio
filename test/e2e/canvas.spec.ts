@@ -43,7 +43,9 @@ async function setUp(identity: E2EIdentity, page: Page) {
 }
 
 async function saved(page: Page) {
-  await expect(page.getByTestId('canvas-save-status')).toHaveText('Saved', { timeout: 60_000 })
+  await expect(page.getByTestId('canvas-save-status')).toHaveText('Saved to workspace', {
+    timeout: 60_000,
+  })
 }
 
 function canvasIdOf(page: Page) {
@@ -152,8 +154,12 @@ test('A: a manual product announcement survives reload and exports what was comp
 }) => {
   await setUp(identity, page)
   await page.goto(getE2EUrl('/projects'))
+  await page
+    .getByRole('complementary', { name: 'Primary navigation' })
+    .getByRole('link', { name: 'Library', exact: true })
+    .click()
   await page.getByRole('link', { name: 'Canvas', exact: true }).first().click()
-  await expect(page).toHaveURL(/\/canvas$/)
+  await expect(page).toHaveURL(/\/library\?type=canvas$/)
   await page.getByRole('link', { name: /^Blank canvas/ }).click()
   await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
   const canvasId = canvasIdOf(page)
@@ -409,7 +415,7 @@ test('C: a generated campaign design is refined on a canvas without touching its
       timeout: 90_000,
     })
     await page.keyboard.press('Escape')
-    await page.getByRole('button', { name: 'Campaign…', exact: true }).click()
+    await page.getByRole('button', { name: 'Campaign', exact: true }).click()
     const handoff = page.getByRole('dialog', { name: 'Send to a campaign for review' })
     await chooseOption(handoff.getByLabel('Campaign'), 'Approvals launch')
     await handoff.getByLabel('Post copy').fill('Approve every launch in one queue.')

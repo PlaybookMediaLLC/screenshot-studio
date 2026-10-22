@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { MoreHorizontalIcon } from 'hugeicons-react'
+import { Ellipsis as MoreHorizontalIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -77,14 +77,18 @@ const ENTRY_POINTS = [
 ] as const
 
 export function CanvasLibrary({
+  embedded = false,
   canEdit,
   storySetsEnabled,
   campaignsEnabled,
 }: {
+  embedded?: boolean
   canEdit: boolean
   storySetsEnabled: boolean
   campaignsEnabled: boolean
 }) {
+  const Root = embedded ? 'section' : 'main'
+  const Heading = embedded ? 'h2' : 'h1'
   usePrivateCreativeSurface()
   const client = useTRPCClient()
   const [items, setItems] = useState<Item[]>([])
@@ -149,11 +153,11 @@ export function CanvasLibrary({
   }
 
   return (
-    <main className="w-full space-y-8 p-8">
+    <Root className="w-full space-y-8 p-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs uppercase tracking-[0.16em] text-sky-400">Infinite canvas</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Canvas</h1>
+          <Heading className="text-3xl font-semibold tracking-tight">Canvas</Heading>
           <p className="mt-2 max-w-xl text-muted-foreground">
             Lay out a whole launch on one board: announcements, social formats, walkthroughs and
             diagrams, each an editable artboard that exports at its exact size.
@@ -250,17 +254,13 @@ export function CanvasLibrary({
       <ul aria-label="Canvases" className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {items.map((item) => (
           <li key={item.id} className="overflow-hidden rounded-xl border bg-foreground/[0.02]">
-            <Link
-              href={`/canvas/${item.id}`}
-              className="block focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              <div className="aspect-video">
-                <ProjectPreview
-                  alt={item.name}
-                  document={item.document?.artboards[0]?.document ?? null}
-                />
-              </div>
-            </Link>
+            <div className="aspect-video">
+              <ProjectPreview
+                retryable
+                alt={item.name}
+                document={item.document?.artboards[0]?.document ?? null}
+              />
+            </div>
             <div className="flex items-start gap-2 p-4">
               <div className="min-w-0 flex-1">
                 <h2 className="truncate font-medium">
@@ -339,7 +339,9 @@ export function CanvasLibrary({
                         Archive…
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(item)}>Delete permanently…</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(item)}>
+                      Delete permanently…
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : null}
@@ -376,17 +378,35 @@ export function CanvasLibrary({
         />
       ) : null}
       {deleting ? (
-        <Dialog open onOpenChange={(open) => { if (!open && !busy) setDeleting(null) }}>
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open && !busy) setDeleting(null)
+          }}
+        >
           <DialogContent>
             <DialogTitle>Delete “{deleting.name}” permanently?</DialogTitle>
-            <DialogDescription>This removes the canvas and all its versions. Delivered campaign assets remain available. This cannot be undone.</DialogDescription>
+            <DialogDescription>
+              This removes the canvas and all its versions. Delivered campaign assets remain
+              available. This cannot be undone.
+            </DialogDescription>
             <div className="flex justify-end gap-2">
-              <Button disabled={busy} variant="outline" onClick={() => setDeleting(null)}>Cancel</Button>
-              <Button disabled={busy} variant="destructive" onClick={() => void act(async () => {
-                await client.canvas.delete.mutate({ canvasId: deleting.id })
-                setDeleting(null)
-                toast.success('Canvas deleted')
-              })}>Delete permanently</Button>
+              <Button disabled={busy} variant="outline" onClick={() => setDeleting(null)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={busy}
+                variant="destructive"
+                onClick={() =>
+                  void act(async () => {
+                    await client.canvas.delete.mutate({ canvasId: deleting.id })
+                    setDeleting(null)
+                    toast.success('Canvas deleted')
+                  })
+                }
+              >
+                Delete permanently
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -434,7 +454,7 @@ export function CanvasLibrary({
           </DialogContent>
         </Dialog>
       ) : null}
-    </main>
+    </Root>
   )
 }
 

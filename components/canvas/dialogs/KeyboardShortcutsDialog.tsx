@@ -1,52 +1,50 @@
-"use client";
+'use client'
 
-import * as React from "react";
+import * as React from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
 
 interface ShortcutGroup {
-  title: string;
-  shortcuts: { keys: string[]; description: string }[];
+  title: string
+  shortcuts: { keys: string[]; description: string }[]
 }
 
 const shortcutGroups: ShortcutGroup[] = [
   {
-    title: "Canvas (when not editing text)",
+    title: 'Canvas (when not editing text)',
     shortcuts: [
-      { keys: ["⌘/Ctrl", "K"], description: "Open AI tools" },
-      { keys: ["Alt", "↑ / ↓"], description: "Reorder selected layer" },
-      { keys: ["Arrow keys"], description: "Move selected layer 1 px" },
-      { keys: ["Shift", "Arrow keys"], description: "Move selected layer 10 px" },
-      { keys: ["⌘/Ctrl", "V"], description: "Paste image" },
-      { keys: ["⌘/Ctrl", "Z"], description: "Undo" },
-      { keys: ["⌘/Ctrl", "Shift", "Z"], description: "Redo" },
-      { keys: ["⌘/Ctrl", "Y"], description: "Redo (alternative)" },
-      { keys: ["Delete / Backspace"], description: "Delete selected item" },
-      { keys: ["Esc"], description: "Close dialog / Deselect / Exit crop" },
+      { keys: ['⌘/Ctrl', 'K'], description: 'Search and commands' },
+      { keys: ['Alt', '↑ / ↓'], description: 'Reorder selected layer' },
+      { keys: ['Arrow keys'], description: 'Move selected layer 1 px' },
+      { keys: ['Shift', 'Arrow keys'], description: 'Move selected layer 10 px' },
+      { keys: ['⌘/Ctrl', 'V'], description: 'Paste image' },
+      { keys: ['⌘/Ctrl', 'Z'], description: 'Undo' },
+      { keys: ['⌘/Ctrl', 'Shift', 'Z'], description: 'Redo' },
+      { keys: ['⌘/Ctrl', 'Y'], description: 'Redo (alternative)' },
+      { keys: ['Delete / Backspace'], description: 'Delete selected item' },
+      { keys: ['Esc'], description: 'Close dialog / Deselect / Exit crop' },
     ],
   },
-];
+]
 
 export function KeyboardShortcutsDialog({
   open,
   onOpenChange,
 }: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
+  open: boolean
+  onOpenChange: (v: boolean) => void
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
-          <DialogDescription>
-            Boost your workflow with these shortcuts
-          </DialogDescription>
+          <DialogDescription>Boost your workflow with these shortcuts</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
           {shortcutGroups.map((group) => (
@@ -56,13 +54,8 @@ export function KeyboardShortcutsDialog({
               </h4>
               <div className="space-y-1.5">
                 {group.shortcuts.map((shortcut, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between py-1"
-                  >
-                    <span className="text-sm text-foreground/80">
-                      {shortcut.description}
-                    </span>
+                  <div key={i} className="flex items-center justify-between py-1">
+                    <span className="text-sm text-foreground/80">{shortcut.description}</span>
                     <div className="flex items-center gap-1">
                       {shortcut.keys.map((key, j) => (
                         <React.Fragment key={j}>
@@ -83,5 +76,5 @@ export function KeyboardShortcutsDialog({
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

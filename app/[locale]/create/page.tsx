@@ -1,0 +1,100 @@
+import { headers } from 'next/headers'
+import { PlatformShell } from '@/components/platform-shell/PlatformShell'
+import { Page } from '@/components/platform-ui'
+import { AreaNavigation } from '@/components/platform-hub/AreaNavigation'
+import { ResourceCards } from '@/components/platform-hub/ResourceCards'
+import { TemplateBrowser } from '@/components/platform-hub/TemplateBrowser'
+import { requirePaidPageAccess } from '@/lib/auth/page-access'
+
+export const metadata = { title: 'Create' }
+export default async function CreatePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>
+  searchParams: Promise<{ view?: string }>
+}) {
+  const [{ locale }, { view }] = await Promise.all([params, searchParams])
+  const access = await requirePaidPageAccess(await headers(), locale, '/create')
+  return (
+    <PlatformShell
+      campaignsEnabled={access.campaignWorkflowEnabled}
+      organizationName={access.organization?.name}
+    >
+      <Page
+        title="Create"
+        description="Turn a screenshot, idea or existing design into a finished visual."
+      >
+        <AreaNavigation
+          label="Create"
+          items={[
+            { href: '/create', label: 'Start' },
+            { href: '/library', label: 'Recent' },
+            { href: '/create?view=templates', label: 'Templates' },
+            { href: '/create?view=tools', label: 'Tools' },
+          ]}
+        />
+        {view === 'templates' ? (
+          <TemplateBrowser />
+        ) : (
+          <ResourceCards
+            items={
+              view === 'tools'
+                ? [
+                    {
+                      title: 'Code image',
+                      description: 'Compose a code snippet as a shareable image.',
+                      href: '/code',
+                      scope: 'Code editor',
+                    },
+                    {
+                      title: 'Tweet image',
+                      description: 'Style a social post as a visual.',
+                      href: '/tweet',
+                      scope: 'Tweet editor',
+                    },
+                    {
+                      title: 'Image tools',
+                      description: 'Resize, crop, compress or convert an image.',
+                      href: '/tools',
+                      scope: 'Focused utilities',
+                    },
+                  ]
+                : [
+                    {
+                      title: 'Polish a screenshot',
+                      description:
+                        'Frame a screen, adjust the background and export a finished image.',
+                      href: '/',
+                      scope: 'Screenshot · Save as a workspace project',
+                    },
+                    {
+                      title: 'Compose a Canvas',
+                      description: 'Build a visual story with editable artboards and layers.',
+                      href: '/canvas',
+                      scope: 'Canvas · Workspace',
+                    },
+                    {
+                      title: 'Build store screenshots',
+                      description: 'Prepare store listings across devices, sizes and languages.',
+                      href: '/?editor=app-store',
+                      scope: 'App Store studio · On this browser',
+                    },
+                    {
+                      title: 'Create a Story Set',
+                      description: access.creativeSetsEnabled
+                        ? 'Keep related stories and output formats together.'
+                        : 'Creation requires design-partner access. Existing saved sets remain available.',
+                      href: '/creative-sets',
+                      scope: access.creativeSetsEnabled
+                        ? 'Story Set · Workspace'
+                        : 'Restricted creation · Browse saved sets',
+                    },
+                  ]
+            }
+          />
+        )}
+      </Page>
+    </PlatformShell>
+  )
+}

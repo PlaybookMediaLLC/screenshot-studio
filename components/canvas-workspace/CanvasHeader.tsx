@@ -14,7 +14,7 @@ import type { CanvasActions } from './use-canvas-actions'
 import type { CanvasDialog } from './CanvasDialogs'
 
 const STATUS: Record<CanvasSessionState['status'], string> = {
-  saved: 'Saved',
+  saved: 'Saved to workspace',
   unsaved: 'Unsaved changes',
   saving: 'Saving…',
   offline: 'Offline · kept on this device',
@@ -171,7 +171,12 @@ export function CanvasHeader({
           </Button>
         ) : null}
         {canEdit && canHandOff ? (
-          <Button className="shrink-0 whitespace-nowrap" variant="outline" size="sm" onClick={() => onDialog('campaign')}>
+          <Button
+            className="shrink-0 whitespace-nowrap"
+            variant="outline"
+            size="sm"
+            onClick={() => onDialog('campaign')}
+          >
             Campaign
           </Button>
         ) : null}

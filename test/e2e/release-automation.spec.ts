@@ -84,11 +84,16 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
     // 1–3. Workflows is a top-level destination in the workspace sidebar.
     await page
       .getByRole('navigation', { name: 'Workspace' })
-      .getByRole('link', { name: 'Workflows', exact: true })
+      .getByRole('link', { name: 'Automate', exact: true })
       .click()
     await expect(page).toHaveURL(/\/workflows$/)
     await expect(page.getByRole('heading', { name: 'Workflows', level: 1 })).toBeVisible()
     await expect(page.getByText('No workflows yet')).toBeVisible()
+
+    await page
+      .getByRole('navigation', { name: 'Automate', exact: true })
+      .getByRole('link', { name: 'Sources', exact: true })
+      .click()
 
     // 4–5. Connect the GitHub fixture and watch a repository from the dashboard.
     await page.getByRole('link', { name: 'Connect GitHub', exact: true }).click()
@@ -121,7 +126,7 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
     await page.getByLabel('Workflow name').fill('Stable releases to review')
     await page.getByRole('button', { name: 'Create draft', exact: true }).click()
     await expect(page).toHaveURL(/\/workflows\/[a-z0-9]+$/)
-    const editor = page.getByRole('dialog', { name: 'Workflow editor', exact: true })
+    const editor = page.getByRole('main', { name: 'Workflow editor', exact: true })
     await expect(editor).toBeVisible()
     await expect(page.getByLabel('Definition name')).toHaveValue('Stable releases to review')
     await expect(editor.getByText('8 nodes · 7 connections')).toBeVisible()
@@ -388,7 +393,7 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/campaigns')
     await page.getByRole('button', { name: 'Open navigation' }).click()
-    await page.getByRole('dialog').getByRole('link', { name: 'Workflows', exact: true }).click()
+    await page.getByRole('dialog').getByRole('link', { name: 'Automate', exact: true }).click()
     await expect(page).toHaveURL(/\/workflows$/)
     await expect(page.getByRole('heading', { name: 'Workflows', level: 1 })).toBeVisible()
     await expect(
@@ -538,7 +543,7 @@ test('turns a version tag into an AI-judged release with rendered creatives', as
       [`capture-${randomUUID()}`, organizationId, surfaceId, captureAsset]
     )
 
-    await page.goto('/workflows')
+    await page.goto('/workflows?view=sources')
     await page.getByRole('link', { name: 'Connect GitHub', exact: true }).click()
     await expect(page.getByText('GitHub is connected. Choose a repository to watch.')).toBeVisible({
       timeout: 60_000,
@@ -567,7 +572,7 @@ test('turns a version tag into an AI-judged release with rendered creatives', as
     await page.getByRole('checkbox', { name: /Browser launch/ }).check()
     await page.getByRole('checkbox', { name: 'Lay out a canvas from the release' }).check()
     await page.getByRole('button', { name: 'Create draft', exact: true }).click()
-    const editor = page.getByRole('dialog', { name: 'Workflow editor', exact: true })
+    const editor = page.getByRole('main', { name: 'Workflow editor', exact: true })
     await expect(editor).toBeVisible()
     await expect(editor.getByText('AI: worth marketing?').first()).toBeVisible()
     await chooseOption(page.getByLabel('Configure node'), 'Create release · release')

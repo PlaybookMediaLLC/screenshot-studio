@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/select'
 
 const SAVE_LABELS: Record<SaveStatus, string> = {
-  saved: 'Saved',
+  saved: 'Saved on this browser',
   pending: 'Unsaved changes',
   saving: 'Saving…',
   error: 'Not saved',

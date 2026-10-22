@@ -1,8 +1,10 @@
 'use client'
 
+import { platformHref, safeReturnPath } from '@/lib/platform/navigation'
+
 import Link from 'next/link'
 import { type FormEvent, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { z } from 'zod'
 import { authClient } from '@/lib/auth/client'
 import { getAuthErrorMessage } from './error-message'
@@ -18,17 +20,18 @@ const totpCodeSchema = z
 const backupCodeSchema = z.string().trim().min(1, 'Enter a recovery code.')
 
 function getCallbackUrl(value: string | null): string {
-  return value?.startsWith('/') && !value.startsWith('//') ? value : '/'
+  return safeReturnPath(value)
 }
 
 export function TwoFactorForm() {
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [error, setError] = useState<string | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
   const [isBackupCode, setIsBackupCode] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [trustDevice, setTrustDevice] = useState(false)
-  const callbackURL = getCallbackUrl(searchParams.get('callbackURL'))
+  const callbackURL = platformHref(pathname, getCallbackUrl(searchParams.get('callbackURL')))
 
   useEffect(() => {
     setIsHydrated(true)
@@ -78,7 +81,7 @@ export function TwoFactorForm() {
           checked={trustDevice}
           className="size-4 rounded accent-foreground"
           disabled={!isHydrated}
-          onCheckedChange={(checked) => setTrustDevice((checked === true))}
+          onCheckedChange={(checked) => setTrustDevice(checked === true)}
         />
         Trust this device for 30 days
       </Label>
@@ -87,7 +90,9 @@ export function TwoFactorForm() {
         Verify and sign in
       </SubmitButton>
       <div className="flex items-center justify-between text-sm">
-        <Button variant="custom" size={null}
+        <Button
+          variant="custom"
+          size={null}
           className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
           disabled={!isHydrated}
           onClick={() => setIsBackupCode((value) => !value)}

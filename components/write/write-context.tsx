@@ -1,11 +1,13 @@
 'use client'
 
 import * as React from 'react'
+import { registerNavigationGuard } from '@/lib/platform/navigation-guard'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { WriteData } from '@/app/[locale]/write/write-data'
 import { libraryDraft } from '@/lib/write/library'
 import type { DraftWire } from '@/lib/content-drafts/client'
 import { toast } from 'sonner'
+import { platformHref } from '@/lib/platform/navigation'
 import { SOCIAL_SET_COOKIE } from '@/lib/settings/appearance'
 
 /**
@@ -74,6 +76,7 @@ export function WriteProvider({
   const pathname = usePathname()
   const params = useSearchParams()
   const beforeLeaveRef = React.useRef<(() => Promise<void>) | null>(null)
+  React.useEffect(() => registerNavigationGuard(() => beforeLeaveRef.current?.()), [])
   React.useEffect(() => {
     const guard = (event: MouseEvent) => {
       const target = event.target as Element | null
@@ -240,11 +243,13 @@ export function rememberSet(id: string): void {
 /** Save the open document before a programmatic navigation. */
 export function useWriteRouter() {
   const router = useRouter()
+  const pathname = usePathname()
   const { beforeLeaveRef } = useWrite()
   return React.useMemo(
     () => ({
       ...router,
       push: (...args: Parameters<typeof router.push>) => {
+        args[0] = platformHref(pathname, args[0])
         if (!beforeLeaveRef.current) return router.push(...args)
         void beforeLeaveRef
           .current()
@@ -252,6 +257,7 @@ export function useWriteRouter() {
           .catch(() => {})
       },
       replace: (...args: Parameters<typeof router.replace>) => {
+        args[0] = platformHref(pathname, args[0])
         if (!beforeLeaveRef.current) return router.replace(...args)
         void beforeLeaveRef
           .current()
@@ -259,6 +265,6 @@ export function useWriteRouter() {
           .catch(() => {})
       },
     }),
-    [beforeLeaveRef, router]
+    [beforeLeaveRef, pathname, router]
   )
 }

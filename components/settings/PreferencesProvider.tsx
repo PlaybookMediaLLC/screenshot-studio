@@ -39,7 +39,7 @@ function rememberNavigation(value: Preferences['navigation']) {
 
 /**
  * Loads the signed-in person's preferences (RFC 043) and applies the ones
- * that change the page: theme, scrollbars and the navigation cookie. A change
+ * that change the page: theme and the navigation cookie. A change
  * shows at once; the server's answer confirms it, and a refusal restores the
  * previous value, so the page never claims a save that did not happen.
  */
@@ -65,11 +65,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (savedNavigation) rememberNavigation(savedNavigation)
   }, [savedNavigation])
-
-  const hideScrollbars = preferences ? !preferences.showScrollbars : false
-  useEffect(() => {
-    document.documentElement.classList.toggle('hide-scrollbars', hideScrollbars)
-  }, [hideScrollbars])
 
   useEffect(() => installDebugErrorHandlers(), [])
 

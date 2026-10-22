@@ -46,7 +46,7 @@ export function WorkflowSources({
       {canManage ? (
         <GitHubConnections />
       ) : (
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted-foreground">
           An owner or administrator connects GitHub and chooses repositories.
         </p>
       )}
@@ -57,7 +57,7 @@ export function WorkflowSources({
         <Group>
           {overview.sources.length === 0 ? (
             <Row>
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-muted-foreground">
                 Connect GitHub and watch a repository to start.
               </p>
             </Row>
@@ -124,7 +124,7 @@ function SourceRow({
               mode(source.mode === 'automation', { branch: branch.trim() })
             }}
           >
-            <Label className="grid gap-1 text-xs text-neutral-400">
+            <Label className="grid gap-1 text-xs text-muted-foreground">
               Watched branch
               <Input
                 aria-label={`Watched branch for ${source.name}`}
@@ -143,7 +143,7 @@ function SourceRow({
               Save branch
             </Button>
           </form>
-          <Label className="grid gap-1 text-xs text-neutral-400">
+          <Label className="grid gap-1 text-xs text-muted-foreground">
             Unmatched merged PRs
             <Select
               disabled={busy}

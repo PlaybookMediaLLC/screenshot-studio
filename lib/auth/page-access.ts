@@ -1,4 +1,5 @@
 import 'server-only'
+import { platformHref, safeReturnPath } from '@/lib/platform/navigation'
 
 import { redirect } from 'next/navigation'
 import type { ListedWorkspace, Workspace } from 'screenshot-studio-backend-sdk'
@@ -86,11 +87,8 @@ export async function redirectIfSignedIn(
 ): Promise<void> {
   const session = await auth.api.getSession({ headers: requestHeaders })
   if (!session) return
-  const target =
-    typeof callbackURL === 'string' && callbackURL.startsWith('/') && !callbackURL.startsWith('//')
-      ? callbackURL
-      : '/'
-  redirect(getLocalizedPath(locale, target))
+  const target = safeReturnPath(typeof callbackURL === 'string' ? callbackURL : null)
+  redirect(platformHref(locale === 'en' ? '/' : `/${locale}`, target))
 }
 
 /**

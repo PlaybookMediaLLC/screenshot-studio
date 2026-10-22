@@ -1,4 +1,22 @@
 {
+  "platformNavigation": {
+    "home": "首页",
+    "create": "创建",
+    "campaigns": "营销活动",
+    "publish": "发布",
+    "library": "资源库",
+    "automate": "自动化",
+    "activity": "动态",
+    "settings": "设置",
+    "workspace": "工作空间",
+    "search": "搜索",
+    "new": "新建",
+    "searchCommands": "搜索与命令",
+    "collapse": "收起导航",
+    "expand": "展开导航",
+    "openNavigation": "打开导航",
+    "navigation": "导航"
+  },
   "common": {
     "openEditor": "打开编辑器",
     "startCreating": "开始创作",

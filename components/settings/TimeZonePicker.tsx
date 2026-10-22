@@ -3,11 +3,18 @@
 import { useId, useMemo, useState, useSyncExternalStore } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 /** Every IANA zone this browser knows, with UTC always first. */
 function allZones(): string[] {
-  const zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : []
+  const zones =
+    typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : []
   return ['UTC', ...zones.filter((zone) => zone !== 'UTC')]
 }
 
@@ -44,7 +51,11 @@ const FOLLOW_BROWSER = '__browser__'
  * the clock differ between server and browser, so they render only then.
  */
 function useInBrowser(): boolean {
-  return useSyncExternalStore(subscribeNever, () => true, () => false)
+  return useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false
+  )
 }
 
 /**
@@ -78,9 +89,11 @@ export function TimeZonePicker({
   const effective = value ?? browser
   const preview =
     effective &&
-    new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: effective }).format(
-      new Date()
-    )
+    new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: effective,
+    }).format(new Date())
 
   return (
     <div className="grid w-full min-w-0 gap-2">
@@ -113,7 +126,10 @@ export function TimeZonePicker({
         </label>
         <Select
           disabled={disabled}
-          onValueChange={(zone) => onChange(zone === FOLLOW_BROWSER ? '' : zone)}
+          onValueChange={(zone) => {
+            // Radix's hidden form select can emit an empty value while options hydrate.
+            if (zone) onChange(zone === FOLLOW_BROWSER ? '' : zone)
+          }}
           value={value ?? (allowBrowser ? FOLLOW_BROWSER : '')}
         >
           <SelectTrigger className="w-full min-w-0 bg-card text-foreground" id={`${id}-zone`}>
@@ -121,7 +137,9 @@ export function TimeZonePicker({
           </SelectTrigger>
           <SelectContent>
             {allowBrowser ? (
-              <SelectItem value={FOLLOW_BROWSER}>{browser ? `Follow my browser (${zoneLabel(browser)})` : 'Follow my browser'}</SelectItem>
+              <SelectItem value={FOLLOW_BROWSER}>
+                {browser ? `Follow my browser (${zoneLabel(browser)})` : 'Follow my browser'}
+              </SelectItem>
             ) : null}
             {matches.map((zone) => (
               <SelectItem key={zone} value={zone}>

@@ -1,7 +1,8 @@
 'use client'
 
 import { TRPCClientError } from '@trpc/client'
-import Link from 'next/link'
+import { SidebarLink as Link } from '@/components/platform-shell/SidebarLink'
+import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
@@ -64,8 +65,8 @@ const SECTIONS: Section[] = [
       return items.map((project) => ({
         href: `/?project=${encodeURIComponent(project.id)}`,
         id: project.id,
-        meta: `Edited ${formatDate(project.updatedAt)}`,
-        status: 'Saved',
+        meta: `Screenshot · Workspace · Edited ${formatDate(project.updatedAt)}`,
+        status: 'Saved to workspace',
         title: project.name,
       }))
     },
@@ -89,7 +90,7 @@ const SECTIONS: Section[] = [
     title: 'Releases',
   },
   {
-    empty: 'Campaigns are created through the API.',
+    empty: 'Start a campaign from a product or release brief in Campaigns.',
     key: 'campaigns',
     load: async (trpc) => {
       const { campaigns } = await trpc.campaign.list.query()
@@ -120,7 +121,7 @@ const SECTIONS: Section[] = [
     title: 'Announcements',
   },
   {
-    empty: 'Posts are scheduled through the API once a channel is connected.',
+    empty: 'Write and schedule a post in Publish once a channel is connected.',
     key: 'scheduled-posts',
     load: async (trpc) => {
       const { scheduledPosts } = await trpc.scheduledPost.list.query()
@@ -140,6 +141,8 @@ type SectionState = { error: string | null; forbidden: boolean; rows: Row[] | nu
 
 function ActivitySection({ section }: { section: Section }) {
   const trpcClient = useTRPCClient()
+  const [limit, setLimit] = useState(5)
+  const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<SectionState>({ error: null, forbidden: false, rows: null })
 
   useEffect(() => {
@@ -155,7 +158,7 @@ function ActivitySection({ section }: { section: Section }) {
     return () => {
       active = false
     }
-  }, [section, trpcClient])
+  }, [section, trpcClient, attempt])
 
   return (
     <section>
@@ -168,15 +171,23 @@ function ActivitySection({ section }: { section: Section }) {
             Your role does not have access to {section.title.toLowerCase()}.
           </p>
         ) : state.error ? (
-          <p className="text-sm text-destructive">{state.error}</p>
+          <div role="alert">
+            <p className="text-sm text-destructive">{state.error}</p>
+            <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
+              Retry
+            </Button>
+          </div>
         ) : state.rows && state.rows.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6">
             <p className="text-sm text-muted-foreground">Nothing here yet. {section.empty}</p>
           </div>
         ) : (
           <ul className="divide-y rounded-lg border">
-            {state.rows?.map((row) => (
-              <li className="relative flex items-center justify-between gap-4 p-4 hover:bg-muted/30" key={row.id}>
+            {state.rows?.slice(0, limit).map((row) => (
+              <li
+                className="relative flex items-center justify-between gap-4 p-4 hover:bg-muted/30"
+                key={row.id}
+              >
                 <div className="min-w-0">
                   {row.href ? (
                     <Link
@@ -197,15 +208,47 @@ function ActivitySection({ section }: { section: Section }) {
             ))}
           </ul>
         )}
+        {state.rows && state.rows.length > limit ? (
+          <Button
+            className="mt-3"
+            size="sm"
+            variant="outline"
+            onClick={() => setLimit((value) => value + 10)}
+          >
+            Show more {section.title.toLowerCase()}
+          </Button>
+        ) : null}
       </div>
     </section>
   )
 }
 
-export function WorkspaceActivity() {
+export function WorkspaceActivity({ sections }: { sections?: string[] } = {}) {
+  const [filter, setFilter] = useState('all')
+  const visible = SECTIONS.filter(
+    (section) =>
+      (!sections || sections.includes(section.key)) && (filter === 'all' || filter === section.key)
+  )
   return (
     <div className="space-y-10">
-      {SECTIONS.map((section) => (
+      {!sections ? (
+        <label className="grid max-w-xs gap-2 text-sm">
+          Activity type
+          <select
+            className="h-10 rounded-lg border bg-background px-3"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+          >
+            <option value="all">All activity</option>
+            {SECTIONS.map((section) => (
+              <option key={section.key} value={section.key}>
+                {section.title}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {visible.map((section) => (
         <ActivitySection key={section.key} section={section} />
       ))}
     </div>

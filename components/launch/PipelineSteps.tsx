@@ -1,5 +1,5 @@
 import { PlanCampaignAction } from '@/components/launch/PlanCampaignAction'
-import { Tick02Icon } from 'hugeicons-react'
+import { Check as Tick02Icon } from 'lucide-react'
 import Link from 'next/link'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { Pill, type PillTone } from '@/components/platform-ui'

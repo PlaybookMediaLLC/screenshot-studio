@@ -1,4 +1,22 @@
 {
+  "platformNavigation": {
+    "home": "Início",
+    "create": "Criar",
+    "campaigns": "Campanhas",
+    "publish": "Publicar",
+    "library": "Biblioteca",
+    "automate": "Automatizar",
+    "activity": "Atividade",
+    "settings": "Configurações",
+    "workspace": "Espaço de trabalho",
+    "search": "Pesquisar",
+    "new": "Novo",
+    "searchCommands": "Pesquisa e comandos",
+    "collapse": "Recolher navegação",
+    "expand": "Expandir navegação",
+    "openNavigation": "Abrir navegação",
+    "navigation": "Navegação"
+  },
   "common": {
     "openEditor": "Abrir Editor",
     "startCreating": "Comecar a Criar",

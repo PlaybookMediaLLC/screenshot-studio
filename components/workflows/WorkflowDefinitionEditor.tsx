@@ -96,7 +96,7 @@ export function WorkflowDefinitionEditor({ canManage, id }: { canManage: boolean
         title="Workflow"
       >
         <p
-          className={error ? 'text-sm text-red-300' : 'text-sm text-neutral-500'}
+          className={error ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}
           role={error ? 'alert' : 'status'}
         >
           {error ?? 'Loading workflow…'}
@@ -106,6 +106,7 @@ export function WorkflowDefinitionEditor({ canManage, id }: { canManage: boolean
   }
   return (
     <WorkflowEditor
+      presentation="page"
       key={`${id}:${copy}`}
       initialNode={params.get('node') ?? undefined}
       definition={state.definition}

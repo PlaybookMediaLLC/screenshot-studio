@@ -1,9 +1,9 @@
 'use client'
 
-import { Search01Icon, WorkflowSquare03Icon } from 'hugeicons-react'
+import { Search as Search01Icon, Workflow as WorkflowSquare03Icon } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNotificationPageVisible } from '@/lib/notifications/client'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
@@ -26,9 +26,8 @@ import {
 } from '@/lib/api/contracts/release-automation'
 import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
 import { FAMILY_NAMES } from './workflow-canvas'
-import { RunStatusPill, relativeTime, triggeringObject } from './workflow-ui'
+import { RunStatusPill, relativeTime } from './workflow-ui'
 import { WorkflowArchiveButton } from './WorkflowArchiveButton'
-import { runHandler } from '@/lib/workflows/history'
 import { WorkflowRunLink } from './WorkflowRunLink'
 import { WorkflowSources } from './WorkflowSources'
 
@@ -49,30 +48,22 @@ function stateOf(definition: AutomationDefinition): keyof typeof STATES {
   return definition.activeVersionId ? 'disabled' : 'draft'
 }
 
-function Stat({ href, label, value }: { href?: string; label: string; value: number }) {
-  const body = (
-    <>
-      <span className="text-2xl font-medium tabular-nums text-white">{value}</span>
-      <span className="text-xs text-neutral-500">{label}</span>
-    </>
-  )
-  const className =
-    'flex flex-col gap-1 rounded-xl bg-white/[0.015] p-4 ring-1 ring-white/[0.08] transition-colors'
-  return href ? (
-    <Link className={`${className} hover:bg-white/[0.04]`} href={href}>
-      {body}
-    </Link>
-  ) : (
-    <div className={className}>{body}</div>
-  )
-}
-
 /** Every workflow in the workspace, what is running, and what needs a person. */
 export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
   const pageVisible = useNotificationPageVisible()
   const client = useTRPCClient()
   const params = useSearchParams()
   const pathname = usePathname()
+  useEffect(() => {
+    if (
+      (window.location.hash !== '#sources' && !params.has('github')) ||
+      params.get('view') === 'sources'
+    )
+      return
+    const next = new URLSearchParams(params.toString())
+    next.set('view', 'sources')
+    window.history.replaceState(null, '', `${pathname}?${next}#sources`)
+  }, [params, pathname])
   const trpc = useTRPC()
   const overviewQuery = useQuery(
     trpc.releaseAutomation.overview.queryOptions(undefined, {
@@ -81,20 +72,12 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
       refetchIntervalInBackground: false,
     })
   )
-  const recentQuery = useQuery(
-    trpc.releaseAutomation.recentRuns.queryOptions(undefined, {
-      staleTime: 15_000,
-      refetchInterval: pageVisible ? 15_000 : false,
-      refetchIntervalInBackground: false,
-    })
-  )
   const overview = overviewQuery.data
-  const recent = recentQuery.data?.items ?? []
+  const view = params.get('view') === 'sources' ? 'sources' : 'workflows'
   const [actionError, setError] = useState<string | null>(null)
-  const queryError = overviewQuery.error ?? recentQuery.error
+  const queryError = overviewQuery.error
   const error = actionError ?? (queryError ? getErrorMessage(queryError) : null)
   const { refetch: refreshOverview } = overviewQuery
-  const { refetch: refreshRecent } = recentQuery
   const [busy, setBusy] = useState(false)
   const query = params.get('q') ?? ''
   const state = (
@@ -120,8 +103,8 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
   const clearFilters = () => window.history.replaceState(null, '', pathname)
 
   const load = useCallback(async () => {
-    await Promise.all([refreshOverview(), refreshRecent()])
-  }, [refreshOverview, refreshRecent])
+    await refreshOverview()
+  }, [refreshOverview])
 
   const perform = useCallback(
     (action: () => Promise<unknown>) => {
@@ -176,24 +159,31 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     ) : (
-      <p className="text-sm text-neutral-500" role="status">
+      <p className="text-sm text-muted-foreground" role="status">
         Loading workflows…
       </p>
     )
   }
 
-  const counts = overview.runCounts ?? {}
   const current = overview.definitions.filter((definition) => !definition.archived)
-  const legacyTotal = Object.values(overview.legacyRunCounts ?? {}).reduce(
-    (sum, value) => sum + value,
-    0
-  )
   const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
   const currentPage = Math.min(page, pages - 1)
   const shown = visible.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
-  const definitionName = (id: string | null) =>
-    overview.definitions.find((definition) => definition.id === id)?.name
-  const campaigns = recent.filter((item) => item.run.outputs.campaignId).slice(0, 5)
+  if (view === 'sources')
+    return (
+      <Section
+        id="sources"
+        title="Sources"
+        description="Repositories and installations that can trigger workflows. A connected source does not activate a workflow."
+      >
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+        <WorkflowSources busy={busy} canManage={canManage} overview={overview} perform={perform} />
+      </Section>
+    )
 
   return (
     <div className="flex flex-col gap-10">
@@ -211,69 +201,10 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
         </Alert>
       ) : null}
 
-      <section
-        aria-label="Workflow summary"
-        className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-5"
-      >
-        <Stat href="/workflows#definitions" label="Workflows" value={current.length} />
-        <Stat
-          href="/workflows?state=active#definitions"
-          label="Active"
-          value={current.filter((definition) => definition.enabled).length}
-        />
-        <Stat
-          href="/workflows?state=inactive#definitions"
-          label="Inactive"
-          value={current.filter((definition) => !definition.enabled).length}
-        />
-        <Stat
-          href="/workflows/runs?mode=automation&status=running"
-          label="Running now"
-          value={counts.running ?? 0}
-        />
-        <Stat
-          href="/workflows/runs?mode=automation&status=succeeded"
-          label="Automation succeeded"
-          value={counts.succeeded ?? 0}
-        />
-        <Stat
-          href="/workflows/runs?mode=automation&status=failed"
-          label="Automation failed"
-          value={counts.failed ?? 0}
-        />
-        <Stat
-          href="/workflows/runs?mode=automation&status=needs_attention"
-          label="Need attention"
-          value={counts.needs_attention ?? 0}
-        />
-        <Stat
-          href="/workflows/runs?mode=automation&status=queued"
-          label="Queued"
-          value={counts.queued ?? 0}
-        />
-        <Stat
-          href="/workflows/runs?mode=automation&status=skipped"
-          label="Skipped"
-          value={counts.skipped ?? 0}
-        />
-        <Stat
-          href="/workflows#sources"
-          label="Connected sources"
-          value={overview.sources.filter((source) => source.connectionState === 'connected').length}
-        />
-      </section>
-
-      <p className="-mt-6 text-xs text-neutral-500">
-        Run totals cover automation events.{' '}
-        <Link className="underline" href="/workflows/runs?mode=legacy">
-          Legacy intake: {legacyTotal} events
-        </Link>
-        , counted separately.
-      </p>
       <div id="definitions" />
       <Section
         description="Each workflow runs one GitHub event family for one repository. Lower priority wins; the first match runs."
-        title="Definitions"
+        title="Workflows"
       >
         {overview.definitions.length === 0 ? (
           <EmptyState
@@ -287,7 +218,7 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
               <Label className="relative block w-full md:max-w-64">
                 <span className="sr-only">Search workflows</span>
                 <Search01Icon
-                  className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500"
+                  className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
                   size={15}
                 />
                 <Input
@@ -346,8 +277,7 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
             <Group>
               {shown.length === 0 ? (
                 <Row>
-                  <p className="text-sm text-neutral-500">No workflows match these filters.</p>
-
+                  <p className="text-sm text-muted-foreground">No workflows match these filters.</p>
                 </Row>
               ) : (
                 shown.map((definition) => {
@@ -439,14 +369,14 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         {definition.lastRun ? (
                           <WorkflowRunLink
-                            className="flex items-center gap-2 text-xs text-neutral-500 hover:text-neutral-200"
+                            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
                             href={`/workflows/runs/${definition.lastRun.id}`}
                           >
                             <RunStatusPill status={definition.lastRun.status} />
                             {relativeTime(definition.lastRun.createdAt)}
                           </WorkflowRunLink>
                         ) : (
-                          <span className="text-xs text-neutral-600">No runs yet</span>
+                          <span className="text-xs text-muted-foreground">No runs yet</span>
                         )}
                         <ButtonLink
                           href={`/workflows/${definition.id}`}
@@ -535,7 +465,7 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                 >
                   Previous
                 </Button>
-                <span className="text-neutral-500">
+                <span className="text-muted-foreground">
                   Page {currentPage + 1} of {pages}
                 </span>
                 <Button
@@ -550,80 +480,6 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
             ) : null}
           </>
         )}
-      </Section>
-
-      <div className="grid gap-10 xl:grid-cols-2">
-        <Section
-          actions={
-            <ButtonLink href="/workflows/runs" size="sm" variant="ghost">
-              All runs
-            </ButtonLink>
-          }
-          description="The latest accepted events and what happened to them."
-          title="Recent runs"
-        >
-          <Group>
-            {recent.length === 0 ? (
-              <Row>
-                <p className="text-sm text-neutral-500">No events recorded yet.</p>
-              </Row>
-            ) : (
-              recent.slice(0, 6).map((item) => (
-                <Row
-                  description={`${definitionName(item.run.definitionId) ?? runHandler(item)} · ${triggeringObject(item)} · ${relativeTime(item.event.receivedAt)}`}
-                  key={item.run.id}
-                  label={
-                    <WorkflowRunLink
-                      className="hover:underline"
-                      href={`/workflows/runs/${item.run.id}`}
-                    >
-                      {item.event.snapshot.title}
-                    </WorkflowRunLink>
-                  }
-                  layout="inline"
-                >
-                  <RunStatusPill status={item.run.status} />
-                </Row>
-              ))
-            )}
-          </Group>
-        </Section>
-        <Section
-          description="Campaign drafts that workflows created. Review state lives on the campaign."
-          title="Campaigns from workflows"
-        >
-          <Group>
-            {campaigns.length === 0 ? (
-              <Row>
-                <p className="text-sm text-neutral-500">No workflow has created a campaign yet.</p>
-              </Row>
-            ) : (
-              campaigns.map((item) => (
-                <Row
-                  description={`${definitionName(item.run.definitionId) ?? 'Workflow'} · ${relativeTime(item.run.createdAt)}`}
-                  key={item.run.id}
-                  label={item.event.snapshot.title}
-                  layout="inline"
-                >
-                  <ButtonLink
-                    href={`/campaigns/${item.run.outputs.campaignId}/copy`}
-                    size="sm"
-                    variant="outline"
-                  >
-                    Open campaign<span className="sr-only"> {item.event.snapshot.title}</span>
-                  </ButtonLink>
-                </Row>
-              ))
-            )}
-          </Group>
-        </Section>
-      </div>
-
-      <Section
-        description="Repositories and installations that can trigger workflows. GitHub is the event source today."
-        title="Event sources"
-      >
-        <WorkflowSources busy={busy} canManage={canManage} overview={overview} perform={perform} />
       </Section>
     </div>
   )

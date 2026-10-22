@@ -1,4 +1,4 @@
-import { Album02Icon, ArrowDown01Icon } from 'hugeicons-react'
+import { Images as Album02Icon, ChevronDown as ArrowDown01Icon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { RevisePanel } from '@/components/launch/RevisePanel'
 import { ApproveVisualButton } from '@/components/launch/assets/ApproveVisualButton'

@@ -3,9 +3,9 @@
 import type { BackendCampaignPost } from 'screenshot-studio-backend-sdk'
 import type { CampaignPostStatus } from '@/lib/tenant/campaign-status'
 import * as Tabs from '@radix-ui/react-tabs'
-import { Copy01Icon, Edit02Icon } from 'hugeicons-react'
-import { useRouter } from 'next/navigation'
-import { useId, useState } from 'react'
+import { Copy as Copy01Icon, Pencil as Edit02Icon } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 import { RevisePanel } from '@/components/launch/RevisePanel'
 import { CampaignLocalTime as LocalTime } from '@/components/campaigns/CampaignLocalTime'
@@ -76,7 +76,7 @@ const DELIVERY: Record<ScheduledPostStatus, string> = {
   FAILED: 'Failed to publish',
   PROCESSING: 'Publishing now',
   PUBLISHED: 'Published',
-  SCHEDULED: 'Queued',
+  SCHEDULED: 'Scheduled',
   UNKNOWN_DELIVERY: 'Delivery unknown; check the channel',
 }
 
@@ -414,7 +414,10 @@ function PostCard({
     : null
   const selectable = permissions.canApprove && post.status === 'READY_FOR_REVIEW'
   return (
-    <article className="flex flex-col rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]">
+    <article
+      id={`post-${post.id}`}
+      className="scroll-mt-6 flex flex-col rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]"
+    >
       <div className="flex flex-col gap-4 p-5">
         <div className="flex flex-wrap items-center gap-1.5">
           {selectable ? (
@@ -429,7 +432,14 @@ function PostCard({
           {post.angle ? <Pill tone="blue">{post.angle}</Pill> : null}
           {post.fromEarlierPlan ? <Pill>From an earlier plan</Pill> : null}
           <span className="ml-auto">
-            <Pill tone={status.tone}>{status.label}</Pill>
+            <Pill tone={status.tone}>
+              Review:{' '}
+              {post.approval
+                ? 'Approved revision'
+                : post.status === 'SCHEDULED' || post.status === 'PUBLISHED'
+                  ? 'See approval history'
+                  : status.label}
+            </Pill>
           </span>
         </div>
         {editing ? (
@@ -463,6 +473,9 @@ function PostCard({
             ) : null}
           </>
         )}
+        <p className="text-xs font-medium text-muted-foreground">
+          Scheduling readiness is checked separately from review approval.
+        </p>
         {campaignPostReviewIssue(post) ? (
           <p role="alert" className="text-sm text-red-700 dark:text-red-300">
             {campaignPostReviewIssue(post)}
@@ -578,14 +591,31 @@ export function CopyBoard({
   permissions: Permissions
   posts: CopyPost[]
 }) {
+  const requestedChannel = useSearchParams().get('channel')
   const initial =
-    channels.find((channel) => posts.some((post) => post.channel === channel.value)) ?? channels[0]
+    channels.find((channel) => channel.value === requestedChannel) ??
+    channels.find((channel) => posts.some((post) => post.channel === channel.value)) ??
+    channels[0]
+  const [activeChannel, setActiveChannel] = useState(initial?.value)
+  const requestedValue = channels.find((channel) => channel.value === requestedChannel)?.value
+  useEffect(() => {
+    if (!requestedValue) return
+    setActiveChannel(requestedValue)
+    requestAnimationFrame(() => {
+      const target = document.getElementById(window.location.hash.slice(1))
+      target?.scrollIntoView({ block: 'nearest' })
+    })
+  }, [requestedChannel, requestedValue])
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
   const inReview = posts.filter((post) => post.status === 'READY_FOR_REVIEW').map((post) => post.id)
   // A post that left review since it was ticked is no longer selectable.
   const selectedIds = inReview.filter((id) => selected.has(id))
   return (
-    <Tabs.Root className="flex flex-col gap-5" defaultValue={initial?.value}>
+    <Tabs.Root
+      className="flex flex-col gap-5"
+      value={activeChannel}
+      onValueChange={setActiveChannel}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs.List
           aria-label="Channels"

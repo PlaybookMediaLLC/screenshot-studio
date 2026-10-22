@@ -1,25 +1,26 @@
 'use client'
 
 import {
-  Activity01Icon,
-  Album02Icon,
-  Layers01Icon,
-  ArtboardIcon,
-  Folder01Icon,
-  Link01Icon,
-  Megaphone01Icon,
-  Menu01Icon,
-  NoteEditIcon,
-  PaintBoardIcon,
-  SlidersHorizontalIcon,
-  UnfoldMoreIcon,
-  WorkflowSquare03Icon,
-} from 'hugeicons-react'
+  Activity,
+  House,
+  Palette,
+  Megaphone,
+  Send,
+  FolderOpen,
+  Workflow,
+  Settings2,
+  Menu,
+  ChevronsUpDown,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react'
+import { PLATFORM_DESTINATIONS, platformArea } from '@/lib/platform/navigation'
+import { ShellActions, ShellSearch } from './ShellActions'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { type ComponentType, useEffect, useState } from 'react'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
-import { SidebarConnection } from '@/components/social-connections/SidebarConnection'
 import { UserAvatar } from '@/components/auth/UserAvatar'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -33,73 +34,64 @@ import type { navigationLayoutSchema } from '@/lib/api/contracts/settings-platfo
 import type { z } from 'zod'
 import { surface } from './shell-config'
 import { Button } from '@/components/ui/button'
-import { EditorNavigation } from './EditorNavigation'
 import { SidebarLink } from './SidebarLink'
 
 type IconComponent = ComponentType<{ className?: string; size?: number; strokeWidth?: number }>
-type NavItem = { href: string; icon: IconComponent; label: string }
-
-const NAV_GROUPS: { items: NavItem[]; label?: string }[] = [
-  {
-    items: [
-      { href: '/', icon: PaintBoardIcon, label: 'Editor' },
-      { href: '/canvas', icon: ArtboardIcon, label: 'Canvas' },
-      { href: '/projects', icon: Folder01Icon, label: 'Projects' },
-      { href: '/creative-sets', icon: Layers01Icon, label: 'Story Sets' },
-      { href: '/campaigns', icon: Megaphone01Icon, label: 'Campaigns' },
-      { href: '/workflows', icon: WorkflowSquare03Icon, label: 'Workflows' },
-      { href: '/write', icon: NoteEditIcon, label: 'Write' },
-      { href: '/assets', icon: Album02Icon, label: 'Assets' },
-      { href: '/link-preview', icon: Link01Icon, label: 'Link preview' },
-    ],
-  },
-  {
-    items: [
-      { href: '/activity', icon: Activity01Icon, label: 'Activity' },
-      // Settings has its own section menu on every settings page.
-      { href: '/workspace', icon: SlidersHorizontalIcon, label: 'Settings' },
-    ],
-    label: 'Workspace',
-  },
-]
-
-/** The path without a leading locale segment, e.g. /fr/assets → /assets. */
-function routePath(pathname: string): string {
-  return pathname.replace(/^\/[a-z]{2}(?:-[A-Z]{2})?(?=\/|$)/, '') || '/'
+type NavItem = {
+  href: string
+  icon: IconComponent
+  label: string
+  key: (typeof PLATFORM_DESTINATIONS)[number]['key']
 }
 
-function isActive(pathname: string, href: string): boolean {
-  const path = routePath(pathname)
-  return href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`)
+const ICONS = {
+  home: House,
+  create: Palette,
+  campaigns: Megaphone,
+  publish: Send,
+  library: FolderOpen,
+  automate: Workflow,
+  activity: Activity,
+  settings: Settings2,
 }
+const NAV_GROUPS = [
+  { items: PLATFORM_DESTINATIONS.slice(0, 6) },
+  { items: PLATFORM_DESTINATIONS.slice(6), label: 'Workspace' },
+].map((group) => ({
+  ...group,
+  items: group.items.map((item) => ({ ...item, icon: ICONS[item.key] })),
+}))
 
 function NavLink({
   collapsed,
-  item: { href, icon: Icon, label },
+  item: { href, icon: Icon, key },
   onNavigate,
 }: {
   collapsed: boolean
   item: NavItem
   onNavigate?: () => void
 }) {
+  const t = useTranslations('platformNavigation')
+  const label = t(key)
   const pathname = usePathname()
-  const active = isActive(pathname, href)
+  const active = platformArea(pathname) === platformArea(href)
   const rowClassName = cn(
-    'flex h-8 items-center gap-2.5 rounded-lg border px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+    'flex h-10 items-center gap-2.5 rounded-lg border px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
     active
       ? cn(surface.panel, surface.border, 'text-foreground shadow-xs')
       : 'border-transparent text-muted-foreground hover:text-foreground',
-    collapsed && 'size-8 justify-center px-0'
+    collapsed && 'size-10 justify-center px-0'
   )
   const link = (
     <SidebarLink
+      data-platform-nav
       aria-current={active ? 'page' : undefined}
       aria-label={collapsed ? label : undefined}
       className={rowClassName}
       href={href}
       onClick={onNavigate}
     >
-      <Icon className="shrink-0" size={16} strokeWidth={1.8} />
+      <Icon aria-hidden="true" className="shrink-0" size={20} strokeWidth={2} />
       {collapsed ? null : <span className="truncate">{label}</span>}
     </SidebarLink>
   )
@@ -124,32 +116,32 @@ function Navigation({
   draftsEnabled: boolean
   onNavigate?: () => void
 }) {
+  const t = useTranslations('platformNavigation')
   return (
-    <nav aria-label="Workspace" className={cn('grid', collapsed ? 'gap-3' : 'gap-6')}>
-      <NotificationCenter collapsed={collapsed} />
-      {draftsEnabled ? <SidebarConnection collapsed={collapsed} /> : null}
+    <nav aria-label={t('workspace')} className="flex min-h-full flex-col gap-4">
+      <ShellActions
+        collapsed={collapsed}
+        campaignsEnabled={campaignsEnabled}
+        draftsEnabled={draftsEnabled}
+        onNavigate={onNavigate}
+      />
       {NAV_GROUPS.map((group, index) => (
-        <div className="grid gap-0.5" key={index}>
+        <div
+          className={cn('grid gap-0.5', index === 1 && 'mt-auto border-t border-border pt-3')}
+          key={index}
+        >
+          {index === 1 ? <NotificationCenter collapsed={collapsed} /> : null}
           {group.label && !collapsed ? (
             <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground/75">
-              {group.label}
+              {t('workspace')}
             </p>
           ) : null}
           {group.items
             .filter((item) => campaignsEnabled || item.href !== '/campaigns')
             .filter((item) => draftsEnabled || item.href !== '/write')
-            .map((item) =>
-              item.href === '/' ? (
-                <EditorNavigation collapsed={collapsed} key={item.href} onNavigate={onNavigate} />
-              ) : (
-                <NavLink
-                  collapsed={collapsed}
-                  item={item}
-                  key={item.href}
-                  onNavigate={onNavigate}
-                />
-              )
-            )}
+            .map((item) => (
+              <NavLink collapsed={collapsed} item={item} key={item.href} onNavigate={onNavigate} />
+            ))}
         </div>
       ))}
     </nav>
@@ -167,12 +159,13 @@ function WorkspaceSwitcher({
   const { data: session } = useHydratedSession()
   return (
     <AccountMenu
+      scope="account"
       workspaceName={organizationName}
       align={collapsed ? 'end' : 'start'}
       side={collapsed ? 'right' : 'top'}
       triggerClassName={cn(
         'flex h-11 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-foreground/[0.04]',
-        collapsed && 'size-8 justify-center px-0'
+        collapsed && 'size-10 justify-center px-0'
       )}
     >
       <UserAvatar
@@ -184,13 +177,13 @@ function WorkspaceSwitcher({
         <>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium text-foreground">
-              {organizationName}
+              {session?.user.name || 'Account'}
             </span>
             <span className="block truncate text-xs text-muted-foreground">
               {session?.user.email ?? 'Account'}
             </span>
           </span>
-          <UnfoldMoreIcon className="shrink-0 text-muted-foreground" size={14} />
+          <ChevronsUpDown className="shrink-0 text-muted-foreground" size={14} />
         </>
       )}
     </AccountMenu>
@@ -199,7 +192,7 @@ function WorkspaceSwitcher({
 
 function Brand({ collapsed }: { collapsed: boolean }) {
   return (
-    <SidebarLink className="flex min-w-0 items-center gap-2.5" href="/">
+    <SidebarLink className="flex min-w-0 items-center gap-2.5" href="/home" aria-label="Shots Home">
       <Image alt="" className="size-6 rounded-md" height={24} src="/logo-mark.png" width={24} />
       {collapsed ? null : (
         <span className="truncate text-sm font-semibold tracking-tight text-foreground">Shots</span>
@@ -224,14 +217,43 @@ export interface PlatformSidebarProps {
  * the icon rail and keeps a temporary expansion the person opened until they
  * close it or move to another page.
  */
-function useNavigationExpanded(initial: z.infer<typeof navigationLayoutSchema>) {
-  const layout = usePreferences().preferences?.navigation ?? initial
+function useNavigationExpanded(
+  initial: z.infer<typeof navigationLayoutSchema>,
+  variant: 'editor' | 'page'
+) {
+  const preferences = usePreferences().preferences
+  const { data: session } = useHydratedSession()
+  const layout =
+    variant === 'editor' && !preferences?.version && initial === 'expanded'
+      ? 'compact'
+      : (preferences?.navigation ?? initial)
   const wide = useMediaQuery(DYNAMIC_NAVIGATION_QUERY)
   const pathname = usePathname()
-  const [temporary, setTemporary] = useState(false)
-  useEffect(() => setTemporary(false), [pathname])
-  const expanded = layout === 'expanded' || (layout === 'dynamic' && (wide || temporary))
-  return { canToggle: layout === 'dynamic' && !wide, expanded, setTemporary, temporary }
+  const [temporary, setTemporary] = useState<boolean | null>(null)
+  const key = session
+    ? `shots:nav:${session.user.id}:${session.session.activeOrganizationId}:${variant}:${platformArea(pathname)}:${preferences?.navigation ?? initial}`
+    : null
+  useEffect(() => {
+    let remembered: string | null = null
+    try {
+      remembered = key ? sessionStorage.getItem(key) : null
+    } catch {
+      /* Browser storage is optional. */
+    }
+    setTemporary(remembered === 'expanded' ? true : remembered === 'compact' ? false : null)
+  }, [key])
+  const expanded = temporary ?? (layout === 'expanded' || (layout === 'dynamic' && wide))
+  return {
+    expanded,
+    setTemporary: (value: boolean) => {
+      setTemporary(value)
+      try {
+        if (key) sessionStorage.setItem(key, value ? 'expanded' : 'compact')
+      } catch {
+        /* Keep the current session usable without storage. */
+      }
+    },
+  }
 }
 
 /**
@@ -241,18 +263,19 @@ function useNavigationExpanded(initial: z.infer<typeof navigationLayoutSchema>) 
 export function PlatformSidebar({
   campaignsEnabled,
   draftsEnabled = false,
-  initialNavigation = 'compact',
+  initialNavigation = 'expanded',
   organizationName = 'Workspace',
   variant,
 }: PlatformSidebarProps) {
-  // The editor header already holds its account menu.
-  const isPage = variant === 'page'
+  const t = useTranslations('platformNavigation')
+  // Keep the same account position in every workspace.
   const [mobileOpen, setMobileOpen] = useState(false)
-  const navigation = useNavigationExpanded(initialNavigation)
+  const navigation = useNavigationExpanded(initialNavigation, variant)
   const collapsed = !navigation.expanded
 
   return (
     <>
+      <ShellSearch campaignsEnabled={campaignsEnabled} draftsEnabled={draftsEnabled} />
       <aside
         aria-label="Primary navigation"
         className={cn(
@@ -264,6 +287,21 @@ export function PlatformSidebar({
       >
         <div className={cn(!collapsed && 'px-2')}>
           <Brand collapsed={collapsed} />
+          <AccountMenu
+            scope="workspace"
+            workspaceName={organizationName}
+            align="start"
+            triggerClassName="mt-3 flex h-10 max-w-full items-center gap-2 rounded-lg px-2 text-start text-sm hover:bg-muted"
+          >
+            {collapsed ? (
+              <ChevronsUpDown size={20} aria-hidden="true" />
+            ) : (
+              <>
+                <span className="min-w-0 flex-1 truncate">{organizationName}</span>
+                <ChevronsUpDown size={16} aria-hidden="true" />
+              </>
+            )}
+          </AccountMenu>
         </div>
 
         <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-1 pt-1 [scrollbar-width:none]">
@@ -274,23 +312,27 @@ export function PlatformSidebar({
           />
         </div>
 
-        {navigation.canToggle ? (
+        {
           <div className={cn('flex w-full pb-2', collapsed ? 'justify-center' : 'px-1')}>
             <Button
               aria-expanded={navigation.expanded}
-              aria-label={navigation.expanded ? 'Collapse navigation' : 'Expand navigation'}
+              aria-label={navigation.expanded ? t('collapse') : t('expand')}
               className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
-              onClick={() => navigation.setTemporary(!navigation.temporary)}
+              onClick={() => navigation.setTemporary(!navigation.expanded)}
               size={null}
               type="button"
               variant="custom"
             >
-              <SlidersHorizontalIcon size={15} strokeWidth={1.8} />
+              {navigation.expanded ? (
+                <PanelLeftClose size={20} aria-hidden="true" />
+              ) : (
+                <PanelLeftOpen size={20} aria-hidden="true" />
+              )}
             </Button>
           </div>
-        ) : null}
+        }
 
-        {isPage ? (
+        {
           // In development, room for the Next.js dev badge, which otherwise
           // sits on the switcher and swallows clicks.
           <div
@@ -301,7 +343,7 @@ export function PlatformSidebar({
           >
             <WorkspaceSwitcher collapsed={collapsed} organizationName={organizationName} />
           </div>
-        ) : null}
+        }
       </aside>
 
       <header
@@ -315,20 +357,29 @@ export function PlatformSidebar({
             <Button
               variant="custom"
               size={null}
-              aria-label="Open navigation"
-              className="grid size-9 place-items-center rounded-lg text-foreground/65 hover:bg-foreground/[0.04] hover:text-foreground"
+              aria-label={t('openNavigation')}
+              className="grid size-11 place-items-center rounded-lg text-foreground/65 hover:bg-foreground/[0.04] hover:text-foreground"
               type="button"
             >
-              <Menu01Icon size={18} strokeWidth={1.8} />
+              <Menu size={18} strokeWidth={1.8} />
             </Button>
           </SheetTrigger>
           <SheetContent
             className={cn('w-72 gap-0 border-foreground/[0.06] p-3', surface.base)}
             side="left"
           >
-            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <SheetTitle className="sr-only">{t('navigation')}</SheetTitle>
             <div className="px-2 py-1">
               <Brand collapsed={false} />
+              <AccountMenu
+                scope="workspace"
+                workspaceName={organizationName}
+                align="start"
+                triggerClassName="mt-3 flex min-h-11 w-full items-center justify-between gap-2 rounded-lg px-2 text-start text-sm hover:bg-muted"
+              >
+                <span className="truncate">{organizationName}</span>
+                <ChevronsUpDown size={20} aria-hidden="true" />
+              </AccountMenu>
             </div>
             <div className="mt-6 min-h-0 flex-1 overflow-y-auto">
               <Navigation
@@ -349,7 +400,7 @@ export function PlatformSidebar({
           </SheetContent>
         </Sheet>
         <Brand collapsed={false} />
-        <div className="ml-auto">
+        <div className="ms-auto">
           <NotificationCenter />
         </div>
       </header>

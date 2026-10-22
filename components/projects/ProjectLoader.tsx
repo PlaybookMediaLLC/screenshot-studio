@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { registerNavigationGuard } from '@/lib/platform/navigation-guard'
 import { TRPCClientError } from '@trpc/client'
 import { toast } from 'sonner'
 import { projectIdSchema } from '@/lib/projects/schema'
@@ -29,9 +30,13 @@ export function ProjectLoader() {
         id: 'project-save-error',
         description: error ?? 'Open the project menu to resolve the problem.',
         duration: Infinity,
-        action: status === 'conflict' ? undefined : {
-          label: 'Retry', onClick: () => void saveProjectNow(),
-        },
+        action:
+          status === 'conflict'
+            ? undefined
+            : {
+                label: 'Retry',
+                onClick: () => void saveProjectNow(),
+              },
       })
     } else if (status === 'saved') {
       toast.dismiss('project-save-error')
@@ -71,6 +76,16 @@ export function ProjectLoader() {
       })
   }, [trpcClient])
 
+  React.useEffect(
+    () =>
+      registerNavigationGuard(async () => {
+        if (!useProjectSession.getState().projectId) return
+        await saveProjectNow()
+        if (useProjectSession.getState().status !== 'saved')
+          throw new Error('Save the screenshot project before leaving.')
+      }, true),
+    []
+  )
   React.useEffect(() => () => void saveProjectNow(), [])
 
   return null

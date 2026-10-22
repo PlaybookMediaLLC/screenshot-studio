@@ -1,4 +1,22 @@
 {
+  "platformNavigation": {
+    "home": "ホーム",
+    "create": "作成",
+    "campaigns": "キャンペーン",
+    "publish": "公開",
+    "library": "ライブラリ",
+    "automate": "自動化",
+    "activity": "アクティビティ",
+    "settings": "設定",
+    "workspace": "ワークスペース",
+    "search": "検索",
+    "new": "新規",
+    "searchCommands": "検索とコマンド",
+    "collapse": "ナビゲーションを折りたたむ",
+    "expand": "ナビゲーションを展開",
+    "openNavigation": "ナビゲーションを開く",
+    "navigation": "ナビゲーション"
+  },
   "common": {
     "openEditor": "エディタを開く",
     "startCreating": "作成を開始",

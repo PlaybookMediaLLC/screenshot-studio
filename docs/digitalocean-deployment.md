@@ -1,13 +1,11 @@
 # DigitalOcean production deployment
 
-**Cutover status (2026-10-16):** The single-database Go product/SDK cutover is
-applied in production. `doctl apps get` shows the `web`, `storage`, and combined
-`screenshot-studio-backend` services, the `platform-migrate` and
-`social-migrate` pre-deploy jobs, and no `web-migrate`; the active deployment
-runs the images built from `d2482e6`. Every push to `main` now deploys the
-backend first and the web second. Live social canaries on the cutover
-architecture are still outstanding; see
-[social publishing verification](social-publishing-verification.md).
+**Current topology (2026-10-22):** Production uses three services: `web`,
+`screenshot-studio-backend`, and `collab`. The single `platform-migrate`
+pre-deploy job applies both product and social migrations. Backend deployments
+remove the retired Supabase `storage` service and redundant `social-migrate`
+(formerly `postiz-migrate`) job, including unused tenant storage settings.
+Existing database backups and R2 objects are retained.
 
 Production is `screenshot-studio-production` in DigitalOcean's `nyc` region,
 app ID `c525b0ba-b92a-4174-ae91-4ab4d7c92fd2`, at
@@ -28,7 +26,8 @@ HTTP endpoints, including the tenant database and Temporal namespace. The
 backend image is built on GitHub and selected by a unique commit SHA tag in
 App Platform. The image workflow verifies the public digest before deployment.
 
-Storage uses `internal_ports` and has no public ingress rule. Designs render
+The backend signs uploads and downloads directly against private R2; there is
+no separate App Platform storage service. Designs render
 in Cloudflare Browser Rendering, not on App Platform: the web deploy removes
 the old `design-renderer` component and requires `PLATFORM_RENDER_CDP_URL`
 (`wss://api.cloudflare.com/client/v4/accounts/<account>/browser-run/devtools/browser?keep_alive=600000`)
@@ -90,7 +89,8 @@ and ingress settings) or `Web image` (web settings) on `main` with
 `deploy=true`; see [Releases](#releases). Both workflows load Infisical through
 the repository's scoped OIDC identity and edit the live spec in place
 (`infra/digitalocean/consolidate-live-spec.py` and `update-web-image.py`), so
-they keep components, domains, and settings they do not own. Do not replace
+they keep components, domains, and settings they do not own. The backend
+workflow owns retirement of the old storage service and duplicate migration jobs. Do not replace
 the whole spec by hand: a spec rendered from an older template drops live
 components and credentials.
 
@@ -257,8 +257,7 @@ The combined backend image includes the maintenance code merged in PR #80.
 The backend is released with the `Social backend image` GitHub workflow. Its
 manual `deploy` input authenticates to Infisical with the repository's scoped
 OIDC identity, loads the new backend credentials, proposes the topology, and
-updates the app only after validation. It preserves the live web, storage,
-and both migration jobs.
+updates the app only after validation. It preserves the live web and keeps one backend-owned migration job.
 
 ### Production maintenance verification: 2026-10-13
 

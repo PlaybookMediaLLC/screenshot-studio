@@ -14,7 +14,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 BACKEND = "screenshot-studio-backend"
-MIGRATION_JOB = "social-migrate"
+MIGRATION_JOB = "platform-migrate"
+RETIRED_BACKEND_KEYS = {"TENANT_STORAGE_SERVICE_KEY", "TENANT_STORAGE_API_URL", "TENANT_STORAGE_BUCKET"}
 IMAGE = {"registry_type": "GHCR", "registry": "playbookmediallc", "repository": "screenshot-studio"}
 SOCIAL_SECRET_SOURCES = {
     "REDIS_URL": "SOCIAL_REDIS_URL",
@@ -70,8 +71,6 @@ def move_legacy_names(spec, secrets):
         # The default queue is social now; an override of the legacy one would pin it.
         envs[:] = [item for item in envs if (item["key"], item.get("value")) != (
             "TEMPORAL_SOCIAL_TASK_QUEUE", LEGACY_TASK_QUEUE)]
-        if component["name"] == LEGACY_MIGRATION_JOB:
-            component["name"] = MIGRATION_JOB
 
 
 def set_env(envs, key, value):
@@ -154,30 +153,26 @@ def refresh_secrets(envs, secrets):
         item["value"] = secrets[source]
 
 
-def shared_database(backend, migration, secrets=None):
+def shared_database(backend, secrets=None):
     envs = {item["key"]: item for item in backend["envs"]}
     value = secrets.get("DATABASE_URL") if secrets is not None else envs["TENANT_DATABASE_URL"]["value"]
     if not value:
         raise ValueError("DATABASE_URL is required for the shared backend database")
     set_secret_env(backend["envs"], "DATABASE_URL", value)
-    # Migrations need DDL; the runtime role can only read and write rows.
-    owner = secrets.get("MIGRATION_DATABASE_URL") if secrets is not None else value
-    if not owner:
-        raise ValueError("MIGRATION_DATABASE_URL is required for the social migration")
-    set_secret_env(migration["envs"], "DATABASE_URL", owner)
 
 
-def platform_migration(spec, social_migration, secrets=None):
-    """Replace the web's Prisma job with the Go platform migrator in the backend image."""
-    names = ("platform-migrate", "web-migrate")
-    previous = next((item for item in spec.get("jobs", []) if item["name"] in names), None)
+def platform_migration(spec, image, secrets=None):
+    """One Go job applies both product and social migrations with the DDL owner."""
+    names = (MIGRATION_JOB, "web-migrate", "social-migrate", LEGACY_MIGRATION_JOB)
+    previous = next((item for name in names for item in spec.get("jobs", []) if item["name"] == name), None)
     if previous is None:
         raise ValueError("Platform migration job is missing")
     database = (secrets.get("MIGRATION_DATABASE_URL") if secrets is not None else
                 next((item["value"] for item in previous.get("envs", []) if item["key"] == "DATABASE_URL"), None))
     if not database:
         raise ValueError("MIGRATION_DATABASE_URL is required for the platform migration")
-    job = dict(copy.deepcopy(social_migration), name="platform-migrate", run_command="/platform-migrate",
+    job = dict(copy.deepcopy(previous), name=MIGRATION_JOB, image=copy.deepcopy(image),
+               run_command="/platform-migrate", kind="PRE_DEPLOY",
                envs=[{"key": "DATABASE_URL", "value": database, "type": "SECRET", "scope": "RUN_TIME"}])
     spec["jobs"] = [job if item is previous else item for item in spec["jobs"]
                     if item is previous or item["name"] not in names]
@@ -313,9 +308,13 @@ def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
     move_legacy_names(spec, secrets)
     services = {item["name"]: item for item in spec["services"]}
     # The web deploy retires design-renderer; both shapes are current.
-    if set(services) - {"design-renderer", COLLAB} != {"web", "storage", BACKEND}:
+    if set(services) - {"storage", "design-renderer", COLLAB} != {"web", BACKEND}:
         raise ValueError("Production topology changed; inspect the app before deploying")
+    spec["services"] = [item for item in spec["services"] if item["name"] != "storage"]
+    rules = spec.setdefault("ingress", {}).setdefault("rules", [])
+    rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") != "storage"]
     backend = services[BACKEND]
+    backend["envs"] = [item for item in backend["envs"] if item["key"] not in RETIRED_BACKEND_KEYS]
     if backend.get("image", {}).get("registry_type") != "GHCR":
         raise ValueError("Combined backend image source changed")
     configure_collab(spec, backend, secrets, collab_tag)
@@ -327,13 +326,8 @@ def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
                              secrets is not None and secrets.get("ENABLE_DIRECT_PROVIDER") == "true")
     configure_product_api(backend, secrets)
     backend["image"] = image
-    migration = next((item for item in spec.get("jobs", []) if item["name"] == MIGRATION_JOB), None)
-    if migration is None:
-        raise ValueError("Social migration job is missing")
-    migration["image"] = copy.deepcopy(image)
-    migration["run_command"] = "/" + MIGRATION_JOB
-    shared_database(backend, migration, secrets)
-    platform_migration(spec, migration, secrets)
+    shared_database(backend, secrets)
+    platform_migration(spec, image, secrets)
     return spec
 
 

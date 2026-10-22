@@ -8,6 +8,10 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 const nextConfig: NextConfig = {
   output: 'standalone',
   reactCompiler: true,
+  experimental: {
+    // CI must keep in-flight browser requests alive while V8 reclaims compiler memory.
+    devMemoryThresholdRestart: process.env.CI !== 'true',
+  },
   // The vendored editor ships TypeScript source (packages/platejs-editor).
   transpilePackages: ['@shots/platejs-editor'],
   poweredByHeader: false,
@@ -190,14 +194,7 @@ const nextConfig: NextConfig = {
   },
 
   // REQUIRED for react-konva
-  webpack: (config, { dev, isServer }) => {
-    if (dev && process.env.CI === 'true') {
-      // CI needs browser traces, not the eval source maps that exhaust its compiler heap.
-      config.plugins = config.plugins.filter(
-        (plugin: { constructor: { name: string } } | false | null | undefined) =>
-          plugin && plugin.constructor.name !== 'EvalSourceMapDevToolPlugin'
-      )
-    }
+  webpack: (config, { isServer }) => {
     config.externals = [...(config.externals || []), { canvas: 'canvas' }]
     // WebRTC co-editing is off (RFC 037); keep y-webrtc and its public
     // signaling defaults out of the bundle.

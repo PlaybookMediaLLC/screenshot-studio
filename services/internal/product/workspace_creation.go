@@ -158,6 +158,11 @@ func (c *Configuration) CreateWorkspace(ctx context.Context, actor Actor, input 
 	if err != nil {
 		return nil, err
 	}
+	// The membership trigger must attribute this join to the verified creator,
+	// so notification projection can suppress their own manual action.
+	if _, err := tx.PlatformExec(ctx, `SELECT set_config('platform.activity_actor',$1,true)`, actor.UserID); err != nil {
+		return nil, err
+	}
 	owner, err := tx.Member.Create().SetID(uuid.NewString()).SetOrganizationID(org.ID).
 		SetUserID(actor.UserID).SetRole("owner").SetCreatedAt(now).Save(ctx)
 	if err != nil {

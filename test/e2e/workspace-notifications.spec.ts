@@ -55,14 +55,6 @@ test('workspace activity persists read and archive state through controlled prov
     )
   try {
     await signUpViaApi(identity, page)
-    expect(
-      (
-        await requestJson(page, '/api/auth/sign-in/email', {
-          email: identity.email,
-          password: identity.password,
-        })
-      ).status
-    ).toBe(200)
     const workspace = z.object({ id: z.string() }).parse(
       await browserJson(page, '/api/auth/organization/create', {
         method: 'POST',
@@ -103,14 +95,6 @@ test('workspace activity persists read and archive state through controlled prov
       name: 'Activity colleague',
     }
     await signUpViaApi(colleague, otherPage)
-    expect(
-      (
-        await requestJson(otherPage, '/api/auth/sign-in/email', {
-          email: colleague.email,
-          password: colleague.password,
-        })
-      ).status
-    ).toBe(200)
     const otherWorkspace = z.object({ id: z.string() }).parse(
       await browserJson(otherPage, '/api/auth/organization/create', {
         method: 'POST',
@@ -263,6 +247,7 @@ test('workspace activity persists read and archive state through controlled prov
       'aria-selected',
       'true'
     )
+    await expect(inbox.getByRole('tab', { selected: true })).toHaveCount(1)
     const first = inbox.locator('[data-notification-id]').first()
     await expect(first).toBeVisible()
     expect(await unreadCount()).toBe(12)
@@ -287,6 +272,11 @@ test('workspace activity persists read and archive state through controlled prov
     await expect(row).toHaveCount(0)
     await expect.poll(unreadCount).toBe(11)
     await inbox.getByRole('tab', { name: 'Archive', exact: true }).click()
+    await expect(inbox.getByRole('tab', { name: 'Archive', exact: true })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
+    await expect(inbox.getByRole('tab', { selected: true })).toHaveCount(1)
     await expect(row.getByRole('button', { name: 'Restore notification' })).toBeVisible()
     await page.screenshot({ path: '.context/notification-archive.png', animations: 'disabled' })
     await page.keyboard.press('Escape')
@@ -310,6 +300,11 @@ test('workspace activity persists read and archive state through controlled prov
     ).toBeVisible()
     await page.screenshot({ path: '.context/workspace-notifications.png', animations: 'disabled' })
     await inbox.getByRole('tab', { name: 'Inbox', exact: true }).click()
+    await expect(inbox.getByRole('tab', { name: 'Inbox', exact: true })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
+    await expect(inbox.getByRole('tab', { selected: true })).toHaveCount(1)
     await expect(inbox.getByText('No notifications', { exact: true })).toBeVisible()
     await page.keyboard.press('ArrowRight')
     await expect(inbox.getByRole('tab', { name: 'Activity', exact: true })).toHaveAttribute(

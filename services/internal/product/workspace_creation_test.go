@@ -139,13 +139,14 @@ func TestWorkspaceCreationConcurrentReplay(t *testing.T) {
 	}
 	created := results[0]
 	assertCreationCount(t, db, actor, 1)
-	var owners, settings, audits int
+	var owners, settings, audits, attributedEvents int
 	err := db.SQL.QueryRow(`SELECT
 	  (SELECT count(*) FROM member WHERE "organizationId"=$1 AND "userId"=$2 AND role='owner'),
 	  (SELECT count(*) FROM workspace_settings WHERE "organizationId"=$1),
-	  (SELECT count(*) FROM audit_log WHERE "organizationId"=$1 AND action='product.workspace_created')`, created.ID, actor.UserID).Scan(&owners, &settings, &audits)
-	if err != nil || owners != 1 || settings != 1 || audits != 1 {
-		t.Fatalf("atomic records owners=%d settings=%d audits=%d err=%v", owners, settings, audits, err)
+	  (SELECT count(*) FROM audit_log WHERE "organizationId"=$1 AND action='product.workspace_created'),
+	  (SELECT count(*) FROM outbox_event WHERE "organizationId"=$1 AND type='activity.member.joined' AND payload->>'actorUserId'=$2)`, created.ID, actor.UserID).Scan(&owners, &settings, &audits, &attributedEvents)
+	if err != nil || owners != 1 || settings != 1 || audits != 1 || attributedEvents != 1 {
+		t.Fatalf("atomic records owners=%d settings=%d audits=%d attributed events=%d err=%v", owners, settings, audits, attributedEvents, err)
 	}
 	// A rename and workspace switch must not redirect a delayed retry.
 	execCreationSQL(t, db, `UPDATE organization SET name='Renamed',slug=$2 WHERE id=$1`, created.ID, "renamed-"+uuid.NewString())

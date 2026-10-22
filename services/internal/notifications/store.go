@@ -198,16 +198,17 @@ func socialSetOf(row map[string]any) string {
 	return textValue(row, "socialSetId")
 }
 
-// privateSocialSet reports whether a set is private, and to whom.
+// privateSocialSet reports whether a set is private, and to whom. A referenced
+// set that is missing, deleted or outside the workspace has no authorized owner.
 func privateSocialSet(ctx context.Context, db queryer, org, setID string) (bool, string, error) {
 	if setID == "" {
 		return false, "", nil
 	}
 	var visibility string
 	var owner sql.NullString
-	err := db.QueryRowContext(ctx, `SELECT visibility,"ownerUserId" FROM social_set WHERE id=$1 AND "organizationId"=$2`, setID, org).Scan(&visibility, &owner)
+	err := db.QueryRowContext(ctx, `SELECT visibility,"ownerUserId" FROM social_set WHERE id=$1 AND "organizationId"=$2 AND "deletedAt" IS NULL`, setID, org).Scan(&visibility, &owner)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, "", nil
+		return true, "", nil
 	}
 	return visibility == "PRIVATE", owner.String, err
 }

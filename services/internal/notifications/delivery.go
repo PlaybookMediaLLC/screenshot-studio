@@ -345,6 +345,17 @@ func (s *Service) dispatch(ctx context.Context) (bool, error) {
 	if out.Status != "" {
 		return true, s.finish(ctx, d, out)
 	}
+	// Provider discovery can take time. Run it before the final local authority
+	// check, so changes made while Slack responds cannot authorize a later send.
+	if d.Channel == "slack" {
+		if _, err = s.ValidateChannel(ctx, d.OrganizationID, d.connectionID, d.Destination); err != nil {
+			var provider *slackError
+			if errors.As(err, &provider) && (provider.RetryAfter > 0 || slices.Contains([]string{"transport_uncertain", "server_uncertain", "malformed_response", "unexpected_status", "internal_error", "fatal_error"}, provider.Code)) {
+				return true, s.finish(ctx, d, Outcome{Status: "PENDING", Code: provider.Code, RetryAfter: provider.RetryAfter})
+			}
+			return true, s.finish(ctx, d, Outcome{Status: "BLOCKED", Code: "SLACK_DESTINATION_UNAVAILABLE"})
+		}
+	}
 	// Persist the immutable request and the ambiguity boundary before entering the provider.
 	encoded, err := json.Marshal(env)
 	if err != nil {
@@ -362,12 +373,22 @@ func (s *Service) dispatch(ctx context.Context) (bool, error) {
 	if err != nil || n != 1 {
 		return true, err
 	}
+	d.encryptedPayload = encrypted
 	// Authorize again after request preparation; queued configuration changes cannot reroute a send.
-	if _, out, err = s.prepare(ctx, d); err != nil {
+	if env, out, err = s.prepare(ctx, d); err != nil {
 		return true, s.finish(ctx, d, Outcome{Status: "UNCERTAIN", Code: "PRE_SEND_CHECK_FAILED"})
 	}
 	if out.Status != "" {
 		return true, s.finish(ctx, d, out)
+	}
+	// Removal, disconnect and lease recovery can fence a claim independently of
+	// the current access checks. A later grant must not revive that old claim.
+	var ownsClaim bool
+	if err = s.DB.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM platform_notification_delivery WHERE id=$1 AND claim_token=$2 AND status='CLAIMED')`, d.ID, d.claimToken).Scan(&ownsClaim); err != nil {
+		return true, err
+	}
+	if !ownsClaim {
+		return true, nil
 	}
 	out, err = s.Send(ctx, d, env)
 	if err != nil && out.Status == "" {
@@ -425,13 +446,14 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 		if def.Restricted || !test && !enabled(pol, defaultPreferences(), def, "slack") || pol.SlackConnectionID != d.connectionID || pol.SlackChannelID != d.Destination {
 			return skip("DESTINATION_CHANGED")
 		}
-		if _, err = s.ValidateChannel(ctx, d.OrganizationID, d.connectionID, d.Destination); err != nil {
-			var provider *slackError
-			if errors.As(err, &provider) && (provider.RetryAfter > 0 || slices.Contains([]string{"transport_uncertain", "server_uncertain", "malformed_response", "unexpected_status", "internal_error", "fatal_error"}, provider.Code)) {
-				// Channel validation is read-only; no notification has been sent.
-				return env, Outcome{Status: "PENDING", Code: provider.Code, RetryAfter: provider.RetryAfter}, nil
+		if !test {
+			private, e := s.privateEvent(ctx, occurrence{org: d.OrganizationID, resourceType: resourceType, resourceID: resourceID})
+			if e != nil {
+				return env, Outcome{}, e
 			}
-			return env, Outcome{Status: "BLOCKED", Code: "SLACK_DESTINATION_UNAVAILABLE"}, nil
+			if private {
+				return skip("ACCESS_REMOVED")
+			}
 		}
 	} else {
 		pref, e := preferences(ctx, s.DB, d.OrganizationID, d.Destination)
@@ -633,16 +655,17 @@ func availableChannel(p Policy, ch string) bool {
 	return false
 }
 
-// privateEvent reports whether an event concerns a private social set.
+// privateEvent excludes private or unavailable social-set resources from shared
+// delivery, both during projection and immediately before sending queued work.
 func (s *Service) privateEvent(ctx context.Context, e occurrence) (bool, error) {
 	table, ok := resourceTables[e.resourceType]
 	if !ok || (table != "content_draft" && table != "scheduled_post") {
 		return false, nil
 	}
 	var setID sql.NullString
-	err := s.DB.QueryRowContext(ctx, `SELECT "socialSetId" FROM `+table+` WHERE id=$1 AND "organizationId"=$2`, e.resourceID, e.org).Scan(&setID)
+	err := s.DB.QueryRowContext(ctx, `SELECT "socialSetId" FROM `+table+` r WHERE id=$1 AND "organizationId"=$2 AND COALESCE(to_jsonb(r)->>'deletedAt','')='' AND COALESCE(to_jsonb(r)->>'status','')<>'DELETED'`, e.resourceID, e.org).Scan(&setID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return true, nil
 	}
 	if err != nil {
 		return false, err

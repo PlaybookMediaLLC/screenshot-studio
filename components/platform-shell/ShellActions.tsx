@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl'
 import { Plus, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import { useKeys } from '@/components/write/shortcuts'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -43,21 +45,42 @@ export function ShellActions({
   onNavigate?: () => void
 }) {
   const t = useTranslations('platformNavigation')
+  const keys = useKeys()
   return (
     <div className="grid gap-1">
       <Button
         variant="ghost"
-        className="h-10 justify-start px-2"
+        className={cn(
+          'h-10 justify-start gap-3 rounded-xl px-3',
+          collapsed && 'size-11 justify-center px-0'
+        )}
         aria-label={t('searchCommands')}
-        title="Search and commands (⌘/Ctrl+K)"
+        title={`${t('searchCommands')} (${keys.label({ key: 'k', mod: true })})`}
         onClick={() => window.dispatchEvent(new Event('shots:search'))}
       >
         <Search size={20} aria-hidden="true" />
-        {!collapsed ? t('search') : null}
+        {!collapsed ? (
+          <>
+            <span>{t('search')}</span>
+            <kbd
+              aria-hidden="true"
+              className="ms-auto rounded border px-1 text-[10px] text-muted-foreground"
+            >
+              {keys.label({ key: 'k', mod: true })}
+            </kbd>
+          </>
+        ) : null}
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-10 justify-start px-2" aria-label={t('new')}>
+          <Button
+            variant="outline"
+            className={cn(
+              'h-10 justify-start gap-3 rounded-xl px-3',
+              collapsed && 'size-11 justify-center px-0'
+            )}
+            aria-label={t('new')}
+          >
             <Plus size={20} aria-hidden="true" />
             {!collapsed ? t('new') : null}
           </Button>
@@ -134,6 +157,7 @@ export function ShellSearch({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
+        className="w-[80vw] max-w-[80vw] gap-5 rounded-2xl p-5 sm:max-w-[80vw] sm:p-8"
         onCloseAutoFocus={(event) => {
           event.preventDefault()
           launcher.current?.focus()

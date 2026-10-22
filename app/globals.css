@@ -608,11 +608,36 @@ html *::-webkit-scrollbar {
 
 /* Platform chrome uses readable sizes without changing document/export geometry. */
 .platform-shell {
-  --platform-nav-expanded: 240px;
-  --platform-nav-compact: 56px;
+  --platform-nav-expanded: 256px;
+  --platform-nav-compact: 76px;
   --platform-header-height: 56px;
   --platform-form-width: 880px;
   font-size: 14px;
+}
+/* Keep UI glyphs crisp at every rail size; document and preview SVGs are untouched. */
+.platform-shell :where(button, a) > svg.lucide,
+.platform-shell [data-platform-nav] svg.lucide {
+  flex-shrink: 0;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: color 160ms ease, stroke-width 160ms ease;
+}
+.platform-shell [data-platform-nav][aria-current='page'] svg.lucide {
+  color: var(--foreground);
+  stroke-width: 2;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .platform-shell [data-platform-nav] svg.lucide {
+    transition: color 160ms ease, stroke-width 160ms ease, transform 160ms ease;
+  }
+  .platform-shell [data-platform-nav]:hover svg.lucide {
+    color: var(--foreground);
+    transform: translateY(-1px);
+  }
+  .platform-shell [data-platform-nav]:active svg.lucide {
+    transform: scale(0.94);
+  }
 }
 .platform-shell :focus-visible {
   outline: 2px solid var(--ring);

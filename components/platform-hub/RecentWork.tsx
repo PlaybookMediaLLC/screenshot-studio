@@ -1,5 +1,6 @@
 'use client'
 
+import { ArrowUpRight, Clock3, FileText, Image, Layers } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import { useTRPCClient } from '@/lib/trpc/react'
@@ -97,7 +98,18 @@ export function RecentWork({
   })
   return (
     <section aria-label="Continue working" className="space-y-4">
-      <h2 className="text-lg font-medium">Continue working</h2>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">Continue working</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Your most recently updated work.</p>
+        </div>
+        <SidebarLink
+          href="/library"
+          className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          View library <ArrowUpRight size={14} aria-hidden="true" />
+        </SidebarLink>
+      </div>
       {query.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">
           Loading recent work…
@@ -115,21 +127,33 @@ export function RecentWork({
         </div>
       ) : null}
       {query.data?.items.length ? (
-        <ul className="divide-y rounded-xl border">
+        <ul className="divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/70 bg-background/50">
           {query.data.items.map((item) => (
             <li key={`${item.type}-${item.id}`}>
               <SidebarLink
-                className="flex flex-wrap items-center justify-between gap-2 p-4 hover:bg-muted/50"
+                className="group flex items-center gap-3 p-4 transition-colors hover:bg-muted/50"
                 href={item.href}
               >
-                <span className="min-w-0">
-                  <span className="block break-words font-medium">{item.title}</span>
+                <span
+                  aria-hidden="true"
+                  className="grid size-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-card text-muted-foreground"
+                >
+                  {item.type === 'Post' ? (
+                    <FileText size={18} />
+                  ) : item.type === 'Canvas' ? (
+                    <Layers size={18} />
+                  ) : (
+                    <Image size={18} />
+                  )}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">{item.title}</span>
                   <span className="text-xs text-muted-foreground">
                     {item.type} · {item.scope}
                   </span>
                 </span>
                 <time
-                  className="text-xs text-muted-foreground"
+                  className="shrink-0 text-[11px] text-muted-foreground"
                   dateTime={item.updatedAt.toISOString()}
                 >
                   {item.updatedAt.toLocaleDateString()}
@@ -139,13 +163,25 @@ export function RecentWork({
           ))}
         </ul>
       ) : query.data && !query.data.partial ? (
-        <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-          Your saved screenshots, canvases and drafts will appear here. Start something below.
-        </p>
+        <div className="flex min-h-52 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-background/40 p-7 text-center">
+          <span className="mb-4 grid size-11 place-items-center rounded-xl border bg-card text-muted-foreground">
+            <Clock3 size={20} aria-hidden="true" />
+          </span>
+          <p className="text-sm font-medium">Your next idea starts a story</p>
+          <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
+            Saved screenshots, canvases and posts will be right here when you return.
+          </p>
+          <SidebarLink
+            href="/create"
+            className="mt-4 text-xs font-medium underline underline-offset-4"
+          >
+            Create your first visual
+          </SidebarLink>
+        </div>
       ) : null}
       <SidebarLink
         href="/library?type=store"
-        className="inline-block text-sm text-muted-foreground underline"
+        className="inline-block text-xs text-muted-foreground underline-offset-4 hover:underline"
       >
         Find store projects saved on this browser
       </SidebarLink>

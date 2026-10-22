@@ -107,9 +107,9 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
             ref={trigger}
             type="button"
             aria-label={`Notifications${n ? `, ${n} unread` : ''}`}
-            className={`relative flex h-8 items-center gap-2.5 rounded-lg px-2 text-sm text-muted-foreground hover:text-foreground ${collapsed ? 'w-8 justify-center' : 'w-full'}`}
+            className={`relative flex h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted-foreground hover:text-foreground ${collapsed ? 'size-11 justify-center px-0' : 'w-full'}`}
           >
-            <Inbox className="size-[17px] shrink-0" aria-hidden="true" />
+            <Inbox className="size-5 shrink-0" aria-hidden="true" />
             {!collapsed ? <span>Notifications</span> : null}
             {n > 0 ? (
               <span

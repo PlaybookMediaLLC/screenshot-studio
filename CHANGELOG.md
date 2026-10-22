@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.35.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.35.0...v2.35.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* polish workspace navigation and home experience ([#287](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/287)) ([62a3bf1](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/62a3bf1a8e3853095addb37df08c971c4f33bae6))
+
 ## [2.35.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.34.0...v2.35.0) (2026-10-22)
 
 

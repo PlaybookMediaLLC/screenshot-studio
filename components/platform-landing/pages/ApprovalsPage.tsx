@@ -109,7 +109,7 @@ export function ApprovalsPage() {
 
       <Section>
         <SectionIntro
-          body="There are six fixed roles. An approver can sign off without publishing rights, and a publisher can schedule without approval rights. A solo founder holds every role and can approve their own posts."
+          body="The fixed roles separate writing, approval, publishing, and administration. An approver can sign off without publishing rights, and a publisher can schedule without approval rights. A solo founder holds every role and can approve their own posts."
           label="Roles"
           lead="Approving and publishing"
           trail="are separate permissions."

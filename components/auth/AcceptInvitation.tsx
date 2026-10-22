@@ -1,50 +1,144 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { z } from 'zod'
+import { recipientInvitationSchema, type RecipientInvitation } from 'screenshot-studio-backend-sdk'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth/client'
+import { roleLabels, roleSummaries } from '@/lib/auth/role-descriptions'
+import { isSupportedOrganizationRole, normalizeOrganizationRole } from '@/lib/auth/permissions'
 import { getAuthErrorMessage } from './error-message'
 
-type AcceptInvitationProps = { invitationId: string }
+// Better Auth's browser client revives wire timestamps to Date objects.
+const clientInvitation = recipientInvitationSchema.extend({
+  createdAt: z.coerce.date().transform((date) => date.toISOString()),
+  expiresAt: z.coerce.date().transform((date) => date.toISOString()),
+})
 
-export function AcceptInvitation({ invitationId }: AcceptInvitationProps) {
+const statusMessage = {
+  accepted: 'This invitation has already been accepted.',
+  rejected: 'This invitation has been declined.',
+  canceled: 'This invitation has been revoked. Ask an administrator for a new invitation.',
+  expired: 'This invitation has expired. Ask an administrator for a new invitation.',
+}
+
+/** Recipient-owned acceptance and decline, with explicit reconciliation after a lost response. */
+export function AcceptInvitation({ invitationId }: { invitationId: string }) {
+  const [invitation, setInvitation] = useState<RecipientInvitation | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [isHydrated, setIsHydrated] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [busy, setBusy] = useState(true)
+  const [needsRefresh, setNeedsRefresh] = useState(false)
+
+  const refresh = useCallback(async () => {
+    setBusy(true)
+    try {
+      const result = await authClient.organization.getInvitation({ query: { id: invitationId } })
+      if (result.error) throw new Error(result.error.message || 'Could not load this invitation.')
+      const parsed = clientInvitation.safeParse(result.data)
+      if (!parsed.success)
+        throw new Error('Could not read this invitation. Refresh its status to try again.')
+      setInvitation(parsed.data)
+      setNeedsRefresh(false)
+      setError(null)
+    } catch (failure) {
+      setError(getAuthErrorMessage(failure, 'Could not load this invitation.'))
+    } finally {
+      setBusy(false)
+    }
+  }, [invitationId])
 
   useEffect(() => {
-    setIsHydrated(true)
-  }, [])
+    void refresh()
+  }, [refresh])
 
-  async function acceptInvitation(): Promise<void> {
+  async function respond(action: 'accept' | 'reject') {
+    setBusy(true)
     setError(null)
-    setIsSubmitting(true)
     try {
-      const result = await authClient.organization.acceptInvitation({ invitationId })
-      if (result.error) throw new Error(result.error.message || 'Could not accept the invitation.')
-      window.location.assign('/workspace')
-    } catch (requestError) {
-      setError(getAuthErrorMessage(requestError, 'Could not accept the invitation.'))
+      const result =
+        action === 'accept'
+          ? await authClient.organization.acceptInvitation({ invitationId })
+          : await authClient.organization.rejectInvitation({ invitationId })
+      if (result.error)
+        throw new Error(result.error.message || 'The invitation result was not confirmed.')
+      if (action === 'accept') window.location.assign('/workspace')
+      else await refresh()
+    } catch (failure) {
+      setError(getAuthErrorMessage(failure, 'The invitation result was not confirmed.'))
+      setNeedsRefresh(true)
     } finally {
-      setIsSubmitting(false)
+      setBusy(false)
     }
   }
 
+  async function openWorkspace() {
+    if (!invitation) return
+    setBusy(true)
+    try {
+      const result = await authClient.organization.setActive({
+        organizationId: invitation.organizationId,
+      })
+      if (result.error)
+        throw new Error(result.error.message || 'You no longer have access to this workspace.')
+      window.location.assign('/workspace')
+    } catch (failure) {
+      setError(getAuthErrorMessage(failure, 'Could not open this workspace.'))
+      setBusy(false)
+    }
+  }
+
+  const role = invitation?.role
+  const displayRole =
+    role && isSupportedOrganizationRole(role) ? normalizeOrganizationRole(role) : null
   return (
-    <div className="grid gap-5 rounded-lg border border-foreground/10 bg-card p-6">
+    <div className="grid w-full gap-5 rounded-lg border border-foreground/10 bg-card p-6">
       <div>
-        <h1 className="text-xl font-semibold">Join this workspace</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Confirm that you want to accept this Shots invitation.
-        </p>
+        <h1 className="text-xl font-semibold">
+          {invitation ? `Join ${invitation.organizationName}` : 'Workspace invitation'}
+        </h1>
+        {invitation ? (
+          <p className="mt-2 text-sm text-muted-foreground">
+            Invited as {displayRole ? roleLabels[displayRole] : (role ?? 'a member')} for{' '}
+            {invitation.email}.{displayRole ? ` ${roleSummaries[displayRole]}` : ''}
+          </p>
+        ) : busy ? (
+          <p role="status">Loading invitation…</p>
+        ) : null}
       </div>
       {error ? (
         <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           {error}
         </p>
       ) : null}
-      <Button disabled={!isHydrated || isSubmitting} onClick={() => void acceptInvitation()}>
-        {isSubmitting ? 'Joining…' : 'Accept invitation'}
+      {needsRefresh ? (
+        <p className="text-sm text-muted-foreground">
+          Refresh the invitation status to check the saved result before trying again.
+        </p>
+      ) : null}
+      {invitation && invitation.status !== 'pending' ? (
+        <p role="status">{statusMessage[invitation.status]}</p>
+      ) : null}
+      {invitation?.status === 'pending' ? (
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={busy || needsRefresh} onClick={() => void respond('accept')}>
+            Accept invitation
+          </Button>
+          <Button
+            disabled={busy || needsRefresh}
+            variant="outline"
+            onClick={() => void respond('reject')}
+          >
+            Decline invitation
+          </Button>
+        </div>
+      ) : null}
+      {invitation?.status === 'accepted' ? (
+        <Button disabled={busy} onClick={() => void openWorkspace()}>
+          Open workspace
+        </Button>
+      ) : null}
+      <Button variant="ghost" disabled={busy} onClick={() => void refresh()}>
+        Refresh invitation status
       </Button>
     </div>
   )

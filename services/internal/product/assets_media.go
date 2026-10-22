@@ -290,7 +290,7 @@ func (c *Configuration) checkUploadedBytes(ctx context.Context, actor Actor, row
 }
 
 func (c *Configuration) SignAssetDownload(ctx context.Context, actor Actor, assetID string) (string, error) {
-	if err := c.AuthorizeRead(ctx, actor); err != nil {
+	if err := c.authorizeAssetRead(ctx, actor); err != nil {
 		return "", err
 	}
 	row, err := c.client.Asset.Query().Where(asset.ID(assetID), asset.OrganizationID(actor.OrganizationID),
@@ -304,15 +304,11 @@ func (c *Configuration) SignAssetDownload(ctx context.Context, actor Actor, asse
 	if c.objects == nil {
 		return "", ErrStorageUnavailable
 	}
-	url, err := c.objects.SignDownload(ctx, row.ObjectKey)
-	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
-	}
-	return url, nil
+	return c.assetDownloadURL(actor, row.ID)
 }
 
 func (c *Configuration) ReadAsset(ctx context.Context, actor Actor, assetID string) ([]byte, string, error) {
-	if err := c.AuthorizeRead(ctx, actor); err != nil {
+	if err := c.authorizeAssetRead(ctx, actor); err != nil {
 		return nil, "", err
 	}
 	row, err := c.client.Asset.Query().Where(asset.ID(assetID), asset.OrganizationID(actor.OrganizationID),
@@ -330,7 +326,20 @@ func (c *Configuration) ReadAsset(ctx context.Context, actor Actor, assetID stri
 	if err != nil {
 		return nil, "", fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
 	}
-	// Repair legacy image records as they are viewed, using the stored bytes.
+	// Storage may be slow. Do not release its result after authority or the
+	// asset has been revoked while the read was in flight.
+	if err := c.authorizeAssetRead(ctx, actor); err != nil {
+		return nil, "", err
+	}
+	current, err := c.client.Asset.Query().Where(asset.ID(assetID), asset.OrganizationID(actor.OrganizationID),
+		asset.StatusEQ(asset.StatusUPLOADED), asset.ObjectKey(row.ObjectKey)).Exist(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	if !current {
+		return nil, "", publishing.ErrNotFound
+	}
+	// Repair legacy image records as they are viewed, using the authorized bytes.
 	if strings.HasPrefix(row.MediaType, "image/") && (row.Width == nil || row.Height == nil) {
 		if dimensions, err := decodeAssetDimensions(bytes.NewReader(body)); err == nil {
 			if _, err := c.client.Asset.Update().Where(asset.ID(row.ID), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED)).

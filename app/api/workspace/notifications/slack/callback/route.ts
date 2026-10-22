@@ -5,6 +5,6 @@ import { notificationAccess } from '@/lib/notifications/server'
 
 /** `POST /api/workspace/notifications/slack/callback`: act only for the current session and workspace. */
 export const POST = route(completeNotificationSlackContract, {
-  auth: notificationAccess('workspace:update'),
+  auth: notificationAccess(),
   handler: ({ body, access }) => backendSDK(access).completeNotificationSlack(body),
 })

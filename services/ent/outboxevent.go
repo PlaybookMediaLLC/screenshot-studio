@@ -38,6 +38,8 @@ type OutboxEvent struct {
 	NotificationVersion int `json:"notification_version,omitempty"`
 	// NotificationFanned holds the value of the "notification_fanned" field.
 	NotificationFanned bool `json:"notification_fanned,omitempty"`
+	// NotificationSocialSetID holds the value of the "notification_social_set_id" field.
+	NotificationSocialSetID string `json:"notification_social_set_id,omitempty"`
 	// Attempts holds the value of the "attempts" field.
 	Attempts int `json:"attempts,omitempty"`
 	// LastError holds the value of the "last_error" field.
@@ -60,7 +62,7 @@ func (*OutboxEvent) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case outboxevent.FieldNotificationVersion, outboxevent.FieldAttempts:
 			values[i] = new(sql.NullInt64)
-		case outboxevent.FieldID, outboxevent.FieldOrganizationID, outboxevent.FieldType, outboxevent.FieldAggregateType, outboxevent.FieldAggregateID, outboxevent.FieldIdempotencyKey, outboxevent.FieldLastError:
+		case outboxevent.FieldID, outboxevent.FieldOrganizationID, outboxevent.FieldType, outboxevent.FieldAggregateType, outboxevent.FieldAggregateID, outboxevent.FieldIdempotencyKey, outboxevent.FieldNotificationSocialSetID, outboxevent.FieldLastError:
 			values[i] = new(sql.NullString)
 		case outboxevent.FieldDeliveredAt, outboxevent.FieldProcessingAt, outboxevent.FieldDeadLetteredAt, outboxevent.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -148,6 +150,12 @@ func (_m *OutboxEvent) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field notification_fanned", values[i])
 			} else if value.Valid {
 				_m.NotificationFanned = value.Bool
+			}
+		case outboxevent.FieldNotificationSocialSetID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field notification_social_set_id", values[i])
+			} else if value.Valid {
+				_m.NotificationSocialSetID = value.String
 			}
 		case outboxevent.FieldAttempts:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -244,6 +252,9 @@ func (_m *OutboxEvent) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("notification_fanned=")
 	builder.WriteString(fmt.Sprintf("%v", _m.NotificationFanned))
+	builder.WriteString(", ")
+	builder.WriteString("notification_social_set_id=")
+	builder.WriteString(_m.NotificationSocialSetID)
 	builder.WriteString(", ")
 	builder.WriteString("attempts=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Attempts))

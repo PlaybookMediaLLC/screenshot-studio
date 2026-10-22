@@ -3,7 +3,6 @@ package product
 import (
 	"context"
 	"errors"
-	"slices"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -13,6 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/collab"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/workspaceroles"
 )
 
 // Real-time co-editing of content drafts (RFC 037). The backend issues a
@@ -64,7 +64,7 @@ func memberAccess(ctx context.Context, client *ent.Client, organizationID, userI
 	if err != nil {
 		return "", err
 	}
-	if slices.Contains(contentDraftEditRoles, row.Role) {
+	if workspaceroles.Allows(row.Role, contentDraftEditRoles...) {
 		return collab.AccessWrite, nil
 	}
 	return collab.AccessRead, nil
@@ -91,7 +91,7 @@ func (c *Configuration) IssueContentDraftCollabToken(ctx context.Context, actor 
 	}
 	expires := time.Now().Add(collab.TokenTTL)
 	token, err := collab.Sign(c.collabKey, collab.Claims{Access: access, DraftID: draftID, ExpiresAt: expires.Unix(),
-		OrganizationID: actor.OrganizationID, UserID: actor.UserID})
+		OrganizationID: actor.OrganizationID, UserID: actor.UserID, SessionID: actor.SessionID})
 	if err != nil {
 		return nil, err
 	}
@@ -110,6 +110,15 @@ func (c *Configuration) collabClaims(ctx context.Context, token, documentName, d
 	}
 	if (documentName != "" && documentName != collab.DocumentNameFor(claims.Kind, claims.DraftID)) || (draftID != "" && draftID != claims.DraftID) {
 		return collab.Claims{}, publishing.ErrForbidden
+	}
+	actor := Actor{Kind: "session", OrganizationID: claims.OrganizationID, UserID: claims.UserID, SessionID: claims.SessionID}
+	if err := c.AuthorizeRead(ctx, actor); err != nil {
+		return collab.Claims{}, err
+	}
+	if claims.Kind != "creative-set" {
+		if err := c.requireWorkspaceFeature(ctx, claims.OrganizationID, contentDraftFeature); err != nil {
+			return collab.Claims{}, err
+		}
 	}
 	var owned bool
 	if claims.Kind == "creative-set" {
@@ -212,6 +221,42 @@ func (c *Configuration) StoreCollabState(ctx context.Context, token, draftID str
 	if len(state) == 0 || len(state) > collabStateLimit {
 		return invalid("The collaboration state is empty or too large.")
 	}
-	return c.client.ContentDraft.Update().Where(contentdraft.ID(draftID),
-		contentdraft.OrganizationID(claims.OrganizationID)).SetCollabState(state).Exec(ctx)
+	tx, err := c.client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	// Hold the current membership and session through persistence. Removal must
+	// either follow this authorized commit or complete before its fresh check.
+	for _, lock := range []struct {
+		query string
+		args  []any
+	}{
+		{`SELECT id FROM organization WHERE id=$1 FOR SHARE`, []any{claims.OrganizationID}},
+		{`SELECT id FROM member WHERE "organizationId"=$1 AND "userId"=$2 FOR SHARE`, []any{claims.OrganizationID, claims.UserID}},
+		{`SELECT id FROM session WHERE id=$1 AND "userId"=$2 FOR SHARE`, []any{claims.SessionID, claims.UserID}},
+		{`SELECT id FROM "user" WHERE id=$1 FOR SHARE`, []any{claims.UserID}},
+	} {
+		if _, err := tx.PlatformExec(ctx, lock.query, lock.args...); err != nil {
+			return err
+		}
+	}
+	bound := *c
+	bound.client, bound.auth = tx.Client(), publishing.NewRepository(tx.Client())
+	claims, err = bound.collabClaims(ctx, token, "", draftID, collab.StoreGrace)
+	if err != nil {
+		return err
+	}
+	if claims.Access != collab.AccessWrite {
+		return publishing.ErrForbidden
+	}
+	count, err := tx.ContentDraft.Update().Where(contentdraft.ID(draftID),
+		contentdraft.OrganizationID(claims.OrganizationID)).SetCollabState(state).Save(ctx)
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return publishing.ErrNotFound
+	}
+	return tx.Commit()
 }

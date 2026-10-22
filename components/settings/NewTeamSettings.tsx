@@ -1,96 +1,31 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
-import { Group, Row } from '@/components/platform-ui'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { settingsErrorMessage } from '@/lib/settings/client'
-import { useTRPCClient } from '@/lib/trpc/react'
-import { TimeZonePicker, browserTimeZone } from '@/components/settings/TimeZonePicker'
-import { workspaceNameSchema } from '@/lib/workspace/input-schemas'
+import { WorkspaceCreationDialog } from '@/components/workspace/WorkspaceCreationDialog'
 
-/** A slug from a name, with a short suffix so two teams named alike never collide. */
-function slugFor(name: string): string {
-  const base = name
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80)
-  return `${base || 'team'}-${crypto.randomUUID().slice(0, 6)}`
-}
-
-/**
- * New team (RFC 043). A team is a workspace: its own members, roles, billing
- * and social sets. You become its owner, and it needs its own plan before it
- * can publish. Shared sets reach it by copying them in; accounts are
- * connected again there, because credentials stay with their workspace.
- */
-export function NewTeamSettings({ email }: { email: string }) {
-  const trpcClient = useTRPCClient()
-  const [name, setName] = useState('')
-  const [timeZone, setTimeZone] = useState('UTC')
-  useEffect(() => setTimeZone(browserTimeZone()), [])
-  const [creating, setCreating] = useState(false)
-  const parsed = workspaceNameSchema.safeParse(name)
-
-  const create = async () => {
-    if (!parsed.success) return
-    setCreating(true)
-    try {
-      const { organization } = await trpcClient.workspace.create.mutate({
-        timeZone,
-        name: parsed.data,
-        slug: slugFor(parsed.data),
-      })
-      await trpcClient.workspace.setActive.mutate({ organizationId: organization.id })
-      toast.success(`${parsed.data} is ready. Invite people, then choose its plan in Billing.`)
-      window.location.assign('/workspace/members')
-    } catch (error) {
-      toast.error(settingsErrorMessage(error))
-      setCreating(false)
-    }
-  }
-
+/** Settings entry into the same creation dialog used by the account menu. */
+export function NewTeamSettings({ email, userId }: { email: string; userId: string }) {
+  const [open, setOpen] = useState(false)
+  const trigger = useRef<HTMLButtonElement>(null)
   return (
-    <form
-      className="grid gap-4"
-      onSubmit={(event) => {
-        event.preventDefault()
-        void create()
-      }}
-    >
-      <Group>
-        <Row
-          description="Teams share social sets for writing, review and scheduling. Each team is a separate workspace with its own members and plan."
-          label="Workspace name"
-          layout="stacked"
-        >
-          <Input
-            aria-describedby="new-team-owner"
-            aria-invalid={name.length > 0 && !parsed.success}
-            aria-label="Workspace name"
-            autoFocus
-            maxLength={100}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Team, project, or client name"
-            value={name}
-          />
-          <p className="text-xs text-muted-foreground" id="new-team-owner">
-            You will be its owner, as {email}.
-            {name.length > 0 && !parsed.success
-              ? ' Use at least two characters that are not spaces.'
-              : ''}
-          </p>
-        </Row>
-      </Group>
-      <TimeZonePicker label="Workspace time zone" value={timeZone} onChange={setTimeZone} disabled={creating} />
-      <div>
-        <Button disabled={!parsed.success || creating} type="submit">
-          {creating ? 'Creating…' : 'Create workspace'}
-        </Button>
-      </div>
-    </form>
+    <div className="grid justify-items-start gap-4">
+      <p className="text-sm text-muted-foreground">
+        Create a separate workspace for a team, project, or client. Your current workspace stays
+        selected.
+      </p>
+      <Button ref={trigger} onClick={() => setOpen(true)}>
+        Create workspace
+      </Button>
+      {open ? (
+        <WorkspaceCreationDialog
+          key={userId}
+          email={email}
+          userId={userId}
+          onClose={() => setOpen(false)}
+          returnFocusRef={trigger}
+        />
+      ) : null}
+    </div>
   )
 }

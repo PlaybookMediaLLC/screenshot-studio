@@ -46,6 +46,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/user"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/userorganization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/webhooks"
+
+	"entgo.io/ent/schema/field"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -222,34 +224,40 @@ func init() {
 	github.DefaultID = githubDescID.Default.(func() string)
 	integrationFields := schema.Integration{}.Fields()
 	_ = integrationFields
+	// integrationDescToken is the schema descriptor for token field.
+	integrationDescToken := integrationFields[8].Descriptor()
+	integration.ValueScanner.Token = integrationDescToken.ValueScanner.(field.TypeValueScanner[string])
 	// integrationDescDisabled is the schema descriptor for disabled field.
 	integrationDescDisabled := integrationFields[9].Descriptor()
 	// integration.DefaultDisabled holds the default value on creation for the disabled field.
 	integration.DefaultDisabled = integrationDescDisabled.Default.(bool)
+	// integrationDescRefreshToken is the schema descriptor for refresh_token field.
+	integrationDescRefreshToken := integrationFields[16].Descriptor()
+	integration.ValueScanner.RefreshToken = integrationDescRefreshToken.ValueScanner.(field.TypeValueScanner[*string])
 	// integrationDescCreatedAt is the schema descriptor for created_at field.
-	integrationDescCreatedAt := integrationFields[14].Descriptor()
+	integrationDescCreatedAt := integrationFields[19].Descriptor()
 	// integration.DefaultCreatedAt holds the default value on creation for the created_at field.
 	integration.DefaultCreatedAt = integrationDescCreatedAt.Default.(func() time.Time)
 	// integrationDescUpdatedAt is the schema descriptor for updated_at field.
-	integrationDescUpdatedAt := integrationFields[15].Descriptor()
+	integrationDescUpdatedAt := integrationFields[20].Descriptor()
 	// integration.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	integration.DefaultUpdatedAt = integrationDescUpdatedAt.Default.(func() time.Time)
 	// integration.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	integration.UpdateDefaultUpdatedAt = integrationDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// integrationDescInBetweenSteps is the schema descriptor for in_between_steps field.
-	integrationDescInBetweenSteps := integrationFields[16].Descriptor()
+	integrationDescInBetweenSteps := integrationFields[21].Descriptor()
 	// integration.DefaultInBetweenSteps holds the default value on creation for the in_between_steps field.
 	integration.DefaultInBetweenSteps = integrationDescInBetweenSteps.Default.(bool)
 	// integrationDescRefreshNeeded is the schema descriptor for refresh_needed field.
-	integrationDescRefreshNeeded := integrationFields[17].Descriptor()
+	integrationDescRefreshNeeded := integrationFields[22].Descriptor()
 	// integration.DefaultRefreshNeeded holds the default value on creation for the refresh_needed field.
 	integration.DefaultRefreshNeeded = integrationDescRefreshNeeded.Default.(bool)
 	// integrationDescPostingTimes is the schema descriptor for posting_times field.
-	integrationDescPostingTimes := integrationFields[18].Descriptor()
+	integrationDescPostingTimes := integrationFields[23].Descriptor()
 	// integration.DefaultPostingTimes holds the default value on creation for the posting_times field.
 	integration.DefaultPostingTimes = integrationDescPostingTimes.Default.(string)
 	// integrationDescAdditionalSettings is the schema descriptor for additional_settings field.
-	integrationDescAdditionalSettings := integrationFields[22].Descriptor()
+	integrationDescAdditionalSettings := integrationFields[27].Descriptor()
 	// integration.DefaultAdditionalSettings holds the default value on creation for the additional_settings field.
 	integration.DefaultAdditionalSettings = integrationDescAdditionalSettings.Default.(string)
 	// integrationDescID is the schema descriptor for id field.

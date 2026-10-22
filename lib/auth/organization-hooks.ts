@@ -1,14 +1,11 @@
 import { APIError } from 'better-auth'
 import { BackendSDKError } from 'screenshot-studio-backend-sdk'
-import { WORKSPACE_INVITATION_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import { serviceBackend } from '@/lib/backend/sdk'
-import { checkRateLimit } from '@/lib/rate-limit'
-import { workspaceCreateSchema, workspaceOrganizationPatchSchema } from '@/lib/workspace/schemas'
+import { workspaceOrganizationPatchSchema } from '@/lib/workspace/schemas'
 import { isSupportedOrganizationRole } from './permissions'
 
 type OrganizationHook = { organization: { id: string } }
 type MemberHook = OrganizationHook & { member: { organizationId: string; role: string } }
-type OrganizationCreateHook = { organization: { name?: string; slug?: string } }
 type OrganizationUpdateHook = {
   member: { organizationId: string }
   organization: { logo?: string | null; name?: string; slug?: string }
@@ -21,35 +18,6 @@ type OrganizationUpdatedHook = {
 type RemovedMemberHook = {
   member: { id: string; organizationId: string; role: string; userId: string }
 } & OrganizationHook
-type InvitationHook = {
-  invitation: { email: string; id?: string; organizationId: string; role: string }
-  inviter: { id: string }
-} & OrganizationHook
-type OrganizationCreatedHook = {
-  member: { id: string }
-  organization: { id: string }
-  user: { email: string; id: string }
-}
-type InvitationCreatedHook = {
-  invitation: { email: string; id: string; organizationId: string; role: string }
-  inviter: { email: string; id: string }
-}
-type InvitationAcceptedHook = {
-  invitation: { id: string; organizationId: string }
-  member: { id: string; userId: string }
-  user: { email: string; id: string }
-} & OrganizationHook
-type InvitationAcceptanceHook = {
-  invitation: { organizationId: string }
-}
-type InvitationCancelledHook = {
-  cancelledBy: { email: string; id: string }
-  invitation: { id: string; organizationId: string }
-}
-type InvitationRejectedHook = {
-  invitation: { id: string; organizationId: string }
-  user: { email: string; id: string }
-}
 type RoleUpdateHook = OrganizationHook & {
   member: { id: string; organizationId: string; role: string }
   newRole: string
@@ -79,25 +47,6 @@ async function requireSeat(organizationId: string, invitations: boolean): Promis
   }
 }
 
-async function enforceInvitationRateLimit(organizationId: string, userId: string): Promise<void> {
-  try {
-    const result = await checkRateLimit(
-      `${organizationId}:${userId}`,
-      WORKSPACE_INVITATION_RATE_LIMIT
-    )
-    if (!result.allowed) {
-      throw APIError.fromStatus('TOO_MANY_REQUESTS', {
-        message: 'Too many invitation emails. Please try again later.',
-      })
-    }
-  } catch (error) {
-    if (error instanceof APIError) throw error
-    // Invitation delivery should remain available during a Redis outage; the
-    // route-level client limit still provides a second abuse control.
-    console.error('Workspace invitation rate limit check failed; allowing request.', error)
-  }
-}
-
 function recordAuthEvent(
   event: Parameters<ReturnType<typeof serviceBackend>['recordAuthEvent']>[0]
 ) {
@@ -111,70 +60,9 @@ function parseWorkspaceInput<T>(result: { data?: T; success: boolean }): T {
   return result.data
 }
 
+// SCIM and enterprise provisioning still use these hooks. Interactive membership
+// endpoints instead use workspaceMembershipEndpoints and atomic Go commands.
 export const organizationHooks = {
-  beforeCreateOrganization: async ({ organization }: OrganizationCreateHook) => ({
-    data: {
-      ...organization,
-      ...parseWorkspaceInput(workspaceCreateSchema.safeParse(organization)),
-    },
-  }),
-  afterCreateOrganization: async ({ member, organization, user }: OrganizationCreatedHook) => {
-    // The backend provisions the workspace settings and entitlement rows.
-    await recordAuthEvent({
-      action: 'product.workspace_created',
-      actorDisplay: user.email,
-      actorUserId: user.id,
-      entityId: organization.id,
-      entityType: 'organization',
-      organizationId: organization.id,
-      requestId: member.id,
-    })
-  },
-  afterAcceptInvitation: async ({ invitation, member, user }: InvitationAcceptedHook) => {
-    await recordAuthEvent({
-      action: 'product.member_invitation_accepted',
-      actorDisplay: user.email,
-      actorUserId: user.id,
-      entityId: member.id,
-      entityType: 'member',
-      organizationId: invitation.organizationId,
-      requestId: invitation.id,
-    })
-  },
-  afterCancelInvitation: async ({ cancelledBy, invitation }: InvitationCancelledHook) => {
-    await recordAuthEvent({
-      action: 'product.member_invitation_revoked',
-      actorDisplay: cancelledBy.email,
-      actorUserId: cancelledBy.id,
-      entityId: invitation.id,
-      entityType: 'invitation',
-      organizationId: invitation.organizationId,
-      requestId: invitation.id,
-    })
-  },
-  afterCreateInvitation: async ({ invitation, inviter }: InvitationCreatedHook) => {
-    await recordAuthEvent({
-      action: 'product.member_invited',
-      actorDisplay: inviter.email,
-      actorUserId: inviter.id,
-      entityId: invitation.id,
-      entityType: 'invitation',
-      metadata: { role: invitation.role },
-      organizationId: invitation.organizationId,
-      requestId: invitation.id,
-    })
-  },
-  afterRejectInvitation: async ({ invitation, user }: InvitationRejectedHook) => {
-    await recordAuthEvent({
-      action: 'product.member_invitation_rejected',
-      actorDisplay: user.email,
-      actorUserId: user.id,
-      entityId: invitation.id,
-      entityType: 'invitation',
-      organizationId: invitation.organizationId,
-      requestId: invitation.id,
-    })
-  },
   afterRemoveMember: async ({ member }: RemovedMemberHook) => {
     // The backend also ends the removed member's sessions in this workspace.
     await recordAuthEvent({
@@ -214,32 +102,6 @@ export const organizationHooks = {
       throw new Error('Unsupported organization role.')
     }
     await requireSeat(member.organizationId, false)
-  },
-  beforeAcceptInvitation: async ({ invitation }: InvitationAcceptanceHook) => {
-    await requireOperationalWorkspace(invitation.organizationId)
-    await requireSeat(invitation.organizationId, false)
-  },
-  beforeCreateInvitation: async ({ invitation, inviter }: InvitationHook) => {
-    await requireOperationalWorkspace(invitation.organizationId)
-    await enforceInvitationRateLimit(invitation.organizationId, inviter.id)
-    if (!isSupportedOrganizationRole(invitation.role)) {
-      throw new Error('Unsupported organization role.')
-    }
-    if (invitation.role === 'owner') {
-      throw new Error('Use workspace ownership transfer instead.')
-    }
-    await requireSeat(invitation.organizationId, true)
-    await serviceBackend().authStore({
-      data: { status: 'expired' },
-      model: 'invitation',
-      op: 'updateMany',
-      where: [
-        { field: 'email', value: invitation.email.toLowerCase() },
-        { field: 'expiresAt', operator: 'lte', value: new Date().toISOString() },
-        { field: 'organizationId', value: invitation.organizationId },
-        { field: 'status', value: 'pending' },
-      ],
-    })
   },
   beforeRemoveMember: async ({ member }: RemovedMemberHook) => {
     await requireOperationalWorkspace(member.organizationId)

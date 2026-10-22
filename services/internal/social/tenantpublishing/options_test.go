@@ -1,10 +1,12 @@
 package tenantpublishing
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 func decode(t *testing.T, raw json.RawMessage) map[string]any {
@@ -63,21 +65,25 @@ func TestArticleSettings(t *testing.T) {
 	}
 }
 
-func TestPremiumReadsTheVerifiedSetting(t *testing.T) {
-	for raw, want := range map[string]bool{
-		`[{"title":"Verified","value":true}]`:   true,
-		`[{"title":"Verified","value":false}]`:  false,
-		`[{"title":"Verified","value":"true"}]`: false,
-		`[{"title":"Something","value":true}]`:  false,
-		`not json`:                              false,
-	} {
-		value := raw
-		if got := premium(&value); got != want {
-			t.Errorf("%s: %v", raw, got)
-		}
-	}
-	if premium(nil) {
-		t.Error("no settings is Premium")
+func TestAccountStandingRequiresVerifiedCapabilities(t *testing.T) {
+	for _, subscription := range []string{"None", "Basic", "Premium", "PremiumPlus"} {
+		t.Run(subscription, func(t *testing.T) {
+			p, _, _, _ := directFixture()
+			account := p.integrations.(fakeIntegrations).item
+			verifiedDirectAccount(t, account, "x")
+			editable := `[{"title":"Verified","value":true}]`
+			account.AdditionalSettings = &editable
+			standing, err := p.AccountStanding(context.Background(), "product-org", "destination", "x", "SOCIAL_API_KEY")
+			if err != nil || standing.Premium || standing.XCaptionLimit == nil || *standing.XCaptionLimit != 280 || standing.XArticles != nil {
+				t.Fatalf("editable settings granted access: %+v %v", standing, err)
+			}
+			caps := socialidentity.XVerifiedAccountLimits("read-write", &subscription)
+			account.VerifiedCapabilities.X = &caps
+			standing, err = p.AccountStanding(context.Background(), "product-org", "destination", "x", "SOCIAL_API_KEY")
+			if err != nil || standing.Premium != (subscription != "None") || standing.XCaptionLimit == nil || *standing.XCaptionLimit != caps.PostTextLimit() || standing.XArticles == nil || *standing.XArticles != (subscription == "Premium" || subscription == "PremiumPlus") {
+				t.Fatalf("verified capabilities lost: %+v %v", standing, err)
+			}
+		})
 	}
 }
 

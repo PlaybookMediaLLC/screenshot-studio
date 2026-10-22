@@ -140,6 +140,7 @@ const (
 	outcomeStop
 	outcomeBadBody
 	outcomeTimeout
+	outcomeUnconfirmed
 )
 
 // plugTask is one entry of the post-publish action list.
@@ -346,6 +347,8 @@ func postWorkflow(ctx workflow.Context, version int, in PostWorkflowInput) (any,
 		}
 
 		switch app.Type() {
+		case temporalx.TypeUnknownDelivery:
+			return outcomeUnconfirmed, app.Message(), nil
 		case temporalx.TypeRefreshToken:
 			target := integ
 			if getIntegration != nil {
@@ -464,7 +467,7 @@ func postWorkflow(ctx workflow.Context, version int, in PostWorkflowInput) (any,
 				// the token could not be refreshed while checking, but the
 				// platform already accepted the post - warn about a possible
 				// live post
-				if handle == outcomeStop {
+				if handle == outcomeStop || handle == outcomeUnconfirmed {
 					return nil, markUnconfirmed(err)
 				}
 
@@ -617,7 +620,7 @@ func postWorkflow(ctx workflow.Context, version int, in PostWorkflowInput) (any,
 
 			// the activity timed out: the platform may still complete the
 			// publish in the background, so never retry it
-			if handle == outcomeTimeout {
+			if handle == outcomeTimeout || handle == outcomeUnconfirmed {
 				_ = markUnconfirmed(err)
 				return false, nil
 			}
@@ -734,7 +737,7 @@ func postWorkflow(ctx workflow.Context, version int, in PostWorkflowInput) (any,
 				if herr != nil {
 					return nil, herr
 				}
-				if handle == outcomeStop || handle == outcomeBadBody {
+				if handle == outcomeStop || handle == outcomeBadBody || handle == outcomeUnconfirmed {
 					break
 				}
 			}
@@ -763,6 +766,20 @@ func postWorkflow(ctx workflow.Context, version int, in PostWorkflowInput) (any,
 				handle, _, herr := classify(err, globalIntegration, time.Time{})
 				if herr != nil {
 					return nil, herr
+				}
+				if handle == outcomeUnconfirmed {
+					// Do not let a later threshold check repeat an uncertain reply.
+					kept := list[:0]
+					for _, current := range list {
+						if current.kind != "global" || current.global.PlugID != todo.global.PlugID {
+							kept = append(kept, current)
+						}
+					}
+					list = kept
+					if err := notify(post.OrganizationID, "We couldn't confirm your follow-up", "Check the connected account before sending this follow-up again to avoid duplicates.", true, false, "fail"); err != nil {
+						return nil, err
+					}
+					break
 				}
 				if handle == outcomeStop || handle == outcomeBadBody {
 					break

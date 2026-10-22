@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"crypto/cipher"
 	"net/http"
 	"strings"
 
@@ -49,17 +50,20 @@ func (a Actor) auditActor() publishing.Actor {
 }
 
 type Configuration struct {
-	notifications *notifications.Service
-	client        *ent.Client
-	authStore     *authstore.Store
-	auth          *publishing.Repository
-	invitations   InvitationMailer
-	reviews       ReviewMailer
-	objects       AssetObjectStore
-	quota         QuotaCounter
-	meter         MonthlyMeter
-	github        GitHubApp
-	automation    AutomationDispatcher
+	notifications                      *notifications.Service
+	client                             *ent.Client
+	authStore                          *authstore.Store
+	auth                               *publishing.Repository
+	invitations                        InvitationMailer
+	requireInvitationEmailVerification bool
+	reviews                            ReviewMailer
+	objects                            AssetObjectStore
+	assetDownloadCipher                cipher.AEAD
+	assetDownloadOrigin                string
+	quota                              QuotaCounter
+	meter                              MonthlyMeter
+	github                             GitHubApp
+	automation                         AutomationDispatcher
 	// automationModel writes paid workflow copy and judges relevance; nil
 	// disables both. automationRenderer renders campaign creatives.
 	automationModel    AutomationModel
@@ -86,8 +90,15 @@ type Configuration struct {
 }
 
 func NewConfiguration(client *ent.Client) *Configuration {
-	return &Configuration{client: client, auth: publishing.NewRepository(client), invitations: EnvInvitationMailer{},
+	return &Configuration{client: client, auth: publishing.NewRepository(client), invitations: EnvInvitationMailer{}, requireInvitationEmailVerification: true,
 		reviews: EnvReviewMailer{}}
+}
+
+// WithInvitationEmailVerification configures the same policy as Better Auth;
+// production defaults to verified recipients unless explicitly disabled.
+func (c *Configuration) WithInvitationEmailVerification(required bool) *Configuration {
+	c.requireInvitationEmailVerification = required
+	return c
 }
 
 func (c *Configuration) WithInvitationMailer(mailer InvitationMailer) *Configuration {

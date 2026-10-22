@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/auth"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/adminstats"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/clipping"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/integration"
@@ -35,6 +36,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/post"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/httpx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/instances"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/redis"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
@@ -114,6 +116,8 @@ func RegisterPublicIntegrationsController(r *httpx.Router, d Deps) {
 	g.Get("/me", h.getMe)
 	g.Get("/groups", h.listGroups)
 	g.Get("/integrations", h.listIntegration)
+	g.Get("/connection-availability", h.connectionAvailability)
+	g.Get("/integrations/:id/identity", h.integrationIdentity)
 	g.Get("/social/:integration", h.getIntegrationURL, d.Perms.CheckPolicies(auth.Policy(auth.ActionCreate, auth.SectionChannel)))
 	g.Get("/users", h.listUsers, superAdmin)
 	g.Get("/debug/posts/:id", h.getPostTimeline, superAdmin)
@@ -437,6 +441,9 @@ func (h *controller) listIntegration(c *httpx.Ctx) (any, error) {
 }
 
 func (h *controller) getIntegrationURL(c *httpx.Ctx) (any, error) {
+	if err := credentialcipher.ValidateKey(); err != nil {
+		return nil, msg(http.StatusServiceUnavailable, "Social credential storage is unavailable")
+	}
 	ctx := c.R.Context()
 	name, refresh := c.Param("integration"), c.Query("refresh")
 	if !slices.Contains(h.Manager.GetAllowedSocialsIntegrations(), name) {
@@ -452,15 +459,54 @@ func (h *controller) getIntegrationURL(c *httpx.Ctx) (any, error) {
 			target = migrateTo
 		}
 	}
+	if status, managed := h.Manager.ConnectionStatus(target); managed && status != "available" {
+		return nil, msg(http.StatusServiceUnavailable, "This social connection is not available")
+	}
 	provider := h.Manager.GetSocialIntegration(target)
-	if _, ok := provider.(integrations.ExternalURLer); ok {
-		return nil, msg(http.StatusBadRequest, "This integration requires an external URL and is not supported via the public API")
+	external, isExternal := provider.(integrations.ExternalURLer)
+	instanceOrigin := ""
+	if isExternal {
+		var err error
+		instanceOrigin, err = instances.Origin(c.Query("instance"))
+		if err != nil {
+			return nil, msg(http.StatusBadRequest, instances.ErrInvalidOrigin.Error())
+		}
+	} else if c.Query("instance") != "" {
+		return nil, msg(http.StatusBadRequest, "This integration does not accept an instance server")
 	}
 
 	url, err := func() (string, error) {
-		generated, err := provider.GenerateAuthURL(ctx, nil)
+		var client *integrations.ClientInformation
+		if isExternal {
+			var err error
+			client, err = external.ExternalURL(ctx, instanceOrigin)
+			if err != nil {
+				return "", err
+			}
+			if client == nil || client.ClientID == "" || client.ClientSecret == "" {
+				return "", errors.New("instance registration did not return credentials")
+			}
+			client.InstanceURL = instanceOrigin
+		}
+		generated, err := provider.GenerateAuthURL(ctx, client)
 		if err != nil {
 			return "", err
+		}
+		if generated == nil || generated.State == "" || generated.CodeVerifier == "" || generated.URL == "" {
+			return "", errors.New("provider returned incomplete authorization state")
+		}
+		if client != nil {
+			data, err := json.Marshal(client)
+			if err != nil {
+				return "", err
+			}
+			sealed, err := credentialcipher.Seal(string(data), "oauth-external:"+generated.State)
+			if err != nil {
+				return "", err
+			}
+			if err := h.Store.Set(ctx, "external:"+generated.State, sealed, time.Hour); err != nil {
+				return "", err
+			}
 		}
 		if refresh != "" {
 			if err := h.Store.Set(ctx, "refresh:"+generated.State, refresh, time.Hour); err != nil {
@@ -468,6 +514,9 @@ func (h *controller) getIntegrationURL(c *httpx.Ctx) (any, error) {
 			}
 		}
 		if err := h.Store.Set(ctx, "organization:"+generated.State, c.Org.ID, time.Hour); err != nil {
+			return "", err
+		}
+		if err := h.Store.Set(ctx, "connection-provider:"+generated.State, target, time.Hour); err != nil {
 			return "", err
 		}
 		if err := h.Store.Set(ctx, "login:"+generated.State, generated.CodeVerifier, time.Hour); err != nil {

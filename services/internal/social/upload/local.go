@@ -79,7 +79,10 @@ func fetchSimple(ctx context.Context, path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := ssrf.Client().Do(req)
+	// Profile URLs can come from a customer-selected Mastodon instance. Keep
+	// the dial-time check even when self-hosters disable the general guard,
+	// and never follow a public avatar's redirect onto a private network.
+	res, err := ssrf.PublicClient().Do(req)
 	if err != nil {
 		return nil, err
 	}

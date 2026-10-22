@@ -7,6 +7,7 @@ import { createServer } from 'node:http'
 
 const codes = new Map()
 const emailReceipts = new Map()
+const uncertainSlackWorkspaces = new Set()
 const sink = { slack: [], email: [], auth: [], channelPages: [] }
 const channel = {
   id: 'C012345',
@@ -28,6 +29,13 @@ const server = createServer(async (request, response) => {
   }
   try {
     if (url.pathname === '/sink') return json(sink)
+    if (url.pathname === '/fail-next-slack' && request.method === 'POST') {
+      const { workspaceName } = JSON.parse(raw)
+      assert.equal(typeof workspaceName, 'string')
+      assert.ok(workspaceName.length > 0)
+      uncertainSlackWorkspaces.add(workspaceName)
+      return json({ armed: true })
+    }
     if (url.pathname === '/oauth/v2/authorize') {
       assert.equal(url.searchParams.get('state')?.length, 43)
       assert.ok(url.searchParams.get('scope').includes('chat:write'))
@@ -51,6 +59,7 @@ const server = createServer(async (request, response) => {
         access_token: 'fixture-slack-token',
         scope: 'chat:write,channels:read,groups:read,files:write,channels:join',
         team: { id: 'T012345', name: 'Fixture team' },
+        authed_user: { id: 'U012345' },
       })
     }
     if (url.pathname.startsWith('/api/')) {
@@ -76,9 +85,21 @@ const server = createServer(async (request, response) => {
         const body = request.headers['content-type']?.includes('json')
           ? JSON.parse(raw)
           : Object.fromEntries(form)
-        assert.equal(body.channel, channel.id)
+        assert.ok([channel.id, 'U012345'].includes(body.channel))
         sink.slack.push(body)
-        return json({ ok: true, channel: channel.id, ts: `123.${sink.slack.length}` })
+        const uncertain = [...uncertainSlackWorkspaces].find((name) =>
+          body.text.startsWith(`${name}: `)
+        )
+        if (uncertain) {
+          uncertainSlackWorkspaces.delete(uncertain)
+          response.statusCode = 503
+          return json({ error: 'fixture_response_lost_after_acceptance' })
+        }
+        return json({
+          ok: true,
+          channel: body.channel === 'U012345' ? 'D012345' : channel.id,
+          ts: `123.${sink.slack.length}`,
+        })
       }
     }
     if (url.pathname === '/emails') {

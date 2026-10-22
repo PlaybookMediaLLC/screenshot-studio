@@ -5,6 +5,7 @@ import { TimeZonePicker, browserTimeZone } from '@/components/settings/TimeZoneP
 import { Input } from '@/components/ui/input'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { workspaceCreateSchema } from '@/lib/workspace/input-schemas'
+import type { WorkspaceCreateInput } from '@/lib/workspace/schemas'
 import { workspaceInitials } from '@/lib/workspace/initials'
 import { getAuthErrorMessage } from './error-message'
 import { authInputClassName, FormAlert, SubmitButton } from './fields'
@@ -32,6 +33,8 @@ export function OnboardingForm() {
   const slugInputRef = useRef<HTMLInputElement>(null)
   // Once someone types their own slug, the name stops overwriting it.
   const slugEdited = useRef(false)
+  const attempt = useRef<WorkspaceCreateInput | null>(null)
+  const pending = useRef(false)
 
   function syncSlugFromName(value: string) {
     if (slugEdited.current || !slugInputRef.current) return
@@ -53,6 +56,7 @@ export function OnboardingForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (pending.current) return
     setError(null)
     const formData = new FormData(event.currentTarget)
     const typedName = String(formData.get('name') ?? '')
@@ -60,23 +64,30 @@ export function OnboardingForm() {
     const input = workspaceCreateSchema.safeParse({
       name: typedName,
       slug: typedSlug || slugify(typedName),
+      timeZone,
     })
     if (!input.success) {
       setError(input.error.issues[0]?.message ?? 'Check the workspace name.')
       return
     }
 
+    if (
+      attempt.current?.name !== input.data.name ||
+      attempt.current?.slug !== input.data.slug ||
+      attempt.current?.timeZone !== input.data.timeZone
+    ) {
+      attempt.current = { ...input.data, idempotencyKey: crypto.randomUUID() }
+    }
+    pending.current = true
     setIsSubmitting(true)
     try {
-      await trpcClient.workspace.create.mutate({
-        timeZone,
-        name: input.data.name,
-        slug: input.data.slug,
-      })
+      await trpcClient.workspace.create.mutate(attempt.current)
       window.location.assign('/onboarding/plan')
     } catch (requestError) {
       setError(getAuthErrorMessage(requestError, 'Could not create the workspace.'))
       setIsSubmitting(false)
+    } finally {
+      pending.current = false
     }
   }
 
@@ -136,7 +147,12 @@ export function OnboardingForm() {
           The slug uses lowercase letters, numbers, and hyphens. You can change both later.
         </p>
 
-        <TimeZonePicker label="Workspace time zone" value={timeZone} onChange={setTimeZone} disabled={isSubmitting} />
+        <TimeZonePicker
+          label="Workspace time zone"
+          value={timeZone}
+          onChange={setTimeZone}
+          disabled={isSubmitting}
+        />
         {error ? <FormAlert>{error}</FormAlert> : null}
       </div>
 

@@ -4,6 +4,8 @@
 package social
 
 import (
+	"os"
+
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/bluesky"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/devto"
@@ -21,6 +23,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/linkedinpage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/listmonk"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/mastodon"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/mastodoncustom"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/medium"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/mewe"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/moltbook"
@@ -42,8 +45,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/youtube"
 )
 
-// All returns a new instance of every registered provider. mastodoncustom is
-// ported but, as in the original app, not registered.
+// All returns a new instance of every registered provider. Custom Mastodon is
+// opt-in while its live connection and capability verification are completed.
 func All(lifecycle ...slack.Lifecycle) []integrations.Provider {
 	providers := []integrations.Provider{
 		x.New(),
@@ -81,6 +84,9 @@ func All(lifecycle ...slack.Lifecycle) []integrations.Provider {
 		skool.New(),
 		mewe.New(),
 		tumblr.New(),
+	}
+	if os.Getenv("PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED") == "true" {
+		providers = append(providers, mastodoncustom.New())
 	}
 	return append(providers, e2eProviders()...)
 }

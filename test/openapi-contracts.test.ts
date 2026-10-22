@@ -9,11 +9,13 @@ import * as approvals from '@/lib/api/contracts/approvals'
 import * as assets from '@/lib/api/contracts/assets'
 import * as audit from '@/lib/api/contracts/audit'
 import * as billing from '@/lib/api/contracts/billing'
+import * as blueskyConnections from '@/lib/api/contracts/bluesky-connections'
 import * as campaigns from '@/lib/api/contracts/campaigns'
 import * as canvases from '@/lib/api/contracts/canvases'
 import * as contentDrafts from '@/lib/api/contracts/content-drafts'
 import * as contentDraftPlatform from '@/lib/api/contracts/content-draft-platform'
 import * as writeAi from '@/lib/api/contracts/write-ai'
+import * as draftComments from '@/lib/api/contracts/draft-comments'
 import * as draftTags from '@/lib/api/contracts/draft-tags'
 import * as integrations from '@/lib/api/contracts/integrations'
 import * as internal from '@/lib/api/contracts/internal'
@@ -27,6 +29,9 @@ import * as settingsPlatform from '@/lib/api/contracts/settings-platform'
 import * as sharing from '@/lib/api/contracts/sharing'
 import * as shell from '@/lib/api/contracts/shell'
 import * as socialMentions from '@/lib/api/contracts/social-mentions'
+import * as socialConnections from '@/lib/api/contracts/social-connections'
+import * as socialAvailability from '@/lib/api/contracts/social-availability'
+import * as socialInstances from '@/lib/api/contracts/social-instances'
 import * as socialSets from '@/lib/api/contracts/social-sets'
 import * as sourceApps from '@/lib/api/contracts/source-apps'
 import * as storePublishing from '@/lib/api/contracts/store-publishing'
@@ -46,12 +51,14 @@ const contracts = new Map<string, RouteContract>(
     assets,
     audit,
     billing,
+    blueskyConnections,
     campaigns,
     canvases,
     contentDraftPlatform,
     writeAi,
     contentDrafts,
     draftTags,
+    draftComments,
     integrations,
     internal,
     linkPreview,
@@ -64,6 +71,9 @@ const contracts = new Map<string, RouteContract>(
     sharing,
     shell,
     socialMentions,
+    socialConnections,
+    socialAvailability,
+    socialInstances,
     socialSets,
     sourceApps,
     storePublishing,

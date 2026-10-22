@@ -30,7 +30,7 @@ export type DraftReview = Pick<
 >
 
 /**
- * Review before scheduling: a writer asks, a publisher approves or asks for
+ * Review before scheduling: a writer asks, an approver approves or asks for
  * changes. Approval is for the version it was given at, so an edit after it
  * shows as changed and needs another look.
  */
@@ -42,7 +42,7 @@ export function ReviewControls({
   review,
 }: {
   canEdit: boolean
-  /** Publishers and admins approve. */
+  /** Approval is separate from writing and publishing. */
   canReview: boolean
   draftId: string
   onDraft: (draft: DraftWire) => void
@@ -79,7 +79,13 @@ export function ReviewControls({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="custom" size={null} aria-label="Review" className="flex items-center" type="button">
+        <Button
+          variant="custom"
+          size={null}
+          aria-label="Review"
+          className="flex items-center"
+          type="button"
+        >
           <Pill tone={approved ? 'green' : review.reviewStatus === 'pending' ? 'blue' : 'gray'}>
             {label}
           </Pill>
@@ -162,7 +168,7 @@ export function ShareMenu({
             checked={Boolean(shareToken)}
             className="shrink-0"
             disabled={!canEdit || busy}
-            onCheckedChange={(checked) => void toggle((checked === true))}
+            onCheckedChange={(checked) => void toggle(checked === true)}
           />
         </Label>
         {link ? (
@@ -185,7 +191,9 @@ export function ShareMenu({
             </Button>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">Off: nobody outside the workspace can open it.</p>
+          <p className="text-xs text-muted-foreground">
+            Off: nobody outside the workspace can open it.
+          </p>
         )}
       </PopoverContent>
     </Popover>
@@ -233,7 +241,9 @@ export function HistorySheet({
         <ul className="flex flex-col gap-2 p-4">
           {items === null ? <li className="text-sm text-muted-foreground">Loading…</li> : null}
           {items?.length === 0 ? (
-            <li className="text-sm text-muted-foreground">No revisions yet: they start with edits.</li>
+            <li className="text-sm text-muted-foreground">
+              No revisions yet: they start with edits.
+            </li>
           ) : null}
           {items?.map((item) => (
             <li
@@ -245,7 +255,9 @@ export function HistorySheet({
                 <span>
                   {new Date(item.createdAt).toLocaleString()} · version {item.version}
                 </span>
-                <Button variant="custom" size={null}
+                <Button
+                  variant="custom"
+                  size={null}
                   className="text-sky-700 dark:text-sky-300 hover:text-sky-700 dark:hover:text-sky-200"
                   onClick={() => void restore(item.id)}
                   type="button"

@@ -47,6 +47,8 @@ type PlatformNotificationDelivery struct {
 	NextAttemptAt time.Time `json:"next_attempt_at,omitempty"`
 	// FailureCode holds the value of the "failure_code" field.
 	FailureCode string `json:"failure_code,omitempty"`
+	// DecisionCode holds the value of the "decision_code" field.
+	DecisionCode string `json:"decision_code,omitempty"`
 	// ProviderReceipt holds the value of the "provider_receipt" field.
 	ProviderReceipt string `json:"provider_receipt,omitempty"`
 	// EncryptedPayload holds the value of the "encrypted_payload" field.
@@ -65,7 +67,7 @@ func (*PlatformNotificationDelivery) scanValues(columns []string) ([]any, error)
 		switch columns[i] {
 		case platformnotificationdelivery.FieldPolicyGeneration, platformnotificationdelivery.FieldPreferenceGeneration, platformnotificationdelivery.FieldAttempts:
 			values[i] = new(sql.NullInt64)
-		case platformnotificationdelivery.FieldID, platformnotificationdelivery.FieldOrganizationID, platformnotificationdelivery.FieldEventID, platformnotificationdelivery.FieldKind, platformnotificationdelivery.FieldChannel, platformnotificationdelivery.FieldDestination, platformnotificationdelivery.FieldStatus, platformnotificationdelivery.FieldConnectionID, platformnotificationdelivery.FieldClaimToken, platformnotificationdelivery.FieldFailureCode, platformnotificationdelivery.FieldProviderReceipt, platformnotificationdelivery.FieldEncryptedPayload:
+		case platformnotificationdelivery.FieldID, platformnotificationdelivery.FieldOrganizationID, platformnotificationdelivery.FieldEventID, platformnotificationdelivery.FieldKind, platformnotificationdelivery.FieldChannel, platformnotificationdelivery.FieldDestination, platformnotificationdelivery.FieldStatus, platformnotificationdelivery.FieldConnectionID, platformnotificationdelivery.FieldClaimToken, platformnotificationdelivery.FieldFailureCode, platformnotificationdelivery.FieldDecisionCode, platformnotificationdelivery.FieldProviderReceipt, platformnotificationdelivery.FieldEncryptedPayload:
 			values[i] = new(sql.NullString)
 		case platformnotificationdelivery.FieldClaimedAt, platformnotificationdelivery.FieldSendStartedAt, platformnotificationdelivery.FieldNextAttemptAt, platformnotificationdelivery.FieldCreatedAt, platformnotificationdelivery.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -182,6 +184,12 @@ func (_m *PlatformNotificationDelivery) assignValues(columns []string, values []
 			} else if value.Valid {
 				_m.FailureCode = value.String
 			}
+		case platformnotificationdelivery.FieldDecisionCode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field decision_code", values[i])
+			} else if value.Valid {
+				_m.DecisionCode = value.String
+			}
 		case platformnotificationdelivery.FieldProviderReceipt:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field provider_receipt", values[i])
@@ -290,6 +298,9 @@ func (_m *PlatformNotificationDelivery) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("failure_code=")
 	builder.WriteString(_m.FailureCode)
+	builder.WriteString(", ")
+	builder.WriteString("decision_code=")
+	builder.WriteString(_m.DecisionCode)
 	builder.WriteString(", ")
 	builder.WriteString("provider_receipt=")
 	builder.WriteString(_m.ProviderReceipt)

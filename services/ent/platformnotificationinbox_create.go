@@ -68,37 +68,45 @@ func (_c *PlatformNotificationInboxCreate) SetHref(v string) *PlatformNotificati
 	return _c
 }
 
-// SetSeenAt sets the "seen_at" field.
-func (_c *PlatformNotificationInboxCreate) SetSeenAt(v time.Time) *PlatformNotificationInboxCreate {
-	_c.mutation.SetSeenAt(v)
+// SetCategory sets the "category" field.
+func (_c *PlatformNotificationInboxCreate) SetCategory(v platformnotificationinbox.Category) *PlatformNotificationInboxCreate {
+	_c.mutation.SetCategory(v)
 	return _c
 }
 
-// SetNillableSeenAt sets the "seen_at" field if the given value is not nil.
-func (_c *PlatformNotificationInboxCreate) SetNillableSeenAt(v *time.Time) *PlatformNotificationInboxCreate {
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_c *PlatformNotificationInboxCreate) SetNillableCategory(v *platformnotificationinbox.Category) *PlatformNotificationInboxCreate {
 	if v != nil {
-		_c.SetSeenAt(*v)
+		_c.SetCategory(*v)
 	}
 	return _c
 }
 
-// SetSeenActionID sets the "seen_action_id" field.
-func (_c *PlatformNotificationInboxCreate) SetSeenActionID(v string) *PlatformNotificationInboxCreate {
-	_c.mutation.SetSeenActionID(v)
+// SetReadAt sets the "read_at" field.
+func (_c *PlatformNotificationInboxCreate) SetReadAt(v time.Time) *PlatformNotificationInboxCreate {
+	_c.mutation.SetReadAt(v)
 	return _c
 }
 
-// SetNillableSeenActionID sets the "seen_action_id" field if the given value is not nil.
-func (_c *PlatformNotificationInboxCreate) SetNillableSeenActionID(v *string) *PlatformNotificationInboxCreate {
+// SetNillableReadAt sets the "read_at" field if the given value is not nil.
+func (_c *PlatformNotificationInboxCreate) SetNillableReadAt(v *time.Time) *PlatformNotificationInboxCreate {
 	if v != nil {
-		_c.SetSeenActionID(*v)
+		_c.SetReadAt(*v)
 	}
 	return _c
 }
 
-// SetContext sets the "context" field.
-func (_c *PlatformNotificationInboxCreate) SetContext(v map[string]interface{}) *PlatformNotificationInboxCreate {
-	_c.mutation.SetContext(v)
+// SetArchivedAt sets the "archived_at" field.
+func (_c *PlatformNotificationInboxCreate) SetArchivedAt(v time.Time) *PlatformNotificationInboxCreate {
+	_c.mutation.SetArchivedAt(v)
+	return _c
+}
+
+// SetNillableArchivedAt sets the "archived_at" field if the given value is not nil.
+func (_c *PlatformNotificationInboxCreate) SetNillableArchivedAt(v *time.Time) *PlatformNotificationInboxCreate {
+	if v != nil {
+		_c.SetArchivedAt(*v)
+	}
 	return _c
 }
 
@@ -157,13 +165,9 @@ func (_c *PlatformNotificationInboxCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *PlatformNotificationInboxCreate) defaults() {
-	if _, ok := _c.mutation.SeenActionID(); !ok {
-		v := platformnotificationinbox.DefaultSeenActionID
-		_c.mutation.SetSeenActionID(v)
-	}
-	if _, ok := _c.mutation.Context(); !ok {
-		v := platformnotificationinbox.DefaultContext
-		_c.mutation.SetContext(v)
+	if _, ok := _c.mutation.Category(); !ok {
+		v := platformnotificationinbox.DefaultCategory
+		_c.mutation.SetCategory(v)
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := platformnotificationinbox.DefaultCreatedAt()
@@ -197,11 +201,13 @@ func (_c *PlatformNotificationInboxCreate) check() error {
 	if _, ok := _c.mutation.Href(); !ok {
 		return &ValidationError{Name: "href", err: errors.New(`ent: missing required field "PlatformNotificationInbox.href"`)}
 	}
-	if _, ok := _c.mutation.SeenActionID(); !ok {
-		return &ValidationError{Name: "seen_action_id", err: errors.New(`ent: missing required field "PlatformNotificationInbox.seen_action_id"`)}
+	if _, ok := _c.mutation.Category(); !ok {
+		return &ValidationError{Name: "category", err: errors.New(`ent: missing required field "PlatformNotificationInbox.category"`)}
 	}
-	if _, ok := _c.mutation.Context(); !ok {
-		return &ValidationError{Name: "context", err: errors.New(`ent: missing required field "PlatformNotificationInbox.context"`)}
+	if v, ok := _c.mutation.Category(); ok {
+		if err := platformnotificationinbox.CategoryValidator(v); err != nil {
+			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "PlatformNotificationInbox.category": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "PlatformNotificationInbox.created_at"`)}
@@ -273,17 +279,17 @@ func (_c *PlatformNotificationInboxCreate) createSpec() (*PlatformNotificationIn
 		_spec.SetField(platformnotificationinbox.FieldHref, field.TypeString, value)
 		_node.Href = value
 	}
-	if value, ok := _c.mutation.SeenAt(); ok {
-		_spec.SetField(platformnotificationinbox.FieldSeenAt, field.TypeTime, value)
-		_node.SeenAt = &value
+	if value, ok := _c.mutation.Category(); ok {
+		_spec.SetField(platformnotificationinbox.FieldCategory, field.TypeEnum, value)
+		_node.Category = value
 	}
-	if value, ok := _c.mutation.SeenActionID(); ok {
-		_spec.SetField(platformnotificationinbox.FieldSeenActionID, field.TypeString, value)
-		_node.SeenActionID = value
+	if value, ok := _c.mutation.ReadAt(); ok {
+		_spec.SetField(platformnotificationinbox.FieldReadAt, field.TypeTime, value)
+		_node.ReadAt = &value
 	}
-	if value, ok := _c.mutation.Context(); ok {
-		_spec.SetField(platformnotificationinbox.FieldContext, field.TypeJSON, value)
-		_node.Context = value
+	if value, ok := _c.mutation.ArchivedAt(); ok {
+		_spec.SetField(platformnotificationinbox.FieldArchivedAt, field.TypeTime, value)
+		_node.ArchivedAt = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(platformnotificationinbox.FieldCreatedAt, field.TypeTime, value)

@@ -9,7 +9,7 @@ import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 /** Add an account that is in no set to this social set. */
 export const POST = route(assignSocialSetAccountContract, {
-  auth: organizationAccess('publish:manage'),
+  auth: organizationAccess('connection:manage'),
   handler: ({ access, params }) =>
     contentDraftsEnabled()
       ? backendSDK(access).assignSocialSetAccount(params.id, params.connectionId)
@@ -18,7 +18,7 @@ export const POST = route(assignSocialSetAccountContract, {
 
 /** Remove an account from this social set; its queued posts are cancelled. */
 export const DELETE = route(removeSocialSetAccountContract, {
-  auth: organizationAccess('publish:manage'),
+  auth: organizationAccess('connection:manage'),
   handler: ({ access, params }) =>
     contentDraftsEnabled()
       ? backendSDK(access).removeSocialSetAccount(params.id, params.connectionId)

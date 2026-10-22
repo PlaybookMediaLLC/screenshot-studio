@@ -1,10 +1,6 @@
 import { z } from 'zod'
-import type {
-  SocialAccount,
-  SocialSet,
-  SocialSetList,
-  WritingSample,
-} from 'screenshot-studio-backend-sdk'
+import { socialAccountSchema } from 'screenshot-studio-backend-sdk'
+import type { SocialSet, SocialSetList, WritingSample } from 'screenshot-studio-backend-sdk'
 import { defineContract, mirrors } from '@/lib/api/contract'
 import { contentDraftIdSchema } from '@/lib/api/contracts/content-drafts'
 import { isoInstantSchema } from '@/lib/api/contracts/settings-platform'
@@ -15,31 +11,8 @@ import { isoInstantSchema } from '@/lib/api/contracts/settings-platform'
  * mirrors the backend SDK's type, so the Go contract and this one cannot drift.
  */
 
-/** An account's health, read from the social service. */
-export const socialAccountHealthSchema = z.enum([
-  'connected',
-  'reconnect_required',
-  'expired',
-  'revoked',
-  'removed',
-  'permission_required',
-])
-
-/** A connected account in a social set. */
-export const socialAccountSchema = mirrors<SocialAccount>()(
-  z.object({
-    avatarUrl: z.string().nullable(),
-    createdAt: isoInstantSchema,
-    displayName: z.string().nullable(),
-    handle: z.string().nullable(),
-    health: socialAccountHealthSchema,
-    id: z.string(),
-    platform: z.string(),
-    /** X Premium, read from the account (RFC 042); never the workspace's plan. */
-    premium: z.boolean(),
-    socialSetId: z.string().nullable(),
-  })
-)
+/** The SDK owns the provider-account wire contract. */
+export { socialAccountHealthSchema, socialAccountSchema } from 'screenshot-studio-backend-sdk'
 
 /** One X follow-up a new draft starts with. */
 export const engagementRuleSchema = z.object({

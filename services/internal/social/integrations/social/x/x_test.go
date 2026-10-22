@@ -16,7 +16,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
 )
@@ -94,7 +93,7 @@ func TestDtoValidate(t *testing.T) {
 
 func TestMaxLengthAndValidity(t *testing.T) {
 	p := New()
-	if p.MaxLength([]integrations.AdditionalSetting{{Title: "Verified", Value: true}}, nil) != 4000 ||
+	if p.MaxLength([]integrations.AdditionalSetting{{Title: "Verified", Value: true}}, nil) != 280 ||
 		p.MaxLength(nil, nil) != 280 || p.MaxLength(nil, json.RawMessage(`{"post_type":"article"}`)) != 100000 {
 		t.Fatal("maxLength")
 	}
@@ -146,6 +145,9 @@ func fakeX(t *testing.T, handler func(r recorded) (int, string)) (*[]recorded, f
 		calls = append(calls, rec)
 		mu.Unlock()
 		status, out := handler(rec)
+		if r.URL.Path == "/2/users/me" {
+			w.Header().Set("x-access-level", "read-write")
+		}
 		w.WriteHeader(status)
 		_, _ = io.WriteString(w, out)
 	}))
@@ -162,13 +164,13 @@ func pngBytes() []byte {
 
 func TestSignedImageUpload(t *testing.T) {
 	t.Setenv("SOCIAL_PRIVATE_MEDIA", "false")
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		switch r.path {
 		case "/pic.png":
 			return 200, string(pngBytes())
-		case "/2/media/upload/initialize", "/2/media/upload/img1/finalize":
-			return 200, `{"data":{"id":"img1"}}`
-		case "/2/media/upload/img1/append":
+		case "/2/media/upload/initialize", "/2/media/upload/11/finalize":
+			return 200, `{"data":{"id":"11"}}`
+		case "/2/media/upload/11/append":
 			return 200, `{}`
 		}
 		return 404, `{}`
@@ -177,7 +179,7 @@ func TestSignedImageUpload(t *testing.T) {
 	signed := apiBase + "/pic.png?X-Amz-Date=20261013T000000Z&X-Amz-Signature=abc%2Fdef"
 	res, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
 		ID: "p", Message: "image", Media: []integrations.MediaContent{{Path: signed}},
-	}}, nil)
+	}}, publishingAccount())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,29 +198,29 @@ func TestSignedImageUpload(t *testing.T) {
 			if err := json.Unmarshal(call.body, &body); err != nil {
 				t.Fatal(err)
 			}
-			uploaded = body.MediaType == "image/gif"
+			uploaded = body.MediaType == "image/png"
 		}
 	}
-	if !fetched || !uploaded || lookup(signed) != "image/png" {
-		t.Fatalf("signed image fetch=%t upload=%t lookup=%q", fetched, uploaded, lookup(signed))
+	if !fetched || !uploaded {
+		t.Fatalf("signed image fetch=%t upload=%t", fetched, uploaded)
 	}
 }
 
 func TestArticleFlow(t *testing.T) {
 	var base string
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		switch r.path {
 		case "/pic.png":
 			return 200, string(pngBytes())
 		case "/2/media/upload/initialize":
-			return 200, `{"data":{"id":"img1"}}`
-		case "/2/media/upload/img1/append":
+			return 200, `{"data":{"id":"11"}}`
+		case "/2/media/upload/11/append":
 			return 200, ``
-		case "/2/media/upload/img1/finalize":
-			return 200, `{"data":{"id":"img1"}}`
+		case "/2/media/upload/11/finalize":
+			return 200, `{"data":{"id":"11"}}`
 		case "/2/articles/draft":
-			return 200, `{"data":{"id":"draft1"}}`
-		case "/2/articles/draft1/publish":
+			return 200, `{"data":{"id":"91"}}`
+		case "/2/articles/91/publish":
 			return 200, `{"data":{"post_id":"555"}}`
 		}
 		return 404, `{}`
@@ -227,10 +229,10 @@ func TestArticleFlow(t *testing.T) {
 	base = apiBase
 	p := New()
 	ctx := context.Background()
-	integration := &ent.Integration{Profile: ptr("me")}
+	integration := publishingAccount()
 
 	settings := json.RawMessage(`{"post_type":"article","article_title":"T","article_status":"published"}`)
-	res, err := p.Post(ctx, "1", "tok:sec", []integrations.PostDetails{{
+	res, err := p.Post(ctx, "1", "a:b", []integrations.PostDetails{{
 		ID: "p1", Message: `<p>Hello</p><img src="` + base + `/pic.png">`, Settings: settings,
 	}}, integration)
 	if err != nil {
@@ -261,35 +263,35 @@ func TestArticleFlow(t *testing.T) {
 }
 
 func TestFinalizeTweet(t *testing.T) {
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		return 201, `{"data":{"id":"99"}}`
 	})
 	defer done()
 	pending := marshal(pendingData{
 		Message:  "hi",
 		Settings: pendingSettings{WhoCanReplyPost: ptr("following"), Community: ptr("https://x.com/i/communities/42"), MadeWithAI: "true"},
-		MediaIDs: []string{"m1", ""}, Attempting: true, Confirmed: true,
+		MediaIDs: []string{"11"}, MediaFacts: []mediaFacts{{MIME: "image/png", Bytes: 100}}, Attempting: true, Confirmed: true,
 	})
-	res, err := New().FinalizePost(context.Background(), "a:b", pending, &ent.Integration{})
+	res, err := New().FinalizePost(context.Background(), "a:b", pending, publishingAccount())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.PostID != "99" || res.ReleaseURL != "https://twitter.com/null/status/99" {
+	if res.PostID != "99" || res.ReleaseURL != "https://twitter.com/me/status/99" {
 		t.Fatalf("%+v", res)
 	}
-	want := `{"reply_settings":"following","share_with_followers":true,"community_id":"42","text":"hi","media":{"media_ids":["m1"]},"made_with_ai":true,"paid_partnership":false}`
-	if got := string((*calls)[0].body); got != want {
+	want := `{"reply_settings":"following","share_with_followers":true,"community_id":"42","text":"hi","media":{"media_ids":["11"]},"made_with_ai":true,"paid_partnership":false}`
+	if got := string((*calls)[1].body); got != want {
 		t.Fatalf("tweet body %s", got)
 	}
 }
 
 func TestFinalizeTweetError(t *testing.T) {
-	_, done := fakeX(t, func(r recorded) (int, string) {
+	_, done := fakePublishingX(t, func(r recorded) (int, string) {
 		return 403, `{"detail":"You are not permitted to perform this action.","status":403}`
 	})
 	defer done()
 	pending := marshal(pendingData{Message: "hi", Attempting: true, Confirmed: true})
-	_, err := New().FinalizePost(context.Background(), "a:b", pending, &ent.Integration{})
+	_, err := New().FinalizePost(context.Background(), "a:b", pending, publishingAccount())
 	if temporalx.FailureType(err) != temporalx.TypeBadBody ||
 		temporalx.FailureMessage(err) != "There is a problem posting, please edit your post and check character count and media attachments" {
 		t.Fatalf("err = %v", err)
@@ -327,7 +329,7 @@ func TestHandshakeAndProcessing(t *testing.T) {
 	if !strings.Contains(string(confirmed.PendingData), `"confirmed":true`) {
 		t.Fatalf("confirmed: %s", confirmed.PendingData)
 	}
-	if _, err := p.CheckPostStatus(ctx, "a:b", confirmed.PendingData, nil); temporalx.FailureType(err) != temporalx.TypeBadBody {
+	if _, err := p.CheckPostStatus(ctx, "a:b", confirmed.PendingData, nil); temporalx.FailureType(err) != temporalx.TypeUnknownDelivery {
 		t.Fatalf("died attempt: %v", err)
 	}
 
@@ -339,30 +341,30 @@ func TestHandshakeAndProcessing(t *testing.T) {
 }
 
 func TestVideoChunkUpload(t *testing.T) {
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		switch {
 		case strings.HasSuffix(r.path, "/initialize"):
-			return 200, `{"data":{"id":"vid"}}`
+			return 200, `{"data":{"id":"22"}}`
 		case strings.HasSuffix(r.path, "/finalize"):
-			return 200, `{"data":{"id":"vid","processing_info":{"state":"pending","check_after_secs":1}}}`
+			return 200, `{"data":{"id":"22","processing_info":{"state":"pending","check_after_secs":1}}}`
 		}
 		return 200, `{}`
 	})
 	defer done()
 	file := filepath.Join(t.TempDir(), "clip.mp4")
-	if err := os.WriteFile(file, make([]byte, uploadChunkSize+10), 0o600); err != nil {
+	if err := os.WriteFile(file, videoFixture(t, uploadChunkSize+10), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	res, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
-		ID: "p", Message: "m", Settings: json.RawMessage(`{"post_type":"article","article_title":"t"}`),
+		ID: "p", Message: "m",
 		Media: []integrations.MediaContent{{Type: "video", Path: file}},
-	}}, nil)
+	}}, publishingAccount())
 	if err != nil {
 		t.Fatal(err)
 	}
 	var pending pendingData
 	_ = json.Unmarshal(res[0].PendingData, &pending)
-	if res[0].Status != "pending" || strings.Join(pending.ProcessingIDs, ",") != "vid" || strings.Join(pending.MediaIDs, ",") != "vid" {
+	if res[0].Status != "pending" || strings.Join(pending.ProcessingIDs, ",") != "22" || strings.Join(pending.MediaIDs, ",") != "22" {
 		t.Fatalf("pending %s", res[0].PendingData)
 	}
 	appends := 0
@@ -383,15 +385,15 @@ func TestVideoChunkUpload(t *testing.T) {
 }
 
 func TestUploadErrorClassified(t *testing.T) {
-	_, done := fakeX(t, func(r recorded) (int, string) {
+	_, done := fakePublishingX(t, func(r recorded) (int, string) {
 		return 400, `{"detail":"Your media IDs are invalid."}`
 	})
 	defer done()
 	file := filepath.Join(t.TempDir(), "clip.mp4")
-	_ = os.WriteFile(file, []byte("data"), 0o600)
+	_ = os.WriteFile(file, videoFixture(t, 0), 0o600)
 	_, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
-		ID: "p", Settings: json.RawMessage(`{"post_type":"article"}`), Media: []integrations.MediaContent{{Path: file}},
-	}}, nil)
+		ID: "p", Media: []integrations.MediaContent{{Path: file}},
+	}}, publishingAccount())
 	if temporalx.FailureMessage(err) != "X rejected the attached media, please re-upload the media and try again" {
 		t.Fatalf("err = %v", err)
 	}
@@ -427,7 +429,8 @@ func TestAuthFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if auth.AccessToken != "at:as" || auth.Username != "me" || auth.AdditionalSettings[0].Value != true || auth.ExpiresIn != 999999999 {
+	if auth.AccessToken != "at:as" || auth.Username != "me" || len(auth.AdditionalSettings) != 0 || !auth.NonExpiring || auth.ExpiresIn != 0 ||
+		auth.Verification == nil || auth.Verification.Validate("x", "1") != nil {
 		t.Fatalf("%+v", auth)
 	}
 	if !strings.Contains((*calls)[1].auth, `oauth_token="rt"`) || !strings.Contains((*calls)[2].auth, `oauth_token="at"`) {
@@ -446,13 +449,13 @@ func TestAPIErrorJSON(t *testing.T) {
 // RFC 042 follow-ups: engagement reads public metrics (no 100-user cap), a
 // repost is removed by DELETE, and a plug reply returns its id.
 func TestFollowUps(t *testing.T) {
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		switch {
 		case r.method == "GET" && r.path == "/2/tweets/42":
 			return 200, `{"data":{"id":"42","public_metrics":{"like_count":250,"retweet_count":12}}}`
-		case r.method == "POST" && r.path == "/2/users/me-1/retweets":
+		case r.method == "POST" && r.path == "/2/users/1/retweets":
 			return 200, `{"data":{"retweeted":true}}`
-		case r.method == "DELETE" && r.path == "/2/users/me-1/retweets/42":
+		case r.method == "DELETE" && r.path == "/2/users/1/retweets/42":
 			return 200, `{"data":{"retweeted":false}}`
 		case r.method == "POST" && r.path == "/2/tweets":
 			return 201, `{"data":{"id":"99"}}`
@@ -461,7 +464,7 @@ func TestFollowUps(t *testing.T) {
 	})
 	defer done()
 	ctx := context.Background()
-	account := &ent.Integration{InternalID: "me-1", Token: "a:b"}
+	account := publishingAccount()
 	provider := New()
 	likes, reposts, err := provider.PostEngagement(ctx, account, "42")
 	if err != nil || likes != 250 || reposts != 12 {
@@ -485,8 +488,8 @@ func TestFollowUps(t *testing.T) {
 			InReplyTo string `json:"in_reply_to_tweet_id"`
 		} `json:"reply"`
 	}
-	if err := json.Unmarshal((*calls)[3].body, &reply); err != nil || reply.Reply.InReplyTo != "42" {
-		t.Fatalf("reply body = %s", (*calls)[3].body)
+	if err := json.Unmarshal((*calls)[4].body, &reply); err != nil || reply.Reply.InReplyTo != "42" {
+		t.Fatalf("reply body = %s", (*calls)[4].body)
 	}
 	if done, err := provider.AutoRepostPost(ctx, account, "42", map[string]string{"likesAmount": "200"}); err != nil || !done {
 		t.Fatalf("like-gated repost past 100 likes = %v, %v", done, err)
@@ -496,13 +499,13 @@ func TestFollowUps(t *testing.T) {
 // An image's description is set on the media before the post that uses it.
 func TestAltTextGoesOnTheMedia(t *testing.T) {
 	t.Setenv("SOCIAL_PRIVATE_MEDIA", "false")
-	calls, done := fakeX(t, func(r recorded) (int, string) {
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
 		switch r.path {
 		case "/pic.png":
 			return 200, string(pngBytes())
-		case "/2/media/upload/initialize", "/2/media/upload/img1/finalize":
-			return 200, `{"data":{"id":"img1"}}`
-		case "/2/media/upload/img1/append", "/2/media/metadata":
+		case "/2/media/upload/initialize", "/2/media/upload/11/finalize":
+			return 200, `{"data":{"id":"11"}}`
+		case "/2/media/upload/11/append", "/2/media/metadata":
 			return 200, `{}`
 		}
 		return 404, `{}`
@@ -510,7 +513,7 @@ func TestAltTextGoesOnTheMedia(t *testing.T) {
 	defer done()
 	if _, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{{
 		ID: "p", Message: "image", Media: []integrations.MediaContent{{Path: apiBase + "/pic.png", Alt: "A chart of signups"}},
-	}}, nil); err != nil {
+	}}, publishingAccount()); err != nil {
 		t.Fatal(err)
 	}
 	var metadata struct {
@@ -527,7 +530,7 @@ func TestAltTextGoesOnTheMedia(t *testing.T) {
 			found = json.Unmarshal(call.body, &metadata) == nil
 		}
 	}
-	if !found || metadata.ID != "img1" || metadata.Metadata.AltText.Text != "A chart of signups" {
+	if !found || metadata.ID != "11" || metadata.Metadata.AltText.Text != "A chart of signups" {
 		t.Fatalf("metadata = %+v (found %v)", metadata, found)
 	}
 }

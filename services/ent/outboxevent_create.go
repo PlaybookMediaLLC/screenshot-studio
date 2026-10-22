@@ -112,6 +112,20 @@ func (_c *OutboxEventCreate) SetNillableNotificationFanned(v *bool) *OutboxEvent
 	return _c
 }
 
+// SetNotificationSocialSetID sets the "notification_social_set_id" field.
+func (_c *OutboxEventCreate) SetNotificationSocialSetID(v string) *OutboxEventCreate {
+	_c.mutation.SetNotificationSocialSetID(v)
+	return _c
+}
+
+// SetNillableNotificationSocialSetID sets the "notification_social_set_id" field if the given value is not nil.
+func (_c *OutboxEventCreate) SetNillableNotificationSocialSetID(v *string) *OutboxEventCreate {
+	if v != nil {
+		_c.SetNotificationSocialSetID(*v)
+	}
+	return _c
+}
+
 // SetAttempts sets the "attempts" field.
 func (_c *OutboxEventCreate) SetAttempts(v int) *OutboxEventCreate {
 	_c.mutation.SetAttempts(v)
@@ -217,6 +231,10 @@ func (_c *OutboxEventCreate) defaults() {
 		v := outboxevent.DefaultNotificationFanned
 		_c.mutation.SetNotificationFanned(v)
 	}
+	if _, ok := _c.mutation.NotificationSocialSetID(); !ok {
+		v := outboxevent.DefaultNotificationSocialSetID
+		_c.mutation.SetNotificationSocialSetID(v)
+	}
 	if _, ok := _c.mutation.Attempts(); !ok {
 		v := outboxevent.DefaultAttempts
 		_c.mutation.SetAttempts(v)
@@ -252,6 +270,9 @@ func (_c *OutboxEventCreate) check() error {
 	}
 	if _, ok := _c.mutation.NotificationFanned(); !ok {
 		return &ValidationError{Name: "notification_fanned", err: errors.New(`ent: missing required field "OutboxEvent.notification_fanned"`)}
+	}
+	if _, ok := _c.mutation.NotificationSocialSetID(); !ok {
+		return &ValidationError{Name: "notification_social_set_id", err: errors.New(`ent: missing required field "OutboxEvent.notification_social_set_id"`)}
 	}
 	if _, ok := _c.mutation.Attempts(); !ok {
 		return &ValidationError{Name: "attempts", err: errors.New(`ent: missing required field "OutboxEvent.attempts"`)}
@@ -333,6 +354,10 @@ func (_c *OutboxEventCreate) createSpec() (*OutboxEvent, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.NotificationFanned(); ok {
 		_spec.SetField(outboxevent.FieldNotificationFanned, field.TypeBool, value)
 		_node.NotificationFanned = value
+	}
+	if value, ok := _c.mutation.NotificationSocialSetID(); ok {
+		_spec.SetField(outboxevent.FieldNotificationSocialSetID, field.TypeString, value)
+		_node.NotificationSocialSetID = value
 	}
 	if value, ok := _c.mutation.Attempts(); ok {
 		_spec.SetField(outboxevent.FieldAttempts, field.TypeInt, value)

@@ -1,0 +1,127 @@
+[
+  {
+    "label": "empty",
+    "input": "",
+    "normalized": null
+  },
+  {
+    "label": "whitespace",
+    "input": " \t ﻿ ",
+    "normalized": null
+  },
+  {
+    "label": "one scalar",
+    "input": "A",
+    "normalized": null
+  },
+  {
+    "label": "normal",
+    "input": " Studio ",
+    "normalized": "Studio"
+  },
+  {
+    "label": "unicode spaces",
+    "input": " ﻿Café　",
+    "normalized": "Café"
+  },
+  {
+    "label": "nfc",
+    "input": " Café ",
+    "normalized": "Café"
+  },
+  {
+    "label": "international",
+    "input": "東京",
+    "normalized": "東京"
+  },
+  {
+    "label": "joiner",
+    "input": "👩‍💻",
+    "normalized": "👩‍💻"
+  },
+  {
+    "label": "astral pair",
+    "input": "😀😀",
+    "normalized": "😀😀"
+  },
+  {
+    "label": "format only",
+    "input": "‌‍",
+    "normalized": null
+  },
+  {
+    "label": "marks only",
+    "input": "́̂",
+    "normalized": null
+  },
+  {
+    "label": "bidi",
+    "input": "ab‮",
+    "normalized": null
+  },
+  {
+    "label": "nul",
+    "input": "ab\u0000",
+    "normalized": null
+  },
+  {
+    "label": "interior newline",
+    "input": "a\nb",
+    "normalized": null
+  },
+  {
+    "label": "invisible format",
+    "input": "a​b",
+    "normalized": null
+  },
+  {
+    "label": "unpaired high",
+    "input": "a\ud800b",
+    "normalized": null
+  },
+  {
+    "label": "unpaired low",
+    "input": "a\udfffb",
+    "normalized": null
+  },
+  {
+    "label": "replacement",
+    "input": "a�b",
+    "normalized": null
+  },
+  {
+    "label": "max ascii",
+    "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "normalized": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+    "label": "too many ascii",
+    "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "normalized": null
+  },
+  {
+    "label": "max astral",
+    "input": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "normalized": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+  },
+  {
+    "label": "too many astral",
+    "input": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "normalized": null
+  },
+  {
+    "label": "max decomposed",
+    "input": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+    "normalized": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+  },
+  {
+    "label": "one composed scalar",
+    "input": "é",
+    "normalized": null
+  },
+  {
+    "label": "double composed scalar",
+    "input": "éé",
+    "normalized": "éé"
+  }
+]

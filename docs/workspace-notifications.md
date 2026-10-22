@@ -18,9 +18,9 @@ not exist in this product and have no notification emitters.
 People involved receive activity; operational failures also reach owners/admins.
 Human actors are excluded from their own actions. Background completion may
 notify the requester. Every personal delivery checks current membership, current
-resource access, and the current workspace. Removed members lose unseen content
-immediately. A link is authorized again when opened, including after its inbox
-row has been deleted. Inaccessible resources have a generic unavailable state.
+resource access, and the current workspace. Removed members lose their receipt content
+immediately. A link is authorized again when opened, including for read or archived
+receipts. Inaccessible resources have a generic unavailable state.
 
 Workspace channel availability and event selection are hard ceilings. Personal
 in-app/email opt-outs can only reduce delivery. In-app starts enabled. Existing
@@ -31,17 +31,40 @@ destination is shared and receives only explicitly permitted coarse catalogue
 metadata. Comments, review content, member details, diagnostics, and restricted
 resource links are never included in Slack messages.
 
-The sidebar and mobile shell poll the unseen count every 30 seconds while the
-document is visible. List/count calls are read-only. A summary must be fully
-visible for 500 ms in a focused, visible tab before acknowledgment. Acknowledgment
-deletes only that recipient's inbox rows in the transaction. The open UI retains
-its in-memory snapshot until closed. Mark-all uses a transaction snapshot and a
-durable action key; retrying a completed key cannot consume subsequent arrivals.
-Confirmed results update the badge and invalidate user/workspace-scoped caches.
+The sidebar and mobile shell poll the unread count every 30 seconds while the
+document is visible. Inbox contains comments, mentions and reviews; Activity
+contains publishing and operational events. Archive contains archived receipts
+from either category. Tab choice is remembered per user/workspace for the browser
+session. Opening the panel or fetching a page never marks anything read.
+
+Read/unread and archive/restore are explicit recipient actions. Reading sets
+`read_at`; archiving sets `archived_at` without changing read state. Restoring
+returns the receipt to its original category and preserves its read state. The
+badge counts only unread, unarchived receipts. Each feed uses descending
+`created_at, id` cursor pagination bound to user, workspace and feed. Concurrent
+arrivals appear on refresh; they cannot change an older page's cursor boundary.
+
+The session-only `POST /api/workspace/notifications/state` contract accepts a
+validated action, view, either receipt IDs (at most 100) or all, and a stable
+request key. Bulk actions apply to a transaction snapshot of the selected feed.
+Retrying a completed key returns its original changed count without consuming
+subsequent arrivals. Reusing a key with a different payload is rejected. Membership
+and session context remain locked through the commit. Confirmed results update
+the badge and invalidate user/workspace-scoped caches across browser tabs.
+The compatibility `/seen` endpoint now marks receipts read; its deprecated
+`deleted` result counts acknowledgments and no longer means storage deletion.
+
+Migration `20261031090000_notification_receipt_state.sql` adds read/archive state
+and backfills categories without changing existing unread receipts. Previously
+deleted acknowledgments cannot be reconstructed and are not replayed. Apply the
+additive migration before releasing the new API/UI. Rolling the application back
+to the destructive acknowledgment implementation can delete read/archive history;
+retain the new handler during rollback. Recipient receipts follow the existing
+outbox retention lifecycle; archive is not permanent storage or legal hold.
 
 `platform_notification_delivery` is a content-free receipt after completion. Its
-unique workspace/event/channel/destination identity survives inbox deletion, so
-outbox replay cannot recreate a read item or resend a success. An encrypted,
+unique workspace/event/channel/destination identity survives recipient state changes, so
+outbox replay cannot reset read/archive state or resend a success. An encrypted,
 immutable payload exists only while an external request may require retry or
 reconciliation. Uncertain payloads expire after 24 hours. Receipt cleanup occurs
 only when the canonical outbox event no longer exists. Workspace deletion removes

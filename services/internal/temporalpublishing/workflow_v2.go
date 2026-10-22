@@ -1,6 +1,7 @@
 package temporalpublishing
 
 import (
+	"errors"
 	"sort"
 	"time"
 
@@ -278,6 +279,10 @@ func runAutoActions(ctx workflow.Context, input WorkflowInput, job PreparedPubli
 			Repost: repost && check, Plug: plug && check, Quote: quote && wait >= quoteAt,
 		}).Get(ctx, &done)
 		if err != nil {
+			var failure *temporal.ApplicationError
+			if errors.As(err, &failure) && failure.Type() == FailureUnknownDelivery {
+				return
+			}
 			continue
 		}
 		repost = repost && !done.Reposted

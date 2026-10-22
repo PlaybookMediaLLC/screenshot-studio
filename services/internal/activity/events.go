@@ -11,18 +11,19 @@ import (
 )
 
 type Definition struct {
-	Emitter      string   `json:"emitter"`
-	AccessCheck  string   `json:"accessCheck"`
-	Sensitivity  string   `json:"sensitivity"`
-	Channels     []string `json:"channels"`
-	Description  string   `json:"description"`
-	Destination  string   `json:"destination"`
-	ID           string   `json:"id"`
-	Label        string   `json:"label"`
-	Group        string   `json:"group"`
-	Audience     string   `json:"audience"`
-	Restricted   bool     `json:"restricted"`
-	EmailDefault bool     `json:"emailDefault"`
+	MandatoryFailure bool     `json:"mandatoryFailure"`
+	Emitter          string   `json:"emitter"`
+	AccessCheck      string   `json:"accessCheck"`
+	Sensitivity      string   `json:"sensitivity"`
+	Channels         []string `json:"channels"`
+	Description      string   `json:"description"`
+	Destination      string   `json:"destination"`
+	ID               string   `json:"id"`
+	Label            string   `json:"label"`
+	Group            string   `json:"group"`
+	Audience         string   `json:"audience"`
+	Restricted       bool     `json:"restricted"`
+	EmailDefault     bool     `json:"emailDefault"`
 }
 
 var Catalogue = catalogue([]Definition{
@@ -123,6 +124,7 @@ func catalogue(definitions []Definition) []Definition {
 	destinations := map[string]string{"releases": "release intake or associated campaign", "captures": "product page", "assets": "asset or campaign", "generation": "campaign run", "reviews": "campaign step or draft editor", "comments": "resource discussion", "mentions": "resource discussion", "publishing": "draft calendar or campaign", "integrations": "integration or source settings", "membership": "member settings", "workflows": "workflow run"}
 	for i := range definitions {
 		d := &definitions[i]
+		d.MandatoryFailure = d.ID == "post.publish_failed" || d.ID == "post.publish_recovery_required"
 		d.Emitter = sources[d.ID]
 		d.Destination = destinations[d.Group]
 		d.AccessCheck = "Current workspace membership and current access to the referenced resource"

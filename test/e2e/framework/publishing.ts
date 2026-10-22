@@ -112,6 +112,12 @@ export async function createPublishingWorkspace(identity: E2EIdentity, page: Pag
     method: 'POST',
   })
   expect(signup.status, JSON.stringify(signup.body)).toBe(200)
+  // Production sign-up does not establish a session automatically.
+  const signedIn = await apiRequest(page, '/api/auth/sign-in/email', {
+    body: { email: identity.email, password: identity.password },
+    method: 'POST',
+  })
+  expect(signedIn.status, JSON.stringify(signedIn.body)).toBe(200)
   const workspace = await trpcMutation(page, 'workspace.create', {
     name: identity.workspaceName,
     slug: identity.workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),

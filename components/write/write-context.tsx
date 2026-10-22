@@ -33,6 +33,7 @@ type WriteContextValue = {
   canEdit: boolean
   canManageSets: boolean
   canPublish: boolean
+  canReview: boolean
   /** Update the library's URL state; undefined removes a key. */
   setQuery: (next: Record<string, string | undefined>) => void
   /** The draft list as last saved here: the open draft's line stays current. */
@@ -57,6 +58,7 @@ export function WriteProvider({
   canEdit,
   canManageSets,
   canPublish,
+  canReview,
   children,
   data,
 }: {
@@ -64,6 +66,7 @@ export function WriteProvider({
   canEdit: boolean
   canManageSets: boolean
   canPublish: boolean
+  canReview: boolean
   children: React.ReactNode
   data: WriteLibrary
 }) {
@@ -188,6 +191,7 @@ export function WriteProvider({
       canEdit,
       canManageSets,
       canPublish,
+      canReview,
       data: visibleData,
       saved,
       setQuery,
@@ -198,6 +202,7 @@ export function WriteProvider({
       canEdit,
       canManageSets,
       canPublish,
+      canReview,
       hideDraft,
       visibleData,
       saved,

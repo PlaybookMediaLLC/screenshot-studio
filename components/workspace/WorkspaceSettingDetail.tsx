@@ -52,25 +52,24 @@ function getDetailContent({
   userId,
 }: WorkspaceSettingContentProps): Record<SettingId, ReactNode> {
   const canManage = hasPermission(role, 'workspace:update')
-  const canPublish = hasPermission(role, 'publish:manage')
   return {
     appearance: <AppearanceSettings />,
     experimental: <ExperimentalSettings canManage={canManage} />,
     install: <InstallSettings />,
-    'new-team': <NewTeamSettings email={email} />,
+    'new-team': <NewTeamSettings email={email} userId={userId} />,
     'social-sets': socialSet ? (
       <SocialSetSettings
         id={socialSet.id}
         key={`${socialSet.id}:${socialSet.page}`}
         page={socialSet.page}
         permissions={{
-          canManage: canPublish,
+          canManage,
           canWrite: hasPermission(role, 'artifact:edit'),
           isAdmin: canManage,
         }}
       />
     ) : (
-      <SocialSetList canManage={canPublish} />
+      <SocialSetList canManage={canManage} />
     ),
     agents: (
       <WorkspaceAgentSettings canManage={hasPermission(role, 'brand:manage')} mcpUrl={mcpUrl} />
@@ -89,9 +88,9 @@ function getDetailContent({
         organizationId={organization.id}
       />
     ),
-    billing: <WorkspaceBilling canManage={canManage} />,
+    billing: <WorkspaceBilling canManage={hasPermission(role, 'billing:manage')} />,
     brand: <WorkspaceBrandSettings canManage={canManage} />,
-    channels: <ChannelConnections canManage={hasPermission(role, 'publish:manage')} />,
+    channels: <ChannelConnections canManage={hasPermission(role, 'connection:manage')} />,
     general: (
       <WorkspaceGeneralSettings
         canDelete={hasPermission(role, 'workspace:delete')}

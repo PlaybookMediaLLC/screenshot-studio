@@ -299,7 +299,7 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 		t.Fatalf("foreign asset deletion disclosed ownership: result=%s err=%v", result, err)
 	}
 	objects := &recordingAssetObjects{}
-	repo.WithObjectStore(objects)
+	repo.WithObjectStore(objects).WithAssetDownloads(strings.Repeat("a", 32), "https://shots.example.test")
 	signed, err := repo.SignAssetUpload(ctx, actor, AssetUploadInput{
 		Bytes: 100, Classification: "input", ContentType: "image/png", FileName: "canary.png",
 	})
@@ -333,7 +333,7 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if _, err := repo.CompleteAssetUpload(ctx, actor, signed.Asset.ID, nil); err != nil {
 		t.Fatalf("repeat asset completion: %v", err)
 	}
-	if signedURL, err := repo.SignAssetDownload(ctx, actor, signed.Asset.ID); err != nil || signedURL != "https://storage.example.test/download" {
+	if signedURL, err := repo.SignAssetDownload(ctx, actor, signed.Asset.ID); err != nil || !strings.HasPrefix(signedURL, "https://shots.example.test/api/v1/assets/"+signed.Asset.ID+"/content?downloadToken=") {
 		t.Fatalf("asset download URL=%q err=%v", signedURL, err)
 	}
 	var uploadEvents int
@@ -764,7 +764,15 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if err != nil || resent.ID != invited.ID || len(mailer.messages) != 2 {
 		t.Fatalf("workspace invite resend=%v mail=%v err=%v", resent, mailer.messages, err)
 	}
-	if err := repo.RevokeInvitation(ctx, Actor{OrganizationID: otherOrgID, UserID: userID}, invited.ID); !errors.Is(err, publishing.ErrNotFound) {
+	// Use a real administrator session in the foreign workspace so this tests
+	// resource scoping after authentication, rather than an unauthenticated call.
+	if _, err := db.SQL.ExecContext(ctx, `INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,'owner',now())`, "other_member_"+id, otherOrgID, userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.SQL.ExecContext(ctx, `INSERT INTO session (id,token,"expiresAt","createdAt","updatedAt","userId","activeOrganizationId") VALUES ($1,$1,now()+interval '1 hour',now(),now(),$2,$3)`, "other_session_"+id, userID, otherOrgID); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.RevokeInvitation(ctx, Actor{OrganizationID: otherOrgID, UserID: userID, SessionID: "other_session_" + id}, invited.ID); !errors.Is(err, publishing.ErrNotFound) {
 		t.Fatalf("cross-tenant invitation revoke succeeded: %v", err)
 	}
 	if err := repo.RevokeInvitation(ctx, actor, invited.ID); err != nil {
@@ -814,7 +822,7 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if err != nil || changedMember.Role != "publisher" {
 		t.Fatalf("member role update=%v err=%v", changedMember, err)
 	}
-	if err := repo.RemoveMember(ctx, workspaceActor, "third_member_"+id); err != nil {
+	if _, err := repo.RemoveMember(ctx, workspaceActor, "third_member_"+id); err != nil {
 		t.Fatalf("member removal: %v", err)
 	}
 	if err := repo.AuthorizeSession(ctx, Actor{UserID: thirdUserID, SessionID: "session_" + thirdUserID}); !errors.Is(err, publishing.ErrUnauthorized) {
@@ -877,7 +885,7 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if err := repo.TransferOwnership(ctx, workspaceActor, "second_member_"+id); err != nil {
 		t.Fatalf("ownership transfer: %v", err)
 	}
-	if err := repo.LeaveWorkspace(ctx, workspaceActor); err != nil {
+	if _, err := repo.LeaveWorkspace(ctx, workspaceActor); err != nil {
 		t.Fatalf("former owner could not leave: %v", err)
 	}
 	if err := repo.AuthorizeSession(ctx, workspaceActor); !errors.Is(err, publishing.ErrUnauthorized) {

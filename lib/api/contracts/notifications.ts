@@ -5,6 +5,9 @@ import {
   notificationPolicySchema,
   notificationPreferencesSchema,
   notificationPageSchema,
+  notificationViewSchema,
+  notificationStateInputSchema,
+  notificationStateResultSchema,
   notificationSeenSchema,
   notificationConnectionSchema,
   notificationSlackChannelsSchema,
@@ -52,8 +55,8 @@ export const getNotificationInboxContract = defineContract({
   shell: true,
   output: notificationPageSchema,
   query: z.object({
-    cursor: z.string().max(1024).default(''),
-    filter: z.enum(['unseen', 'all']).default('all'),
+    cursor: z.string().max(2048).default(''),
+    view: notificationViewSchema.default('all'),
   }),
 })
 
@@ -78,7 +81,6 @@ export const acknowledgeNotificationsContract = defineContract({
   body: z.strictObject({
     ids: z.array(z.string().min(1).max(128)).max(100).optional(),
     all: z.boolean().optional(),
-    undo: z.boolean().optional(),
     key: z.string().min(16).max(128).optional(),
   }),
 })
@@ -103,7 +105,7 @@ export const connectNotificationSlackContract = defineContract({
   shell: true,
   output: z.object({ url: z.string().url() }),
   body: z.strictObject({
-    purpose: z.enum(['notifications', 'design', 'publishing']).default('notifications'),
+    purpose: z.enum(['notifications', 'design', 'publishing', 'personal']).default('notifications'),
     connectionId: z.string().min(1).max(128).optional(),
   }),
 })
@@ -152,7 +154,10 @@ export const testNotificationContract = defineContract({
   summary: 'testNotification',
   shell: true,
   output: z.object({ deliveryId: z.string() }),
-  body: z.strictObject({ channel: z.enum(['email', 'slack']), key: z.string().min(16).max(128) }),
+  body: z.strictObject({
+    channel: z.enum(['email', 'slack', 'slack_dm']),
+    key: z.string().min(16).max(128),
+  }),
 })
 
 /** `GET /api/workspace/notifications/deliveries`: session-scoped workspace activity. */
@@ -162,6 +167,7 @@ export const getNotificationDeliveriesContract = defineContract({
   path: '/api/workspace/notifications/deliveries',
   summary: 'getNotificationDeliveries',
   shell: true,
+  query: z.object({ scope: z.enum(['workspace', 'personal']).default('workspace') }),
   output: z.object({ deliveries: z.array(notificationDeliverySchema) }),
 })
 
@@ -188,14 +194,24 @@ export const getNotificationDeliveryContract = defineContract({
   output: notificationDeliverySchema,
 })
 
-/** Change one notification's seen state without deleting its history. */
-export const setNotificationSeenContract = defineContract({
-  method: 'PATCH',
-  name: 'notifications.setseen',
-  path: '/api/workspace/notifications/items/{id}',
-  summary: 'Set notification seen state',
+/** Persist read or archive state for the authenticated recipient. */
+export const changeNotificationStateContract = defineContract({
+  method: 'POST',
+  name: 'notifications.changestate',
+  path: '/api/workspace/notifications/state',
+  summary: 'Update notification read and archive state',
   shell: true,
+  body: notificationStateInputSchema,
+  output: notificationStateResultSchema,
+})
+
+/** Disconnect only the authenticated member's personal Slack destination. */
+export const disconnectPersonalSlackContract = defineContract({
+  method: 'DELETE',
+  name: 'notifications.disconnectpersonalslack',
+  path: '/api/workspace/notifications/slack/personal/{id}',
+  summary: 'Disconnect my Slack direct messages',
+  shell: true,
+  output: z.object({ disconnected: z.boolean() }),
   params: z.object({ id: z.string().min(1).max(128) }),
-  body: z.strictObject({ seen: z.boolean() }),
-  output: notificationSeenSchema,
 })

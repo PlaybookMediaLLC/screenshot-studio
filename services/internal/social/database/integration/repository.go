@@ -21,11 +21,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/integration"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/messagesgroup"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/orders"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/organization"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/plugs"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/post"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ids"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // Uploader is the part of the upload storage (UploadFactory.createStorage())
@@ -137,6 +139,7 @@ type UpdateIntegrationParams struct {
 // is the 999999999 default, Username nil leaves the profile untouched on
 // update, AdditionalSettings nil keeps the stored settings.
 type CreateOrUpdateIntegrationParams struct {
+	Verification          *socialidentity.Verification
 	AdditionalSettings    []integrations.AdditionalSetting
 	OneTimeToken          bool
 	Org                   string
@@ -355,6 +358,7 @@ func (r *Repository) UpdateIntegration(ctx context.Context, id string, params Up
 		SetName(params.Name).
 		SetInBetweenSteps(params.InBetweenSteps).
 		SetToken(params.Token).
+		ClearVerifiedAccountKey().ClearVerifiedAccountKind().ClearVerifiedScopes().ClearVerifiedCapabilities().ClearIdentityVerifiedAt().
 		SetDisabled(false).
 		ClearDeletedAt()
 	if params.Profile != "" {
@@ -397,7 +401,8 @@ func (r *Repository) MigrateIntegration(ctx context.Context, org, id, internalID
 			return nil, err
 		}
 	}
-	u := r.updateOne(org, id).SetInternalID(internalID).SetProviderIdentifier(providerIdentifier)
+	u := r.updateOne(org, id).SetInternalID(internalID).SetProviderIdentifier(providerIdentifier).
+		ClearVerifiedAccountKey().ClearVerifiedAccountKind().ClearVerifiedScopes().ClearVerifiedCapabilities().ClearIdentityVerifiedAt()
 	if rootInternalID == nil {
 		u.ClearRootInternalID()
 	} else {
@@ -407,6 +412,12 @@ func (r *Repository) MigrateIntegration(ctx context.Context, org, id, internalID
 }
 
 func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUpdateIntegrationParams) (*ent.Integration, error) {
+	if p.Verification != nil {
+		if err := p.Verification.Validate(p.Provider, p.InternalID); err != nil {
+			return nil, err
+		}
+	}
+	verifiedAt := time.Now().UTC()
 	expiresIn := int64(999999999)
 	if p.ExpiresIn != nil {
 		expiresIn = *p.ExpiresIn
@@ -434,12 +445,14 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 		SetToken(p.Token).
 		SetNillableProfile(p.Username).
 		SetInBetweenSteps(p.IsBetweenSteps).
-		SetRefreshToken(p.RefreshToken).
 		SetInternalID(p.InternalID).
 		SetOrganizationID(p.Org).
 		SetRefreshNeeded(false).
 		SetRootInternalID(p.InternalID).
 		SetAdditionalSettings("[]")
+	if p.RefreshToken != "" {
+		create.SetRefreshToken(&p.RefreshToken)
+	}
 	if p.Picture != "" {
 		create.SetPicture(p.Picture)
 	}
@@ -456,8 +469,19 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 		create.SetAdditionalSettings(additionalSettings)
 	}
 
+	if p.Verification != nil {
+		create.SetVerifiedAccountKey(p.Verification.AccountKey).SetVerifiedAccountKind(p.Verification.AccountKind).
+			SetVerifiedScopes(p.Verification.GrantedScopes).SetVerifiedCapabilities(&p.Verification.Capabilities).SetIdentityVerifiedAt(verifiedAt)
+	}
 	id, err := create.OnConflictColumns(integration.FieldOrganizationID, integration.FieldInternalID).
 		Update(func(u *ent.IntegrationUpsert) {
+			// New authorization must carry new verification. Never retain old grants for a replacement token.
+			if p.Verification != nil {
+				u.SetVerifiedAccountKey(p.Verification.AccountKey).SetVerifiedAccountKind(p.Verification.AccountKind).
+					SetVerifiedScopes(p.Verification.GrantedScopes).SetVerifiedCapabilities(&p.Verification.Capabilities).SetIdentityVerifiedAt(verifiedAt)
+			} else {
+				u.ClearVerifiedAccountKey().ClearVerifiedAccountKind().ClearVerifiedScopes().ClearVerifiedCapabilities().ClearIdentityVerifiedAt()
+			}
 			if additionalSettings != "" {
 				u.SetAdditionalSettings(additionalSettings)
 			}
@@ -475,13 +499,16 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 				u.SetProfile(*p.Username)
 			}
 			u.SetProviderIdentifier(p.Provider)
-			u.SetToken(p.Token)
+			// Ent upsert setters bypass ValueScanner; use the sealed insert values.
+			u.UpdateToken()
 			// never wipe a stored refresh token with an empty one
 			if p.RefreshToken != "" {
-				u.SetRefreshToken(p.RefreshToken)
+				u.UpdateRefreshToken()
 			}
 			if expiresIn != 0 {
 				u.SetTokenExpiration(time.Now().Add(time.Duration(expiresIn) * time.Second))
+			} else {
+				u.ClearTokenExpiration()
 			}
 			u.SetInternalID(p.InternalID)
 			u.SetOrganizationID(p.Org)
@@ -508,12 +535,17 @@ func (r *Repository) CreateOrUpdateIntegration(ctx context.Context, p CreateOrUp
 			rootID = *found.RootInternalID
 		}
 		u := r.client.Integration.Update().
-			Where(integration.IDNEQ(upsert.ID), integration.RootInternalID(rootID)).
+			Where(integration.OrganizationID(p.Org), integration.ProviderIdentifier(p.Provider), integration.IDNEQ(upsert.ID), integration.RootInternalID(rootID)).
 			SetToken(p.Token).
-			SetRefreshToken(p.RefreshToken).
+			ClearVerifiedAccountKey().ClearVerifiedAccountKind().ClearVerifiedScopes().ClearVerifiedCapabilities().ClearIdentityVerifiedAt().
 			SetRefreshNeeded(false)
+		if p.RefreshToken != "" {
+			u.SetRefreshToken(&p.RefreshToken)
+		}
 		if expiresIn != 0 {
 			u.SetTokenExpiration(time.Now().Add(time.Duration(expiresIn) * time.Second))
+		} else {
+			u.ClearTokenExpiration()
 		}
 		if err := u.Exec(ctx); err != nil {
 			return nil, err
@@ -529,6 +561,8 @@ func (r *Repository) NeedsToBeRefreshed(ctx context.Context) ([]*ent.Integration
 		integration.InBetweenSteps(false),
 		integration.DeletedAtIsNil(),
 		integration.RefreshNeeded(false),
+		integration.Disabled(false),
+		integration.HasOrganizationWith(organization.DeletedAtIsNil()),
 	).All(ctx)
 }
 
@@ -846,7 +880,9 @@ func (r *Repository) DeleteIntegrationsForAccount(ctx context.Context, org strin
 			ClearPicture().
 			SetDeletedAt(deletedAt)
 		setOrClear(hashOrNil(i.RootInternalID), u.SetRootInternalID, u.ClearRootInternalID)
-		setOrClear(hashOrNil(i.RefreshToken), u.SetRefreshToken, u.ClearRefreshToken)
+		setOrClear(hashOrNil(i.RefreshToken), func(value string) *ent.IntegrationUpdateOne {
+			return u.SetRefreshToken(&value)
+		}, u.ClearRefreshToken)
 		setOrClear(hashOrNil(i.Profile), u.SetProfile, u.ClearProfile)
 		setOrClear(hashOrNil(i.CustomInstanceDetails), u.SetCustomInstanceDetails, u.ClearCustomInstanceDetails)
 		if err := u.Exec(ctx); err != nil {

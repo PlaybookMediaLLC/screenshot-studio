@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 type ClientInformation struct {
@@ -41,15 +42,20 @@ type AdditionalSetting struct {
 }
 
 type AuthTokenDetails struct {
-	ID                 string              `json:"id"`
-	Name               string              `json:"name"`
-	Error              string              `json:"error,omitempty"`
-	AccessToken        string              `json:"accessToken"`
-	RefreshToken       string              `json:"refreshToken,omitempty"`
-	ExpiresIn          int64               `json:"expiresIn,omitempty"` // seconds
-	Picture            string              `json:"picture,omitempty"`
-	Username           string              `json:"username"`
-	AdditionalSettings []AdditionalSetting `json:"additionalSettings,omitempty"`
+	// CredentialDetails stays in memory until the callback encrypts it. It must
+	// never enter JSON responses or workflow payloads.
+	CredentialDetails  *string                      `json:"-"`
+	Verification       *socialidentity.Verification `json:"-"`
+	ID                 string                       `json:"id"`
+	Name               string                       `json:"name"`
+	Error              string                       `json:"error,omitempty"`
+	AccessToken        string                       `json:"accessToken"`
+	RefreshToken       string                       `json:"refreshToken,omitempty"`
+	ExpiresIn          int64                        `json:"expiresIn,omitempty"`   // seconds
+	NonExpiring        bool                         `json:"nonExpiring,omitempty"` // verified provider contract; clears any previous expiry
+	Picture            string                       `json:"picture,omitempty"`
+	Username           string                       `json:"username"`
+	AdditionalSettings []AdditionalSetting          `json:"additionalSettings,omitempty"`
 }
 
 // AuthMessage is returned by Authenticate when TypeScript returned a string:
@@ -204,6 +210,12 @@ type Provider interface {
 	// Plugs are the @Plug global automations; InternalPlugs the @PostPlug ones.
 	Plugs() []Plug
 	InternalPlugs() []InternalPlug
+}
+
+// IntegrationRefresher renews credentials that require the saved account/server
+// context. The shared refresh service still owns authorization and atomic writes.
+type IntegrationRefresher interface {
+	RefreshIntegration(context.Context, *ent.Integration) (*AuthTokenDetails, error)
 }
 
 // Function is a provider method invoked by name with

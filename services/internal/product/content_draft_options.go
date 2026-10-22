@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // Per-platform publishing rules (RFC 042), checked on every schedule. The web
@@ -17,7 +18,6 @@ import (
 // Documents APIs (visibility, poll, document), and X's article endpoints.
 
 const (
-	xPremiumLimit            = 25_000
 	linkedInPollQuestion     = 140
 	linkedInPollOptionLength = 30
 	xPollOptionLength        = 25
@@ -102,9 +102,10 @@ func checkPoll(channel string, poll *postoptions.Poll, options *postoptions.Publ
 	optionLimit := xPollOptionLength
 	switch channel {
 	case "x":
-		if poll.DurationMinutes < 5 || poll.DurationMinutes > 7*24*60 {
-			return invalid("An X poll stays open 5 minutes to 7 days.")
+		if err := socialidentity.CheckXPoll(poll.Options, poll.DurationMinutes, media, false); err != nil {
+			return invalid(err.Error())
 		}
+		return nil
 	case "linkedin":
 		optionLimit = linkedInPollOptionLength
 		question := ""

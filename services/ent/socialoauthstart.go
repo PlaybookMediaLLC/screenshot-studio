@@ -3,12 +3,14 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 )
 
@@ -31,6 +33,24 @@ type SocialOAuthStart struct {
 	IntegrationID *string `json:"integration_id,omitempty"`
 	// SocialSetID holds the value of the "social_set_id" field.
 	SocialSetID *string `json:"social_set_id,omitempty"`
+	// Operation holds the value of the "operation" field.
+	Operation socialoauthstart.Operation `json:"operation,omitempty"`
+	// CreationVisibility holds the value of the "creation_visibility" field.
+	CreationVisibility string `json:"creation_visibility,omitempty"`
+	// CreatedSocialSetID holds the value of the "created_social_set_id" field.
+	CreatedSocialSetID *string `json:"created_social_set_id,omitempty"`
+	// ExchangeStatus holds the value of the "exchange_status" field.
+	ExchangeStatus socialoauthstart.ExchangeStatus `json:"exchange_status,omitempty"`
+	// ExchangeReceipt holds the value of the "exchange_receipt" field.
+	ExchangeReceipt schema.SocialOAuthExchange `json:"exchange_receipt,omitempty"`
+	// ExpectedConnectionID holds the value of the "expected_connection_id" field.
+	ExpectedConnectionID *string `json:"expected_connection_id,omitempty"`
+	// ReturnPath holds the value of the "return_path" field.
+	ReturnPath string `json:"return_path,omitempty"`
+	// CompletedConnectionID holds the value of the "completed_connection_id" field.
+	CompletedConnectionID *string `json:"completed_connection_id,omitempty"`
+	// CompletedAt holds the value of the "completed_at" field.
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
 	// ExpiresAt holds the value of the "expires_at" field.
 	ExpiresAt time.Time `json:"expires_at,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -43,9 +63,11 @@ func (*SocialOAuthStart) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case socialoauthstart.FieldID, socialoauthstart.FieldOrganizationID, socialoauthstart.FieldUserID, socialoauthstart.FieldSessionID, socialoauthstart.FieldProvider, socialoauthstart.FieldSecretReference, socialoauthstart.FieldIntegrationID, socialoauthstart.FieldSocialSetID:
+		case socialoauthstart.FieldExchangeReceipt:
+			values[i] = new([]byte)
+		case socialoauthstart.FieldID, socialoauthstart.FieldOrganizationID, socialoauthstart.FieldUserID, socialoauthstart.FieldSessionID, socialoauthstart.FieldProvider, socialoauthstart.FieldSecretReference, socialoauthstart.FieldIntegrationID, socialoauthstart.FieldSocialSetID, socialoauthstart.FieldOperation, socialoauthstart.FieldCreationVisibility, socialoauthstart.FieldCreatedSocialSetID, socialoauthstart.FieldExchangeStatus, socialoauthstart.FieldExpectedConnectionID, socialoauthstart.FieldReturnPath, socialoauthstart.FieldCompletedConnectionID:
 			values[i] = new(sql.NullString)
-		case socialoauthstart.FieldExpiresAt, socialoauthstart.FieldCreatedAt:
+		case socialoauthstart.FieldCompletedAt, socialoauthstart.FieldExpiresAt, socialoauthstart.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -111,6 +133,66 @@ func (_m *SocialOAuthStart) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.SocialSetID = new(string)
 				*_m.SocialSetID = value.String
+			}
+		case socialoauthstart.FieldOperation:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field operation", values[i])
+			} else if value.Valid {
+				_m.Operation = socialoauthstart.Operation(value.String)
+			}
+		case socialoauthstart.FieldCreationVisibility:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field creation_visibility", values[i])
+			} else if value.Valid {
+				_m.CreationVisibility = value.String
+			}
+		case socialoauthstart.FieldCreatedSocialSetID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field created_social_set_id", values[i])
+			} else if value.Valid {
+				_m.CreatedSocialSetID = new(string)
+				*_m.CreatedSocialSetID = value.String
+			}
+		case socialoauthstart.FieldExchangeStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field exchange_status", values[i])
+			} else if value.Valid {
+				_m.ExchangeStatus = socialoauthstart.ExchangeStatus(value.String)
+			}
+		case socialoauthstart.FieldExchangeReceipt:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field exchange_receipt", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.ExchangeReceipt); err != nil {
+					return fmt.Errorf("unmarshal field exchange_receipt: %w", err)
+				}
+			}
+		case socialoauthstart.FieldExpectedConnectionID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field expected_connection_id", values[i])
+			} else if value.Valid {
+				_m.ExpectedConnectionID = new(string)
+				*_m.ExpectedConnectionID = value.String
+			}
+		case socialoauthstart.FieldReturnPath:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field return_path", values[i])
+			} else if value.Valid {
+				_m.ReturnPath = value.String
+			}
+		case socialoauthstart.FieldCompletedConnectionID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field completed_connection_id", values[i])
+			} else if value.Valid {
+				_m.CompletedConnectionID = new(string)
+				*_m.CompletedConnectionID = value.String
+			}
+		case socialoauthstart.FieldCompletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field completed_at", values[i])
+			} else if value.Valid {
+				_m.CompletedAt = new(time.Time)
+				*_m.CompletedAt = value.Time
 			}
 		case socialoauthstart.FieldExpiresAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -182,6 +264,41 @@ func (_m *SocialOAuthStart) String() string {
 	if v := _m.SocialSetID; v != nil {
 		builder.WriteString("social_set_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("operation=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Operation))
+	builder.WriteString(", ")
+	builder.WriteString("creation_visibility=")
+	builder.WriteString(_m.CreationVisibility)
+	builder.WriteString(", ")
+	if v := _m.CreatedSocialSetID; v != nil {
+		builder.WriteString("created_social_set_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("exchange_status=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ExchangeStatus))
+	builder.WriteString(", ")
+	builder.WriteString("exchange_receipt=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ExchangeReceipt))
+	builder.WriteString(", ")
+	if v := _m.ExpectedConnectionID; v != nil {
+		builder.WriteString("expected_connection_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("return_path=")
+	builder.WriteString(_m.ReturnPath)
+	builder.WriteString(", ")
+	if v := _m.CompletedConnectionID; v != nil {
+		builder.WriteString("completed_connection_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.CompletedAt; v != nil {
+		builder.WriteString("completed_at=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("expires_at=")

@@ -73,7 +73,24 @@ test('workspace SDK distinguishes session and organization requests', async () =
       headers: new Headers(init?.headers),
       method: init?.method,
     })
-    return Response.json(path === '/v1/workspaces' ? { workspaces: [] } : { updated: true })
+    return Response.json(
+      path.startsWith('/v1/workspace/invitations')
+        ? {
+            id: 'invite +1',
+            organizationId: 'org-2',
+            inviterId: 'user-1',
+            email: 'test@example.test',
+            role: 'viewer',
+            status: 'pending',
+            createdAt: '2026-10-21T00:00:00Z',
+            expiresAt: '2026-10-28T00:00:00Z',
+            organization: { name: 'Workspace' },
+            user: { name: 'Owner', email: 'owner@example.test' },
+          }
+        : path === '/v1/workspaces'
+          ? { workspaces: [] }
+          : { updated: true }
+    )
   }
   const sessionScope = {
     organizationId: '',

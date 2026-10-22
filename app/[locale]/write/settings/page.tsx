@@ -31,6 +31,7 @@ export default async function WriteSettingsPage({ params, searchParams }: Settin
         canEdit={hasPermission(access.role, 'artifact:edit')}
         canManageSets={canManageSets}
         canPublish={hasPermission(access.role, 'publish:manage')}
+        canReview={hasPermission(access.role, 'release:approve')}
         data={data}
       >
         <DraftSettingsForm

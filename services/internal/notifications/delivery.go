@@ -16,6 +16,7 @@ import (
 )
 
 type Delivery struct {
+	DecisionCode                               string    `json:"decisionCode"`
 	ID                                         string    `json:"id"`
 	OrganizationID                             string    `json:"workspaceId"`
 	EventID                                    string    `json:"eventId"`
@@ -39,6 +40,7 @@ type Outcome struct {
 }
 type occurrence struct {
 	id, org, kind, resourceType, resourceID string
+	sourceSocialSetID                       string
 	payload                                 map[string]any
 	createdAt                               time.Time
 }
@@ -78,7 +80,7 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 	defer tx.Rollback()
 	var e occurrence
 	var raw []byte
-	err = tx.QueryRowContext(ctx, `SELECT id,"organizationId",type,"aggregateType","aggregateId",payload,"createdAt" FROM outbox_event WHERE notification_version=1 AND NOT notification_fanned ORDER BY "createdAt",id FOR UPDATE SKIP LOCKED LIMIT 1`).Scan(&e.id, &e.org, &e.kind, &e.resourceType, &e.resourceID, &raw, &e.createdAt)
+	err = tx.QueryRowContext(ctx, `SELECT id,"organizationId",type,"aggregateType","aggregateId",payload,"createdAt",notification_social_set_id FROM outbox_event WHERE notification_version=1 AND NOT notification_fanned ORDER BY "createdAt",id FOR UPDATE SKIP LOCKED LIMIT 1`).Scan(&e.id, &e.org, &e.kind, &e.resourceType, &e.resourceID, &raw, &e.createdAt, &e.sourceSocialSetID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -118,44 +120,58 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 			if !allowed {
 				continue
 			}
+			if _, sourceAllowed, err := sourceSocialSet(ctx, tx, e.org, user, e.sourceSocialSetID); err != nil {
+				return false, err
+			} else if !sourceAllowed {
+				continue
+			}
 			pref, e2 := preferences(ctx, tx, e.org, user)
 			if e2 != nil {
 				return false, e2
-			}
-			if !pref.socialSetAllows(socialSetOf(row), e.kind) {
-				continue
 			}
 			wantsEmail, e2 := emailWanted(ctx, tx, user)
 			if e2 != nil {
 				return false, e2
 			}
-			for _, channel := range []string{"in_app", "email"} {
-				if !enabled(pol, pref, def, channel) || channel == "email" && !wantsEmail {
-					continue
+			for _, channel := range []string{"in_app", "email", "slack_dm"} {
+				permitted, decision := personalDecision(pol, pref, def, channel, wantsEmail, socialSetOf(row), e.sourceSocialSetID)
+				status, failureCode, connectionID := "PENDING", "", ""
+				if !permitted {
+					status, failureCode = "SKIPPED", decision
+				}
+				if channel == "slack_dm" {
+					personal, err := personalSlack(ctx, tx, e.org, user)
+					if err != nil {
+						return false, err
+					}
+					if personal != nil {
+						connectionID = personal.ID
+					}
+					if permitted {
+						if personal == nil {
+							status, failureCode = "SKIPPED", "SLACK_NOT_CONNECTED"
+						} else if personal.Health != "CONNECTED" {
+							status, failureCode = "BLOCKED", "SLACK_RECONNECT_REQUIRED"
+						}
+					}
 				}
 				id := cuid.New()
-				status := "PENDING"
-				if uncertain, _ := e.payload["notificationLegacyUncertain"].(bool); uncertain && channel == "email" {
+				if uncertain, _ := e.payload["notificationLegacyUncertain"].(bool); uncertain && channel == "email" && permitted {
 					status = "UNCERTAIN"
 				}
-				if channel == "in_app" {
+				if channel == "in_app" && permitted {
 					status = "SUCCEEDED"
 				}
 				var inserted string
-				e2 = tx.QueryRowContext(ctx, `INSERT INTO platform_notification_delivery(id,"organizationId",event_id,kind,channel,destination,status,policy_generation,preference_generation) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING RETURNING id`, id, e.org, e.id, e.kind, channel, user, status, pol.Generation, pref.Generation).Scan(&inserted)
+				e2 = tx.QueryRowContext(ctx, `INSERT INTO platform_notification_delivery(id,"organizationId",event_id,kind,channel,destination,status,policy_generation,preference_generation,connection_id,decision_code,failure_code) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT DO NOTHING RETURNING id`, id, e.org, e.id, e.kind, channel, user, status, pol.Generation, pref.Generation, connectionID, decision, failureCode).Scan(&inserted)
 				if errors.Is(e2, sql.ErrNoRows) {
 					continue
 				}
 				if e2 != nil {
 					return false, e2
 				}
-				if channel == "in_app" {
-					detail, contextErr := s.itemContext(ctx, e.kind, e.resourceType, e.resourceID, e.org, row, e.payload)
-					if contextErr != nil {
-						return false, contextErr
-					}
-					detailJSON, _ := json.Marshal(detail)
-					_, e2 = tx.ExecContext(ctx, `INSERT INTO platform_notification_inbox(id,"organizationId","userId",event_id,kind,resource_type,resource_id,description,href,context) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, id, e.org, user, e.id, e.kind, e.resourceType, e.resourceID, def.Label, href(e.resourceType, e.resourceID, row), detailJSON)
+				if channel == "in_app" && permitted {
+					_, e2 = tx.ExecContext(ctx, `INSERT INTO platform_notification_inbox(id,"organizationId","userId",event_id,kind,resource_type,resource_id,description,href,category) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, id, e.org, user, e.id, e.kind, e.resourceType, e.resourceID, def.Label, href(e.resourceType, e.resourceID, row), notificationCategory(def))
 					if e2 != nil {
 						return false, e2
 					}
@@ -182,20 +198,12 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 	return true, tx.Commit()
 }
 
-func enabled(p Policy, pref Preferences, d activity.Definition, channel string) bool {
-	if !availableChannel(p, channel) {
-		return false
+func enabled(p Policy, pref Preferences, d activity.Definition, channel string, setIDs ...string) bool {
+	if channel == "slack" {
+		return availableChannel(p, channel) && p.Events[d.ID].Slack && !d.Restricted
 	}
-	a, b := p.Events[d.ID], pref.Events[d.ID]
-	switch channel {
-	case "in_app":
-		return a.InApp && b.InApp
-	case "email":
-		return a.Email && b.Email
-	case "slack":
-		return a.Slack && !d.Restricted
-	}
-	return false
+	allowed, _ := personalDecision(p, pref, d, channel, true, setIDs...)
+	return allowed
 }
 func stringsFrom(v any) []string {
 	out := []string{}
@@ -301,6 +309,9 @@ func (s *Service) recipients(ctx context.Context, e occurrence, d activity.Defin
 		}
 	}
 	actor := textValue(e.payload, "actorUserId")
+	if d.MandatoryFailure && actor != "" {
+		wanted[actor] = true
+	}
 	background, _ := e.payload["background"].(bool)
 	rows, err := s.DB.QueryContext(ctx, `SELECT m."userId",m.role FROM member m JOIN "user" u ON u.id=m."userId" WHERE m."organizationId"=$1 AND COALESCE(u.banned,false)=false`, e.org)
 	if err != nil {
@@ -321,11 +332,11 @@ func (s *Service) recipients(ctx context.Context, e occurrence, d activity.Defin
 		case "approvers":
 			eligible = admin || role == "approver"
 		case "draft_reviewers":
-			eligible = admin || role == "publisher"
+			eligible = admin || role == "approver"
 		case "publishers":
-			eligible = eligible || role == "publisher"
+			eligible = eligible || role == "publisher" || role == "writer_publisher"
 		}
-		if eligible && (id != actor || background) {
+		if eligible && (id != actor || notifyActor(d, background)) {
 			result = append(result, id)
 		}
 	}
@@ -350,6 +361,17 @@ func (s *Service) dispatch(ctx context.Context) (bool, error) {
 	if out.Status != "" {
 		return true, s.finish(ctx, d, out)
 	}
+	// Provider discovery can take time. Run it before the final local authority
+	// check, so changes made while Slack responds cannot authorize a later send.
+	if d.Channel == "slack" {
+		if _, err = s.ValidateChannel(ctx, d.OrganizationID, d.connectionID, d.Destination); err != nil {
+			var provider *slackError
+			if errors.As(err, &provider) && (provider.RetryAfter > 0 || slices.Contains([]string{"transport_uncertain", "server_uncertain", "malformed_response", "unexpected_status", "internal_error", "fatal_error"}, provider.Code)) {
+				return true, s.finish(ctx, d, Outcome{Status: "PENDING", Code: provider.Code, RetryAfter: provider.RetryAfter})
+			}
+			return true, s.finish(ctx, d, Outcome{Status: "BLOCKED", Code: "SLACK_DESTINATION_UNAVAILABLE"})
+		}
+	}
 	// Persist the immutable request and the ambiguity boundary before entering the provider.
 	encoded, err := json.Marshal(env)
 	if err != nil {
@@ -367,12 +389,22 @@ func (s *Service) dispatch(ctx context.Context) (bool, error) {
 	if err != nil || n != 1 {
 		return true, err
 	}
+	d.encryptedPayload = encrypted
 	// Authorize again after request preparation; queued configuration changes cannot reroute a send.
-	if _, out, err = s.prepare(ctx, d); err != nil {
+	if env, out, err = s.prepare(ctx, d); err != nil {
 		return true, s.finish(ctx, d, Outcome{Status: "UNCERTAIN", Code: "PRE_SEND_CHECK_FAILED"})
 	}
 	if out.Status != "" {
 		return true, s.finish(ctx, d, out)
+	}
+	// Removal, disconnect and lease recovery can fence a claim independently of
+	// the current access checks. A later grant must not revive that old claim.
+	var ownsClaim bool
+	if err = s.DB.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM platform_notification_delivery WHERE id=$1 AND claim_token=$2 AND status='CLAIMED')`, d.ID, d.claimToken).Scan(&ownsClaim); err != nil {
+		return true, err
+	}
+	if !ownsClaim {
+		return true, nil
 	}
 	out, err = s.Send(ctx, d, env)
 	if err != nil && out.Status == "" {
@@ -391,7 +423,11 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 	if err != nil {
 		return env, Outcome{}, err
 	}
-	if pol.Generation != d.policyGeneration {
+	if !availableChannel(pol, d.Channel) {
+		return skip("WORKSPACE_CHANNEL_DISABLED")
+	}
+	currentDefinition, _ := activity.Lookup(d.Kind)
+	if pol.Generation != d.policyGeneration && !currentDefinition.MandatoryFailure {
 		return skip("CONFIGURATION_CHANGED")
 	}
 	def, ok := activity.Lookup(d.Kind)
@@ -404,8 +440,8 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 		return skip("EVENT_UNAVAILABLE")
 	}
 	var raw []byte
-	var resourceType, resourceID string
-	err = s.DB.QueryRowContext(ctx, `SELECT "aggregateType","aggregateId",payload FROM outbox_event WHERE id=$1 AND "organizationId"=$2`, d.EventID, d.OrganizationID).Scan(&resourceType, &resourceID, &raw)
+	var resourceType, resourceID, sourceID string
+	err = s.DB.QueryRowContext(ctx, `SELECT "aggregateType","aggregateId",payload,notification_social_set_id FROM outbox_event WHERE id=$1 AND "organizationId"=$2`, d.EventID, d.OrganizationID).Scan(&resourceType, &resourceID, &raw, &sourceID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return skip("EVENT_UNAVAILABLE")
 	}
@@ -430,25 +466,26 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 		if def.Restricted || !test && !enabled(pol, defaultPreferences(), def, "slack") || pol.SlackConnectionID != d.connectionID || pol.SlackChannelID != d.Destination {
 			return skip("DESTINATION_CHANGED")
 		}
-		if _, err = s.ValidateChannel(ctx, d.OrganizationID, d.connectionID, d.Destination); err != nil {
-			var provider *slackError
-			if errors.As(err, &provider) && (provider.RetryAfter > 0 || slices.Contains([]string{"transport_uncertain", "server_uncertain", "malformed_response", "unexpected_status", "internal_error", "fatal_error"}, provider.Code)) {
-				// Channel validation is read-only; no notification has been sent.
-				return env, Outcome{Status: "PENDING", Code: provider.Code, RetryAfter: provider.RetryAfter}, nil
+		if !test {
+			private, e := s.privateEvent(ctx, occurrence{org: d.OrganizationID, resourceType: resourceType, resourceID: resourceID, sourceSocialSetID: sourceID})
+			if e != nil {
+				return env, Outcome{}, e
 			}
-			return env, Outcome{Status: "BLOCKED", Code: "SLACK_DESTINATION_UNAVAILABLE"}, nil
+			if private {
+				return skip("ACCESS_REMOVED")
+			}
 		}
 	} else {
 		pref, e := preferences(ctx, s.DB, d.OrganizationID, d.Destination)
 		if e != nil {
 			return env, Outcome{}, e
 		}
-		if pref.Generation != d.preferenceGeneration || !test && !enabled(pol, pref, def, d.Channel) {
+		if pref.Generation != d.preferenceGeneration && !def.MandatoryFailure {
 			return skip("PREFERENCES_CHANGED")
 		}
 		if wants, e := emailWanted(ctx, s.DB, d.Destination); e != nil {
 			return env, Outcome{}, e
-		} else if !wants && !test {
+		} else if d.Channel == "email" && !wants && !test {
 			return skip("EMAIL_TURNED_OFF")
 		}
 		allowed, row, e := s.resource(ctx, d.OrganizationID, d.Destination, resourceType, resourceID)
@@ -458,21 +495,47 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 		if !allowed && !test {
 			return skip("ACCESS_REMOVED")
 		}
-		if !test && !pref.socialSetAllows(socialSetOf(row), d.Kind) {
-			return skip("PREFERENCES_CHANGED")
+		if _, sourceAllowed, e := sourceSocialSet(ctx, s.DB, d.OrganizationID, d.Destination, sourceID); e != nil {
+			return env, Outcome{}, e
+		} else if !sourceAllowed {
+			return skip("ACCESS_REMOVED")
 		}
-		if !emailConfigured() {
-			return env, Outcome{Status: "SKIPPED", Code: "EMAIL_NOT_CONFIGURED"}, nil
+		if !test {
+			allowed, reason := personalDecision(pol, pref, def, d.Channel, true, socialSetOf(row), sourceID)
+			if !allowed {
+				return skip(reason)
+			}
 		}
-		env.Href = appURL(href(resourceType, resourceID, row))
-		if env.Href == "" {
-			return env, Outcome{Status: "BLOCKED", Code: "APPLICATION_URL_INVALID"}, nil
-		}
-		if err = s.DB.QueryRowContext(ctx, `SELECT email FROM "user" WHERE id=$1 AND "emailVerified"=true`, d.Destination).Scan(&env.To); errors.Is(err, sql.ErrNoRows) {
-			return skip("EMAIL_UNVERIFIED")
-		}
-		if err != nil {
-			return env, Outcome{}, err
+		if d.Channel == "slack_dm" {
+			personal, e := personalSlack(ctx, s.DB, d.OrganizationID, d.Destination)
+			if e != nil {
+				return env, Outcome{}, e
+			}
+			if personal == nil || personal.ID != d.connectionID {
+				return skip("DESTINATION_CHANGED")
+			}
+			if personal.Health != "CONNECTED" {
+				return env, Outcome{Status: "BLOCKED", Code: "SLACK_RECONNECT_REQUIRED"}, nil
+			}
+			env.To = personal.SlackUserID
+			env.Href = appURL(href(resourceType, resourceID, row))
+			if env.Href == "" {
+				return env, Outcome{Status: "BLOCKED", Code: "APPLICATION_URL_INVALID"}, nil
+			}
+		} else {
+			if !emailConfigured() {
+				return env, Outcome{Status: "SKIPPED", Code: "EMAIL_NOT_CONFIGURED"}, nil
+			}
+			env.Href = appURL(href(resourceType, resourceID, row))
+			if env.Href == "" {
+				return env, Outcome{Status: "BLOCKED", Code: "APPLICATION_URL_INVALID"}, nil
+			}
+			if err = s.DB.QueryRowContext(ctx, `SELECT email FROM "user" WHERE id=$1 AND "emailVerified"=true`, d.Destination).Scan(&env.To); errors.Is(err, sql.ErrNoRows) {
+				return skip("EMAIL_UNVERIFIED")
+			}
+			if err != nil {
+				return env, Outcome{}, err
+			}
 		}
 	}
 	if err = s.DB.QueryRowContext(ctx, `SELECT name FROM organization WHERE id=$1 AND NOT EXISTS(SELECT 1 FROM workspace_deletion WHERE "organizationId"=$1 AND status<>'CANCELLED')`, d.OrganizationID).Scan(&env.Workspace); errors.Is(err, sql.ErrNoRows) {
@@ -489,6 +552,9 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 		var original Envelope
 		if e = json.Unmarshal(clear, &original); e != nil {
 			return env, Outcome{}, e
+		}
+		if d.Channel == "slack_dm" && original.To != env.To {
+			return skip("DESTINATION_CHANGED")
 		}
 		if d.Channel == "email" && (original.To != env.To || original.Transport != emailTransport() || original.Endpoint != s.emailEndpoint()) {
 			return skip("EMAIL_CHANGED")
@@ -527,11 +593,14 @@ func (s *Service) finish(ctx context.Context, d Delivery, o Outcome) error {
 	return err
 }
 
-func (s *Service) Deliveries(ctx context.Context, p Principal) ([]Delivery, error) {
-	if err := s.Authorize(ctx, p, true); err != nil {
+func (s *Service) Deliveries(ctx context.Context, p Principal, scope string) ([]Delivery, error) {
+	if scope != "" && scope != "workspace" && scope != "personal" {
+		return nil, ErrInvalid
+	}
+	if err := s.Authorize(ctx, p, scope != "personal"); err != nil {
 		return nil, err
 	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT id,"organizationId",event_id,kind,channel,destination,status,failure_code,provider_receipt,attempts,created_at,updated_at FROM platform_notification_delivery WHERE "organizationId"=$1 AND channel<>'in_app' ORDER BY created_at DESC,id DESC LIMIT 100`, p.OrganizationID)
+	rows, err := s.DB.QueryContext(ctx, `SELECT id,"organizationId",event_id,kind,channel,destination,status,failure_code,decision_code,provider_receipt,attempts,created_at,updated_at FROM platform_notification_delivery WHERE "organizationId"=$1 AND (($2 AND channel IN ('email','slack_dm') AND destination=$3) OR (NOT $2 AND channel NOT IN ('in_app','slack_dm'))) ORDER BY created_at DESC,id DESC LIMIT 100`, p.OrganizationID, scope == "personal", p.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -539,7 +608,7 @@ func (s *Service) Deliveries(ctx context.Context, p Principal) ([]Delivery, erro
 	result := []Delivery{}
 	for rows.Next() {
 		var d Delivery
-		if err = rows.Scan(&d.ID, &d.OrganizationID, &d.EventID, &d.Kind, &d.Channel, &d.Destination, &d.Status, &d.FailureCode, &d.ProviderReceipt, &d.Attempts, &d.CreatedAt, &d.UpdatedAt); err != nil {
+		if err = rows.Scan(&d.ID, &d.OrganizationID, &d.EventID, &d.Kind, &d.Channel, &d.Destination, &d.Status, &d.FailureCode, &d.DecisionCode, &d.ProviderReceipt, &d.Attempts, &d.CreatedAt, &d.UpdatedAt); err != nil {
 			return nil, err
 		}
 		result = append(result, d)
@@ -547,7 +616,7 @@ func (s *Service) Deliveries(ctx context.Context, p Principal) ([]Delivery, erro
 	return result, rows.Err()
 }
 func (s *Service) Recover(ctx context.Context, p Principal, id, action string) error {
-	if err := s.Authorize(ctx, p, true); err != nil {
+	if err := s.Authorize(ctx, p, false); err != nil {
 		return err
 	}
 	if !slices.Contains([]string{"retry", "confirm_delivered", "dismiss"}, action) {
@@ -558,17 +627,27 @@ func (s *Service) Recover(ctx context.Context, p Principal, id, action string) e
 		return err
 	}
 	defer tx.Rollback()
-	if err = lockSessionMember(ctx, tx, p, true); err != nil {
+	if err = lockSessionMember(ctx, tx, p, false); err != nil {
 		return err
 	}
-	var status, channel, kind, destination, connectionID, encrypted string
+	var role string
+	if err = tx.QueryRowContext(ctx, `SELECT role FROM member WHERE "organizationId"=$1 AND "userId"=$2`, p.OrganizationID, p.UserID).Scan(&role); err != nil {
+		return err
+	}
+	admin := role == "owner" || role == "admin"
+	var status, channel, kind, destination, connectionID, encrypted, eventID string
 	var started sql.NullTime
-	err = tx.QueryRowContext(ctx, `SELECT status,channel,send_started_at,kind,destination,connection_id,encrypted_payload FROM platform_notification_delivery WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, id, p.OrganizationID).Scan(&status, &channel, &started, &kind, &destination, &connectionID, &encrypted)
+	err = tx.QueryRowContext(ctx, `SELECT status,channel,send_started_at,kind,destination,connection_id,encrypted_payload,event_id FROM platform_notification_delivery WHERE id=$1 AND "organizationId"=$2 AND channel<>'in_app' AND (($3 AND channel<>'slack_dm') OR (channel IN ('email','slack_dm') AND destination=$4)) FOR UPDATE`, id, p.OrganizationID, admin, p.UserID).Scan(&status, &channel, &started, &kind, &destination, &connectionID, &encrypted, &eventID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return publishing.ErrNotFound
 	}
 	if err != nil {
 		return err
+	}
+	// A replay acknowledges the existing transition without creating another
+	// queue item or audit record, including a retry that has already delivered.
+	if action == "confirm_delivered" && status == "SUCCEEDED" || action == "dismiss" && status == "SKIPPED" || action == "retry" && slices.Contains([]string{"PENDING", "CLAIMED", "SUCCEEDED"}, status) {
+		return nil
 	}
 	if !slices.Contains([]string{"BLOCKED", "UNCERTAIN", "DEAD"}, status) {
 		return invalid("only unresolved deliveries can be recovered")
@@ -589,12 +668,11 @@ func (s *Service) Recover(ctx context.Context, p Principal, id, action string) e
 		if e != nil {
 			return e
 		}
-		def, known := activity.Lookup(kind)
-		if kind != "notification.test" && (!known || !enabled(pol, pref, def, channel)) {
-			return invalid("delivery is disabled by current preferences")
-		}
-		if channel == "slack" && (pol.SlackConnectionID != connectionID || pol.SlackChannelID != destination) {
-			return invalid("the original Slack destination is no longer selected")
+		current := Delivery{ID: id, OrganizationID: p.OrganizationID, EventID: eventID, Kind: kind, Channel: channel, Destination: destination, connectionID: connectionID, policyGeneration: pol.Generation, preferenceGeneration: pref.Generation, encryptedPayload: encrypted, sendStartedAt: started}
+		if _, outcome, checkErr := s.prepare(ctx, current); checkErr != nil {
+			return checkErr
+		} else if outcome.Status != "" {
+			return invalid("delivery cannot be retried: " + strings.ToLower(strings.ReplaceAll(outcome.Code, "_", " ")))
 		}
 		if status == "UNCERTAIN" {
 			clear, e := unseal(encrypted)
@@ -632,22 +710,29 @@ func availableChannel(p Policy, ch string) bool {
 		return p.Availability.InApp
 	case "email":
 		return p.Availability.Email
-	case "slack":
+	case "slack", "slack_dm":
 		return p.Availability.Slack
 	}
 	return false
 }
 
-// privateEvent reports whether an event concerns a private social set.
+// privateEvent excludes private or unavailable social-set resources from shared
+// delivery, both during projection and immediately before sending queued work.
 func (s *Service) privateEvent(ctx context.Context, e occurrence) (bool, error) {
+	if private, _, err := privateSocialSet(ctx, s.DB, e.org, e.sourceSocialSetID); err != nil || private {
+		return private, err
+	}
 	table, ok := resourceTables[e.resourceType]
-	if !ok || (table != "content_draft" && table != "scheduled_post") {
+	if e.resourceType == "channel_connection" {
+		table, ok = "channel_connection", true
+	}
+	if !ok || (table != "content_draft" && table != "scheduled_post" && table != "channel_connection") {
 		return false, nil
 	}
 	var setID sql.NullString
-	err := s.DB.QueryRowContext(ctx, `SELECT "socialSetId" FROM `+table+` WHERE id=$1 AND "organizationId"=$2`, e.resourceID, e.org).Scan(&setID)
+	err := s.DB.QueryRowContext(ctx, `SELECT "socialSetId" FROM `+table+` r WHERE id=$1 AND "organizationId"=$2 AND COALESCE(to_jsonb(r)->>'deletedAt','')='' AND COALESCE(to_jsonb(r)->>'status','')<>'DELETED'`, e.resourceID, e.org).Scan(&setID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return true, nil
 	}
 	if err != nil {
 		return false, err

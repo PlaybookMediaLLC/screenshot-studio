@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -80,6 +81,9 @@ func FixedEncryption(value string) (string, error) {
 
 // FixedDecryption is decrypt_legacy_using_IV.
 func FixedDecryption(hash string) (string, error) {
+	if credentialcipher.IsSealed(hash) {
+		return credentialcipher.Open(hash, "custom-instance")
+	}
 	data, err := hex.DecodeString(hash)
 	if err != nil {
 		return "", err

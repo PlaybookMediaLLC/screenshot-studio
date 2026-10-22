@@ -2,6 +2,7 @@
 
 import { z } from 'zod'
 import { debugLog, redactPath } from '@/lib/debug-log'
+import { workspaceScopeHeaders, type WorkspaceRequestScope } from '@/lib/auth/request-scope'
 
 /** A settings request the server refused, with its status and error code. */
 export class SettingsRequestError extends Error {
@@ -32,15 +33,25 @@ const failureSchema = z.object({
 export async function settingsRequest<Schema extends z.ZodType>(
   path: string,
   schema: Schema,
-  options: { body?: unknown; method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE' } = {}
+  options: {
+    body?: unknown
+    method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+    scope?: WorkspaceRequestScope
+    signal?: AbortSignal
+  } = {}
 ): Promise<z.output<Schema>> {
   const method = options.method ?? 'GET'
   const started = performance.now()
   const response = await fetch(path, {
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    cache: 'no-store',
     credentials: 'same-origin',
-    headers: options.body === undefined ? undefined : { 'content-type': 'application/json' },
+    headers: {
+      ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
+      ...(options.scope ? workspaceScopeHeaders(options.scope) : {}),
+    },
     method,
+    signal: options.signal,
   })
   debugLog('request', `${method} ${redactPath(path)} ${response.status}`, {
     durationMs: Math.round(performance.now() - started),

@@ -550,6 +550,528 @@
         }
       }
     },
+    "/api/v1/social-instances/mastodon": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Reads the selected public Mastodon server’s v2 instance metadata. Accepts a hostname or HTTPS origin with no path, port or credentials. The backend blocks private addresses, refuses redirects, limits the response size and bounds network time. This preview does not authorize an account or prove publishing capability. activeUsers is the reported number of active users in the past four weeks, when available.",
+        "operationId": "previewMastodonInstance",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "server",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public instance metadata for the requested origin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MastodonInstancePreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The server origin is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The workspace API request quota is exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceQuotaError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The server is unreachable, private, redirects, or returns an invalid response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Preview a public Mastodon server",
+        "tags": [
+          "Publishing"
+        ]
+      }
+    },
+    "/api/v1/social-connection-attempts": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Starts a provider authorization for the signed-in owner or admin in the active workspace. CREATE_SET requires PRIVATE or WORKSPACE visibility; no set exists until the verified first account commits. ADD_ACCOUNT targets an existing social set, and RECONNECT also binds the existing connection. The attempt retains its original user, session, workspace, and target across workspace switches. Each call starts a new authorization; do not automatically retry a lost begin response. Provider callbacks recover their persisted result instead of exchanging the code twice. API keys cannot connect accounts.",
+        "operationId": "createSocialConnectionAttempt",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SocialConnectionAttemptRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Authorization URL, with a persisted session-bound attempt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocialConnectionAttemptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The operation and owner or target are inconsistent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target does not exist or is private to another person.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The account, provider slot, or subscription cannot accept this connection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The workspace write quota is exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceQuotaError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The provider or a required connection service is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Start a social account connection",
+        "tags": [
+          "Publishing"
+        ]
+      }
+    },
+    "/api/v1/social-connection-availability": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Reads the current adapter configuration and product rollout gates for the active workspace. Only signed-in owners/admins may inspect it; API keys cannot connect accounts. No app IDs, secrets or credentials are returned. Available means a connection can be attempted, not that provider approval, account grants or publishing capabilities have been verified. Subscription capacity, target ownership and occupied slots are rechecked when an attempt starts and commits. The response is not cached.",
+        "operationId": "getSocialConnectionAvailability",
+        "responses": {
+          "200": {
+            "description": "Complete current configuration readiness for the supported connection branches.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocialConnectionAvailability"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request includes unsupported query parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Workspace administration or content draft entitlement is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Social sets are not enabled in this deployment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The workspace API request quota is exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceQuotaError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The workspace binding or adapter availability could not be verified.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Read social connection availability",
+        "tags": [
+          "Publishing"
+        ]
+      }
+    },
+    "/api/v1/bluesky-connection-attempts": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Creates a single-use, session-bound Bluesky connection attempt for an owner or admin. No social set is created yet. Reconnect retains the original account identity. Each call creates a new attempt; do not retry a lost begin response automatically. API keys cannot connect accounts.",
+        "operationId": "beginBlueskyConnection",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlueskyConnectionBeginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A persisted credential attempt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueskyConnectionBeginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ownership or connection target.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target is unavailable to this person.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The provider slot, account or plan conflicts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The write quota is exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceQuotaError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Bluesky connections are unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Start a Bluesky connection",
+        "tags": [
+          "Publishing"
+        ]
+      }
+    },
+    "/api/v1/bluesky-connection-attempts/connect": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Verifies a dedicated app password and commits the account to the original authorized social set. Credentials belong only in this POST body and must never be logged or persisted by clients. Omit credentials to recover a saved result after interruption. An uncertain external exchange returns a conflict and is not automatically retried. The backend rechecks the original session, workspace and target before committing.",
+        "operationId": "completeBlueskyConnection",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlueskyConnectionCompleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified account and social-set association completed or recovered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueskyConnectionCompleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid handle, app-password format or state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The original session or authority is no longer valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The original target is no longer available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Account mismatch, ownership conflict or uncertain external result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The write quota is exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceQuotaError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The adapter is unavailable; a saved result can be checked later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Complete or recover a Bluesky connection",
+        "tags": [
+          "Publishing"
+        ]
+      }
+    },
     "/api/v1/releases": {
       "get": {
         "x-shots-entitlement": {
@@ -1625,7 +2147,7 @@
           "feature": "workspace:use",
           "minimumPlan": "pro"
         },
-        "description": "Returns a short-lived signed download URL for a workspace asset. Requires the `artifact:read` scope.",
+        "description": "Returns a download URL valid for up to two minutes. Each download rechecks the issuing session or credential and current asset access; revocation invalidates outstanding links. Requires the `artifact:read` scope.",
         "operationId": "createAssetDownloadUrl",
         "parameters": [
           {
@@ -9184,6 +9706,7 @@
                             "creator",
                             "approver",
                             "publisher",
+                            "writer_publisher",
                             "viewer"
                           ]
                         },
@@ -9286,6 +9809,12 @@
                           "id": {
                             "type": "string"
                           },
+                          "organizationId": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "type": "string"
+                          },
                           "role": {
                             "type": "string",
                             "enum": [
@@ -9294,6 +9823,7 @@
                               "creator",
                               "approver",
                               "publisher",
+                              "writer_publisher",
                               "viewer"
                             ]
                           },
@@ -9328,6 +9858,8 @@
                         "required": [
                           "createdAt",
                           "id",
+                          "organizationId",
+                          "userId",
                           "role",
                           "user"
                         ],
@@ -9436,6 +9968,7 @@
                                   "creator",
                                   "approver",
                                   "publisher",
+                                  "writer_publisher",
                                   "viewer"
                                 ]
                               },
@@ -9653,6 +10186,8 @@
                         "enum": [
                           "workspace:read",
                           "workspace:update",
+                          "billing:manage",
+                          "connection:manage",
                           "workspace:delete",
                           "workspace:transfer_ownership",
                           "member:read",
@@ -9683,6 +10218,7 @@
                         "creator",
                         "approver",
                         "publisher",
+                        "writer_publisher",
                         "viewer"
                       ]
                     }
@@ -9937,6 +10473,119 @@
         ]
       }
     },
+    "/api/v1/content-drafts/{id}/comments": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Adds, replies, edits, deletes or resolves a comment on a visible draft. Every active member may comment; only its author may edit a comment, while owners/admins may also delete comments. Author identities and timestamps are server-owned. All changes require baseVersion. A repeated or stale action returns 409 without another mutation: read the draft to reconcile an uncertain outcome before submitting a new action. Comment-only changes preserve current approval and never change publication content. API keys are refused.",
+        "operationId": "mutateDraftComment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftCommentAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The committed discussion and draft version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftCommentResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid comment action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Draft or comment unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale draft version or reused comment identifier; reload before another action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The comment service is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Comment on an authorized draft",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
     "/openapi.json": {
       "get": {
         "operationId": "getOpenApiSpec",
@@ -10020,6 +10669,301 @@
       }
     },
     "schemas": {
+      "MastodonInstancePreview": {
+        "type": "object",
+        "properties": {
+          "origin": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1200
+          },
+          "activeUsers": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "authorizationEnabled": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "origin",
+          "title",
+          "description",
+          "activeUsers",
+          "authorizationEnabled"
+        ],
+        "additionalProperties": false
+      },
+      "SocialConnectionAttemptRequest": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "CREATE_SET",
+              "ADD_ACCOUNT",
+              "RECONNECT"
+            ]
+          },
+          "creationVisibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "WORKSPACE"
+            ]
+          },
+          "expectedConnectionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "returnPath": {
+            "type": "string",
+            "pattern": "^\\/(?:workspace\\/social-sets|write)\\/[a-z0-9]{10,32}$"
+          },
+          "socialSetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "x",
+              "instagram",
+              "instagram-standalone",
+              "linkedin",
+              "threads",
+              "mastodon",
+              "mastodon-custom"
+            ]
+          },
+          "instanceServer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          }
+        },
+        "required": [
+          "operation",
+          "provider"
+        ],
+        "additionalProperties": false
+      },
+      "SocialConnectionAttemptResponse": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "SocialConnectionAvailability": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number",
+            "const": 1
+          },
+          "providers": {
+            "minItems": 9,
+            "maxItems": 9,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "type": "string",
+                  "enum": [
+                    "x",
+                    "linkedin",
+                    "threads",
+                    "mastodon",
+                    "mastodon-custom",
+                    "bluesky",
+                    "instagram",
+                    "instagram-standalone",
+                    "substack"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "available",
+                    "not_configured",
+                    "disabled",
+                    "unsupported"
+                  ]
+                }
+              },
+              "required": [
+                "provider",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "version",
+          "providers"
+        ],
+        "additionalProperties": false
+      },
+      "BlueskyConnectionBeginRequest": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "CREATE_SET",
+              "ADD_ACCOUNT",
+              "RECONNECT"
+            ]
+          },
+          "creationVisibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "WORKSPACE"
+            ]
+          },
+          "expectedConnectionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "returnPath": {
+            "type": "string",
+            "pattern": "^\\/(?:workspace\\/social-sets|write)\\/[a-z0-9]{10,32}$"
+          },
+          "socialSetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "operation"
+        ],
+        "additionalProperties": false
+      },
+      "BlueskyConnectionBeginResponse": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{32,512}$"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "BlueskyConnectionCompleteRequest": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{32,512}$"
+          },
+          "credentials": {
+            "type": "object",
+            "properties": {
+              "handle": {
+                "type": "string"
+              },
+              "appPassword": {
+                "type": "string",
+                "pattern": "^[a-z0-9]{4}(-[a-z0-9]{4}){3}$"
+              }
+            },
+            "required": [
+              "handle",
+              "appPassword"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "BlueskyConnectionCompleteResponse": {
+        "type": "object",
+        "properties": {
+          "completed": {
+            "type": "boolean",
+            "const": true
+          },
+          "connectionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "socialSetId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "organizationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "returnPath": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": ""
+              },
+              {
+                "type": "string",
+                "pattern": "^\\/(?:workspace\\/social-sets|write)\\/[a-z0-9]{10,32}$"
+              }
+            ]
+          }
+        },
+        "required": [
+          "completed",
+          "connectionId",
+          "socialSetId",
+          "organizationId",
+          "returnPath"
+        ],
+        "additionalProperties": false
+      },
       "ReleaseListResponse": {
         "type": "object",
         "properties": {
@@ -16394,6 +17338,217 @@
           "organizations",
           "user",
           "workspace"
+        ],
+        "additionalProperties": false
+      },
+      "DraftCommentAction": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "const": "add"
+              },
+              "baseVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "commentId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "threadId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 5000
+              },
+              "mentionUserIds": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              }
+            },
+            "required": [
+              "action",
+              "baseVersion",
+              "commentId",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "const": "edit"
+              },
+              "baseVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "commentId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "threadId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 5000
+              },
+              "mentionUserIds": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              }
+            },
+            "required": [
+              "action",
+              "baseVersion",
+              "commentId",
+              "threadId",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "const": "delete"
+              },
+              "baseVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "commentId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "threadId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              }
+            },
+            "required": [
+              "action",
+              "baseVersion",
+              "commentId",
+              "threadId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "const": "resolve"
+              },
+              "baseVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "threadId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "resolved": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "action",
+              "baseVersion",
+              "threadId",
+              "resolved"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "DraftCommentResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "discussions": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "approvedVersion": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reviewStatus": {
+            "type": "string",
+            "enum": [
+              "none",
+              "pending",
+              "approved",
+              "changes_requested"
+            ]
+          },
+          "reviewNote": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewedByUserId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "discussions",
+          "approvedVersion",
+          "reviewStatus",
+          "reviewNote",
+          "reviewedByUserId"
         ],
         "additionalProperties": false
       },

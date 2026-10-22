@@ -4,17 +4,10 @@
 package bluesky
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"image"
-	"image/gif"
-	"image/jpeg"
-	"image/png"
-	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -28,10 +21,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ssrf"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
-	"golang.org/x/image/draw"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 const identifier = "bluesky"
+
+var errAccountMismatch = temporalx.Disconnect(identifier, "{}", "{}", "Bluesky returned a different account; reconnect the original account")
+var errAccountInactive = temporalx.Disconnect(identifier, "{}", "{}", "Bluesky account is inactive; restore access and reconnect the original account")
 
 // videoServiceURL is Bluesky's video service, overridden by tests.
 var videoServiceURL = "https://video.bsky.app"
@@ -46,18 +42,22 @@ var (
 
 type Provider struct {
 	*integrations.Base
+	connectionClient *http.Client
 }
 
 var (
-	_ integrations.Provider         = (*Provider)(nil)
-	_ integrations.PendingPoster    = (*Provider)(nil)
-	_ integrations.Commenter        = (*Provider)(nil)
-	_ integrations.CustomFielder    = (*Provider)(nil)
-	_ integrations.MentionFormatter = (*Provider)(nil)
+	_ integrations.Provider             = (*Provider)(nil)
+	_ integrations.PendingPoster        = (*Provider)(nil)
+	_ integrations.Commenter            = (*Provider)(nil)
+	_ integrations.CustomFielder        = (*Provider)(nil)
+	_ integrations.MentionFormatter     = (*Provider)(nil)
+	_ integrations.IntegrationRefresher = (*Provider)(nil)
 )
 
-func New() *Provider {
-	return &Provider{Base: integrations.NewBase(identifier, nil)}
+func New() *Provider { return newProvider(ssrf.PublicClient()) }
+
+func newProvider(client *http.Client) *Provider {
+	return &Provider{Base: integrations.NewBase(identifier, nil), connectionClient: client}
 }
 
 func (p *Provider) Info() integrations.Info {
@@ -65,8 +65,8 @@ func (p *Provider) Info() integrations.Info {
 		Identifier: identifier,
 		Name:       "Bluesky",
 		Editor:     "normal",
-		Scopes:     []string{"write:statuses", "profile", "write:media"},
-		ToolTip:    "We don’t currently support two-factor authentication. If it’s enabled on Bluesky, you’ll need to disable it.",
+		Scopes:     []string{"com.atproto.appPass"},
+		ToolTip:    "Use a dedicated Bluesky app password. Keep your main account password private.",
 		// Bluesky limits are per account and per IP
 		MaxConcurrentJob: 6,
 		Rules:            "Bluesky can have maximum 1 video or 4 pictures in one post, it can also be without attachments",
@@ -79,7 +79,7 @@ func (p *Provider) CheckValidity(_ context.Context, posts [][]integrations.Valid
 	for _, post := range posts {
 		hasVideo := false
 		for _, media := range post {
-			if strings.Contains(media.Path, "mp4") {
+			if helpers.HasExtension(media.Path, "mp4") {
 				hasVideo = true
 			}
 		}
@@ -97,75 +97,35 @@ func (p *Provider) CheckValidity(_ context.Context, posts [][]integrations.Valid
 
 func (p *Provider) CustomFields() []integrations.CustomField {
 	return []integrations.CustomField{
-		{
-			Key: "service", Label: "Service", DefaultValue: "https://bsky.social", Type: "text",
-			Validation: `/^(https?:\/\/)?((([a-zA-Z0-9\-_]{1,256}\.[a-zA-Z]{2,6})|(([0-9]{1,3}\.){3}[0-9]{1,3}))(:[0-9]{1,5})?)(\/[^\s]*)?$/`,
-		},
-		{Key: "identifier", Label: "Identifier", Validation: `/^.+$/`, Type: "text"},
-		{Key: "password", Label: "Password", Validation: `/^.{3,}$/`, Type: "password"},
+		{Key: "identifier", Label: "Handle", Validation: `/^@?[a-zA-Z0-9.-]+\.[a-zA-Z][a-zA-Z0-9-]*$/`, Type: "text"},
+		{Key: "password", Label: "App password", Validation: `/^[a-z0-9]{4}(-[a-z0-9]{4}){3}$/`, Type: "password"},
 	}
 }
 
 func (p *Provider) RefreshToken(context.Context, string) (*integrations.AuthTokenDetails, error) {
-	return &integrations.AuthTokenDetails{}, nil
+	// A token alone cannot establish the account's authorized PDS destination.
+	return nil, errConnection
 }
 
 func (p *Provider) GenerateAuthURL(context.Context, *integrations.ClientInformation) (*integrations.GenerateAuthURLResponse, error) {
-	state := ids.Secure(6)
-	return &integrations.GenerateAuthURLResponse{URL: state, CodeVerifier: ids.Secure(10), State: state}, nil
+	state := ids.Secure(32)
+	return &integrations.GenerateAuthURLResponse{URL: state, CodeVerifier: ids.Secure(64), State: state}, nil
 }
 
 type credentials struct {
+	Version    int    `json:"version,omitempty"`
+	ServerDID  string `json:"serverDid,omitempty"`
 	Service    string `json:"service"`
 	Identifier string `json:"identifier"`
 	Password   string `json:"password"`
 }
 
 func (p *Provider) Authenticate(ctx context.Context, params integrations.AuthenticateParams, _ *integrations.ClientInformation) (*integrations.AuthTokenDetails, error) {
-	data, err := base64.StdEncoding.DecodeString(params.Code)
-	if err != nil {
-		if data, err = base64.RawStdEncoding.DecodeString(strings.TrimRight(params.Code, "=")); err != nil {
-			return nil, err
-		}
-	}
-	var body credentials
-	if err := json.Unmarshal(data, &body); err != nil {
-		return nil, err
-	}
-
-	// The service URL is user-supplied: validate it here - the connection
-	// chokepoint - so an internal/private address can never be saved as an
-	// integration. Opt-out matches the SSRF-safe client's env.
-	if !ssrf.Disabled() && !ssrf.IsSafePublicHTTPSURL(ctx, body.Service) {
-		return nil, integrations.AuthMessage("Invalid service URL: must be a public HTTPS address")
-	}
-
-	invalid := integrations.AuthMessage("Invalid credentials")
-	a, err := newAgent(body.Service)
-	if err != nil {
-		return nil, invalid
-	}
-	if err := a.login(ctx, body.Identifier, body.Password); err != nil {
-		return nil, invalid
-	}
-	profile, err := a.getProfile(ctx, a.session.Did)
-	if err != nil {
-		return nil, invalid
-	}
-	now := time.Now()
-	return &integrations.AuthTokenDetails{
-		RefreshToken: a.session.RefreshJwt,
-		ExpiresIn:    now.AddDate(100, 0, 0).Unix() - now.Unix(),
-		AccessToken:  a.session.AccessJwt,
-		ID:           a.session.Did,
-		Name:         profile.DisplayName,
-		Picture:      profile.Avatar,
-		Username:     profile.Handle,
-	}, nil
+	return p.authenticateAppPassword(ctx, params)
 }
 
 // loginAgent logs in with the credentials stored on the integration.
-func loginAgent(ctx context.Context, integration *ent.Integration) (*agent, error) {
+func (p *Provider) loginAgent(ctx context.Context, integration *ent.Integration) (*agent, error) {
 	if integration == nil || integration.CustomInstanceDetails == nil {
 		return nil, errors.New("missing custom instance details")
 	}
@@ -177,15 +137,35 @@ func loginAgent(ctx context.Context, integration *ent.Integration) (*agent, erro
 	if err := json.Unmarshal([]byte(decrypted), &body); err != nil {
 		return nil, err
 	}
-	a, err := newAgent(body.Service)
+	var a *agent
+	if body.Version == 1 {
+		if body.Identifier != integration.InternalID {
+			return nil, errAccountMismatch
+		}
+		a, err = p.credentialAgent(body, "")
+	} else if body.Version == 0 {
+		// Existing encrypted records retain their legacy adapter behavior until
+		// reconnect. New authentication never creates this unverified format.
+		a, err = newAgent(body.Service)
+	} else {
+		return nil, errConnection
+	}
 	if err != nil {
 		return nil, err
 	}
-	return a, a.login(ctx, body.Identifier, body.Password)
+	if err := a.login(ctx, body.Identifier, body.Password); err != nil {
+		return nil, err
+	}
+	// Handles can change owners. A new login must still represent the immutable
+	// DID saved when this integration connected, before any publishing call.
+	if integration.InternalID == "" || a.session.Did != integration.InternalID {
+		return nil, errAccountMismatch
+	}
+	return a, nil
 }
 
 func (p *Provider) getAgent(ctx context.Context, integration *ent.Integration) (*agent, error) {
-	a, err := loginAgent(ctx, integration)
+	a, err := p.loginAgent(ctx, integration)
 	var xrpcErr *XRPCError
 	// Only a definite 4xx (bad password, account taken down) means the
 	// credentials are broken. A 5xx or network error is Bluesky being
@@ -195,157 +175,29 @@ func (p *Provider) getAgent(ctx context.Context, integration *ent.Integration) (
 		data, _ := json.Marshal(xrpcErr)
 		return nil, temporalx.RefreshToken(identifier, string(data), "{}", "")
 	}
-	return a, err
-}
-
-// reduceImageBySize shrinks the image by 10% steps until it is under maxSizeKB.
-func (p *Provider) reduceImageBySize(ctx context.Context, url string, maxSizeKB float64) (width, height int, buffer []byte, err error) {
-	buffer, err = p.ReadOrFetch(ctx, url)
-	if err != nil {
-		return 0, 0, nil, err
-	}
-	cfg, format, err := image.DecodeConfig(bytes.NewReader(buffer))
-	if err != nil {
-		return 0, 0, nil, err
-	}
-	width, height = cfg.Width, cfg.Height
-
-	// Resize iteratively until the size is below the threshold
-	for float64(len(buffer))/1024 > maxSizeKB {
-		width = int(math.Floor(float64(width) * 0.9)) // Reduce dimensions by 10%
-		height = int(math.Floor(float64(height) * 0.9))
-		if buffer, err = resize(buffer, format, width, height); err != nil {
-			return 0, 0, nil, err
-		}
-		if width < 10 || height < 10 {
-			break // Prevent overly small dimensions
-		}
-	}
-	return width, height, buffer, nil
-}
-
-// resize re-encodes in the source format like sharp does; Go has no WebP
-// encoder, so WebP becomes JPEG (sharp's default quality 80).
-func resize(data []byte, format string, width, height int) ([]byte, error) {
-	src, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
-	dst := image.NewRGBA(image.Rect(0, 0, max(width, 1), max(height, 1)))
-	draw.CatmullRom.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
-	var out bytes.Buffer
-	switch format {
-	case "png":
-		err = png.Encode(&out, dst)
-	case "gif":
-		err = gif.Encode(&out, dst, nil)
-	default:
-		err = jpeg.Encode(&out, dst, &jpeg.Options{Quality: 80})
-	}
-	return out.Bytes(), err
-}
-
-func statusText(res *http.Response) string {
-	return strings.TrimPrefix(res.Status, strconv.Itoa(res.StatusCode)+" ")
-}
-
-// startVideoUpload streams the video bytes to the Bluesky video service and
-// returns the job status - it does NOT wait for the processing. The blob only
-// exists once the job completes; callers re-read it from getVideoJobStatus.
-func startVideoUpload(ctx context.Context, a *agent, videoPath string) (*jobStatus, error) {
-	did, err := a.accountDid()
+	limits, err := publishingLimits(integration)
 	if err != nil {
 		return nil, err
 	}
-	var serviceAuth struct {
-		Token string `json:"token"`
-	}
-	if err := a.call(ctx, xrpcRequest{nsid: "com.atproto.server.getServiceAuth", params: url.Values{
-		"aud": {"did:web:" + a.dispatchURL().Host},
-		"lxm": {"com.atproto.repo.uploadBlob"},
-		"exp": {strconv.FormatInt(time.Now().Unix()+60*30, 10)}, // 30 minutes
-	}}, &serviceAuth); err != nil {
-		return nil, err
-	}
-
-	// The video is never buffered in memory: the size comes from a HEAD
-	// request and the bytes are streamed straight from the source into the
-	// upload.
-	temporalx.SetHeartbeatDetails(ctx, "bluesky: video size")
-	head, err := http.NewRequestWithContext(ctx, http.MethodHead, videoPath, nil)
-	if err != nil {
-		return nil, err
-	}
-	// identity encoding so content-length matches the bytes the GET streams
-	head.Header.Set("Accept-Encoding", "identity")
-	headRes, err := ssrf.Client().Do(head)
-	if err != nil {
-		return nil, err
-	}
-	headRes.Body.Close()
-	videoSize, _ := strconv.ParseInt(headRes.Header.Get("Content-Length"), 10, 64)
-	if headRes.StatusCode < 200 || headRes.StatusCode > 299 || videoSize <= 0 {
-		return nil, temporalx.BadBody(identifier, "{}", "{}", "Could not determine the video size for Bluesky upload")
-	}
-
-	temporalx.SetHeartbeatDetails(ctx, "bluesky: read video")
-	get, err := http.NewRequestWithContext(ctx, http.MethodGet, videoPath, nil)
-	if err != nil {
-		return nil, err
-	}
-	get.Header.Set("Accept-Encoding", "identity")
-	videoRes, err := ssrf.Client().Do(get)
-	if err != nil {
-		return nil, err
-	}
-	defer videoRes.Body.Close()
-	if videoRes.StatusCode < 200 || videoRes.StatusCode > 299 {
-		return nil, fmt.Errorf("Failed to fetch video: %s", statusText(videoRes))
-	}
-
-	parts := strings.Split(videoPath, "/")
-	uploadURL := videoServiceURL + "/xrpc/app.bsky.video.uploadVideo?" + url.Values{"did": {did}, "name": {parts[len(parts)-1]}}.Encode()
-	temporalx.SetHeartbeatDetails(ctx, "bluesky: upload video")
-	upload, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, videoRes.Body)
-	if err != nil {
-		return nil, err
-	}
-	upload.ContentLength = videoSize
-	upload.Header.Set("Authorization", "Bearer "+serviceAuth.Token)
-	upload.Header.Set("Content-Type", "video/mp4")
-	uploadRes, err := http.DefaultClient.Do(upload)
-	if err != nil {
-		return nil, err
-	}
-	defer uploadRes.Body.Close()
-	data, err := io.ReadAll(uploadRes.Body)
-	if err != nil {
-		return nil, err
-	}
-	var job jobStatus
-	if err := json.Unmarshal(data, &job); err != nil {
-		return nil, err
-	}
-	if job.State == "JOB_STATE_FAILED" {
-		return nil, temporalx.BadBody(identifier, "{}", "{}", "Could not upload video, job failed")
-	}
-	return &job, nil
+	a.limits = limits
+	return a, nil
 }
 
 // getVideoJobStatus is a single read of the processing job - the endpoint is
 // public (no login), so status checks never spend Bluesky's strict
 // createSession rate limits.
-func getVideoJobStatus(ctx context.Context, jobID string) (*jobStatus, error) {
-	a, err := newAgent(videoServiceURL)
-	if err != nil {
-		return nil, err
-	}
-	a.client = http.DefaultClient
+func (p *Provider) getVideoJobStatus(ctx context.Context, jobID string) (*jobStatus, error) {
 	var out struct {
 		JobStatus jobStatus `json:"jobStatus"`
 	}
-	if err := a.call(ctx, xrpcRequest{nsid: "app.bsky.video.getJobStatus", params: url.Values{"jobId": {jobID}}}, &out); err != nil {
+	if err := p.videoCall(ctx, "app.bsky.video.getJobStatus", "", url.Values{"jobId": {jobID}}, &out); err != nil {
 		return nil, err
+	}
+	if out.JobStatus.JobID != jobID {
+		return nil, contentFailure("Bluesky returned a different video processing job")
 	}
 	return &out.JobStatus, nil
 }
@@ -355,13 +207,14 @@ func hasBlob(blob json.RawMessage) bool { return len(blob) > 0 && string(blob) !
 type videoEmbed struct {
 	Type  string          `json:"$type"`
 	Video json.RawMessage `json:"video"`
+	Alt   string          `json:"alt,omitempty"`
 }
 
 // uploadVideo is the blocking upload+wait, used by the paths that still
 // resolve everything inside one activity (comments, and Post for pre-v1.0.6
 // workflows).
 func (p *Provider) uploadVideo(ctx context.Context, a *agent, videoPath string) (*videoEmbed, error) {
-	job, err := startVideoUpload(ctx, a, videoPath)
+	job, err := p.startVideoUpload(ctx, a, videoPath)
 	if err != nil {
 		return nil, err
 	}
@@ -372,12 +225,15 @@ func (p *Provider) uploadVideo(ctx context.Context, a *agent, videoPath string) 
 		if attempts >= maxAttempts {
 			return nil, temporalx.BadBody(identifier, "{}", "{}", "Video upload timed out, job did not complete")
 		}
-		status, err := getVideoJobStatus(ctx, job.JobID)
+		status, err := p.getVideoJobStatus(ctx, job.JobID)
 		if err != nil {
 			return nil, err
 		}
 		if hasBlob(status.Blob) {
 			blob = status.Blob
+		}
+		if a.session == nil || status.Did != a.session.Did {
+			return nil, contentFailure("Bluesky returned a video for another account")
 		}
 		if status.State == "JOB_STATE_FAILED" {
 			return nil, temporalx.BadBody(identifier, "{}", "{}", "Could not upload video, job failed")
@@ -385,6 +241,9 @@ func (p *Provider) uploadVideo(ctx context.Context, a *agent, videoPath string) 
 		if err := p.Sleep(ctx, videoPollInterval); err != nil {
 			return nil, err
 		}
+	}
+	if err := checkBlob(blob, "video/mp4", a.limits.VideoMaxBytes, a.limits); err != nil {
+		return nil, err
 	}
 	return &videoEmbed{Type: "app.bsky.embed.video", Video: blob}, nil
 }
@@ -405,42 +264,6 @@ type imagesEmbed struct {
 	Images []embedImage `json:"images"`
 }
 
-// uploadMediaForPost uploads the images and the first video; the embed is
-// nil when there is no media.
-func (p *Provider) uploadMediaForPost(ctx context.Context, a *agent, media []integrations.MediaContent) (any, error) {
-	var imageMedia, videoMedia []integrations.MediaContent
-	for _, m := range media {
-		if helpers.HasExtension(m.Path, "mp4") {
-			videoMedia = append(videoMedia, m)
-		} else {
-			imageMedia = append(imageMedia, m)
-		}
-	}
-
-	var images []embedImage
-	for _, m := range imageMedia {
-		width, height, buffer, err := p.reduceImageBySize(ctx, m.Path, 976)
-		if err != nil {
-			return nil, err
-		}
-		temporalx.SetHeartbeatDetails(ctx, "bluesky: upload blob")
-		blob, err := a.uploadBlob(ctx, buffer)
-		if err != nil {
-			return nil, err
-		}
-		images = append(images, embedImage{Alt: m.Alt, Image: blob, AspectRatio: aspectRatio{Width: width, Height: height}})
-	}
-
-	// Upload videos (only one video per post is supported by Bluesky)
-	if len(videoMedia) > 0 {
-		return p.uploadVideo(ctx, a, videoMedia[0].Path)
-	}
-	if len(images) > 0 {
-		return &imagesEmbed{Type: "app.bsky.embed.images", Images: images}, nil
-	}
-	return nil, nil
-}
-
 func nowISO() string { return time.Now().UTC().Format("2006-01-02T15:04:05.000Z") }
 
 type replyRefs struct {
@@ -456,6 +279,9 @@ type refOrUndefined struct {
 
 // createPost is agent.post({ text, facets, createdAt, embed?, reply? }).
 func createPost(ctx context.Context, a *agent, text string, facets []Facet, embed any, reply *replyRefs) (*createdRecord, error) {
+	if err := socialidentity.CheckBlueskyText(text); err != nil {
+		return nil, contentFailure(err.Error())
+	}
 	record := map[string]any{"text": text, "createdAt": nowISO()}
 	if facets != nil {
 		record["facets"] = facets
@@ -497,6 +323,7 @@ type PendingData struct {
 type PendingMedia struct {
 	Path string `json:"path"`
 	Alt  string `json:"alt"`
+	Type string `json:"type,omitempty"`
 }
 
 func (d PendingData) raw() json.RawMessage {
@@ -511,6 +338,17 @@ func decodePending(raw json.RawMessage) (PendingData, error) {
 }
 
 func (p *Provider) PostPending(ctx context.Context, _, _ string, posts []integrations.PostDetails, integration *ent.Integration) ([]integrations.PostResponse, error) {
+	if len(posts) == 0 {
+		return nil, contentFailure("Choose a Bluesky post to publish")
+	}
+	for _, post := range posts {
+		if err := checkPostContent(post); err != nil {
+			return nil, err
+		}
+	}
+	if _, err := publishingLimits(integration); err != nil {
+		return nil, err
+	}
 	firstPost := posts[0]
 
 	// Only the video has an asynchronous processing step: start its upload
@@ -520,14 +358,14 @@ func (p *Provider) PostPending(ctx context.Context, _, _ string, posts []integra
 	// post behind.
 	jobID := ""
 	for _, m := range firstPost.Media {
-		if !helpers.HasExtension(m.Path, "mp4") {
+		if mediaKind(m) != "video" {
 			continue
 		}
 		a, err := p.getAgent(ctx, integration)
 		if err != nil {
 			return nil, err
 		}
-		job, err := startVideoUpload(ctx, a, m.Path)
+		job, err := p.startVideoUpload(ctx, a, m.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -537,12 +375,12 @@ func (p *Provider) PostPending(ctx context.Context, _, _ string, posts []integra
 
 	pending := PendingData{JobID: jobID, Message: firstPost.Message, Media: []PendingMedia{}}
 	for _, m := range firstPost.Media {
-		pending.Media = append(pending.Media, PendingMedia{Path: m.Path, Alt: m.Alt})
+		pending.Media = append(pending.Media, PendingMedia{Path: m.Path, Alt: m.Alt, Type: m.Type})
 	}
 	return []integrations.PostResponse{{ID: firstPost.ID, Status: "pending", PendingData: pending.raw()}}, nil
 }
 
-func (p *Provider) CheckPostStatus(ctx context.Context, _ string, raw json.RawMessage, _ *ent.Integration) (*integrations.PendingCheckResponse, error) {
+func (p *Provider) CheckPostStatus(ctx context.Context, _ string, raw json.RawMessage, integration *ent.Integration) (*integrations.PendingCheckResponse, error) {
 	pending, err := decodePending(raw)
 	if err != nil {
 		return nil, err
@@ -568,15 +406,18 @@ func (p *Provider) CheckPostStatus(ctx context.Context, _ string, raw json.RawMe
 		return witness(), nil
 	}
 
-	status, err := getVideoJobStatus(ctx, pending.JobID)
+	status, err := p.getVideoJobStatus(ctx, pending.JobID)
 	if err != nil {
-		if temporalx.FailureType(err) == temporalx.TypeRefreshToken {
+		if temporalx.FailureType(err) == temporalx.TypeRefreshToken || temporalx.FailureType(err) == temporalx.TypeBadBody || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return nil, err
 		}
 		// Transient status-check error: the job may finish processing just
 		// fine, keep polling - if the video service stays broken the workflow
 		// exhausts its checks and warns the user properly.
 		return &integrations.PendingCheckResponse{Status: "pending", PendingData: raw}, nil
+	}
+	if integration == nil || status.Did != integration.InternalID {
+		return nil, contentFailure("Bluesky returned a video for another account")
 	}
 	if status.State == "JOB_STATE_FAILED" {
 		data, _ := json.Marshal(status)
@@ -591,6 +432,12 @@ func (p *Provider) CheckPostStatus(ctx context.Context, _ string, raw json.RawMe
 func (p *Provider) FinalizePost(ctx context.Context, _ string, raw json.RawMessage, integration *ent.Integration) (*integrations.PendingCheckResponse, error) {
 	pending, err := decodePending(raw)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkPostContent(pending.post()); err != nil {
+		return nil, err
+	}
+	if _, err := publishingLimits(integration); err != nil {
 		return nil, err
 	}
 	// Create with an arm -> confirm -> publish handshake: the create only
@@ -619,9 +466,12 @@ func (p *Provider) FinalizePost(ctx context.Context, _ string, raw json.RawMessa
 		if pending.JobID != "" {
 			// Re-read the blob from the job (a blob ref never travels through
 			// the workflow history).
-			status, err := getVideoJobStatus(ctx, pending.JobID)
+			status, err := p.getVideoJobStatus(ctx, pending.JobID)
 			if err != nil {
 				return nil, err
+			}
+			if integration == nil || status.Did != integration.InternalID {
+				return nil, contentFailure("Bluesky returned a video for another account")
 			}
 			if status.State == "JOB_STATE_FAILED" {
 				data, _ := json.Marshal(status)
@@ -634,11 +484,17 @@ func (p *Provider) FinalizePost(ctx context.Context, _ string, raw json.RawMessa
 				pending.Attempting, pending.Confirmed = false, false
 				return &integrations.PendingCheckResponse{Status: "pending", PendingData: pending.raw()}, nil
 			}
+			if err := checkBlob(status.Blob, "video/mp4", a.limits.VideoMaxBytes, a.limits); err != nil {
+				return nil, err
+			}
 			embed = &videoEmbed{Type: "app.bsky.embed.video", Video: status.Blob}
+			if len(pending.Media) == 1 {
+				embed = &videoEmbed{Type: "app.bsky.embed.video", Video: status.Blob, Alt: pending.Media[0].Alt}
+			}
 		} else {
 			media := make([]integrations.MediaContent, 0, len(pending.Media))
 			for _, m := range pending.Media {
-				media = append(media, integrations.MediaContent{Path: m.Path, Alt: m.Alt})
+				media = append(media, integrations.MediaContent{Path: m.Path, Alt: m.Alt, Type: m.Type})
 			}
 			if embed, err = p.uploadMediaForPost(ctx, a, media); err != nil {
 				return nil, err
@@ -650,8 +506,8 @@ func (p *Provider) FinalizePost(ctx context.Context, _ string, raw json.RawMessa
 	early, err := prepare()
 	if err != nil {
 		// Explicit verdicts keep their meaning: a failed video job fails the
-		// post, an invalid login goes through the refresh-token flow.
-		if kind := temporalx.FailureType(err); kind == temporalx.TypeBadBody || kind == temporalx.TypeRefreshToken {
+		// post, an invalid login refreshes, and identity loss requires reconnect.
+		if kind := temporalx.FailureType(err); kind == temporalx.TypeBadBody || kind == temporalx.TypeRefreshToken || kind == temporalx.TypeDisconnect {
 			return nil, err
 		}
 		// Repeated preparation failures mean the integration is broken, not
@@ -759,6 +615,12 @@ func (p *Provider) Post(ctx context.Context, id, accessToken string, posts []int
 }
 
 func (p *Provider) Comment(ctx context.Context, id, postID, lastCommentID, _ string, posts []integrations.PostDetails, integration *ent.Integration) ([]integrations.PostResponse, error) {
+	if len(posts) == 0 {
+		return nil, contentFailure("Choose a Bluesky reply to publish")
+	}
+	if err := checkPostContent(posts[0]); err != nil {
+		return nil, err
+	}
 	a, err := p.getAgent(ctx, integration)
 	if err != nil {
 		return nil, err
@@ -831,7 +693,7 @@ func likedThread(ctx context.Context, a *agent, id, likesAmount string) (*thread
 }
 
 func (p *Provider) autoRepostPost(ctx context.Context, integration *ent.Integration, id string, fields map[string]string) (bool, error) {
-	a, err := loginAgent(ctx, integration)
+	a, err := p.loginAgent(ctx, integration)
 	if err != nil {
 		return false, err
 	}
@@ -849,7 +711,7 @@ func (p *Provider) autoRepostPost(ctx context.Context, integration *ent.Integrat
 }
 
 func (p *Provider) autoPlugPost(ctx context.Context, integration *ent.Integration, id string, fields map[string]string) (bool, error) {
-	a, err := loginAgent(ctx, integration)
+	a, err := p.loginAgent(ctx, integration)
 	if err != nil {
 		return false, err
 	}
@@ -911,7 +773,7 @@ func (p *Provider) Plugs() []integrations.Plug {
 }
 
 func (p *Provider) Mention(ctx context.Context, _, query, _ string, integration *ent.Integration) ([]integrations.MentionResult, bool, error) {
-	a, err := loginAgent(ctx, integration)
+	a, err := p.loginAgent(ctx, integration)
 	if err != nil {
 		return nil, false, err
 	}

@@ -1,6 +1,7 @@
 import { z } from 'zod'
+import { workspaceNameInputSchema, workspaceNameSchema } from 'screenshot-studio-backend-sdk'
 
-export const workspaceNameSchema = z.string().trim().min(2, 'Enter a workspace name.').max(100)
+export { workspaceNameSchema }
 
 export const workspaceSlugSchema = z
   .string()
@@ -10,9 +11,20 @@ export const workspaceSlugSchema = z
   .max(100)
 
 export const workspaceCreateSchema = z.object({
-  name: workspaceNameSchema,
+  name: workspaceNameInputSchema,
   slug: workspaceSlugSchema,
-  timeZone: z.string().max(100).refine((zone) => {
-    try { Intl.DateTimeFormat(undefined, { timeZone: zone }); return true } catch { return false }
-  }, 'Choose a valid time zone.').optional(),
+  idempotencyKey: z.uuid().optional(),
+  keepCurrentActiveOrganization: z.boolean().optional(),
+  timeZone: z
+    .string()
+    .max(100)
+    .refine((zone) => {
+      try {
+        Intl.DateTimeFormat(undefined, { timeZone: zone })
+        return true
+      } catch {
+        return false
+      }
+    }, 'Choose a valid time zone.')
+    .optional(),
 })

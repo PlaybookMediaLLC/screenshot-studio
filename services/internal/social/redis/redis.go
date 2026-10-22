@@ -17,6 +17,8 @@ import (
 type Store interface {
 	// Get returns "" and false when the key is missing.
 	Get(ctx context.Context, key string) (string, bool, error)
+	// Take atomically returns and removes a key; only one caller can consume it.
+	Take(ctx context.Context, key string) (string, bool, error)
 	// Set stores value; ttl 0 keeps it forever (SET key value [EX seconds]).
 	Set(ctx context.Context, key, value string, ttl time.Duration) error
 	// SetNX stores value only when the key is missing (SET ... NX).
@@ -47,6 +49,16 @@ type client struct{ c *goredis.Client }
 
 func (r *client) Get(ctx context.Context, key string) (string, bool, error) {
 	value, err := r.c.Get(ctx, key).Result()
+	if errors.Is(err, goredis.Nil) {
+		return "", false, nil
+	}
+	return value, err == nil, err
+}
+
+var takeScript = goredis.NewScript(`local value = redis.call('GET', KEYS[1]); if value then redis.call('DEL', KEYS[1]) end; return value`)
+
+func (r *client) Take(ctx context.Context, key string) (string, bool, error) {
+	value, err := takeScript.Run(ctx, r.c, []string{key}).Text()
 	if errors.Is(err, goredis.Nil) {
 		return "", false, nil
 	}
@@ -126,6 +138,16 @@ func (m *Memory) Get(_ context.Context, key string) (string, bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if e := m.live(key); e != nil {
+		return e.value, true, nil
+	}
+	return "", false, nil
+}
+
+func (m *Memory) Take(_ context.Context, key string) (string, bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if e := m.live(key); e != nil {
+		delete(m.data, key)
 		return e.value, true, nil
 	}
 	return "", false, nil

@@ -62,6 +62,16 @@ web. In the local overlay, use `SOCIAL_X_API_KEY`,
 process variables. LinkedIn uses `LINKEDIN_CLIENT_ID` and
 `LINKEDIN_CLIENT_SECRET`. Do not commit the overlay or tokens.
 
+Threads uses `SOCIAL_THREADS_APP_ID` and `SOCIAL_THREADS_APP_SECRET`; the legacy
+mastodon.social branch uses `SOCIAL_MASTODON_CLIENT_ID` and
+`SOCIAL_MASTODON_CLIENT_SECRET`. The picker reads the adapter's current
+configuration and disables unavailable connections before asking for credentials.
+Bluesky and custom Mastodon require their rollout flag on both product and social
+APIs. Deploy the adapter availability endpoint before the product/web update;
+older adapters cause a recoverable unavailable state. See
+[connection availability](implementation/social-connection-availability.md) for
+the configuration/status contract and coordinated rollout.
+
 The web's authenticated routes start OAuth at
 `/integrations/social/<provider>/start` and receive callbacks at
 `/integrations/social/<provider>`. They call the product backend through the
@@ -85,6 +95,63 @@ make the bucket public. TikTok photo publishing remains unavailable until its
 verified media URL requirement has a separate design and live test.
 
 ## Production release
+
+Social API and worker processes require `PLATFORM_SOCIAL_ENCRYPTION_KEY`, a
+base64-encoded random 32-byte key held in the backend secret store. The local
+`bin/studio` setup generates it. Supply the same value to every backend process
+that reads social credentials, including the product notification service's
+legacy Slack import. Never put it in the web environment. The production spec
+renderer requires the key; the social process refuses to start without it.
+
+The existing `Integration.token` and `refreshToken` fields now use AES-256-GCM
+with a fresh nonce and field-bound authentication. Provider-specific credentials
+and temporary OAuth client secrets use the same envelope, bound to their purpose
+or OAuth state. Existing plaintext tokens and legacy CBC custom credentials stay
+readable during migration. No new credential table or connection identity is
+created. Secret fields must not be used as equality/search predicates: the
+randomized ciphertext intentionally differs on every write.
+
+This storage change requires a coordinated backend rollout:
+
+1. Back up the database and preserve its existing `JWT_SECRET` and encryption
+   keys in the secret store. Pause social API intake and social workers; leave
+   queued workflows intact. Drain active provider calls before stopping workers.
+2. Deploy all readers and writers with the same new key before resuming them.
+   Old binaries cannot read the authenticated envelopes and must not run beside
+   the new writers. Include product workers that import legacy Slack accounts.
+3. Run `/social-credentials` from the new image with `DATABASE_URL`, the new key,
+   and the existing `JWT_SECRET`. It locks batches of 100 integration rows,
+   authenticates each value, and commits one batch at a time. A failed batch is
+   rolled back; earlier batches remain committed. Its error identifies only the
+   row and field. Investigate invalid legacy values without printing credentials,
+   then rerun. A rerun verifies completed rows without rewriting them.
+4. Verify existing accounts and refresh paths against disposable destinations,
+   then resume intake and workers. A rollback to an old binary requires restoring
+   the coordinated database backup while writes remain stopped; prefer a forward
+   fix so new connections and queued work are preserved.
+
+For key rotation, repeat the coordinated pause above. Keep the old key as
+`PLATFORM_SOCIAL_ENCRYPTION_PREVIOUS_KEY` and deploy the new current key to all
+readers and writers together before resuming traffic. Run `/social-credentials` again to reseal old
+envelopes. Retain the previous key until all rows have been verified and transient
+OAuth states (one hour) have expired. Keep historical keys with backups for the
+backup retention period. Never rotate the legacy `JWT_SECRET` before the custom
+credential backfill completes.
+
+Social Temporal payloads now omit access tokens, refresh tokens and custom
+credentials. Activities reload the current account and reject removed, disabled,
+reconnect-required, changed-identity or wrong-workspace accounts before provider
+calls. Refresh results contain a fixed non-secret success marker for frozen
+workflow versions; the next activity reloads the committed token. Retire all old
+Go/TypeScript social workers that depend on payload credentials during the
+coordinated rollout. Existing workflow names and activity names remain unchanged.
+
+This change does not erase prior workflow history. Restrict access to historical
+runs and retain the configured history expiration policy; rotate any credentials
+previously exposed through an unauthorized history read. New live-account checks
+must use the updated API and workers. A local real-Temporal refresh/publish probe
+verifies absence of credential values in durable history and successful replay;
+frozen V101 and V112 refresh paths are also covered by workflow tests.
 
 The [DigitalOcean guide](digitalocean-deployment.md) describes the App
 Platform renderer and release commands. The intended order is database backup,

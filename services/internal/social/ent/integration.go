@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/customer"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/integration"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/organization"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // Integration is the model entity for the Integration schema.
@@ -37,6 +39,16 @@ type Integration struct {
 	Token string `json:"-"`
 	// Disabled holds the value of the "disabled" field.
 	Disabled bool `json:"disabled,omitempty"`
+	// VerifiedAccountKey holds the value of the "verified_account_key" field.
+	VerifiedAccountKey *string `json:"verified_account_key,omitempty"`
+	// VerifiedAccountKind holds the value of the "verified_account_kind" field.
+	VerifiedAccountKind *string `json:"verified_account_kind,omitempty"`
+	// VerifiedScopes holds the value of the "verified_scopes" field.
+	VerifiedScopes []string `json:"verified_scopes,omitempty"`
+	// VerifiedCapabilities holds the value of the "verified_capabilities" field.
+	VerifiedCapabilities *socialidentity.Capabilities `json:"verified_capabilities,omitempty"`
+	// IdentityVerifiedAt holds the value of the "identity_verified_at" field.
+	IdentityVerifiedAt *time.Time `json:"identity_verified_at,omitempty"`
 	// TokenExpiration holds the value of the "token_expiration" field.
 	TokenExpiration *time.Time `json:"token_expiration,omitempty"`
 	// RefreshToken holds the value of the "refresh_token" field.
@@ -56,7 +68,7 @@ type Integration struct {
 	// PostingTimes holds the value of the "posting_times" field.
 	PostingTimes string `json:"posting_times,omitempty"`
 	// CustomInstanceDetails holds the value of the "custom_instance_details" field.
-	CustomInstanceDetails *string `json:"custom_instance_details,omitempty"`
+	CustomInstanceDetails *string `json:"-"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID *string `json:"customer_id,omitempty"`
 	// RootInternalID holds the value of the "root_internal_id" field.
@@ -173,12 +185,18 @@ func (*Integration) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case integration.FieldVerifiedScopes, integration.FieldVerifiedCapabilities:
+			values[i] = new([]byte)
 		case integration.FieldDisabled, integration.FieldInBetweenSteps, integration.FieldRefreshNeeded:
 			values[i] = new(sql.NullBool)
-		case integration.FieldID, integration.FieldInternalID, integration.FieldOrganizationID, integration.FieldName, integration.FieldCustomName, integration.FieldPicture, integration.FieldProviderIdentifier, integration.FieldType, integration.FieldToken, integration.FieldRefreshToken, integration.FieldProfile, integration.FieldPostingTimes, integration.FieldCustomInstanceDetails, integration.FieldCustomerID, integration.FieldRootInternalID, integration.FieldAdditionalSettings:
+		case integration.FieldID, integration.FieldInternalID, integration.FieldOrganizationID, integration.FieldName, integration.FieldCustomName, integration.FieldPicture, integration.FieldProviderIdentifier, integration.FieldType, integration.FieldVerifiedAccountKey, integration.FieldVerifiedAccountKind, integration.FieldProfile, integration.FieldPostingTimes, integration.FieldCustomInstanceDetails, integration.FieldCustomerID, integration.FieldRootInternalID, integration.FieldAdditionalSettings:
 			values[i] = new(sql.NullString)
-		case integration.FieldTokenExpiration, integration.FieldDeletedAt, integration.FieldCreatedAt, integration.FieldUpdatedAt:
+		case integration.FieldIdentityVerifiedAt, integration.FieldTokenExpiration, integration.FieldDeletedAt, integration.FieldCreatedAt, integration.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case integration.FieldToken:
+			values[i] = integration.ValueScanner.Token.ScanValue()
+		case integration.FieldRefreshToken:
+			values[i] = integration.ValueScanner.RefreshToken.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -245,16 +263,53 @@ func (_m *Integration) assignValues(columns []string, values []any) error {
 				_m.Type = value.String
 			}
 		case integration.FieldToken:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field token", values[i])
-			} else if value.Valid {
-				_m.Token = value.String
+			if value, err := integration.ValueScanner.Token.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Token = value
 			}
 		case integration.FieldDisabled:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field disabled", values[i])
 			} else if value.Valid {
 				_m.Disabled = value.Bool
+			}
+		case integration.FieldVerifiedAccountKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field verified_account_key", values[i])
+			} else if value.Valid {
+				_m.VerifiedAccountKey = new(string)
+				*_m.VerifiedAccountKey = value.String
+			}
+		case integration.FieldVerifiedAccountKind:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field verified_account_kind", values[i])
+			} else if value.Valid {
+				_m.VerifiedAccountKind = new(string)
+				*_m.VerifiedAccountKind = value.String
+			}
+		case integration.FieldVerifiedScopes:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field verified_scopes", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.VerifiedScopes); err != nil {
+					return fmt.Errorf("unmarshal field verified_scopes: %w", err)
+				}
+			}
+		case integration.FieldVerifiedCapabilities:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field verified_capabilities", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.VerifiedCapabilities); err != nil {
+					return fmt.Errorf("unmarshal field verified_capabilities: %w", err)
+				}
+			}
+		case integration.FieldIdentityVerifiedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field identity_verified_at", values[i])
+			} else if value.Valid {
+				_m.IdentityVerifiedAt = new(time.Time)
+				*_m.IdentityVerifiedAt = value.Time
 			}
 		case integration.FieldTokenExpiration:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -264,11 +319,10 @@ func (_m *Integration) assignValues(columns []string, values []any) error {
 				*_m.TokenExpiration = value.Time
 			}
 		case integration.FieldRefreshToken:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field refresh_token", values[i])
-			} else if value.Valid {
-				_m.RefreshToken = new(string)
-				*_m.RefreshToken = value.String
+			if value, err := integration.ValueScanner.RefreshToken.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.RefreshToken = value
 			}
 		case integration.FieldProfile:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -449,6 +503,27 @@ func (_m *Integration) String() string {
 	builder.WriteString("disabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Disabled))
 	builder.WriteString(", ")
+	if v := _m.VerifiedAccountKey; v != nil {
+		builder.WriteString("verified_account_key=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.VerifiedAccountKind; v != nil {
+		builder.WriteString("verified_account_kind=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("verified_scopes=")
+	builder.WriteString(fmt.Sprintf("%v", _m.VerifiedScopes))
+	builder.WriteString(", ")
+	builder.WriteString("verified_capabilities=")
+	builder.WriteString(fmt.Sprintf("%v", _m.VerifiedCapabilities))
+	builder.WriteString(", ")
+	if v := _m.IdentityVerifiedAt; v != nil {
+		builder.WriteString("identity_verified_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
 	if v := _m.TokenExpiration; v != nil {
 		builder.WriteString("token_expiration=")
 		builder.WriteString(v.Format(time.ANSIC))
@@ -483,10 +558,7 @@ func (_m *Integration) String() string {
 	builder.WriteString("posting_times=")
 	builder.WriteString(_m.PostingTimes)
 	builder.WriteString(", ")
-	if v := _m.CustomInstanceDetails; v != nil {
-		builder.WriteString("custom_instance_details=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("custom_instance_details=<sensitive>")
 	builder.WriteString(", ")
 	if v := _m.CustomerID; v != nil {
 		builder.WriteString("customer_id=")
@@ -520,6 +592,11 @@ func (_m *Integration) MarshalJSON() ([]byte, error) {
 	w.field("providerIdentifier", _m.ProviderIdentifier)
 	w.field("type", _m.Type)
 	w.field("disabled", _m.Disabled)
+	w.field("verifiedAccountKey", _m.VerifiedAccountKey)
+	w.field("verifiedAccountKind", _m.VerifiedAccountKind)
+	w.field("verifiedScopes", _m.VerifiedScopes)
+	w.field("verifiedCapabilities", _m.VerifiedCapabilities)
+	w.field("identityVerifiedAt", _m.IdentityVerifiedAt)
 	w.field("tokenExpiration", _m.TokenExpiration)
 	w.field("profile", _m.Profile)
 	w.field("deletedAt", _m.DeletedAt)
@@ -528,7 +605,6 @@ func (_m *Integration) MarshalJSON() ([]byte, error) {
 	w.field("inBetweenSteps", _m.InBetweenSteps)
 	w.field("refreshNeeded", _m.RefreshNeeded)
 	w.field("postingTimes", _m.PostingTimes)
-	w.field("customInstanceDetails", _m.CustomInstanceDetails)
 	w.field("customerId", _m.CustomerID)
 	w.field("rootInternalId", _m.RootInternalID)
 	w.field("additionalSettings", _m.AdditionalSettings)

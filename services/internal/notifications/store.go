@@ -1,10 +1,9 @@
-// Package notifications owns workspace activity policy, unseen inboxes and delivery.
+// Package notifications owns workspace activity policy, recipient inbox state and delivery.
 package notifications
 
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,8 +40,10 @@ type Policy struct {
 	SlackChannelName  string              `json:"slackChannelName"`
 }
 type Preferences struct {
-	Events     map[string]Channels `json:"events"`
-	Generation int                 `json:"generation"`
+	SlackEnabled      *bool               `json:"slackEnabled"`
+	SocialSetChannels SocialSetChannels   `json:"socialSetChannels"`
+	Events            map[string]Channels `json:"events"`
+	Generation        int                 `json:"generation"`
 	// SocialSets turns activity kinds off for one social set (RFC 043): set
 	// ID, then kind, false for off. A kind not listed follows Events.
 	SocialSets map[string]map[string]bool `json:"socialSets"`
@@ -58,6 +59,7 @@ func (p Preferences) socialSetAllows(setID, kind string) bool {
 }
 
 type Settings struct {
+	PersonalSlack  *SlackConnection                      `json:"personalSlack"`
 	Effective      map[string]map[string]ChannelDecision `json:"effective"`
 	Catalogue      []activity.Definition                 `json:"catalogue"`
 	Policy         Policy                                `json:"policy"`
@@ -68,16 +70,18 @@ type Settings struct {
 	Connections    []SlackConnection                     `json:"connections"`
 }
 type Item struct {
-	ID                       string       `json:"id"`
-	Kind                     string       `json:"kind"`
-	Description              string       `json:"description"`
-	Href                     string       `json:"href"`
-	WorkspaceID              string       `json:"workspaceId"`
-	WorkspaceName            string       `json:"workspaceName"`
-	CreatedAt                time.Time    `json:"createdAt"`
-	SeenAt                   *time.Time   `json:"seenAt"`
-	Context                  *ItemContext `json:"context,omitempty"`
-	resourceType, resourceID string
+	SourceSocialSet                             *SourceSocialSet `json:"sourceSocialSet"`
+	Category                                    string           `json:"category"`
+	ReadAt                                      *time.Time       `json:"readAt"`
+	ArchivedAt                                  *time.Time       `json:"archivedAt"`
+	ID                                          string           `json:"id"`
+	Kind                                        string           `json:"kind"`
+	Description                                 string           `json:"description"`
+	Href                                        string           `json:"href"`
+	WorkspaceID                                 string           `json:"workspaceId"`
+	WorkspaceName                               string           `json:"workspaceName"`
+	CreatedAt                                   time.Time        `json:"createdAt"`
+	resourceType, resourceID, sourceSocialSetID string
 }
 type Page struct {
 	Items       []Item `json:"items"`
@@ -85,8 +89,7 @@ type Page struct {
 	UnseenCount int    `json:"unseenCount"`
 }
 type SeenResult struct {
-	Deleted     int `json:"deleted"` // Deprecated: always zero; seen state never deletes rows.
-	Updated     int `json:"updated"`
+	Deleted     int `json:"deleted"`
 	UnseenCount int `json:"unseenCount"`
 }
 type Service struct {
@@ -109,7 +112,7 @@ func (s *Service) Authorize(ctx context.Context, p Principal, admin bool) error 
 	if p.Kind != "" && p.Kind != "session" {
 		return publishing.ErrForbidden
 	}
-	roles := []string{"owner", "admin", "creator", "approver", "publisher", "viewer", "member"}
+	roles := []string{"owner", "admin", "creator", "approver", "publisher", "writer_publisher", "viewer", "member"}
 	if admin {
 		roles = []string{"owner", "admin"}
 	}
@@ -124,7 +127,9 @@ func defaultPolicy() Policy {
 	return p
 }
 func defaultPreferences() Preferences {
-	p := Preferences{Events: map[string]Channels{}, Generation: 1, SocialSets: map[string]map[string]bool{}}
+	p := Preferences{Events: map[string]Channels{}, Generation: 1, SocialSets: map[string]map[string]bool{}, SocialSetChannels: SocialSetChannels{}}
+	enabled := true
+	p.SlackEnabled = &enabled
 	for _, d := range activity.Catalogue {
 		p.Events[d.ID] = Channels{InApp: true, Email: true}
 	}
@@ -160,8 +165,8 @@ func policy(ctx context.Context, db queryer, org string) (Policy, error) {
 }
 func preferences(ctx context.Context, db queryer, org, user string) (Preferences, error) {
 	p := defaultPreferences()
-	var raw, sets []byte
-	err := db.QueryRowContext(ctx, `SELECT events,generation,social_sets FROM platform_notification_preference WHERE "organizationId"=$1 AND "userId"=$2`, org, user).Scan(&raw, &p.Generation, &sets)
+	var raw, sets, setChannels []byte
+	err := db.QueryRowContext(ctx, `SELECT events,generation,social_sets,social_set_channels,slack_enabled FROM platform_notification_preference WHERE "organizationId"=$1 AND "userId"=$2`, org, user).Scan(&raw, &p.Generation, &sets, &setChannels, p.SlackEnabled)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, nil
 	}
@@ -179,6 +184,9 @@ func preferences(ctx context.Context, db queryer, org, user string) (Preferences
 		if err = json.Unmarshal(sets, &p.SocialSets); err != nil {
 			return p, err
 		}
+	}
+	if err = json.Unmarshal(setChannels, &p.SocialSetChannels); err != nil {
+		return p, err
 	}
 	return p, nil
 }
@@ -199,16 +207,17 @@ func socialSetOf(row map[string]any) string {
 	return textValue(row, "socialSetId")
 }
 
-// privateSocialSet reports whether a set is private, and to whom.
+// privateSocialSet reports whether a set is private, and to whom. A referenced
+// set that is missing, deleted or outside the workspace has no authorized owner.
 func privateSocialSet(ctx context.Context, db queryer, org, setID string) (bool, string, error) {
 	if setID == "" {
 		return false, "", nil
 	}
 	var visibility string
 	var owner sql.NullString
-	err := db.QueryRowContext(ctx, `SELECT visibility,"ownerUserId" FROM social_set WHERE id=$1 AND "organizationId"=$2`, setID, org).Scan(&visibility, &owner)
+	err := db.QueryRowContext(ctx, `SELECT visibility,"ownerUserId" FROM social_set WHERE id=$1 AND "organizationId"=$2 AND "deletedAt" IS NULL`, setID, org).Scan(&visibility, &owner)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, "", nil
+		return true, "", nil
 	}
 	return visibility == "PRIVATE", owner.String, err
 }
@@ -228,9 +237,13 @@ func (s *Service) Settings(ctx context.Context, p Principal) (*Settings, error) 
 	if err != nil {
 		return nil, err
 	}
+	personal, err := personalSlack(ctx, s.DB, p.OrganizationID, p.UserID)
+	if err != nil {
+		return nil, err
+	}
 	_, keyErr := encryptionKey("PLATFORM_NOTIFICATION_ENCRYPTION_KEY")
 	available := emailConfigured() && keyErr == nil
-	return &Settings{Catalogue: activity.Catalogue, Policy: pol, Preferences: pref, CanManage: s.Authorize(ctx, p, true) == nil, EmailAvailable: available, SlackAvailable: s.slackConfigured(), Connections: connections, Effective: effectiveSettings(pol, pref, available, connections)}, nil
+	return &Settings{PersonalSlack: personal, Catalogue: activity.Catalogue, Policy: pol, Preferences: pref, CanManage: s.Authorize(ctx, p, true) == nil, EmailAvailable: available, SlackAvailable: s.slackConfigured(), Connections: connections, Effective: effectiveSettings(pol, pref, available, connections, personal)}, nil
 }
 func validEvents(events map[string]Channels, personal bool) bool {
 	if len(events) > len(activity.Catalogue) {
@@ -238,7 +251,7 @@ func validEvents(events map[string]Channels, personal bool) bool {
 	}
 	for k, v := range events {
 		d, ok := activity.Lookup(k)
-		if !ok || personal && v.Slack || d.Restricted && v.Slack {
+		if !ok || !personal && d.Restricted && v.Slack {
 			return false
 		}
 	}
@@ -290,7 +303,7 @@ func (s *Service) SavePreferences(ctx context.Context, p Principal, input Prefer
 	if err := s.Authorize(ctx, p, false); err != nil {
 		return nil, err
 	}
-	if !validEvents(input.Events, true) || !validSocialSetPreferences(input.SocialSets) {
+	if !validEvents(input.Events, true) || !validSocialSetPreferences(input.SocialSets) || !validSocialSetChannels(input.SocialSetChannels) {
 		return nil, ErrInvalid
 	}
 	tx, err := s.DB.BeginTx(ctx, nil)
@@ -301,13 +314,36 @@ func (s *Service) SavePreferences(ctx context.Context, p Principal, input Prefer
 	if err = lockSessionMember(ctx, tx, p, false); err != nil {
 		return nil, err
 	}
+	if _, err = tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, "notification-preferences:"+p.OrganizationID+":"+p.UserID); err != nil {
+		return nil, err
+	}
+	current, err := preferences(ctx, tx, p.OrganizationID, p.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if input.Generation != current.Generation {
+		return nil, publishing.ErrConflict
+	}
+	if input.SlackEnabled == nil {
+		input.SlackEnabled = current.SlackEnabled
+	}
+	if input.SocialSetChannels == nil {
+		input.SocialSetChannels = current.SocialSetChannels
+	}
+	if input.SocialSets == nil {
+		input.SocialSets = current.SocialSets
+	}
+	if err = validatePreferenceSets(ctx, tx, p, current, input); err != nil {
+		return nil, err
+	}
 	raw, _ := json.Marshal(input.Events)
 	if input.SocialSets == nil {
 		input.SocialSets = map[string]map[string]bool{}
 	}
 	sets, _ := json.Marshal(input.SocialSets)
-	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_preference(id,"organizationId","userId",events,generation,social_sets) VALUES($1,$2,$3,$4,2,$5)
-	ON CONFLICT("organizationId","userId") DO UPDATE SET events=EXCLUDED.events,social_sets=EXCLUDED.social_sets,generation=platform_notification_preference.generation+1,updated_at=now()`, cuid.New(), p.OrganizationID, p.UserID, raw, sets)
+	setChannels, _ := json.Marshal(input.SocialSetChannels)
+	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_preference(id,"organizationId","userId",events,generation,social_sets,social_set_channels,slack_enabled) VALUES($1,$2,$3,$4,2,$5,$6,$7)
+	ON CONFLICT("organizationId","userId") DO UPDATE SET events=EXCLUDED.events,social_sets=EXCLUDED.social_sets,social_set_channels=EXCLUDED.social_set_channels,slack_enabled=EXCLUDED.slack_enabled,generation=platform_notification_preference.generation+1,updated_at=now()`, cuid.New(), p.OrganizationID, p.UserID, raw, sets, setChannels, *input.SlackEnabled)
 	if err != nil {
 		return nil, err
 	}
@@ -316,99 +352,6 @@ func (s *Service) SavePreferences(ctx context.Context, p Principal, input Prefer
 	}
 	return s.Settings(ctx, p)
 }
-func (s *Service) Count(ctx context.Context, p Principal) (int, error) {
-	if err := s.Authorize(ctx, p, false); err != nil {
-		return 0, err
-	}
-	return count(ctx, s.DB, p)
-}
-func count(ctx context.Context, db queryer, p Principal) (int, error) {
-	var n int
-	err := db.QueryRowContext(ctx, `SELECT count(*) FROM platform_notification_inbox WHERE "organizationId"=$1 AND "userId"=$2 AND seen_at IS NULL`, p.OrganizationID, p.UserID).Scan(&n)
-	return n, err
-}
-func (s *Service) List(ctx context.Context, p Principal, cursor string, filters ...string) (*Page, error) {
-	if err := s.Authorize(ctx, p, false); err != nil {
-		return nil, err
-	}
-	filter := "all"
-	if len(filters) > 0 {
-		filter = filters[0]
-	}
-	if filter != "all" && filter != "unseen" {
-		return nil, ErrInvalid
-	}
-	before := time.Now().Add(24 * time.Hour)
-	beforeID := "~"
-	if cursor != "" {
-		b, e := base64.RawURLEncoding.DecodeString(cursor)
-		if e != nil {
-			return nil, ErrInvalid
-		}
-		parts := strings.SplitN(string(b), "|", 2)
-		if len(parts) != 2 {
-			return nil, ErrInvalid
-		}
-		before, e = time.Parse(time.RFC3339Nano, parts[0])
-		if e != nil {
-			return nil, ErrInvalid
-		}
-		beforeID = parts[1]
-	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT i.id,i.kind,i.description,i.href,i.created_at,i.resource_type,i.resource_id,o.name,i.seen_at,i.context FROM platform_notification_inbox i JOIN organization o ON o.id=i."organizationId" WHERE i."organizationId"=$1 AND i."userId"=$2 AND ($5='all' OR i.seen_at IS NULL) AND (i.created_at,i.id)<($3,$4) ORDER BY i.created_at DESC,i.id DESC LIMIT 21`, p.OrganizationID, p.UserID, before, beforeID, filter)
-	if err != nil {
-		return nil, err
-	}
-	items := []Item{}
-	for rows.Next() {
-		var i Item
-		var raw []byte
-		i.WorkspaceID = p.OrganizationID
-		if err = rows.Scan(&i.ID, &i.Kind, &i.Description, &i.Href, &i.CreatedAt, &i.resourceType, &i.resourceID, &i.WorkspaceName, &i.SeenAt, &raw); err != nil {
-			rows.Close()
-			return nil, err
-		}
-		if err = json.Unmarshal(raw, &i.Context); err != nil {
-			rows.Close()
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	err = rows.Err()
-	rows.Close()
-	if err != nil {
-		return nil, err
-	}
-	page := &Page{Items: items}
-	if len(items) > 20 {
-		page.Items = items[:20]
-		last := page.Items[19]
-		page.NextCursor = base64.RawURLEncoding.EncodeToString([]byte(last.CreatedAt.Format(time.RFC3339Nano) + "|" + last.ID))
-	}
-	for idx := range page.Items {
-		item := &page.Items[idx]
-		ok, row, e := s.resource(ctx, p.OrganizationID, p.UserID, item.resourceType, item.resourceID)
-		if e != nil {
-			return nil, e
-		}
-		if !ok {
-			item.Description = "This activity is no longer available."
-			item.Href = ""
-			item.Context = nil
-		} else {
-			item.Href = href(item.resourceType, item.resourceID, row)
-			if item.Context == nil || item.Context.EntityType == "" {
-				item.Context, e = s.itemContext(ctx, item.Kind, item.resourceType, item.resourceID, p.OrganizationID, row, nil)
-				if e != nil {
-					return nil, e
-				}
-			}
-		}
-	}
-	page.UnseenCount, err = count(ctx, s.DB, p)
-	return page, err
-}
-
 func audit(ctx context.Context, tx *sql.Tx, p Principal, action, id string) error {
 	auditID := cuid.New()
 	_, err := tx.ExecContext(ctx, `INSERT INTO audit_log(id,"organizationId","requestId","actorType","actorUserId","actorDisplay",action,outcome,"entityType","entityId",metadata,"searchText") VALUES($1,$2,$1,'USER',NULLIF($3,''),'workspace member',$4,'SUCCEEDED','notification',$5,'{}',$4)`, auditID, p.OrganizationID, p.UserID, action, id)
@@ -466,11 +409,18 @@ func (s *Service) resource(ctx context.Context, org, user, kind, id string) (boo
 	}
 	if kind == "integration_connection" || kind == "channel_connection" {
 		var owner sql.NullString
-		err := s.DB.QueryRowContext(ctx, `SELECT "createdByUserId" FROM `+kind+` WHERE id=$1 AND "organizationId"=$2`, id, org).Scan(&owner)
+		var setID string
+		err := s.DB.QueryRowContext(ctx, `SELECT "createdByUserId",COALESCE(to_jsonb(c)->>'socialSetId','') FROM `+kind+` c WHERE id=$1 AND "organizationId"=$2`, id, org).Scan(&owner, &setID)
 		if errors.Is(err, sql.ErrNoRows) {
-			return role == "owner" || role == "admin", map[string]any{}, nil
+			return false, nil, nil
 		}
-		return err == nil && (role == "owner" || role == "admin" || owner.String == user), map[string]any{"createdByUserId": owner.String}, err
+		if err != nil {
+			return false, nil, err
+		}
+		if private, setOwner, err := privateSocialSet(ctx, s.DB, org, setID); err != nil || private && setOwner != user {
+			return false, nil, err
+		}
+		return role == "owner" || role == "admin" || owner.String == user, map[string]any{"createdByUserId": owner.String, "socialSetId": setID}, nil
 	}
 	if slices.Contains([]string{"member", "invitation", "organization", "workspace"}, kind) {
 		return role == "owner" || role == "admin", map[string]any{}, nil
@@ -515,8 +465,6 @@ func href(kind, id string, row map[string]any) string {
 	switch kind {
 	case "legacy_activity":
 		return ""
-	case "release":
-		return "/releases/" + id
 	case "campaign":
 		return "/campaigns/" + id + "/copy"
 	case "release_automation_run":
@@ -547,11 +495,7 @@ func href(kind, id string, row map[string]any) string {
 		return "/assets"
 	case "project", "store_review":
 		return "/projects"
-	case "deployment_event":
-		// Receiving a deployment does not mean a product page has been captured.
-		// There is no deployment detail screen to link to yet.
-		return ""
-	case "product_surface":
+	case "product_surface", "deployment_event":
 		return "/workspace/product-pages"
 	case "integration_connection", "channel_connection", "source_app":
 		return "/workspace/integrations"

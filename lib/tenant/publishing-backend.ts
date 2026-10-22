@@ -6,6 +6,7 @@ import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 import {
   BackendSDKError,
   type OAuthProvider,
+  type SocialOAuthStartOptions,
   type ScheduledPost,
 } from 'screenshot-studio-backend-sdk'
 
@@ -68,9 +69,10 @@ export async function cancelBackendScheduledPost(access: TenantContext, id: stri
 export async function beginBackendSocialOAuth(
   access: OrganizationAccess,
   provider: OAuthProvider,
-  socialSetId?: string
+  socialSetId?: string,
+  options: SocialOAuthStartOptions = {}
 ) {
-  const result = await backendSDK(access).beginSocialOAuth(provider, socialSetId)
+  const result = await backendSDK(access).beginSocialOAuth(provider, socialSetId, options)
   return result.url
 }
 

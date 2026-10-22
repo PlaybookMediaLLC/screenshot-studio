@@ -157,7 +157,8 @@ function ThreadList({
       </h3>
       <ul className="grid gap-2">
         {threads.map((thread) => {
-          const orphaned = !anchored.has(thread.id)
+          const orphaned =
+            !anchored.has(thread.id) && !('scope' in thread && thread.scope === 'draft')
           const first = thread.comments?.[0]
           return (
             <li

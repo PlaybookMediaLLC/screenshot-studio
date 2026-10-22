@@ -140,11 +140,11 @@ func TestPostWorkflowV112RefreshesTokenAndRetries(t *testing.T) {
 	var cause string
 	h.on(activities.RefreshTokenWithCause, func(_ context.Context, _ *activities.Integration, c string) (activities.OrFalse[integrations.AuthTokenDetails], error) {
 		cause = c
-		return activities.OrFalse[integrations.AuthTokenDetails]{V: &integrations.AuthTokenDetails{AccessToken: "new"}}, nil
+		return activities.OrFalse[integrations.AuthTokenDetails]{V: &integrations.AuthTokenDetails{AccessToken: "backend-owned"}}, nil
 	})
 	h.run("postWorkflowV112")
 
-	if cause != "token expired" || len(tokens) != 2 || tokens[1] != "new" || len(h.updates) != 1 {
+	if cause != "token expired" || len(tokens) != 2 || tokens[0] != "" || tokens[1] != "" || len(h.updates) != 1 {
 		t.Fatalf("cause=%q tokens=%v updates=%v", cause, tokens, h.updates)
 	}
 }
@@ -306,7 +306,7 @@ func TestPostWorkflowV101RefreshesWithRefreshToken(t *testing.T) {
 	})
 	h.run("postWorkflowV101")
 
-	if len(tokens) != 2 || tokens[1] != "new" || len(h.updates) != 1 || len(h.notices) != 1 {
+	if len(tokens) != 2 || tokens[0] != "" || tokens[1] != "" || len(h.updates) != 1 || len(h.notices) != 1 {
 		t.Fatalf("tokens=%v updates=%v notices=%#v", tokens, h.updates, h.notices)
 	}
 }

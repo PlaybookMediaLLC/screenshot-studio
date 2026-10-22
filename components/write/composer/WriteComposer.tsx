@@ -69,6 +69,7 @@ import { useKeys, useShortcuts } from '../shortcuts'
 import { DraftsDrawerButton } from '../WriteFrame'
 import { useWrite, type WriteSet } from '../write-context'
 import { CommentsPanel } from './comments'
+import { MemberComments } from './member-comments'
 import {
   CompareDialog,
   ManagePlatformsDialog,
@@ -172,7 +173,7 @@ export function WriteComposer({
   const { mod } = useKeys()
   const narrow = useIsMobile()
   const trpcClient = useTRPCClient()
-  const { beforeLeaveRef, canEdit, canPublish, showSaved } = useWrite()
+  const { beforeLeaveRef, canEdit, canPublish, canReview, canManageSets, showSaved } = useWrite()
   const services = React.useMemo(
     () => platformEditorServices(trpcClient, aiEnabled),
     [trpcClient, aiEnabled]
@@ -212,7 +213,9 @@ export function WriteComposer({
         throw error
       }
     }
-    return () => { beforeLeaveRef.current = null }
+    return () => {
+      beforeLeaveRef.current = null
+    }
   }, [beforeLeaveRef, flush])
   const textDirection = usePreferences().preferences?.textDirection ?? 'ltr'
   const [tab, setTab] = React.useState<DraftChannel>(() => primaryChannel(initial.primaryPlatform))
@@ -226,7 +229,13 @@ export function WriteComposer({
       : null
   })
   const [dialog, setDialog] = React.useState<Dialog>(() =>
-    params.get('panel') === 'backups' ? 'backups' : params.get('panel') === 'schedule' ? 'schedule' : params.has('connected') ? 'manage' : null
+    params.get('panel') === 'backups'
+      ? 'backups'
+      : params.get('panel') === 'schedule'
+        ? 'schedule'
+        : params.has('connected')
+          ? 'manage'
+          : null
   )
   const [focus, setFocus] = React.useState(false)
   const [compact, setCompact] = React.useState(false)
@@ -275,7 +284,7 @@ export function WriteComposer({
         {
           channel: account.channel,
           connectionId: account.id,
-          standing: { premium: account.premium },
+          standing: { maxWeightedCharacters: account.xCaptionLimit, articles: account.xArticles },
         },
         pendingBlocks
       ),
@@ -538,14 +547,32 @@ export function WriteComposer({
         title={document.title}
       />
     ) : panel === 'preview' ? (
-      <PreviewPanel items={items.length ? items : [{
-        account: {
-          id: 'preview', channel: active, platform: active, displayName: set?.name ?? user.name,
-          avatarUrl: null, handle: null, premium: false, socialSetId: set?.id ?? null,
-          health: 'connected', createdAt: initial.createdAt,
-        },
-        publication: activePublication,
-      }]} target={document.target} />
+      <PreviewPanel
+        items={
+          items.length
+            ? items
+            : [
+                {
+                  account: {
+                    id: 'preview',
+                    channel: active,
+                    platform: active,
+                    displayName: set?.name ?? user.name,
+                    avatarUrl: null,
+                    handle: null,
+                    premium: false,
+                    socialSetId: set?.id ?? null,
+                    health: 'connected',
+                    createdAt: initial.createdAt,
+                  },
+                  publication: activePublication,
+                },
+              ]
+        }
+        target={document.target}
+      />
+    ) : panel === 'comments' && !canEdit ? (
+      <MemberComments draft={server} currentUserId={user.id} onDraft={setServer} />
     ) : panel === 'comments' ? (
       <CommentsPanel
         draft={server}
@@ -624,7 +651,17 @@ export function WriteComposer({
               {SAVE_LABELS[saveState]}
             </span>
             {saveState === 'error' || saveState === 'offline' ? (
-              <Button size="sm" variant="ghost" onClick={() => void flush().catch((error: unknown) => toast.error(error instanceof Error ? error.message : 'Could not save.'))}>Retry save</Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  void flush().catch((error: unknown) =>
+                    toast.error(error instanceof Error ? error.message : 'Could not save.')
+                  )
+                }
+              >
+                Retry save
+              </Button>
             ) : null}
             {status ? (
               <Pill
@@ -644,9 +681,12 @@ export function WriteComposer({
             {requireApproval || server.reviewStatus !== 'none' ? (
               <ReviewControls
                 canEdit={canEdit}
-                canReview={canPublish}
+                canReview={canReview}
                 draftId={initial.id}
-                onDraft={(next) => setServer(next)}
+                onDraft={(next) => {
+                  setServer(next)
+                  router.refresh()
+                }}
                 review={{ ...server, version: version.current }}
               />
             ) : null}
@@ -783,15 +823,32 @@ export function WriteComposer({
           </div>
         </header>
         {server.status === 'archived' ? (
-          <div role="status" className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-neutral-300">
+          <div
+            role="status"
+            className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-neutral-300"
+          >
             <span>Archived draft. Restore it before scheduling or publishing.</span>
-            {canEdit ? <Button size="sm" variant="outline" onClick={() => void archive('draft')}>Restore draft</Button> : null}
+            {canEdit ? (
+              <Button size="sm" variant="outline" onClick={() => void archive('draft')}>
+                Restore draft
+              </Button>
+            ) : null}
           </div>
         ) : null}
         {accounts.length === 0 ? (
           <div className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-neutral-300">
-            <span>Connect an account to publish. You can write your draft now.</span>
-            <Button size="sm" variant="outline" onClick={() => setDialog('manage')}>Connect account</Button>
+            <span>
+              {canManageSets
+                ? 'Connect an account to publish. You can write your draft now.'
+                : canEdit
+                  ? 'An owner or admin can connect an account. You can write your draft now.'
+                  : 'An owner or admin can connect an account to publish this draft.'}
+            </span>
+            {canManageSets ? (
+              <Button size="sm" variant="outline" onClick={() => setDialog('manage')}>
+                Connect account
+              </Button>
+            ) : null}
           </div>
         ) : null}
         <PlatformTabs
@@ -1007,14 +1064,24 @@ export function WriteComposer({
       {dialog === 'manage' ? (
         <ManagePlatformsDialog
           accounts={accounts}
-          onConnect={canPublish && set ? async (provider) => {
-            try {
-              await flush()
-              window.location.assign(`${connectHref(provider, set.id)}&${new URLSearchParams({ returnTo: `/write/${initial.id}` })}`)
-            } catch (error) {
-              toast.error(error instanceof Error ? error.message : 'Save the draft before connecting an account.')
-            }
-          } : undefined}
+          onConnect={
+            canManageSets && set
+              ? async (provider) => {
+                  try {
+                    await flush()
+                    window.location.assign(
+                      `${connectHref(provider, set.id)}&${new URLSearchParams({ returnTo: `/write/${initial.id}` })}`
+                    )
+                  } catch (error) {
+                    toast.error(
+                      error instanceof Error
+                        ? error.message
+                        : 'Save the draft before connecting an account.'
+                    )
+                  }
+                }
+              : undefined
+          }
           draftVersion={version.current}
           enabled={enabled}
           kind={server.kind}

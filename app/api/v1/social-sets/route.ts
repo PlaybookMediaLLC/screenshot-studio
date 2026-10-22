@@ -15,7 +15,7 @@ export const GET = route(listSocialSetsContract, {
 
 /** Create a social set, shared with the workspace or private to you. */
 export const POST = route(createSocialSetContract, {
-  auth: organizationAccess('publish:manage'),
+  auth: organizationAccess('connection:manage'),
   handler: ({ access, body }) =>
     contentDraftsEnabled()
       ? backendSDK(access).createSocialSet(body)

@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/integration"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/organizations"
 	integrationsdto "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/dtos/integrations"
@@ -70,13 +71,10 @@ func (h *noAuthIntegrationsController) get(ctx context.Context, key string) (str
 	return value, err
 }
 
-// take reads a key and deletes it when it was set.
+// take consumes a key atomically, including credential and callback state.
 func (h *noAuthIntegrationsController) take(ctx context.Context, key string) (string, error) {
-	value, err := h.get(ctx, key)
-	if err != nil || value == "" {
-		return value, err
-	}
-	return value, h.store.Del(ctx, key)
+	value, _, err := h.store.Take(ctx, key)
+	return value, err
 }
 
 func authError(message string) integrations.AuthTokenDetails {
@@ -100,21 +98,20 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 	if !slices.Contains(h.manager.GetAllowedSocialsIntegrations(), name) {
 		return nil, errors.New("Integration not allowed")
 	}
+	if err := credentialcipher.ValidateKey(); err != nil {
+		return nil, err
+	}
 
 	provider := h.manager.GetSocialIntegration(name)
 	_, hasCustomFields := provider.(integrations.CustomFielder)
 	_, isExternal := provider.(integrations.ExternalURLer)
 	info := provider.Info()
 
-	codeVerifier := "none"
-	if !hasCustomFields {
-		var err error
-		if codeVerifier, err = h.get(ctx, "login:"+body.State); err != nil {
-			return nil, err
-		}
+	boundProvider, err := h.get(ctx, "connection-provider:"+body.State)
+	if err != nil {
+		return nil, err
 	}
-	if codeVerifier == "" {
-		// The state expires after an hour and is deleted once used (page reload)
+	if boundProvider != name {
 		return nil, httpx.HTTPException("This connection link expired or was already used, please connect the channel again", http.StatusBadRequest)
 	}
 
@@ -133,15 +130,22 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 		return nil, errors.New("Organization not found")
 	}
 
-	if !hasCustomFields {
-		if err := h.store.Del(ctx, "login:"+body.State); err != nil {
-			return nil, err
-		}
+	// Credential forms need the same one-use exchange boundary as OAuth codes.
+	// Consume before touching any provider or per-attempt credential state.
+	codeVerifier, err := h.take(ctx, "login:"+body.State)
+	if err != nil {
+		return nil, err
+	}
+	if codeVerifier == "" {
+		return nil, httpx.HTTPException("This connection link expired or was already used, please connect the channel again", http.StatusBadRequest)
 	}
 
 	details := ""
 	if isExternal {
 		if details, err = h.take(ctx, "external:"+body.State); err != nil {
+			return nil, err
+		}
+		if details, err = credentialcipher.Open(details, "oauth-external:"+body.State); err != nil {
 			return nil, err
 		}
 	}
@@ -160,6 +164,9 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 	}
 	if auth.ID == "" {
 		return nil, &integrations.NotEnoughScopes{Message: "Invalid API key"}
+	}
+	if auth.CredentialDetails != nil && refresh != "" && auth.ID != refresh {
+		return nil, &integrations.NotEnoughScopes{Message: "Choose the same account already connected to this social set."}
 	}
 
 	validName := auth.Name
@@ -203,10 +210,12 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 
 	customInstanceDetails := ""
 	switch {
+	case auth.CredentialDetails != nil:
+		customInstanceDetails, err = credentialcipher.Seal(*auth.CredentialDetails, "custom-instance")
 	case details != "":
-		customInstanceDetails, err = helpers.FixedEncryption(details)
+		customInstanceDetails, err = credentialcipher.Seal(details, "custom-instance")
 	case hasCustomFields, info.IsChromeExtension:
-		customInstanceDetails, err = helpers.FixedEncryption(string(nodeBase64(body.Code)))
+		customInstanceDetails, err = credentialcipher.Seal(string(nodeBase64(body.Code)), "custom-instance")
 	}
 	if err != nil {
 		return nil, err
@@ -214,6 +223,7 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 
 	timezone, _ := strconv.ParseFloat(strings.TrimSpace(body.Timezone), 64)
 	params := integration.CreateOrUpdateIntegrationParams{
+		Verification:          auth.Verification,
 		AdditionalSettings:    auth.AdditionalSettings,
 		OneTimeToken:          info.OneTimeToken,
 		Org:                   org.ID,
@@ -230,7 +240,10 @@ func (h *noAuthIntegrationsController) connectSocialMedia(c *httpx.Ctx) (any, er
 		Timezone:              int(timezone),
 		CustomInstanceDetails: customInstanceDetails,
 	}
-	if auth.ExpiresIn != 0 {
+	if auth.NonExpiring {
+		zero := int64(0)
+		params.ExpiresIn = &zero
+	} else if auth.ExpiresIn != 0 {
 		params.ExpiresIn = &auth.ExpiresIn
 	}
 	createUpdate, err := h.integrations.CreateOrUpdateIntegration(ctx, params)
@@ -462,6 +475,7 @@ func (h *noAuthIntegrationsController) extensionRefreshCookies(c *httpx.Ctx) (an
 		return nil, err
 	}
 	params := integration.CreateOrUpdateIntegrationParams{
+		Verification:          authResult.Verification,
 		Org:                   organizationID,
 		Name:                  in.Name,
 		Type:                  "social",
@@ -470,7 +484,10 @@ func (h *noAuthIntegrationsController) extensionRefreshCookies(c *httpx.Ctx) (an
 		Token:                 authResult.AccessToken,
 		CustomInstanceDetails: signed,
 	}
-	if authResult.ExpiresIn != 0 {
+	if authResult.NonExpiring {
+		zero := int64(0)
+		params.ExpiresIn = &zero
+	} else if authResult.ExpiresIn != 0 {
 		params.ExpiresIn = &authResult.ExpiresIn
 	}
 	if _, err := h.integrations.CreateOrUpdateIntegration(ctx, params); err != nil {

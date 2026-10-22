@@ -41,7 +41,7 @@ func TestSocialSetNotificationGating(t *testing.T) {
 			t.Fatal(err)
 		}
 		var deliveries int
-		if err = f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_delivery WHERE event_id=$1 AND destination=$2`, event, f.owner.UserID).Scan(&deliveries); err != nil {
+		if err = f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_delivery WHERE event_id=$1 AND destination=$2 AND status<>'SKIPPED'`, event, f.owner.UserID).Scan(&deliveries); err != nil {
 			t.Fatal(err)
 		}
 		return deliveries
@@ -70,7 +70,7 @@ func TestSocialSetNotificationGating(t *testing.T) {
 		t.Fatal(err)
 	}
 	var email, inApp int
-	if err := f.s.DB.QueryRow(`SELECT count(*) FILTER (WHERE channel='email'),count(*) FILTER (WHERE channel='in_app') FROM platform_notification_delivery WHERE event_id=$1 AND destination=$2`, event, f.owner.UserID).Scan(&email, &inApp); err != nil {
+	if err := f.s.DB.QueryRow(`SELECT count(*) FILTER (WHERE channel='email' AND status<>'SKIPPED'),count(*) FILTER (WHERE channel='in_app') FROM platform_notification_delivery WHERE event_id=$1 AND destination=$2 AND status<>'SKIPPED'`, event, f.owner.UserID).Scan(&email, &inApp); err != nil {
 		t.Fatal(err)
 	}
 	if email != 0 || inApp != 1 {

@@ -30,19 +30,26 @@ func TestMain(m *testing.M) {
 // fakeProvider records what the activities hand it.
 type fakeProvider struct {
 	integrations.Provider
-	err       error
-	posted    []integrations.PostDetails
-	pending   bool
-	token     string
-	commented []string // postID, lastCommentID
-	status    *integrations.PendingCheckResponse
+	providerID string
+	received   *ent.Integration
+	err        error
+	posted     []integrations.PostDetails
+	pending    bool
+	token      string
+	commented  []string // postID, lastCommentID
+	status     *integrations.PendingCheckResponse
+	onRefresh  func()
 }
 
 func (p *fakeProvider) Info() integrations.Info {
+	if p.providerID != "" {
+		return integrations.Info{Identifier: p.providerID, Editor: "normal"}
+	}
 	return integrations.Info{Identifier: "fake", Editor: "normal"}
 }
 
-func (p *fakeProvider) Post(_ context.Context, _, token string, list []integrations.PostDetails, _ *ent.Integration) ([]integrations.PostResponse, error) {
+func (p *fakeProvider) Post(_ context.Context, _, token string, list []integrations.PostDetails, in *ent.Integration) ([]integrations.PostResponse, error) {
+	p.received = in
 	p.token, p.posted = token, list
 	if p.err != nil {
 		return nil, p.err
@@ -50,7 +57,8 @@ func (p *fakeProvider) Post(_ context.Context, _, token string, list []integrati
 	return []integrations.PostResponse{{ID: list[0].ID, PostID: "platform-1", ReleaseURL: "https://fake/1", Status: "success"}}, nil
 }
 
-func (p *fakeProvider) PostPending(_ context.Context, _, token string, list []integrations.PostDetails, _ *ent.Integration) ([]integrations.PostResponse, error) {
+func (p *fakeProvider) PostPending(_ context.Context, _, token string, list []integrations.PostDetails, in *ent.Integration) ([]integrations.PostResponse, error) {
+	p.received = in
 	p.token, p.posted, p.pending = token, list, true
 	if p.err != nil {
 		return nil, p.err
@@ -58,12 +66,14 @@ func (p *fakeProvider) PostPending(_ context.Context, _, token string, list []in
 	return []integrations.PostResponse{{ID: list[0].ID, Status: "pending", PendingData: json.RawMessage(`{"job":1}`)}}, nil
 }
 
-func (p *fakeProvider) Comment(_ context.Context, _, postID, lastCommentID, token string, list []integrations.PostDetails, _ *ent.Integration) ([]integrations.PostResponse, error) {
+func (p *fakeProvider) Comment(_ context.Context, _, postID, lastCommentID, token string, list []integrations.PostDetails, in *ent.Integration) ([]integrations.PostResponse, error) {
+	p.received = in
 	p.token, p.posted, p.commented = token, list, []string{postID, lastCommentID}
 	return []integrations.PostResponse{{ID: list[0].ID, PostID: "comment-1", ReleaseURL: "https://fake/c1"}}, nil
 }
 
-func (p *fakeProvider) CheckPostStatus(_ context.Context, token string, pending json.RawMessage, _ *ent.Integration) (*integrations.PendingCheckResponse, error) {
+func (p *fakeProvider) CheckPostStatus(_ context.Context, token string, pending json.RawMessage, in *ent.Integration) (*integrations.PendingCheckResponse, error) {
+	p.received = in
 	p.token = token
 	if p.err != nil {
 		return nil, p.err
@@ -131,14 +141,25 @@ func (f *fixture) list(t *testing.T) []Post {
 	return list
 }
 
-func TestIntegrationWireIncludesToken(t *testing.T) {
+func TestIntegrationWireExcludesCredentials(t *testing.T) {
 	f := setup(t)
+	refresh, custom := "private-refresh", "private-custom"
+	f.in.RefreshToken, f.in.CustomInstanceDetails = &refresh, &custom
 	data, err := json.Marshal(f.in)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), `"token":"secret-token"`) || !strings.Contains(string(data), `"refreshToken":null`) {
-		t.Fatalf("integration = %s", data)
+	for _, forbidden := range []string{"secret-token", "private-refresh", "private-custom", `"token"`, `"refreshToken"`, `"customInstanceDetails"`} {
+		if strings.Contains(string(data), forbidden) {
+			t.Fatal("credential field appeared in workflow payload")
+		}
+	}
+	var legacy Integration
+	if err := json.Unmarshal([]byte(`{"id":"account","organizationId":"org","token":"old-access","refreshToken":"old-refresh","customInstanceDetails":"old-custom"}`), &legacy); err != nil {
+		t.Fatal(err)
+	}
+	if legacy.ID != "account" || legacy.OrganizationID != "org" || legacy.Token != "" || legacy.RefreshToken != nil || legacy.CustomInstanceDetails != nil {
+		t.Fatal("legacy payload did not retain identity while discarding credentials")
 	}
 
 	list := f.list(t)
@@ -195,6 +216,7 @@ func TestPostSocialDisconnectBecomesBadBody(t *testing.T) {
 	}
 
 	// other provider failures surface unchanged
+	f.client.Integration.UpdateOneID(f.in.ID).SetRefreshNeeded(false).ExecX(f.ctx)
 	f.provider.err = temporalx.RefreshToken("fake", "{}", "{}", "expired")
 	if _, err := f.a.PostSocial(f.ctx, f.in, f.list(t)[:1]); temporalx.FailureType(err) != temporalx.TypeRefreshToken {
 		t.Fatalf("err = %v", err)

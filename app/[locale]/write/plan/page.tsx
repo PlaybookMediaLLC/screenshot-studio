@@ -53,6 +53,7 @@ export default async function WritePlanPage({ params, searchParams }: PlanPagePr
         canEdit={hasPermission(access.role, 'artifact:edit')}
         canManageSets={canManageSets}
         canPublish={hasPermission(access.role, 'publish:manage')}
+        canReview={hasPermission(access.role, 'release:approve')}
         data={data}
       >
         <DraftCalendar

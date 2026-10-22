@@ -20,6 +20,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/plugs"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/post"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/webhooks"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // IntegrationCreate is the builder for creating a Integration entity.
@@ -108,6 +109,60 @@ func (_c *IntegrationCreate) SetNillableDisabled(v *bool) *IntegrationCreate {
 	return _c
 }
 
+// SetVerifiedAccountKey sets the "verified_account_key" field.
+func (_c *IntegrationCreate) SetVerifiedAccountKey(v string) *IntegrationCreate {
+	_c.mutation.SetVerifiedAccountKey(v)
+	return _c
+}
+
+// SetNillableVerifiedAccountKey sets the "verified_account_key" field if the given value is not nil.
+func (_c *IntegrationCreate) SetNillableVerifiedAccountKey(v *string) *IntegrationCreate {
+	if v != nil {
+		_c.SetVerifiedAccountKey(*v)
+	}
+	return _c
+}
+
+// SetVerifiedAccountKind sets the "verified_account_kind" field.
+func (_c *IntegrationCreate) SetVerifiedAccountKind(v string) *IntegrationCreate {
+	_c.mutation.SetVerifiedAccountKind(v)
+	return _c
+}
+
+// SetNillableVerifiedAccountKind sets the "verified_account_kind" field if the given value is not nil.
+func (_c *IntegrationCreate) SetNillableVerifiedAccountKind(v *string) *IntegrationCreate {
+	if v != nil {
+		_c.SetVerifiedAccountKind(*v)
+	}
+	return _c
+}
+
+// SetVerifiedScopes sets the "verified_scopes" field.
+func (_c *IntegrationCreate) SetVerifiedScopes(v []string) *IntegrationCreate {
+	_c.mutation.SetVerifiedScopes(v)
+	return _c
+}
+
+// SetVerifiedCapabilities sets the "verified_capabilities" field.
+func (_c *IntegrationCreate) SetVerifiedCapabilities(v *socialidentity.Capabilities) *IntegrationCreate {
+	_c.mutation.SetVerifiedCapabilities(v)
+	return _c
+}
+
+// SetIdentityVerifiedAt sets the "identity_verified_at" field.
+func (_c *IntegrationCreate) SetIdentityVerifiedAt(v time.Time) *IntegrationCreate {
+	_c.mutation.SetIdentityVerifiedAt(v)
+	return _c
+}
+
+// SetNillableIdentityVerifiedAt sets the "identity_verified_at" field if the given value is not nil.
+func (_c *IntegrationCreate) SetNillableIdentityVerifiedAt(v *time.Time) *IntegrationCreate {
+	if v != nil {
+		_c.SetIdentityVerifiedAt(*v)
+	}
+	return _c
+}
+
 // SetTokenExpiration sets the "token_expiration" field.
 func (_c *IntegrationCreate) SetTokenExpiration(v time.Time) *IntegrationCreate {
 	_c.mutation.SetTokenExpiration(v)
@@ -123,16 +178,8 @@ func (_c *IntegrationCreate) SetNillableTokenExpiration(v *time.Time) *Integrati
 }
 
 // SetRefreshToken sets the "refresh_token" field.
-func (_c *IntegrationCreate) SetRefreshToken(v string) *IntegrationCreate {
+func (_c *IntegrationCreate) SetRefreshToken(v *string) *IntegrationCreate {
 	_c.mutation.SetRefreshToken(v)
-	return _c
-}
-
-// SetNillableRefreshToken sets the "refresh_token" field if the given value is not nil.
-func (_c *IntegrationCreate) SetNillableRefreshToken(v *string) *IntegrationCreate {
-	if v != nil {
-		_c.SetRefreshToken(*v)
-	}
 	return _c
 }
 
@@ -481,6 +528,11 @@ func (_c *IntegrationCreate) check() error {
 	if _, ok := _c.mutation.Disabled(); !ok {
 		return &ValidationError{Name: "disabled", err: errors.New(`ent: missing required field "Integration.disabled"`)}
 	}
+	if v, ok := _c.mutation.VerifiedCapabilities(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "verified_capabilities", err: fmt.Errorf(`ent: validator failed for field "Integration.verified_capabilities": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Integration.created_at"`)}
 	}
@@ -503,7 +555,10 @@ func (_c *IntegrationCreate) sqlSave(ctx context.Context) (*Integration, error) 
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -522,7 +577,7 @@ func (_c *IntegrationCreate) sqlSave(ctx context.Context) (*Integration, error) 
 	return _node, nil
 }
 
-func (_c *IntegrationCreate) createSpec() (*Integration, *sqlgraph.CreateSpec) {
+func (_c *IntegrationCreate) createSpec() (*Integration, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &Integration{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(integration.Table, sqlgraph.NewFieldSpec(integration.FieldID, field.TypeString))
@@ -557,20 +612,48 @@ func (_c *IntegrationCreate) createSpec() (*Integration, *sqlgraph.CreateSpec) {
 		_node.Type = value
 	}
 	if value, ok := _c.mutation.Token(); ok {
-		_spec.SetField(integration.FieldToken, field.TypeString, value)
+		vv, err := integration.ValueScanner.Token.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(integration.FieldToken, field.TypeString, vv)
 		_node.Token = value
 	}
 	if value, ok := _c.mutation.Disabled(); ok {
 		_spec.SetField(integration.FieldDisabled, field.TypeBool, value)
 		_node.Disabled = value
 	}
+	if value, ok := _c.mutation.VerifiedAccountKey(); ok {
+		_spec.SetField(integration.FieldVerifiedAccountKey, field.TypeString, value)
+		_node.VerifiedAccountKey = &value
+	}
+	if value, ok := _c.mutation.VerifiedAccountKind(); ok {
+		_spec.SetField(integration.FieldVerifiedAccountKind, field.TypeString, value)
+		_node.VerifiedAccountKind = &value
+	}
+	if value, ok := _c.mutation.VerifiedScopes(); ok {
+		_spec.SetField(integration.FieldVerifiedScopes, field.TypeJSON, value)
+		_node.VerifiedScopes = value
+	}
+	if value, ok := _c.mutation.VerifiedCapabilities(); ok {
+		_spec.SetField(integration.FieldVerifiedCapabilities, field.TypeJSON, value)
+		_node.VerifiedCapabilities = value
+	}
+	if value, ok := _c.mutation.IdentityVerifiedAt(); ok {
+		_spec.SetField(integration.FieldIdentityVerifiedAt, field.TypeTime, value)
+		_node.IdentityVerifiedAt = &value
+	}
 	if value, ok := _c.mutation.TokenExpiration(); ok {
 		_spec.SetField(integration.FieldTokenExpiration, field.TypeTime, value)
 		_node.TokenExpiration = &value
 	}
 	if value, ok := _c.mutation.RefreshToken(); ok {
-		_spec.SetField(integration.FieldRefreshToken, field.TypeString, value)
-		_node.RefreshToken = &value
+		vv, err := integration.ValueScanner.RefreshToken.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(integration.FieldRefreshToken, field.TypeString, vv)
+		_node.RefreshToken = value
 	}
 	if value, ok := _c.mutation.Profile(); ok {
 		_spec.SetField(integration.FieldProfile, field.TypeString, value)
@@ -726,7 +809,7 @@ func (_c *IntegrationCreate) createSpec() (*Integration, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -898,6 +981,96 @@ func (u *IntegrationUpsert) UpdateDisabled() *IntegrationUpsert {
 	return u
 }
 
+// SetVerifiedAccountKey sets the "verified_account_key" field.
+func (u *IntegrationUpsert) SetVerifiedAccountKey(v string) *IntegrationUpsert {
+	u.Set(integration.FieldVerifiedAccountKey, v)
+	return u
+}
+
+// UpdateVerifiedAccountKey sets the "verified_account_key" field to the value that was provided on create.
+func (u *IntegrationUpsert) UpdateVerifiedAccountKey() *IntegrationUpsert {
+	u.SetExcluded(integration.FieldVerifiedAccountKey)
+	return u
+}
+
+// ClearVerifiedAccountKey clears the value of the "verified_account_key" field.
+func (u *IntegrationUpsert) ClearVerifiedAccountKey() *IntegrationUpsert {
+	u.SetNull(integration.FieldVerifiedAccountKey)
+	return u
+}
+
+// SetVerifiedAccountKind sets the "verified_account_kind" field.
+func (u *IntegrationUpsert) SetVerifiedAccountKind(v string) *IntegrationUpsert {
+	u.Set(integration.FieldVerifiedAccountKind, v)
+	return u
+}
+
+// UpdateVerifiedAccountKind sets the "verified_account_kind" field to the value that was provided on create.
+func (u *IntegrationUpsert) UpdateVerifiedAccountKind() *IntegrationUpsert {
+	u.SetExcluded(integration.FieldVerifiedAccountKind)
+	return u
+}
+
+// ClearVerifiedAccountKind clears the value of the "verified_account_kind" field.
+func (u *IntegrationUpsert) ClearVerifiedAccountKind() *IntegrationUpsert {
+	u.SetNull(integration.FieldVerifiedAccountKind)
+	return u
+}
+
+// SetVerifiedScopes sets the "verified_scopes" field.
+func (u *IntegrationUpsert) SetVerifiedScopes(v []string) *IntegrationUpsert {
+	u.Set(integration.FieldVerifiedScopes, v)
+	return u
+}
+
+// UpdateVerifiedScopes sets the "verified_scopes" field to the value that was provided on create.
+func (u *IntegrationUpsert) UpdateVerifiedScopes() *IntegrationUpsert {
+	u.SetExcluded(integration.FieldVerifiedScopes)
+	return u
+}
+
+// ClearVerifiedScopes clears the value of the "verified_scopes" field.
+func (u *IntegrationUpsert) ClearVerifiedScopes() *IntegrationUpsert {
+	u.SetNull(integration.FieldVerifiedScopes)
+	return u
+}
+
+// SetVerifiedCapabilities sets the "verified_capabilities" field.
+func (u *IntegrationUpsert) SetVerifiedCapabilities(v *socialidentity.Capabilities) *IntegrationUpsert {
+	u.Set(integration.FieldVerifiedCapabilities, v)
+	return u
+}
+
+// UpdateVerifiedCapabilities sets the "verified_capabilities" field to the value that was provided on create.
+func (u *IntegrationUpsert) UpdateVerifiedCapabilities() *IntegrationUpsert {
+	u.SetExcluded(integration.FieldVerifiedCapabilities)
+	return u
+}
+
+// ClearVerifiedCapabilities clears the value of the "verified_capabilities" field.
+func (u *IntegrationUpsert) ClearVerifiedCapabilities() *IntegrationUpsert {
+	u.SetNull(integration.FieldVerifiedCapabilities)
+	return u
+}
+
+// SetIdentityVerifiedAt sets the "identity_verified_at" field.
+func (u *IntegrationUpsert) SetIdentityVerifiedAt(v time.Time) *IntegrationUpsert {
+	u.Set(integration.FieldIdentityVerifiedAt, v)
+	return u
+}
+
+// UpdateIdentityVerifiedAt sets the "identity_verified_at" field to the value that was provided on create.
+func (u *IntegrationUpsert) UpdateIdentityVerifiedAt() *IntegrationUpsert {
+	u.SetExcluded(integration.FieldIdentityVerifiedAt)
+	return u
+}
+
+// ClearIdentityVerifiedAt clears the value of the "identity_verified_at" field.
+func (u *IntegrationUpsert) ClearIdentityVerifiedAt() *IntegrationUpsert {
+	u.SetNull(integration.FieldIdentityVerifiedAt)
+	return u
+}
+
 // SetTokenExpiration sets the "token_expiration" field.
 func (u *IntegrationUpsert) SetTokenExpiration(v time.Time) *IntegrationUpsert {
 	u.Set(integration.FieldTokenExpiration, v)
@@ -917,7 +1090,7 @@ func (u *IntegrationUpsert) ClearTokenExpiration() *IntegrationUpsert {
 }
 
 // SetRefreshToken sets the "refresh_token" field.
-func (u *IntegrationUpsert) SetRefreshToken(v string) *IntegrationUpsert {
+func (u *IntegrationUpsert) SetRefreshToken(v *string) *IntegrationUpsert {
 	u.Set(integration.FieldRefreshToken, v)
 	return u
 }
@@ -1287,6 +1460,111 @@ func (u *IntegrationUpsertOne) UpdateDisabled() *IntegrationUpsertOne {
 	})
 }
 
+// SetVerifiedAccountKey sets the "verified_account_key" field.
+func (u *IntegrationUpsertOne) SetVerifiedAccountKey(v string) *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.SetVerifiedAccountKey(v)
+	})
+}
+
+// UpdateVerifiedAccountKey sets the "verified_account_key" field to the value that was provided on create.
+func (u *IntegrationUpsertOne) UpdateVerifiedAccountKey() *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.UpdateVerifiedAccountKey()
+	})
+}
+
+// ClearVerifiedAccountKey clears the value of the "verified_account_key" field.
+func (u *IntegrationUpsertOne) ClearVerifiedAccountKey() *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.ClearVerifiedAccountKey()
+	})
+}
+
+// SetVerifiedAccountKind sets the "verified_account_kind" field.
+func (u *IntegrationUpsertOne) SetVerifiedAccountKind(v string) *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.SetVerifiedAccountKind(v)
+	})
+}
+
+// UpdateVerifiedAccountKind sets the "verified_account_kind" field to the value that was provided on create.
+func (u *IntegrationUpsertOne) UpdateVerifiedAccountKind() *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.UpdateVerifiedAccountKind()
+	})
+}
+
+// ClearVerifiedAccountKind clears the value of the "verified_account_kind" field.
+func (u *IntegrationUpsertOne) ClearVerifiedAccountKind() *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.ClearVerifiedAccountKind()
+	})
+}
+
+// SetVerifiedScopes sets the "verified_scopes" field.
+func (u *IntegrationUpsertOne) SetVerifiedScopes(v []string) *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.SetVerifiedScopes(v)
+	})
+}
+
+// UpdateVerifiedScopes sets the "verified_scopes" field to the value that was provided on create.
+func (u *IntegrationUpsertOne) UpdateVerifiedScopes() *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.UpdateVerifiedScopes()
+	})
+}
+
+// ClearVerifiedScopes clears the value of the "verified_scopes" field.
+func (u *IntegrationUpsertOne) ClearVerifiedScopes() *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.ClearVerifiedScopes()
+	})
+}
+
+// SetVerifiedCapabilities sets the "verified_capabilities" field.
+func (u *IntegrationUpsertOne) SetVerifiedCapabilities(v *socialidentity.Capabilities) *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.SetVerifiedCapabilities(v)
+	})
+}
+
+// UpdateVerifiedCapabilities sets the "verified_capabilities" field to the value that was provided on create.
+func (u *IntegrationUpsertOne) UpdateVerifiedCapabilities() *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.UpdateVerifiedCapabilities()
+	})
+}
+
+// ClearVerifiedCapabilities clears the value of the "verified_capabilities" field.
+func (u *IntegrationUpsertOne) ClearVerifiedCapabilities() *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.ClearVerifiedCapabilities()
+	})
+}
+
+// SetIdentityVerifiedAt sets the "identity_verified_at" field.
+func (u *IntegrationUpsertOne) SetIdentityVerifiedAt(v time.Time) *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.SetIdentityVerifiedAt(v)
+	})
+}
+
+// UpdateIdentityVerifiedAt sets the "identity_verified_at" field to the value that was provided on create.
+func (u *IntegrationUpsertOne) UpdateIdentityVerifiedAt() *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.UpdateIdentityVerifiedAt()
+	})
+}
+
+// ClearIdentityVerifiedAt clears the value of the "identity_verified_at" field.
+func (u *IntegrationUpsertOne) ClearIdentityVerifiedAt() *IntegrationUpsertOne {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.ClearIdentityVerifiedAt()
+	})
+}
+
 // SetTokenExpiration sets the "token_expiration" field.
 func (u *IntegrationUpsertOne) SetTokenExpiration(v time.Time) *IntegrationUpsertOne {
 	return u.Update(func(s *IntegrationUpsert) {
@@ -1309,7 +1587,7 @@ func (u *IntegrationUpsertOne) ClearTokenExpiration() *IntegrationUpsertOne {
 }
 
 // SetRefreshToken sets the "refresh_token" field.
-func (u *IntegrationUpsertOne) SetRefreshToken(v string) *IntegrationUpsertOne {
+func (u *IntegrationUpsertOne) SetRefreshToken(v *string) *IntegrationUpsertOne {
 	return u.Update(func(s *IntegrationUpsert) {
 		s.SetRefreshToken(v)
 	})
@@ -1586,7 +1864,10 @@ func (_c *IntegrationCreateBulk) Save(ctx context.Context) ([]*Integration, erro
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -1876,6 +2157,111 @@ func (u *IntegrationUpsertBulk) UpdateDisabled() *IntegrationUpsertBulk {
 	})
 }
 
+// SetVerifiedAccountKey sets the "verified_account_key" field.
+func (u *IntegrationUpsertBulk) SetVerifiedAccountKey(v string) *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.SetVerifiedAccountKey(v)
+	})
+}
+
+// UpdateVerifiedAccountKey sets the "verified_account_key" field to the value that was provided on create.
+func (u *IntegrationUpsertBulk) UpdateVerifiedAccountKey() *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.UpdateVerifiedAccountKey()
+	})
+}
+
+// ClearVerifiedAccountKey clears the value of the "verified_account_key" field.
+func (u *IntegrationUpsertBulk) ClearVerifiedAccountKey() *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.ClearVerifiedAccountKey()
+	})
+}
+
+// SetVerifiedAccountKind sets the "verified_account_kind" field.
+func (u *IntegrationUpsertBulk) SetVerifiedAccountKind(v string) *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.SetVerifiedAccountKind(v)
+	})
+}
+
+// UpdateVerifiedAccountKind sets the "verified_account_kind" field to the value that was provided on create.
+func (u *IntegrationUpsertBulk) UpdateVerifiedAccountKind() *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.UpdateVerifiedAccountKind()
+	})
+}
+
+// ClearVerifiedAccountKind clears the value of the "verified_account_kind" field.
+func (u *IntegrationUpsertBulk) ClearVerifiedAccountKind() *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.ClearVerifiedAccountKind()
+	})
+}
+
+// SetVerifiedScopes sets the "verified_scopes" field.
+func (u *IntegrationUpsertBulk) SetVerifiedScopes(v []string) *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.SetVerifiedScopes(v)
+	})
+}
+
+// UpdateVerifiedScopes sets the "verified_scopes" field to the value that was provided on create.
+func (u *IntegrationUpsertBulk) UpdateVerifiedScopes() *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.UpdateVerifiedScopes()
+	})
+}
+
+// ClearVerifiedScopes clears the value of the "verified_scopes" field.
+func (u *IntegrationUpsertBulk) ClearVerifiedScopes() *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.ClearVerifiedScopes()
+	})
+}
+
+// SetVerifiedCapabilities sets the "verified_capabilities" field.
+func (u *IntegrationUpsertBulk) SetVerifiedCapabilities(v *socialidentity.Capabilities) *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.SetVerifiedCapabilities(v)
+	})
+}
+
+// UpdateVerifiedCapabilities sets the "verified_capabilities" field to the value that was provided on create.
+func (u *IntegrationUpsertBulk) UpdateVerifiedCapabilities() *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.UpdateVerifiedCapabilities()
+	})
+}
+
+// ClearVerifiedCapabilities clears the value of the "verified_capabilities" field.
+func (u *IntegrationUpsertBulk) ClearVerifiedCapabilities() *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.ClearVerifiedCapabilities()
+	})
+}
+
+// SetIdentityVerifiedAt sets the "identity_verified_at" field.
+func (u *IntegrationUpsertBulk) SetIdentityVerifiedAt(v time.Time) *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.SetIdentityVerifiedAt(v)
+	})
+}
+
+// UpdateIdentityVerifiedAt sets the "identity_verified_at" field to the value that was provided on create.
+func (u *IntegrationUpsertBulk) UpdateIdentityVerifiedAt() *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.UpdateIdentityVerifiedAt()
+	})
+}
+
+// ClearIdentityVerifiedAt clears the value of the "identity_verified_at" field.
+func (u *IntegrationUpsertBulk) ClearIdentityVerifiedAt() *IntegrationUpsertBulk {
+	return u.Update(func(s *IntegrationUpsert) {
+		s.ClearIdentityVerifiedAt()
+	})
+}
+
 // SetTokenExpiration sets the "token_expiration" field.
 func (u *IntegrationUpsertBulk) SetTokenExpiration(v time.Time) *IntegrationUpsertBulk {
 	return u.Update(func(s *IntegrationUpsert) {
@@ -1898,7 +2284,7 @@ func (u *IntegrationUpsertBulk) ClearTokenExpiration() *IntegrationUpsertBulk {
 }
 
 // SetRefreshToken sets the "refresh_token" field.
-func (u *IntegrationUpsertBulk) SetRefreshToken(v string) *IntegrationUpsertBulk {
+func (u *IntegrationUpsertBulk) SetRefreshToken(v *string) *IntegrationUpsertBulk {
 	return u.Update(func(s *IntegrationUpsert) {
 		s.SetRefreshToken(v)
 	})

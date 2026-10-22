@@ -92,6 +92,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/social-instances/mastodon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview a public Mastodon server
+         * @description Reads the selected public Mastodon server’s v2 instance metadata. Accepts a hostname or HTTPS origin with no path, port or credentials. The backend blocks private addresses, refuses redirects, limits the response size and bounds network time. This preview does not authorize an account or prove publishing capability. activeUsers is the reported number of active users in the past four weeks, when available.
+         */
+        get: operations["previewMastodonInstance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social-connection-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a social account connection
+         * @description Starts a provider authorization for the signed-in owner or admin in the active workspace. CREATE_SET requires PRIVATE or WORKSPACE visibility; no set exists until the verified first account commits. ADD_ACCOUNT targets an existing social set, and RECONNECT also binds the existing connection. The attempt retains its original user, session, workspace, and target across workspace switches. Each call starts a new authorization; do not automatically retry a lost begin response. Provider callbacks recover their persisted result instead of exchanging the code twice. API keys cannot connect accounts.
+         */
+        post: operations["createSocialConnectionAttempt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social-connection-availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read social connection availability
+         * @description Reads the current adapter configuration and product rollout gates for the active workspace. Only signed-in owners/admins may inspect it; API keys cannot connect accounts. No app IDs, secrets or credentials are returned. Available means a connection can be attempted, not that provider approval, account grants or publishing capabilities have been verified. Subscription capacity, target ownership and occupied slots are rechecked when an attempt starts and commits. The response is not cached.
+         */
+        get: operations["getSocialConnectionAvailability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bluesky-connection-attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a Bluesky connection
+         * @description Creates a single-use, session-bound Bluesky connection attempt for an owner or admin. No social set is created yet. Reconnect retains the original account identity. Each call creates a new attempt; do not retry a lost begin response automatically. API keys cannot connect accounts.
+         */
+        post: operations["beginBlueskyConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bluesky-connection-attempts/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete or recover a Bluesky connection
+         * @description Verifies a dedicated app password and commits the account to the original authorized social set. Credentials belong only in this POST body and must never be logged or persisted by clients. Omit credentials to recover a saved result after interruption. An uncertain external exchange returns a conflict and is not automatically retried. The backend rechecks the original session, workspace and target before committing.
+         */
+        post: operations["completeBlueskyConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/releases": {
         parameters: {
             query?: never;
@@ -225,7 +325,7 @@ export interface paths {
         };
         /**
          * Create a signed asset download URL
-         * @description Returns a short-lived signed download URL for a workspace asset. Requires the `artifact:read` scope.
+         * @description Returns a download URL valid for up to two minutes. Each download rechecks the issuing session or credential and current asset access; revocation invalidates outstanding links. Requires the `artifact:read` scope.
          */
         get: operations["createAssetDownloadUrl"];
         put?: never;
@@ -1004,6 +1104,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/content-drafts/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Comment on an authorized draft
+         * @description Adds, replies, edits, deletes or resolves a comment on a visible draft. Every active member may comment; only its author may edit a comment, while owners/admins may also delete comments. Author identities and timestamps are server-owned. All changes require baseVersion. A repeated or stale action returns 409 without another mutation: read the draft to reconcile an uncertain outcome before submitting a new action. Comment-only changes preserve current approval and never change publication content. API keys are refused.
+         */
+        post: operations["mutateDraftComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/openapi.json": {
         parameters: {
             query?: never;
@@ -1068,6 +1188,68 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        MastodonInstancePreview: {
+            /** Format: uri */
+            origin: string;
+            title: string;
+            description: string;
+            activeUsers: number | null;
+            /** @default false */
+            authorizationEnabled: boolean;
+        };
+        SocialConnectionAttemptRequest: {
+            /** @enum {string} */
+            operation: "CREATE_SET" | "ADD_ACCOUNT" | "RECONNECT";
+            /** @enum {string} */
+            creationVisibility?: "PRIVATE" | "WORKSPACE";
+            expectedConnectionId?: string;
+            returnPath?: string;
+            socialSetId?: string;
+            /** @enum {string} */
+            provider: "x" | "instagram" | "instagram-standalone" | "linkedin" | "threads" | "mastodon" | "mastodon-custom";
+            instanceServer?: string;
+        };
+        SocialConnectionAttemptResponse: {
+            /** Format: uri */
+            url: string;
+        };
+        SocialConnectionAvailability: {
+            /** @constant */
+            version: 1;
+            providers: {
+                /** @enum {string} */
+                provider: "x" | "linkedin" | "threads" | "mastodon" | "mastodon-custom" | "bluesky" | "instagram" | "instagram-standalone" | "substack";
+                /** @enum {string} */
+                status: "available" | "not_configured" | "disabled" | "unsupported";
+            }[];
+        };
+        BlueskyConnectionBeginRequest: {
+            /** @enum {string} */
+            operation: "CREATE_SET" | "ADD_ACCOUNT" | "RECONNECT";
+            /** @enum {string} */
+            creationVisibility?: "PRIVATE" | "WORKSPACE";
+            expectedConnectionId?: string;
+            returnPath?: string;
+            socialSetId?: string;
+        };
+        BlueskyConnectionBeginResponse: {
+            state: string;
+        };
+        BlueskyConnectionCompleteRequest: {
+            state: string;
+            credentials?: {
+                handle: string;
+                appPassword: string;
+            };
+        };
+        BlueskyConnectionCompleteResponse: {
+            /** @constant */
+            completed: true;
+            connectionId: string;
+            socialSetId: string | null;
+            organizationId: string;
+            returnPath: "" | string;
+        };
         ReleaseListResponse: {
             releases: {
                 id: string;
@@ -2454,6 +2636,47 @@ export interface components {
                 timeZone: string;
             };
         };
+        DraftCommentAction: {
+            /** @constant */
+            action: "add";
+            baseVersion: number;
+            commentId: string;
+            threadId?: string;
+            text: string;
+            mentionUserIds?: string[];
+        } | {
+            /** @constant */
+            action: "edit";
+            baseVersion: number;
+            commentId: string;
+            threadId: string;
+            text: string;
+            mentionUserIds?: string[];
+        } | {
+            /** @constant */
+            action: "delete";
+            baseVersion: number;
+            commentId: string;
+            threadId: string;
+        } | {
+            /** @constant */
+            action: "resolve";
+            baseVersion: number;
+            threadId: string;
+            resolved: boolean;
+        };
+        DraftCommentResult: {
+            id: string;
+            version: number;
+            discussions: {
+                [key: string]: unknown;
+            };
+            approvedVersion: number | null;
+            /** @enum {string} */
+            reviewStatus: "none" | "pending" | "approved" | "changes_requested";
+            reviewNote: string | null;
+            reviewedByUserId: string | null;
+        };
         /** @description Every failing request returns this envelope. `code` is stable and safe to branch on; `error` and `message` carry the same human-readable text. */
         Error: {
             /**
@@ -2944,6 +3167,408 @@ export interface operations {
             };
             /** @description The upstream host refused the request. */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    previewMastodonInstance: {
+        parameters: {
+            query: {
+                server: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Public instance metadata for the requested origin. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MastodonInstancePreview"];
+                };
+            };
+            /** @description The server origin is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The workspace API request quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description The server is unreachable, private, redirects, or returns an invalid response. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createSocialConnectionAttempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SocialConnectionAttemptRequest"];
+            };
+        };
+        responses: {
+            /** @description Authorization URL, with a persisted session-bound attempt. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialConnectionAttemptResponse"];
+                };
+            };
+            /** @description The operation and owner or target are inconsistent. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The target does not exist or is private to another person. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The account, provider slot, or subscription cannot accept this connection. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The workspace write quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description The provider or a required connection service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getSocialConnectionAvailability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Complete current configuration readiness for the supported connection branches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialConnectionAvailability"];
+                };
+            };
+            /** @description The request includes unsupported query parameters. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Workspace administration or content draft entitlement is required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Social sets are not enabled in this deployment. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The workspace API request quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description The workspace binding or adapter availability could not be verified. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    beginBlueskyConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlueskyConnectionBeginRequest"];
+            };
+        };
+        responses: {
+            /** @description A persisted credential attempt. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlueskyConnectionBeginResponse"];
+                };
+            };
+            /** @description Invalid ownership or connection target. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The target is unavailable to this person. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The provider slot, account or plan conflicts. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The write quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description Bluesky connections are unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    completeBlueskyConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlueskyConnectionCompleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Verified account and social-set association completed or recovered. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlueskyConnectionCompleteResponse"];
+                };
+            };
+            /** @description Invalid handle, app-password format or state. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The original session or authority is no longer valid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The original target is no longer available. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Account mismatch, ownership conflict or uncertain external result. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The write quota is exhausted. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceQuotaError"];
+                };
+            };
+            /** @description The adapter is unavailable; a saved result can be checked later. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6798,7 +7423,7 @@ export interface operations {
                             logo: string | null;
                             name: string;
                             /** @enum {string} */
-                            role: "owner" | "admin" | "creator" | "approver" | "publisher" | "viewer";
+                            role: "owner" | "admin" | "creator" | "approver" | "publisher" | "writer_publisher" | "viewer";
                             slug: string;
                         };
                     };
@@ -6854,8 +7479,10 @@ export interface operations {
                         members: {
                             createdAt: string;
                             id: string;
+                            organizationId: string;
+                            userId: string;
                             /** @enum {string} */
-                            role: "owner" | "admin" | "creator" | "approver" | "publisher" | "viewer";
+                            role: "owner" | "admin" | "creator" | "approver" | "publisher" | "writer_publisher" | "viewer";
                             user: {
                                 email: string;
                                 id: string;
@@ -6918,7 +7545,7 @@ export interface operations {
                             email: string;
                             expiresAt: string;
                             id: string;
-                            role: ("owner" | "admin" | "creator" | "approver" | "publisher" | "viewer") | null;
+                            role: ("owner" | "admin" | "creator" | "approver" | "publisher" | "writer_publisher" | "viewer") | null;
                             status: string;
                         }[];
                     };
@@ -7030,9 +7657,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        readonly permissions: ("workspace:read" | "workspace:update" | "workspace:delete" | "workspace:transfer_ownership" | "member:read" | "member:invite" | "member:remove" | "member:update_role" | "invitation:read" | "invitation:revoke" | "audit:read" | "audit:export" | "audit:manage" | "identity:manage" | "brand:manage" | "release:create" | "release:approve" | "artifact:read" | "artifact:edit" | "publish:manage" | "support:manage")[];
+                        readonly permissions: ("workspace:read" | "workspace:update" | "billing:manage" | "connection:manage" | "workspace:delete" | "workspace:transfer_ownership" | "member:read" | "member:invite" | "member:remove" | "member:update_role" | "invitation:read" | "invitation:revoke" | "audit:read" | "audit:export" | "audit:manage" | "identity:manage" | "brand:manage" | "release:create" | "release:approve" | "artifact:read" | "artifact:edit" | "publish:manage" | "support:manage")[];
                         /** @enum {string} */
-                        role: "owner" | "admin" | "creator" | "approver" | "publisher" | "viewer";
+                        role: "owner" | "admin" | "creator" | "approver" | "publisher" | "writer_publisher" | "viewer";
                     };
                 };
             };
@@ -7168,6 +7795,86 @@ export interface operations {
                 };
             };
             /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    mutateDraftComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftCommentAction"];
+            };
+        };
+        responses: {
+            /** @description The committed discussion and draft version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftCommentResult"];
+                };
+            };
+            /** @description Invalid comment action. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Draft or comment unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Stale draft version or reused comment identifier; reload before another action. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The comment service is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;

@@ -40,6 +40,9 @@ func retryAfter(value string) time.Duration {
 	return time.Minute
 }
 func (s *Service) send(ctx context.Context, d Delivery, e Envelope) (Outcome, error) {
+	if d.Channel == "slack_dm" {
+		return s.sendPersonalSlack(ctx, d, e)
+	}
 	if d.Channel == "slack" {
 		return s.sendSlack(ctx, d, e)
 	}

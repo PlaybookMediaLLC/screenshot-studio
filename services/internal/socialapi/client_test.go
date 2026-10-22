@@ -271,3 +271,40 @@ func TestPublishTreatsServerErrorAsUncertainDelivery(t *testing.T) {
 		t.Fatalf("unexpected error: %#v", err)
 	}
 }
+
+func TestBeginCustomMastodonForwardsOnlyValidatedInstance(t *testing.T) {
+	t.Setenv("SOCIAL_API_KEY_TEST", "fixture")
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		switch r.URL.Path {
+		case "/me":
+			_, _ = w.Write([]byte(`{"organization":{"id":"bound-org"}}`))
+		case "/social/mastodon-custom":
+			if r.URL.Query().Get("instance") != "https://example.social" || len(r.URL.Query()) != 1 {
+				t.Error("instance was not safely encoded")
+			}
+			_, _ = w.Write([]byte(`{"url":"https://example.social/oauth/authorize?state=fixture"}`))
+		default:
+			t.Errorf("unexpected request %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	client := New(server.URL, server.Client(), nil)
+	input := BeginOAuthInput{ExpectedGoOrganizationID: "bound-org", Provider: "mastodon-custom", SecretReference: "SOCIAL_API_KEY_TEST", InstanceOrigin: "https://example.social"}
+	if _, err := client.BeginOAuth(context.Background(), input); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 2 {
+		t.Fatal("organization was not verified before registration")
+	}
+	for _, origin := range []string{"", "example.social", "http://example.social", "https://127.0.0.1", "https://example.social/?secret=1"} {
+		input.InstanceOrigin = origin
+		if _, err := client.BeginOAuth(context.Background(), input); err == nil {
+			t.Errorf("accepted %s", origin)
+		}
+	}
+	if calls != 2 {
+		t.Fatal("invalid origin reached the social API")
+	}
+}

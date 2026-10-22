@@ -2,11 +2,9 @@
 // (apps/orchestrator/src/activities). This file is the TS<->Go wire contract:
 // every activity name exactly as the TypeScript worker registers it (the
 // method name), and the payload types its arguments and results travel as.
-// The JSON shapes match what the TypeScript side sends (Prisma rows with
-// camelCase keys, Date as ISO strings, null for empty columns, sensitive
-// columns such as integration.token included because activities read them
-// from the payload), so a Go worker and a TypeScript worker can poll the same
-// task queues.
+// Legacy metadata uses camelCase keys, ISO dates and null for empty columns.
+// Credentials are omitted and reloaded inside Go activities. Retire old workers
+// that require credential-bearing payloads before deploying this cutover.
 //
 // Arguments are positional, like the TypeScript methods. Optional trailing
 // arguments may be missing on the wire (the Go SDK leaves them at their zero
@@ -20,6 +18,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // PostActivity names the post activities. Every method runs on the queue the
@@ -278,7 +277,7 @@ func (o *OrFalse[T]) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, o.V)
 }
 
-// Integration is the full Prisma Integration row, token included.
+// Integration keeps the legacy workflow shape; credentials are activity-local only.
 type Integration struct {
 	ID                    string  `json:"id"`
 	InternalID            string  `json:"internalId"`
@@ -288,10 +287,10 @@ type Integration struct {
 	Picture               *string `json:"picture"`
 	ProviderIdentifier    string  `json:"providerIdentifier"`
 	Type                  string  `json:"type"`
-	Token                 string  `json:"token"`
+	Token                 string  `json:"-"`
 	Disabled              bool    `json:"disabled"`
 	TokenExpiration       *JSDate `json:"tokenExpiration"`
-	RefreshToken          *string `json:"refreshToken"`
+	RefreshToken          *string `json:"-"`
 	Profile               *string `json:"profile"`
 	DeletedAt             *JSDate `json:"deletedAt"`
 	CreatedAt             JSDate  `json:"createdAt"`
@@ -299,10 +298,17 @@ type Integration struct {
 	InBetweenSteps        bool    `json:"inBetweenSteps"`
 	RefreshNeeded         bool    `json:"refreshNeeded"`
 	PostingTimes          string  `json:"postingTimes"`
-	CustomInstanceDetails *string `json:"customInstanceDetails"`
+	CustomInstanceDetails *string `json:"-"`
 	CustomerID            *string `json:"customerId"`
 	RootInternalID        *string `json:"rootInternalId"`
 	AdditionalSettings    *string `json:"additionalSettings"`
+	// Verification is reloaded with credentials inside each activity. Workflow
+	// history must not become an authority for a stale account or grant.
+	VerifiedAccountKey   *string                      `json:"-"`
+	VerifiedAccountKind  *string                      `json:"-"`
+	VerifiedScopes       []string                     `json:"-"`
+	VerifiedCapabilities *socialidentity.Capabilities `json:"-"`
+	IdentityVerifiedAt   *time.Time                   `json:"-"`
 }
 
 // Post is a Prisma Post row as getPost / getPostsList return it. The root

@@ -16,8 +16,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/instances"
 )
 
 type AssetReader interface {
@@ -160,18 +162,12 @@ type BeginOAuthInput struct {
 	ExpectedGoOrganizationID string
 	Provider                 string
 	SecretReference          string
+	InstanceOrigin           string
 }
 
-type OAuthPage struct {
-	ID     string  `json:"id"`
-	PageID string  `json:"pageId"`
-	Name   *string `json:"name,omitempty"`
-}
+type OAuthPage = schema.SocialOAuthPage
 
-type OAuthExchange struct {
-	ID    string      `json:"id"`
-	Pages []OAuthPage `json:"pages,omitempty"`
-}
+type OAuthExchange = schema.SocialOAuthExchange
 
 type Error struct {
 	Status          int
@@ -194,9 +190,17 @@ func New(baseURL string, httpClient *http.Client, assetReader AssetReader) *Clie
 
 func (c *Client) BeginOAuth(ctx context.Context, input BeginOAuthInput) (string, error) {
 	switch input.Provider {
-	case "x", "instagram", "instagram-standalone", "linkedin", "threads", "mastodon":
+	case "x", "instagram", "instagram-standalone", "linkedin", "threads", "mastodon", "mastodon-custom":
 	default:
 		return "", &Error{Status: http.StatusBadRequest, message: "unsupported social provider"}
+	}
+	if input.Provider == "mastodon-custom" {
+		origin, err := instances.Origin(input.InstanceOrigin)
+		if err != nil || origin != input.InstanceOrigin {
+			return "", &Error{Status: http.StatusBadRequest, message: "invalid instance origin"}
+		}
+	} else if input.InstanceOrigin != "" {
+		return "", &Error{Status: http.StatusBadRequest, message: "this provider does not accept an instance server"}
 	}
 	if !publishing.IsSecretReference(input.SecretReference) {
 		return "", &Error{Status: http.StatusConflict, message: "invalid social API credential reference"}
@@ -219,7 +223,11 @@ func (c *Client) BeginOAuth(ctx context.Context, input BeginOAuthInput) (string,
 	var result struct {
 		URL string `json:"url"`
 	}
-	if err := c.getJSON(ctx, token, "social/"+input.Provider, &result); err != nil {
+	endpoint := "social/" + input.Provider
+	if input.InstanceOrigin != "" {
+		endpoint += "?" + url.Values{"instance": {input.InstanceOrigin}}.Encode()
+	}
+	if err := c.getJSON(ctx, token, endpoint, &result); err != nil {
 		return "", err
 	}
 	if result.URL == "" {
@@ -284,6 +292,10 @@ func (c *Client) postOAuthJSON(ctx context.Context, endpoint string, input, outp
 }
 
 func (c *Client) VerifyDestination(ctx context.Context, input VerifyDestinationInput) error {
+	if input.Platform == "x" {
+		_, err := c.VerifyX(ctx, input)
+		return err
+	}
 	if !publishing.IsSecretReference(input.SecretReference) {
 		return &Error{Status: http.StatusConflict, message: "invalid social API credential reference"}
 	}

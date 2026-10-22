@@ -24,6 +24,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialplatform"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
 )
@@ -423,7 +424,7 @@ func (c *Configuration) draftDefaults(ctx context.Context, tx *ent.Tx, actor Act
 	}
 	byPlatform := map[string]string{}
 	for _, connection := range connections {
-		byPlatform[connection.Platform] = connection.ID
+		byPlatform[socialplatform.Canonical(connection.Platform)] = connection.ID
 	}
 	channels := []string{}
 	var primary *string

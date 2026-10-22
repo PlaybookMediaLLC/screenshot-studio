@@ -266,10 +266,13 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
     `lib/billing/plans.ts` (`test/ai-credit-metering.test.ts` fails if they
     drift). A refused add answers `403 plan_limit_reached` with the limit.
     - **Seats.** Members plus pending, unexpired invitations hold seats.
-      Inviting checks both (`InviteMember`, and Better Auth's
-      `beforeCreateInvitation`); accepting an invitation or adding a member
-      checks members only (`beforeAcceptInvitation`, `beforeAddMember`,
-      through `GET /v1/internal/workspaces/{id}/seat`). A workspace without
+      Inviting checks both (`InviteMember` in `services/internal/product/invitations.go`);
+      acceptance checks members only (`RespondInvitation` in
+      `services/internal/product/invitation_response.go`). Better Auth delegates
+      these operations to the same Go transactions, holding the workspace capacity
+      lock through commitment. Other direct membership additions retain the
+      `beforeAddMember` preflight through `GET /v1/internal/workspaces/{id}/seat`;
+      mixed invitation/provisioning concurrency still requires verification. A workspace without
       a subscription has its owner's seat and no other.
     - **Social channels.** Active channel connections count. Finishing a
       social OAuth or creating a connection checks the limit; reconnecting an

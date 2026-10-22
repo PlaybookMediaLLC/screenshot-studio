@@ -39,6 +39,17 @@ type GitHub func(*sql.Selector)
 // Integration is the predicate function for integration builders.
 type Integration func(*sql.Selector)
 
+// IntegrationOrErr calls the predicate only if the error is not nit.
+func IntegrationOrErr(p Integration, err error) Integration {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // IntegrationsWebhooks is the predicate function for integrationswebhooks builders.
 type IntegrationsWebhooks func(*sql.Selector)
 

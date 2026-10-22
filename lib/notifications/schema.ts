@@ -17,13 +17,18 @@ export const notificationPolicySchema = z.object({
 })
 /** Preferences always belong to the authenticated member. */
 export const notificationPreferencesSchema = z.object({
+  slackEnabled: z.boolean().optional(),
   events: z.record(z.string(), notificationChannelsSchema),
   generation: z.number().int().positive(),
   /** Kinds turned off for one social set: set ID, then kind, false for off. */
   socialSets: z.record(z.string(), z.record(z.string(), z.boolean())).optional(),
+  socialSetChannels: z
+    .record(z.string(), z.record(z.string(), notificationChannelsSchema.partial().strict()))
+    .optional(),
 })
 /** Provider identity and health without credentials. */
 export const notificationConnectionSchema = z.object({
+  slackUserId: z.string().optional(),
   id: z.string(),
   teamId: z.string(),
   teamName: z.string(),
@@ -36,6 +41,7 @@ export const notificationSettingsSchema = z.object({
   catalogue: z.array(
     z.object({
       emitter: z.string(),
+      mandatoryFailure: z.boolean().optional(),
       accessCheck: z.string(),
       sensitivity: z.string(),
       channels: z.array(z.string()),
@@ -55,49 +61,23 @@ export const notificationSettingsSchema = z.object({
   emailAvailable: z.boolean(),
   slackAvailable: z.boolean(),
   connections: z.array(notificationConnectionSchema),
+  personalSlack: notificationConnectionSchema.nullable().optional(),
   effective: z.record(
     z.string(),
     z.record(z.string(), z.object({ enabled: z.boolean(), reason: z.string() }))
   ),
 })
-/** Safe resource details captured for a notification recipient. */
-export const notificationContextSchema = z.object({
-  entityType: z.string(),
-  entityId: z.string(),
-  name: z.string().optional(),
-  source: z.string(),
-  status: z.string().optional(),
-  message: z.string().optional(),
-  repository: z.string().optional(),
-  branch: z.string().optional(),
-  tag: z.string().optional(),
-  actorName: z.string().optional(),
-  pullRequest: z.number().int().positive().optional(),
-  campaignName: z.string().optional(),
-  storySetName: z.string().optional(),
-})
-/** A retained recipient row with explicit seen state. */
-export const notificationItemSchema = z.object({
-  id: z.string(),
-  kind: z.string(),
-  description: z.string(),
-  href: z.string(),
-  workspaceId: z.string(),
-  workspaceName: z.string(),
-  createdAt: z.string(),
-  seenAt: z.string().nullable().default(null),
-  context: notificationContextSchema.optional(),
-})
-/** Read-only, cursor-paginated inbox. */
-export const notificationPageSchema = z.object({
-  items: z.array(notificationItemSchema),
-  nextCursor: z.string(),
-  unseenCount: z.number().int().nonnegative(),
-})
+/** Shared receipt contracts used by both the SDK and web facade. */
+export {
+  notificationItemSchema,
+  notificationPageSchema,
+  notificationViewSchema,
+  notificationStateInputSchema,
+  notificationStateResultSchema,
+} from 'screenshot-studio-backend-sdk'
 /** Acknowledgment confirmation. */
 export const notificationSeenSchema = z.object({
   deleted: z.number().int().nonnegative(),
-  updated: z.number().int().nonnegative(),
   unseenCount: z.number().int().nonnegative(),
 })
 /** One page of Slack channels, including empty pages with a continuation cursor. */
@@ -123,13 +103,18 @@ export const notificationDeliverySchema = z.object({
   destination: z.string(),
   status: z.enum(['PENDING', 'CLAIMED', 'SUCCEEDED', 'SKIPPED', 'BLOCKED', 'UNCERTAIN', 'DEAD']),
   failureCode: z.string(),
+  decisionCode: z.string().optional(),
   providerReceipt: z.string(),
   attempts: z.number(),
   createdAt: z.string(),
   updatedAt: z.string(),
 })
 /** A rendered recipient row. */
-export type NotificationItem = z.infer<typeof notificationItemSchema>
+export type {
+  NotificationItem,
+  NotificationView,
+  NotificationStateInput,
+} from 'screenshot-studio-backend-sdk'
 /** The current workspace and member configuration. */
 export type NotificationSettings = z.infer<typeof notificationSettingsSchema>
 /** An immutable delivery receipt or pending job. */

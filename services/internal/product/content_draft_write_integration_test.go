@@ -2,7 +2,6 @@ package product
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -28,11 +27,10 @@ func TestWriteWorkspace(t *testing.T) {
 		ExperimentDraftTags: true}}); err != nil {
 		t.Fatal(err)
 	}
-	sets, err := repo.ListSocialSets(ctx, owner)
-	if err != nil || len(sets.Items) != 1 {
-		t.Fatalf("default sets=%+v err=%v", sets, err)
+	defaultSet, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: "Acme"})
+	if err != nil {
+		t.Fatal(err)
 	}
-	defaultSet := sets.Items[0]
 	brand, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: defaultSet.Name, Visibility: "PRIVATE"})
 	if err != nil {
 		t.Fatal(err)
@@ -403,16 +401,20 @@ func TestWriteWorkspace(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		backup := func(name string, age time.Duration) {
+		backup := func(name string, createdAt time.Time) {
 			w.exec(t, `INSERT INTO content_draft_revision (id,"organizationId","contentDraftId",version,title,body,"plainText","createdAt",reason)
-				VALUES ($1,$2,$3,1,'',`+"'[]'::jsonb"+`,'',now() - $4::interval,'edit')`, name+"_"+draft.ID, w.org, draft.ID, fmt.Sprintf("%d seconds", int(age.Seconds())))
+				VALUES ($1,$2,$3,1,'',`+"'[]'::jsonb"+`,'',$4,'edit')`, name+"_"+draft.ID, w.org, draft.ID, createdAt)
 		}
 		day := 24 * time.Hour
-		backup("recent_a", 2*day)
-		backup("recent_b", 2*day+time.Hour)
-		backup("old_morning", 40*day+2*time.Hour)
-		backup("old_evening", 40*day)
-		backup("ancient", 400*day)
+		now := time.Now().UTC()
+		// Both older revisions must fall on the same UTC calendar day, even
+		// when this test runs shortly after midnight.
+		oldDay := now.Truncate(day).Add(-40 * day)
+		backup("recent_a", now.Add(-2*day))
+		backup("recent_b", now.Add(-2*day-time.Hour))
+		backup("old_morning", oldDay.Add(2*time.Hour))
+		backup("old_evening", oldDay.Add(20*time.Hour))
+		backup("ancient", now.Add(-400*day))
 		planned := time.Now().Add(day)
 		if _, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{PlannedFor: &planned, TimeZone: "UTC"}); err != nil {
 			t.Fatal(err)

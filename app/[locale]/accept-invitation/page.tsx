@@ -27,7 +27,7 @@ export default async function AcceptInvitationPage({
   }
   return (
     <main className="mx-auto grid min-h-screen w-full max-w-xl place-items-center px-5">
-      <AcceptInvitation invitationId={invitationId} />
+      <AcceptInvitation key={invitationId} invitationId={invitationId} />
     </main>
   )
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
@@ -28,9 +29,15 @@ import (
 type Store interface {
 	Ping(context.Context) error
 	AuthorizePublishing(context.Context, string, string, string) error
+	AuthorizeConnections(context.Context, string, string, string) error
 	AuthorizeAPIKeyScope(context.Context, string, string, string) error
 	Binding(context.Context, string) (*ent.SocialTenantBinding, error)
-	StartOAuth(context.Context, publishing.Actor, string, string, string, string, *string) error
+	StartOAuth(context.Context, publishing.Actor, string, string, string, string, publishing.OAuthStartOptions) error
+	PrepareOAuth(context.Context, publishing.Actor, string, string, publishing.OAuthStartOptions) (string, error)
+	AuthorizeSession(context.Context, string, string) (*ent.Session, error)
+	ResolveOAuthContext(context.Context, string, string, string, string) (*publishing.OAuthContext, error)
+	ClaimOAuthExchange(context.Context, publishing.Actor, string, string, string) (*schema.SocialOAuthExchange, error)
+	SaveOAuthExchange(context.Context, publishing.Actor, string, string, string, schema.SocialOAuthExchange) error
 	OAuthStart(context.Context, publishing.Actor, string, string, string, *string) (*ent.SocialOAuthStart, error)
 	RememberInstagramIntegration(context.Context, publishing.Actor, string, string, string) error
 	FinishOAuth(context.Context, publishing.Actor, string, string, string, string) (*ent.ChannelConnection, error)
@@ -174,14 +181,17 @@ type ConfigurationStore interface {
 	ListMembers(context.Context, string) ([]product.WorkspaceMember, error)
 	ListInvitations(context.Context, string) ([]product.WorkspaceInvitation, error)
 	UpdateMemberRole(context.Context, product.Actor, string, string) (*product.WorkspaceMember, error)
-	RemoveMember(context.Context, product.Actor, string) error
-	LeaveWorkspace(context.Context, product.Actor) error
+	RemoveMember(context.Context, product.Actor, string) (*product.WorkspaceMember, error)
+	LeaveWorkspace(context.Context, product.Actor) (*product.WorkspaceMember, error)
 	TransferOwnership(context.Context, product.Actor, string) error
 	RequestDeletion(context.Context, product.Actor, string) (*ent.WorkspaceDeletion, error)
 	CancelDeletion(context.Context, product.Actor) (*ent.WorkspaceDeletion, error)
 	InviteMember(context.Context, product.Actor, string, string) (*product.InvitationDetail, error)
 	ResendInvitation(context.Context, product.Actor, string) (*product.InvitationDetail, error)
 	RevokeInvitation(context.Context, product.Actor, string) error
+	CancelInvitation(context.Context, product.Actor, string) (*product.RecipientInvitation, error)
+	GetRecipientInvitation(context.Context, product.Actor, string) (*product.RecipientInvitation, error)
+	RespondInvitation(context.Context, product.Actor, string, string) (*product.InvitationResponse, error)
 	Bootstrap(context.Context, product.Actor) (*product.BootstrapSnapshot, error)
 	PageAccess(context.Context, product.Actor) (*product.PageAccessSnapshot, error)
 	GetCurrentUser(context.Context, product.Actor) (*product.CurrentUser, error)
@@ -194,6 +204,7 @@ type ConfigurationStore interface {
 	CompleteAssetUpload(context.Context, product.Actor, string, *string) (*product.AssetRecord, error)
 	SignAssetDownload(context.Context, product.Actor, string) (string, error)
 	ReadAsset(context.Context, product.Actor, string) ([]byte, string, error)
+	ReadAssetDownload(context.Context, string, string, string) ([]byte, string, error)
 	StoreGeneratedAsset(context.Context, product.Actor, product.GeneratedAssetInput) (*product.GeneratedAssetRecord, error)
 	ConsumeWorkspaceQuota(context.Context, product.Actor, string, int) (int, error)
 	CreateScheduledPost(context.Context, product.Actor, publishing.CreateScheduledPostInput) (publishing.CreateScheduledPostResult, error)
@@ -262,13 +273,16 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /readyz", s.ready)
 	mux.Handle("GET /v1/channel-connections", s.authenticate(http.HandlerFunc(s.listConnections)))
-	mux.Handle("POST /v1/channel-connections", s.authenticate(http.HandlerFunc(s.createConnection)))
-	mux.Handle("POST /v1/social-oauth/begin", s.authenticate(http.HandlerFunc(s.beginSocialOAuth)))
-	mux.Handle("POST /v1/social-oauth/exchange", s.authenticate(http.HandlerFunc(s.exchangeSocialOAuth)))
-	mux.Handle("POST /v1/social-oauth/page", s.authenticate(http.HandlerFunc(s.selectSocialOAuthPage)))
-	mux.Handle("POST /v1/social-oauth/verify", s.authenticate(http.HandlerFunc(s.verifySocialOAuth)))
-	mux.Handle("POST /v1/social-oauth/remember", s.authenticate(http.HandlerFunc(s.rememberSocialOAuth)))
-	mux.Handle("POST /v1/social-oauth/complete", s.authenticate(http.HandlerFunc(s.completeSocialOAuth)))
+	mux.Handle("POST /v1/channel-connections", s.authenticateConnections(http.HandlerFunc(s.createConnection)))
+	mux.Handle("POST /v1/social-oauth/context", s.authenticateOAuthCallback(http.HandlerFunc(s.socialOAuthContext)))
+	mux.Handle("POST /v1/social-oauth/begin", s.authenticateConnections(http.HandlerFunc(s.beginSocialOAuth)))
+	mux.Handle("POST /v1/social-connections/bluesky/begin", s.authenticateConnections(http.HandlerFunc(s.beginBluesky)))
+	mux.Handle("POST /v1/social-connections/bluesky/connect", s.authenticateOAuthCallback(http.HandlerFunc(s.connectBluesky)))
+	mux.Handle("POST /v1/social-oauth/exchange", s.authenticateOAuthCallback(http.HandlerFunc(s.exchangeSocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/page", s.authenticateOAuthCallback(http.HandlerFunc(s.selectSocialOAuthPage)))
+	mux.Handle("POST /v1/social-oauth/verify", s.authenticateOAuthCallback(http.HandlerFunc(s.verifySocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/remember", s.authenticateOAuthCallback(http.HandlerFunc(s.rememberSocialOAuth)))
+	mux.Handle("POST /v1/social-oauth/complete", s.authenticateOAuthCallback(http.HandlerFunc(s.completeSocialOAuth)))
 	mux.Handle("GET /v1/scheduled-posts", s.authenticatePublishing("artifact:read", s.listScheduledPosts))
 	mux.Handle("POST /v1/scheduled-posts", s.authenticatePublishing(product.PostScheduleScope, s.createScheduledPost))
 	mux.Handle("POST /v1/scheduled-posts/{id}/cancel", s.authenticatePublishing(product.PostScheduleScope, s.cancelScheduledPost))
@@ -321,6 +335,12 @@ func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 func (s *Server) authenticate(next http.Handler) http.Handler {
 	return s.authenticateWithOptions(next, true, true, func(ctx context.Context, actor product.Actor) error {
 		return s.store.AuthorizePublishing(ctx, actor.OrganizationID, actor.UserID, actor.SessionID)
+	})
+}
+
+func (s *Server) authenticateConnections(next http.Handler) http.Handler {
+	return s.authenticateWithOptions(next, true, true, func(ctx context.Context, actor product.Actor) error {
+		return s.store.AuthorizeConnections(ctx, actor.OrganizationID, actor.UserID, actor.SessionID)
 	})
 }
 

@@ -9,10 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"slices"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/auth"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/integration"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/subscriptions"
 	integrationsdto "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/dtos/integrations"
@@ -266,6 +268,9 @@ func (h *integrationsController) getSingleIntegration(c *httpx.Ctx) (any, error)
 }
 
 func (h *integrationsController) getIntegrationURL(c *httpx.Ctx) (any, error) {
+	if err := credentialcipher.ValidateKey(); err != nil {
+		return nil, err
+	}
 	ctx := c.R.Context()
 	name := c.Param("integration")
 	refresh, externalURL := c.Query("refresh"), c.Query("externalUrl")
@@ -281,6 +286,9 @@ func (h *integrationsController) getIntegrationURL(c *httpx.Ctx) (any, error) {
 		if migrateTo := h.manager.GetMigrationTarget(name); migrateTo != "" {
 			target = migrateTo
 		}
+	}
+	if status, managed := h.manager.ConnectionStatus(target); managed && status != "available" {
+		return nil, httpx.NewError(http.StatusServiceUnavailable, map[string]string{"message": "This social connection is not available"})
 	}
 	provider := h.manager.GetSocialIntegration(target)
 	external, isExternal := provider.(integrations.ExternalURLer)
@@ -326,14 +334,23 @@ func (h *integrationsController) getIntegrationURL(c *httpx.Ctx) (any, error) {
 		if err := h.store.Set(ctx, "organization:"+state, c.Org.ID, stateTTL); err != nil {
 			return "", err
 		}
+		if err := h.store.Set(ctx, "connection-provider:"+state, target, stateTTL); err != nil {
+			return "", err
+		}
 		if err := h.store.Set(ctx, "login:"+state, generated.CodeVerifier, stateTTL); err != nil {
 			return "", err
 		}
 		// JSON.stringify(undefined) is stored by ioredis as ""
 		external := ""
 		if client != nil {
-			data, _ := json.Marshal(client)
-			external = string(data)
+			data, err := json.Marshal(client)
+			if err != nil {
+				return "", err
+			}
+			external, err = credentialcipher.Seal(string(data), "oauth-external:"+state)
+			if err != nil {
+				return "", err
+			}
 		}
 		if err := h.store.Set(ctx, "external:"+state, external, stateTTL); err != nil {
 			return "", err

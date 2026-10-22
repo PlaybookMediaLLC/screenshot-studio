@@ -101,16 +101,19 @@ func (p *Publisher) account(ctx context.Context, organizationID, destinationID, 
 	if err != nil {
 		return nil, nil, nil, socialapi.NewError(http.StatusConflict, false, "workspace has no social connection binding")
 	}
-	if binding.SecretReference != secretReference {
+	if binding == nil || binding.SecretReference != secretReference {
 		return nil, nil, nil, socialapi.NewError(http.StatusForbidden, false, "social credential does not belong to workspace")
 	}
 	account, err := p.integrations.FindIntegration(ctx, binding.GoOrganizationID, destinationID, platform)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	if account.Disabled || account.RefreshNeeded || account.Token == "" ||
+	if account == nil || account.ID != destinationID || account.OrganizationID != binding.GoOrganizationID || account.ProviderIdentifier != platform || account.DeletedAt != nil || account.InBetweenSteps || account.Disabled || account.RefreshNeeded || account.Token == "" ||
 		account.TokenExpiration != nil && !account.TokenExpiration.After(p.currentTime()) {
 		return nil, nil, nil, socialapi.NewError(http.StatusConflict, false, "social credentials have expired or been disabled")
+	}
+	if integrations.RequireVerifiedIdentity(account) != nil {
+		return nil, nil, nil, socialapi.NewError(http.StatusConflict, false, "reconnect this account to verify its identity, publishing permissions and limits")
 	}
 	provider := p.resolve(platform)
 	if provider == nil || !directPlatformAllowed(platform) {
@@ -126,12 +129,17 @@ func (p *Publisher) account(ctx context.Context, organizationID, destinationID, 
 	return account, provider, settings, nil
 }
 
-// pollDetails is a poll as providers take it: whole hours, at least one.
+// pollDetails rounds positive durations to whole hours for legacy providers.
+// Invalid choices and durations must reach provider validation, not disappear.
 func pollDetails(poll *postoptions.Poll) *integrations.PollDetails {
-	if poll == nil || len(poll.Options) < 2 {
+	if poll == nil {
 		return nil
 	}
-	return &integrations.PollDetails{Options: poll.Options, Duration: max(1, (poll.DurationMinutes+59)/60)}
+	hours := 0
+	if poll.DurationMinutes > 0 {
+		hours = 1 + (poll.DurationMinutes-1)/60
+	}
+	return &integrations.PollDetails{Options: poll.Options, Duration: hours}
 }
 
 // publicationOutcome maps a provider failure: reconnect, or an outcome the
@@ -172,6 +180,12 @@ func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishIn
 	if settings, err = p.articleCover(ctx, input, settings); err != nil {
 		return socialapi.Receipt{}, socialapi.NewError(http.StatusServiceUnavailable, false, "article cover could not be signed")
 	}
+	// Signing media can take time. Reload the grant immediately before handoff,
+	// allowing credential refresh but never a different destination identity.
+	account, provider, err = p.publicationAccount(ctx, input, account)
+	if err != nil {
+		return socialapi.Receipt{}, err
+	}
 	details := []integrations.PostDetails{{
 		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media, Poll: pollFor(input.Poll, input.Options),
 	}}
@@ -192,11 +206,22 @@ func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishIn
 		return socialapi.Receipt{}, publicationOutcome(err)
 	}
 	if len(response) != 1 || response[0].PostID == "" ||
-		response[0].Status != "posted" && response[0].Status != "success" {
+		response[0].Status != "posted" && response[0].Status != "success" && response[0].Status != "completed" {
 		return socialapi.Receipt{}, socialapi.NewError(http.StatusBadGateway, true, "provider returned no confirmed post receipt")
 	}
-	progress := p.postReplies(ctx, provider, account, input, settings, response[0].PostID)
+	progress := p.postReplies(ctx, provider, account, input, response[0].PostID)
 	return socialapi.Receipt{PostID: response[0].PostID, Thread: progress}, nil
+}
+
+func (p *Publisher) publicationAccount(ctx context.Context, input socialapi.PublishInput, expected *socialent.Integration) (*socialent.Integration, poster, error) {
+	current, provider, _, err := p.account(ctx, input.OrganizationID, input.DestinationID, input.Platform, input.SecretReference, input.ProviderSettings)
+	if err != nil {
+		return nil, nil, err
+	}
+	if current.InternalID != expected.InternalID || current.OrganizationID != expected.OrganizationID {
+		return nil, nil, socialapi.NewError(http.StatusConflict, false, "social destination identity changed before publication")
+	}
+	return current, provider, nil
 }
 
 // metricNames maps provider analytics labels to the draft's metric names.
@@ -258,6 +283,9 @@ func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput
 		if ok {
 			done, err := auto.AutoRepostPost(ctx, account, input.RemotePostID, map[string]string{"likesAmount": fmt.Sprint(input.RepostAtLikes)})
 			result.Reposted = err == nil && done
+			if temporalx.FailureType(err) == temporalx.TypeUnknownDelivery {
+				return result, err
+			}
 		}
 	}
 	if input.Plug {
@@ -266,6 +294,9 @@ func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput
 			done, err := auto.AutoPlugPost(ctx, account, input.RemotePostID,
 				map[string]string{"likesAmount": fmt.Sprint(input.PlugAtLikes), "post": input.PlugText})
 			result.Plugged = err == nil && done
+			if temporalx.FailureType(err) == temporalx.TypeUnknownDelivery {
+				return result, err
+			}
 		}
 	}
 	if input.Quote {
@@ -291,7 +322,7 @@ func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput
 // again). The progress it returns is kept on the post, and the composer
 // offers to post the rest.
 func (p *Publisher) postReplies(ctx context.Context, provider poster, account *socialent.Integration,
-	input socialapi.PublishInput, settings json.RawMessage, postID string) postoptions.ThreadProgress {
+	input socialapi.PublishInput, postID string) postoptions.ThreadProgress {
 	progress := postoptions.ThreadProgress{Total: len(input.Replies)}
 	if len(input.Replies) == 0 {
 		return progress
@@ -307,10 +338,21 @@ func (p *Publisher) postReplies(ctx context.Context, provider poster, account *s
 		// A reply has only its own settings: never the first post's
 		// community, quote or article.
 		var replySettings json.RawMessage
-		replySettings, err = postSettings(input.Platform, input.ProviderSettings, nil, "")
+		if err == nil {
+			replySettings, err = postSettings(input.Platform, input.ProviderSettings, nil, "")
+		}
 		if err == nil && reply.Options != nil {
 			// The first post is live now, so a reply quoting it can name it.
 			replySettings, err = postSettings(input.Platform, input.ProviderSettings, reply.Options, postID)
+		}
+		if err == nil {
+			account, provider, err = p.publicationAccount(ctx, input, account)
+			if err == nil {
+				commenter, ok = provider.(integrations.Commenter)
+				if !ok {
+					err = errors.New("provider cannot continue thread replies")
+				}
+			}
 		}
 		if err == nil {
 			var response []integrations.PostResponse

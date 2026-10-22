@@ -104,14 +104,14 @@ func Href(v string) predicate.PlatformNotificationInbox {
 	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldHref, v))
 }
 
-// SeenAt applies equality check predicate on the "seen_at" field. It's identical to SeenAtEQ.
-func SeenAt(v time.Time) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldSeenAt, v))
+// ReadAt applies equality check predicate on the "read_at" field. It's identical to ReadAtEQ.
+func ReadAt(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldReadAt, v))
 }
 
-// SeenActionID applies equality check predicate on the "seen_action_id" field. It's identical to SeenActionIDEQ.
-func SeenActionID(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldSeenActionID, v))
+// ArchivedAt applies equality check predicate on the "archived_at" field. It's identical to ArchivedAtEQ.
+func ArchivedAt(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldArchivedAt, v))
 }
 
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
@@ -639,119 +639,124 @@ func HrefContainsFold(v string) predicate.PlatformNotificationInbox {
 	return predicate.PlatformNotificationInbox(sql.FieldContainsFold(FieldHref, v))
 }
 
-// SeenAtEQ applies the EQ predicate on the "seen_at" field.
-func SeenAtEQ(v time.Time) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldSeenAt, v))
+// CategoryEQ applies the EQ predicate on the "category" field.
+func CategoryEQ(v Category) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldCategory, v))
 }
 
-// SeenAtNEQ applies the NEQ predicate on the "seen_at" field.
-func SeenAtNEQ(v time.Time) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldNEQ(FieldSeenAt, v))
+// CategoryNEQ applies the NEQ predicate on the "category" field.
+func CategoryNEQ(v Category) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNEQ(FieldCategory, v))
 }
 
-// SeenAtIn applies the In predicate on the "seen_at" field.
-func SeenAtIn(vs ...time.Time) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldIn(FieldSeenAt, vs...))
+// CategoryIn applies the In predicate on the "category" field.
+func CategoryIn(vs ...Category) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldIn(FieldCategory, vs...))
 }
 
-// SeenAtNotIn applies the NotIn predicate on the "seen_at" field.
-func SeenAtNotIn(vs ...time.Time) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldNotIn(FieldSeenAt, vs...))
+// CategoryNotIn applies the NotIn predicate on the "category" field.
+func CategoryNotIn(vs ...Category) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNotIn(FieldCategory, vs...))
 }
 
-// SeenAtGT applies the GT predicate on the "seen_at" field.
-func SeenAtGT(v time.Time) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldGT(FieldSeenAt, v))
+// ReadAtEQ applies the EQ predicate on the "read_at" field.
+func ReadAtEQ(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldReadAt, v))
 }
 
-// SeenAtGTE applies the GTE predicate on the "seen_at" field.
-func SeenAtGTE(v time.Time) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldGTE(FieldSeenAt, v))
+// ReadAtNEQ applies the NEQ predicate on the "read_at" field.
+func ReadAtNEQ(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNEQ(FieldReadAt, v))
 }
 
-// SeenAtLT applies the LT predicate on the "seen_at" field.
-func SeenAtLT(v time.Time) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldLT(FieldSeenAt, v))
+// ReadAtIn applies the In predicate on the "read_at" field.
+func ReadAtIn(vs ...time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldIn(FieldReadAt, vs...))
 }
 
-// SeenAtLTE applies the LTE predicate on the "seen_at" field.
-func SeenAtLTE(v time.Time) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldLTE(FieldSeenAt, v))
+// ReadAtNotIn applies the NotIn predicate on the "read_at" field.
+func ReadAtNotIn(vs ...time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNotIn(FieldReadAt, vs...))
 }
 
-// SeenAtIsNil applies the IsNil predicate on the "seen_at" field.
-func SeenAtIsNil() predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldIsNull(FieldSeenAt))
+// ReadAtGT applies the GT predicate on the "read_at" field.
+func ReadAtGT(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldGT(FieldReadAt, v))
 }
 
-// SeenAtNotNil applies the NotNil predicate on the "seen_at" field.
-func SeenAtNotNil() predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldNotNull(FieldSeenAt))
+// ReadAtGTE applies the GTE predicate on the "read_at" field.
+func ReadAtGTE(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldGTE(FieldReadAt, v))
 }
 
-// SeenActionIDEQ applies the EQ predicate on the "seen_action_id" field.
-func SeenActionIDEQ(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldSeenActionID, v))
+// ReadAtLT applies the LT predicate on the "read_at" field.
+func ReadAtLT(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldLT(FieldReadAt, v))
 }
 
-// SeenActionIDNEQ applies the NEQ predicate on the "seen_action_id" field.
-func SeenActionIDNEQ(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldNEQ(FieldSeenActionID, v))
+// ReadAtLTE applies the LTE predicate on the "read_at" field.
+func ReadAtLTE(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldLTE(FieldReadAt, v))
 }
 
-// SeenActionIDIn applies the In predicate on the "seen_action_id" field.
-func SeenActionIDIn(vs ...string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldIn(FieldSeenActionID, vs...))
+// ReadAtIsNil applies the IsNil predicate on the "read_at" field.
+func ReadAtIsNil() predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldIsNull(FieldReadAt))
 }
 
-// SeenActionIDNotIn applies the NotIn predicate on the "seen_action_id" field.
-func SeenActionIDNotIn(vs ...string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldNotIn(FieldSeenActionID, vs...))
+// ReadAtNotNil applies the NotNil predicate on the "read_at" field.
+func ReadAtNotNil() predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNotNull(FieldReadAt))
 }
 
-// SeenActionIDGT applies the GT predicate on the "seen_action_id" field.
-func SeenActionIDGT(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldGT(FieldSeenActionID, v))
+// ArchivedAtEQ applies the EQ predicate on the "archived_at" field.
+func ArchivedAtEQ(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldEQ(FieldArchivedAt, v))
 }
 
-// SeenActionIDGTE applies the GTE predicate on the "seen_action_id" field.
-func SeenActionIDGTE(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldGTE(FieldSeenActionID, v))
+// ArchivedAtNEQ applies the NEQ predicate on the "archived_at" field.
+func ArchivedAtNEQ(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNEQ(FieldArchivedAt, v))
 }
 
-// SeenActionIDLT applies the LT predicate on the "seen_action_id" field.
-func SeenActionIDLT(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldLT(FieldSeenActionID, v))
+// ArchivedAtIn applies the In predicate on the "archived_at" field.
+func ArchivedAtIn(vs ...time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldIn(FieldArchivedAt, vs...))
 }
 
-// SeenActionIDLTE applies the LTE predicate on the "seen_action_id" field.
-func SeenActionIDLTE(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldLTE(FieldSeenActionID, v))
+// ArchivedAtNotIn applies the NotIn predicate on the "archived_at" field.
+func ArchivedAtNotIn(vs ...time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNotIn(FieldArchivedAt, vs...))
 }
 
-// SeenActionIDContains applies the Contains predicate on the "seen_action_id" field.
-func SeenActionIDContains(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldContains(FieldSeenActionID, v))
+// ArchivedAtGT applies the GT predicate on the "archived_at" field.
+func ArchivedAtGT(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldGT(FieldArchivedAt, v))
 }
 
-// SeenActionIDHasPrefix applies the HasPrefix predicate on the "seen_action_id" field.
-func SeenActionIDHasPrefix(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldHasPrefix(FieldSeenActionID, v))
+// ArchivedAtGTE applies the GTE predicate on the "archived_at" field.
+func ArchivedAtGTE(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldGTE(FieldArchivedAt, v))
 }
 
-// SeenActionIDHasSuffix applies the HasSuffix predicate on the "seen_action_id" field.
-func SeenActionIDHasSuffix(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldHasSuffix(FieldSeenActionID, v))
+// ArchivedAtLT applies the LT predicate on the "archived_at" field.
+func ArchivedAtLT(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldLT(FieldArchivedAt, v))
 }
 
-// SeenActionIDEqualFold applies the EqualFold predicate on the "seen_action_id" field.
-func SeenActionIDEqualFold(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldEqualFold(FieldSeenActionID, v))
+// ArchivedAtLTE applies the LTE predicate on the "archived_at" field.
+func ArchivedAtLTE(v time.Time) predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldLTE(FieldArchivedAt, v))
 }
 
-// SeenActionIDContainsFold applies the ContainsFold predicate on the "seen_action_id" field.
-func SeenActionIDContainsFold(v string) predicate.PlatformNotificationInbox {
-	return predicate.PlatformNotificationInbox(sql.FieldContainsFold(FieldSeenActionID, v))
+// ArchivedAtIsNil applies the IsNil predicate on the "archived_at" field.
+func ArchivedAtIsNil() predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldIsNull(FieldArchivedAt))
+}
+
+// ArchivedAtNotNil applies the NotNil predicate on the "archived_at" field.
+func ArchivedAtNotNil() predicate.PlatformNotificationInbox {
+	return predicate.PlatformNotificationInbox(sql.FieldNotNull(FieldArchivedAt))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

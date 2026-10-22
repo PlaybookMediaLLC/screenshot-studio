@@ -15,7 +15,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacedeletion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspacesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
-	"github.com/google/uuid"
 )
 
 var ErrInvalidInput = errors.New("invalid workspace input")
@@ -89,62 +88,34 @@ func (c *Configuration) AuthorizeSensitive(ctx context.Context, actor Actor) err
 }
 
 type CreateWorkspaceInput struct {
-	TimeZone string `json:"timeZone"`
-	Name     string `json:"name"`
-	Slug     string `json:"slug"`
+	Name                          string         `json:"name"`
+	Slug                          string         `json:"slug"`
+	TimeZone                      string         `json:"timeZone,omitempty"`
+	IdempotencyKey                string         `json:"idempotencyKey,omitempty"`
+	KeepCurrentActiveOrganization bool           `json:"keepCurrentActiveOrganization,omitempty"`
+	Logo                          *string        `json:"logo,omitempty"`
+	Metadata                      map[string]any `json:"metadata,omitempty"`
+}
+
+// WorkspaceCreationMember is the actual membership returned by atomic creation
+// or authorized replay, including a role changed after the original request.
+type WorkspaceCreationMember struct {
+	ID             string    `json:"id"`
+	OrganizationID string    `json:"organizationId"`
+	UserID         string    `json:"userId"`
+	Role           string    `json:"role"`
+	CreatedAt      time.Time `json:"createdAt"`
 }
 
 type Workspace struct {
-	ID                string                 `json:"id"`
-	CreatedAt         time.Time              `json:"createdAt"`
-	Logo              *string                `json:"logo"`
-	Name              string                 `json:"name"`
-	Slug              string                 `json:"slug"`
-	WorkspaceSettings *ent.WorkspaceSettings `json:"workspaceSettings"`
-}
-
-func (c *Configuration) CreateWorkspace(ctx context.Context, actor Actor, input CreateWorkspaceInput) (*Workspace, error) {
-	if input.TimeZone == "" {
-		input.TimeZone = "UTC"
-	}
-	if len(input.TimeZone) > 100 {
-		return nil, invalid("Choose a valid time zone.")
-	}
-	if _, err := time.LoadLocation(input.TimeZone); err != nil {
-		return nil, invalid("Choose a valid time zone.")
-	}
-	tx, err := c.client.Tx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-	now := time.Now().UTC()
-	org, err := tx.Organization.Create().SetID(uuid.NewString()).SetName(input.Name).SetSlug(input.Slug).SetCreatedAt(now).Save(ctx)
-	if ent.IsConstraintError(err) {
-		return nil, conflict("This workspace slug is already taken.")
-	}
-	if err != nil {
-		return nil, err
-	}
-	if _, err := tx.Member.Create().SetID(uuid.NewString()).SetOrganizationID(org.ID).
-		SetUserID(actor.UserID).SetRole("owner").SetCreatedAt(now).Save(ctx); err != nil {
-		return nil, err
-	}
-	settings, err := tx.WorkspaceSettings.Create().SetID(org.ID).SetTimeZone(input.TimeZone).Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := tx.Session.UpdateOneID(actor.SessionID).SetActiveOrganizationID(org.ID).Save(ctx); err != nil {
-		return nil, err
-	}
-	actor.OrganizationID = org.ID
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.workspace_created", "organization", org.ID); err != nil {
-		return nil, err
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-	return &Workspace{ID: org.ID, CreatedAt: org.CreatedAt, Name: org.Name, Slug: org.Slug, WorkspaceSettings: settings.Unwrap()}, nil
+	ID                string                   `json:"id"`
+	CreatedAt         time.Time                `json:"createdAt"`
+	Logo              *string                  `json:"logo"`
+	Name              string                   `json:"name"`
+	Slug              string                   `json:"slug"`
+	WorkspaceSettings *ent.WorkspaceSettings   `json:"workspaceSettings"`
+	Metadata          *string                  `json:"metadata,omitempty"`
+	CreationMember    *WorkspaceCreationMember `json:"creationMember,omitempty"`
 }
 
 type ListedWorkspaceDeletion struct {
@@ -266,6 +237,11 @@ type UpdateWorkspaceInput struct {
 }
 
 func (c *Configuration) UpdateWorkspace(ctx context.Context, actor Actor, input UpdateWorkspaceInput) (*Workspace, error) {
+	name, err := NormalizeWorkspaceName(input.Name)
+	if err != nil {
+		return nil, err
+	}
+	input.Name = name
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err

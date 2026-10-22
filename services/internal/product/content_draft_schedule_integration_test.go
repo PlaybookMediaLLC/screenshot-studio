@@ -63,8 +63,10 @@ func TestContentDraftScheduling(t *testing.T) {
 		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM "user" WHERE id IN ($1,$2)`, "user_"+org, "user_"+other)
 	})
 	owner, foreign := actors[org], actors[other]
+	addCredential := socialCredentialFixture(t, ctx, db.SQL, org)
 	connect := func(platform string) string {
 		t.Helper()
+		addCredential(platform+"-"+id, platform)
 		connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: org, UserID: owner.UserID, RequestID: owner.RequestID, Type: "USER"},
 			publishing.CreateConnectionInput{ExternalAccountID: platform + "-" + id, Platform: platform, ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
 		if err != nil {
@@ -178,7 +180,7 @@ func TestContentDraftScheduling(t *testing.T) {
 		}
 	})
 
-	t.Run("each post carries the draft's images up to its channel's limit", func(t *testing.T) {
+	t.Run("an oversized X selection fails atomically and an explicit selection is preserved", func(t *testing.T) {
 		images := make([]string, 5)
 		for i := range images {
 			images[i] = cuid.New()
@@ -190,7 +192,19 @@ func TestContentDraftScheduling(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		result, err := repo.ScheduleContentDraft(ctx, owner, gallery.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: targets, Version: 1})
+		if _, err := repo.ScheduleContentDraft(ctx, owner, gallery.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: targets, Version: 1}); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("five X images must fail, not truncate: %v", err)
+		}
+		if posts, err := repo.ListContentDraftPosts(ctx, owner, gallery.ID); err != nil || len(posts) != 0 {
+			t.Fatalf("a rejected selection created posts: %+v %v", posts, err)
+		}
+		selected := append([]ContentDraftScheduleTarget(nil), targets...)
+		for i := range selected {
+			if selected[i].ChannelConnectionID == xChannel {
+				selected[i].AssetIDs = images[:4]
+			}
+		}
+		result, err := repo.ScheduleContentDraft(ctx, owner, gallery.ID, ScheduleContentDraftInput{ScheduledFor: at, Targets: selected, Version: 1})
 		if err != nil {
 			t.Fatal(err)
 		}

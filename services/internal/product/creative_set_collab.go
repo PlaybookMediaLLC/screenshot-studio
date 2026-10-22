@@ -31,7 +31,7 @@ func (c *Configuration) IssueCreativeSetCollabToken(ctx context.Context, actor A
 		return nil, err
 	}
 	expires := time.Now().Add(collab.TokenTTL)
-	token, err := collab.Sign(c.collabKey, collab.Claims{Kind: "creative-set", Access: access, DraftID: id, ExpiresAt: expires.Unix(), OrganizationID: actor.OrganizationID, UserID: actor.UserID})
+	token, err := collab.Sign(c.collabKey, collab.Claims{Kind: "creative-set", Access: access, DraftID: id, ExpiresAt: expires.Unix(), OrganizationID: actor.OrganizationID, UserID: actor.UserID, SessionID: actor.SessionID})
 	if err != nil {
 		return nil, err
 	}

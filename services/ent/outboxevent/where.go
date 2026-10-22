@@ -109,6 +109,11 @@ func NotificationFanned(v bool) predicate.OutboxEvent {
 	return predicate.OutboxEvent(sql.FieldEQ(FieldNotificationFanned, v))
 }
 
+// NotificationSocialSetID applies equality check predicate on the "notification_social_set_id" field. It's identical to NotificationSocialSetIDEQ.
+func NotificationSocialSetID(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldEQ(FieldNotificationSocialSetID, v))
+}
+
 // Attempts applies equality check predicate on the "attempts" field. It's identical to AttemptsEQ.
 func Attempts(v int) predicate.OutboxEvent {
 	return predicate.OutboxEvent(sql.FieldEQ(FieldAttempts, v))
@@ -602,6 +607,71 @@ func NotificationFannedEQ(v bool) predicate.OutboxEvent {
 // NotificationFannedNEQ applies the NEQ predicate on the "notification_fanned" field.
 func NotificationFannedNEQ(v bool) predicate.OutboxEvent {
 	return predicate.OutboxEvent(sql.FieldNEQ(FieldNotificationFanned, v))
+}
+
+// NotificationSocialSetIDEQ applies the EQ predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDEQ(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldEQ(FieldNotificationSocialSetID, v))
+}
+
+// NotificationSocialSetIDNEQ applies the NEQ predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDNEQ(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldNEQ(FieldNotificationSocialSetID, v))
+}
+
+// NotificationSocialSetIDIn applies the In predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDIn(vs ...string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldIn(FieldNotificationSocialSetID, vs...))
+}
+
+// NotificationSocialSetIDNotIn applies the NotIn predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDNotIn(vs ...string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldNotIn(FieldNotificationSocialSetID, vs...))
+}
+
+// NotificationSocialSetIDGT applies the GT predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDGT(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldGT(FieldNotificationSocialSetID, v))
+}
+
+// NotificationSocialSetIDGTE applies the GTE predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDGTE(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldGTE(FieldNotificationSocialSetID, v))
+}
+
+// NotificationSocialSetIDLT applies the LT predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDLT(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldLT(FieldNotificationSocialSetID, v))
+}
+
+// NotificationSocialSetIDLTE applies the LTE predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDLTE(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldLTE(FieldNotificationSocialSetID, v))
+}
+
+// NotificationSocialSetIDContains applies the Contains predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDContains(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldContains(FieldNotificationSocialSetID, v))
+}
+
+// NotificationSocialSetIDHasPrefix applies the HasPrefix predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDHasPrefix(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldHasPrefix(FieldNotificationSocialSetID, v))
+}
+
+// NotificationSocialSetIDHasSuffix applies the HasSuffix predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDHasSuffix(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldHasSuffix(FieldNotificationSocialSetID, v))
+}
+
+// NotificationSocialSetIDEqualFold applies the EqualFold predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDEqualFold(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldEqualFold(FieldNotificationSocialSetID, v))
+}
+
+// NotificationSocialSetIDContainsFold applies the ContainsFold predicate on the "notification_social_set_id" field.
+func NotificationSocialSetIDContainsFold(v string) predicate.OutboxEvent {
+	return predicate.OutboxEvent(sql.FieldContainsFold(FieldNotificationSocialSetID, v))
 }
 
 // AttemptsEQ applies the EQ predicate on the "attempts" field.

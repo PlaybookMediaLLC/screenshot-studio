@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	dtos "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/dtos/posts"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/helpers"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/httpx"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
@@ -178,19 +179,37 @@ func (s *Service) ValidatePosts(ctx context.Context, orgID string, posts []dtos.
 		}
 
 		maximumCharacters := provider.MaxLength(additionalSettings, settings)
+		// Account-specific access comes only from the scoped integration row,
+		// never editable AdditionalSettings such as a Verified flag.
+		accountLimits, hasAccountLimits := provider.(interface {
+			AccountMaxLength(*ent.Integration, json.RawMessage) (int, error)
+		})
+		if hasAccountLimits {
+			var limitErr error
+			maximumCharacters, limitErr = accountLimits.AccountMaxLength(integration, settings)
+			if limitErr != nil {
+				valid, settingsError = false, limitErr.Error()
+			}
+		}
 		limit := maximumCharacters
 		if limit == 0 {
 			limit = 1000000
 		}
 
 		emptyContent, tooLong := false, false
-		for _, v := range p.Value {
+		for index, v := range p.Value {
+			entryLimit := limit
+			if index > 0 && hasAccountLimits {
+				// An Article's replies are ordinary posts; they do not inherit
+				// the Article body allowance.
+				entryLimit, _ = accountLimits.AccountMaxLength(integration, json.RawMessage(`{}`))
+			}
 			strip := helpers.StripHTMLValidation("normal", v.Content, helpers.StripOptions{ReplaceBold: true})
 			length := helpers.CountLength(integration.ProviderIdentifier, strip)
 			if length == 0 && len(v.Image) == 0 {
 				emptyContent = true
 			}
-			if length > limit {
+			if length > entryLimit {
 				tooLong = true
 			}
 		}

@@ -261,6 +261,10 @@ func (a *Activities) RunAutomation(ctx context.Context, input AutomationInput) (
 // automationFailureCode is a short code for a receipt: the provider's HTTP
 // status when it has one. Never the message, which may quote the post.
 func automationFailureCode(err error) string {
+	var failure *temporal.ApplicationError
+	if errors.As(err, &failure) && failure.Type() == FailureUnknownDelivery {
+		return "UNKNOWN_DELIVERY"
+	}
 	var status interface{ HTTPStatus() int }
 	if errors.As(err, &status) && status.HTTPStatus() > 0 {
 		return "http_" + strconv.Itoa(status.HTTPStatus())

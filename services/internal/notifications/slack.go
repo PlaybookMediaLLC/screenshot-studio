@@ -26,12 +26,13 @@ var slackScopes = []string{"chat:write", "channels:read", "groups:read", "files:
 var slackID = regexp.MustCompile(`^[A-Z][A-Z0-9]{1,64}$`)
 
 type SlackConnection struct {
-	ID       string   `json:"id"`
-	TeamID   string   `json:"teamId"`
-	TeamName string   `json:"teamName"`
-	AppID    string   `json:"appId"`
-	Health   string   `json:"health"`
-	Scopes   []string `json:"scopes"`
+	SlackUserID string   `json:"slackUserId,omitempty"`
+	ID          string   `json:"id"`
+	TeamID      string   `json:"teamId"`
+	TeamName    string   `json:"teamName"`
+	AppID       string   `json:"appId"`
+	Health      string   `json:"health"`
+	Scopes      []string `json:"scopes"`
 }
 type SlackChannel struct {
 	ID         string `json:"id"`
@@ -49,6 +50,9 @@ type slackCredentials struct {
 	RefreshToken string `json:"refreshToken,omitempty"`
 }
 type slackGrant struct {
+	AuthedUser struct {
+		ID string `json:"id"`
+	} `json:"authed_user"`
 	OK           bool                      `json:"ok"`
 	Error        string                    `json:"error"`
 	AppID        string                    `json:"app_id"`
@@ -103,10 +107,10 @@ func (s *Service) Connections(ctx context.Context, org string) ([]SlackConnectio
 	return result, rows.Err()
 }
 func (s *Service) Connect(ctx context.Context, p Principal, purpose string, reconnect ...string) (string, error) {
-	if err := s.Authorize(ctx, p, true); err != nil {
+	if err := s.Authorize(ctx, p, purpose != "personal"); err != nil {
 		return "", err
 	}
-	if purpose != "notifications" && purpose != "design" && purpose != "publishing" {
+	if purpose != "notifications" && purpose != "design" && purpose != "publishing" && purpose != "personal" {
 		return "", ErrInvalid
 	}
 	if !s.slackConfigured() {
@@ -115,6 +119,19 @@ func (s *Service) Connect(ctx context.Context, p Principal, purpose string, reco
 	connectionID := ""
 	if len(reconnect) > 0 && reconnect[0] != "" {
 		connectionID = reconnect[0]
+	}
+	if purpose == "personal" {
+		current, err := personalSlack(ctx, s.DB, p.OrganizationID, p.UserID)
+		if err != nil {
+			return "", err
+		}
+		if connectionID != "" && (current == nil || current.ID != connectionID) {
+			return "", publishing.ErrNotFound
+		}
+		if current != nil {
+			connectionID = current.ID
+		}
+	} else if connectionID != "" {
 		var exists bool
 		if err := s.DB.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM platform_slack_connection WHERE id=$1 AND "organizationId"=$2)`, connectionID, p.OrganizationID).Scan(&exists); err != nil {
 			return "", err
@@ -137,7 +154,7 @@ func (s *Service) Connect(ctx context.Context, p Principal, purpose string, reco
 	return strings.TrimRight(s.SlackBase, "/") + "/oauth/v2/authorize?" + query.Encode(), nil
 }
 func (s *Service) Callback(ctx context.Context, p Principal, state, code string) (*SlackConnection, error) {
-	if err := s.Authorize(ctx, p, true); err != nil {
+	if err := s.Authorize(ctx, p, false); err != nil {
 		return nil, err
 	}
 	if len(state) != 43 || code == "" || len(code) > 4096 {
@@ -161,8 +178,11 @@ func (s *Service) Callback(ctx context.Context, p Principal, state, code string)
 		}
 	}
 	purpose := intent.Purpose
-	if purpose != "notifications" && purpose != "design" && purpose != "publishing" {
+	if purpose != "notifications" && purpose != "design" && purpose != "publishing" && purpose != "personal" {
 		return nil, ErrInvalid
+	}
+	if err := s.Authorize(ctx, p, purpose != "personal"); err != nil {
+		return nil, err
 	}
 	grant, err := s.oauth(ctx, url.Values{"code": {code}, "redirect_uri": {s.slackCallback()}})
 	if err != nil {
@@ -178,6 +198,9 @@ func (s *Service) Callback(ctx context.Context, p Principal, state, code string)
 		}
 	}
 	// Permission and active workspace may have changed while the provider was responding.
+	if purpose == "personal" {
+		return s.savePersonalSlack(ctx, p, grant, intent.ConnectionID)
+	}
 	if err = s.Authorize(ctx, p, true); err != nil {
 		return nil, err
 	}
@@ -232,19 +255,14 @@ func (s *Service) saveInstallation(ctx context.Context, p Principal, g *slackGra
 	}
 	return connection, nil
 }
-func (s *Service) saveInstallationTx(ctx context.Context, tx *sql.Tx, p Principal, g *slackGrant, existingID string, options ...bool) (*SlackConnection, error) {
-	if !(len(options) > 0 && options[0]) {
-		if err := lockSessionMember(ctx, tx, p, true); err != nil {
-			return nil, err
-		}
-	}
+func (s *Service) saveSlackGrantTx(ctx context.Context, tx *sql.Tx, g *slackGrant) (string, error) {
 	credentials, err := json.Marshal(slackCredentials{g.AccessToken, g.RefreshToken})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	encrypted, err := seal(credentials)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	enterprise := ""
 	if g.Enterprise != nil {
@@ -257,9 +275,31 @@ func (s *Service) saveInstallationTx(ctx context.Context, tx *sql.Tx, p Principa
 		expires = time.Now().Add(time.Duration(g.ExpiresIn) * time.Second)
 	}
 	var installationID string
-	err = tx.QueryRowContext(ctx, `INSERT INTO platform_slack_installation(id,app_id,team_id,enterprise_id,team_name,encrypted_credentials,scopes,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(app_id,team_id,enterprise_id) DO UPDATE SET team_name=EXCLUDED.team_name,encrypted_credentials=EXCLUDED.encrypted_credentials,scopes=EXCLUDED.scopes,expires_at=EXCLUDED.expires_at,health='CONNECTED',refresh_claim='',refresh_started_at=NULL,updated_at=now() RETURNING id`, cuid.New(), g.AppID, g.Team.ID, enterprise, g.Team.Name, encrypted, raw, expires).Scan(&installationID)
+	err = tx.QueryRowContext(ctx, `INSERT INTO platform_slack_installation(id,app_id,team_id,enterprise_id,team_name,encrypted_credentials,scopes,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(app_id,team_id,enterprise_id) DO UPDATE SET team_name=EXCLUDED.team_name,encrypted_credentials=EXCLUDED.encrypted_credentials,scopes=EXCLUDED.scopes,expires_at=EXCLUDED.expires_at,health='CONNECTED',refresh_claim='',refresh_started_at=NULL,updated_at=now() WHERE platform_slack_installation.scopes <@ EXCLUDED.scopes RETURNING id`, cuid.New(), g.AppID, g.Team.ID, enterprise, g.Team.Name, encrypted, raw, expires).Scan(&installationID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", invalid("Slack did not retain existing installation permissions; reconnect with all required permissions")
+	}
+	if err != nil {
+		return "", err
+	}
+	return installationID, nil
+}
+
+func (s *Service) saveInstallationTx(ctx context.Context, tx *sql.Tx, p Principal, g *slackGrant, existingID string, options ...bool) (*SlackConnection, error) {
+	if !(len(options) > 0 && options[0]) {
+		if err := lockSessionMember(ctx, tx, p, true); err != nil {
+			return nil, err
+		}
+	}
+	installationID, err := s.saveSlackGrantTx(ctx, tx, g)
 	if err != nil {
 		return nil, err
+	}
+	scopes := strings.Split(g.Scope, ",")
+	raw, _ := json.Marshal(scopes)
+	var expires any
+	if g.ExpiresIn > 0 {
+		expires = time.Now().Add(time.Duration(g.ExpiresIn) * time.Second)
 	}
 	historical, publish := len(options) > 0 && options[0], len(options) > 1 && options[1]
 	connectionID := existingID
@@ -307,7 +347,7 @@ func (s *Service) saveInstallationTx(ctx context.Context, tx *sql.Tx, p Principa
 			return nil, err
 		}
 	}
-	return &SlackConnection{connectionID, g.Team.ID, g.Team.Name, g.AppID, "CONNECTED", scopes}, nil
+	return &SlackConnection{ID: connectionID, TeamID: g.Team.ID, TeamName: g.Team.Name, AppID: g.AppID, Health: "CONNECTED", Scopes: scopes}, nil
 }
 func (s *Service) Disconnect(ctx context.Context, p Principal, id string) error {
 	if err := s.Authorize(ctx, p, true); err != nil {
@@ -351,7 +391,7 @@ func (s *Service) Disconnect(ctx context.Context, p Principal, id string) error 
 		return err
 	}
 	// An installation can serve several platform workspaces; disconnect is local, never auth.revoke.
-	_, err = tx.ExecContext(ctx, `DELETE FROM platform_slack_installation i WHERE id=$1 AND NOT EXISTS(SELECT 1 FROM platform_slack_connection c WHERE c.installation_id=i.id)`, installation)
+	_, err = tx.ExecContext(ctx, `DELETE FROM platform_slack_installation i WHERE id=$1 AND NOT EXISTS(SELECT 1 FROM platform_slack_connection c WHERE c.installation_id=i.id) AND NOT EXISTS(SELECT 1 FROM platform_slack_personal_connection c WHERE c.installation_id=i.id)`, installation)
 	if err != nil {
 		return err
 	}
@@ -377,6 +417,11 @@ func (s *Service) Token(ctx context.Context, org, connectionID string) (string, 
 	if err != nil {
 		return "", err
 	}
+	return s.installationToken(ctx, id, encrypted, health, expires)
+}
+
+func (s *Service) installationToken(ctx context.Context, id, encrypted, health string, expires sql.NullTime) (string, error) {
+	var err error
 	if health != "CONNECTED" {
 		return "", &slackError{Code: "reconnect_required"}
 	}
@@ -392,7 +437,7 @@ func (s *Service) Token(ctx context.Context, org, connectionID string) (string, 
 		return credentials.AccessToken, nil
 	}
 	if credentials.RefreshToken == "" {
-		if err = s.revoke(ctx, org, connectionID); err != nil {
+		if err = s.revokeInstallation(ctx, id); err != nil {
 			return "", err
 		}
 		return "", &slackError{Code: "reconnect_required"}
@@ -721,6 +766,9 @@ type slackIntent struct {
 }
 
 func slackScopesFor(purpose string) []string {
+	if purpose == "personal" {
+		return []string{"chat:write"}
+	}
 	if purpose == "publishing" {
 		return append(append([]string{}, slackScopes...), "chat:write.customize")
 	}

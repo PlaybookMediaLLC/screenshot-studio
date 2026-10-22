@@ -17,6 +17,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/helpers"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 const identifier = "x"
@@ -30,10 +31,6 @@ func New() *Provider {
 }
 
 func (p *Provider) Info() integrations.Info {
-	strip := ""
-	if os.Getenv("STRIP_LINKS_FROM_X_POSTS") != "" {
-		strip = "do not add links, they will be stripped from the post"
-	}
 	return integrations.Info{
 		Identifier: identifier,
 		Name:       "X",
@@ -48,11 +45,13 @@ func (p *Provider) Info() integrations.Info {
 		// single slot is no longer required - it would serialize every customer's
 		// status checks behind uploads.
 		MaxConcurrentJob: 10,
-		Rules:            `X can have maximum 4 pictures, or maximum one video, it can also be without attachments, it can also be published as a long-form article (draft or published) when post_type is set to article, in an article pictures go inside the content as <img src="..."> where they should appear (the src must be a picture from the media library, upload it with uploadFromUrlTool first) ` + strip,
+		Rules:            `X can have maximum 4 pictures, or maximum one video, it can also be without attachments, it can also be published as a long-form article (draft or published) when post_type is set to article and the account has verified Article access, in an article pictures go inside the content as <img src="..."> where they should appear (the src must be a picture from the media library, upload it with uploadFromUrlTool first)`,
 	}
 }
 
-func (p *Provider) StripLinks() bool { return os.Getenv("STRIP_LINKS_FROM_X_POSTS") != "" }
+// StripLinks stays false so the shared scheduler preserves the approved text.
+// The legacy STRIP_LINKS_FROM_X_POSTS environment variable no longer alters posts.
+func (p *Provider) StripLinks() bool { return false }
 
 func (p *Provider) SettingsDTO() any { return &XDto{} }
 
@@ -91,20 +90,12 @@ func truthy(v any) bool {
 	return true
 }
 
-func (p *Provider) MaxLength(additionalSettings []integrations.AdditionalSetting, settings json.RawMessage) int {
+func (p *Provider) MaxLength(_ []integrations.AdditionalSetting, settings json.RawMessage) int {
 	// Articles are long-form content, the tweet character limit doesn't apply.
 	if str(decodeSettings(settings).PostType) == "article" {
 		return 100000
 	}
-	// "Verified" => premium => higher limit.
-	for _, s := range additionalSettings {
-		if s.Title == "Verified" {
-			if truthy(s.Value) {
-				return 4000
-			}
-			break
-		}
-	}
+	// An editable Verified flag does not prove a long-post API entitlement.
 	return 280
 }
 
@@ -271,6 +262,9 @@ func (p *Provider) RepostPostUsers(ctx context.Context, integration, _ *ent.Inte
 }
 
 func (p *Provider) AutoPlugPost(ctx context.Context, integration *ent.Integration, id string, fields map[string]string) (bool, error) {
+	if integration == nil {
+		return false, publishRejected("The X account is unavailable.")
+	}
 	c := newClient(integration.Token)
 	count, _, err := c.tweetEngagement(ctx, id)
 	if err != nil {
@@ -282,14 +276,7 @@ func (p *Provider) AutoPlugPost(ctx context.Context, integration *ent.Integratio
 	if err := p.Sleep(ctx, 2*time.Second); err != nil {
 		return false, err
 	}
-	plugText := helpers.StripHTMLValidation("normal", fields["post"], helpers.StripOptions{ReplaceBold: true})
-	if p.StripLinks() {
-		plugText = helpers.StripLinks(plugText)
-	}
-	err = c.postJSON(ctx, v2("tweets"), map[string]any{
-		"text":  plugText,
-		"reply": map[string]string{"in_reply_to_tweet_id": id},
-	}, nil)
+	_, err = p.ReplyTo(ctx, integration, id, fields["post"])
 	return err == nil, err
 }
 
@@ -311,20 +298,33 @@ func (p *Provider) PostEngagement(ctx context.Context, integration *ent.Integrat
 // ReplyTo posts text as a reply to a post (RFC 042 Auto-Plug) and returns
 // the reply's id, which the plug's receipt keeps.
 func (p *Provider) ReplyTo(ctx context.Context, integration *ent.Integration, id, text string) (string, error) {
-	text = helpers.StripHTMLValidation("normal", text, helpers.StripOptions{ReplaceBold: true})
-	if p.StripLinks() {
-		text = helpers.StripLinks(text)
+	if integration == nil {
+		return "", publishRejected("The X account is unavailable.")
+	}
+	caps, err := publishingLimits(ctx, integration.Token, integration)
+	if err != nil {
+		return "", err
+	}
+	text = toTweetText(text)
+	if err := checkPublishingContent(caps, text, pendingSettings{}, 0, false); err != nil {
+		return "", err
 	}
 	var res struct {
 		Data struct {
 			ID string `json:"id"`
 		} `json:"data"`
 	}
-	err := newClient(integration.Token).postJSON(ctx, v2("tweets"), map[string]any{
-		"text":  text,
-		"reply": map[string]string{"in_reply_to_tweet_id": id},
-	}, &res)
-	return res.Data.ID, err
+	// Keep the non-retrying client: a failed response can follow a committed
+	// reply, and X does not accept a publication idempotency key.
+	if err := newClient(integration.Token).mutationJSON(ctx, v2("tweets"), map[string]any{
+		"text": text, "reply": map[string]string{"in_reply_to_tweet_id": id},
+	}, &res); err != nil {
+		return "", err
+	}
+	if !socialidentity.XAccountID(res.Data.ID) {
+		return "", uncertainMutation()
+	}
+	return res.Data.ID, nil
 }
 
 func (p *Provider) RefreshToken(context.Context, string) (*integrations.AuthTokenDetails, error) {
@@ -336,12 +336,15 @@ func (p *Provider) GenerateAuthURL(ctx context.Context, _ *integrations.ClientIn
 	if callback == "" {
 		callback = os.Getenv("FRONTEND_URL")
 	}
-	res, err := (&client{}).postForm(ctx, apiBase+"/oauth/request_token", url.Values{
+	res, err := (&client{}).connectionForm(ctx, apiBase+"/oauth/request_token", url.Values{
 		"oauth_callback":     {callback + "/integrations/social/x"},
 		"x_auth_access_type": {"write"},
 	})
 	if err != nil {
 		return nil, err
+	}
+	if res.Get("oauth_callback_confirmed") != "true" || len(res["oauth_callback_confirmed"]) != 1 {
+		return nil, errIdentity
 	}
 	token := res.Get("oauth_token")
 	return &integrations.GenerateAuthURLResponse{
@@ -352,9 +355,15 @@ func (p *Provider) GenerateAuthURL(ctx context.Context, _ *integrations.ClientIn
 }
 
 func (p *Provider) Authenticate(ctx context.Context, params integrations.AuthenticateParams, _ *integrations.ClientInformation) (*integrations.AuthTokenDetails, error) {
+	if strings.Count(params.CodeVerifier, ":") != 1 || !validCredential(params.Code) {
+		return nil, errIdentity
+	}
 	oauthToken, oauthTokenSecret := splitToken(params.CodeVerifier)
+	if !validCredential(oauthToken) || !validCredential(oauthTokenSecret) {
+		return nil, errIdentity
+	}
 	starting := &client{token: oauthToken, secret: oauthTokenSecret}
-	login, err := starting.postForm(ctx, apiBase+"/oauth/access_token", url.Values{
+	login, err := starting.connectionForm(ctx, apiBase+"/oauth/access_token", url.Values{
 		"oauth_token":    {oauthToken},
 		"oauth_verifier": {params.Code},
 	})
@@ -363,24 +372,10 @@ func (p *Provider) Authenticate(ctx context.Context, params integrations.Authent
 	}
 	accessToken, accessSecret := login.Get("oauth_token"), login.Get("oauth_token_secret")
 	c := &client{token: accessToken, secret: accessSecret}
-	me, err := c.me(ctx, url.Values{"user.fields": {"username,verified,verified_type,profile_image_url,name"}})
-	if err != nil {
-		return nil, err
+	if len(login["user_id"]) != 1 {
+		return nil, errIdentity
 	}
-	return &integrations.AuthTokenDetails{
-		ID:          me.ID,
-		AccessToken: accessToken + ":" + accessSecret,
-		Name:        me.Name,
-		ExpiresIn:   999999999,
-		Picture:     me.ProfileImageURL,
-		Username:    me.Username,
-		AdditionalSettings: []integrations.AdditionalSetting{{
-			Title:       "Verified",
-			Description: "Is this a verified user? (Premium)",
-			Type:        "checkbox",
-			Value:       me.Verified,
-		}},
-	}, nil
+	return c.verifiedIdentity(ctx, login.Get("user_id"))
 }
 
 type tweet struct {

@@ -266,47 +266,24 @@ func (s *Service) SetBetweenRefreshSteps(ctx context.Context, id string) (*ent.I
 	return s.repo.SetBetweenRefreshSteps(ctx, id)
 }
 
-// RefreshTokens refreshes every expiring channel. Like the original app it stops at the
-// first channel that fails to refresh.
+// RefreshTokens isolates failures so one account cannot starve the remaining sweep.
 func (s *Service) RefreshTokens(ctx context.Context) error {
 	list, err := s.repo.NeedsToBeRefreshed(ctx)
 	if err != nil {
 		return err
 	}
+	var errs []error
 	for _, integration := range list {
-		provider := s.manager.GetSocialIntegration(integration.ProviderIdentifier)
-		if provider == nil {
-			return fmt.Errorf("unknown provider %s", integration.ProviderIdentifier)
+		_, err := s.refresh.Refresh(ctx, integration, "")
+		if errors.Is(err, ErrRefreshChanged) {
+			continue
 		}
-		refreshToken := ""
-		if integration.RefreshToken != nil {
-			refreshToken = *integration.RefreshToken
-		}
-		data := s.RefreshToken(ctx, provider, refreshToken)
-		if data == nil {
-			if err := s.InformAboutRefreshError(ctx, integration.OrganizationID, integration, ""); err != nil {
-				return err
-			}
-			_, err := s.repo.RefreshNeeded(ctx, integration.OrganizationID, integration.ID)
-			return err
-		}
-
-		expiresIn := data.ExpiresIn
-		if _, err := s.CreateOrUpdateIntegration(ctx, CreateOrUpdateIntegrationParams{
-			OneTimeToken: provider.Info().OneTimeToken,
-			Org:          integration.OrganizationID,
-			Name:         integration.Name,
-			Type:         "social",
-			InternalID:   integration.InternalID,
-			Provider:     integration.ProviderIdentifier,
-			Token:        data.AccessToken,
-			RefreshToken: data.RefreshToken,
-			ExpiresIn:    &expiresIn,
-		}); err != nil {
-			return err
+		if err != nil {
+			errs = append(errs, err)
 		}
 	}
-	return nil
+
+	return errors.Join(errs...)
 }
 
 func (s *Service) DisableChannel(ctx context.Context, org, id string) error {

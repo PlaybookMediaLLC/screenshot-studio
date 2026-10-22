@@ -23,6 +23,8 @@ export function healthLabel(health: SocialAccountHealth): string {
   switch (health) {
     case 'connected':
       return 'Connected'
+    case 'unverified':
+      return 'Credentials unverified: reconnect it'
     case 'reconnect_required':
       return 'Needs reconnecting'
     case 'expired':

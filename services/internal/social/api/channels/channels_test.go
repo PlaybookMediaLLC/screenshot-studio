@@ -119,6 +119,7 @@ func (f *fixture) noAuth() {
 func (f *fixture) state(t *testing.T) {
 	t.Helper()
 	_ = f.store.Set(f.ctx, "login:state1", "verifier", 0)
+	_ = f.store.Set(f.ctx, "connection-provider:state1", f.provider.id, 0)
 	_ = f.store.Set(f.ctx, "organization:state1", f.org.ID, 0)
 	_ = f.store.Set(f.ctx, "redirect:state1", "https://app/back", 0)
 }
@@ -194,6 +195,40 @@ func TestConnectSocialMediaErrors(t *testing.T) {
 				t.Fatalf("got %d %s", status, body)
 			}
 		})
+	}
+}
+
+func TestConnectSocialMediaNonExpiringToken(t *testing.T) {
+	f := setup(t)
+	f.provider.auth = func() (*integrations.AuthTokenDetails, error) {
+		return &integrations.AuthTokenDetails{ID: "non-expiring", Username: "me@example.social", AccessToken: "token", NonExpiring: true}, nil
+	}
+	f.noAuth()
+	f.state(t)
+	status, _ := do(t, f.router, http.MethodPost, "/integrations/social-connect/fake", `{"state":"state1","code":"code","timezone":"0"}`)
+	if status != http.StatusCreated {
+		t.Fatalf("connection status %d", status)
+	}
+	stored := f.client.Integration.Query().OnlyX(f.ctx)
+	if stored.TokenExpiration != nil || stored.RefreshToken != nil {
+		t.Fatal("non-expiring token was assigned an invented expiry or refresh token")
+	}
+	// A reconnect must clear a legacy invented expiry on the same integration.
+	expires := int64(60)
+	_, err := f.service.CreateOrUpdateIntegration(f.ctx, integration.CreateOrUpdateIntegrationParams{
+		Org: f.org.ID, Type: "social", Name: "Account", Provider: "fake", InternalID: "non-expiring", Token: "old", ExpiresIn: &expires,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.state(t)
+	status, _ = do(t, f.router, http.MethodPost, "/integrations/social-connect/fake", `{"state":"state1","code":"new-code","timezone":"0"}`)
+	if status != http.StatusCreated {
+		t.Fatalf("reconnection status %d", status)
+	}
+	updated := f.client.Integration.Query().OnlyX(f.ctx)
+	if updated.ID != stored.ID || updated.TokenExpiration != nil {
+		t.Fatal("reconnection failed to preserve identity and clear legacy expiry")
 	}
 }
 

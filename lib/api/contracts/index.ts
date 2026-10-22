@@ -1,3 +1,4 @@
+import { mutateDraftCommentContract } from '@/lib/api/contracts/draft-comments'
 import {
   decideCampaignApprovalContract,
   listApprovalsContract,
@@ -26,6 +27,13 @@ import {
   updateContentDraftContract,
 } from '@/lib/api/contracts/content-drafts'
 import { getLinkPreviewContract } from '@/lib/api/contracts/link-preview'
+import { createSocialConnectionAttemptContract } from '@/lib/api/contracts/social-connections'
+import { getSocialConnectionAvailabilityContract } from '@/lib/api/contracts/social-availability'
+import {
+  beginBlueskyConnectionContract,
+  completeBlueskyConnectionContract,
+} from '@/lib/api/contracts/bluesky-connections'
+import { previewMastodonInstanceContract } from '@/lib/api/contracts/social-instances'
 import {
   cancelOnboardingRunContract,
   createOnboardingRunContract,
@@ -69,6 +77,11 @@ import {
 
 /** Every contract in the public OpenAPI spec, in the order the spec lists them. */
 export const documentedContracts = [
+  previewMastodonInstanceContract,
+  createSocialConnectionAttemptContract,
+  getSocialConnectionAvailabilityContract,
+  beginBlueskyConnectionContract,
+  completeBlueskyConnectionContract,
   listReleasesContract,
   createReleaseContract,
   createSourceAppContract,
@@ -121,4 +134,5 @@ export const documentedContracts = [
   getOrganizationPermissionsContract,
   getOrganizationCapabilitiesContract,
   activateOrganizationContract,
+  mutateDraftCommentContract,
 ]

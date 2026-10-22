@@ -3,7 +3,8 @@ import { dash } from '@better-auth/infra'
 import { scim } from '@better-auth/scim'
 import { sso } from '@better-auth/sso'
 import { betterAuth } from 'better-auth'
-import { admin, organization, twoFactor } from 'better-auth/plugins'
+import { admin, twoFactor } from 'better-auth/plugins'
+import { workspaceOrganizationPlugin } from './workspace-organization-plugin'
 import { backendAuthAdapter } from './backend-adapter'
 import {
   getAuthBaseUrl,
@@ -57,7 +58,7 @@ export const auth = betterAuth({
   },
   plugins: [
     admin({ adminRoles: [], defaultRole: 'user' }),
-    organization({
+    workspaceOrganizationPlugin({
       disableOrganizationDeletion: true,
       invitationExpiresIn: 7 * 24 * 60 * 60,
       organizationHooks,

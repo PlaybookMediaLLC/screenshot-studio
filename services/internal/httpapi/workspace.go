@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -18,6 +19,8 @@ var publishTimePattern = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]$`)
 var localePattern = regexp.MustCompile(`^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{2,8})*$`)
 
 func (s *Server) registerWorkspace(mux *http.ServeMux) {
+	mux.Handle("GET /v1/invitations/{id}", s.authenticateSession(http.HandlerFunc(s.getRecipientInvitation)))
+	mux.Handle("POST /v1/invitations/{id}/respond", s.authenticateSession(http.HandlerFunc(s.respondInvitation)))
 	mux.Handle("GET /v1/workspaces", s.authenticateSession(http.HandlerFunc(s.listWorkspaces)))
 	mux.Handle("POST /v1/workspaces", s.authenticateSession(http.HandlerFunc(s.createWorkspace)))
 	mux.Handle("POST /v1/workspaces/active", s.authenticateSession(http.HandlerFunc(s.setActiveWorkspace)))
@@ -71,6 +74,7 @@ func (s *Server) registerWorkspace(mux *http.ServeMux) {
 	mux.Handle("POST /v1/assets/{id}/complete", s.authenticateProduct(http.HandlerFunc(s.completeAssetUpload)))
 	mux.Handle("GET /v1/assets/{id}/download-url", s.authenticateProduct(http.HandlerFunc(s.signAssetDownload)))
 	mux.Handle("GET /v1/assets/{id}/bytes", s.authenticateProduct(http.HandlerFunc(s.readAsset)))
+	mux.Handle("POST /v1/internal/assets/{id}/download", s.authenticateService(http.HandlerFunc(s.readAssetDownload)))
 	mux.Handle("DELETE /v1/assets/{id}", s.authenticateProduct(http.HandlerFunc(s.deleteAsset)))
 	mux.Handle("GET /v1/audit-logs", s.authenticateProduct(http.HandlerFunc(s.listAuditLogs)))
 }
@@ -151,11 +155,12 @@ func (s *Server) revokeWorkspaceInvitation(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusBadRequest, "valid invitation ID is required")
 		return
 	}
-	if err := s.configuration.RevokeInvitation(r.Context(), actor, id); err != nil {
+	result, err := s.configuration.CancelInvitation(r.Context(), actor, id)
+	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"id": id, "status": "canceled"})
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) requestWorkspaceDeletion(w http.ResponseWriter, r *http.Request) {
@@ -240,19 +245,21 @@ func (s *Server) removeWorkspaceMember(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "valid member ID is required")
 		return
 	}
-	if err := s.configuration.RemoveMember(r.Context(), actor, memberID); err != nil {
+	removed, err := s.configuration.RemoveMember(r.Context(), actor, memberID)
+	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]bool{"removed": true})
+	writeJSON(w, http.StatusOK, map[string]any{"removed": true, "member": removed})
 }
 
 func (s *Server) leaveWorkspace(w http.ResponseWriter, r *http.Request) {
-	if err := s.configuration.LeaveWorkspace(r.Context(), workspaceActor(r)); err != nil {
+	left, err := s.configuration.LeaveWorkspace(r.Context(), workspaceActor(r))
+	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]bool{"left": true})
+	writeJSON(w, http.StatusOK, map[string]any{"left": true, "member": left})
 }
 
 func (s *Server) transferWorkspaceOwnership(w http.ResponseWriter, r *http.Request) {
@@ -301,7 +308,8 @@ func workspaceActor(r *http.Request) product.Actor {
 }
 
 func validWorkspaceNameAndSlug(name, slug string) bool {
-	return utf8.RuneCountInString(name) >= 2 && utf8.RuneCountInString(name) <= 100 &&
+	_, err := product.NormalizeWorkspaceName(name)
+	return err == nil &&
 		len(slug) >= 2 && len(slug) <= 100 && workspaceSlugPattern.MatchString(slug)
 }
 
@@ -419,10 +427,20 @@ func workspaceResponse(workspace *product.Workspace) map[string]any {
 }
 
 func workspaceMutationResponse(workspace *product.Workspace) map[string]any {
-	return map[string]any{
-		"organization": map[string]any{"id": workspace.ID, "logo": workspace.Logo, "name": workspace.Name, "slug": workspace.Slug},
+	organization := map[string]any{"id": workspace.ID, "logo": workspace.Logo, "name": workspace.Name, "slug": workspace.Slug}
+	response := map[string]any{
+		"organization": organization,
 		"settings":     workspaceSettingsResponse(workspace.WorkspaceSettings),
 	}
+	if workspace.CreationMember != nil {
+		var metadata json.RawMessage
+		if workspace.Metadata != nil {
+			metadata = json.RawMessage(*workspace.Metadata)
+		}
+		organization["createdAt"], organization["metadata"] = workspace.CreatedAt, metadata
+		response["creationMember"] = workspace.CreationMember
+	}
+	return response
 }
 
 func workspaceSettingsResponse(settings *ent.WorkspaceSettings) any {

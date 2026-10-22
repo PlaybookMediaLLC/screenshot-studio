@@ -1,3 +1,51 @@
+import {
+  workspaceMemberSchema,
+  workspaceMembersSchema,
+  workspaceMemberRemovalSchema,
+  workspaceMemberLeaveSchema,
+} from './membership.ts'
+export * from './membership.ts'
+import {
+  recipientInvitationSchema,
+  invitationResponseSchema,
+  workspaceInvitationDetailSchema,
+} from './invitations.ts'
+export * from './invitations.ts'
+import { draftCommentInputSchema, type DraftCommentInput } from './draft-comments.ts'
+export * from './draft-comments.ts'
+import { connectionAvailabilitySchema } from './social-availability.ts'
+import {
+  workspaceCreationInputSchema,
+  workspaceCreationResultSchema,
+  type WorkspaceCreationInput,
+} from './workspace-creation.ts'
+export * from './workspace-creation.ts'
+export * from './workspace-names.ts'
+export * from './social-availability.ts'
+import {
+  socialOAuthBeginRequestSchema,
+  socialOAuthBeginResponseSchema,
+  socialOAuthContextSchema,
+  socialOAuthExchangeSchema,
+} from './social-oauth.ts'
+import {
+  blueskyConnectionBeginSchema,
+  blueskyConnectionBeginResponseSchema,
+  blueskyConnectionCompleteSchema,
+  blueskyConnectionCompleteResponseSchema,
+} from './bluesky-connections.ts'
+import type { BlueskyConnectionBegin, BlueskyConnectionComplete } from './bluesky-connections.ts'
+export * from './bluesky-connections.ts'
+import { mastodonInstanceSchema, socialInstanceQuerySchema } from './social-instances.ts'
+export * from './social-instances.ts'
+import type { OAuthProvider, SocialOAuthStartOptions } from './social-oauth.js'
+export * from './social-oauth.ts'
+import type {
+  NotificationView,
+  NotificationStateInput,
+  NotificationStateResult,
+} from './notification-state.js'
+export * from './notification-state.ts'
 import type {
   NotificationSettings,
   NotificationPolicy,
@@ -45,6 +93,7 @@ import type {
   WritingSample,
 } from './settings-platform.js'
 export type * from './settings-platform.js'
+export { socialAccountHealthSchema, socialAccountSchema } from './settings-platform.ts'
 
 /**
  * Who the web facade acts for. The backend rechecks the principal on every
@@ -176,13 +225,6 @@ export type ChannelConnection = {
   avatarUrl?: string | null
   displayName?: string | null
   handle?: string | null
-}
-
-export type OAuthProvider =
-  'x' | 'instagram' | 'instagram-standalone' | 'linkedin' | 'threads' | 'mastodon'
-export type OAuthExchange = {
-  id: string
-  pages?: { id: string; pageId: string; name?: string | null }[]
 }
 
 export type BrandKit = {
@@ -1853,13 +1895,6 @@ export type UpdateWorkspaceInput = {
   timeZone?: string
 }
 
-export type WorkspaceMember = {
-  createdAt: string
-  id: string
-  role: string
-  user: { email: string; id: string; image: string | null; name: string }
-}
-
 export type WorkspaceInvitation = {
   createdAt: string
   email: string
@@ -1867,11 +1902,6 @@ export type WorkspaceInvitation = {
   id: string
   role: string | null
   status: string
-}
-
-export type WorkspaceInvitationDetail = WorkspaceInvitation & {
-  organization: { name: string }
-  user: { email: string; name: string }
 }
 
 export type WorkspaceDeletion = {
@@ -1969,7 +1999,7 @@ export class ScreenshotStudioBackendSDK {
       headers?: Record<string, string>
       method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
       rawBody?: BodyInit
-      responseType?: 'bytes'
+      responseType?: 'bytes' | 'response'
     } = {}
   ) {
     let response: Response
@@ -1990,6 +2020,7 @@ export class ScreenshotStudioBackendSDK {
     } catch {
       throw new BackendSDKError('Publishing backend is unavailable.', 503)
     }
+    if (init.responseType === 'response' && response.status === 416) return response as T
     if (!response.ok) {
       const error = (await response.json().catch(() => null)) as
         ({ error?: string } & Record<string, unknown>) | null
@@ -1998,9 +2029,11 @@ export class ScreenshotStudioBackendSDK {
       throw new BackendSDKError(error?.error ?? 'Publishing request failed.', status, error ?? {})
     }
     return (
-      init.responseType === 'bytes'
-        ? new Uint8Array(await response.arrayBuffer())
-        : await response.json()
+      init.responseType === 'response'
+        ? response
+        : init.responseType === 'bytes'
+          ? new Uint8Array(await response.arrayBuffer())
+          : await response.json()
     ) as T
   }
 
@@ -2047,12 +2080,61 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
+  /** Read the current workspace-bound configuration readiness without creating an attempt. */
+  async socialConnectionAvailability() {
+    return connectionAvailabilitySchema.parse(
+      await this.request('v1/social-connection-availability')
+    )
+  }
+
+  /** Read public Mastodon metadata through the backend’s bounded network guard. */
+  async previewMastodonInstance(server: string) {
+    const query = new URLSearchParams(socialInstanceQuerySchema.parse({ server }))
+    return mastodonInstanceSchema.parse(await this.request(`v1/social-instances/mastodon?${query}`))
+  }
+
   /** Begins a provider connection; with a set, the account joins that set (RFC 043). */
-  async beginSocialOAuth(provider: OAuthProvider, socialSetId?: string) {
-    return this.request<{ url: string }>('v1/social-oauth/begin', {
-      body: socialSetId ? { provider, socialSetId } : { provider },
-      method: 'POST',
-    })
+  async beginSocialOAuth(
+    provider: OAuthProvider,
+    socialSetId?: string,
+    options: SocialOAuthStartOptions = {}
+  ) {
+    return socialOAuthBeginResponseSchema.parse(
+      await this.request('v1/social-oauth/begin', {
+        body: socialOAuthBeginRequestSchema.parse({ provider, socialSetId, ...options }),
+        method: 'POST',
+      })
+    )
+  }
+
+  /** Create a session-bound Bluesky attempt without sending credentials. */
+  async beginBlueskyConnection(input: BlueskyConnectionBegin) {
+    return blueskyConnectionBeginResponseSchema.parse(
+      await this.request('v1/social-connections/bluesky/begin', {
+        method: 'POST',
+        body: blueskyConnectionBeginSchema.parse(input),
+      })
+    )
+  }
+
+  /** Submit credentials once or recover the attempt without resending them. */
+  async completeBlueskyConnection(input: BlueskyConnectionComplete) {
+    return blueskyConnectionCompleteResponseSchema.parse(
+      await this.request('v1/social-connections/bluesky/connect', {
+        method: 'POST',
+        body: blueskyConnectionCompleteSchema.parse(input),
+      })
+    )
+  }
+
+  /** Resolve a session-bound attempt independently of the selected workspace. */
+  async resolveSocialOAuthContext(provider: OAuthProvider, state: string) {
+    return socialOAuthContextSchema.parse(
+      await this.request('v1/social-oauth/context', {
+        body: { provider, state },
+        method: 'POST',
+      })
+    )
   }
 
   async verifySocialOAuth(provider: OAuthProvider, state: string, integrationId?: string) {
@@ -2063,10 +2145,12 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async exchangeSocialOAuth(provider: OAuthProvider, state: string, code: string) {
-    return this.request<OAuthExchange>('v1/social-oauth/exchange', {
-      body: { provider, state, code },
-      method: 'POST',
-    })
+    return socialOAuthExchangeSchema.parse(
+      await this.request('v1/social-oauth/exchange', {
+        body: { provider, state, code },
+        method: 'POST',
+      })
+    )
   }
 
   async selectInstagramOAuthPage(input: {
@@ -2282,8 +2366,14 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  async createWorkspace(input: { name: string; slug: string; timeZone?: string }) {
-    return this.request<WorkspaceMutation>('v1/workspaces', { body: input, method: 'POST' })
+  /** Atomically creates a workspace and its owner, or returns an authorized retry. */
+  async createWorkspace(input: WorkspaceCreationInput) {
+    return workspaceCreationResultSchema.parse(
+      await this.request<unknown>('v1/workspaces', {
+        body: workspaceCreationInputSchema.parse(input),
+        method: 'POST',
+      })
+    )
   }
 
   async listWorkspaces() {
@@ -2307,7 +2397,14 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ enabled: true }>(`v1/enterprise-features/${feature}`)
   }
 
-  async listAssets(options: { search?: string; classification?: string; cursor?: string; limit: number; type?: 'all' | 'image' | 'video'; sort?: 'newest' | 'oldest' }) {
+  async listAssets(options: {
+    search?: string
+    classification?: string
+    cursor?: string
+    limit: number
+    type?: 'all' | 'image' | 'video'
+    sort?: 'newest' | 'oldest'
+  }) {
     const parameters = new URLSearchParams({ limit: String(options.limit) })
     if (options.cursor) parameters.set('cursor', options.cursor)
     if (options.type) parameters.set('type', options.type)
@@ -2339,6 +2436,24 @@ export class ScreenshotStudioBackendSDK {
   async readAsset(id: string) {
     return this.request<Uint8Array>(`v1/assets/${encodeURIComponent(id)}/bytes`, {
       responseType: 'bytes',
+    })
+  }
+
+  /** Authenticated media response; keep its byte stream and range metadata. */
+  async readAssetResponse(id: string, range?: string) {
+    return this.request<Response>(`v1/assets/${encodeURIComponent(id)}/bytes`, {
+      headers: range ? { range } : {},
+      responseType: 'response',
+    })
+  }
+
+  /** Redeem an opaque grant; Go rechecks its original principal on every read. */
+  async readAssetDownload(id: string, token: string, range?: string) {
+    return this.request<Response>(`v1/internal/assets/${encodeURIComponent(id)}/download`, {
+      body: { token },
+      headers: range ? { range } : {},
+      method: 'POST',
+      responseType: 'response',
     })
   }
 
@@ -2822,6 +2937,14 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
+  /** Apply a comment-only action with revision conflict protection. */
+  async mutateContentDraftComment(id: string, input: DraftCommentInput) {
+    return this.request<BackendContentDraft>(
+      `v1/content-drafts/${encodeURIComponent(id)}/comments`,
+      { body: draftCommentInputSchema.parse(input), method: 'POST' }
+    )
+  }
+
   async shareContentDraft(id: string, enabled: boolean) {
     return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}/share`, {
       body: { enabled },
@@ -3180,13 +3303,18 @@ export class ScreenshotStudioBackendSDK {
 
   /** Permanently remove a canvas and its versions; delivered assets are retained. */
   async deleteCanvas(id: string) {
-    return this.request<{ deleted: boolean }>(`v1/canvases/${encodeURIComponent(id)}`, { method: 'DELETE' })
+    return this.request<{ deleted: boolean }>(`v1/canvases/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
   }
 
   async archiveCreativeSet(id: string, archived = true) {
-    return this.request<{ archived: boolean }>(`v1/creative-sets/${encodeURIComponent(id)}/archive?archived=${archived}`, {
-      method: 'POST',
-    })
+    return this.request<{ archived: boolean }>(
+      `v1/creative-sets/${encodeURIComponent(id)}/archive?archived=${archived}`,
+      {
+        method: 'POST',
+      }
+    )
   }
 
   async listCreativeSetVersions(id: string) {
@@ -3314,29 +3442,31 @@ export class ScreenshotStudioBackendSDK {
     })
   }
   /** Read-only inbox page. */
-  notificationInbox(cursor = '', filter: 'all' | 'unseen' = 'all') {
+  notificationInbox(cursor = '', view: NotificationView = 'all') {
     return this.request<NotificationPage>(
-      `v1/workspace/notifications/inbox?cursor=${encodeURIComponent(cursor)}&filter=${filter}`
+      `v1/workspace/notifications/inbox?cursor=${encodeURIComponent(cursor)}&view=${view}`
     )
   }
   /** Read-only unseen count. */
   notificationCount() {
     return this.request<{ unseenCount: number }>('v1/workspace/notifications/count')
   }
-  /** Mark retained rows seen, or undo a bulk action with a stable key. */
-  acknowledgeNotifications(body: { ids?: string[]; all?: boolean; key?: string; undo?: boolean }) {
+  /** Persist read, unread, archive or restore state for the current recipient. */
+  changeNotificationState(input: NotificationStateInput) {
+    return this.request<NotificationStateResult>('v1/workspace/notifications/state', {
+      method: 'POST',
+      body: input,
+    })
+  }
+
+  /** Mark receipts read while preserving their feed and archive state. */
+  acknowledgeNotifications(body: { ids?: string[]; all?: boolean; key?: string }) {
     return this.request<NotificationSeen>('v1/workspace/notifications/seen', {
       method: 'POST',
       body,
     })
   }
-  /** Change exactly one recipient row. */
-  setNotificationSeen(id: string, seen: boolean) {
-    return this.request<NotificationSeen>(`v1/workspace/notifications/items/${encodeURIComponent(id)}`, {
-      method: 'PATCH', body: { seen },
-    })
-  }
-  /** Reauthorize a retained notification's link. */
+  /** Reauthorize a link, including after its inbox row was archived. */
   resolveNotification(id: string) {
     return this.request<{ href: string }>(
       `v1/workspace/notifications/resolve/${encodeURIComponent(id)}`
@@ -3344,7 +3474,7 @@ export class ScreenshotStudioBackendSDK {
   }
   /** Begin backend-owned, session-bound Slack OAuth. */
   connectNotificationSlack(
-    purpose: 'notifications' | 'design' | 'publishing' = 'notifications',
+    purpose: 'notifications' | 'design' | 'publishing' | 'personal' = 'notifications',
     connectionId?: string
   ) {
     return this.request<{ url: string }>('v1/workspace/notifications/slack/connect', {
@@ -3352,6 +3482,14 @@ export class ScreenshotStudioBackendSDK {
       body: { purpose, connectionId },
     })
   }
+  /** Disconnect only the authenticated member's personal Slack destination. */
+  disconnectPersonalSlack(id: string) {
+    return this.request<{ disconnected: boolean }>(
+      `v1/workspace/notifications/slack/personal/${encodeURIComponent(id)}`,
+      { method: 'DELETE' }
+    )
+  }
+
   /** Consume one OAuth state and store verified provider identity in Go. */
   completeNotificationSlack(body: { state: string; code: string }) {
     return this.request<NotificationConnection>('v1/workspace/notifications/slack/callback', {
@@ -3373,7 +3511,7 @@ export class ScreenshotStudioBackendSDK {
     )
   }
   /** Request an explicitly targeted test with a stable retry key. */
-  testNotification(body: { channel: 'email' | 'slack'; key: string }) {
+  testNotification(body: { channel: 'email' | 'slack' | 'slack_dm'; key: string }) {
     return this.request<{ deliveryId: string }>('v1/workspace/notifications/test', {
       method: 'POST',
       body,
@@ -3386,9 +3524,10 @@ export class ScreenshotStudioBackendSDK {
       `v1/workspace/notifications/deliveries/${encodeURIComponent(id)}`
     )
   }
-  notificationDeliveries() {
+  /** List own personal receipts or administrator-visible workspace receipts. */
+  notificationDeliveries(scope: 'workspace' | 'personal' = 'workspace') {
     return this.request<{ deliveries: NotificationDelivery[] }>(
-      'v1/workspace/notifications/deliveries'
+      `v1/workspace/notifications/deliveries?scope=${scope}`
     )
   }
   /** Recover one unresolved delivery; successful receipts cannot be replayed. */
@@ -4287,7 +4426,7 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async listWorkspaceMembers() {
-    return this.request<{ members: WorkspaceMember[] }>('v1/workspace/members')
+    return workspaceMembersSchema.parse(await this.request('v1/workspace/members'))
   }
 
   async listWorkspaceInvitations() {
@@ -4295,16 +4434,45 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async inviteWorkspaceMember(input: { email: string; role: string }) {
-    return this.request<WorkspaceInvitationDetail>('v1/workspace/invitations', {
-      body: input,
-      method: 'POST',
-    })
+    return workspaceInvitationDetailSchema.parse(
+      await this.request('v1/workspace/invitations', {
+        body: input,
+        method: 'POST',
+      })
+    )
   }
 
   async resendWorkspaceInvitation(invitationId: string) {
-    return this.request<WorkspaceInvitationDetail>(
-      `v1/workspace/invitations/${encodeURIComponent(invitationId)}/resend`,
-      { method: 'POST' }
+    return workspaceInvitationDetailSchema.parse(
+      await this.request(`v1/workspace/invitations/${encodeURIComponent(invitationId)}/resend`, {
+        method: 'POST',
+      })
+    )
+  }
+
+  /** Read a link only as its currently authenticated recipient. */
+  async getRecipientInvitation(invitationId: string) {
+    return recipientInvitationSchema.parse(
+      await this.request(`v1/invitations/${encodeURIComponent(invitationId)}`)
+    )
+  }
+
+  /** Consume a pending invitation with membership, seats and audit in one transaction. */
+  async respondWorkspaceInvitation(invitationId: string, action: 'accept' | 'reject') {
+    return invitationResponseSchema.parse(
+      await this.request(`v1/invitations/${encodeURIComponent(invitationId)}/respond`, {
+        method: 'POST',
+        body: { action },
+      })
+    )
+  }
+
+  /** Administrative cancellation using the same operation as the workspace controls. */
+  async cancelWorkspaceInvitation(invitationId: string) {
+    return recipientInvitationSchema.parse(
+      await this.request(`v1/workspace/invitations/${encodeURIComponent(invitationId)}`, {
+        method: 'DELETE',
+      })
     )
   }
 
@@ -4316,20 +4484,26 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async updateWorkspaceMemberRole(memberId: string, role: string) {
-    return this.request<WorkspaceMember>(`v1/workspace/members/${encodeURIComponent(memberId)}`, {
-      body: { role },
-      method: 'PATCH',
-    })
+    return workspaceMemberSchema.parse(
+      await this.request(`v1/workspace/members/${encodeURIComponent(memberId)}`, {
+        body: { role },
+        method: 'PATCH',
+      })
+    )
   }
 
   async removeWorkspaceMember(memberId: string) {
-    return this.request<{ removed: true }>(`v1/workspace/members/${encodeURIComponent(memberId)}`, {
-      method: 'DELETE',
-    })
+    return workspaceMemberRemovalSchema.parse(
+      await this.request(`v1/workspace/members/${encodeURIComponent(memberId)}`, {
+        method: 'DELETE',
+      })
+    )
   }
 
   async leaveWorkspace() {
-    return this.request<{ left: true }>('v1/workspace/leave', { method: 'POST' })
+    return workspaceMemberLeaveSchema.parse(
+      await this.request('v1/workspace/leave', { method: 'POST' })
+    )
   }
 
   async transferWorkspaceOwnership(memberId: string) {

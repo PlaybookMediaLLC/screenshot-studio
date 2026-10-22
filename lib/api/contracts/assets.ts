@@ -86,7 +86,7 @@ export const createAssetDownloadUrlContract = defineContract({
   access: { apiKeyScope: 'artifact:read', permission: 'artifact:read' },
   docs: workspaceDocs({
     description:
-      'Returns a short-lived signed download URL for a workspace asset. Requires the `artifact:read` scope.',
+      'Returns a download URL valid for up to two minutes. Each download rechecks the issuing session or credential and current asset access; revocation invalidates outstanding links. Requires the `artifact:read` scope.',
     operationId: 'createAssetDownloadUrl',
     outputName: 'AssetDownloadResponse',
     responses: {
@@ -105,18 +105,22 @@ export const createAssetDownloadUrlContract = defineContract({
 })
 
 /**
- * `GET /api/v1/assets/{assetId}/content`: redirects to a fresh signed URL.
- * Documents embed this stable address (a draft's images), because a signed
- * URL expires. Browser-only, so it is not in the public reference.
+ * `GET /api/v1/assets/{assetId}/content`: reads through current authorization.
+ * Documents embed this stable address; optional encrypted download grants keep
+ * the short-lived bearer-link contract while allowing immediate revocation.
  */
 export const assetContentContract = defineContract({
   method: 'GET',
+  headers: z.object({ range: z.string().max(256).optional() }),
   name: 'assets.content',
-  query: z.object({ variant: z.enum(['original', 'thumbnail']).default('original') }),
+  query: z.object({
+    downloadToken: z.string().min(1).max(4096).optional(),
+    variant: z.enum(['original', 'thumbnail']).default('original'),
+  }),
   output: z.never(),
   params: assetParamsSchema,
   path: '/api/v1/assets/{assetId}/content',
-  summary: 'Redirect to a workspace asset',
+  summary: 'Read a workspace asset',
 })
 
 /** `DELETE /api/v1/assets/{assetId}` */

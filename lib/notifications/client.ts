@@ -43,6 +43,17 @@ export function useNotificationPageVisible() {
   )
 }
 
+/** Preserve HTTP status so permission failures are distinct from retryable reads. */
+export class NotificationRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message)
+    this.name = 'NotificationRequestError'
+  }
+}
+
 /** Fetch a scoped contract without retaining responses in the browser HTTP cache. */
 export async function notificationRequest<S extends z.ZodType>(
   identity: { workspaceId: string; userId: string },
@@ -62,15 +73,20 @@ export async function notificationRequest<S extends z.ZodType>(
     },
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   })
-  const body: unknown = await response.json()
+  const body: unknown = await response.json().catch(() => null)
   if (!response.ok) {
     const failure = z
       .object({ error: z.string().optional(), message: z.string().optional() })
       .safeParse(body)
-    throw new Error(
-      failure.success
-        ? (failure.data.error ?? failure.data.message ?? 'The request failed. Try again.')
-        : 'The request failed. Try again.'
+    throw new NotificationRequestError(
+      response.status === 401
+        ? 'Your session has expired. Sign in again to view notifications.'
+        : response.status === 403
+          ? 'You no longer have access to these notifications. Reopen them in your current workspace.'
+          : failure.success
+            ? (failure.data.error ?? failure.data.message ?? 'The request failed. Try again.')
+            : 'The request failed. Try again.',
+      response.status
     )
   }
   return schema.parse(body)

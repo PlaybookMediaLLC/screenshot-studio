@@ -2,7 +2,7 @@ import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import { getRedisClient } from '@/lib/redis'
 import { cachedThumbnail, thumbnailKey } from '@/lib/workspace/thumbnail-cache'
 import { NextResponse } from 'next/server'
-import { backendSDK, orNull } from '@/lib/backend/sdk'
+import { backendSDK, orNull, serviceBackend } from '@/lib/backend/sdk'
 import { createAssetThumbnail } from '@/lib/workspace/asset-thumbnail'
 import { assetContentContract } from '@/lib/api/contracts/assets'
 import { errorResponse, route } from '@/lib/api/route'
@@ -11,10 +11,31 @@ import { signAssetDownload } from '@/lib/tenant/assets'
 
 class InvalidThumbnailError extends Error {}
 
-/** Serves a small private preview or redirects to a fresh original download URL. */
+/** Returns private previews or original bytes only after Go rechecks current access. */
 export const GET = route(assetContentContract, {
-  auth: tenantAccess({ apiKeyScope: 'artifact:read', permission: 'artifact:read' }),
-  handler: async ({ access, params, query }) => {
+  auth: async (context) =>
+    context.request.nextUrl.searchParams.has('downloadToken')
+      ? null // The backend validates the encrypted grant before accessing storage.
+      : tenantAccess({ apiKeyScope: 'artifact:read', permission: 'artifact:read' })(context),
+  handler: async ({ access, params, query, headers }) => {
+    if (!access) {
+      const source = await serviceBackend().readAssetDownload(
+        params.assetId,
+        query.downloadToken ?? '',
+        headers.range
+      )
+      const responseHeaders = new Headers({
+        'cache-control': 'private, no-store',
+        'referrer-policy': 'no-referrer',
+        'x-content-type-options': 'nosniff',
+        'content-security-policy': "sandbox; default-src 'none'",
+      })
+      for (const name of ['content-type', 'content-length', 'content-range', 'accept-ranges']) {
+        const value = source.headers.get(name)
+        if (value) responseHeaders.set(name, value)
+      }
+      return new Response(source.body, { headers: responseHeaders, status: source.status })
+    }
     if (query.variant === 'thumbnail') {
       try {
         const thumbnail = await cachedThumbnail(

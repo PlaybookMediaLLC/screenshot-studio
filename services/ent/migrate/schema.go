@@ -1459,6 +1459,7 @@ var (
 		{Name: "processingAt", Type: field.TypeTime, Nullable: true},
 		{Name: "notification_version", Type: field.TypeInt, Default: 1},
 		{Name: "notification_fanned", Type: field.TypeBool, Default: false},
+		{Name: "notification_social_set_id", Type: field.TypeString, Default: ""},
 		{Name: "attempts", Type: field.TypeInt, Default: 0},
 		{Name: "lastError", Type: field.TypeString, Nullable: true},
 		{Name: "deadLetteredAt", Type: field.TypeTime, Nullable: true},
@@ -1478,7 +1479,7 @@ var (
 			{
 				Name:    "outboxevent_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{OutboxEventColumns[1], OutboxEventColumns[14]},
+				Columns: []*schema.Column{OutboxEventColumns[1], OutboxEventColumns[15]},
 			},
 		},
 	}
@@ -1593,6 +1594,7 @@ var (
 		{Name: "attempts", Type: field.TypeInt, Default: 0},
 		{Name: "next_attempt_at", Type: field.TypeTime},
 		{Name: "failure_code", Type: field.TypeString, Default: ""},
+		{Name: "decision_code", Type: field.TypeString, Default: "LEGACY"},
 		{Name: "provider_receipt", Type: field.TypeString, Default: ""},
 		{Name: "encrypted_payload", Type: field.TypeString, Default: ""},
 		{Name: "created_at", Type: field.TypeTime},
@@ -1627,9 +1629,9 @@ var (
 		{Name: "resource_id", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString},
 		{Name: "href", Type: field.TypeString},
-		{Name: "seen_at", Type: field.TypeTime, Nullable: true},
-		{Name: "seen_action_id", Type: field.TypeString, Default: ""},
-		{Name: "context", Type: field.TypeJSON},
+		{Name: "category", Type: field.TypeEnum, Enums: []string{"inbox", "activity"}, Default: "activity"},
+		{Name: "read_at", Type: field.TypeTime, Nullable: true},
+		{Name: "archived_at", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 	}
 	// PlatformNotificationInboxTable holds the schema information for the "platform_notification_inbox" table.
@@ -1675,6 +1677,8 @@ var (
 		{Name: "userId", Type: field.TypeString},
 		{Name: "events", Type: field.TypeJSON},
 		{Name: "social_sets", Type: field.TypeJSON},
+		{Name: "slack_enabled", Type: field.TypeBool, Default: true},
+		{Name: "social_set_channels", Type: field.TypeJSON},
 		{Name: "generation", Type: field.TypeInt, Default: 1},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
@@ -1697,8 +1701,8 @@ var (
 		{Name: "organizationId", Type: field.TypeString},
 		{Name: "userId", Type: field.TypeString},
 		{Name: "request_key", Type: field.TypeString},
+		{Name: "request_fingerprint", Type: field.TypeString, Default: ""},
 		{Name: "deleted_count", Type: field.TypeInt, Default: 0},
-		{Name: "undone_at", Type: field.TypeTime, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 	}
 	// PlatformNotificationSeenActionTable holds the schema information for the "platform_notification_seen_action" table.
@@ -1777,6 +1781,61 @@ var (
 		Name:       "platform_slack_pacing",
 		Columns:    PlatformSlackPacingColumns,
 		PrimaryKey: []*schema.Column{PlatformSlackPacingColumns[0]},
+	}
+	// PlatformSlackPersonalConnectionColumns holds the columns for the "platform_slack_personal_connection" table.
+	PlatformSlackPersonalConnectionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "member_id", Type: field.TypeString},
+		{Name: "installation_id", Type: field.TypeString},
+		{Name: "slack_user_id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// PlatformSlackPersonalConnectionTable holds the schema information for the "platform_slack_personal_connection" table.
+	PlatformSlackPersonalConnectionTable = &schema.Table{
+		Name:       "platform_slack_personal_connection",
+		Columns:    PlatformSlackPersonalConnectionColumns,
+		PrimaryKey: []*schema.Column{PlatformSlackPersonalConnectionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformslackpersonalconnection_organizationId_userId",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformSlackPersonalConnectionColumns[1], PlatformSlackPersonalConnectionColumns[2]},
+			},
+			{
+				Name:    "platformslackpersonalconnection_installation_id",
+				Unique:  false,
+				Columns: []*schema.Column{PlatformSlackPersonalConnectionColumns[4]},
+			},
+		},
+	}
+	// PlatformWorkspaceCreationColumns holds the columns for the "platform_workspace_creation" table.
+	PlatformWorkspaceCreationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "requestKey", Type: field.TypeString, Size: 128},
+		{Name: "requestHash", Type: field.TypeString, Size: 64},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// PlatformWorkspaceCreationTable holds the schema information for the "platform_workspace_creation" table.
+	PlatformWorkspaceCreationTable = &schema.Table{
+		Name:       "platform_workspace_creation",
+		Columns:    PlatformWorkspaceCreationColumns,
+		PrimaryKey: []*schema.Column{PlatformWorkspaceCreationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformworkspacecreation_userId_requestKey",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformWorkspaceCreationColumns[2], PlatformWorkspaceCreationColumns[3]},
+			},
+			{
+				Name:    "platformworkspacecreation_organizationId",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformWorkspaceCreationColumns[1]},
+			},
+		},
 	}
 	// PostAutomationRunColumns holds the columns for the "post_automation_run" table.
 	PostAutomationRunColumns = []*schema.Column{
@@ -2425,6 +2484,15 @@ var (
 		{Name: "secretReference", Type: field.TypeString},
 		{Name: "integrationId", Type: field.TypeString, Nullable: true},
 		{Name: "socialSetId", Type: field.TypeString, Nullable: true},
+		{Name: "operation", Type: field.TypeEnum, Enums: []string{"CREATE_SET", "ADD_ACCOUNT", "RECONNECT"}, Default: "ADD_ACCOUNT"},
+		{Name: "creationVisibility", Type: field.TypeString, Default: ""},
+		{Name: "createdSocialSetId", Type: field.TypeString, Nullable: true},
+		{Name: "exchangeStatus", Type: field.TypeEnum, Enums: []string{"PENDING", "EXCHANGING", "EXCHANGED", "COMPLETED"}, Default: "PENDING"},
+		{Name: "exchangeReceipt", Type: field.TypeJSON, Nullable: true},
+		{Name: "expectedConnectionId", Type: field.TypeString, Nullable: true},
+		{Name: "returnPath", Type: field.TypeString, Default: ""},
+		{Name: "completedConnectionId", Type: field.TypeString, Nullable: true},
+		{Name: "completedAt", Type: field.TypeTime, Nullable: true},
 		{Name: "expiresAt", Type: field.TypeTime},
 		{Name: "createdAt", Type: field.TypeTime},
 	}
@@ -2437,7 +2505,7 @@ var (
 			{
 				Name:    "socialoauthstart_expiresAt",
 				Unique:  false,
-				Columns: []*schema.Column{SocialOauthStartColumns[8]},
+				Columns: []*schema.Column{SocialOauthStartColumns[17]},
 			},
 		},
 	}
@@ -3079,6 +3147,8 @@ var (
 		PlatformSlackConnectionTable,
 		PlatformSlackInstallationTable,
 		PlatformSlackPacingTable,
+		PlatformSlackPersonalConnectionTable,
+		PlatformWorkspaceCreationTable,
 		PostAutomationRunTable,
 		ProductProfileTable,
 		ProductSurfaceTable,
@@ -3301,6 +3371,12 @@ func init() {
 	}
 	PlatformSlackPacingTable.Annotation = &entsql.Annotation{
 		Table: "platform_slack_pacing",
+	}
+	PlatformSlackPersonalConnectionTable.Annotation = &entsql.Annotation{
+		Table: "platform_slack_personal_connection",
+	}
+	PlatformWorkspaceCreationTable.Annotation = &entsql.Annotation{
+		Table: "platform_workspace_creation",
 	}
 	PostAutomationRunTable.Annotation = &entsql.Annotation{
 		Table: "post_automation_run",

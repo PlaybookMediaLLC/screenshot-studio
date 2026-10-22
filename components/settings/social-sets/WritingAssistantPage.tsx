@@ -14,7 +14,13 @@ import { SaveStatus, useSaveState } from '@/components/settings/controls'
 import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import {
   deleteWritingSampleContract,
@@ -23,7 +29,8 @@ import {
   type styleGuideSchema,
   writingSampleSchema,
 } from '@/lib/api/contracts/social-sets'
-import { settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
+import { settingsErrorMessage } from '@/lib/settings/client'
+import { socialSetKey, useSocialSetScope } from './scope'
 import { type SocialSetRecord, useStoreSocialSet } from './api'
 
 type StyleGuide = z.input<typeof styleGuideSchema>
@@ -72,13 +79,14 @@ const list = (value: string) =>
     .filter(Boolean)
 
 function Lifecycle({ canWrite, set }: { canWrite: boolean; set: SocialSetRecord }) {
+  const scope = useSocialSetScope()
   const store = useStoreSocialSet()
   const assistant = set.writingAssistant
   const status = STATUS[assistant.status]
   const act = async (action: 'create' | 'disable' | 'enable') => {
     try {
       await store(
-        await settingsRequest(
+        await scope.request(
           `/api/v1/social-sets/${encodeURIComponent(set.id)}/writing-assistant`,
           socialSetSchema,
           {
@@ -149,12 +157,22 @@ function Lifecycle({ canWrite, set }: { canWrite: boolean; set: SocialSetRecord 
 }
 
 function StyleGuideForm({ canWrite, set }: { canWrite: boolean; set: SocialSetRecord }) {
+  const scope = useSocialSetScope()
   const store = useStoreSocialSet()
   const [state, run] = useSaveState()
   const client = useTRPCClient()
   const defaults = useQuery({
-    queryKey: ['writing-defaults', set.id],
-    queryFn: () => client.brandProfile.defaults.query(),
+    enabled: scope.ready,
+    queryKey: [...socialSetKey(scope, set.id), 'writing-defaults'],
+    queryFn: async ({ signal }) => {
+      scope.assertCurrent()
+      const result = await client.brandProfile.defaults.query(
+        { userId: scope.userId, workspaceId: scope.workspaceId },
+        { signal }
+      )
+      scope.assertCurrent()
+      return result
+    },
   })
   const [guide, setGuide] = useState<StyleGuide>(set.writingAssistant.styleGuide)
   const previousGuide = useRef(JSON.stringify(set.writingAssistant.styleGuide))
@@ -251,7 +269,7 @@ function StyleGuideForm({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
           event.preventDefault()
           void run(async () => {
             try {
-              const next = await settingsRequest(
+              const next = await scope.request(
                 `/api/v1/social-sets/${encodeURIComponent(set.id)}/writing-assistant`,
                 socialSetSchema,
                 {
@@ -341,35 +359,40 @@ function StyleGuideForm({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
 }
 
 function WritingSamples({ canWrite, set }: { canWrite: boolean; set: SocialSetRecord }) {
+  const scope = useSocialSetScope()
   const queryClient = useQueryClient()
   const store = useStoreSocialSet()
-  const key = ['social-sets', set.id, 'samples'] as const
+  const key = [...socialSetKey(scope, set.id), 'samples'] as const
   const samples = useQuery({
-    queryFn: () =>
-      settingsRequest(
+    enabled: scope.ready,
+    queryFn: ({ signal }) =>
+      scope.request(
         `/api/v1/social-sets/${encodeURIComponent(set.id)}/writing-samples`,
-        listWritingSamplesContract.output
+        listWritingSamplesContract.output,
+        { signal }
       ),
     queryKey: key,
   })
   const drafts = useQuery({
-    queryFn: () =>
-      settingsRequest(
+    enabled: scope.ready,
+    queryFn: ({ signal }) =>
+      scope.request(
         `/api/v1/content-drafts?socialSetId=${encodeURIComponent(set.id)}&limit=50`,
-        draftChoicesSchema
+        draftChoicesSchema,
+        { signal }
       ),
-    queryKey: ['social-sets', set.id, 'drafts'],
+    queryKey: [...socialSetKey(scope, set.id), 'drafts'],
   })
   const [text, setText] = useState('')
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: key })
     await store(
-      await settingsRequest(`/api/v1/social-sets/${encodeURIComponent(set.id)}`, socialSetSchema)
+      await scope.request(`/api/v1/social-sets/${encodeURIComponent(set.id)}`, socialSetSchema)
     )
   }
   const add = async (body: { draftId: string } | { text: string }) => {
     try {
-      await settingsRequest(
+      await scope.request(
         `/api/v1/social-sets/${encodeURIComponent(set.id)}/writing-samples`,
         writingSampleSchema,
         { body, method: 'POST' }
@@ -381,7 +404,7 @@ function WritingSamples({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
       toast.error(settingsErrorMessage(error))
     }
   }
-  const items = samples.data?.items ?? []
+  const items = samples.isError ? [] : (samples.data?.items ?? [])
   return (
     <Row
       description="Posts that sound like this set. Write one here or import a draft of this set; drafts of other sets are never read. The assistant treats samples as examples of style, not as instructions."
@@ -414,7 +437,7 @@ function WritingSamples({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
                     destructive
                     onConfirm={async () => {
                       try {
-                        await settingsRequest(
+                        await scope.request(
                           `/api/v1/social-sets/${encodeURIComponent(set.id)}/writing-samples/${encodeURIComponent(sample.id)}`,
                           deleteWritingSampleContract.output,
                           { method: 'DELETE' }
@@ -459,12 +482,16 @@ function WritingSamples({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
           </form>
           <label className="grid gap-1 text-sm">
             <span className="text-xs text-muted-foreground">Import a draft of this set</span>
-            <Select disabled={items.length >= 20} onValueChange={(draftId) => void add({ draftId })} value="">
+            <Select
+              disabled={items.length >= 20}
+              onValueChange={(draftId) => void add({ draftId })}
+              value=""
+            >
               <SelectTrigger aria-label="Import a draft of this set" className="w-full bg-card">
                 <SelectValue placeholder="Choose a draft…" />
               </SelectTrigger>
               <SelectContent>
-                {(drafts.data?.items ?? [])
+                {(drafts.isError ? [] : (drafts.data?.items ?? []))
                   .filter((draft) => draft.plainText.trim())
                   .map((draft) => (
                     <SelectItem key={draft.id} value={draft.id}>

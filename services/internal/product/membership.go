@@ -18,10 +18,12 @@ type MemberUser struct {
 }
 
 type WorkspaceMember struct {
-	CreatedAt time.Time  `json:"createdAt"`
-	ID        string     `json:"id"`
-	Role      string     `json:"role"`
-	User      MemberUser `json:"user"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	ID             string     `json:"id"`
+	OrganizationID string     `json:"organizationId"`
+	UserID         string     `json:"userId"`
+	Role           string     `json:"role"`
+	User           MemberUser `json:"user"`
 }
 
 func (c *Configuration) ListMembers(ctx context.Context, organizationID string) ([]WorkspaceMember, error) {
@@ -36,14 +38,7 @@ func (c *Configuration) ListMembers(ctx context.Context, organizationID string) 
 		if err != nil {
 			return nil, err
 		}
-		role := membership.Role
-		if role == "member" {
-			role = "viewer"
-		}
-		items = append(items, WorkspaceMember{
-			CreatedAt: membership.CreatedAt, ID: membership.ID, Role: role,
-			User: MemberUser{Email: person.Email, ID: person.ID, Image: person.Image, Name: person.Name},
-		})
+		items = append(items, *workspaceMemberRecord(membership, person))
 	}
 	return items, nil
 }
@@ -87,7 +82,7 @@ func (c *Configuration) ListInvitations(ctx context.Context, organizationID stri
 
 func ValidAssignableRole(role string) bool {
 	switch role {
-	case "admin", "creator", "approver", "publisher", "viewer":
+	case "admin", "creator", "approver", "publisher", "writer_publisher", "viewer":
 		return true
 	default:
 		return false
@@ -103,10 +98,16 @@ func (c *Configuration) UpdateMemberRole(ctx context.Context, actor Actor, membe
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := workspaceAdministrator(ctx, tx, actor); err != nil {
+		return nil, err
+	}
 	if _, err = tx.PlatformExec(ctx, `SELECT set_config('platform.membership_explicit','true',true)`); err != nil {
 		return nil, err
 	}
 
+	if _, err := tx.PlatformExec(ctx, `SELECT id FROM member WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, memberID, actor.OrganizationID); err != nil {
+		return nil, err
+	}
 	current, err := tx.Member.Query().Where(member.ID(memberID), member.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return nil, notFound("Member not found.")
@@ -142,86 +143,111 @@ func (c *Configuration) UpdateMemberRole(ctx context.Context, actor Actor, membe
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	return &WorkspaceMember{
-		CreatedAt: updated.CreatedAt, ID: updated.ID, Role: updated.Role,
-		User: MemberUser{Email: person.Email, ID: person.ID, Image: person.Image, Name: person.Name},
-	}, nil
+	return workspaceMemberRecord(updated, person), nil
 }
 
-func (c *Configuration) RemoveMember(ctx context.Context, actor Actor, memberID string) error {
+func (c *Configuration) RemoveMember(ctx context.Context, actor Actor, memberID string) (*WorkspaceMember, error) {
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer tx.Rollback()
+	if err := workspaceAdministrator(ctx, tx, actor); err != nil {
+		return nil, err
+	}
 	if _, err = tx.PlatformExec(ctx, `SELECT set_config('platform.membership_explicit','true',true)`); err != nil {
-		return err
+		return nil, err
 	}
 
+	if _, err := tx.PlatformExec(ctx, `SELECT id FROM member WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, memberID, actor.OrganizationID); err != nil {
+		return nil, err
+	}
 	current, err := tx.Member.Query().Where(member.ID(memberID), member.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
-		return notFound("Member not found.")
+		return nil, notFound("Member not found.")
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if current.Role == "owner" {
-		return conflict("Transfer ownership before removing an owner.")
+		return nil, conflict("Transfer ownership before removing an owner.")
 	}
 	if current.UserID == actor.UserID {
-		return invalid("Use leave workspace to remove yourself.")
+		return nil, invalid("Use leave workspace to remove yourself.")
+	}
+	person, err := tx.User.Get(ctx, current.UserID)
+	if err != nil {
+		return nil, err
 	}
 	count, err := tx.Member.Delete().Where(member.ID(memberID), member.OrganizationID(actor.OrganizationID),
 		member.RoleNEQ("owner")).Exec(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if count != 1 {
-		return conflict("Member role changed. Please retry.")
+		return nil, conflict("Member role changed. Please retry.")
 	}
 	if _, err := tx.Session.Delete().Where(session.ActiveOrganizationID(actor.OrganizationID), session.UserID(current.UserID)).Exec(ctx); err != nil {
-		return err
+		return nil, err
 	}
 	if err := recordProductActivity(ctx, tx, actor, "member.removed", "product.member_removed", "member", memberID); err != nil {
-		return err
+		return nil, err
 	}
-	return tx.Commit()
+	result := workspaceMemberRecord(current, person)
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-func (c *Configuration) LeaveWorkspace(ctx context.Context, actor Actor) error {
+func (c *Configuration) LeaveWorkspace(ctx context.Context, actor Actor) (*WorkspaceMember, error) {
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer tx.Rollback()
+	if err := lockWorkspaceMembership(ctx, tx, actor); err != nil {
+		return nil, err
+	}
+	if err := NewConfiguration(tx.Client()).AuthorizeRead(ctx, actor); err != nil {
+		return nil, err
+	}
 	if _, err = tx.PlatformExec(ctx, `SELECT set_config('platform.membership_explicit','true',true)`); err != nil {
-		return err
+		return nil, err
 	}
 
 	current, err := tx.Member.Query().Where(member.OrganizationID(actor.OrganizationID), member.UserID(actor.UserID)).Only(ctx)
 	if ent.IsNotFound(err) {
-		return forbidden("Workspace membership not found.")
+		return nil, forbidden("Workspace membership not found.")
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if current.Role == "owner" {
-		return conflict("Transfer ownership before leaving this workspace.")
+		return nil, conflict("Transfer ownership before leaving this workspace.")
+	}
+	person, err := tx.User.Get(ctx, current.UserID)
+	if err != nil {
+		return nil, err
 	}
 	count, err := tx.Member.Delete().Where(member.ID(current.ID), member.RoleNEQ("owner")).Exec(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if count != 1 {
-		return conflict("Member role changed. Please retry.")
+		return nil, conflict("Member role changed. Please retry.")
 	}
 	if _, err := tx.Session.Delete().Where(session.ActiveOrganizationID(actor.OrganizationID), session.UserID(actor.UserID)).Exec(ctx); err != nil {
-		return err
+		return nil, err
 	}
 	if err := recordProductActivity(ctx, tx, actor, "member.left", "product.member_left", "member", current.ID); err != nil {
-		return err
+		return nil, err
 	}
-	return tx.Commit()
+	result := workspaceMemberRecord(current, person)
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (c *Configuration) TransferOwnership(ctx context.Context, actor Actor, memberID string) error {
@@ -230,6 +256,12 @@ func (c *Configuration) TransferOwnership(ctx context.Context, actor Actor, memb
 		return err
 	}
 	defer tx.Rollback()
+	if err := lockWorkspaceMembership(ctx, tx, actor); err != nil {
+		return err
+	}
+	if err := NewConfiguration(tx.Client()).AuthorizeSensitive(ctx, actor); err != nil {
+		return err
+	}
 	if _, err = tx.PlatformExec(ctx, `SELECT set_config('platform.membership_explicit','true',true)`); err != nil {
 		return err
 	}
@@ -239,6 +271,9 @@ func (c *Configuration) TransferOwnership(ctx context.Context, actor Actor, memb
 		return forbidden("Only the workspace owner can transfer ownership.")
 	}
 	if err != nil {
+		return err
+	}
+	if _, err := tx.PlatformExec(ctx, `SELECT id FROM member WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, memberID, actor.OrganizationID); err != nil {
 		return err
 	}
 	recipient, err := tx.Member.Query().Where(member.ID(memberID), member.OrganizationID(actor.OrganizationID)).Only(ctx)
@@ -273,4 +308,15 @@ func (c *Configuration) TransferOwnership(ctx context.Context, actor Actor, memb
 		return err
 	}
 	return tx.Commit()
+}
+
+func workspaceMemberRecord(membership *ent.Member, person *ent.User) *WorkspaceMember {
+	role := membership.Role
+	if role == "member" {
+		role = "viewer"
+	}
+	return &WorkspaceMember{
+		CreatedAt: membership.CreatedAt, ID: membership.ID, OrganizationID: membership.OrganizationID, UserID: membership.UserID, Role: role,
+		User: MemberUser{Email: person.Email, ID: person.ID, Image: person.Image, Name: person.Name},
+	}
 }

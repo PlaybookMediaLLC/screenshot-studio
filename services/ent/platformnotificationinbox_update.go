@@ -140,43 +140,57 @@ func (_u *PlatformNotificationInboxUpdate) SetNillableHref(v *string) *PlatformN
 	return _u
 }
 
-// SetSeenAt sets the "seen_at" field.
-func (_u *PlatformNotificationInboxUpdate) SetSeenAt(v time.Time) *PlatformNotificationInboxUpdate {
-	_u.mutation.SetSeenAt(v)
+// SetCategory sets the "category" field.
+func (_u *PlatformNotificationInboxUpdate) SetCategory(v platformnotificationinbox.Category) *PlatformNotificationInboxUpdate {
+	_u.mutation.SetCategory(v)
 	return _u
 }
 
-// SetNillableSeenAt sets the "seen_at" field if the given value is not nil.
-func (_u *PlatformNotificationInboxUpdate) SetNillableSeenAt(v *time.Time) *PlatformNotificationInboxUpdate {
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_u *PlatformNotificationInboxUpdate) SetNillableCategory(v *platformnotificationinbox.Category) *PlatformNotificationInboxUpdate {
 	if v != nil {
-		_u.SetSeenAt(*v)
+		_u.SetCategory(*v)
 	}
 	return _u
 }
 
-// ClearSeenAt clears the value of the "seen_at" field.
-func (_u *PlatformNotificationInboxUpdate) ClearSeenAt() *PlatformNotificationInboxUpdate {
-	_u.mutation.ClearSeenAt()
+// SetReadAt sets the "read_at" field.
+func (_u *PlatformNotificationInboxUpdate) SetReadAt(v time.Time) *PlatformNotificationInboxUpdate {
+	_u.mutation.SetReadAt(v)
 	return _u
 }
 
-// SetSeenActionID sets the "seen_action_id" field.
-func (_u *PlatformNotificationInboxUpdate) SetSeenActionID(v string) *PlatformNotificationInboxUpdate {
-	_u.mutation.SetSeenActionID(v)
-	return _u
-}
-
-// SetNillableSeenActionID sets the "seen_action_id" field if the given value is not nil.
-func (_u *PlatformNotificationInboxUpdate) SetNillableSeenActionID(v *string) *PlatformNotificationInboxUpdate {
+// SetNillableReadAt sets the "read_at" field if the given value is not nil.
+func (_u *PlatformNotificationInboxUpdate) SetNillableReadAt(v *time.Time) *PlatformNotificationInboxUpdate {
 	if v != nil {
-		_u.SetSeenActionID(*v)
+		_u.SetReadAt(*v)
 	}
 	return _u
 }
 
-// SetContext sets the "context" field.
-func (_u *PlatformNotificationInboxUpdate) SetContext(v map[string]interface{}) *PlatformNotificationInboxUpdate {
-	_u.mutation.SetContext(v)
+// ClearReadAt clears the value of the "read_at" field.
+func (_u *PlatformNotificationInboxUpdate) ClearReadAt() *PlatformNotificationInboxUpdate {
+	_u.mutation.ClearReadAt()
+	return _u
+}
+
+// SetArchivedAt sets the "archived_at" field.
+func (_u *PlatformNotificationInboxUpdate) SetArchivedAt(v time.Time) *PlatformNotificationInboxUpdate {
+	_u.mutation.SetArchivedAt(v)
+	return _u
+}
+
+// SetNillableArchivedAt sets the "archived_at" field if the given value is not nil.
+func (_u *PlatformNotificationInboxUpdate) SetNillableArchivedAt(v *time.Time) *PlatformNotificationInboxUpdate {
+	if v != nil {
+		_u.SetArchivedAt(*v)
+	}
+	return _u
+}
+
+// ClearArchivedAt clears the value of the "archived_at" field.
+func (_u *PlatformNotificationInboxUpdate) ClearArchivedAt() *PlatformNotificationInboxUpdate {
+	_u.mutation.ClearArchivedAt()
 	return _u
 }
 
@@ -226,7 +240,20 @@ func (_u *PlatformNotificationInboxUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *PlatformNotificationInboxUpdate) check() error {
+	if v, ok := _u.mutation.Category(); ok {
+		if err := platformnotificationinbox.CategoryValidator(v); err != nil {
+			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "PlatformNotificationInbox.category": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *PlatformNotificationInboxUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(platformnotificationinbox.Table, platformnotificationinbox.Columns, sqlgraph.NewFieldSpec(platformnotificationinbox.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -259,17 +286,20 @@ func (_u *PlatformNotificationInboxUpdate) sqlSave(ctx context.Context) (_node i
 	if value, ok := _u.mutation.Href(); ok {
 		_spec.SetField(platformnotificationinbox.FieldHref, field.TypeString, value)
 	}
-	if value, ok := _u.mutation.SeenAt(); ok {
-		_spec.SetField(platformnotificationinbox.FieldSeenAt, field.TypeTime, value)
+	if value, ok := _u.mutation.Category(); ok {
+		_spec.SetField(platformnotificationinbox.FieldCategory, field.TypeEnum, value)
 	}
-	if _u.mutation.SeenAtCleared() {
-		_spec.ClearField(platformnotificationinbox.FieldSeenAt, field.TypeTime)
+	if value, ok := _u.mutation.ReadAt(); ok {
+		_spec.SetField(platformnotificationinbox.FieldReadAt, field.TypeTime, value)
 	}
-	if value, ok := _u.mutation.SeenActionID(); ok {
-		_spec.SetField(platformnotificationinbox.FieldSeenActionID, field.TypeString, value)
+	if _u.mutation.ReadAtCleared() {
+		_spec.ClearField(platformnotificationinbox.FieldReadAt, field.TypeTime)
 	}
-	if value, ok := _u.mutation.Context(); ok {
-		_spec.SetField(platformnotificationinbox.FieldContext, field.TypeJSON, value)
+	if value, ok := _u.mutation.ArchivedAt(); ok {
+		_spec.SetField(platformnotificationinbox.FieldArchivedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ArchivedAtCleared() {
+		_spec.ClearField(platformnotificationinbox.FieldArchivedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(platformnotificationinbox.FieldCreatedAt, field.TypeTime, value)
@@ -406,43 +436,57 @@ func (_u *PlatformNotificationInboxUpdateOne) SetNillableHref(v *string) *Platfo
 	return _u
 }
 
-// SetSeenAt sets the "seen_at" field.
-func (_u *PlatformNotificationInboxUpdateOne) SetSeenAt(v time.Time) *PlatformNotificationInboxUpdateOne {
-	_u.mutation.SetSeenAt(v)
+// SetCategory sets the "category" field.
+func (_u *PlatformNotificationInboxUpdateOne) SetCategory(v platformnotificationinbox.Category) *PlatformNotificationInboxUpdateOne {
+	_u.mutation.SetCategory(v)
 	return _u
 }
 
-// SetNillableSeenAt sets the "seen_at" field if the given value is not nil.
-func (_u *PlatformNotificationInboxUpdateOne) SetNillableSeenAt(v *time.Time) *PlatformNotificationInboxUpdateOne {
+// SetNillableCategory sets the "category" field if the given value is not nil.
+func (_u *PlatformNotificationInboxUpdateOne) SetNillableCategory(v *platformnotificationinbox.Category) *PlatformNotificationInboxUpdateOne {
 	if v != nil {
-		_u.SetSeenAt(*v)
+		_u.SetCategory(*v)
 	}
 	return _u
 }
 
-// ClearSeenAt clears the value of the "seen_at" field.
-func (_u *PlatformNotificationInboxUpdateOne) ClearSeenAt() *PlatformNotificationInboxUpdateOne {
-	_u.mutation.ClearSeenAt()
+// SetReadAt sets the "read_at" field.
+func (_u *PlatformNotificationInboxUpdateOne) SetReadAt(v time.Time) *PlatformNotificationInboxUpdateOne {
+	_u.mutation.SetReadAt(v)
 	return _u
 }
 
-// SetSeenActionID sets the "seen_action_id" field.
-func (_u *PlatformNotificationInboxUpdateOne) SetSeenActionID(v string) *PlatformNotificationInboxUpdateOne {
-	_u.mutation.SetSeenActionID(v)
-	return _u
-}
-
-// SetNillableSeenActionID sets the "seen_action_id" field if the given value is not nil.
-func (_u *PlatformNotificationInboxUpdateOne) SetNillableSeenActionID(v *string) *PlatformNotificationInboxUpdateOne {
+// SetNillableReadAt sets the "read_at" field if the given value is not nil.
+func (_u *PlatformNotificationInboxUpdateOne) SetNillableReadAt(v *time.Time) *PlatformNotificationInboxUpdateOne {
 	if v != nil {
-		_u.SetSeenActionID(*v)
+		_u.SetReadAt(*v)
 	}
 	return _u
 }
 
-// SetContext sets the "context" field.
-func (_u *PlatformNotificationInboxUpdateOne) SetContext(v map[string]interface{}) *PlatformNotificationInboxUpdateOne {
-	_u.mutation.SetContext(v)
+// ClearReadAt clears the value of the "read_at" field.
+func (_u *PlatformNotificationInboxUpdateOne) ClearReadAt() *PlatformNotificationInboxUpdateOne {
+	_u.mutation.ClearReadAt()
+	return _u
+}
+
+// SetArchivedAt sets the "archived_at" field.
+func (_u *PlatformNotificationInboxUpdateOne) SetArchivedAt(v time.Time) *PlatformNotificationInboxUpdateOne {
+	_u.mutation.SetArchivedAt(v)
+	return _u
+}
+
+// SetNillableArchivedAt sets the "archived_at" field if the given value is not nil.
+func (_u *PlatformNotificationInboxUpdateOne) SetNillableArchivedAt(v *time.Time) *PlatformNotificationInboxUpdateOne {
+	if v != nil {
+		_u.SetArchivedAt(*v)
+	}
+	return _u
+}
+
+// ClearArchivedAt clears the value of the "archived_at" field.
+func (_u *PlatformNotificationInboxUpdateOne) ClearArchivedAt() *PlatformNotificationInboxUpdateOne {
+	_u.mutation.ClearArchivedAt()
 	return _u
 }
 
@@ -505,7 +549,20 @@ func (_u *PlatformNotificationInboxUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *PlatformNotificationInboxUpdateOne) check() error {
+	if v, ok := _u.mutation.Category(); ok {
+		if err := platformnotificationinbox.CategoryValidator(v); err != nil {
+			return &ValidationError{Name: "category", err: fmt.Errorf(`ent: validator failed for field "PlatformNotificationInbox.category": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *PlatformNotificationInboxUpdateOne) sqlSave(ctx context.Context) (_node *PlatformNotificationInbox, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(platformnotificationinbox.Table, platformnotificationinbox.Columns, sqlgraph.NewFieldSpec(platformnotificationinbox.FieldID, field.TypeString))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -555,17 +612,20 @@ func (_u *PlatformNotificationInboxUpdateOne) sqlSave(ctx context.Context) (_nod
 	if value, ok := _u.mutation.Href(); ok {
 		_spec.SetField(platformnotificationinbox.FieldHref, field.TypeString, value)
 	}
-	if value, ok := _u.mutation.SeenAt(); ok {
-		_spec.SetField(platformnotificationinbox.FieldSeenAt, field.TypeTime, value)
+	if value, ok := _u.mutation.Category(); ok {
+		_spec.SetField(platformnotificationinbox.FieldCategory, field.TypeEnum, value)
 	}
-	if _u.mutation.SeenAtCleared() {
-		_spec.ClearField(platformnotificationinbox.FieldSeenAt, field.TypeTime)
+	if value, ok := _u.mutation.ReadAt(); ok {
+		_spec.SetField(platformnotificationinbox.FieldReadAt, field.TypeTime, value)
 	}
-	if value, ok := _u.mutation.SeenActionID(); ok {
-		_spec.SetField(platformnotificationinbox.FieldSeenActionID, field.TypeString, value)
+	if _u.mutation.ReadAtCleared() {
+		_spec.ClearField(platformnotificationinbox.FieldReadAt, field.TypeTime)
 	}
-	if value, ok := _u.mutation.Context(); ok {
-		_spec.SetField(platformnotificationinbox.FieldContext, field.TypeJSON, value)
+	if value, ok := _u.mutation.ArchivedAt(); ok {
+		_spec.SetField(platformnotificationinbox.FieldArchivedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ArchivedAtCleared() {
+		_spec.ClearField(platformnotificationinbox.FieldArchivedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(platformnotificationinbox.FieldCreatedAt, field.TypeTime, value)

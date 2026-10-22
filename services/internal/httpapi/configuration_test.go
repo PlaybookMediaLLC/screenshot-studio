@@ -64,8 +64,12 @@ func (f *fakeConfiguration) ListInvitations(context.Context, string) ([]product.
 func (f *fakeConfiguration) UpdateMemberRole(_ context.Context, _ product.Actor, memberID, role string) (*product.WorkspaceMember, error) {
 	return &product.WorkspaceMember{ID: memberID, Role: role}, nil
 }
-func (f *fakeConfiguration) RemoveMember(context.Context, product.Actor, string) error { return nil }
-func (f *fakeConfiguration) LeaveWorkspace(context.Context, product.Actor) error       { return nil }
+func (f *fakeConfiguration) RemoveMember(context.Context, product.Actor, string) (*product.WorkspaceMember, error) {
+	return &product.WorkspaceMember{}, nil
+}
+func (f *fakeConfiguration) LeaveWorkspace(context.Context, product.Actor) (*product.WorkspaceMember, error) {
+	return &product.WorkspaceMember{}, nil
+}
 func (f *fakeConfiguration) TransferOwnership(context.Context, product.Actor, string) error {
 	return nil
 }
@@ -83,6 +87,16 @@ func (f *fakeConfiguration) ResendInvitation(context.Context, product.Actor, str
 }
 func (f *fakeConfiguration) RevokeInvitation(context.Context, product.Actor, string) error {
 	return nil
+}
+
+func (f *fakeConfiguration) CancelInvitation(context.Context, product.Actor, string) (*product.RecipientInvitation, error) {
+	return &product.RecipientInvitation{}, nil
+}
+func (f *fakeConfiguration) GetRecipientInvitation(context.Context, product.Actor, string) (*product.RecipientInvitation, error) {
+	return &product.RecipientInvitation{}, nil
+}
+func (f *fakeConfiguration) RespondInvitation(context.Context, product.Actor, string, string) (*product.InvitationResponse, error) {
+	return &product.InvitationResponse{}, nil
 }
 func (f *fakeConfiguration) Bootstrap(context.Context, product.Actor) (*product.BootstrapSnapshot, error) {
 	return &product.BootstrapSnapshot{}, nil
@@ -113,6 +127,10 @@ func (f *fakeConfiguration) CompleteAssetUpload(context.Context, product.Actor, 
 }
 func (f *fakeConfiguration) SignAssetDownload(context.Context, product.Actor, string) (string, error) {
 	return "https://media.example.test/download", nil
+}
+
+func (f *fakeConfiguration) ReadAssetDownload(context.Context, string, string, string) ([]byte, string, error) {
+	return []byte("asset bytes"), "image/png", nil
 }
 func (f *fakeConfiguration) StoreGeneratedAsset(context.Context, product.Actor, product.GeneratedAssetInput) (*product.GeneratedAssetRecord, error) {
 	return &product.GeneratedAssetRecord{ID: "asset-2", MediaType: "image/png", ObjectKey: "org/org-1/derived/asset-2/1/render.png"}, nil

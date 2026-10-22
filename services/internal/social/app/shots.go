@@ -33,7 +33,8 @@ func openShotsPlatform(ctx context.Context) (*shotsPlatform, error) {
 	if err != nil {
 		return nil, fmt.Errorf("platform database: %w", err)
 	}
-	platform := &shotsPlatform{product: product.NewConfiguration(db.Client), close: func() { _ = db.Close() }}
+	platform := &shotsPlatform{product: product.NewConfiguration(db.Client).
+		WithAssetDownloads(shotsPlatformEnv("PUBLISHING_SERVICE_TOKEN"), shotsPlatformEnv("BETTER_AUTH_URL")), close: func() { _ = db.Close() }}
 	objects, err := media.NewS3StoreFromEnvironment()
 	if err != nil {
 		platform.close()
@@ -66,6 +67,16 @@ func openShotsPlatform(ctx context.Context) (*shotsPlatform, error) {
 		platform.close = func() { _ = counter.Close(); closeDB() }
 	}
 	return platform, nil
+}
+
+// The combined process already inherits TENANT_ settings. Use the same grant
+// secret and public origin as its product API; standalone processes use the
+// ordinary names. Do not introduce a second signer or a separate media secret.
+func shotsPlatformEnv(key string) string {
+	if value := os.Getenv("TENANT_" + key); value != "" {
+		return value
+	}
+	return os.Getenv(key)
 }
 
 func (p *shotsPlatform) mcpServer() (*mcp.Server, error) {

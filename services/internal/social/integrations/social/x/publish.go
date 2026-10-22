@@ -5,28 +5,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-	"mime"
-	"net/url"
-	"path"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/helpers"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/upload"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // pendingData travels through the workflow history between postPending,
 // checkPostStatus and finalizePost - keep it small JSON (media ids and the
 // tweet content).
 type pendingData struct {
-	Message  string          `json:"message"`
-	Settings pendingSettings `json:"settings"`
-	MediaIDs []string        `json:"mediaIds"`
+	Message    string          `json:"message"`
+	Settings   pendingSettings `json:"settings"`
+	MediaIDs   []string        `json:"mediaIds"`
+	MediaFacts []mediaFacts    `json:"mediaFacts,omitempty"`
 	// Article cover selected in the settings, uploaded separately from the post
 	// media (which is embedded in the article body).
 	CoverMediaID string `json:"coverMediaId,omitempty"`
@@ -42,6 +39,8 @@ type pendingData struct {
 	// outcome is detected instead of run again (X has no idempotency key).
 	Attempting bool `json:"attempting,omitempty"`
 	Confirmed  bool `json:"confirmed,omitempty"`
+	// Saved after draft creation and before its separate publish handshake.
+	ArticleDraftID string `json:"articleDraftId,omitempty"`
 }
 
 type pendingSettings struct {
@@ -62,16 +61,6 @@ func marshal(v any) json.RawMessage {
 	return data
 }
 
-// lookup is mime-types' lookup(path) ("" for unknown extensions).
-func lookup(p string) string {
-	if u, err := url.Parse(p); err == nil && u.Path != "" {
-		p = u.Path
-	}
-	t := mime.TypeByExtension(strings.ToLower(path.Ext(p)))
-	t, _, _ = strings.Cut(t, ";")
-	return t
-}
-
 func failedToProcess(processing *processingInfo) error {
 	message := "X failed to process the uploaded video"
 	if processing.Error != nil && processing.Error.Message != "" {
@@ -85,63 +74,51 @@ type uploaded struct {
 	processing bool
 }
 
-// uploadVideoInChunks: X's v2 chunked upload requires a Buffer per APPEND
-// segment, so one ranged chunk is read at a time (mediaChunk) instead of
-// buffering the whole video. 1MB is the chunk size proven against X's APPEND
-// limits.
-func (p *Provider) uploadVideoInChunks(ctx context.Context, c *client, mediaPath string) (uploaded, error) {
-	totalBytes, err := p.MediaSize(ctx, mediaPath, identifier)
-	if err != nil {
-		return uploaded{}, err
+// uploadStaged sends the exact inspected snapshot in bounded chunks. The
+// complete selection has been validated before the first INIT request.
+func (p *Provider) uploadStaged(ctx context.Context, c *client, item stagedMedia) (uploaded, error) {
+	category := "tweet_image"
+	if item.facts.MIME == "image/gif" {
+		category = "tweet_gif"
 	}
-	mediaType := lookup(mediaPath)
-	if mediaType == "" {
-		mediaType = "video/mp4"
+	if item.facts.MIME == "video/mp4" {
+		category = "tweet_video"
 	}
-
-	// These legs record their own heartbeat details - otherwise a stall here
-	// reports only the generic "x: publish" stage marker set by the activity.
-	temporalx.SetHeartbeatDetails(ctx, fmt.Sprintf("x: upload initialize (%d bytes)", totalBytes))
 	var init mediaResponse
-	if err := c.postJSON(ctx, v2("media/upload/initialize"), map[string]any{
-		"media_type":     mediaType,
-		"total_bytes":    totalBytes,
-		"media_category": "tweet_video",
-	}, &init); err != nil {
+	temporalx.SetHeartbeatDetails(ctx, "x: initialize validated media")
+	if err := c.postJSON(ctx, v2("media/upload/initialize"), map[string]any{"media_type": item.facts.MIME, "total_bytes": item.facts.Bytes, "media_category": category}, &init); err != nil {
 		return uploaded{}, err
 	}
-	mediaID := init.Data.ID
-
-	totalChunkCount := (totalBytes + uploadChunkSize - 1) / uploadChunkSize
-	for i := int64(0); i < totalChunkCount; i++ {
-		start := i * uploadChunkSize
-		end := min(start+uploadChunkSize, totalBytes) - 1
-		temporalx.SetHeartbeatDetails(ctx, fmt.Sprintf("x: upload append %d/%d media=%s", i+1, totalChunkCount, mediaID))
-		chunk, err := p.MediaChunk(ctx, mediaPath, start, end, identifier)
-		if err != nil {
+	id := init.Data.ID
+	if !socialidentity.XAccountID(id) {
+		return uploaded{}, publishRejected("X did not return a valid media upload ID. No post was sent.")
+	}
+	for at, index := int64(0), 0; at < item.facts.Bytes; at, index = at+uploadChunkSize, index+1 {
+		if err := ctx.Err(); err != nil {
 			return uploaded{}, err
 		}
-		if err := c.appendChunk(ctx, mediaID, int(i), chunk); err != nil {
+		chunk := make([]byte, min(int64(uploadChunkSize), item.facts.Bytes-at))
+		n, err := item.file.ReadAt(chunk, at)
+		if err != nil || n != len(chunk) {
+			return uploaded{}, publishRejected("The validated X media snapshot could not be read completely.")
+		}
+		temporalx.SetHeartbeatDetails(ctx, fmt.Sprintf("x: upload chunk %d", index+1))
+		if err := c.appendChunk(ctx, id, index, chunk); err != nil {
 			return uploaded{}, err
 		}
 	}
-
-	temporalx.SetHeartbeatDetails(ctx, "x: upload finalize media="+mediaID)
 	var finalize mediaResponse
-	if err := c.postJSON(ctx, v2("media/upload/"+mediaID+"/finalize"), nil, &finalize); err != nil {
+	if err := c.postJSON(ctx, v2("media/upload/"+id+"/finalize"), nil, &finalize); err != nil {
 		return uploaded{}, err
+	}
+	if finalize.Data.ID != id {
+		return uploaded{}, publishRejected("X returned a different media upload ID. No post was sent.")
 	}
 	processing := finalize.Data.ProcessingInfo
-
-	// An explicit rejection right at finalize: the video will never process.
 	if processing != nil && processing.State == "failed" {
 		return uploaded{}, failedToProcess(processing)
 	}
-
-	// A missing processing_info means the media is ready to use; anything else
-	// keeps transcoding asynchronously and must reach `succeeded` before the
-	// media_id can be attached to a post.
-	return uploaded{mediaID: mediaID, processing: processing != nil && processing.State != "succeeded"}, nil
+	return uploaded{mediaID: id, processing: processing != nil && processing.State != "succeeded"}, nil
 }
 
 // mediaProcessingStatus is a single STATUS read, no loops and no timers - the
@@ -197,28 +174,6 @@ func uploadWithRateLimitRetry[T any](ctx context.Context, p *Provider, fn func()
 	}
 }
 
-// uploadImage: articles reject GIF media, so the tweet pipeline (which
-// converts every image to GIF) can't be reused for them - article images are
-// uploaded as JPEG with the tweet_image category the article references them by.
-func (p *Provider) uploadImage(ctx context.Context, c *client, mediaPath string, asArticleImage bool) (string, error) {
-	data, err := p.ReadOrFetch(ctx, mediaPath)
-	if err != nil {
-		return "", err
-	}
-	if asArticleImage {
-		jpeg, err := toJPEG(data)
-		if err != nil {
-			return "", err
-		}
-		return c.uploadMedia(ctx, jpeg, "image/jpeg", "tweet_image")
-	}
-	gif, err := toGIF(data, lookup(mediaPath) == "image/gif")
-	if err != nil {
-		return "", err
-	}
-	return c.uploadMedia(ctx, gif, "image/gif", "")
-}
-
 type mediaEntry struct {
 	id    string
 	paths []string
@@ -235,67 +190,66 @@ func entryOf(post integrations.PostDetails) mediaEntry {
 	return e
 }
 
-// uploadMediaEntries uploads sequentially on purpose: uploading everything at
-// once holds every file in memory at the same time.
-func (p *Provider) uploadMediaEntries(ctx context.Context, c *client, entries []mediaEntry, asArticleImage bool) (map[string][]string, []string, error) {
-	mediaSigner, err := upload.NewPrivateMediaSigner()
-	if err != nil {
-		return nil, nil, err
-	}
-	media := map[string][]string{}
-	processingIDs := []string{}
-	for _, e := range entries {
-		for index, mediaPath := range e.paths {
-			mediaPath, err = mediaSigner.SignURL(ctx, mediaPath)
-			if err != nil {
-				return nil, nil, err
-			}
-			temporalx.SetHeartbeatDetails(ctx, "x: upload media "+temporalx.StripQuery(mediaPath))
-			up, err := integrations.RunInConcurrent(p.Base, func() (uploaded, error) {
-				if helpers.HasExtension(mediaPath, "mp4") {
-					return uploadWithRateLimitRetry(ctx, p, func() (uploaded, error) {
-						return p.uploadVideoInChunks(ctx, c, mediaPath)
-					})
-				}
-				id, err := uploadWithRateLimitRetry(ctx, p, func() (string, error) {
-					return p.uploadImage(ctx, c, mediaPath, asArticleImage)
-				})
-				return uploaded{mediaID: id}, err
-			})
-			if err != nil {
-				return nil, nil, err
-			}
-			if up.mediaID == "" {
-				continue
-			}
-			// Alt text goes on the media after FINALIZE and before the post exists.
-			if index < len(e.alts) && strings.TrimSpace(e.alts[index]) != "" {
-				if err := c.setAltText(ctx, up.mediaID, e.alts[index]); err != nil {
-					return nil, nil, err
-				}
-			}
-			media[e.id] = append(media[e.id], up.mediaID)
-			if up.processing {
-				processingIDs = append(processingIDs, up.mediaID)
-			}
-		}
-	}
-	return media, processingIDs, nil
+type mediaUpload struct {
+	ids           map[string][]string
+	processingIDs []string
+	facts         []mediaFacts
 }
 
-// uploadMedia is the legacy blocking upload (comments, and pre-v1.0.6
-// workflows through post()): waits for the processing inside the activity.
-func (p *Provider) uploadMedia(ctx context.Context, c *client, entries []mediaEntry) (map[string][]string, error) {
-	media, processingIDs, err := p.uploadMediaEntries(ctx, c, entries, false)
+func (p *Provider) uploadMediaEntries(ctx context.Context, c *client, entries []mediaEntry, article bool, caps socialidentity.XCapabilities) (mediaUpload, error) {
+	result := mediaUpload{ids: map[string][]string{}}
+	signer, err := upload.NewPrivateMediaSigner()
 	if err != nil {
-		return nil, err
+		return result, err
 	}
-	for _, id := range processingIDs {
-		if err := p.waitForMediaProcessing(ctx, c, id); err != nil {
-			return nil, err
+	var staged []stagedMedia
+	defer func() {
+		for _, item := range staged {
+			item.close()
+		}
+	}()
+	for _, entry := range entries {
+		for i, source := range entry.paths {
+			signed, err := signer.SignURL(ctx, source)
+			if err != nil {
+				return result, err
+			}
+			item, err := stageMedia(ctx, signed, caps, article)
+			if err != nil {
+				return result, err
+			}
+			item.entryID = entry.id
+			if i < len(entry.alts) {
+				item.alt = entry.alts[i]
+			}
+			staged = append(staged, item)
+			result.facts = append(result.facts, item.facts)
 		}
 	}
-	return media, nil
+	if err := checkMediaFacts(caps, result.facts, article); err != nil {
+		return result, err
+	}
+	for _, item := range staged {
+		up, err := integrations.RunInConcurrent(p.Base, func() (uploaded, error) {
+			return uploadWithRateLimitRetry(ctx, p, func() (uploaded, error) { return p.uploadStaged(ctx, c, item) })
+		})
+		if err != nil {
+			return result, err
+		}
+		if up.mediaID == "" {
+			return result, publishRejected("X did not return the selected media. No post was sent.")
+		}
+		if strings.TrimSpace(item.alt) != "" {
+			if err := c.setAltText(ctx, up.mediaID, item.alt); err != nil {
+				return result, err
+			}
+		}
+		result.ids[item.entryID] = append(result.ids[item.entryID], up.mediaID)
+		if up.processing {
+			result.processingIDs = append(result.processingIDs, up.mediaID)
+		}
+	}
+	return result, nil
 }
 
 func nonEmpty(ids []string) []string {
@@ -308,32 +262,34 @@ func nonEmpty(ids []string) []string {
 	return out
 }
 
-func (p *Provider) PostPending(ctx context.Context, _, accessToken string, posts []integrations.PostDetails, _ *ent.Integration) ([]integrations.PostResponse, error) {
+func (p *Provider) PostPending(ctx context.Context, _, accessToken string, posts []integrations.PostDetails, integration *ent.Integration) ([]integrations.PostResponse, error) {
+	if len(posts) == 0 {
+		return nil, publishRejected("Add an X post before publishing.")
+	}
+	caps, err := publishingLimits(ctx, accessToken, integration)
+	if err != nil {
+		return nil, err
+	}
+	// Validate the whole thread before uploading or creating the root post.
+	for i, post := range posts {
+		settings := decodeSettings(post.Settings)
+		article := i == 0 && str(settings.PostType) == "article"
+		message := post.Message
+		if !article {
+			message = toTweetText(message)
+		}
+		if err := checkPublishingContent(caps, message, pendingSettings{QuoteTweetID: settings.QuoteTweetID,
+			ArticleTitle: settings.ArticleTitle, ArticleStatus: settings.ArticleStatus}, len(post.Media), article); err != nil {
+			return nil, err
+		}
+		if _, err := checkedPoll(post.Poll, len(post.Media), article); err != nil {
+			return nil, err
+		}
+	}
 	c := newClient(accessToken)
 	first := posts[0]
 	settings := decodeSettings(first.Settings)
 	isArticle := str(settings.PostType) == "article"
-
-	// Upload the media now; the transcoding wait moves to checkPostStatus and
-	// the tweet itself is only created by finalizePost, so nothing here is
-	// irreversible - a failure leaves only orphaned media.
-	media, processingIDs, err := p.uploadMediaEntries(ctx, c, []mediaEntry{entryOf(first)}, isArticle)
-	if err != nil {
-		return nil, err
-	}
-
-	// The article cover is picked in the settings, separate from the post
-	// media (which is embedded in the article body).
-	coverMediaID := ""
-	if isArticle && settings.ArticleCover != nil && str(settings.ArticleCover.Path) != "" {
-		cover, _, err := p.uploadMediaEntries(ctx, c, []mediaEntry{{id: "article-cover", paths: []string{*settings.ArticleCover.Path}}}, true)
-		if err != nil {
-			return nil, err
-		}
-		if ids := cover["article-cover"]; len(ids) > 0 {
-			coverMediaID = ids[0]
-		}
-	}
 
 	// Pictures placed in the article body are uploaded the same way and take
 	// the place of their <img> in finalizeArticle.
@@ -347,13 +303,22 @@ func (p *Provider) PostPending(ctx context.Context, _, accessToken string, posts
 			}
 		}
 	}
-	inlineEntries := make([]mediaEntry, len(inlineImages))
-	for i, src := range inlineImages {
-		inlineEntries[i] = mediaEntry{id: strconv.Itoa(i), paths: []string{src}}
+	rootMedia := entryOf(first)
+	rootMedia.id = "post-media" // Internal keys must not collide with caller-supplied post IDs.
+	entries := []mediaEntry{rootMedia}
+	if isArticle && settings.ArticleCover != nil && str(settings.ArticleCover.Path) != "" {
+		entries = append(entries, mediaEntry{id: "article-cover", paths: []string{*settings.ArticleCover.Path}, alts: []string{str(settings.ArticleCover.Alt)}})
 	}
-	inlineMedia, _, err := p.uploadMediaEntries(ctx, c, inlineEntries, true)
+	for i, src := range inlineImages {
+		entries = append(entries, mediaEntry{id: "inline-" + strconv.Itoa(i), paths: []string{src}})
+	}
+	uploaded, err := p.uploadMediaEntries(ctx, c, entries, isArticle, caps)
 	if err != nil {
 		return nil, err
+	}
+	coverMediaID := ""
+	if ids := uploaded.ids["article-cover"]; len(ids) > 0 {
+		coverMediaID = ids[0]
 	}
 
 	// Articles keep the HTML (converted to Draft.js in finalizePost), tweets
@@ -375,15 +340,16 @@ func (p *Provider) PostPending(ctx context.Context, _, accessToken string, posts
 			ShareWithFollowers: settings.ShareWithFollowers,
 			QuoteTweetID:       settings.QuoteTweetID,
 		},
-		MediaIDs:      nonEmpty(media[first.ID]),
+		MediaIDs:      uploaded.ids["post-media"],
+		MediaFacts:    uploaded.facts,
 		CoverMediaID:  coverMediaID,
-		ProcessingIDs: processingIDs,
+		ProcessingIDs: uploaded.processingIDs,
 		Poll:          first.Poll,
 	}
 	if len(inlineImages) > 0 {
 		pending.InlineMediaIDs = map[string]string{}
 		for i, src := range inlineImages {
-			if ids := inlineMedia[strconv.Itoa(i)]; len(ids) > 0 {
+			if ids := uploaded.ids["inline-"+strconv.Itoa(i)]; len(ids) > 0 {
 				pending.InlineMediaIDs[src] = ids[0]
 			}
 		}
@@ -404,7 +370,7 @@ func (p *Provider) CheckPostStatus(ctx context.Context, accessToken string, raw 
 	// cheap way to ask whether that tweet was created, so never run the create
 	// again - stop with an explicit warning instead.
 	if pending.Attempting && pending.Confirmed {
-		return nil, temporalx.BadBody(identifier, "{}", "{}", "X may have already published this post, please check your account before posting again to avoid duplicates")
+		return nil, uncertainMutation()
 	}
 
 	c := newClient(accessToken)
@@ -470,6 +436,40 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 		pending.Attempting, pending.Confirmed = true, false
 		return &integrations.PendingCheckResponse{Status: "pending", PendingData: marshal(pending)}, nil
 	}
+	caps, err := publishingLimits(ctx, accessToken, integration)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkPublishingContent(caps, pending.Message, pending.Settings, len(pending.MediaIDs), str(pending.Settings.PostType) == "article"); err != nil {
+		return nil, err
+	}
+	poll, err := checkedPoll(pending.Poll, len(pending.MediaIDs), str(pending.Settings.PostType) == "article")
+	if err != nil {
+		return nil, err
+	}
+
+	expected := len(pending.MediaIDs) + len(pending.InlineMediaIDs)
+	if pending.CoverMediaID != "" {
+		expected++
+	}
+	if expected != len(pending.MediaFacts) {
+		return nil, publishRejected("Prepare this X post again to verify the selected media before publishing.")
+	}
+	allIDs := append([]string(nil), pending.MediaIDs...)
+	for _, id := range pending.InlineMediaIDs {
+		allIDs = append(allIDs, id)
+	}
+	if pending.CoverMediaID != "" {
+		allIDs = append(allIDs, pending.CoverMediaID)
+	}
+	for _, id := range allIDs {
+		if !socialidentity.XAccountID(id) {
+			return nil, publishRejected("An X media attachment is missing or invalid. Prepare the post again.")
+		}
+	}
+	if err := checkMediaFacts(caps, pending.MediaFacts, str(pending.Settings.PostType) == "article"); err != nil {
+		return nil, err
+	}
 
 	if str(pending.Settings.PostType) == "article" {
 		return p.finalizeArticle(ctx, accessToken, pending, integration)
@@ -479,12 +479,9 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 	settings := pending.Settings
 	mediaIDs := nonEmpty(pending.MediaIDs)
 
-	text := pending.Message
-	if p.StripLinks() {
-		text = helpers.StripLinks(text)
-	}
 	body := tweetBody{
-		Text:            text,
+		Text:            pending.Message,
+		Poll:            poll,
 		MadeWithAI:      integrations.AssetBoolean(settings.MadeWithAI),
 		PaidPartnership: integrations.AssetBoolean(settings.PaidPartnership),
 	}
@@ -503,14 +500,6 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 	body.QuoteTweetID = str(settings.QuoteTweetID)
 	if len(mediaIDs) > 0 {
 		body.Media = &tweetMedia{MediaIDs: mediaIDs}
-	}
-	if poll := pending.Poll; poll != nil && len(poll.Options) >= 2 {
-		// X takes the duration in minutes, from 5 minutes to 7 days.
-		minutes := poll.Duration * 60
-		if poll.DurationMinutes > 0 {
-			minutes = poll.DurationMinutes
-		}
-		body.Poll = &tweetPoll{Options: poll.Options, DurationMinutes: min(max(minutes, 5), 7*24*60)}
 	}
 	id, err := p.createTweet(ctx, token, secret, body)
 	if err != nil {
@@ -548,114 +537,67 @@ type tweetPoll struct {
 	DurationMinutes int      `json:"duration_minutes"`
 }
 
-// createTweet is the signed raw POST https://api.x.com/2/tweets through fetch.
+// createTweet requires a confirmed receipt from one non-retrying mutation.
 func (p *Provider) createTweet(ctx context.Context, token, secret string, body tweetBody) (string, error) {
-	tweetURL := v2("tweets")
-	res, err := p.Fetch(ctx, tweetURL, integrations.Request{
-		Method: "POST",
-		Headers: map[string]string{
-			"Authorization": signOAuth1("POST", tweetURL, token, secret),
-			"Content-Type":  "application/json",
-		},
-		Body: marshal(body),
-	})
-	if err != nil {
-		return "", err
-	}
-	var data struct {
-		Data *struct {
+	var result struct {
+		Data struct {
 			ID string `json:"id"`
 		} `json:"data"`
 	}
-	if err := res.JSON(&data); err != nil {
+	if err := (&client{token: token, secret: secret}).mutationJSON(ctx, v2("tweets"), body, &result); err != nil {
 		return "", err
 	}
-	if data.Data == nil {
-		return "", errors.New("Cannot read properties of undefined (reading 'id')")
+	if !socialidentity.XAccountID(result.Data.ID) {
+		return "", uncertainMutation()
 	}
-	return data.Data.ID, nil
+	return result.Data.ID, nil
 }
 
 func (p *Provider) finalizeArticle(ctx context.Context, accessToken string, pending pendingData, integration *ent.Integration) (*integrations.PendingCheckResponse, error) {
-	token, secret := splitToken(accessToken)
-	settings := pending.Settings
-	// All the post media is embedded in the article body; the cover comes from
-	// its own settings field.
-	embeddedMediaIDs := nonEmpty(pending.MediaIDs)
-
-	draft := articleDraft{
-		Title:        settings.ArticleTitle,
-		ContentState: articleContentState(pending.Message, embeddedMediaIDs, pending.InlineMediaIDs),
+	c := newClient(accessToken)
+	if pending.ArticleDraftID == "" {
+		draft := articleDraft{Title: pending.Settings.ArticleTitle, ContentState: articleContentState(pending.Message, pending.MediaIDs, pending.InlineMediaIDs)}
+		if pending.CoverMediaID != "" {
+			draft.CoverMedia = &mediaItem{MediaCategory: "tweet_image", MediaID: pending.CoverMediaID}
+		}
+		var receipt struct {
+			Data struct {
+				ID string `json:"id"`
+			} `json:"data"`
+		}
+		if err := c.mutationJSON(ctx, v2("articles/draft"), draft, &receipt); err != nil {
+			return nil, err
+		}
+		if !socialidentity.XAccountID(receipt.Data.ID) {
+			return nil, uncertainMutation()
+		}
+		pending.ArticleDraftID = receipt.Data.ID
+		if str(pending.Settings.ArticleStatus) == "published" {
+			// Return the draft receipt to durable history before a second mutation.
+			// Publishing uses a new arm/confirm cycle; a lost draft response never
+			// reaches this state and cannot cause another draft to be created.
+			pending.Attempting, pending.Confirmed = false, false
+			return &integrations.PendingCheckResponse{Status: "pending", PendingData: marshal(pending)}, nil
+		}
 	}
-	if pending.CoverMediaID != "" {
-		// Lowercase, matching the category the upload stored.
-		draft.CoverMedia = &mediaItem{MediaCategory: "tweet_image", MediaID: pending.CoverMediaID}
+	if !socialidentity.XAccountID(pending.ArticleDraftID) {
+		return nil, publishRejected("The saved X Article draft ID is invalid.")
 	}
-	draftURL := apiBase + "/2/articles/draft"
-	draftResponse, err := p.Fetch(ctx, draftURL, integrations.Request{
-		Method: "POST",
-		Headers: map[string]string{
-			"Authorization": signOAuth1("POST", draftURL, token, secret),
-			"Content-Type":  "application/json",
-		},
-		Body: marshal(draft),
-	})
-	if err != nil {
-		return nil, err
+	if str(pending.Settings.ArticleStatus) != "published" {
+		return &integrations.PendingCheckResponse{Status: "completed", PostID: pending.ArticleDraftID, ReleaseURL: "https://x.com/i/articles"}, nil
 	}
-	var draftJSON struct {
-		Data *struct {
-			ID string `json:"id"`
-		} `json:"data,omitempty"`
-		Errors []any `json:"errors,omitempty"`
-	}
-	if err := draftResponse.JSON(&draftJSON); err != nil {
-		return nil, err
-	}
-	// The articles endpoints can return 2xx with an errors array (e.g. a
-	// rejected cover) - don't swallow it.
-	if len(draftJSON.Errors) > 0 {
-		log.Println("X article draft returned errors:", string(marshal(draftJSON.Errors)))
-	}
-	if draftJSON.Data == nil || draftJSON.Data.ID == "" {
-		return nil, temporalx.BadBody(identifier, draftResponse.Text(), "{}", "X could not create the article draft")
-	}
-
-	if str(settings.ArticleStatus) != "published" {
-		return &integrations.PendingCheckResponse{Status: "completed", PostID: draftJSON.Data.ID, ReleaseURL: "https://x.com/i/articles"}, nil
-	}
-
-	publishURL := apiBase + "/2/articles/" + draftJSON.Data.ID + "/publish"
-	publishResponse, err := p.Fetch(ctx, publishURL, integrations.Request{
-		Method: "POST",
-		Headers: map[string]string{
-			"Authorization": signOAuth1("POST", publishURL, token, secret),
-			"Content-Type":  "application/json",
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-	var publishJSON struct {
-		Data *struct {
+	var receipt struct {
+		Data struct {
 			PostID string `json:"post_id"`
-		} `json:"data,omitempty"`
-		Errors []any `json:"errors,omitempty"`
+		} `json:"data"`
 	}
-	if err := publishResponse.JSON(&publishJSON); err != nil {
+	if err := c.mutationJSON(ctx, v2("articles/"+pending.ArticleDraftID+"/publish"), nil, &receipt); err != nil {
 		return nil, err
 	}
-	if len(publishJSON.Errors) > 0 {
-		log.Println("X article publish returned errors:", string(marshal(publishJSON.Errors)))
+	if !socialidentity.XAccountID(receipt.Data.PostID) {
+		return nil, uncertainMutation()
 	}
-	if publishJSON.Data == nil || publishJSON.Data.PostID == "" {
-		return nil, temporalx.BadBody(identifier, publishResponse.Text(), "{}", "X created the article draft but could not publish it, check your drafts on X")
-	}
-	return &integrations.PendingCheckResponse{
-		Status:     "completed",
-		PostID:     publishJSON.Data.PostID,
-		ReleaseURL: "https://twitter.com/" + jsString(integration.Profile) + "/status/" + publishJSON.Data.PostID,
-	}, nil
+	return &integrations.PendingCheckResponse{Status: "completed", PostID: receipt.Data.PostID, ReleaseURL: "https://twitter.com/" + jsString(integration.Profile) + "/status/" + receipt.Data.PostID}, nil
 }
 
 // Post is the old blocking behavior, kept for workflow versions before v1.0.6
@@ -704,30 +646,63 @@ func (p *Provider) Post(ctx context.Context, id, accessToken string, posts []int
 }
 
 func (p *Provider) Comment(ctx context.Context, _, postID, lastCommentID, accessToken string, posts []integrations.PostDetails, integration *ent.Integration) ([]integrations.PostResponse, error) {
-	token, secret := splitToken(accessToken)
-	c := newClient(accessToken)
-	commentPost := posts[0]
-
-	// upload media for the comment
-	uploadAll, err := p.uploadMedia(ctx, c, []mediaEntry{entryOf(commentPost)})
+	if len(posts) == 0 {
+		return nil, publishRejected("Add an X reply before publishing.")
+	}
+	caps, err := publishingLimits(ctx, accessToken, integration)
 	if err != nil {
 		return nil, err
 	}
-	mediaIDs := nonEmpty(uploadAll[commentPost.ID])
+	token, secret := splitToken(accessToken)
+	c := newClient(accessToken)
+	commentPost := posts[0]
+	settings := decodeSettings(commentPost.Settings)
+	commentText := toTweetText(commentPost.Message)
+	poll, err := checkedPoll(commentPost.Poll, len(commentPost.Media), false)
+	if err != nil {
+		return nil, err
+	}
+	check := func() error {
+		return checkPublishingContent(caps, commentText, pendingSettings{QuoteTweetID: settings.QuoteTweetID}, len(commentPost.Media), false)
+	}
+	if err := check(); err != nil {
+		return nil, err
+	}
+
+	// upload media for the comment
+	uploadAll, err := p.uploadMediaEntries(ctx, c, []mediaEntry{entryOf(commentPost)}, false, caps)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range uploadAll.processingIDs {
+		if err := p.waitForMediaProcessing(ctx, c, id); err != nil {
+			return nil, err
+		}
+	}
+	mediaIDs := uploadAll.ids[commentPost.ID]
+	if len(commentPost.Media) > 0 {
+		// Media processing may take minutes, during which the grant or account
+		// subscription can change. Recheck before creating the reply.
+		caps, err = publishingLimits(ctx, accessToken, integration)
+		if err != nil {
+			return nil, err
+		}
+		if err := check(); err != nil {
+			return nil, err
+		}
+		if err := checkMediaFacts(caps, uploadAll.facts, false); err != nil {
+			return nil, err
+		}
+	}
 
 	replyToID := lastCommentID
 	if replyToID == "" {
 		replyToID = postID
 	}
 
-	// Comments are always tweets - flatten the editor HTML to plain text.
-	commentText := toTweetText(commentPost.Message)
-	if p.StripLinks() {
-		commentText = helpers.StripLinks(commentText)
-	}
-	settings := decodeSettings(commentPost.Settings)
 	body := tweetBody{
 		Text:            commentText,
+		Poll:            poll,
 		MadeWithAI:      integrations.AssetBoolean(settings.MadeWithAI),
 		PaidPartnership: integrations.AssetBoolean(settings.PaidPartnership),
 		QuoteTweetID:    str(settings.QuoteTweetID),

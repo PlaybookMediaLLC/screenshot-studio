@@ -68,6 +68,26 @@ func (_u *PlatformNotificationPreferenceUpdate) SetSocialSets(v map[string]map[s
 	return _u
 }
 
+// SetSlackEnabled sets the "slack_enabled" field.
+func (_u *PlatformNotificationPreferenceUpdate) SetSlackEnabled(v bool) *PlatformNotificationPreferenceUpdate {
+	_u.mutation.SetSlackEnabled(v)
+	return _u
+}
+
+// SetNillableSlackEnabled sets the "slack_enabled" field if the given value is not nil.
+func (_u *PlatformNotificationPreferenceUpdate) SetNillableSlackEnabled(v *bool) *PlatformNotificationPreferenceUpdate {
+	if v != nil {
+		_u.SetSlackEnabled(*v)
+	}
+	return _u
+}
+
+// SetSocialSetChannels sets the "social_set_channels" field.
+func (_u *PlatformNotificationPreferenceUpdate) SetSocialSetChannels(v map[string]map[string]map[string]bool) *PlatformNotificationPreferenceUpdate {
+	_u.mutation.SetSocialSetChannels(v)
+	return _u
+}
+
 // SetGeneration sets the "generation" field.
 func (_u *PlatformNotificationPreferenceUpdate) SetGeneration(v int) *PlatformNotificationPreferenceUpdate {
 	_u.mutation.ResetGeneration()
@@ -156,6 +176,12 @@ func (_u *PlatformNotificationPreferenceUpdate) sqlSave(ctx context.Context) (_n
 	if value, ok := _u.mutation.SocialSets(); ok {
 		_spec.SetField(platformnotificationpreference.FieldSocialSets, field.TypeJSON, value)
 	}
+	if value, ok := _u.mutation.SlackEnabled(); ok {
+		_spec.SetField(platformnotificationpreference.FieldSlackEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SocialSetChannels(); ok {
+		_spec.SetField(platformnotificationpreference.FieldSocialSetChannels, field.TypeJSON, value)
+	}
 	if value, ok := _u.mutation.Generation(); ok {
 		_spec.SetField(platformnotificationpreference.FieldGeneration, field.TypeInt, value)
 	}
@@ -222,6 +248,26 @@ func (_u *PlatformNotificationPreferenceUpdateOne) SetEvents(v map[string]interf
 // SetSocialSets sets the "social_sets" field.
 func (_u *PlatformNotificationPreferenceUpdateOne) SetSocialSets(v map[string]map[string]bool) *PlatformNotificationPreferenceUpdateOne {
 	_u.mutation.SetSocialSets(v)
+	return _u
+}
+
+// SetSlackEnabled sets the "slack_enabled" field.
+func (_u *PlatformNotificationPreferenceUpdateOne) SetSlackEnabled(v bool) *PlatformNotificationPreferenceUpdateOne {
+	_u.mutation.SetSlackEnabled(v)
+	return _u
+}
+
+// SetNillableSlackEnabled sets the "slack_enabled" field if the given value is not nil.
+func (_u *PlatformNotificationPreferenceUpdateOne) SetNillableSlackEnabled(v *bool) *PlatformNotificationPreferenceUpdateOne {
+	if v != nil {
+		_u.SetSlackEnabled(*v)
+	}
+	return _u
+}
+
+// SetSocialSetChannels sets the "social_set_channels" field.
+func (_u *PlatformNotificationPreferenceUpdateOne) SetSocialSetChannels(v map[string]map[string]map[string]bool) *PlatformNotificationPreferenceUpdateOne {
+	_u.mutation.SetSocialSetChannels(v)
 	return _u
 }
 
@@ -342,6 +388,12 @@ func (_u *PlatformNotificationPreferenceUpdateOne) sqlSave(ctx context.Context) 
 	}
 	if value, ok := _u.mutation.SocialSets(); ok {
 		_spec.SetField(platformnotificationpreference.FieldSocialSets, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.SlackEnabled(); ok {
+		_spec.SetField(platformnotificationpreference.FieldSlackEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SocialSetChannels(); ok {
+		_spec.SetField(platformnotificationpreference.FieldSocialSetChannels, field.TypeJSON, value)
 	}
 	if value, ok := _u.mutation.Generation(); ok {
 		_spec.SetField(platformnotificationpreference.FieldGeneration, field.TypeInt, value)

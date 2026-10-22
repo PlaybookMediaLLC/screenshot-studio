@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdrafttag"
+	"slices"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -13,6 +14,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/webhooksubscription"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialplatform"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 )
 
@@ -64,7 +66,7 @@ func targetSocialSet(ctx context.Context, tx *ent.Tx, organizationID, platform s
 }
 
 func platformTaken(ctx context.Context, tx *ent.Tx, setID, platform string) (bool, error) {
-	return tx.ChannelConnection.Query().Where(channelconnection.SocialSetID(setID), channelconnection.Platform(platform),
+	return tx.ChannelConnection.Query().Where(channelconnection.SocialSetID(setID), channelconnection.PlatformIn(socialplatform.Aliases(platform)...),
 		channelconnection.StatusEQ(channelconnection.StatusACTIVE)).Exist(ctx)
 }
 
@@ -78,15 +80,19 @@ func enableDefaultPlatform(ctx context.Context, tx *ent.Tx, setID *string, platf
 	if err != nil {
 		return err
 	}
-	for _, existing := range set.DefaultPlatforms {
-		if existing == platform {
-			return nil
-		}
+	platform = socialplatform.Canonical(platform)
+	defaults := socialplatform.Defaults(set.DefaultPlatforms)
+	if !slices.Contains(defaults, platform) {
+		defaults = append(defaults, platform)
 	}
-	update := tx.SocialSet.UpdateOneID(set.ID).SetDefaultPlatforms(append(append([]string{}, set.DefaultPlatforms...), platform)).AddVersion(1)
-	if set.PrimaryPlatform == nil {
-		update.SetPrimaryPlatform(platform)
+	primary := platform
+	if set.PrimaryPlatform != nil {
+		primary = socialplatform.Canonical(*set.PrimaryPlatform)
 	}
+	if slices.Equal(defaults, set.DefaultPlatforms) && set.PrimaryPlatform != nil && *set.PrimaryPlatform == primary {
+		return nil
+	}
+	update := tx.SocialSet.UpdateOneID(set.ID).SetDefaultPlatforms(defaults).SetPrimaryPlatform(primary).AddVersion(1)
 	_, err = update.Save(ctx)
 	return err
 }

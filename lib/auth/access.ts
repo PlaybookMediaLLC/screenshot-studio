@@ -13,6 +13,7 @@ import {
 } from './permissions'
 import { type Principal, type SessionPrincipal } from './principal'
 import { auth } from './server'
+import { matchesWorkspaceScope } from './request-scope'
 import { requestRead } from './request-reads'
 
 function readAuthSession(headers: Headers) {
@@ -189,9 +190,21 @@ async function requireActiveSessionOrganization(
 ): Promise<OrganizationAccess> {
   // The backend rechecks membership, role, and workspace deletion state.
   const current = session ?? (await requireAuthSession(headers))
-  return requestRead(`active-access:${current.session.id}`, () =>
+  const access = await requestRead(`active-access:${current.session.id}`, () =>
     getBackendActiveOrganization(current, getRequestId(headers))
   )
+  if (
+    !matchesWorkspaceScope(headers, {
+      userId: access.principal.userId,
+      workspaceId: access.organizationId,
+    })
+  ) {
+    throw new AuthorizationError(
+      'Your account or workspace changed. Reload this page to continue.',
+      403
+    )
+  }
+  return access
 }
 
 function assertPermission(access: OrganizationAccess, permission: Permission): void {

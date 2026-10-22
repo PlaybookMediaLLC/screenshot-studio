@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -102,7 +103,8 @@ func Type(v string) predicate.Integration {
 
 // Token applies equality check predicate on the "token" field. It's identical to TokenEQ.
 func Token(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEQ(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldEQ(FieldToken, vc), err)
 }
 
 // Disabled applies equality check predicate on the "disabled" field. It's identical to DisabledEQ.
@@ -110,14 +112,24 @@ func Disabled(v bool) predicate.Integration {
 	return predicate.Integration(sql.FieldEQ(FieldDisabled, v))
 }
 
+// VerifiedAccountKey applies equality check predicate on the "verified_account_key" field. It's identical to VerifiedAccountKeyEQ.
+func VerifiedAccountKey(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldEQ(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKind applies equality check predicate on the "verified_account_kind" field. It's identical to VerifiedAccountKindEQ.
+func VerifiedAccountKind(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldEQ(FieldVerifiedAccountKind, v))
+}
+
+// IdentityVerifiedAt applies equality check predicate on the "identity_verified_at" field. It's identical to IdentityVerifiedAtEQ.
+func IdentityVerifiedAt(v time.Time) predicate.Integration {
+	return predicate.Integration(sql.FieldEQ(FieldIdentityVerifiedAt, v))
+}
+
 // TokenExpiration applies equality check predicate on the "token_expiration" field. It's identical to TokenExpirationEQ.
 func TokenExpiration(v time.Time) predicate.Integration {
 	return predicate.Integration(sql.FieldEQ(FieldTokenExpiration, v))
-}
-
-// RefreshToken applies equality check predicate on the "refresh_token" field. It's identical to RefreshTokenEQ.
-func RefreshToken(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEQ(FieldRefreshToken, v))
 }
 
 // Profile applies equality check predicate on the "profile" field. It's identical to ProfileEQ.
@@ -652,67 +664,116 @@ func TypeContainsFold(v string) predicate.Integration {
 
 // TokenEQ applies the EQ predicate on the "token" field.
 func TokenEQ(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEQ(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldEQ(FieldToken, vc), err)
 }
 
 // TokenNEQ applies the NEQ predicate on the "token" field.
 func TokenNEQ(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldNEQ(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldNEQ(FieldToken, vc), err)
 }
 
 // TokenIn applies the In predicate on the "token" field.
 func TokenIn(vs ...string) predicate.Integration {
-	return predicate.Integration(sql.FieldIn(FieldToken, vs...))
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Token.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.IntegrationOrErr(sql.FieldIn(FieldToken, v...), err)
 }
 
 // TokenNotIn applies the NotIn predicate on the "token" field.
 func TokenNotIn(vs ...string) predicate.Integration {
-	return predicate.Integration(sql.FieldNotIn(FieldToken, vs...))
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Token.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.IntegrationOrErr(sql.FieldNotIn(FieldToken, v...), err)
 }
 
 // TokenGT applies the GT predicate on the "token" field.
 func TokenGT(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldGT(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldGT(FieldToken, vc), err)
 }
 
 // TokenGTE applies the GTE predicate on the "token" field.
 func TokenGTE(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldGTE(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldGTE(FieldToken, vc), err)
 }
 
 // TokenLT applies the LT predicate on the "token" field.
 func TokenLT(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldLT(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldLT(FieldToken, vc), err)
 }
 
 // TokenLTE applies the LTE predicate on the "token" field.
 func TokenLTE(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldLTE(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	return predicate.IntegrationOrErr(sql.FieldLTE(FieldToken, vc), err)
 }
 
 // TokenContains applies the Contains predicate on the "token" field.
 func TokenContains(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldContains(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("token value is not a string: %T", vc)
+	}
+	return predicate.IntegrationOrErr(sql.FieldContains(FieldToken, vcs), err)
 }
 
 // TokenHasPrefix applies the HasPrefix predicate on the "token" field.
 func TokenHasPrefix(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldHasPrefix(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("token value is not a string: %T", vc)
+	}
+	return predicate.IntegrationOrErr(sql.FieldHasPrefix(FieldToken, vcs), err)
 }
 
 // TokenHasSuffix applies the HasSuffix predicate on the "token" field.
 func TokenHasSuffix(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldHasSuffix(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("token value is not a string: %T", vc)
+	}
+	return predicate.IntegrationOrErr(sql.FieldHasSuffix(FieldToken, vcs), err)
 }
 
 // TokenEqualFold applies the EqualFold predicate on the "token" field.
 func TokenEqualFold(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEqualFold(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("token value is not a string: %T", vc)
+	}
+	return predicate.IntegrationOrErr(sql.FieldEqualFold(FieldToken, vcs), err)
 }
 
 // TokenContainsFold applies the ContainsFold predicate on the "token" field.
 func TokenContainsFold(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldContainsFold(FieldToken, v))
+	vc, err := ValueScanner.Token.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("token value is not a string: %T", vc)
+	}
+	return predicate.IntegrationOrErr(sql.FieldContainsFold(FieldToken, vcs), err)
 }
 
 // DisabledEQ applies the EQ predicate on the "disabled" field.
@@ -723,6 +784,226 @@ func DisabledEQ(v bool) predicate.Integration {
 // DisabledNEQ applies the NEQ predicate on the "disabled" field.
 func DisabledNEQ(v bool) predicate.Integration {
 	return predicate.Integration(sql.FieldNEQ(FieldDisabled, v))
+}
+
+// VerifiedAccountKeyEQ applies the EQ predicate on the "verified_account_key" field.
+func VerifiedAccountKeyEQ(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldEQ(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKeyNEQ applies the NEQ predicate on the "verified_account_key" field.
+func VerifiedAccountKeyNEQ(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldNEQ(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKeyIn applies the In predicate on the "verified_account_key" field.
+func VerifiedAccountKeyIn(vs ...string) predicate.Integration {
+	return predicate.Integration(sql.FieldIn(FieldVerifiedAccountKey, vs...))
+}
+
+// VerifiedAccountKeyNotIn applies the NotIn predicate on the "verified_account_key" field.
+func VerifiedAccountKeyNotIn(vs ...string) predicate.Integration {
+	return predicate.Integration(sql.FieldNotIn(FieldVerifiedAccountKey, vs...))
+}
+
+// VerifiedAccountKeyGT applies the GT predicate on the "verified_account_key" field.
+func VerifiedAccountKeyGT(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldGT(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKeyGTE applies the GTE predicate on the "verified_account_key" field.
+func VerifiedAccountKeyGTE(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldGTE(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKeyLT applies the LT predicate on the "verified_account_key" field.
+func VerifiedAccountKeyLT(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldLT(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKeyLTE applies the LTE predicate on the "verified_account_key" field.
+func VerifiedAccountKeyLTE(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldLTE(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKeyContains applies the Contains predicate on the "verified_account_key" field.
+func VerifiedAccountKeyContains(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldContains(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKeyHasPrefix applies the HasPrefix predicate on the "verified_account_key" field.
+func VerifiedAccountKeyHasPrefix(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldHasPrefix(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKeyHasSuffix applies the HasSuffix predicate on the "verified_account_key" field.
+func VerifiedAccountKeyHasSuffix(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldHasSuffix(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKeyIsNil applies the IsNil predicate on the "verified_account_key" field.
+func VerifiedAccountKeyIsNil() predicate.Integration {
+	return predicate.Integration(sql.FieldIsNull(FieldVerifiedAccountKey))
+}
+
+// VerifiedAccountKeyNotNil applies the NotNil predicate on the "verified_account_key" field.
+func VerifiedAccountKeyNotNil() predicate.Integration {
+	return predicate.Integration(sql.FieldNotNull(FieldVerifiedAccountKey))
+}
+
+// VerifiedAccountKeyEqualFold applies the EqualFold predicate on the "verified_account_key" field.
+func VerifiedAccountKeyEqualFold(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldEqualFold(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKeyContainsFold applies the ContainsFold predicate on the "verified_account_key" field.
+func VerifiedAccountKeyContainsFold(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldContainsFold(FieldVerifiedAccountKey, v))
+}
+
+// VerifiedAccountKindEQ applies the EQ predicate on the "verified_account_kind" field.
+func VerifiedAccountKindEQ(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldEQ(FieldVerifiedAccountKind, v))
+}
+
+// VerifiedAccountKindNEQ applies the NEQ predicate on the "verified_account_kind" field.
+func VerifiedAccountKindNEQ(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldNEQ(FieldVerifiedAccountKind, v))
+}
+
+// VerifiedAccountKindIn applies the In predicate on the "verified_account_kind" field.
+func VerifiedAccountKindIn(vs ...string) predicate.Integration {
+	return predicate.Integration(sql.FieldIn(FieldVerifiedAccountKind, vs...))
+}
+
+// VerifiedAccountKindNotIn applies the NotIn predicate on the "verified_account_kind" field.
+func VerifiedAccountKindNotIn(vs ...string) predicate.Integration {
+	return predicate.Integration(sql.FieldNotIn(FieldVerifiedAccountKind, vs...))
+}
+
+// VerifiedAccountKindGT applies the GT predicate on the "verified_account_kind" field.
+func VerifiedAccountKindGT(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldGT(FieldVerifiedAccountKind, v))
+}
+
+// VerifiedAccountKindGTE applies the GTE predicate on the "verified_account_kind" field.
+func VerifiedAccountKindGTE(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldGTE(FieldVerifiedAccountKind, v))
+}
+
+// VerifiedAccountKindLT applies the LT predicate on the "verified_account_kind" field.
+func VerifiedAccountKindLT(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldLT(FieldVerifiedAccountKind, v))
+}
+
+// VerifiedAccountKindLTE applies the LTE predicate on the "verified_account_kind" field.
+func VerifiedAccountKindLTE(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldLTE(FieldVerifiedAccountKind, v))
+}
+
+// VerifiedAccountKindContains applies the Contains predicate on the "verified_account_kind" field.
+func VerifiedAccountKindContains(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldContains(FieldVerifiedAccountKind, v))
+}
+
+// VerifiedAccountKindHasPrefix applies the HasPrefix predicate on the "verified_account_kind" field.
+func VerifiedAccountKindHasPrefix(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldHasPrefix(FieldVerifiedAccountKind, v))
+}
+
+// VerifiedAccountKindHasSuffix applies the HasSuffix predicate on the "verified_account_kind" field.
+func VerifiedAccountKindHasSuffix(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldHasSuffix(FieldVerifiedAccountKind, v))
+}
+
+// VerifiedAccountKindIsNil applies the IsNil predicate on the "verified_account_kind" field.
+func VerifiedAccountKindIsNil() predicate.Integration {
+	return predicate.Integration(sql.FieldIsNull(FieldVerifiedAccountKind))
+}
+
+// VerifiedAccountKindNotNil applies the NotNil predicate on the "verified_account_kind" field.
+func VerifiedAccountKindNotNil() predicate.Integration {
+	return predicate.Integration(sql.FieldNotNull(FieldVerifiedAccountKind))
+}
+
+// VerifiedAccountKindEqualFold applies the EqualFold predicate on the "verified_account_kind" field.
+func VerifiedAccountKindEqualFold(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldEqualFold(FieldVerifiedAccountKind, v))
+}
+
+// VerifiedAccountKindContainsFold applies the ContainsFold predicate on the "verified_account_kind" field.
+func VerifiedAccountKindContainsFold(v string) predicate.Integration {
+	return predicate.Integration(sql.FieldContainsFold(FieldVerifiedAccountKind, v))
+}
+
+// VerifiedScopesIsNil applies the IsNil predicate on the "verified_scopes" field.
+func VerifiedScopesIsNil() predicate.Integration {
+	return predicate.Integration(sql.FieldIsNull(FieldVerifiedScopes))
+}
+
+// VerifiedScopesNotNil applies the NotNil predicate on the "verified_scopes" field.
+func VerifiedScopesNotNil() predicate.Integration {
+	return predicate.Integration(sql.FieldNotNull(FieldVerifiedScopes))
+}
+
+// VerifiedCapabilitiesIsNil applies the IsNil predicate on the "verified_capabilities" field.
+func VerifiedCapabilitiesIsNil() predicate.Integration {
+	return predicate.Integration(sql.FieldIsNull(FieldVerifiedCapabilities))
+}
+
+// VerifiedCapabilitiesNotNil applies the NotNil predicate on the "verified_capabilities" field.
+func VerifiedCapabilitiesNotNil() predicate.Integration {
+	return predicate.Integration(sql.FieldNotNull(FieldVerifiedCapabilities))
+}
+
+// IdentityVerifiedAtEQ applies the EQ predicate on the "identity_verified_at" field.
+func IdentityVerifiedAtEQ(v time.Time) predicate.Integration {
+	return predicate.Integration(sql.FieldEQ(FieldIdentityVerifiedAt, v))
+}
+
+// IdentityVerifiedAtNEQ applies the NEQ predicate on the "identity_verified_at" field.
+func IdentityVerifiedAtNEQ(v time.Time) predicate.Integration {
+	return predicate.Integration(sql.FieldNEQ(FieldIdentityVerifiedAt, v))
+}
+
+// IdentityVerifiedAtIn applies the In predicate on the "identity_verified_at" field.
+func IdentityVerifiedAtIn(vs ...time.Time) predicate.Integration {
+	return predicate.Integration(sql.FieldIn(FieldIdentityVerifiedAt, vs...))
+}
+
+// IdentityVerifiedAtNotIn applies the NotIn predicate on the "identity_verified_at" field.
+func IdentityVerifiedAtNotIn(vs ...time.Time) predicate.Integration {
+	return predicate.Integration(sql.FieldNotIn(FieldIdentityVerifiedAt, vs...))
+}
+
+// IdentityVerifiedAtGT applies the GT predicate on the "identity_verified_at" field.
+func IdentityVerifiedAtGT(v time.Time) predicate.Integration {
+	return predicate.Integration(sql.FieldGT(FieldIdentityVerifiedAt, v))
+}
+
+// IdentityVerifiedAtGTE applies the GTE predicate on the "identity_verified_at" field.
+func IdentityVerifiedAtGTE(v time.Time) predicate.Integration {
+	return predicate.Integration(sql.FieldGTE(FieldIdentityVerifiedAt, v))
+}
+
+// IdentityVerifiedAtLT applies the LT predicate on the "identity_verified_at" field.
+func IdentityVerifiedAtLT(v time.Time) predicate.Integration {
+	return predicate.Integration(sql.FieldLT(FieldIdentityVerifiedAt, v))
+}
+
+// IdentityVerifiedAtLTE applies the LTE predicate on the "identity_verified_at" field.
+func IdentityVerifiedAtLTE(v time.Time) predicate.Integration {
+	return predicate.Integration(sql.FieldLTE(FieldIdentityVerifiedAt, v))
+}
+
+// IdentityVerifiedAtIsNil applies the IsNil predicate on the "identity_verified_at" field.
+func IdentityVerifiedAtIsNil() predicate.Integration {
+	return predicate.Integration(sql.FieldIsNull(FieldIdentityVerifiedAt))
+}
+
+// IdentityVerifiedAtNotNil applies the NotNil predicate on the "identity_verified_at" field.
+func IdentityVerifiedAtNotNil() predicate.Integration {
+	return predicate.Integration(sql.FieldNotNull(FieldIdentityVerifiedAt))
 }
 
 // TokenExpirationEQ applies the EQ predicate on the "token_expiration" field.
@@ -775,61 +1056,6 @@ func TokenExpirationNotNil() predicate.Integration {
 	return predicate.Integration(sql.FieldNotNull(FieldTokenExpiration))
 }
 
-// RefreshTokenEQ applies the EQ predicate on the "refresh_token" field.
-func RefreshTokenEQ(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEQ(FieldRefreshToken, v))
-}
-
-// RefreshTokenNEQ applies the NEQ predicate on the "refresh_token" field.
-func RefreshTokenNEQ(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldNEQ(FieldRefreshToken, v))
-}
-
-// RefreshTokenIn applies the In predicate on the "refresh_token" field.
-func RefreshTokenIn(vs ...string) predicate.Integration {
-	return predicate.Integration(sql.FieldIn(FieldRefreshToken, vs...))
-}
-
-// RefreshTokenNotIn applies the NotIn predicate on the "refresh_token" field.
-func RefreshTokenNotIn(vs ...string) predicate.Integration {
-	return predicate.Integration(sql.FieldNotIn(FieldRefreshToken, vs...))
-}
-
-// RefreshTokenGT applies the GT predicate on the "refresh_token" field.
-func RefreshTokenGT(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldGT(FieldRefreshToken, v))
-}
-
-// RefreshTokenGTE applies the GTE predicate on the "refresh_token" field.
-func RefreshTokenGTE(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldGTE(FieldRefreshToken, v))
-}
-
-// RefreshTokenLT applies the LT predicate on the "refresh_token" field.
-func RefreshTokenLT(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldLT(FieldRefreshToken, v))
-}
-
-// RefreshTokenLTE applies the LTE predicate on the "refresh_token" field.
-func RefreshTokenLTE(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldLTE(FieldRefreshToken, v))
-}
-
-// RefreshTokenContains applies the Contains predicate on the "refresh_token" field.
-func RefreshTokenContains(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldContains(FieldRefreshToken, v))
-}
-
-// RefreshTokenHasPrefix applies the HasPrefix predicate on the "refresh_token" field.
-func RefreshTokenHasPrefix(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldHasPrefix(FieldRefreshToken, v))
-}
-
-// RefreshTokenHasSuffix applies the HasSuffix predicate on the "refresh_token" field.
-func RefreshTokenHasSuffix(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldHasSuffix(FieldRefreshToken, v))
-}
-
 // RefreshTokenIsNil applies the IsNil predicate on the "refresh_token" field.
 func RefreshTokenIsNil() predicate.Integration {
 	return predicate.Integration(sql.FieldIsNull(FieldRefreshToken))
@@ -838,16 +1064,6 @@ func RefreshTokenIsNil() predicate.Integration {
 // RefreshTokenNotNil applies the NotNil predicate on the "refresh_token" field.
 func RefreshTokenNotNil() predicate.Integration {
 	return predicate.Integration(sql.FieldNotNull(FieldRefreshToken))
-}
-
-// RefreshTokenEqualFold applies the EqualFold predicate on the "refresh_token" field.
-func RefreshTokenEqualFold(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldEqualFold(FieldRefreshToken, v))
-}
-
-// RefreshTokenContainsFold applies the ContainsFold predicate on the "refresh_token" field.
-func RefreshTokenContainsFold(v string) predicate.Integration {
-	return predicate.Integration(sql.FieldContainsFold(FieldRefreshToken, v))
 }
 
 // ProfileEQ applies the EQ predicate on the "profile" field.

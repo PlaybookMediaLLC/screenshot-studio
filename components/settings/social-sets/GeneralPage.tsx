@@ -20,10 +20,9 @@ import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { socialSetRemovalSchema, socialSetSchema } from '@/lib/api/contracts/social-sets'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
-import { settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
+import { settingsErrorMessage } from '@/lib/settings/client'
+import { useSocialSetScope } from './scope'
 import {
-  CONNECT_PROVIDERS,
-  connectHref,
   HEALTH_GUIDANCE,
   providerFor,
   type SocialSetRecord,
@@ -31,6 +30,8 @@ import {
   useStoreSocialSet,
 } from './api'
 import { SET_COLORS } from './colors'
+import { ConnectionLauncher } from '@/components/social-connections/ConnectionLauncher'
+import { socialConnectionProviderSchema } from 'screenshot-studio-backend-sdk'
 import type { SetPermissions } from './SocialSetSettings'
 
 function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRecord }) {
@@ -106,8 +107,8 @@ function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRe
 }
 
 function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord }) {
+  const scope = useSocialSetScope()
   const store = useStoreSocialSet()
-  const connected = new Set(set.accounts.map((account) => account.platform))
   return (
     <Row
       description="One account per platform. Drafts in this set publish to these accounts."
@@ -120,7 +121,7 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
       <ul className="grid gap-2">
         {set.accounts.map((account) => {
           const channel = channelForPlatform(account.platform)
-          const provider = providerFor(account.platform)
+          const provider = socialConnectionProviderSchema.safeParse(providerFor(account.platform))
           const healthy = account.health === 'connected'
           const name = account.displayName ?? account.handle ?? account.platform
           return (
@@ -156,14 +157,21 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
               </span>
               {canManage ? (
                 <span className="flex flex-wrap gap-2">
-                  {provider ? (
-                    // A plain link: prefetching the start route would begin an OAuth flow.
-                    <a
-                      className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-foreground/[0.04]"
-                      href={connectHref(provider, set.id)}
+                  {provider.success ? (
+                    <ConnectionLauncher
+                      intent={{
+                        operation: 'RECONNECT',
+                        socialSetId: set.id,
+                        expectedConnectionId: account.id,
+                        returnPath: socialSetHref(set.id),
+                      }}
+                      initialProvider={provider.data}
+                      target={set}
                     >
-                      Reconnect
-                    </a>
+                      <Button size="sm" variant="outline">
+                        Reconnect
+                      </Button>
+                    </ConnectionLauncher>
                   ) : null}
                   <ConfirmDialog
                     confirmLabel="Remove account"
@@ -186,13 +194,13 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
                     destructive
                     onConfirm={async () => {
                       try {
-                        const removal = await settingsRequest(
+                        const removal = await scope.request(
                           `/api/v1/social-sets/${encodeURIComponent(set.id)}/accounts/${encodeURIComponent(account.id)}`,
                           socialSetRemovalSchema,
                           { method: 'DELETE' }
                         )
                         await store(
-                          await settingsRequest(
+                          await scope.request(
                             `/api/v1/social-sets/${encodeURIComponent(set.id)}`,
                             socialSetSchema
                           )
@@ -221,32 +229,19 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
           <p className="text-xs text-muted-foreground">
             Add a social account. You sign in with the platform, then come back here.
           </p>
-          <div className="flex flex-wrap gap-2">
-            {CONNECT_PROVIDERS.map((provider) =>
-              connected.has(provider.platform) ? (
-                <Button
-                  disabled
-                  key={provider.provider}
-                  size="sm"
-                  title="This set already has an account on this platform."
-                  type="button"
-                  variant="outline"
-                >
-                  {provider.label} connected
-                </Button>
-              ) : (
-                <a
-                  className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-sm hover:bg-foreground/[0.04]"
-                  href={connectHref(provider.provider, set.id)}
-                  key={provider.provider}
-                >
-                  Add {provider.label}
-                </a>
-              )
-            )}
-          </div>
+          <ConnectionLauncher
+            intent={{
+              operation: 'ADD_ACCOUNT',
+              socialSetId: set.id,
+              returnPath: socialSetHref(set.id),
+            }}
+            target={set}
+          >
+            <Button className="w-fit" size="sm" variant="outline">
+              Add social account
+            </Button>
+          </ConnectionLauncher>
           <p className="text-xs text-muted-foreground">
-            Bluesky connects with an app password through the API for now.{' '}
             <Link className="underline" href={socialSetHref(set.id, 'new-draft')}>
               Choose default platforms for new drafts
             </Link>
@@ -259,6 +254,7 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
 }
 
 function Ownership({ canManage, set }: { canManage: boolean; set: SocialSetRecord }) {
+  const scope = useSocialSetScope()
   const store = useStoreSocialSet()
   if (set.visibility === 'WORKSPACE') {
     return (
@@ -290,7 +286,7 @@ function Ownership({ canManage, set }: { canManage: boolean; set: SocialSetRecor
           onConfirm={async () => {
             try {
               await store(
-                await settingsRequest(
+                await scope.request(
                   `/api/v1/social-sets/${encodeURIComponent(set.id)}/share`,
                   socialSetSchema,
                   { method: 'POST' }
@@ -312,6 +308,7 @@ function Ownership({ canManage, set }: { canManage: boolean; set: SocialSetRecor
 }
 
 function DangerZone({ permissions, set }: { permissions: SetPermissions; set: SocialSetRecord }) {
+  const scope = useSocialSetScope()
   const allowed = set.visibility === 'PRIVATE' ? set.isOwner : permissions.isAdmin
   const list = SETTINGS_SECTIONS.find((section) => section.id === 'social-sets')!
   return (
@@ -328,7 +325,7 @@ function DangerZone({ permissions, set }: { permissions: SetPermissions; set: So
           disabled={!allowed}
           onConfirm={async (typed) => {
             try {
-              await settingsRequest(
+              await scope.request(
                 `/api/v1/social-sets/${encodeURIComponent(set.id)}`,
                 socialSetRemovalSchema,
                 {

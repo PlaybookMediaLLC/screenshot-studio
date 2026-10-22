@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
@@ -23,6 +24,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialsetwritingsample"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialplatform"
 	"github.com/lucsky/cuid"
 )
 
@@ -32,7 +35,7 @@ import (
 // forbidden to everyone else. Mutations need a signed-in person.
 
 var (
-	socialSetManageRoles  = []string{"owner", "admin", "publisher"}
+	socialSetManageRoles  = []string{"owner", "admin"}
 	socialSetWritingRoles = []string{"owner", "admin", "creator"}
 	socialSetColorPattern = regexp.MustCompile(`^#[0-9a-f]{6}$`)
 )
@@ -47,6 +50,7 @@ const (
 // AccountHealth is an account's state, read from the social service.
 const (
 	AccountConnected          = "connected"
+	AccountUnverified         = "unverified"
 	AccountReconnectRequired  = "reconnect_required"
 	AccountExpired            = "expired"
 	AccountRevoked            = "revoked"
@@ -60,14 +64,16 @@ type SocialAccount struct {
 	CreatedAt   time.Time `json:"createdAt"`
 	DisplayName *string   `json:"displayName"`
 	Handle      *string   `json:"handle"`
-	// Health is connected, reconnect_required, expired, revoked, removed or permission_required.
+	// Health is connected, unverified, reconnect_required, expired, revoked, removed or permission_required.
 	Health      string  `json:"health"`
 	ID          string  `json:"id"`
 	Platform    string  `json:"platform"`
 	SocialSetID *string `json:"socialSetId"`
-	// Premium is X Premium, read from the account (RFC 042): it raises the
-	// caption limit and allows articles. Never the workspace's plan.
-	Premium bool `json:"premium"`
+	// Premium is retained for display compatibility; explicit capabilities
+	// govern text length and Articles independently.
+	Premium       bool  `json:"premium"`
+	XCaptionLimit *int  `json:"xCaptionLimit"`
+	XArticles     *bool `json:"xArticles"`
 }
 
 // WritingAssistantRecord is a set's assistant with its derived status:
@@ -272,13 +278,13 @@ func (c *Configuration) defaultSocialSet(ctx context.Context, organizationID str
 	}
 	platforms := []string{}
 	for _, connection := range orphans {
-		if oneOf(connection.Platform, platforms...) {
+		if oneOf(socialplatform.Canonical(connection.Platform), platforms...) {
 			continue
 		}
 		if _, err := tx.ChannelConnection.UpdateOneID(connection.ID).SetSocialSetID(created.ID).Save(ctx); err != nil {
 			return nil, err
 		}
-		platforms = append(platforms, connection.Platform)
+		platforms = append(platforms, socialplatform.Canonical(connection.Platform))
 	}
 	if len(platforms) > 0 {
 		if created, err = tx.SocialSet.UpdateOneID(created.ID).SetDefaultPlatforms(platforms).
@@ -296,22 +302,22 @@ func accountHealth(status channelconnection.Status, exists, deleted, disabled, r
 	case status == channelconnection.StatusDISABLED:
 		return AccountRemoved
 	case status == channelconnection.StatusREVOKED, exists && deleted:
-		// A missing row is unknown, not revoked: the social API may keep its
-		// own database, and then the provider reports health at publish time.
 		return AccountRevoked
+	case !exists:
+		return AccountUnverified
 	case disabled, refresh:
 		return AccountReconnectRequired
 	case between:
 		return AccountPermissionRequired
-	case expires != nil && expires.Before(now):
+	case expires != nil && !expires.After(now):
 		return AccountExpired
 	}
 	return AccountConnected
 }
 
-// connectionHealth reads the health of the given connections. Without the
-// social service's tables (a deployment that does not run it) every active
-// account reads as connected, which is what the product status says.
+// connectionHealth requires a provider record in the bound social tenant.
+// An active product row alone is not proof of usable provider credentials.
+// Missing provider tables, bindings, or records leave the account unverified.
 func connectionHealth(ctx context.Context, client *ent.Client, organizationID string, connections []*ent.ChannelConnection) (map[string]string, error) {
 	health := make(map[string]string, len(connections))
 	if len(connections) == 0 {
@@ -320,7 +326,7 @@ func connectionHealth(ctx context.Context, client *ent.Client, organizationID st
 	ids := make([]string, 0, len(connections))
 	for _, connection := range connections {
 		ids = append(ids, connection.ID)
-		health[connection.ID] = accountHealth(connection.Status, true, false, false, false, false, nil, time.Now())
+		health[connection.ID] = accountHealth(connection.Status, false, false, false, false, false, nil, time.Now())
 	}
 	var social bool
 	if err := client.PlatformQuery(ctx, `SELECT to_regclass('public."Integration"') IS NOT NULL`, nil, func(row entsql.ColumnScanner) error {
@@ -332,8 +338,11 @@ func connectionHealth(ctx context.Context, client *ent.Client, organizationID st
 	for _, connection := range connections {
 		statuses[connection.ID] = connection.Status
 	}
-	query := `SELECT c.id, i.id IS NOT NULL, coalesce(i."deletedAt" IS NOT NULL, false), coalesce(i.disabled, false),
-		coalesce(i."refreshNeeded", false), coalesce(i."inBetweenSteps", false), i."tokenExpiration"
+	query := `SELECT c.id, coalesce(i.id IS NOT NULL AND length(trim(i.token)) > 0
+        AND platform_social_channel_v1(i."providerIdentifier") = platform_social_channel_v1(c.platform), false), coalesce(i."deletedAt" IS NOT NULL, false), coalesce(i.disabled, false),
+		coalesce(i."refreshNeeded", false), coalesce(i."inBetweenSteps", false), i."tokenExpiration",
+		coalesce(i."providerIdentifier", ''), coalesce(i."internalId", ''), i."verifiedAccountKey", i."verifiedAccountKind",
+		i."verifiedScopes", i."verifiedCapabilities", i."identityVerifiedAt"
 		FROM channel_connection c
 		LEFT JOIN social_tenant_binding b ON b."organizationId" = c."organizationId"
 		LEFT JOIN "Integration" i ON i.id = c."externalAccountId" AND i."organizationId" = b."goOrganizationId"
@@ -343,10 +352,24 @@ func connectionHealth(ctx context.Context, client *ent.Client, organizationID st
 		var id string
 		var exists, deleted, disabled, refresh, between bool
 		var expires *time.Time
-		if err := row.Scan(&id, &exists, &deleted, &disabled, &refresh, &between, &expires); err != nil {
+		var provider, native string
+		var key, kind *string
+		var scopes, capabilities []byte
+		var verified *time.Time
+		if err := row.Scan(&id, &exists, &deleted, &disabled, &refresh, &between, &expires, &provider, &native, &key, &kind, &scopes, &capabilities, &verified); err != nil {
 			return err
 		}
 		health[id] = accountHealth(statuses[id], exists, deleted, disabled, refresh, between, expires, now)
+		if health[id] == AccountConnected && socialidentity.RequiresVerification(provider) {
+			if key == nil || kind == nil || verified == nil {
+				health[id] = AccountUnverified
+				return nil
+			}
+			proof := socialidentity.Verification{AccountKey: *key, AccountKind: *kind}
+			if json.Unmarshal(scopes, &proof.GrantedScopes) != nil || json.Unmarshal(capabilities, &proof.Capabilities) != nil || proof.Validate(provider, native) != nil {
+				health[id] = AccountUnverified
+			}
+		}
 		return nil
 	})
 }
@@ -409,7 +432,8 @@ func (c *Configuration) socialSetRecords(ctx context.Context, actor Actor, sets 
 	for _, connection := range connections {
 		account := socialAccount(connection, health[connection.ID])
 		if connection.Platform == "x" && account.Health == AccountConnected {
-			account.Premium = c.accountStanding(ctx, connection).Premium
+			standing := c.accountStanding(ctx, connection)
+			account.Premium, account.XCaptionLimit, account.XArticles = standing.Premium, standing.XCaptionLimit, standing.XArticles
 		}
 		accounts[*connection.SocialSetID] = append(accounts[*connection.SocialSetID], account)
 	}
@@ -469,8 +493,17 @@ func (c *Configuration) ListSocialSets(ctx context.Context, actor Actor) (*Socia
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
-	if _, err := c.defaultSocialSet(ctx, actor.OrganizationID); err != nil {
+	// Keep legacy unassigned accounts usable without creating an empty brand
+	// merely because someone opens the provider picker or settings list.
+	legacyAccounts, err := c.client.ChannelConnection.Query().Where(channelconnection.OrganizationID(actor.OrganizationID),
+		channelconnection.SocialSetIDIsNil(), channelconnection.StatusEQ(channelconnection.StatusACTIVE)).Exist(ctx)
+	if err != nil {
 		return nil, err
+	}
+	if legacyAccounts {
+		if _, err := c.defaultSocialSet(ctx, actor.OrganizationID); err != nil {
+			return nil, err
+		}
 	}
 	sets, err := c.visibleSocialSets(ctx, c.client, actor)
 	if err != nil {
@@ -560,7 +593,7 @@ func socialSetColor(color string) (string, error) {
 	return color, nil
 }
 
-// authorizeSocialSetManage checks a signed-in publisher, admin or owner.
+// authorizeSocialSetManage checks a signed-in admin or owner.
 func (c *Configuration) authorizeSocialSetManage(ctx context.Context, actor Actor) error {
 	if err := c.authorizeDecision(ctx, actor, socialSetManageRoles...); err != nil {
 		return err
@@ -632,7 +665,7 @@ func validDefaultPlatforms(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, 
 	}
 	available := map[string]bool{}
 	for _, connection := range connected {
-		available[connection.Platform] = true
+		available[socialplatform.Canonical(connection.Platform)] = true
 	}
 	seen := map[string]bool{}
 	out := make([]string, 0, len(platforms))
@@ -935,12 +968,12 @@ func (c *Configuration) RemoveSocialSetAccount(ctx context.Context, actor Actor,
 	}
 	defaults := make([]string, 0, len(set.DefaultPlatforms))
 	for _, platform := range set.DefaultPlatforms {
-		if platform != connection.Platform {
+		if socialplatform.Canonical(platform) != socialplatform.Canonical(connection.Platform) {
 			defaults = append(defaults, platform)
 		}
 	}
 	update := tx.SocialSet.UpdateOneID(set.ID).SetDefaultPlatforms(defaults).AddVersion(1)
-	if set.PrimaryPlatform != nil && *set.PrimaryPlatform == connection.Platform {
+	if set.PrimaryPlatform != nil && socialplatform.Canonical(*set.PrimaryPlatform) == socialplatform.Canonical(connection.Platform) {
 		if len(defaults) > 0 {
 			update.SetPrimaryPlatform(defaults[0])
 		} else {
@@ -984,7 +1017,7 @@ func (c *Configuration) AssignSocialSetAccount(ctx context.Context, actor Actor,
 		return nil, err
 	}
 	taken, err := tx.ChannelConnection.Query().Where(channelconnection.SocialSetID(set.ID),
-		channelconnection.Platform(connection.Platform), channelconnection.StatusEQ(channelconnection.StatusACTIVE)).Exist(ctx)
+		channelconnection.PlatformIn(socialplatform.Aliases(connection.Platform)...), channelconnection.StatusEQ(channelconnection.StatusACTIVE)).Exist(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -997,10 +1030,11 @@ func (c *Configuration) AssignSocialSetAccount(ctx context.Context, actor Actor,
 		}
 		return nil, err
 	}
-	if !oneOf(connection.Platform, set.DefaultPlatforms...) {
-		update := tx.SocialSet.UpdateOneID(set.ID).SetDefaultPlatforms(append(nonNilStrings(set.DefaultPlatforms), connection.Platform)).AddVersion(1)
+	platform := socialplatform.Canonical(connection.Platform)
+	if !oneOf(platform, set.DefaultPlatforms...) {
+		update := tx.SocialSet.UpdateOneID(set.ID).SetDefaultPlatforms(append(socialplatform.Defaults(set.DefaultPlatforms), platform)).AddVersion(1)
 		if set.PrimaryPlatform == nil {
-			update.SetPrimaryPlatform(connection.Platform)
+			update.SetPrimaryPlatform(platform)
 		}
 		if _, err := update.Save(ctx); err != nil {
 			return nil, err

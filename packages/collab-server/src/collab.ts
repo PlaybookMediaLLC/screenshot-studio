@@ -6,21 +6,28 @@
  */
 import type {
   beforeHandleMessagePayload,
+  connectedPayload,
   onAuthenticatePayload,
   onLoadDocumentPayload,
   onRequestPayload,
   onStoreDocumentPayload,
 } from "@hocuspocus/server";
+import { IncomingMessage, MessageType } from "@hocuspocus/server";
 import * as Y from "yjs";
+import { z } from "zod";
+import { protectConnection } from "./access.ts";
+
+/** Validated backend authority for one document and user. */
+export const collabGrantSchema = z.object({
+  kind: z.enum(["content-draft", "creative-set"]).optional(),
+  access: z.enum(["read", "write"]),
+  draftId: z.string().min(1),
+  organizationId: z.string().min(1),
+  user: z.object({ id: z.string().min(1), name: z.string() }),
+});
 
 /** What the backend grants a connection. */
-export type CollabGrant = {
-  kind?: "content-draft" | "creative-set";
-  access: "read" | "write";
-  draftId: string;
-  organizationId: string;
-  user: { id: string; name: string };
-};
+export type CollabGrant = z.infer<typeof collabGrantSchema>;
 
 /** The Go backend's collaboration routes. */
 export type CollabBackend = {
@@ -59,19 +66,17 @@ export function backendClient(
   const call = async (path: string, init: RequestInit & { token?: string }) => {
     const response = await fetchImpl(new URL(path, baseUrl), {
       ...init,
+      signal: AbortSignal.timeout(5_000),
       headers: {
         authorization: `Bearer ${serviceToken}`,
         "content-type": "application/json",
         ...(init.token ? { "x-collab-token": init.token } : {}),
       },
     });
-    const body = (await response.json().catch(() => null)) as Record<
-      string,
-      unknown
-    > | null;
+    const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       throw new CollabBackendError(
-        String(body?.error ?? `backend answered ${response.status}`),
+        "Collaboration access is unavailable.",
         response.status
       );
     }
@@ -79,17 +84,18 @@ export function backendClient(
   };
   return {
     authorize: async (token, documentName) =>
-      (await call("/v1/collab/authorize", {
-        body: JSON.stringify({ documentName, token }),
-        method: "POST",
-      })) as CollabGrant,
+      collabGrantSchema.parse(
+        await call("/v1/collab/authorize", {
+          body: JSON.stringify({ documentName, token }),
+          method: "POST",
+        })
+      ),
     load: async (draftId, token) => {
-      const { state } = await call(
-        `/v1/collab/documents/${encodeURIComponent(draftId)}`,
-        {
+      const { state } = z.object({ state: z.string().nullable() }).parse(
+        await call(`/v1/collab/documents/${encodeURIComponent(draftId)}`, {
           method: "GET",
           token,
-        }
+        })
       );
       return typeof state === "string" ? Buffer.from(state, "base64") : null;
     },
@@ -150,7 +156,11 @@ export function redisWriterTokens(redis: {
   };
 }
 
-type Context = { grant: CollabGrant; token: string };
+const contextSchema = z.object({
+  grant: collabGrantSchema,
+  token: z.string().min(1),
+});
+type Context = z.infer<typeof contextSchema>;
 
 /** The Hocuspocus hooks that route every decision through the backend. */
 export function collabHooks(
@@ -158,20 +168,54 @@ export function collabHooks(
   log: Log,
   writers: WriterTokens = memoryWriterTokens()
 ) {
+  const currentAccess = async (
+    value: unknown,
+    documentName: string,
+    connection: connectedPayload["connection"]
+  ) => {
+    const { grant: original, token } = contextSchema.parse(value);
+    const grant = await backend.authorize(token, documentName);
+    if (
+      grant.draftId !== original.draftId ||
+      grant.organizationId !== original.organizationId ||
+      grant.user.id !== original.user.id ||
+      grant.kind !== original.kind
+    ) {
+      throw new CollabBackendError("Collaboration authority changed.", 403);
+    }
+    // A delayed grant must never undo an already observed demotion. A later
+    // upgrade takes effect on a new connection with a newly issued token.
+    connection.readOnly =
+      connection.readOnly ||
+      grant.kind === "creative-set" ||
+      grant.access !== "write";
+  };
+  const protect = (
+    value: unknown,
+    documentName: string,
+    connection: connectedPayload["connection"]
+  ) => {
+    protectConnection(connection, () =>
+      currentAccess(value, documentName, connection)
+    );
+  };
   return {
     async onAuthenticate({
       connectionConfig,
       documentName,
       token,
     }: onAuthenticatePayload): Promise<Context> {
-      if (!draftIdOf(documentName) && !/^creative-set:[a-z0-9-]{10,40}$/i.test(documentName)) {
+      if (
+        !draftIdOf(documentName) &&
+        !/^creative-set:[a-z0-9-]{10,40}$/i.test(documentName)
+      ) {
         log("collab.refused", { documentName, reason: "unknown document" });
         throw new Error("Unknown document.");
       }
       try {
         const grant = await backend.authorize(token, documentName);
-        connectionConfig.readOnly = grant.kind === "creative-set" || grant.access !== "write";
-        if (grant.kind !== "creative-set" && grant.access === "write") await writers.set(documentName, token);
+        connectionConfig.readOnly =
+          grant.kind === "creative-set" || grant.access !== "write";
         log("collab.admitted", {
           access: grant.access,
           documentName,
@@ -189,12 +233,32 @@ export function collabHooks(
       }
     },
 
-    async beforeHandleMessage({ context, documentName, connection }: beforeHandleMessagePayload) {
-      const { grant, token } = context as Context;
-      if (grant.kind !== "creative-set") return;
-      // Presence never carries document changes; revision writes use the Go API.
-      connection.readOnly = true;
-      await backend.authorize(token, documentName);
+    async connected({ context, documentName, connection }: connectedPayload) {
+      protect(context, documentName, connection);
+    },
+
+    async beforeHandleMessage({
+      context,
+      documentName,
+      connection,
+      update,
+    }: beforeHandleMessagePayload) {
+      protect(context, documentName, connection);
+      await currentAccess(context, documentName, connection);
+      if (connection.readOnly) return;
+      // Hocuspocus 3 does not await beforeSync. Keep all async authority and
+      // writer-token work in this awaited hook, before the update is applied.
+      const message = new IncomingMessage(update);
+      message.readVarString();
+      const type = message.readVarUint();
+      if (type !== MessageType.Sync && type !== MessageType.SyncReply) return;
+      const syncType = message.readVarUint();
+      if (syncType !== 1 && syncType !== 2) return;
+      const { token } = contextSchema.parse(context);
+      // Read the shared store: another replica may have changed the writer.
+      if ((await writers.get(documentName)) !== token) {
+        await writers.set(documentName, token);
+      }
     },
 
     async onLoadDocument({
@@ -202,7 +266,7 @@ export function collabHooks(
       document,
       documentName,
     }: onLoadDocumentPayload) {
-      const { grant, token } = context as Context;
+      const { grant, token } = contextSchema.parse(context);
       if (grant.kind === "creative-set") return document;
       const state = await backend.load(grant.draftId, token);
       if (state) Y.applyUpdate(document, state);
@@ -212,10 +276,29 @@ export function collabHooks(
 
     async onStoreDocument({ document, documentName }: onStoreDocumentPayload) {
       const draftId = draftIdOf(documentName);
-      const token = await writers.get(documentName);
-      if (!draftId || !token) return;
-      await backend.store(draftId, token, Y.encodeStateAsUpdate(document));
-      log("collab.stored", { documentName });
+      if (!draftId) return;
+      try {
+        const token = await writers.get(documentName);
+        if (!token) return;
+        await backend.store(draftId, token, Y.encodeStateAsUpdate(document));
+        log("collab.stored", { documentName });
+      } catch (error) {
+        log("collab.store_failed", {
+          documentName,
+          status: error instanceof CollabBackendError ? error.status : 0,
+        });
+        for (const connection of document.getConnections()) {
+          connection.close({
+            code: 1013,
+            reason: "Document save unavailable. Reconnect to retry.",
+          });
+        }
+        // Hocuspocus's debounced store does not handle rejected Error objects.
+        // Its silent rejection convention skips afterStoreDocument without an
+        // unhandled rejection taking down every room. The client's existing
+        // local Yjs persistence resubmits pending edits after fresh admission.
+        throw null;
+      }
     },
 
     async onRequest({ request, response }: onRequestPayload) {

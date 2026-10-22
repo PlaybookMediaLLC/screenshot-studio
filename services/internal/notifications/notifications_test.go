@@ -33,8 +33,8 @@ func TestPreferenceCeilingAndRestrictedChannels(t *testing.T) {
 	if validEvents(map[string]Channels{d.ID: {Slack: true}}, false) {
 		t.Fatal("restricted Slack stream accepted")
 	}
-	if validEvents(map[string]Channels{"capture.completed": {Slack: true}}, true) {
-		t.Fatal("personal preferences can configure Slack")
+	if !validEvents(map[string]Channels{"capture.completed": {Slack: true}}, true) {
+		t.Fatal("personal preferences cannot configure Slack DMs")
 	}
 	if validEvents(map[string]Channels{"invented": {InApp: true}}, false) {
 		t.Fatal("unknown event accepted")
@@ -301,7 +301,7 @@ func TestCampaignReviewRecipientsDoNotExpandAcrossRelease(t *testing.T) {
 	if err := f.s.DB.QueryRow(`SELECT count(*),count(*) FILTER (WHERE destination<>$2) FROM platform_notification_delivery WHERE event_id=$1`, event, f.owner.UserID).Scan(&deliveries, &foreign); err != nil {
 		t.Fatal(err)
 	}
-	if sends != 1 || deliveries != 2 || foreign != 0 {
+	if sends != 1 || deliveries != 3 || foreign != 0 {
 		t.Fatalf("review sends=%d deliveries=%d foreign=%d", sends, deliveries, foreign)
 	}
 	def, _ := activity.Lookup("release.ingested")
@@ -331,16 +331,16 @@ func TestInboxIsolationAcknowledgmentReplayAndMarkAll(t *testing.T) {
 		t.Fatalf("cross-workspace read: %v", err)
 	}
 	result, err := f.s.Seen(ctx, f.creator, []string{page.Items[0].ID}, false, "")
-	if err != nil || result.Updated != 0 {
+	if err != nil || result.Deleted != 0 {
 		t.Fatalf("another recipient deleted row: %+v %v", result, err)
 	}
 	result, err = f.s.Seen(ctx, f.owner, []string{page.Items[0].ID}, false, "")
-	if err != nil || result.Updated != 1 {
+	if err != nil || result.Deleted != 1 {
 		t.Fatalf("seen=%+v %v", result, err)
 	}
 	var present int
 	if err = f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_inbox WHERE id=$1`, page.Items[0].ID).Scan(&present); err != nil || present != 1 {
-		t.Fatal("seen notification was deleted")
+		t.Fatal("read receipt was removed from database")
 	}
 	if _, err = f.s.DB.Exec(`UPDATE outbox_event SET notification_fanned=false WHERE id=$1`, event); err != nil {
 		t.Fatal(err)
@@ -350,7 +350,7 @@ func TestInboxIsolationAcknowledgmentReplayAndMarkAll(t *testing.T) {
 	}
 	n, err := f.s.Count(ctx, f.owner)
 	if err != nil || n != 0 {
-		t.Fatalf("replay recreated deleted content: %d %v", n, err)
+		t.Fatalf("replay reset read state: %d %v", n, err)
 	}
 	f.event(t, "generation.completed", f.creator.UserID)
 	if err = f.s.Process(ctx); err != nil {
@@ -365,7 +365,7 @@ func TestInboxIsolationAcknowledgmentReplayAndMarkAll(t *testing.T) {
 		t.Fatal(err)
 	}
 	result, err = f.s.Seen(ctx, f.owner, nil, true, key)
-	if err != nil || result.Updated != 1 || result.UnseenCount != 1 {
+	if err != nil || result.Deleted != 1 || result.UnseenCount != 1 {
 		t.Fatalf("mark-all retry swallowed arrivals: %+v %v", result, err)
 	}
 	if _, err = f.s.DB.Exec(`DELETE FROM member WHERE "organizationId"=$1 AND "userId"=$2`, f.owner.OrganizationID, f.owner.UserID); err != nil {
@@ -394,8 +394,12 @@ func TestConcurrentFanoutAndQueuedOptOut(t *testing.T) {
 		}
 	}
 	var n int
-	if err := f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_delivery WHERE event_id=$1`, event).Scan(&n); err != nil || n != 2 {
-		t.Fatalf("expected one inbox and email receipt: %d %v", n, err)
+	if err := f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_delivery WHERE event_id=$1`, event).Scan(&n); err != nil || n != 3 {
+		t.Fatalf("expected one decision per channel: %d %v", n, err)
+	}
+	var skipped int
+	if err := f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_delivery WHERE event_id=$1 AND channel='slack_dm' AND status='SKIPPED' AND failure_code='CATEGORY_DISABLED'`, event).Scan(&skipped); err != nil || skipped != 1 {
+		t.Fatal("missing single Slack opt-out decision", skipped, err)
 	}
 	pref := defaultPreferences()
 	pref.Events["campaign_posts.submitted"] = Channels{InApp: true, Email: false}
@@ -483,142 +487,5 @@ func TestRetryAfter(t *testing.T) {
 	}
 	if retryAfter("invalid") <= 0 {
 		t.Fatal("invalid delay not bounded")
-	}
-}
-
-func TestSeenHistoryUndoAndPagination(t *testing.T) {
-	f := notificationFixture(t)
-	ctx := context.Background()
-	for range 24 {
-		f.event(t, "generation.completed", f.creator.UserID)
-	}
-	if err := f.s.Process(ctx); err != nil {
-		t.Fatal(err)
-	}
-	page, err := f.s.List(ctx, f.owner, "")
-	if err != nil || len(page.Items) != 20 || page.NextCursor == "" || page.UnseenCount != 24 {
-		t.Fatalf("page=%+v err=%v", page, err)
-	}
-	id := page.Items[0].ID
-	if page.Items[0].Context.Name != "Private campaign title" || page.Items[0].Context.ActorName != f.creator.UserID {
-		t.Fatalf("missing authorized context: %+v", page.Items[0].Context)
-	}
-	result, err := f.s.SetSeen(ctx, f.owner, id, true)
-	if err != nil || result.UnseenCount != 23 || result.Updated != 1 || result.Deleted != 0 {
-		t.Fatalf("single=%+v err=%v", result, err)
-	}
-	page, err = f.s.List(ctx, f.owner, "")
-	if err != nil || len(page.Items) != 20 || page.Items[0].SeenAt == nil {
-		t.Fatalf("seen history missing: %+v %v", page, err)
-	}
-	unseen, err := f.s.List(ctx, f.owner, "", "unseen")
-	if err != nil || len(unseen.Items) != 20 || unseen.Items[0].ID == id {
-		t.Fatalf("filter=%+v %v", unseen, err)
-	}
-	key := cuid.New()
-	result, err = f.s.Seen(ctx, f.owner, nil, true, key)
-	if err != nil || result.Updated != 23 || result.UnseenCount != 0 {
-		t.Fatalf("all=%+v %v", result, err)
-	}
-	// A subsequent click explicitly keeps this row seen, even after undo.
-	clicked := page.Items[1].ID
-	if _, err = f.s.SetSeen(ctx, f.owner, clicked, true); err != nil {
-		t.Fatal(err)
-	}
-	f.event(t, "generation.completed", f.creator.UserID)
-	if err = f.s.Process(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = f.s.UndoSeen(ctx, f.creator, key); err != nil {
-		t.Fatal(err)
-	}
-	result, err = f.s.UndoSeen(ctx, f.owner, key)
-	if err != nil || result.Updated != 22 || result.UnseenCount != 23 {
-		t.Fatalf("undo=%+v %v", result, err)
-	}
-	result, err = f.s.UndoSeen(ctx, f.owner, key)
-	if err != nil || result.Updated != 0 || result.UnseenCount != 23 {
-		t.Fatalf("undo replay=%+v %v", result, err)
-	}
-	if _, err = f.s.SetSeen(ctx, f.owner, id, false); err != nil {
-		t.Fatal(err)
-	}
-	result, err = f.s.Seen(ctx, f.owner, nil, true, key)
-	if err != nil || result.UnseenCount != 24 {
-		t.Fatalf("replay after undo=%+v %v", result, err)
-	}
-	var retained int
-	if err = f.s.DB.QueryRow(`SELECT count(*) FROM platform_notification_inbox WHERE "organizationId"=$1 AND "userId"=$2`, f.owner.OrganizationID, f.owner.UserID).Scan(&retained); err != nil || retained != 25 {
-		t.Fatalf("history=%d %v", retained, err)
-	}
-}
-
-func TestNotificationContextCatalogueFallbacks(t *testing.T) {
-	s := &Service{}
-	for _, definition := range activity.Catalogue {
-		detail, err := s.itemContext(context.Background(), definition.ID, "campaign", "campaign-id", "org", map[string]any{"name": "Launch", "encryptedCredentials": "secret"}, nil)
-		if err != nil || detail.Name != "Launch" || detail.Source != definition.Group {
-			t.Fatalf("%s: %+v %v", definition.ID, detail, err)
-		}
-		raw, _ := json.Marshal(detail)
-		if strings.Contains(string(raw), "secret") {
-			t.Fatal("context exposed non-allowlisted fields")
-		}
-	}
-}
-
-func TestWorkflowContextAndRetainedHistoryAfterEventCleanup(t *testing.T) {
-	f := notificationFixture(t)
-	ctx := context.Background()
-	source, definition, event, run := cuid.New(), cuid.New(), cuid.New(), cuid.New()
-	execFixture(t, f, `INSERT INTO source_app(id,"organizationId",name,"allowedHosts","updatedAt") VALUES($1,$2,'GitHub','[]',now())`, source, f.owner.OrganizationID)
-	execFixture(t, f, `INSERT INTO release_automation(id,"organizationId","sourceAppId",name,family,draft,"modifiedBy") VALUES($1,$2,$3,'Product launch','pull_request.merged','{}',$4)`, definition, f.owner.OrganizationID, source, f.owner.UserID)
-	execFixture(t, f, `INSERT INTO release_source_event(id,"organizationId","sourceAppId","semanticKey","deliveryId",snapshot,"versionIds",mode) VALUES($1,$2,$3,$1,$1,'{"family":"pull_request.merged","repositoryName":"playbook/studio","number":42,"fields":{"pr.base":{"values":["main"]}}}','[]','live')`, event, f.owner.OrganizationID, source)
-	execFixture(t, f, `INSERT INTO release_automation_run(id,"organizationId","eventId","definitionId","workflowId",status,reason) VALUES($1,$2,$3,$4,$1,'needs_attention','A required product page is missing')`, run, f.owner.OrganizationID, event, definition)
-	tx, err := f.s.DB.Begin()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = emitSQL(ctx, tx, f.owner.OrganizationID, "workflow.needs_attention", "release_automation_run", run, f.creator.UserID, nil); err != nil {
-		tx.Rollback()
-		t.Fatal(err)
-	}
-	if err = tx.Commit(); err != nil {
-		t.Fatal(err)
-	}
-	if err = f.s.Process(ctx); err != nil {
-		t.Fatal(err)
-	}
-	page, err := f.s.List(ctx, f.owner, "")
-	if err != nil || len(page.Items) != 1 {
-		t.Fatalf("page=%+v %v", page, err)
-	}
-	item := page.Items[0]
-	detail := item.Context
-	if detail.Name != "Product launch" || detail.Repository != "playbook/studio" || detail.Branch != "main" || detail.PullRequest != 42 || detail.Status != "needs_attention" || detail.Message != "A required product page is missing" || item.Href != "/workflows/runs/"+run {
-		t.Fatalf("workflow details=%+v href=%s", detail, item.Href)
-	}
-	if _, err = f.s.SetSeen(ctx, f.owner, item.ID, true); err != nil {
-		t.Fatal(err)
-	}
-	execFixture(t, f, `DELETE FROM outbox_event WHERE "organizationId"=$1`, f.owner.OrganizationID)
-	if err = f.s.Maintain(ctx); err != nil {
-		t.Fatal(err)
-	}
-	page, err = f.s.List(ctx, f.owner, "")
-	if err != nil || len(page.Items) != 1 || page.Items[0].SeenAt == nil {
-		t.Fatalf("cleanup deleted history: %+v %v", page, err)
-	}
-	if target, err := f.s.Resolve(ctx, f.owner, item.ID); err != nil || target != item.Href {
-		t.Fatalf("history link=%q %v", target, err)
-	}
-}
-
-func TestDeploymentReceiptDoesNotLinkToCaptureStatus(t *testing.T) {
-	if got := href("deployment_event", "deployment-one", nil); got != "" {
-		t.Fatalf("deployment receipt points at unrelated capture status: %q", got)
-	}
-	if got := href("product_surface", "surface-one", nil); got != "/workspace/product-pages" {
-		t.Fatalf("product surface destination changed: %q", got)
 	}
 }

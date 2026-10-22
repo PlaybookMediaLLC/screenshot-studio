@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import { expect, type Page } from '@playwright/test'
+import { expect, type Page, type Response } from '@playwright/test'
 import type { E2EIdentity } from './flow'
-import { browserJson } from './browser'
+import { browserJson, browserRequest, type BrowserRequest } from './browser'
 import { grantWorkspacePlan } from './services'
 import { getTotpCode } from './totp'
 import { SETTINGS_SECTIONS, settingsHref } from '../../../components/workspace/settings-sections'
@@ -11,6 +11,43 @@ const sessionSchema = z.object({
 })
 
 export type TwoFactorSetup = { backupCodes: string[]; totpURI: string }
+
+// Production Better Auth limits account creation/sign-in independently of the
+// app's Redis limiter. Retry only an explicit 429 (no write was admitted), never
+// a timeout or an unknown result. Other test failures remain immediate failures.
+async function waitForAuthLimit(page: Page, retryAfter: string | null): Promise<void> {
+  const seconds = Number(retryAfter)
+  if (!retryAfter || !Number.isFinite(seconds) || seconds < 0 || seconds > 60)
+    throw new Error('Invalid auth Retry-After.')
+  await page.waitForTimeout(Math.max(1, seconds) * 1_000 + 100)
+}
+
+async function submitAuthForm(page: Page, path: string, label: string): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const response = page.waitForResponse(
+      (candidate) => candidate.url().endsWith(path) && candidate.request().method() === 'POST'
+    )
+    await page.getByRole('button', { name: label, exact: true }).click()
+    const result = await response
+    if (result.status() !== 429 || attempt === 3) return result
+    await waitForAuthLimit(
+      page,
+      result.headers()['retry-after'] ?? result.headers()['x-retry-after'] ?? null
+    )
+  }
+}
+
+async function authJson(page: Page, path: string, input: BrowserRequest): Promise<unknown> {
+  for (let attempt = 0; ; attempt++) {
+    const result = await browserRequest(page, path, input)
+    if (result.status === 429 && attempt < 3) {
+      await waitForAuthLimit(page, result.retryAfter)
+      continue
+    }
+    expect(result.status, `Auth request ${path}`).toBe(200)
+    return result.body
+  }
+}
 
 export async function signUpAndCreateWorkspace(identity: E2EIdentity, page: Page): Promise<string> {
   await signUp(identity, page)
@@ -32,7 +69,17 @@ export async function signUp(identity: E2EIdentity, page: Page): Promise<void> {
   await page.getByLabel('Name').fill(identity.name)
   await page.getByLabel('Email').fill(identity.email)
   await page.getByLabel('Password').fill(identity.password)
-  await page.getByRole('button', { name: 'Create account' }).click()
+  const registration = await submitAuthForm(page, '/api/auth/sign-up/email', 'Create account')
+  expect(registration.status()).toBe(200)
+  if (z.object({ token: z.string().nullable() }).parse(await registration.json()).token === null) {
+    // Production intentionally does not auto-sign-in after registration. The
+    // disposable stack disables email verification, so establish a real session
+    // through the sign-in form instead of assuming a development-only redirect.
+    await page.goto(getE2EUrl('/sign-in'))
+    await page.getByLabel('Email').fill(identity.email)
+    await page.getByLabel('Password', { exact: true }).fill(identity.password)
+    expect((await submitAuthForm(page, '/api/auth/sign-in/email', 'Sign in')).status()).toBe(200)
+  }
   await expectPath(page, '/onboarding')
 }
 
@@ -50,7 +97,7 @@ export async function signUp(identity: E2EIdentity, page: Page): Promise<void> {
  */
 export async function signUpViaApi(identity: E2EIdentity, page: Page): Promise<void> {
   await page.goto(getE2EUrl('/sign-up'))
-  await browserJson(page, '/api/auth/sign-up/email', {
+  const registration = await authJson(page, '/api/auth/sign-up/email', {
     body: JSON.stringify({
       email: identity.email,
       name: identity.name,
@@ -59,6 +106,13 @@ export async function signUpViaApi(identity: E2EIdentity, page: Page): Promise<v
     headers: { 'content-type': 'application/json' },
     method: 'POST',
   })
+  if (z.object({ token: z.string().nullable() }).parse(registration).token === null) {
+    await authJson(page, '/api/auth/sign-in/email', {
+      body: JSON.stringify({ email: identity.email, password: identity.password }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    })
+  }
 }
 
 export async function acceptInvitation(page: Page, invitationId: string): Promise<void> {

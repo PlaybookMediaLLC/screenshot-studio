@@ -1,5 +1,5 @@
 import { getRolePermissions, hasPermission, organizationRoles } from '@/lib/auth/permissions'
-import { roleCapabilities, roleSummaries } from '@/lib/auth/role-descriptions'
+import { roleCapabilities, roleLabels, roleSummaries } from '@/lib/auth/role-descriptions'
 
 export function WorkspaceRolesSettings() {
   return (
@@ -26,7 +26,7 @@ export function WorkspaceRolesSettings() {
             {organizationRoles.map((role) => (
               <tr className="border-t border-border" key={role}>
                 <th className="max-w-64 p-4 font-normal" scope="row">
-                  <span className="font-medium capitalize">{role}</span>
+                  <span className="font-medium capitalize">{roleLabels[role]}</span>
                   <p className="mt-1 text-xs text-muted-foreground">{roleSummaries[role]}</p>
                 </th>
                 {roleCapabilities.map(({ permission }) => (
@@ -43,7 +43,7 @@ export function WorkspaceRolesSettings() {
         <summary className="cursor-pointer">Technical permission details</summary>
         {organizationRoles.map((role) => (
           <p className="mt-3" key={role}>
-            <strong className="capitalize">{role}: </strong>
+            <strong className="capitalize">{roleLabels[role]}: </strong>
             {getRolePermissions(role).join(', ')}
           </p>
         ))}

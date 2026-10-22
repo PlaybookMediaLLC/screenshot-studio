@@ -21,6 +21,10 @@ const (
 	FieldEvents = "events"
 	// FieldSocialSets holds the string denoting the social_sets field in the database.
 	FieldSocialSets = "social_sets"
+	// FieldSlackEnabled holds the string denoting the slack_enabled field in the database.
+	FieldSlackEnabled = "slack_enabled"
+	// FieldSocialSetChannels holds the string denoting the social_set_channels field in the database.
+	FieldSocialSetChannels = "social_set_channels"
 	// FieldGeneration holds the string denoting the generation field in the database.
 	FieldGeneration = "generation"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -36,6 +40,8 @@ var Columns = []string{
 	FieldUserID,
 	FieldEvents,
 	FieldSocialSets,
+	FieldSlackEnabled,
+	FieldSocialSetChannels,
 	FieldGeneration,
 	FieldUpdatedAt,
 }
@@ -55,6 +61,10 @@ var (
 	DefaultEvents map[string]interface{}
 	// DefaultSocialSets holds the default value on creation for the "social_sets" field.
 	DefaultSocialSets map[string]map[string]bool
+	// DefaultSlackEnabled holds the default value on creation for the "slack_enabled" field.
+	DefaultSlackEnabled bool
+	// DefaultSocialSetChannels holds the default value on creation for the "social_set_channels" field.
+	DefaultSocialSetChannels map[string]map[string]map[string]bool
 	// DefaultGeneration holds the default value on creation for the "generation" field.
 	DefaultGeneration int
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -77,6 +87,11 @@ func ByOrganizationID(opts ...sql.OrderTermOption) OrderOption {
 // ByUserID orders the results by the user_id field.
 func ByUserID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUserID, opts...).ToFunc()
+}
+
+// BySlackEnabled orders the results by the slack_enabled field.
+func BySlackEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSlackEnabled, opts...).ToFunc()
 }
 
 // ByGeneration orders the results by the generation field.

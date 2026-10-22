@@ -3,7 +3,6 @@
 package ent
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -34,12 +33,12 @@ type PlatformNotificationInbox struct {
 	Description string `json:"description,omitempty"`
 	// Href holds the value of the "href" field.
 	Href string `json:"href,omitempty"`
-	// SeenAt holds the value of the "seen_at" field.
-	SeenAt *time.Time `json:"seen_at,omitempty"`
-	// SeenActionID holds the value of the "seen_action_id" field.
-	SeenActionID string `json:"seen_action_id,omitempty"`
-	// Context holds the value of the "context" field.
-	Context map[string]interface{} `json:"context,omitempty"`
+	// Category holds the value of the "category" field.
+	Category platformnotificationinbox.Category `json:"category,omitempty"`
+	// ReadAt holds the value of the "read_at" field.
+	ReadAt *time.Time `json:"read_at,omitempty"`
+	// ArchivedAt holds the value of the "archived_at" field.
+	ArchivedAt *time.Time `json:"archived_at,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt    time.Time `json:"created_at,omitempty"`
 	selectValues sql.SelectValues
@@ -50,11 +49,9 @@ func (*PlatformNotificationInbox) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case platformnotificationinbox.FieldContext:
-			values[i] = new([]byte)
-		case platformnotificationinbox.FieldID, platformnotificationinbox.FieldOrganizationID, platformnotificationinbox.FieldUserID, platformnotificationinbox.FieldEventID, platformnotificationinbox.FieldKind, platformnotificationinbox.FieldResourceType, platformnotificationinbox.FieldResourceID, platformnotificationinbox.FieldDescription, platformnotificationinbox.FieldHref, platformnotificationinbox.FieldSeenActionID:
+		case platformnotificationinbox.FieldID, platformnotificationinbox.FieldOrganizationID, platformnotificationinbox.FieldUserID, platformnotificationinbox.FieldEventID, platformnotificationinbox.FieldKind, platformnotificationinbox.FieldResourceType, platformnotificationinbox.FieldResourceID, platformnotificationinbox.FieldDescription, platformnotificationinbox.FieldHref, platformnotificationinbox.FieldCategory:
 			values[i] = new(sql.NullString)
-		case platformnotificationinbox.FieldSeenAt, platformnotificationinbox.FieldCreatedAt:
+		case platformnotificationinbox.FieldReadAt, platformnotificationinbox.FieldArchivedAt, platformnotificationinbox.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -125,26 +122,25 @@ func (_m *PlatformNotificationInbox) assignValues(columns []string, values []any
 			} else if value.Valid {
 				_m.Href = value.String
 			}
-		case platformnotificationinbox.FieldSeenAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field seen_at", values[i])
-			} else if value.Valid {
-				_m.SeenAt = new(time.Time)
-				*_m.SeenAt = value.Time
-			}
-		case platformnotificationinbox.FieldSeenActionID:
+		case platformnotificationinbox.FieldCategory:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field seen_action_id", values[i])
+				return fmt.Errorf("unexpected type %T for field category", values[i])
 			} else if value.Valid {
-				_m.SeenActionID = value.String
+				_m.Category = platformnotificationinbox.Category(value.String)
 			}
-		case platformnotificationinbox.FieldContext:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field context", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.Context); err != nil {
-					return fmt.Errorf("unmarshal field context: %w", err)
-				}
+		case platformnotificationinbox.FieldReadAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field read_at", values[i])
+			} else if value.Valid {
+				_m.ReadAt = new(time.Time)
+				*_m.ReadAt = value.Time
+			}
+		case platformnotificationinbox.FieldArchivedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field archived_at", values[i])
+			} else if value.Valid {
+				_m.ArchivedAt = new(time.Time)
+				*_m.ArchivedAt = value.Time
 			}
 		case platformnotificationinbox.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -212,16 +208,18 @@ func (_m *PlatformNotificationInbox) String() string {
 	builder.WriteString("href=")
 	builder.WriteString(_m.Href)
 	builder.WriteString(", ")
-	if v := _m.SeenAt; v != nil {
-		builder.WriteString("seen_at=")
+	builder.WriteString("category=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Category))
+	builder.WriteString(", ")
+	if v := _m.ReadAt; v != nil {
+		builder.WriteString("read_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("seen_action_id=")
-	builder.WriteString(_m.SeenActionID)
-	builder.WriteString(", ")
-	builder.WriteString("context=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Context))
+	if v := _m.ArchivedAt; v != nil {
+		builder.WriteString("archived_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

@@ -11,7 +11,14 @@ import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/fl
 import { grantWorkspacePlan } from './framework/services'
 import { trpcMutation, trpcQuery } from './framework/trpc'
 
-const invitedRoles = ['admin', 'creator', 'approver', 'publisher', 'viewer'] as const
+const invitedRoles = [
+  'admin',
+  'creator',
+  'approver',
+  'publisher',
+  'writer_publisher',
+  'viewer',
+] as const
 const invitationSchema = z.object({ id: z.string() })
 
 type InvitedRole = (typeof invitedRoles)[number]
@@ -77,9 +84,9 @@ async function assertRolePermissions(
   role: InvitedRole
 ): Promise<void> {
   const isAdmin = role === 'admin'
-  const canCreateRelease = role === 'creator'
+  const canCreateRelease = role === 'creator' || role === 'writer_publisher'
   const canManageWorkspace = isAdmin
-  const canPublish = isAdmin || role === 'publisher'
+  const canPublish = isAdmin || role === 'publisher' || role === 'writer_publisher'
   const [audit, brandKits, brandKitCreate, connections, invitation, releases, workspace] =
     await Promise.all([
       browserRequest(page, `/api/audit-logs?organizationId=${organizationId}`),
@@ -118,6 +125,17 @@ async function assertRolePermissions(
   expect(invitation.status).toBe(isAdmin ? 200 : 403)
   expect(releases.status).toBe(canCreateRelease || isAdmin ? 201 : 403)
   expect(workspace.status).toBe(canManageWorkspace ? 200 : 403)
+
+  // Content administration and publishing never grant financial authority.
+  // These calls must stop at authorization before reaching Stripe.
+  expect((await requestJson(page, '/api/billing/checkout', { plan: 'pro' })).status).toBe(403)
+  expect((await requestJson(page, '/api/billing/credits', { pack: 'launch' })).status).toBe(403)
+  expect(
+    (await browserRequest(page, '/api/billing/checkout/return?session_id=fixture')).status
+  ).toBe(403)
+  expect(
+    (await requestJson(page, '/api/v1/social-sets', { name: `Role ${role} set` })).status
+  ).toBe(isAdmin ? 201 : 403)
 }
 
 configureE2EFlow()
@@ -128,7 +146,7 @@ test('workspace roles permit only their assigned actions', async ({ browser, ide
   test.slow()
   await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
-  // The owner, five invited roles, and the admin's own invitation need seven
+  // The owner, six invited roles, and the admin's own invitation need eight
   // seats; Pro has five (docs/rfcs/035, Packaging).
   await grantWorkspacePlan(organizationId, 'business')
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { hasPermission, normalizeOrganizationRole } from '@/lib/auth/permissions'
+import { hasPermission, normalizeOrganizationRole, organizationRoles } from '@/lib/auth/permissions'
 
 test('fixed roles enforce least-privilege permissions', () => {
   assert.equal(hasPermission('creator', 'release:create'), true)
@@ -10,6 +10,32 @@ test('fixed roles enforce least-privilege permissions', () => {
   assert.equal(hasPermission('admin', 'member:invite'), true)
   assert.equal(hasPermission('admin', 'workspace:delete'), false)
   assert.equal(hasPermission('owner', 'workspace:transfer_ownership'), true)
+})
+
+test('writing, approval, account administration and billing stay separate', () => {
+  for (const role of organizationRoles) {
+    assert.equal(hasPermission(role, 'billing:manage'), role === 'owner', `${role}: billing`)
+    assert.equal(
+      hasPermission(role, 'workspace:transfer_ownership'),
+      role === 'owner',
+      `${role}: ownership`
+    )
+    assert.equal(
+      hasPermission(role, 'connection:manage'),
+      ['owner', 'admin'].includes(role),
+      `${role}: accounts`
+    )
+    assert.equal(
+      hasPermission(role, 'release:approve'),
+      ['owner', 'admin', 'approver'].includes(role),
+      `${role}: approval`
+    )
+  }
+  assert.equal(hasPermission('writer_publisher', 'artifact:edit'), true)
+  assert.equal(hasPermission('writer_publisher', 'publish:manage'), true)
+  assert.equal(hasPermission('writer_publisher', 'member:invite'), false)
+  assert.equal(hasPermission('publisher', 'artifact:edit'), false)
+  assert.equal(normalizeOrganizationRole('writer_publisher'), 'writer_publisher')
 })
 
 test('legacy Better Auth member role remains viewer-equivalent', () => {

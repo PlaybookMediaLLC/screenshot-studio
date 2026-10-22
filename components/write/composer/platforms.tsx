@@ -218,9 +218,9 @@ export function ManagePlatformsDialog({
                           {account.handle ? `@${account.handle} · ` : ''}
                           {healthLabel(account.health)}
                           {account.channel === 'x'
-                            ? account.premium
-                              ? ' · X Premium'
-                              : ' · standard X account'
+                            ? account.xCaptionLimit === 25_000
+                              ? ' · longer posts verified'
+                              : ' · standard post limit'
                             : ''}
                         </span>
                       </span>

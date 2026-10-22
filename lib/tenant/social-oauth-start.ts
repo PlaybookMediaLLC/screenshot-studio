@@ -2,18 +2,12 @@ import 'server-only'
 
 import {
   AuthorizationError,
-  requireActiveOrganizationPermission,
+  requireSessionAccess,
   requireSensitiveActiveOrganizationPermission,
-  type OrganizationAccess,
 } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
-import {
-  beginBackendSocialOAuth,
-  completeBackendSocialOAuth,
-  PublishingBackendError,
-  rememberBackendInstagramIntegration,
-  verifyBackendSocialOAuth,
-} from './publishing-backend'
+import { beginBackendSocialOAuth, PublishingBackendError } from './publishing-backend'
+import type { SocialOAuthStartOptions } from 'screenshot-studio-backend-sdk'
 import type { SocialOAuthProvider } from './social-oauth-callback'
 
 export class SocialOAuthError extends Error {
@@ -33,10 +27,11 @@ export class SocialOAuthError extends Error {
 export async function startSocialOAuth(
   headers: Headers,
   provider: SocialOAuthProvider,
-  socialSetId?: string
+  socialSetId?: string,
+  options: SocialOAuthStartOptions = {}
 ): Promise<string> {
-  const access = await requireSensitiveActiveOrganizationPermission(headers, 'publish:manage')
-  return beginBackendSocialOAuth(access, provider, socialSetId)
+  const access = await requireSensitiveActiveOrganizationPermission(headers, 'connection:manage')
+  return beginBackendSocialOAuth(access, provider, socialSetId, options)
 }
 
 async function getMatchingStart(
@@ -44,10 +39,15 @@ async function getMatchingStart(
   provider: SocialOAuthProvider,
   state: string,
   integrationId?: string
-): Promise<OrganizationAccess> {
-  const access = await requireActiveOrganizationPermission(headers, 'publish:manage')
-  await verifyBackendSocialOAuth(access, provider, state, integrationId)
-  return access
+) {
+  const session = await requireSessionAccess(headers)
+  const context = await backendSDK({ ...session, organizationId: '' }).resolveSocialOAuthContext(
+    provider,
+    state
+  )
+  const backend = backendSDK({ ...session, organizationId: context.organizationId })
+  await backend.verifySocialOAuth(provider, state, integrationId)
+  return backend
 }
 
 export async function exchangeSocialOAuthCallback(
@@ -57,7 +57,7 @@ export async function exchangeSocialOAuthCallback(
   code: string
 ) {
   const access = await getMatchingStart(headers, provider, state)
-  return backendSDK(access).exchangeSocialOAuth(provider, state, code)
+  return access.exchangeSocialOAuth(provider, state, code)
 }
 
 export async function selectInstagramOAuthPage(
@@ -65,7 +65,7 @@ export async function selectInstagramOAuthPage(
   input: { state: string; integrationId: string; accountId: string; pageId: string }
 ): Promise<void> {
   const access = await getMatchingStart(headers, 'instagram', input.state, input.integrationId)
-  await backendSDK(access).selectInstagramOAuthPage(input)
+  await access.selectInstagramOAuthPage(input)
 }
 
 export async function rememberInstagramIntegration(
@@ -74,7 +74,7 @@ export async function rememberInstagramIntegration(
   integrationId: string
 ): Promise<void> {
   const access = await getMatchingStart(headers, 'instagram', state)
-  await rememberBackendInstagramIntegration(access, state, integrationId)
+  await access.rememberInstagramIntegration(state, integrationId)
 }
 
 export async function registerSocialOAuthDestination(
@@ -89,7 +89,7 @@ export async function registerSocialOAuthDestination(
     state,
     provider === 'instagram' ? integrationId : undefined
   )
-  await completeBackendSocialOAuth(access, provider, state, integrationId)
+  await access.completeSocialOAuth(provider, state, integrationId)
 }
 
 export function socialOAuthErrorResponse(error: unknown): Response {

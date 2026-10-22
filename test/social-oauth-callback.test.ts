@@ -1,9 +1,34 @@
 import assert from 'node:assert/strict'
 import { afterEach, test } from 'node:test'
 import { completeSocialOAuth, selectInstagramAccount } from '../lib/tenant/social-oauth-callback'
+import { socialOAuthCompletionRedirect } from '../lib/tenant/social-oauth-completion'
 
 afterEach(() => {
   delete process.env.BETTER_AUTH_SECRET
+})
+
+test('completion removes the provider code and redirects only after the connection commits', async () => {
+  let committed = false
+  const response = await completeSocialOAuth(
+    new Request(
+      'https://app.test/integrations/social/x?oauth_token=original&oauth_verifier=secret-code'
+    ),
+    'x',
+    {
+      exchange: async () => ({ id: 'account' }),
+      onConnected: async () => {
+        committed = true
+      },
+      redirect: async (state) => {
+        assert.equal(committed, true)
+        return socialOAuthCompletionRedirect('x', state)
+      },
+    }
+  )
+  assert.equal(response.status, 303)
+  assert.equal(response.headers.get('location'), '/integrations/social/x/complete?state=original')
+  assert.equal(response.headers.get('referrer-policy'), 'no-referrer')
+  assert.doesNotMatch(response.headers.get('location') ?? '', /secret-code/)
 })
 
 test('X maps its OAuth 1 callback fields to the backend exchange', async () => {
@@ -173,4 +198,44 @@ test('malformed OAuth return cookie falls back to channels', async () => {
     { exchange: async () => ({ id: 'connected' }) }
   )
   assert.equal(result.headers.get('Location'), '/workspace/channels?connected=linkedin')
+})
+
+test('the immutable attempt return path overrides a cookie changed by another tab', async () => {
+  const response = await completeSocialOAuth(
+    new Request('http://localhost/integrations/social/x?oauth_token=state&oauth_verifier=code', {
+      headers: { cookie: 'shots-oauth-return=%2Fwrite%2Fanotherdraft1234' },
+    }),
+    'x',
+    {
+      exchange: async () => ({ id: 'verified-account', completed: true }),
+      returnTo: async (state) => {
+        assert.equal(state, 'state')
+        return '/workspace/social-sets/originalset1234'
+      },
+    }
+  )
+  assert.equal(
+    response.headers.get('Location'),
+    '/workspace/social-sets/originalset1234?connected=x'
+  )
+})
+
+test('a completed Instagram callback recovers without asking for page selection again', async () => {
+  let completed = 0
+  const response = await completeSocialOAuth(
+    new Request('http://localhost/integrations/social/instagram?state=state&code=code'),
+    'instagram',
+    {
+      exchange: async () => ({ id: 'verified-account', completed: true }),
+      onConnected: async () => {
+        completed++
+      },
+      onPageChoice: async () => {
+        assert.fail('completed callback requested another selection')
+      },
+      returnTo: async () => '',
+    }
+  )
+  assert.equal(response.status, 303)
+  assert.equal(completed, 1)
 })

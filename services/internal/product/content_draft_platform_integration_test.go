@@ -55,6 +55,8 @@ func TestContentDraftPlatform(t *testing.T) {
 		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM "user" WHERE id = $1`, userID)
 	})
 	owner := Actor{OrganizationID: org, UserID: userID, SessionID: "session_" + org, RequestID: "request_" + id}
+	addCredential := socialCredentialFixture(t, ctx, db.SQL, org)
+	addCredential("x-"+id, "x")
 	connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: org, UserID: userID, RequestID: owner.RequestID, Type: "USER"},
 		publishing.CreateConnectionInput{ExternalAccountID: "x-" + id, Platform: "x", ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
 	if err != nil {

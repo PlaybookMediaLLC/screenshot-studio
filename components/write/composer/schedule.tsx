@@ -2,7 +2,11 @@
 
 import * as React from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { socialSetKey, type SocialSetRecord } from '@/components/settings/social-sets/api'
+import {
+  socialSetKey,
+  useSocialSetScope,
+  type SocialSetRecord,
+} from '@/components/settings/social-sets/api'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -74,7 +78,8 @@ function blocking(context: ScheduleContext): string[] {
   if (context.requireApproval && !context.approved) {
     problems.push('This workspace approves drafts before they publish. Ask for review first.')
   }
-  if (!context.canPublish) problems.push('Only owners, admins and publishers schedule and publish.')
+  if (!context.canPublish)
+    problems.push('Your role needs publishing permission to schedule or publish.')
   return problems
 }
 
@@ -98,10 +103,11 @@ export function ScheduleDialog({
   onClose: () => void
 }) {
   const { data } = useWrite()
+  const scope = useSocialSetScope()
   // The draft's set owns the queue: its weekly slots in its zone (RFC 043).
   const setId =
     context.draft.socialSetId ?? data.sets.find((item) => item.visibility === 'WORKSPACE')?.id
-  const cachedSet = useQueryClient().getQueryData<SocialSetRecord>(socialSetKey(setId ?? ''))
+  const cachedSet = useQueryClient().getQueryData<SocialSetRecord>(socialSetKey(scope, setId ?? ''))
   const set = cachedSet ?? data.sets.find((item) => item.id === setId)
   const zone = set?.timeZone ?? context.setTimeZone ?? 'UTC'
   const [localZone, setLocalZone] = React.useState<string | null>(null)

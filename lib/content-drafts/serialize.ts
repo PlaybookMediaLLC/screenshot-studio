@@ -152,9 +152,13 @@ const CONNECTION_CHANNELS: Record<string, DraftChannel> = {
   instagram: 'instagram',
   'instagram-standalone': 'instagram',
   linkedin: 'linkedin',
+  'linkedin-page': 'linkedin',
   mastodon: 'mastodon',
+  'mastodon-custom': 'mastodon',
+  mastodoncustom: 'mastodon',
   threads: 'threads',
   x: 'x',
+  twitter: 'x',
 }
 
 /** The draft channel a connection platform publishes to, or null. */
@@ -453,6 +457,14 @@ export function captionLength(caption: string): number {
   return caption.length
 }
 
+const blueskySegments = new Intl.Segmenter('en', { granularity: 'grapheme' })
+
+function platformCaptionLength(channel: DraftChannel, caption: string): number {
+  if (channel === 'x') return xLength(caption)
+  if (channel === 'bluesky') return Array.from(blueskySegments.segment(caption)).length
+  return captionLength(caption)
+}
+
 /**
  * Serialize a draft for one channel. The caption is trimmed, footnotes follow
  * the body, and the images are attached up to the channel's limit. Table and
@@ -544,8 +556,7 @@ export function serializeDraft(
   const posts: SerializedPost[] = unnumbered.map((post, index) => ({
     ...post,
     caption: numbered[index],
-    // X counts its own way: links as 23, wide characters as 2.
-    length: channel === 'x' ? xLength(numbered[index]) : captionLength(numbered[index]),
+    length: platformCaptionLength(channel, numbered[index]),
   }))
 
   const limit = options.limit ?? DRAFT_CHANNEL_LIMITS[channel]
@@ -555,6 +566,9 @@ export function serializeDraft(
     errors.push('Write something to post.')
   }
   posts.forEach((post, index) => {
+    if (channel === 'bluesky' && new TextEncoder().encode(post.caption).length > 3000) {
+      errors.push(`Post ${index + 1} exceeds Bluesky's 3,000-byte text limit.`)
+    }
     if (post.length <= limit) return
     errors.push(
       posts.length > 1
@@ -566,11 +580,19 @@ export function serializeDraft(
     errors.push('Instagram needs an image.')
   }
   if (posts.some((post) => post.images > imageLimit)) {
-    degrade(
-      context,
-      'extra-images',
-      `Only the first ${imageLimit} images ${posts.length > 1 ? 'of each post ' : ''}are attached.`
-    )
+    if (channel === 'bluesky' || channel === 'x') {
+      errors.push(
+        channel === 'x'
+          ? 'Choose up to four images, one GIF, or one MP4 video for each X post.'
+          : 'Choose up to four images or one MP4 video for each Bluesky post.'
+      )
+    } else {
+      degrade(
+        context,
+        'extra-images',
+        `Only the first ${imageLimit} images ${posts.length > 1 ? 'of each post ' : ''}are attached.`
+      )
+    }
   }
   if (context.unstored > 0) {
     errors.push('Upload every image to the workspace before scheduling.')

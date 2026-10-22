@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test'
+import { createE2EDatabase } from './services'
 import type { E2EIdentity } from './flow'
 import { type HttpMockServer, startHttpMockServer } from './http-server'
 import {
@@ -21,6 +22,31 @@ import {
 /** The suite's social API mock port; the stack's SOCIAL_API_URL points at it. */
 export const socialMockPort = Number(process.env.E2E_SOCIAL_MOCK_PORT ?? 5679)
 
+/** Credential-free standard X identity supplied only by the local protocol fixture. */
+const xVerification = {
+  accountKey: 'x:123456789',
+  accountKind: 'profile',
+  grantedScopes: ['read-write'],
+  capabilities: {
+    version: 1,
+    x: {
+      oauth1AccessLevel: 'read-write',
+      subscriptionType: null,
+      standardMaxWeightedCharacters: 280,
+      charactersReservedPerUrl: 23,
+      maxImages: 4,
+      maxGifs: 1,
+      maxVideos: 1,
+      imageMaxBytes: 5000000,
+      gifMaxBytes: 15000000,
+      longPostMaxWeightedCharacters: null,
+      articles: null,
+      videoMaxBytes: null,
+      videoMaxDurationSeconds: null,
+    },
+  },
+}
+
 export type DraftWorkspace = {
   channels: Record<string, string>
   organizationId: string
@@ -37,11 +63,25 @@ export async function createDraftWorkspace(
     if (request.url === '/api/public/v1/me') {
       return { body: { organization: { id: `go-${organizationId}` } } }
     }
+    if (request.url === `/api/public/v1/integrations/social-${organizationId}-x/identity`) {
+      return {
+        body: {
+          id: `social-${organizationId}-x`,
+          provider: 'x',
+          nativeId: '123456789',
+          name: 'Shots on X',
+          handle: 'shots_x',
+          active: true,
+          verifiedAt: new Date().toISOString(),
+          verification: xVerification,
+        },
+      }
+    }
     if (request.url === '/api/public/v1/integrations') {
       return {
         body: platforms.map((platform) => ({
           disabled: false,
-          id: `social-${platform}`,
+          id: `social-${organizationId}-${platform}`,
           identifier: platform,
           name: `Shots on ${platform}`,
           picture: '',
@@ -55,10 +95,42 @@ export async function createDraftWorkspace(
   // Connecting a channel and cancelling a post are sensitive actions.
   await enablePublishingTwoFactor(page, identity.password)
   organizationId = await bindTestGoOrganization(page)
+  // The product checks actual provider credentials in the shared database.
+  // The HTTP fixture still owns destination verification; neither path bypasses health.
+  const database = createE2EDatabase()
+  try {
+    await database.query(
+      `INSERT INTO "Organization" (id,name,"updatedAt") VALUES ($1,'Draft fixture',now())`,
+      [`go-${organizationId}`]
+    )
+    for (const platform of platforms) {
+      await database.query(
+        `INSERT INTO "Integration" (id,"internalId","organizationId",name,"providerIdentifier",type,token)
+         VALUES ($1,$1,$2,$3,$3,'social','fixture-only-credential')`,
+        [`social-${organizationId}-${platform}`, `go-${organizationId}`, platform]
+      )
+      if (platform === 'x') {
+        await database.query(
+          `UPDATE "Integration" SET "internalId"='123456789', "verifiedAccountKey"=$2,
+          "verifiedAccountKind"=$3, "verifiedScopes"=$4, "verifiedCapabilities"=$5, "identityVerifiedAt"=now()
+          WHERE id=$1`,
+          [
+            `social-${organizationId}-x`,
+            xVerification.accountKey,
+            xVerification.accountKind,
+            JSON.stringify(xVerification.grantedScopes),
+            JSON.stringify(xVerification.capabilities),
+          ]
+        )
+      }
+    }
+  } finally {
+    await database.end()
+  }
   const channels: Record<string, string> = {}
   for (const platform of platforms) {
     const response = await trpcMutation(page, 'channelConnection.create', {
-      externalAccountId: `social-${platform}`,
+      externalAccountId: `social-${organizationId}-${platform}`,
       platform,
       secretReference: e2eSecretReference,
     })

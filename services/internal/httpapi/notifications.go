@@ -10,9 +10,10 @@ import (
 func (s *Server) registerNotifications(mux *http.ServeMux) {
 	for _, pattern := range []string{
 		"GET /v1/workspace/notifications", "PUT /v1/workspace/notifications/policy", "PUT /v1/workspace/notifications/preferences",
-		"POST /v1/workspace/notifications/test", "GET /v1/workspace/notifications/resolve/{id}", "GET /v1/workspace/notifications/inbox", "GET /v1/workspace/notifications/count", "POST /v1/workspace/notifications/seen", "PATCH /v1/workspace/notifications/items/{id}",
+		"POST /v1/workspace/notifications/test", "GET /v1/workspace/notifications/resolve/{id}", "GET /v1/workspace/notifications/inbox", "GET /v1/workspace/notifications/count", "POST /v1/workspace/notifications/seen",
+		"POST /v1/workspace/notifications/state",
 		"POST /v1/workspace/notifications/slack/connect", "POST /v1/workspace/notifications/slack/callback", "GET /v1/workspace/notifications/slack/channels",
-		"DELETE /v1/workspace/notifications/slack/{id}", "GET /v1/workspace/notifications/deliveries", "GET /v1/workspace/notifications/deliveries/{id}", "POST /v1/workspace/notifications/deliveries/{id}/recover",
+		"DELETE /v1/workspace/notifications/slack/personal/{id}", "DELETE /v1/workspace/notifications/slack/{id}", "GET /v1/workspace/notifications/deliveries", "GET /v1/workspace/notifications/deliveries/{id}", "POST /v1/workspace/notifications/deliveries/{id}/recover",
 	} {
 		mux.Handle(pattern, s.authenticateProduct(http.HandlerFunc(s.workspaceNotifications)))
 	}
@@ -62,37 +63,30 @@ func (s *Server) workspaceNotifications(w http.ResponseWriter, r *http.Request) 
 			err = notifications.ErrInvalid
 		}
 	case "GET /v1/workspace/notifications/inbox":
-		result, err = service.List(r.Context(), p, r.URL.Query().Get("cursor"), notificationFilter(r))
+		view := r.URL.Query().Get("view")
+		if view == "" {
+			view = "all"
+		}
+		result, err = service.ListFeed(r.Context(), p, view, r.URL.Query().Get("cursor"))
+	case "POST /v1/workspace/notifications/state":
+		var input notifications.StateInput
+		if err = decodeJSON(r, &input); err == nil {
+			result, err = service.ChangeState(r.Context(), p, input)
+		} else {
+			err = notifications.ErrInvalid
+		}
 	case "GET /v1/workspace/notifications/count":
 		var count int
 		count, err = service.Count(r.Context(), p)
 		result = map[string]int{"unseenCount": count}
 	case "POST /v1/workspace/notifications/seen":
 		var input struct {
-			IDs  []string `json:"ids"`
-			All  bool     `json:"all"`
-			Key  string   `json:"key"`
-			Undo bool     `json:"undo"`
+			IDs []string `json:"ids"`
+			All bool     `json:"all"`
+			Key string   `json:"key"`
 		}
 		if err = decodeJSON(r, &input); err == nil {
-			if input.Undo {
-				if !input.All || len(input.IDs) > 0 {
-					err = notifications.ErrInvalid
-				} else {
-					result, err = service.UndoSeen(r.Context(), p, input.Key)
-				}
-			} else {
-				result, err = service.Seen(r.Context(), p, input.IDs, input.All, input.Key)
-			}
-		} else {
-			err = notifications.ErrInvalid
-		}
-	case "PATCH /v1/workspace/notifications/items/{id}":
-		var input struct {
-			Seen *bool `json:"seen"`
-		}
-		if err = decodeJSON(r, &input); err == nil && input.Seen != nil {
-			result, err = service.SetSeen(r.Context(), p, r.PathValue("id"), *input.Seen)
+			result, err = service.Seen(r.Context(), p, input.IDs, input.All, input.Key)
 		} else {
 			err = notifications.ErrInvalid
 		}
@@ -120,6 +114,9 @@ func (s *Server) workspaceNotifications(w http.ResponseWriter, r *http.Request) 
 		}
 	case "GET /v1/workspace/notifications/slack/channels":
 		result, err = service.Channels(r.Context(), p, r.URL.Query().Get("connectionId"), r.URL.Query().Get("cursor"))
+	case "DELETE /v1/workspace/notifications/slack/personal/{id}":
+		err = service.DisconnectPersonalSlack(r.Context(), p, r.PathValue("id"))
+		result = map[string]bool{"disconnected": err == nil}
 	case "DELETE /v1/workspace/notifications/slack/{id}":
 		err = service.Disconnect(r.Context(), p, r.PathValue("id"))
 		result = map[string]bool{"disconnected": err == nil}
@@ -127,7 +124,7 @@ func (s *Server) workspaceNotifications(w http.ResponseWriter, r *http.Request) 
 		result, err = service.DeliveryStatus(r.Context(), p, r.PathValue("id"))
 	case "GET /v1/workspace/notifications/deliveries":
 		var deliveries []notifications.Delivery
-		deliveries, err = service.Deliveries(r.Context(), p)
+		deliveries, err = service.Deliveries(r.Context(), p, r.URL.Query().Get("scope"))
 		result = map[string]any{"deliveries": deliveries}
 	case "POST /v1/workspace/notifications/deliveries/{id}/recover":
 		var input struct {
@@ -158,11 +155,4 @@ func (s *Server) workspaceNotifications(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
-}
-
-func notificationFilter(r *http.Request) string {
-	if value := r.URL.Query().Get("filter"); value != "" {
-		return value
-	}
-	return "all"
 }

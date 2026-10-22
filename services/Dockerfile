@@ -10,6 +10,7 @@ COPY . .
 ARG GO_BUILD_TAGS=""
 RUN CGO_ENABLED=0 go build -tags "$GO_BUILD_TAGS" -trimpath -ldflags="-s -w" -o /out/screenshot-studio-backend ./cmd/social-api
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/social-migrate ./cmd/social-migrate
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/social-credentials ./cmd/social-credentials
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/platform-migrate ./cmd/platform-migrate
 RUN CGO_ENABLED=0 go build -tags "$GO_BUILD_TAGS" -trimpath -ldflags="-s -w" -o /out/publishing-orchestrator ./cmd/product-worker
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/publishing-backend ./cmd/product-api
@@ -18,6 +19,7 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/combined-backend .
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/screenshot-studio-backend /screenshot-studio-backend
 COPY --from=build /out/social-migrate /social-migrate
+COPY --from=build /out/social-credentials /social-credentials
 COPY --from=build /out/platform-migrate /platform-migrate
 COPY --from=build /out/publishing-orchestrator /publishing-orchestrator
 COPY --from=build /out/publishing-backend /publishing-backend

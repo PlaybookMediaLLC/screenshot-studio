@@ -6,11 +6,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 )
 
@@ -47,6 +49,100 @@ func (_u *SocialOAuthStartUpdate) ClearIntegrationID() *SocialOAuthStartUpdate {
 	return _u
 }
 
+// SetCreatedSocialSetID sets the "created_social_set_id" field.
+func (_u *SocialOAuthStartUpdate) SetCreatedSocialSetID(v string) *SocialOAuthStartUpdate {
+	_u.mutation.SetCreatedSocialSetID(v)
+	return _u
+}
+
+// SetNillableCreatedSocialSetID sets the "created_social_set_id" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdate) SetNillableCreatedSocialSetID(v *string) *SocialOAuthStartUpdate {
+	if v != nil {
+		_u.SetCreatedSocialSetID(*v)
+	}
+	return _u
+}
+
+// ClearCreatedSocialSetID clears the value of the "created_social_set_id" field.
+func (_u *SocialOAuthStartUpdate) ClearCreatedSocialSetID() *SocialOAuthStartUpdate {
+	_u.mutation.ClearCreatedSocialSetID()
+	return _u
+}
+
+// SetExchangeStatus sets the "exchange_status" field.
+func (_u *SocialOAuthStartUpdate) SetExchangeStatus(v socialoauthstart.ExchangeStatus) *SocialOAuthStartUpdate {
+	_u.mutation.SetExchangeStatus(v)
+	return _u
+}
+
+// SetNillableExchangeStatus sets the "exchange_status" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdate) SetNillableExchangeStatus(v *socialoauthstart.ExchangeStatus) *SocialOAuthStartUpdate {
+	if v != nil {
+		_u.SetExchangeStatus(*v)
+	}
+	return _u
+}
+
+// SetExchangeReceipt sets the "exchange_receipt" field.
+func (_u *SocialOAuthStartUpdate) SetExchangeReceipt(v schema.SocialOAuthExchange) *SocialOAuthStartUpdate {
+	_u.mutation.SetExchangeReceipt(v)
+	return _u
+}
+
+// SetNillableExchangeReceipt sets the "exchange_receipt" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdate) SetNillableExchangeReceipt(v *schema.SocialOAuthExchange) *SocialOAuthStartUpdate {
+	if v != nil {
+		_u.SetExchangeReceipt(*v)
+	}
+	return _u
+}
+
+// ClearExchangeReceipt clears the value of the "exchange_receipt" field.
+func (_u *SocialOAuthStartUpdate) ClearExchangeReceipt() *SocialOAuthStartUpdate {
+	_u.mutation.ClearExchangeReceipt()
+	return _u
+}
+
+// SetCompletedConnectionID sets the "completed_connection_id" field.
+func (_u *SocialOAuthStartUpdate) SetCompletedConnectionID(v string) *SocialOAuthStartUpdate {
+	_u.mutation.SetCompletedConnectionID(v)
+	return _u
+}
+
+// SetNillableCompletedConnectionID sets the "completed_connection_id" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdate) SetNillableCompletedConnectionID(v *string) *SocialOAuthStartUpdate {
+	if v != nil {
+		_u.SetCompletedConnectionID(*v)
+	}
+	return _u
+}
+
+// ClearCompletedConnectionID clears the value of the "completed_connection_id" field.
+func (_u *SocialOAuthStartUpdate) ClearCompletedConnectionID() *SocialOAuthStartUpdate {
+	_u.mutation.ClearCompletedConnectionID()
+	return _u
+}
+
+// SetCompletedAt sets the "completed_at" field.
+func (_u *SocialOAuthStartUpdate) SetCompletedAt(v time.Time) *SocialOAuthStartUpdate {
+	_u.mutation.SetCompletedAt(v)
+	return _u
+}
+
+// SetNillableCompletedAt sets the "completed_at" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdate) SetNillableCompletedAt(v *time.Time) *SocialOAuthStartUpdate {
+	if v != nil {
+		_u.SetCompletedAt(*v)
+	}
+	return _u
+}
+
+// ClearCompletedAt clears the value of the "completed_at" field.
+func (_u *SocialOAuthStartUpdate) ClearCompletedAt() *SocialOAuthStartUpdate {
+	_u.mutation.ClearCompletedAt()
+	return _u
+}
+
 // Mutation returns the SocialOAuthStartMutation object of the builder.
 func (_u *SocialOAuthStartUpdate) Mutation() *SocialOAuthStartMutation {
 	return _u.mutation
@@ -79,7 +175,20 @@ func (_u *SocialOAuthStartUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *SocialOAuthStartUpdate) check() error {
+	if v, ok := _u.mutation.ExchangeStatus(); ok {
+		if err := socialoauthstart.ExchangeStatusValidator(v); err != nil {
+			return &ValidationError{Name: "exchange_status", err: fmt.Errorf(`ent: validator failed for field "SocialOAuthStart.exchange_status": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *SocialOAuthStartUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(socialoauthstart.Table, socialoauthstart.Columns, sqlgraph.NewFieldSpec(socialoauthstart.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -96,6 +205,36 @@ func (_u *SocialOAuthStartUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.SocialSetIDCleared() {
 		_spec.ClearField(socialoauthstart.FieldSocialSetID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CreatedSocialSetID(); ok {
+		_spec.SetField(socialoauthstart.FieldCreatedSocialSetID, field.TypeString, value)
+	}
+	if _u.mutation.CreatedSocialSetIDCleared() {
+		_spec.ClearField(socialoauthstart.FieldCreatedSocialSetID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ExchangeStatus(); ok {
+		_spec.SetField(socialoauthstart.FieldExchangeStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.ExchangeReceipt(); ok {
+		_spec.SetField(socialoauthstart.FieldExchangeReceipt, field.TypeJSON, value)
+	}
+	if _u.mutation.ExchangeReceiptCleared() {
+		_spec.ClearField(socialoauthstart.FieldExchangeReceipt, field.TypeJSON)
+	}
+	if _u.mutation.ExpectedConnectionIDCleared() {
+		_spec.ClearField(socialoauthstart.FieldExpectedConnectionID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CompletedConnectionID(); ok {
+		_spec.SetField(socialoauthstart.FieldCompletedConnectionID, field.TypeString, value)
+	}
+	if _u.mutation.CompletedConnectionIDCleared() {
+		_spec.ClearField(socialoauthstart.FieldCompletedConnectionID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CompletedAt(); ok {
+		_spec.SetField(socialoauthstart.FieldCompletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.CompletedAtCleared() {
+		_spec.ClearField(socialoauthstart.FieldCompletedAt, field.TypeTime)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -134,6 +273,100 @@ func (_u *SocialOAuthStartUpdateOne) SetNillableIntegrationID(v *string) *Social
 // ClearIntegrationID clears the value of the "integration_id" field.
 func (_u *SocialOAuthStartUpdateOne) ClearIntegrationID() *SocialOAuthStartUpdateOne {
 	_u.mutation.ClearIntegrationID()
+	return _u
+}
+
+// SetCreatedSocialSetID sets the "created_social_set_id" field.
+func (_u *SocialOAuthStartUpdateOne) SetCreatedSocialSetID(v string) *SocialOAuthStartUpdateOne {
+	_u.mutation.SetCreatedSocialSetID(v)
+	return _u
+}
+
+// SetNillableCreatedSocialSetID sets the "created_social_set_id" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdateOne) SetNillableCreatedSocialSetID(v *string) *SocialOAuthStartUpdateOne {
+	if v != nil {
+		_u.SetCreatedSocialSetID(*v)
+	}
+	return _u
+}
+
+// ClearCreatedSocialSetID clears the value of the "created_social_set_id" field.
+func (_u *SocialOAuthStartUpdateOne) ClearCreatedSocialSetID() *SocialOAuthStartUpdateOne {
+	_u.mutation.ClearCreatedSocialSetID()
+	return _u
+}
+
+// SetExchangeStatus sets the "exchange_status" field.
+func (_u *SocialOAuthStartUpdateOne) SetExchangeStatus(v socialoauthstart.ExchangeStatus) *SocialOAuthStartUpdateOne {
+	_u.mutation.SetExchangeStatus(v)
+	return _u
+}
+
+// SetNillableExchangeStatus sets the "exchange_status" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdateOne) SetNillableExchangeStatus(v *socialoauthstart.ExchangeStatus) *SocialOAuthStartUpdateOne {
+	if v != nil {
+		_u.SetExchangeStatus(*v)
+	}
+	return _u
+}
+
+// SetExchangeReceipt sets the "exchange_receipt" field.
+func (_u *SocialOAuthStartUpdateOne) SetExchangeReceipt(v schema.SocialOAuthExchange) *SocialOAuthStartUpdateOne {
+	_u.mutation.SetExchangeReceipt(v)
+	return _u
+}
+
+// SetNillableExchangeReceipt sets the "exchange_receipt" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdateOne) SetNillableExchangeReceipt(v *schema.SocialOAuthExchange) *SocialOAuthStartUpdateOne {
+	if v != nil {
+		_u.SetExchangeReceipt(*v)
+	}
+	return _u
+}
+
+// ClearExchangeReceipt clears the value of the "exchange_receipt" field.
+func (_u *SocialOAuthStartUpdateOne) ClearExchangeReceipt() *SocialOAuthStartUpdateOne {
+	_u.mutation.ClearExchangeReceipt()
+	return _u
+}
+
+// SetCompletedConnectionID sets the "completed_connection_id" field.
+func (_u *SocialOAuthStartUpdateOne) SetCompletedConnectionID(v string) *SocialOAuthStartUpdateOne {
+	_u.mutation.SetCompletedConnectionID(v)
+	return _u
+}
+
+// SetNillableCompletedConnectionID sets the "completed_connection_id" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdateOne) SetNillableCompletedConnectionID(v *string) *SocialOAuthStartUpdateOne {
+	if v != nil {
+		_u.SetCompletedConnectionID(*v)
+	}
+	return _u
+}
+
+// ClearCompletedConnectionID clears the value of the "completed_connection_id" field.
+func (_u *SocialOAuthStartUpdateOne) ClearCompletedConnectionID() *SocialOAuthStartUpdateOne {
+	_u.mutation.ClearCompletedConnectionID()
+	return _u
+}
+
+// SetCompletedAt sets the "completed_at" field.
+func (_u *SocialOAuthStartUpdateOne) SetCompletedAt(v time.Time) *SocialOAuthStartUpdateOne {
+	_u.mutation.SetCompletedAt(v)
+	return _u
+}
+
+// SetNillableCompletedAt sets the "completed_at" field if the given value is not nil.
+func (_u *SocialOAuthStartUpdateOne) SetNillableCompletedAt(v *time.Time) *SocialOAuthStartUpdateOne {
+	if v != nil {
+		_u.SetCompletedAt(*v)
+	}
+	return _u
+}
+
+// ClearCompletedAt clears the value of the "completed_at" field.
+func (_u *SocialOAuthStartUpdateOne) ClearCompletedAt() *SocialOAuthStartUpdateOne {
+	_u.mutation.ClearCompletedAt()
 	return _u
 }
 
@@ -182,7 +415,20 @@ func (_u *SocialOAuthStartUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *SocialOAuthStartUpdateOne) check() error {
+	if v, ok := _u.mutation.ExchangeStatus(); ok {
+		if err := socialoauthstart.ExchangeStatusValidator(v); err != nil {
+			return &ValidationError{Name: "exchange_status", err: fmt.Errorf(`ent: validator failed for field "SocialOAuthStart.exchange_status": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *SocialOAuthStartUpdateOne) sqlSave(ctx context.Context) (_node *SocialOAuthStart, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(socialoauthstart.Table, socialoauthstart.Columns, sqlgraph.NewFieldSpec(socialoauthstart.FieldID, field.TypeString))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -216,6 +462,36 @@ func (_u *SocialOAuthStartUpdateOne) sqlSave(ctx context.Context) (_node *Social
 	}
 	if _u.mutation.SocialSetIDCleared() {
 		_spec.ClearField(socialoauthstart.FieldSocialSetID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CreatedSocialSetID(); ok {
+		_spec.SetField(socialoauthstart.FieldCreatedSocialSetID, field.TypeString, value)
+	}
+	if _u.mutation.CreatedSocialSetIDCleared() {
+		_spec.ClearField(socialoauthstart.FieldCreatedSocialSetID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ExchangeStatus(); ok {
+		_spec.SetField(socialoauthstart.FieldExchangeStatus, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.ExchangeReceipt(); ok {
+		_spec.SetField(socialoauthstart.FieldExchangeReceipt, field.TypeJSON, value)
+	}
+	if _u.mutation.ExchangeReceiptCleared() {
+		_spec.ClearField(socialoauthstart.FieldExchangeReceipt, field.TypeJSON)
+	}
+	if _u.mutation.ExpectedConnectionIDCleared() {
+		_spec.ClearField(socialoauthstart.FieldExpectedConnectionID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CompletedConnectionID(); ok {
+		_spec.SetField(socialoauthstart.FieldCompletedConnectionID, field.TypeString, value)
+	}
+	if _u.mutation.CompletedConnectionIDCleared() {
+		_spec.ClearField(socialoauthstart.FieldCompletedConnectionID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CompletedAt(); ok {
+		_spec.SetField(socialoauthstart.FieldCompletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.CompletedAtCleared() {
+		_spec.ClearField(socialoauthstart.FieldCompletedAt, field.TypeTime)
 	}
 	_node = &SocialOAuthStart{config: _u.config}
 	_spec.Assign = _node.assignValues

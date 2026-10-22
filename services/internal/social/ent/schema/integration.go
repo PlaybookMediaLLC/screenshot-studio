@@ -3,6 +3,8 @@ package schema
 import (
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
+
 	"entgo.io/ent"
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
@@ -23,10 +25,15 @@ func (Integration) Fields() []ent.Field {
 		optStr("picture", "picture"),
 		str("provider_identifier", "providerIdentifier"),
 		str("type", "type"),
-		secret("token", "token"),
+		field.String("token").StorageKey("token").Sensitive().ValueScanner(credentialScanner("integration.token")),
 		field.Bool("disabled").StorageKey("disabled").Default(false),
+		optStr("verified_account_key", "verifiedAccountKey"),
+		optStr("verified_account_kind", "verifiedAccountKind"),
+		field.JSON("verified_scopes", []string{}).StorageKey("verifiedScopes").Optional(),
+		field.JSON("verified_capabilities", &socialidentity.Capabilities{}).StorageKey("verifiedCapabilities").Optional(),
+		optTime("identity_verified_at", "identityVerifiedAt"),
 		optTime("token_expiration", "tokenExpiration"),
-		optSecret("refresh_token", "refreshToken"),
+		field.String("refresh_token").StorageKey("refreshToken").Optional().GoType((*string)(nil)).Sensitive().ValueScanner(nullableCredentialScanner("integration.refresh_token")),
 		optStr("profile", "profile"),
 		deletedAt(),
 		createdAt(),
@@ -34,7 +41,7 @@ func (Integration) Fields() []ent.Field {
 		field.Bool("in_between_steps").StorageKey("inBetweenSteps").Default(false),
 		field.Bool("refresh_needed").StorageKey("refreshNeeded").Default(false),
 		field.String("posting_times").StorageKey("postingTimes").Default(`[{"time":120}, {"time":400}, {"time":700}]`),
-		optStr("custom_instance_details", "customInstanceDetails"),
+		field.String("custom_instance_details").StorageKey("customInstanceDetails").Optional().Nillable().Sensitive(),
 		optStr("customer_id", "customerId"),
 		optStr("root_internal_id", "rootInternalId"),
 		field.String("additional_settings").StorageKey("additionalSettings").Optional().Nillable().Default("[]"),

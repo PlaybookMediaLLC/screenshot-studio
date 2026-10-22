@@ -38,6 +38,8 @@ func (PlatformNotificationPreference) Fields() []ent.Field {
 		field.JSON("events", map[string]any{}).Default(map[string]any{}),
 		// Per social set: activity kinds turned off for that set (RFC 043).
 		field.JSON("social_sets", map[string]map[string]bool{}).Default(map[string]map[string]bool{}),
+		field.Bool("slack_enabled").Default(true),
+		field.JSON("social_set_channels", map[string]map[string]map[string]bool{}).Default(map[string]map[string]map[string]bool{}),
 		field.Int("generation").Default(1),
 		field.Time("updated_at").Default(time.Now)}
 }
@@ -61,9 +63,9 @@ func (PlatformNotificationInbox) Fields() []ent.Field {
 		field.String("resource_id"),
 		field.String("description"),
 		field.String("href"),
-		field.Time("seen_at").Optional().Nillable(),
-		field.String("seen_action_id").Default(""),
-		field.JSON("context", map[string]any{}).Default(map[string]any{}),
+		field.Enum("category").Values("inbox", "activity").Default("activity"),
+		field.Time("read_at").Optional().Nillable(),
+		field.Time("archived_at").Optional().Nillable(),
 		field.Time("created_at").Default(time.Now)}
 }
 
@@ -92,7 +94,7 @@ func (PlatformNotificationDelivery) Fields() []ent.Field {
 		field.Time("send_started_at").Optional().Nillable(),
 		field.Int("attempts").Default(0),
 		field.Time("next_attempt_at").Default(time.Now),
-		field.String("failure_code").Default(""),
+		field.String("failure_code").Default(""), field.String("decision_code").Default("LEGACY"),
 		field.String("provider_receipt").Default(""),
 		field.String("encrypted_payload").Default("").Sensitive(),
 		field.Time("created_at").Default(time.Now),
@@ -113,8 +115,8 @@ func (PlatformNotificationSeenAction) Fields() []ent.Field {
 		field.String("organization_id").StorageKey("organizationId"),
 		field.String("user_id").StorageKey("userId"),
 		field.String("request_key"),
+		field.String("request_fingerprint").Default(""),
 		field.Int("deleted_count").Default(0),
-		field.Time("undone_at").Optional().Nillable(),
 		field.Time("created_at").Default(time.Now)}
 }
 
@@ -172,4 +174,17 @@ func (PlatformSlackPacing) Annotations() []schema.Annotation {
 }
 func (PlatformSlackPacing) Fields() []ent.Field {
 	return []ent.Field{field.String("id"), field.String("installation_id"), field.String("channel_id"), field.Time("next_at")}
+}
+
+// PlatformSlackPersonalConnection binds one authorizing Slack user to a current member.
+type PlatformSlackPersonalConnection struct{ ent.Schema }
+
+func (PlatformSlackPersonalConnection) Annotations() []schema.Annotation {
+	return []schema.Annotation{entsql.Annotation{Table: "platform_slack_personal_connection"}}
+}
+func (PlatformSlackPersonalConnection) Fields() []ent.Field {
+	return []ent.Field{field.String("id"), field.String("organization_id").StorageKey("organizationId"), field.String("user_id").StorageKey("userId"), field.String("member_id"), field.String("installation_id"), field.String("slack_user_id"), field.Time("created_at").Default(time.Now)}
+}
+func (PlatformSlackPersonalConnection) Indexes() []ent.Index {
+	return []ent.Index{index.Fields("organization_id", "user_id").Unique(), index.Fields("installation_id")}
 }

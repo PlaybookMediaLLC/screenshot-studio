@@ -151,10 +151,8 @@ export async function scheduleContentDraft(
     backendSDK(context).listSocialSets(),
   ])
   const platforms = new Map(connections.map((connection) => [connection.id, connection.platform]))
-  const premium = new Set(
-    sets.items.flatMap((set) =>
-      set.accounts.filter((account) => account.premium).map((account) => account.id)
-    )
+  const accounts = new Map(
+    sets.items.flatMap((set) => set.accounts.map((account) => [account.id, account] as const))
   )
   const versions = readVersions(
     draft.platformVersions,
@@ -170,7 +168,10 @@ export async function scheduleContentDraft(
       {
         channel,
         connectionId: channelConnectionId,
-        standing: { premium: premium.has(channelConnectionId) },
+        standing: {
+          maxWeightedCharacters: accounts.get(channelConnectionId)?.xCaptionLimit,
+          articles: accounts.get(channelConnectionId)?.xArticles,
+        },
       },
       input.blockImages
     )

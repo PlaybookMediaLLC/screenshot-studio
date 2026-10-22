@@ -24,7 +24,10 @@ func (s *Service) Maintain(ctx context.Context) error {
 	if _, err = tx.ExecContext(ctx, `DELETE FROM social_oauth_start WHERE provider='platform-slack' AND "expiresAt"<now()`); err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, `DELETE FROM platform_slack_installation i WHERE NOT EXISTS(SELECT 1 FROM platform_slack_connection c WHERE c.installation_id=i.id)`); err != nil {
+	if _, err = tx.ExecContext(ctx, `DELETE FROM social_oauth_start WHERE provider<>'platform-slack' AND (("exchangeStatus"='COMPLETED' AND "completedAt"<now()-interval '24 hours') OR ("exchangeStatus"<>'COMPLETED' AND "expiresAt"<now()-interval '24 hours'))`); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `DELETE FROM platform_slack_installation i WHERE NOT EXISTS(SELECT 1 FROM platform_slack_connection c WHERE c.installation_id=i.id) AND NOT EXISTS(SELECT 1 FROM platform_slack_personal_connection c WHERE c.installation_id=i.id)`); err != nil {
 		return err
 	}
 	if err = tx.Commit(); err != nil {
@@ -33,28 +36,40 @@ func (s *Service) Maintain(ctx context.Context) error {
 	healthCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	for range 5 {
-		var installation, org, id, team string
-		err = s.DB.QueryRowContext(healthCtx, `UPDATE platform_slack_installation i SET checked_at=now() WHERE i.id=(SELECT s.id FROM platform_slack_installation s WHERE s.health='CONNECTED' AND (s.checked_at IS NULL OR s.checked_at<now()-interval '1 hour') AND EXISTS(SELECT 1 FROM platform_slack_connection c WHERE c.installation_id=s.id) ORDER BY s.checked_at NULLS FIRST,s.id FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING i.id,i.team_id`).Scan(&installation, &team)
+		var installation, team string
+		err = s.DB.QueryRowContext(healthCtx, `UPDATE platform_slack_installation i SET checked_at=now() WHERE i.id=(SELECT s.id FROM platform_slack_installation s WHERE s.health='CONNECTED' AND (s.checked_at IS NULL OR s.checked_at<now()-interval '1 hour') AND (EXISTS(SELECT 1 FROM platform_slack_connection c WHERE c.installation_id=s.id) OR EXISTS(SELECT 1 FROM platform_slack_personal_connection c WHERE c.installation_id=s.id)) ORDER BY s.checked_at NULLS FIRST,s.id FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING i.id,i.team_id`).Scan(&installation, &team)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
 		}
 		if err != nil {
 			return err
 		}
-		err = s.DB.QueryRowContext(healthCtx, `SELECT "organizationId",id FROM platform_slack_connection WHERE installation_id=$1 ORDER BY id LIMIT 1`, installation).Scan(&org, &id)
+		var encrypted, health string
+		var expires sql.NullTime
+		err = s.DB.QueryRowContext(healthCtx, `SELECT encrypted_credentials,health,expires_at FROM platform_slack_installation WHERE id=$1`, installation).Scan(&encrypted, &health, &expires)
 		if errors.Is(err, sql.ErrNoRows) {
 			continue
 		}
 		if err != nil {
 			return err
 		}
-		result, callErr := s.connectionCall(healthCtx, org, id, "auth.test", map[string]any{})
+		token, callErr := s.installationToken(healthCtx, installation, encrypted, health, expires)
 		if callErr != nil {
+			continue
+		}
+		result, callErr := s.slackAPI(healthCtx, token, "auth.test", map[string]any{})
+		if callErr != nil {
+			var provider *slackError
+			if errors.As(callErr, &provider) && (provider.Code == "invalid_auth" || provider.Code == "token_revoked" || provider.Code == "account_inactive") {
+				if err = s.revokeInstallation(healthCtx, installation); err != nil {
+					return err
+				}
+			}
 			continue
 		}
 		var identity string
 		if json.Unmarshal(result["team_id"], &identity) != nil || identity != team {
-			if err = s.revoke(healthCtx, org, id); err != nil {
+			if err = s.revokeInstallation(healthCtx, installation); err != nil {
 				return err
 			}
 		}

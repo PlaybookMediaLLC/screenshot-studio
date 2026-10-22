@@ -70,6 +70,20 @@ func (_u *PlatformNotificationSeenActionUpdate) SetNillableRequestKey(v *string)
 	return _u
 }
 
+// SetRequestFingerprint sets the "request_fingerprint" field.
+func (_u *PlatformNotificationSeenActionUpdate) SetRequestFingerprint(v string) *PlatformNotificationSeenActionUpdate {
+	_u.mutation.SetRequestFingerprint(v)
+	return _u
+}
+
+// SetNillableRequestFingerprint sets the "request_fingerprint" field if the given value is not nil.
+func (_u *PlatformNotificationSeenActionUpdate) SetNillableRequestFingerprint(v *string) *PlatformNotificationSeenActionUpdate {
+	if v != nil {
+		_u.SetRequestFingerprint(*v)
+	}
+	return _u
+}
+
 // SetDeletedCount sets the "deleted_count" field.
 func (_u *PlatformNotificationSeenActionUpdate) SetDeletedCount(v int) *PlatformNotificationSeenActionUpdate {
 	_u.mutation.ResetDeletedCount()
@@ -88,26 +102,6 @@ func (_u *PlatformNotificationSeenActionUpdate) SetNillableDeletedCount(v *int) 
 // AddDeletedCount adds value to the "deleted_count" field.
 func (_u *PlatformNotificationSeenActionUpdate) AddDeletedCount(v int) *PlatformNotificationSeenActionUpdate {
 	_u.mutation.AddDeletedCount(v)
-	return _u
-}
-
-// SetUndoneAt sets the "undone_at" field.
-func (_u *PlatformNotificationSeenActionUpdate) SetUndoneAt(v time.Time) *PlatformNotificationSeenActionUpdate {
-	_u.mutation.SetUndoneAt(v)
-	return _u
-}
-
-// SetNillableUndoneAt sets the "undone_at" field if the given value is not nil.
-func (_u *PlatformNotificationSeenActionUpdate) SetNillableUndoneAt(v *time.Time) *PlatformNotificationSeenActionUpdate {
-	if v != nil {
-		_u.SetUndoneAt(*v)
-	}
-	return _u
-}
-
-// ClearUndoneAt clears the value of the "undone_at" field.
-func (_u *PlatformNotificationSeenActionUpdate) ClearUndoneAt() *PlatformNotificationSeenActionUpdate {
-	_u.mutation.ClearUndoneAt()
 	return _u
 }
 
@@ -175,17 +169,14 @@ func (_u *PlatformNotificationSeenActionUpdate) sqlSave(ctx context.Context) (_n
 	if value, ok := _u.mutation.RequestKey(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldRequestKey, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.RequestFingerprint(); ok {
+		_spec.SetField(platformnotificationseenaction.FieldRequestFingerprint, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.DeletedCount(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldDeletedCount, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.AddedDeletedCount(); ok {
 		_spec.AddField(platformnotificationseenaction.FieldDeletedCount, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.UndoneAt(); ok {
-		_spec.SetField(platformnotificationseenaction.FieldUndoneAt, field.TypeTime, value)
-	}
-	if _u.mutation.UndoneAtCleared() {
-		_spec.ClearField(platformnotificationseenaction.FieldUndoneAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldCreatedAt, field.TypeTime, value)
@@ -252,6 +243,20 @@ func (_u *PlatformNotificationSeenActionUpdateOne) SetNillableRequestKey(v *stri
 	return _u
 }
 
+// SetRequestFingerprint sets the "request_fingerprint" field.
+func (_u *PlatformNotificationSeenActionUpdateOne) SetRequestFingerprint(v string) *PlatformNotificationSeenActionUpdateOne {
+	_u.mutation.SetRequestFingerprint(v)
+	return _u
+}
+
+// SetNillableRequestFingerprint sets the "request_fingerprint" field if the given value is not nil.
+func (_u *PlatformNotificationSeenActionUpdateOne) SetNillableRequestFingerprint(v *string) *PlatformNotificationSeenActionUpdateOne {
+	if v != nil {
+		_u.SetRequestFingerprint(*v)
+	}
+	return _u
+}
+
 // SetDeletedCount sets the "deleted_count" field.
 func (_u *PlatformNotificationSeenActionUpdateOne) SetDeletedCount(v int) *PlatformNotificationSeenActionUpdateOne {
 	_u.mutation.ResetDeletedCount()
@@ -270,26 +275,6 @@ func (_u *PlatformNotificationSeenActionUpdateOne) SetNillableDeletedCount(v *in
 // AddDeletedCount adds value to the "deleted_count" field.
 func (_u *PlatformNotificationSeenActionUpdateOne) AddDeletedCount(v int) *PlatformNotificationSeenActionUpdateOne {
 	_u.mutation.AddDeletedCount(v)
-	return _u
-}
-
-// SetUndoneAt sets the "undone_at" field.
-func (_u *PlatformNotificationSeenActionUpdateOne) SetUndoneAt(v time.Time) *PlatformNotificationSeenActionUpdateOne {
-	_u.mutation.SetUndoneAt(v)
-	return _u
-}
-
-// SetNillableUndoneAt sets the "undone_at" field if the given value is not nil.
-func (_u *PlatformNotificationSeenActionUpdateOne) SetNillableUndoneAt(v *time.Time) *PlatformNotificationSeenActionUpdateOne {
-	if v != nil {
-		_u.SetUndoneAt(*v)
-	}
-	return _u
-}
-
-// ClearUndoneAt clears the value of the "undone_at" field.
-func (_u *PlatformNotificationSeenActionUpdateOne) ClearUndoneAt() *PlatformNotificationSeenActionUpdateOne {
-	_u.mutation.ClearUndoneAt()
 	return _u
 }
 
@@ -387,17 +372,14 @@ func (_u *PlatformNotificationSeenActionUpdateOne) sqlSave(ctx context.Context) 
 	if value, ok := _u.mutation.RequestKey(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldRequestKey, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.RequestFingerprint(); ok {
+		_spec.SetField(platformnotificationseenaction.FieldRequestFingerprint, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.DeletedCount(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldDeletedCount, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.AddedDeletedCount(); ok {
 		_spec.AddField(platformnotificationseenaction.FieldDeletedCount, field.TypeInt, value)
-	}
-	if value, ok := _u.mutation.UndoneAt(); ok {
-		_spec.SetField(platformnotificationseenaction.FieldUndoneAt, field.TypeTime, value)
-	}
-	if _u.mutation.UndoneAtCleared() {
-		_spec.ClearField(platformnotificationseenaction.FieldUndoneAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(platformnotificationseenaction.FieldCreatedAt, field.TypeTime, value)

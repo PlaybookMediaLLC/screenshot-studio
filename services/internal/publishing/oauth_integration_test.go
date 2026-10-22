@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialoauthstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/lucsky/cuid"
 )
@@ -38,6 +40,9 @@ func TestOAuthGrantAndConnectionUseEntInOnePublicSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _, _ = db.SQL.ExecContext(ctx, `DELETE FROM organization WHERE id=$1`, organizationID) })
+	if err := db.Client.WorkspaceEntitlement.Create().SetID(organizationID).SetPlan("pro").SetStatus("active").Exec(ctx); err != nil {
+		t.Fatal(err)
+	}
 	repo := NewRepository(db.Client)
 	actor := Actor{Organization: organizationID, UserID: userID, Type: "USER", RequestID: id}
 	if _, err := db.SQL.ExecContext(ctx, `INSERT INTO session (id,"expiresAt",token,"createdAt","updatedAt","userId","activeOrganizationId") VALUES ($1,now()+interval '1 hour',$2,now(),now(),$3,$4)`, "session_"+id, "token_"+id, userID, organizationID); err != nil {
@@ -61,28 +66,49 @@ func TestOAuthGrantAndConnectionUseEntInOnePublicSchema(t *testing.T) {
 	if _, err := db.SQL.ExecContext(ctx, `UPDATE member SET role='publisher' WHERE id=$1`, "member_"+id); err != nil {
 		t.Fatal(err)
 	}
-	if err := repo.StartOAuth(ctx, actor, "session-1", state, "instagram", "SOCIAL_API_KEY_TEST", nil); err != nil {
+	if err := repo.StartOAuth(ctx, actor, "session_"+id, state, "instagram", "SOCIAL_API_KEY_TEST", OAuthStartOptions{}); err != nil {
+		if !errors.Is(err, ErrForbidden) {
+			t.Fatal(err)
+		}
+	} else {
+		t.Fatal("publisher started account authorization")
+	}
+	if _, err := db.SQL.ExecContext(ctx, `UPDATE member SET role='admin' WHERE id=$1`, "member_"+id); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repo.OAuthStart(ctx, actor, "session-2", state, "instagram", nil); !errors.Is(err, ErrNotFound) {
+	if err := repo.StartOAuth(ctx, actor, "session_"+id, state, "instagram", "SOCIAL_API_KEY_TEST", OAuthStartOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.OAuthStart(ctx, actor, "session-2", state, "instagram", nil); !errors.Is(err, ErrUnauthorized) {
 		t.Fatalf("another session read OAuth grant: %v", err)
 	}
-	if err := repo.RememberInstagramIntegration(ctx, actor, "session-1", state, "destination-1"); err != nil {
+	if _, err := repo.ClaimOAuthExchange(ctx, actor, "session_"+id, state, "instagram"); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.SaveOAuthExchange(ctx, actor, "session_"+id, state, "instagram", schema.SocialOAuthExchange{ID: "destination-1"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.RememberInstagramIntegration(ctx, actor, "session_"+id, state, "destination-1"); err != nil {
 		t.Fatal(err)
 	}
 	wrongDestination := "destination-2"
-	if _, err := repo.OAuthStart(ctx, actor, "session-1", state, "instagram", &wrongDestination); !errors.Is(err, ErrNotFound) {
+	if _, err := repo.OAuthStart(ctx, actor, "session_"+id, state, "instagram", &wrongDestination); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("wrong destination matched OAuth grant: %v", err)
 	}
-	connection, err := repo.FinishOAuth(ctx, actor, "session-1", state, "instagram", "destination-1")
+	connection, err := repo.FinishOAuth(ctx, actor, "session_"+id, state, "instagram", "destination-1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if connection.OrganizationID != organizationID || connection.Platform != "instagram" || connection.ExternalAccountID != "destination-1" {
 		t.Fatalf("unexpected connection: %#v", connection)
 	}
-	if _, err := repo.OAuthStart(ctx, actor, "session-1", state, "instagram", nil); !errors.Is(err, ErrNotFound) {
-		t.Fatalf("consumed OAuth grant still exists: %v", err)
+	receipt, err := repo.OAuthStart(ctx, actor, "session_"+id, state, "instagram", nil)
+	if err != nil || receipt.ExchangeStatus != socialoauthstart.ExchangeStatusCOMPLETED {
+		t.Fatalf("completed receipt missing: %+v %v", receipt, err)
+	}
+	replay, err := repo.FinishOAuth(ctx, actor, "session_"+id, state, "instagram", "destination-1")
+	if err != nil || replay.ID != connection.ID {
+		t.Fatalf("completion replay: %+v %v", replay, err)
 	}
 	fixtures := []struct {
 		query string

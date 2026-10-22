@@ -7,6 +7,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/lucsky/cuid"
 )
 
@@ -70,6 +71,14 @@ func (s *Service) importSocialSlack(ctx context.Context, org, socialOrg, id stri
 	if exists {
 		return nil
 	}
+	if token, err = credentialcipher.Open(token, "integration.token"); err != nil {
+		return err
+	}
+	if refresh.Valid {
+		if refresh.String, err = credentialcipher.Open(refresh.String, "integration.refresh_token"); err != nil {
+			return err
+		}
+	}
 	if token == "" || token == "backend-owned" {
 		return &slackError{Code: "reconnect_required"}
 	}
@@ -112,18 +121,10 @@ func (s *Service) pacedSlackCall(ctx context.Context, org, id, channel, method s
 	if err := s.DB.QueryRowContext(ctx, `SELECT installation_id FROM platform_slack_connection WHERE id=$1 AND "organizationId"=$2`, id, org).Scan(&installation); err != nil {
 		return nil, err
 	}
-	key := installation + ":" + channel
-	var next time.Time
-	err := s.DB.QueryRowContext(ctx, `INSERT INTO platform_slack_pacing(id,installation_id,channel_id,next_at) VALUES($1,$2,$3,now()+interval '1 second') ON CONFLICT(id) DO UPDATE SET next_at=now()+interval '1 second' WHERE platform_slack_pacing.next_at<=now() RETURNING next_at`, key, installation, channel).Scan(&next)
-	if errors.Is(err, sql.ErrNoRows) {
-		if err = s.DB.QueryRowContext(ctx, `SELECT next_at FROM platform_slack_pacing WHERE id=$1`, key).Scan(&next); err != nil {
-			return nil, err
-		}
-		return nil, &slackError{Code: "channel_pacing", RetryAfter: max(time.Second, time.Until(next))}
-	}
-	if err != nil {
+	if err := s.paceSlack(ctx, installation, channel); err != nil {
 		return nil, err
 	}
+	key := installation + ":" + channel
 	result, err := s.connectionCall(ctx, org, id, method, payload)
 	var provider *slackError
 	if errors.As(err, &provider) && provider.RetryAfter > 0 {
@@ -151,4 +152,20 @@ func attachSlackPublishing(ctx context.Context, tx *sql.Tx, org, existingID, tea
 	}
 	_, err := tx.ExecContext(ctx, `INSERT INTO "Integration"(id,"organizationId","internalId",name,"providerIdentifier",type,token,"createdAt","updatedAt") VALUES($1,$2,$3,$4,'slack','social','backend-owned',now(),now()) ON CONFLICT(id) DO UPDATE SET token='backend-owned',"refreshToken"=NULL,"tokenExpiration"=NULL,"refreshNeeded"=false,disabled=false,name=EXCLUDED.name,"updatedAt"=now() WHERE "Integration"."organizationId"=EXCLUDED."organizationId" AND "Integration"."internalId"=EXCLUDED."internalId"`, id, socialOrg, team, name)
 	return id, err
+}
+
+func (s *Service) paceSlack(ctx context.Context, installation, channel string) error {
+	key := installation + ":" + channel
+	var next time.Time
+	err := s.DB.QueryRowContext(ctx, `INSERT INTO platform_slack_pacing(id,installation_id,channel_id,next_at) VALUES($1,$2,$3,now()+interval '1 second') ON CONFLICT(id) DO UPDATE SET next_at=now()+interval '1 second' WHERE platform_slack_pacing.next_at<=now() RETURNING next_at`, key, installation, channel).Scan(&next)
+	if errors.Is(err, sql.ErrNoRows) {
+		if err = s.DB.QueryRowContext(ctx, `SELECT next_at FROM platform_slack_pacing WHERE id=$1`, key).Scan(&next); err != nil {
+			return err
+		}
+		return &slackError{Code: "channel_pacing", RetryAfter: max(time.Second, time.Until(next))}
+	}
+	if err != nil {
+		return err
+	}
+	return nil
 }

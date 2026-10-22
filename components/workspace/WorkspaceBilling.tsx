@@ -16,7 +16,7 @@ type Subscription = Awaited<ReturnType<ReturnType<typeof useTRPCClient>['billing
 
 type Summary = Awaited<ReturnType<ReturnType<typeof useTRPCClient>['billing']['summary']['query']>>
 
-/** What a return trip from a credit-pack Checkout tells the admin, keyed by `credits`. */
+/** What a return trip from a credit-pack Checkout tells the owner, keyed by `credits`. */
 const OUTCOMES: Record<string, string> = {
   cancelled: 'The credit purchase was cancelled. You have not been charged.',
   success: 'Payment received. Your extra launch credits are on the way.',
@@ -63,7 +63,7 @@ function UsageRow({
 /**
  * The workspace's plan, its standing, what is left of each monthly allowance,
  * and its extra launch credits.
- * Owners and admins manage the subscription in Stripe's billing portal, pick
+ * Owners manage the subscription in Stripe's billing portal, pick
  * a plan when there is none, and buy an extra launch on a paid plan.
  */
 export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
@@ -260,7 +260,7 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
             ) : (
               <Row>
                 <p className="text-sm text-muted-foreground">
-                  Only workspace owners and admins can change the plan.
+                  Only workspace owners can change the plan.
                 </p>
               </Row>
             )}

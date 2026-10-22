@@ -12,7 +12,7 @@ const body: PlateBody = [
   p('First post'),
   brk({ id: 'b' }),
   p('Second post'),
-  brk({ id: 'c', quoteFirstPost: true }),
+  brk({ id: 'c' }),
   p('Follow for more'),
 ]
 const draft = (extra: Partial<PublicationDraft> = {}): PublicationDraft => ({
@@ -26,7 +26,7 @@ const draft = (extra: Partial<PublicationDraft> = {}): PublicationDraft => ({
 const x = { channel: 'x' as const, connectionId: 'cx0000000001' }
 const linkedin = { channel: 'linkedin' as const, connectionId: 'cl0000000001' }
 
-test('an X thread sends each post with its own settings; the finisher quotes the first post', () => {
+test('an X thread sends each post with its own settings', () => {
   const { problems, target } = buildPublication(draft(), x)
   assert.deepEqual(problems, [])
   assert.equal(target.caption, 'First post')
@@ -35,7 +35,7 @@ test('an X thread sends each post with its own settings; the finisher quotes the
     target.replies?.map((reply) => [reply.caption, reply.options]),
     [
       ['Second post', undefined],
-      ['Follow for more', { quoteFirstPost: true }],
+      ['Follow for more', undefined],
     ]
   )
 })
@@ -104,7 +104,7 @@ test('polls follow each platform’s rules', () => {
   assert.ok(withMedia.problems.some((problem) => problem.includes('cannot have media')))
 })
 
-test('kinds carry their target; articles need Premium and a title', () => {
+test('kinds carry their target; Articles need verified access and a title', () => {
   const reply = buildPublication(
     draft({
       kind: 'reply',
@@ -121,19 +121,42 @@ test('kinds carry their target; articles need Premium and a title', () => {
     x
   )
   assert.equal(quote.target.options?.quoteRemoteId, '9')
+  assert.ok(quote.problems.some((problem) => problem.includes('Enterprise API')))
+  const finisher = buildPublication(
+    draft({ body: [p('Root'), brk({ quoteFirstPost: true }), p('End')] }),
+    x
+  )
+  assert.ok(finisher.problems.some((problem) => problem.includes('Enterprise API')))
   const standard = buildPublication(draft({ article: { title: 'Why' }, kind: 'article' }), x)
-  assert.ok(standard.problems.some((problem) => problem.includes('Premium')))
+  assert.ok(standard.problems.some((problem) => problem.includes('Reconnect X')))
   const premium = buildPublication(draft({ article: { title: '' }, kind: 'article' }), {
     ...x,
-    standing: { premium: true },
+    standing: { maxWeightedCharacters: 25_000, articles: true },
   })
   assert.deepEqual(premium.problems, ['Give the article a title.'])
 })
 
-test('Premium raises X’s limit only for a Premium account', () => {
+test('verified capabilities set the account text limit independently of Articles', () => {
   const long = draft({ body: [brk({ id: 'a' }), p('a'.repeat(400))] })
   assert.ok(buildPublication(long, x).problems.some((problem) => problem.includes('400 of 280')))
-  assert.deepEqual(buildPublication(long, { ...x, standing: { premium: true } }).problems, [])
+  assert.deepEqual(
+    buildPublication(long, { ...x, standing: { maxWeightedCharacters: 25_000, articles: true } })
+      .problems,
+    []
+  )
+  const basic = { ...x, standing: { maxWeightedCharacters: 25_000 as const, articles: false } }
+  assert.deepEqual(buildPublication(long, basic).problems, [])
+  const article = draft({ body: [p('Article')], kind: 'article', article: { title: 'Why' } })
+  assert.ok(
+    buildPublication(article, basic).problems.some((problem) =>
+      problem.includes('eligible account')
+    )
+  )
+  assert.ok(
+    buildPublication(article, { ...x, standing: { maxWeightedCharacters: 25_000 } }).problems.some(
+      (problem) => problem.includes('Reconnect X')
+    )
+  )
 })
 
 test('mentions serialize the way each platform reads them', () => {

@@ -12,7 +12,9 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ssrf"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // The parts of @atproto/api's AtpAgent (CredentialSession + XrpcClient) the
@@ -80,13 +82,18 @@ type session struct {
 	Handle     string          `json:"handle"`
 	Did        string          `json:"did"`
 	DidDoc     json.RawMessage `json:"didDoc,omitempty"`
+	Active     *bool           `json:"active,omitempty"`
+	Status     string          `json:"status,omitempty"`
 }
 
 type agent struct {
-	service *url.URL
-	pds     *url.URL
-	session *session
-	client  *http.Client
+	limits                    socialidentity.BlueskyCapabilities
+	serverDID                 string
+	service                   *url.URL
+	pds                       *url.URL
+	session                   *session
+	client                    *http.Client
+	validateCredentialSession func(session) error
 }
 
 func newAgent(service string) (*agent, error) {
@@ -123,7 +130,10 @@ func (a *agent) call(ctx context.Context, req xrpcRequest, out any) error {
 	// the access token expired mid-run: refresh once and replay
 	if status != nil && status.Status == 400 && status.Name == "ExpiredToken" && req.authorization == "" && a.session != nil && a.session.RefreshJwt != "" {
 		accessJwt := a.session.AccessJwt
-		if a.refreshSession(ctx) == nil && a.session != nil && a.session.AccessJwt != accessJwt {
+		if err := a.refreshSession(ctx); err != nil {
+			return err
+		}
+		if a.session != nil && a.session.AccessJwt != accessJwt {
 			status, data, err = a.do(ctx, a.dispatchURL(), req)
 			if err != nil {
 				return err
@@ -165,9 +175,15 @@ func (a *agent) do(ctx context.Context, base *url.URL, req xrpcRequest) (*XRPCEr
 		return nil, nil, err
 	}
 	defer res.Body.Close()
-	data, err := io.ReadAll(res.Body)
+	data, err := io.ReadAll(io.LimitReader(res.Body, connectionResponseLimit+1))
 	if err != nil {
-		return nil, nil, err
+		if ctx.Err() != nil {
+			return nil, nil, ctx.Err()
+		}
+		return nil, nil, integrations.ErrRefreshUnavailable
+	}
+	if len(data) > connectionResponseLimit {
+		return nil, nil, errConnection
 	}
 	code := statusEnum(res.StatusCode)
 	if code == 200 {
@@ -208,8 +224,18 @@ func (a *agent) login(ctx context.Context, identifier, password string) error {
 	if err != nil {
 		return err
 	}
+	if err := validateSession(s); err != nil {
+		return err
+	}
+	if a.validateCredentialSession != nil {
+		if err := a.validateCredentialSession(s); err != nil {
+			return err
+		}
+	}
 	a.session = &s
-	a.updateAPIEndpoint(s.DidDoc)
+	if a.validateCredentialSession == nil {
+		a.updateAPIEndpoint(s.DidDoc)
+	}
 	return nil
 }
 
@@ -232,8 +258,34 @@ func (a *agent) refreshSession(ctx context.Context) error {
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
+	if err := validateSession(s); err != nil {
+		a.session = nil
+		return err
+	}
+	if a.session == nil || s.Did != a.session.Did {
+		a.session = nil
+		return errAccountMismatch
+	}
+	if a.validateCredentialSession != nil {
+		if err := a.validateCredentialSession(s); err != nil {
+			a.session = nil
+			return err
+		}
+	}
 	a.session = &s
-	a.updateAPIEndpoint(s.DidDoc)
+	if a.validateCredentialSession == nil {
+		a.updateAPIEndpoint(s.DidDoc)
+	}
+	return nil
+}
+
+func validateSession(s session) error {
+	if (s.Active != nil && !*s.Active) || s.Status != "" {
+		return errAccountInactive
+	}
+	if s.Did == "" || s.AccessJwt == "" || s.RefreshJwt == "" {
+		return errors.New("Bluesky account session could not be verified")
+	}
 	return nil
 }
 
@@ -283,6 +335,7 @@ func (a *agent) accountDid() (string, error) {
 }
 
 type profile struct {
+	Did         string `json:"did"`
 	DisplayName string `json:"displayName"`
 	Avatar      string `json:"avatar"`
 	Handle      string `json:"handle"`
@@ -346,11 +399,11 @@ func (a *agent) resolveHandle(ctx context.Context, handle string) (string, error
 }
 
 // uploadBlob returns the blob ref exactly as the PDS serialized it.
-func (a *agent) uploadBlob(ctx context.Context, data []byte) (json.RawMessage, error) {
+func (a *agent) uploadBlob(ctx context.Context, data []byte, mime string) (json.RawMessage, error) {
 	var out struct {
 		Blob json.RawMessage `json:"blob"`
 	}
-	return out.Blob, a.call(ctx, xrpcRequest{nsid: "com.atproto.repo.uploadBlob", body: data, contentType: "application/octet-stream"}, &out)
+	return out.Blob, a.call(ctx, xrpcRequest{nsid: "com.atproto.repo.uploadBlob", body: data, contentType: mime}, &out)
 }
 
 type createdRecord struct {

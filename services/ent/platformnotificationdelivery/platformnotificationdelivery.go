@@ -43,6 +43,8 @@ const (
 	FieldNextAttemptAt = "next_attempt_at"
 	// FieldFailureCode holds the string denoting the failure_code field in the database.
 	FieldFailureCode = "failure_code"
+	// FieldDecisionCode holds the string denoting the decision_code field in the database.
+	FieldDecisionCode = "decision_code"
 	// FieldProviderReceipt holds the string denoting the provider_receipt field in the database.
 	FieldProviderReceipt = "provider_receipt"
 	// FieldEncryptedPayload holds the string denoting the encrypted_payload field in the database.
@@ -73,6 +75,7 @@ var Columns = []string{
 	FieldAttempts,
 	FieldNextAttemptAt,
 	FieldFailureCode,
+	FieldDecisionCode,
 	FieldProviderReceipt,
 	FieldEncryptedPayload,
 	FieldCreatedAt,
@@ -106,6 +109,8 @@ var (
 	DefaultNextAttemptAt func() time.Time
 	// DefaultFailureCode holds the default value on creation for the "failure_code" field.
 	DefaultFailureCode string
+	// DefaultDecisionCode holds the default value on creation for the "decision_code" field.
+	DefaultDecisionCode string
 	// DefaultProviderReceipt holds the default value on creation for the "provider_receipt" field.
 	DefaultProviderReceipt string
 	// DefaultEncryptedPayload holds the default value on creation for the "encrypted_payload" field.
@@ -197,6 +202,11 @@ func ByNextAttemptAt(opts ...sql.OrderTermOption) OrderOption {
 // ByFailureCode orders the results by the failure_code field.
 func ByFailureCode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFailureCode, opts...).ToFunc()
+}
+
+// ByDecisionCode orders the results by the decision_code field.
+func ByDecisionCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDecisionCode, opts...).ToFunc()
 }
 
 // ByProviderReceipt orders the results by the provider_receipt field.

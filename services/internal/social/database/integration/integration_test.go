@@ -18,6 +18,7 @@ import (
 type fakeProvider struct {
 	*integrations.Base
 	id            string
+	oneTimeToken  bool
 	analyticsHits int
 	plugRuns      int
 	refresh       func() (*integrations.AuthTokenDetails, error)
@@ -28,7 +29,7 @@ func newFake(id string) *fakeProvider {
 }
 
 func (f *fakeProvider) Info() integrations.Info {
-	return integrations.Info{Identifier: f.id, Name: f.id}
+	return integrations.Info{Identifier: f.id, Name: f.id, OneTimeToken: f.oneTimeToken}
 }
 func (f *fakeProvider) MaxLength([]integrations.AdditionalSetting, json.RawMessage) int { return 100 }
 func (f *fakeProvider) GenerateAuthURL(context.Context, *integrations.ClientInformation) (*integrations.GenerateAuthURLResponse, error) {
@@ -158,6 +159,23 @@ func TestCreateOrUpdateIntegrationUpsert(t *testing.T) {
 	if sibling.Token != "t3" || *sibling.RefreshToken != "r3" {
 		t.Errorf("one-time token not propagated: %s", sibling.Token)
 	}
+	otherOrg := f.client.Organization.Create().SetName("Other workspace").SaveX(f.ctx)
+	foreign := f.client.Integration.Create().SetOrganizationID(otherOrg.ID).SetInternalID("foreign").SetName("Foreign").
+		SetProviderIdentifier("x").SetType("social").SetToken("foreign-token").SetRootInternalID("u1").SaveX(f.ctx)
+	otherProvider := f.client.Integration.Create().SetOrganizationID(f.org.ID).SetInternalID("other-provider").SetName("Other provider").
+		SetProviderIdentifier("different").SetType("social").SetToken("other-token").SetRootInternalID("u1").SaveX(f.ctx)
+	f.connect(t, CreateOrUpdateIntegrationParams{OneTimeToken: true, Name: "Alice", InternalID: "u1", Provider: "x", Token: "t4"})
+	sibling = f.client.Integration.GetX(f.ctx, sibling.ID)
+	if sibling.Token != "t4" || sibling.RefreshToken == nil || *sibling.RefreshToken != "r3" {
+		t.Fatal("empty refresh response erased sibling credentials")
+	}
+	if f.client.Integration.GetX(f.ctx, foreign.ID).Token != "foreign-token" || f.client.Integration.GetX(f.ctx, otherProvider.ID).Token != "other-token" {
+		t.Fatal("one-time token update escaped workspace/provider scope")
+	}
+	withoutRefresh := f.connect(t, CreateOrUpdateIntegrationParams{Name: "New account", InternalID: "no-refresh", Provider: "x", Token: "access"})
+	if withoutRefresh.RefreshToken != nil {
+		t.Fatal("absent refresh token did not stay NULL")
+	}
 }
 
 func TestMigrateIntegrationOnConnect(t *testing.T) {
@@ -188,6 +206,34 @@ func TestMigrateIntegrationOnConnect(t *testing.T) {
 	if _, err := f.service.MigrateIntegration(f.ctx, f.org.ID, "new-id", "old", integrations.AuthTokenDetails{ID: "x"}); !errors.As(err, &scopes) ||
 		scopes.Message != "Please refresh the channel that needs to be refreshed" {
 		t.Errorf("expected NotEnoughScopes, got %v", err)
+	}
+}
+
+func TestRefreshPreservesVerifiedTokenLifetime(t *testing.T) {
+	f := setup(t, "fake")
+	connected := f.connect(t, CreateOrUpdateIntegrationParams{Name: "Account", InternalID: "account", Provider: "fake", Token: "old", RefreshToken: "refresh"})
+	f.providers["fake"].refresh = func() (*integrations.AuthTokenDetails, error) {
+		return &integrations.AuthTokenDetails{AccessToken: "new", NonExpiring: true}, nil
+	}
+	if _, err := f.service.RefreshIntegrationService().Refresh(f.ctx, connected, "expired"); err != nil {
+		t.Fatal(err)
+	}
+	stored := f.client.Integration.GetX(f.ctx, connected.ID)
+	if stored.TokenExpiration != nil || stored.Token != "new" {
+		t.Fatal("refresh ignored the verified non-expiring lifetime")
+	}
+	for _, tc := range []struct {
+		base, override  integrations.AuthTokenDetails
+		wantNonExpiring bool
+		wantSeconds     int64
+	}{
+		{integrations.AuthTokenDetails{ExpiresIn: 60}, integrations.AuthTokenDetails{NonExpiring: true}, true, 0},
+		{integrations.AuthTokenDetails{NonExpiring: true}, integrations.AuthTokenDetails{ExpiresIn: 60}, false, 60},
+	} {
+		merged := mergeAuth(tc.base, &tc.override)
+		if merged.NonExpiring != tc.wantNonExpiring || merged.ExpiresIn != tc.wantSeconds {
+			t.Fatal("reconnect merged contradictory token lifetimes")
+		}
 	}
 }
 

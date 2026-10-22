@@ -127,6 +127,34 @@ func TestOutboundWebhookDelivery(t *testing.T) {
 	}}
 	recorder := server.Config.Handler.(*receiver)
 
+	// Replay schedules with the application clock; claiming uses PostgreSQL's
+	// clock, which may lag slightly in the disposable VM. Wait for the actual
+	// HTTP attempt instead of assuming the first worker tick is already due.
+	deliver := func() {
+		t.Helper()
+		recorder.mu.Lock()
+		before := len(recorder.requests)
+		recorder.mu.Unlock()
+		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		for {
+			if _, err := dispatcher.Deliver(ctx); err != nil {
+				t.Fatal(err)
+			}
+			recorder.mu.Lock()
+			delivered := len(recorder.requests) > before
+			recorder.mu.Unlock()
+			if delivered {
+				return
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatal("webhook attempt did not arrive", ctx.Err())
+			case <-time.After(10 * time.Millisecond):
+			}
+		}
+	}
+
 	draft, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Title: "Hello webhooks", PlainText: "secret body text"})
 	if err != nil {
 		t.Fatal(err)
@@ -139,9 +167,7 @@ func TestOutboundWebhookDelivery(t *testing.T) {
 	if count, _ := db.Client.WebhookDelivery.Query().Where(webhookdelivery.SubscriptionID(created.Webhook.ID)).Count(ctx); count != 1 {
 		t.Fatalf("fanout twice made %d deliveries", count)
 	}
-	if _, err := dispatcher.Deliver(ctx); err != nil {
-		t.Fatal(err)
-	}
+	deliver()
 	if len(recorder.requests) != 1 {
 		t.Fatalf("received %d requests", len(recorder.requests))
 	}
@@ -172,12 +198,8 @@ func TestOutboundWebhookDelivery(t *testing.T) {
 		t.Fatal(err)
 	}
 	for attempt := 1; attempt <= webhooks.MaxAttempts; attempt++ {
-		// timestamp(3) rounds now() up by up to half a millisecond. Keep the
-		// fixture unambiguously due before the dispatcher's next clock read.
-		exec(`UPDATE webhook_delivery SET "nextAttemptAt"=now()-interval '1 second' WHERE id=$1`, deleted.ID)
-		if _, err := dispatcher.Deliver(ctx); err != nil {
-			t.Fatal(err)
-		}
+		exec(`UPDATE webhook_delivery SET "nextAttemptAt"=now() WHERE id=$1`, deleted.ID)
+		deliver()
 		row, _ := db.Client.WebhookDelivery.Get(ctx, deleted.ID)
 		if row.Attempts != attempt || *row.ResponseStatus != 500 || *row.ErrorClass != webhooks.ErrorHTTPStatus {
 			t.Fatalf("attempt %d: %+v", attempt, row)
@@ -203,9 +225,7 @@ func TestOutboundWebhookDelivery(t *testing.T) {
 	if _, err := repo.RetryWebhookDelivery(ctx, owner, deleted.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := dispatcher.Deliver(ctx); err != nil {
-		t.Fatal(err)
-	}
+	deliver()
 	row, _ := db.Client.WebhookDelivery.Get(ctx, deleted.ID)
 	ids := map[string]bool{}
 	for _, request := range recorder.requests[1:] {
@@ -223,9 +243,7 @@ func TestOutboundWebhookDelivery(t *testing.T) {
 	if _, err := repo.TestWebhook(ctx, owner, created.Webhook.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := dispatcher.Deliver(ctx); err != nil {
-		t.Fatal(err)
-	}
+	deliver()
 	last := recorder.requests[len(recorder.requests)-1]
 	if last["event"] != webhooks.Test || !webhooks.Verify(rotated.Secret, last["id"], last["timestamp"], []byte(last["body"]), last["signature"]) ||
 		!webhooks.Verify(created.Secret, last["id"], last["timestamp"], []byte(last["body"]), last["signature"]) {

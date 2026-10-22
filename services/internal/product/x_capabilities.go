@@ -1,0 +1,102 @@
+package product
+
+import (
+	"context"
+	"encoding/json"
+	"time"
+
+	entsql "entgo.io/ent/dialect/sql"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
+)
+
+func checkXTarget(ctx context.Context, tx *ent.Tx, connection *ent.ChannelConnection, target ContentDraftScheduleTarget, ids []string, article bool) (*socialidentity.XCapabilities, error) {
+	var caps *socialidentity.XCapabilities
+	err := tx.Client().PlatformQuery(ctx, `SELECT i."internalId", i."verifiedAccountKey", i."verifiedAccountKind",
+		i."verifiedScopes", i."verifiedCapabilities", i."identityVerifiedAt"
+		FROM channel_connection c
+		JOIN social_tenant_binding b ON b."organizationId" = c."organizationId"
+		JOIN "Integration" i ON i.id = c."externalAccountId" AND i."organizationId" = b."goOrganizationId"
+		WHERE c.id = $1 AND c."organizationId" = $2 AND c.provider = 'social' AND i."providerIdentifier" = 'x'`,
+		[]any{connection.ID, connection.OrganizationID}, func(row entsql.ColumnScanner) error {
+			var native string
+			var key, kind *string
+			var scopes, capabilities []byte
+			var verified *time.Time
+			if err := row.Scan(&native, &key, &kind, &scopes, &capabilities, &verified); err != nil {
+				return err
+			}
+			if key == nil || kind == nil || verified == nil {
+				return nil
+			}
+			proof := socialidentity.Verification{AccountKey: *key, AccountKind: *kind}
+			if json.Unmarshal(scopes, &proof.GrantedScopes) == nil && json.Unmarshal(capabilities, &proof.Capabilities) == nil && proof.Validate("x", native) == nil {
+				caps = proof.Capabilities.X
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+	if caps == nil {
+		return nil, conflict("Reconnect X to verify this account's publishing permissions and limits.")
+	}
+	if article && (caps.Articles == nil || !*caps.Articles) {
+		return nil, conflict("This connection has no verified X Articles access. Reconnect an eligible account.")
+	}
+	check := func(text string, selected []string, options *postoptions.PublishOptions, isArticle bool) error {
+		if options != nil && (options.QuoteRemoteID != "" || options.QuoteFirstPost) {
+			return conflict("X quote posts require Enterprise API access, which this connection has not verified.")
+		}
+		if !isArticle {
+			if err := socialidentity.CheckXText(*caps, text); err != nil {
+				return conflict(err.Error())
+			}
+		}
+		if len(selected) > caps.MaxImages {
+			if isArticle {
+				return conflict("Shots supports up to four attached images in an X article.")
+			}
+			return conflict("Choose up to four images, one GIF, or one video for each X post.")
+		}
+		if _, err := contentDraftAssets(ctx, tx, connection.OrganizationID, selected); err != nil {
+			return err
+		}
+		media := make([]socialidentity.XMedia, 0, len(selected))
+		if len(selected) > 0 {
+			rows, err := tx.Asset.Query().Where(asset.OrganizationID(connection.OrganizationID), asset.IDIn(selected...), asset.StatusEQ(asset.StatusUPLOADED)).All(ctx)
+			if err != nil {
+				return err
+			}
+			if len(rows) != len(selected) {
+				return invalid("Select distinct uploaded files from this workspace.")
+			}
+			for _, row := range rows {
+				if isArticle && row.MediaType != "image/jpeg" && row.MediaType != "image/png" && row.MediaType != "image/webp" {
+					return conflict("X articles support JPEG, PNG, or WebP images here.")
+				}
+				media = append(media, socialidentity.XMedia{MIME: row.MediaType, Bytes: int64(row.Bytes)})
+			}
+		}
+		if err := socialidentity.CheckXMedia(*caps, media); err != nil {
+			return conflict(err.Error())
+		}
+		return nil
+	}
+	if err := check(target.Caption, ids, target.Options, article); err != nil {
+		return nil, err
+	}
+	if article && target.Options != nil && target.Options.ArticleCoverAssetID != "" {
+		if err := check("", []string{target.Options.ArticleCoverAssetID}, nil, true); err != nil {
+			return nil, err
+		}
+	}
+	for _, reply := range target.Replies {
+		if err := check(reply.Caption, reply.AssetIDs, reply.Options, false); err != nil {
+			return nil, err
+		}
+	}
+	return caps, nil
+}

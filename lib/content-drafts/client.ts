@@ -1,3 +1,7 @@
+import type {
+  draftCommentResultSchema,
+  DraftCommentInput,
+} from '@/lib/api/contracts/draft-comments'
 import type { z } from 'zod'
 import type {
   calendarPostSchema,
@@ -85,6 +89,11 @@ export type DraftSave = {
 }
 
 export const draftsApi = {
+  comment: (id: string, input: DraftCommentInput) =>
+    call<z.output<typeof draftCommentResultSchema>>(`${one(id)}/comments`, {
+      body: input,
+      method: 'POST',
+    }),
   create: (input: z.input<typeof contentDraftCreateSchema> = {}) =>
     call<DraftWire>(base, { body: input, method: 'POST' }),
   get: (id: string) => call<DraftWire>(one(id)),

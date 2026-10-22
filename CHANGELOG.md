@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.36.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.35.2...v2.36.0) (2026-10-22)
+
+
+### Features
+
+* **ui:** polish workspace, Phosphor icons, themes, and R2 images ([#291](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/291)) ([5ce2436](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/5ce24369811db55103f560c48811b684cbcc3c8c))
+
 ## [2.35.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.35.1...v2.35.2) (2026-10-22)
 
 

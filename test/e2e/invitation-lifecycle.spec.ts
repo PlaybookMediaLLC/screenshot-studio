@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { getE2EUrl, openWorkspaceSetting, signUp, signUpAndCreateWorkspace } from './framework/auth'
-import { browserRequest } from './framework/browser'
+import { browserRequest, requestJson } from './framework/browser'
 import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
 import { createE2EDatabase, queryRow } from './framework/services'
 
@@ -43,12 +43,17 @@ async function expectNoActiveWorkspace(
 
 async function expectInvitationRejection(
   page: Parameters<typeof openWorkspaceSetting>[0],
-  invitationId: string
+  invitationId: string,
+  message: string
 ): Promise<void> {
   await page.goto(getE2EUrl(`/accept-invitation?invitationId=${invitationId}`))
-  await page.getByRole('button', { name: 'Accept invitation' }).click()
+  await expect(page.getByText(message, { exact: false })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Accept invitation' })).toHaveCount(0)
+  const attempt = await requestJson(page, '/api/auth/organization/accept-invitation', {
+    invitationId,
+  })
+  expect([404, 409]).toContain(attempt.status)
   await expect.poll(() => new URL(page.url()).pathname).toBe('/accept-invitation')
-  await expect(page.locator('p.text-destructive')).toBeVisible()
   await expectNoActiveWorkspace(page)
 }
 
@@ -83,8 +88,15 @@ test('an invitation accepts once for its intended recipient', async ({
     await memberPage.getByRole('button', { name: 'Accept invitation' }).click()
     await expect.poll(() => new URL(memberPage.url()).pathname).toBe('/workspace')
     await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
-    await memberPage.getByRole('button', { name: 'Accept invitation' }).click()
-    await expect(memberPage.locator('p.text-destructive')).toBeVisible()
+    await expect(memberPage.getByText('This invitation has already been accepted.')).toBeVisible()
+    await expect(memberPage.getByRole('button', { name: 'Accept invitation' })).toHaveCount(0)
+    expect(
+      (
+        await requestJson(memberPage, '/api/auth/organization/accept-invitation', {
+          invitationId: invitation.id,
+        })
+      ).status
+    ).toBe(409)
   } finally {
     await memberContext.close()
   }
@@ -104,7 +116,7 @@ test('an invitation cannot be accepted by another user or after cancellation', a
   try {
     const otherPage = await otherContext.newPage()
     await signUp(getMemberIdentity(identity, 'other'), otherPage)
-    await expectInvitationRejection(otherPage, invitation.id)
+    await expectInvitationRejection(otherPage, invitation.id, 'unavailable for this account')
     await page.getByRole('button', { name: 'Resend' }).click()
     await expect(page.getByText('Invitation resent.')).toBeVisible()
     await page.getByRole('button', { name: 'Revoke' }).click()
@@ -113,7 +125,7 @@ test('an invitation cannot be accepted by another user or after cancellation', a
 
     const intendedPage = await intendedContext.newPage()
     await signUp(intendedMember, intendedPage)
-    await expectInvitationRejection(intendedPage, invitation.id)
+    await expectInvitationRejection(intendedPage, invitation.id, 'has been revoked')
   } finally {
     await intendedContext.close()
     await otherContext.close()
@@ -134,7 +146,7 @@ test('an expired invitation does not grant workspace access', async ({
 
   try {
     await signUp(member, memberPage)
-    await expectInvitationRejection(memberPage, invitation.id)
+    await expectInvitationRejection(memberPage, invitation.id, 'has expired')
   } finally {
     await memberContext.close()
   }

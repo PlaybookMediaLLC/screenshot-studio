@@ -75,9 +75,9 @@ The dedicated [member-comment path](member-comments.md) now permits read-only,
 approver, and publisher discussions without document writes. Go validates the
 current human member, comment author, mentions, resource visibility, and version;
 comments preserve publication approval and existing content. T10 remains open
-for its broader invitation and collaboration contract. T11's
-complete acceptance/rejection/replay/revocation/expiry and concurrent seat checks
-remain separate work. T12 remains open until all other mutation, media,
+for its broader collaboration and transfer contract. T11's
+[acceptance, decline, replay, revocation, expiry and concurrent invitation-seat checks](invitation-lifecycle.md)
+are now locally verified. T12 remains open until all other mutation, media,
 collaboration, notification, and delayed execution boundaries have been audited
 and tested, including complete membership removal. This increment does not
 complete transfers, all provider capabilities, or the full 60-item assignment.

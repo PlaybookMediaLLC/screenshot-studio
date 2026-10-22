@@ -70,7 +70,7 @@ func main() {
 		os.Exit(1)
 	}
 	configuration := product.NewConfiguration(db.Client).WithNotifications(notifications.New(db.SQL, db.Client)).WithObjectStore(objects).WithAuthStore(authstore.New(db.SQL)).
-		WithAgentClients(agentclients.New(db.SQL))
+		WithAgentClients(agentclients.New(db.SQL)).WithInvitationEmailVerification(os.Getenv("AUTH_REQUIRE_EMAIL_VERIFICATION") != "false")
 	// Live draft posts' engagement is read through the direct social publisher,
 	// which shares this database (RFC 037).
 	if publisher, closeShared, err := tenantpublishing.OpenShared(ctx, cfg.DatabaseURL, publishing.NewRepository(db.Client),

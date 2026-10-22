@@ -19,6 +19,8 @@ var publishTimePattern = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]$`)
 var localePattern = regexp.MustCompile(`^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{2,8})*$`)
 
 func (s *Server) registerWorkspace(mux *http.ServeMux) {
+	mux.Handle("GET /v1/invitations/{id}", s.authenticateSession(http.HandlerFunc(s.getRecipientInvitation)))
+	mux.Handle("POST /v1/invitations/{id}/respond", s.authenticateSession(http.HandlerFunc(s.respondInvitation)))
 	mux.Handle("GET /v1/workspaces", s.authenticateSession(http.HandlerFunc(s.listWorkspaces)))
 	mux.Handle("POST /v1/workspaces", s.authenticateSession(http.HandlerFunc(s.createWorkspace)))
 	mux.Handle("POST /v1/workspaces/active", s.authenticateSession(http.HandlerFunc(s.setActiveWorkspace)))
@@ -151,11 +153,12 @@ func (s *Server) revokeWorkspaceInvitation(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusBadRequest, "valid invitation ID is required")
 		return
 	}
-	if err := s.configuration.RevokeInvitation(r.Context(), actor, id); err != nil {
+	result, err := s.configuration.CancelInvitation(r.Context(), actor, id)
+	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"id": id, "status": "canceled"})
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) requestWorkspaceDeletion(w http.ResponseWriter, r *http.Request) {

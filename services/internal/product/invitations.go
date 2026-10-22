@@ -18,7 +18,9 @@ import (
 
 type InvitationDetail struct {
 	WorkspaceInvitation
-	Organization struct {
+	OrganizationID string `json:"organizationId"`
+	InviterID      string `json:"inviterId"`
+	Organization   struct {
 		Name string `json:"name"`
 	} `json:"organization"`
 	User struct {
@@ -58,6 +60,7 @@ func (c *Configuration) invitationDetail(ctx context.Context, tx *ent.Tx, item *
 		CreatedAt: item.CreatedAt, Email: item.Email, ExpiresAt: item.ExpiresAt,
 		ID: item.ID, Role: item.Role, Status: item.Status,
 	}}
+	detail.OrganizationID, detail.InviterID = org.ID, item.InviterID
 	detail.Organization.Name = org.Name
 	detail.User.Email, detail.User.Name = inviter.Email, inviter.Name
 	return detail, nil
@@ -86,17 +89,21 @@ func (c *Configuration) InviteMember(ctx context.Context, actor Actor, email, ro
 	if err != nil || address.Address != email || len(email) > 320 || !ValidAssignableRole(role) {
 		return nil, ErrInvalidInput
 	}
-	if err := c.invitationRateLimit(ctx, actor, "product.member_invited", "", 10); err != nil {
-		return nil, err
-	}
-	if err := c.RequireSeat(ctx, actor.OrganizationID, true); err != nil {
-		return nil, err
-	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := invitationAdministrator(ctx, tx, actor); err != nil {
+		return nil, err
+	}
+	locked := NewConfiguration(tx.Client())
+	if err := locked.invitationRateLimit(ctx, actor, "product.member_invited", "", 10); err != nil {
+		return nil, err
+	}
+	if err := locked.RequireSeat(ctx, actor.OrganizationID, true); err != nil {
+		return nil, err
+	}
 	person, err := tx.User.Query().Where(user.Email(email)).Only(ctx)
 	if err != nil && !ent.IsNotFound(err) {
 		return nil, err
@@ -148,14 +155,17 @@ func (c *Configuration) InviteMember(ctx context.Context, actor Actor, email, ro
 }
 
 func (c *Configuration) ResendInvitation(ctx context.Context, actor Actor, invitationID string) (*InvitationDetail, error) {
-	if err := c.invitationRateLimit(ctx, actor, "product.member_invitation_resent", invitationID, 3); err != nil {
-		return nil, err
-	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := invitationAdministrator(ctx, tx, actor); err != nil {
+		return nil, err
+	}
+	if err := NewConfiguration(tx.Client()).invitationRateLimit(ctx, actor, "product.member_invitation_resent", invitationID, 3); err != nil {
+		return nil, err
+	}
 	count, err := tx.Invitation.Update().Where(invitation.ID(invitationID), invitation.OrganizationID(actor.OrganizationID),
 		invitation.Status("pending"), invitation.ExpiresAtGT(time.Now().UTC())).
 		SetExpiresAt(time.Now().UTC().Add(7 * 24 * time.Hour)).Save(ctx)
@@ -183,22 +193,43 @@ func (c *Configuration) ResendInvitation(ctx context.Context, actor Actor, invit
 	return detail, nil
 }
 
-func (c *Configuration) RevokeInvitation(ctx context.Context, actor Actor, invitationID string) error {
+// CancelInvitation returns the canonical canceled invitation to Better Auth.
+// Existing product callers use RevokeInvitation, which shares this transaction.
+func (c *Configuration) CancelInvitation(ctx context.Context, actor Actor, invitationID string) (*RecipientInvitation, error) {
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer tx.Rollback()
+	if err := invitationAdministrator(ctx, tx, actor); err != nil {
+		return nil, err
+	}
 	count, err := tx.Invitation.Update().Where(invitation.ID(invitationID), invitation.OrganizationID(actor.OrganizationID),
 		invitation.Status("pending")).SetStatus("canceled").Save(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if count != 1 {
-		return notFound("Pending invitation not found.")
+		return nil, notFound("Pending invitation not found.")
 	}
 	if err := recordProductActivity(ctx, tx, actor, "invitation.revoked", "product.member_invitation_revoked", "invitation", invitationID); err != nil {
-		return err
+		return nil, err
 	}
-	return tx.Commit()
+	item, err := tx.Invitation.Get(ctx, invitationID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := recipientInvitationRecord(ctx, tx.Client(), item)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Configuration) RevokeInvitation(ctx context.Context, actor Actor, invitationID string) error {
+	_, err := c.CancelInvitation(ctx, actor, invitationID)
+	return err
 }

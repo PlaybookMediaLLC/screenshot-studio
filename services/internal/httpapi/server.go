@@ -189,6 +189,9 @@ type ConfigurationStore interface {
 	InviteMember(context.Context, product.Actor, string, string) (*product.InvitationDetail, error)
 	ResendInvitation(context.Context, product.Actor, string) (*product.InvitationDetail, error)
 	RevokeInvitation(context.Context, product.Actor, string) error
+	CancelInvitation(context.Context, product.Actor, string) (*product.RecipientInvitation, error)
+	GetRecipientInvitation(context.Context, product.Actor, string) (*product.RecipientInvitation, error)
+	RespondInvitation(context.Context, product.Actor, string, string) (*product.InvitationResponse, error)
 	Bootstrap(context.Context, product.Actor) (*product.BootstrapSnapshot, error)
 	GetCurrentUser(context.Context, product.Actor) (*product.CurrentUser, error)
 	GetActiveAccess(context.Context, product.Actor) (*product.ActiveAccess, error)

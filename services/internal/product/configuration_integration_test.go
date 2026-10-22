@@ -715,7 +715,15 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if err != nil || resent.ID != invited.ID || len(mailer.messages) != 2 {
 		t.Fatalf("workspace invite resend=%v mail=%v err=%v", resent, mailer.messages, err)
 	}
-	if err := repo.RevokeInvitation(ctx, Actor{OrganizationID: otherOrgID, UserID: userID}, invited.ID); !errors.Is(err, publishing.ErrNotFound) {
+	// Use a real administrator session in the foreign workspace so this tests
+	// resource scoping after authentication, rather than an unauthenticated call.
+	if _, err := db.SQL.ExecContext(ctx, `INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,'owner',now())`, "other_member_"+id, otherOrgID, userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.SQL.ExecContext(ctx, `INSERT INTO session (id,token,"expiresAt","createdAt","updatedAt","userId","activeOrganizationId") VALUES ($1,$1,now()+interval '1 hour',now(),now(),$2,$3)`, "other_session_"+id, userID, otherOrgID); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.RevokeInvitation(ctx, Actor{OrganizationID: otherOrgID, UserID: userID, SessionID: "other_session_" + id}, invited.ID); !errors.Is(err, publishing.ErrNotFound) {
 		t.Fatalf("cross-tenant invitation revoke succeeded: %v", err)
 	}
 	if err := repo.RevokeInvitation(ctx, actor, invited.ID); err != nil {

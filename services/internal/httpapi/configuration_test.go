@@ -84,6 +84,16 @@ func (f *fakeConfiguration) ResendInvitation(context.Context, product.Actor, str
 func (f *fakeConfiguration) RevokeInvitation(context.Context, product.Actor, string) error {
 	return nil
 }
+
+func (f *fakeConfiguration) CancelInvitation(context.Context, product.Actor, string) (*product.RecipientInvitation, error) {
+	return &product.RecipientInvitation{}, nil
+}
+func (f *fakeConfiguration) GetRecipientInvitation(context.Context, product.Actor, string) (*product.RecipientInvitation, error) {
+	return &product.RecipientInvitation{}, nil
+}
+func (f *fakeConfiguration) RespondInvitation(context.Context, product.Actor, string, string) (*product.InvitationResponse, error) {
+	return &product.InvitationResponse{}, nil
+}
 func (f *fakeConfiguration) Bootstrap(context.Context, product.Actor) (*product.BootstrapSnapshot, error) {
 	return &product.BootstrapSnapshot{}, nil
 }

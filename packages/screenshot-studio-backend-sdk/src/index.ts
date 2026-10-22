@@ -1,3 +1,9 @@
+import {
+  recipientInvitationSchema,
+  invitationResponseSchema,
+  workspaceInvitationDetailSchema,
+} from './invitations.ts'
+export * from './invitations.ts'
 import { draftCommentInputSchema, type DraftCommentInput } from './draft-comments.ts'
 export * from './draft-comments.ts'
 import { connectionAvailabilitySchema } from './social-availability.ts'
@@ -1889,11 +1895,6 @@ export type WorkspaceInvitation = {
   id: string
   role: string | null
   status: string
-}
-
-export type WorkspaceInvitationDetail = WorkspaceInvitation & {
-  organization: { name: string }
-  user: { email: string; name: string }
 }
 
 export type WorkspaceDeletion = {
@@ -4349,16 +4350,45 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async inviteWorkspaceMember(input: { email: string; role: string }) {
-    return this.request<WorkspaceInvitationDetail>('v1/workspace/invitations', {
-      body: input,
-      method: 'POST',
-    })
+    return workspaceInvitationDetailSchema.parse(
+      await this.request('v1/workspace/invitations', {
+        body: input,
+        method: 'POST',
+      })
+    )
   }
 
   async resendWorkspaceInvitation(invitationId: string) {
-    return this.request<WorkspaceInvitationDetail>(
-      `v1/workspace/invitations/${encodeURIComponent(invitationId)}/resend`,
-      { method: 'POST' }
+    return workspaceInvitationDetailSchema.parse(
+      await this.request(`v1/workspace/invitations/${encodeURIComponent(invitationId)}/resend`, {
+        method: 'POST',
+      })
+    )
+  }
+
+  /** Read a link only as its currently authenticated recipient. */
+  async getRecipientInvitation(invitationId: string) {
+    return recipientInvitationSchema.parse(
+      await this.request(`v1/invitations/${encodeURIComponent(invitationId)}`)
+    )
+  }
+
+  /** Consume a pending invitation with membership, seats and audit in one transaction. */
+  async respondWorkspaceInvitation(invitationId: string, action: 'accept' | 'reject') {
+    return invitationResponseSchema.parse(
+      await this.request(`v1/invitations/${encodeURIComponent(invitationId)}/respond`, {
+        method: 'POST',
+        body: { action },
+      })
+    )
+  }
+
+  /** Administrative cancellation using the same operation as the workspace controls. */
+  async cancelWorkspaceInvitation(invitationId: string) {
+    return recipientInvitationSchema.parse(
+      await this.request(`v1/workspace/invitations/${encodeURIComponent(invitationId)}`, {
+        method: 'DELETE',
+      })
     )
   }
 

@@ -54,6 +54,7 @@ The browser flow exercises real authentication and PostgreSQL, including a respo
 lost only after the real comment commit. External delivery remains in the local
 email sink; no public social post or paid action is part of these checks.
 
-T10 still includes the broader invitation and collaboration contract. T11's decline
-and atomic acceptance/seat checks and T12's complete removal audit remain separate
-work. This increment is not verification of the full 60-criterion assignment.
+T10 still includes the broader collaboration and transfer contract. The
+[invitation lifecycle](invitation-lifecycle.md), including decline and atomic
+acceptance/seat checks, is now locally verified. T12's complete removal audit remains
+separate work. This increment is not verification of the full 60-criterion assignment.

@@ -8,6 +8,7 @@ import {
 } from 'screenshot-studio-backend-sdk'
 import { backendSDK } from '@/lib/backend/sdk'
 import { workspaceCreateSchema } from '@/lib/workspace/input-schemas'
+import { workspaceInvitationEndpoints } from './workspace-invitations-plugin'
 
 const creationInputSchema = workspaceCreateSchema.strict().extend({
   logo: workspaceCreationLogoSchema.nullish(),
@@ -76,6 +77,10 @@ export function workspaceOrganizationPlugin<
   const plugin = organization(options)
   return {
     ...plugin,
-    endpoints: { ...plugin.endpoints, createOrganization: createWorkspaceOrganizationEndpoint },
+    endpoints: {
+      ...plugin.endpoints,
+      ...workspaceInvitationEndpoints,
+      createOrganization: createWorkspaceOrganizationEndpoint,
+    },
   }
 }

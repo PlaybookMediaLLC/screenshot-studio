@@ -152,7 +152,7 @@ jobs:
           doctl apps propose --app "$APP_ID" --spec "$work/spec.json" -o json > "$work/proposal.json"
           doctl apps update "$APP_ID" --spec "$work/spec.json" --wait > "$work/update.log"
           doctl apps get "$APP_ID" -o json > "$work/after.json"
-          # web, storage, backend, and collab once its secrets are set.
+          # web, backend, and collab once its secrets are set; storage is retired.
           test "$(jq -r '.[0].spec.services | length' "$work/after.json")" -le 5
           test "$(jq -r '.[0].spec.services[] | select(.name == "screenshot-studio-backend") | .image.tag' "$work/after.json")" = "social-backend-$GITHUB_SHA"
           if test "$(jq -r '.[0].active_deployment.id // empty' "$work/after.json")" = "$previous_id"; then

@@ -42,9 +42,9 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
     def test_preserves_unrelated_components_and_moves_legacy_names(self):
         spec = cutover.consolidate(self.base, self.digest)
         services = {item["name"]: item for item in spec["services"]}
-        self.assertEqual(set(services), {"web", "storage", "design-renderer", "screenshot-studio-backend"})
+        self.assertEqual(set(services), {"web", "design-renderer", "screenshot-studio-backend"})
         self.assertEqual(services["web"]["image"]["digest"], "web-digest")
-        self.assertEqual(services["storage"]["image"]["tag"], "fixed")
+        self.assertNotIn("storage", services)
         self.assertEqual(spec["domains"], self.base["spec"]["domains"])
         backend = services["screenshot-studio-backend"]
         self.assertEqual(backend["image"]["digest"], self.digest)
@@ -57,16 +57,13 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertEqual(values["TENANT_SOCIAL_API_URL"]["value"], "http://127.0.0.1:3000/public/v1")
         # A pin to the legacy queue would keep new posts off the social queue.
         self.assertNotIn("TEMPORAL_SOCIAL_TASK_QUEUE", values)
+        self.assertFalse(set(values) & cutover.RETIRED_BACKEND_KEYS)
         keys = {item["key"] for service in spec["services"] + spec["jobs"] for item in service.get("envs", [])}
         self.assertFalse({key for key in keys if "POSTIZ" in key})
         web_env = {item["key"]: item for item in services["web"]["envs"]}
         self.assertEqual(web_env["PUBLISHING_API_URL"]["value"], "http://screenshot-studio-backend:8082")
         self.assertEqual(web_env["SOCIAL_API_URL"]["value"], "http://screenshot-studio-backend:3000/public/v1")
         self.assertEqual(spec["ingress"]["rules"][0]["component"]["name"], "screenshot-studio-backend")
-        social = spec["jobs"][1]
-        self.assertEqual((social["name"], social["run_command"]), ("social-migrate", "/social-migrate"))
-        self.assertEqual(social["image"]["digest"], self.digest)
-        self.assertEqual(social["envs"][0]["value"], values["TENANT_DATABASE_URL"]["value"])
         platform = spec["jobs"][0]
         self.assertEqual((platform["name"], platform["run_command"]), ("platform-migrate", "/platform-migrate"))
         self.assertEqual(platform["image"]["digest"], self.digest)
@@ -130,10 +127,9 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         repeated = cutover.consolidate(first, self.digest, tag=second_tag)
         updated = next(item for item in repeated["services"] if item["name"] == "screenshot-studio-backend")
         self.assertEqual(updated["image"]["tag"], second_tag)
-        self.assertEqual(repeated["jobs"][1]["image"]["tag"], second_tag)
-        self.assertEqual([job["name"] for job in repeated["jobs"]], ["platform-migrate", "social-migrate"])
+        self.assertEqual([job["name"] for job in repeated["jobs"]], ["platform-migrate"])
         self.assertEqual(repeated["jobs"][0]["image"]["tag"], second_tag)
-        self.assertEqual(len(repeated["services"]), 4)
+        self.assertEqual(len(repeated["services"]), 3)
         with self.assertRaisesRegex(ValueError, "commit SHA"):
             cutover.consolidate(self.base, self.digest, tag="latest")
 
@@ -152,7 +148,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertEqual(values["DATABASE_URL"], "infisical-DATABASE_URL")
         self.assertEqual(values["TENANT_DATABASE_URL"], "infisical-DATABASE_URL")
         # Migration jobs run as the migration owner, never the runtime role.
-        self.assertEqual(next(item for item in spec["jobs"] if item["name"] == "social-migrate")["envs"][0]["value"], "infisical-MIGRATION_DATABASE_URL")
+        self.assertEqual(next(item for item in spec["jobs"] if item["name"] == "platform-migrate")["envs"][0]["value"], "infisical-MIGRATION_DATABASE_URL")
         self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"], "infisical-AUDIT_RETENTION_DATABASE_URL")
         for key in cutover.OPTIONAL_SOCIAL_SECRETS:
             entry = next(item for item in backend["envs"] if item["key"] == key)
@@ -192,7 +188,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertEqual(envs["PUBLISHING_API_URL"]["value"], "http://screenshot-studio-backend:8082")
         self.assertEqual(envs["PUBLISHING_SERVICE_TOKEN"]["value"], "infisical-PUBLISHING_SERVICE_TOKEN")
         jobs = {item["name"]: item for item in spec["jobs"]}
-        self.assertEqual(set(jobs), {"platform-migrate", "social-migrate"})
+        self.assertEqual(set(jobs), {"platform-migrate"})
         self.assertEqual(jobs["platform-migrate"]["envs"][0]["value"], "infisical-MIGRATION_DATABASE_URL")
         del secrets["MIGRATION_DATABASE_URL"]
         with self.assertRaisesRegex(ValueError, "MIGRATION_DATABASE_URL"):
@@ -307,6 +303,24 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         for url in ("http://mcp.example.com/mcp", "https://shots.example.com/social/mcp"):
             with self.assertRaisesRegex(ValueError, "PLATFORM_MCP_URL"):
                 cutover.consolidate(live, self.digest, dict(secrets, PLATFORM_MCP_URL=url))
+
+    def test_migration_upgrade_keeps_owner_and_unrelated_jobs(self):
+        for name in ("platform-migrate", "web-migrate", "social-migrate", "postiz-migrate"):
+            with self.subTest(name=name):
+                base = {"spec": {**self.base["spec"], "jobs": [
+                    {"name": name, "envs": [{"key": "DATABASE_URL", "value": "ddl-owner"}], "instance_size_slug": "apps-s-1vcpu-1gb"},
+                    {"name": "unrelated-job"},
+                ]}}
+                result = cutover.consolidate(base, self.digest)
+                self.assertEqual([job["name"] for job in result["jobs"]], ["platform-migrate", "unrelated-job"])
+                self.assertEqual(result["jobs"][0]["envs"][0]["value"], "ddl-owner")
+                self.assertEqual(result["jobs"][0]["kind"], "PRE_DEPLOY")
+                self.assertEqual(result["jobs"][0]["instance_size_slug"], "apps-s-1vcpu-1gb")
+
+    def test_removes_retired_storage_routes_only(self):
+        self.base["spec"]["ingress"]["rules"].append({"component": {"name": "storage"}})
+        result = cutover.consolidate(self.base, self.digest)
+        self.assertEqual([rule["component"]["name"] for rule in result["ingress"]["rules"]], ["screenshot-studio-backend", "web"])
 
 
 if __name__ == "__main__":

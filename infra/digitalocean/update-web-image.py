@@ -13,15 +13,16 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 IMAGE = {"registry_type": "GHCR", "registry": "playbookmediallc", "repository": "screenshot-studio"}
-SERVICES = {"web", "storage", "screenshot-studio-backend"}
+SERVICES = {"web", "screenshot-studio-backend"}
 # Designs render in Cloudflare Browser Rendering over CDP, not a render service.
 RETIRED_SERVICES = {"design-renderer"}
 RETIRED_WEB_KEYS = {"PLATFORM_RENDER_SERVICE_URL", "PLATFORM_RENDER_SERVICE_SECRET",
                     "SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET", "PLATFORM_SLACK_CALLBACK_URL",
                     "PLATFORM_NOTIFICATION_ENCRYPTION_KEY"}
 # Deployed by the backend workflow when its secrets are set (RFC 037).
-OPTIONAL_SERVICES = {"collab"}
-JOBS = {"platform-migrate", "social-migrate"}
+OPTIONAL_SERVICES = {"collab", "storage"}
+JOBS = {"platform-migrate"}
+LEGACY_JOBS = {"social-migrate", "postiz-migrate"}
 # Self-serve billing (docs/rfcs/035). Each key joins the web once it is in Infisical,
 # so a deploy before Stripe is wired keeps checkout on the contact page.
 STRIPE_SECRET_KEYS = ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET")
@@ -63,7 +64,7 @@ def update_web_image(base, tag, secrets=None):
     jobs = {item["name"]: item for item in spec.get("jobs", [])}
     if "web-migrate" in jobs:
         raise ValueError("Deploy the backend first; its platform-migrate job replaces web-migrate")
-    if set(services) - RETIRED_SERVICES - OPTIONAL_SERVICES != SERVICES or set(jobs) != JOBS:
+    if set(services) - RETIRED_SERVICES - OPTIONAL_SERVICES != SERVICES or set(jobs) - LEGACY_JOBS != JOBS:
         raise ValueError("Production topology changed; inspect the app before updating web")
 
     web = services["web"]

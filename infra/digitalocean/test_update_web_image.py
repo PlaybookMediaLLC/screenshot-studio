@@ -117,3 +117,12 @@ class UpdateWebImageTest(unittest.TestCase):
         legacy = {"spec": {**self.base["spec"], "jobs": [{"name": "web-migrate"}, {"name": "social-migrate"}]}}
         with self.assertRaisesRegex(ValueError, "Deploy the backend first"):
             module.update_web_image(legacy, tag)
+
+    def test_supports_retired_storage_and_single_migration_job(self):
+        cleaned = {"spec": {**self.base["spec"],
+            "services": [item for item in self.base["spec"]["services"] if item["name"] != "storage"],
+            "jobs": [self.base["spec"]["jobs"][0]],
+        }}
+        result = module.update_web_image(cleaned, "web-" + "b" * 40)
+        self.assertEqual({item["name"] for item in result["services"]}, {"web", "screenshot-studio-backend"})
+        self.assertEqual(result["jobs"], cleaned["spec"]["jobs"])

@@ -230,7 +230,7 @@ function useNavigationExpanded(
   initial: z.infer<typeof navigationLayoutSchema>,
   variant: 'editor' | 'page'
 ) {
-  const preferences = usePreferences().preferences
+  const { preferences, status } = usePreferences()
   const { data: session } = useHydratedSession()
   const layout =
     variant === 'editor' && !preferences?.version && initial === 'expanded'
@@ -255,6 +255,7 @@ function useNavigationExpanded(
     () => null
   )
   return {
+    ready: Boolean(key) && status !== 'loading',
     expanded: temporary ?? (layout === 'expanded' || (layout === 'dynamic' && wide)),
     setTemporary: (value: boolean) => {
       if (!key) return
@@ -335,6 +336,7 @@ export function PlatformSidebar({
                 <Button
                   aria-expanded={navigation.expanded}
                   aria-label={navigation.expanded ? t('collapse') : t('expand')}
+                  disabled={!navigation.ready}
                   className={cn(
                     'grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground',
                     collapsed && 'w-11'

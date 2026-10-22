@@ -3,6 +3,7 @@ services:
     # Match production: Turbopack 16.3 misparses Google Font URLs in this container.
     command: npm run dev -- --webpack
     environment:
+      CI: 'true'
       # The dev compiler retains routes throughout the full browser suite.
       NODE_OPTIONS: --max-old-space-size=8192
     extra_hosts:

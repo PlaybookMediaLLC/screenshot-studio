@@ -9,7 +9,7 @@ import (
 func TestTokensAreScopedSignedAndShortLived(t *testing.T) {
 	key := []byte(strings.Repeat("k", 32))
 	now := time.Unix(1_800_000_000, 0)
-	claims := Claims{Access: AccessWrite, DraftID: "d1", ExpiresAt: now.Add(TokenTTL).Unix(), OrganizationID: "o1", UserID: "u1"}
+	claims := Claims{Access: AccessWrite, DraftID: "d1", ExpiresAt: now.Add(TokenTTL).Unix(), OrganizationID: "o1", UserID: "u1", SessionID: "s1"}
 	token, err := Sign(key, claims)
 	if err != nil {
 		t.Fatal(err)
@@ -27,7 +27,7 @@ func TestTokensAreScopedSignedAndShortLived(t *testing.T) {
 		t.Fatalf("token verified with another key: %v", err)
 	}
 	body, signature, _ := strings.Cut(token, ".")
-	forged, _ := Sign(key, Claims{Access: AccessWrite, DraftID: "d2", ExpiresAt: claims.ExpiresAt, OrganizationID: "o1", UserID: "u1"})
+	forged, _ := Sign(key, Claims{Access: AccessWrite, DraftID: "d2", ExpiresAt: claims.ExpiresAt, OrganizationID: "o1", UserID: "u1", SessionID: "s1"})
 	forgedBody, _, _ := strings.Cut(forged, ".")
 	if _, err := Verify(key, forgedBody+"."+signature, now, 0); err != ErrInvalidToken {
 		t.Fatalf("a token for one draft opened another: %v", err)
@@ -40,5 +40,11 @@ func TestTokensAreScopedSignedAndShortLived(t *testing.T) {
 	}
 	if DocumentName("d1") != "content-draft:d1" {
 		t.Fatal("document name changed")
+	}
+	legacy := claims
+	legacy.SessionID = ""
+	legacyToken, _ := Sign(key, legacy)
+	if _, err := Verify(key, legacyToken, now, 0); err != ErrInvalidToken {
+		t.Fatalf("legacy sessionless token accepted: %v", err)
 	}
 }

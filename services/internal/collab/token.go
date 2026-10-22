@@ -41,6 +41,7 @@ type Claims struct {
 	ExpiresAt      int64  `json:"e"`
 	OrganizationID string `json:"o"`
 	UserID         string `json:"u"`
+	SessionID      string `json:"s"`
 }
 
 // DocumentName is the collaboration document a draft is edited in.
@@ -84,7 +85,7 @@ func Verify(key []byte, token string, now time.Time, grace time.Duration) (Claim
 	}
 	var claims Claims
 	if err := json.Unmarshal(payload, &claims); err != nil || claims.DraftID == "" || claims.OrganizationID == "" ||
-		claims.UserID == "" || (claims.Access != AccessRead && claims.Access != AccessWrite) || (claims.Kind != "" && claims.Kind != "content-draft" && claims.Kind != "creative-set") {
+		claims.UserID == "" || claims.SessionID == "" || (claims.Access != AccessRead && claims.Access != AccessWrite) || (claims.Kind != "" && claims.Kind != "content-draft" && claims.Kind != "creative-set") {
 		return Claims{}, ErrInvalidToken
 	}
 	if now.Add(-grace).Unix() >= claims.ExpiresAt {

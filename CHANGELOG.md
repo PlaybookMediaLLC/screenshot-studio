@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.35.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.35.1...v2.35.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **ci:** prevent browser dependency installation timeouts ([#289](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/289)) ([8cc1f9a](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/8cc1f9a50bfb95bf32a54ee6ab77872c30ac9d58))
+
 ## [2.35.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.35.0...v2.35.1) (2026-10-22)
 
 

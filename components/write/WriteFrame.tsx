@@ -86,6 +86,7 @@ export const SHORTCUT_REFERENCE: {
  */
 export function WriteFrame({
   activeId,
+  campaignsEnabled = false,
   canEdit,
   canManageSets,
   canPublish,
@@ -94,6 +95,7 @@ export function WriteFrame({
   data,
 }: {
   activeId?: string
+  campaignsEnabled?: boolean
   canEdit: boolean
   canManageSets: boolean
   canPublish: boolean
@@ -110,7 +112,9 @@ export function WriteFrame({
       canReview={canReview}
       data={data}
     >
-      <FrameLayout activeId={activeId}>{children}</FrameLayout>
+      <FrameLayout activeId={activeId} campaignsEnabled={campaignsEnabled}>
+        {children}
+      </FrameLayout>
     </WriteProvider>
   )
 }
@@ -118,7 +122,15 @@ export function WriteFrame({
 /** Opens the drafts drawer on a phone, from anywhere in the frame. */
 export const DraftsDrawerContext = React.createContext<() => void>(() => {})
 
-function FrameLayout({ activeId, children }: { activeId?: string; children: React.ReactNode }) {
+function FrameLayout({
+  activeId,
+  campaignsEnabled,
+  children,
+}: {
+  activeId?: string
+  campaignsEnabled: boolean
+  children: React.ReactNode
+}) {
   const router = useWriteRouter()
   const keys = useKeys()
   const { beforeLeaveRef, canEdit, data } = useWrite()
@@ -131,6 +143,14 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
     launcher.current = document.activeElement as HTMLElement | null
     setter(true)
   }
+  React.useEffect(() => {
+    const show = () => {
+      launcher.current = document.activeElement as HTMLElement | null
+      setPalette(true)
+    }
+    window.addEventListener('shots:search-write', show)
+    return () => window.removeEventListener('shots:search-write', show)
+  }, [])
   const step = (delta: number) => {
     const ids = data.library.map((draft) => draft.id)
     const index = activeId ? ids.indexOf(activeId) : -1
@@ -138,13 +158,6 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
     if (next && next !== activeId) router.push(draftHref(next, data.activeSet?.id))
   }
   useShortcuts([
-    {
-      key: 'k',
-      label: 'Search and commands',
-      mod: true,
-      run: () => open(setPalette),
-      inEditor: true,
-    },
     {
       key: '/',
       label: 'Drafts list',
@@ -156,7 +169,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
       key: '!',
       label: 'Write',
       mod: true,
-      run: () => router.push('/write'),
+      run: () => router.push(`/write${data.activeSet ? `?set=${data.activeSet.id}` : ''}`),
       shift: true,
       inEditor: true,
     },
@@ -164,7 +177,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
       key: '1',
       label: 'Write',
       mod: true,
-      run: () => router.push('/write'),
+      run: () => router.push(`/write${data.activeSet ? `?set=${data.activeSet.id}` : ''}`),
       shift: true,
       inEditor: true,
     },
@@ -172,7 +185,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
       key: '@',
       label: 'Calendar',
       mod: true,
-      run: () => router.push('/write/plan'),
+      run: () => router.push(`/write/plan${data.activeSet ? `?set=${data.activeSet.id}` : ''}`),
       shift: true,
       inEditor: true,
     },
@@ -180,7 +193,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
       key: '2',
       label: 'Calendar',
       mod: true,
-      run: () => router.push('/write/plan'),
+      run: () => router.push(`/write/plan${data.activeSet ? `?set=${data.activeSet.id}` : ''}`),
       shift: true,
       inEditor: true,
     },
@@ -191,7 +204,11 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
       inEditor: true,
       run: () => {
         if (!canEdit) return
-        void createWritingDraft({ socialSetId: data.activeSet?.id }, (id) => router.push(draftHref(id, data.activeSet?.id)), beforeLeaveRef.current ?? undefined)
+        void createWritingDraft(
+          { socialSetId: data.activeSet?.id },
+          (id) => router.push(draftHref(id, data.activeSet?.id)),
+          beforeLeaveRef.current ?? undefined
+        )
       },
     },
     {
@@ -232,14 +249,16 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
     setTimeout(() => launcher.current?.focus(), 0)
   }
   React.useEffect(() => {
-    const timer = setTimeout(() => { void import('@/components/drafts/DraftEditor') }, 0)
+    const timer = setTimeout(() => {
+      void import('@/components/drafts/DraftEditor')
+    }, 0)
     return () => clearTimeout(timer)
   }, [])
   return (
     <DraftsDrawerContext.Provider value={() => setDrawer(true)}>
       <PendingDraftInput />
       <div
-        className="flex h-[100dvh] min-h-0 md:h-[calc(100vh-1rem-2px)]"
+        className="flex h-[calc(100dvh-3.5rem)] min-h-0 md:h-[calc(100vh-1rem-2px)]"
         data-testid="write-frame"
       >
         <div
@@ -268,6 +287,7 @@ function FrameLayout({ activeId, children }: { activeId?: string; children: Reac
       </Sheet>
       {palette ? (
         <CommandPalette
+          campaignsEnabled={campaignsEnabled}
           onClose={() => {
             setPalette(false)
             restoreFocus()

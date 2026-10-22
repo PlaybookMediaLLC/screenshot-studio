@@ -147,7 +147,7 @@ export function WorkflowRuns() {
         onSubmit={(event) => event.preventDefault()}
       >
         {selects.map(({ key, label, options }) => (
-          <Label className="grid gap-1 text-xs text-neutral-400" key={key}>
+          <Label className="grid gap-1 text-xs text-muted-foreground" key={key}>
             {label}
             <Select onValueChange={(value) => setFilter(key, value)} value={filter[key] ?? ALL}>
               <SelectTrigger aria-label={`Filter by ${label.toLowerCase()}`} className="h-9 w-48">
@@ -169,7 +169,7 @@ export function WorkflowRuns() {
           </Label>
         ))}
         {(['since', 'until'] as const).map((key) => (
-          <Label className="grid gap-1 text-xs text-neutral-400" key={key}>
+          <Label className="grid gap-1 text-xs text-muted-foreground" key={key}>
             {key === 'since' ? 'From' : 'To (inclusive)'}
             <DatePicker
               aria-label={key === 'since' ? 'Runs from date' : 'Runs through date'}
@@ -202,7 +202,7 @@ export function WorkflowRuns() {
             Clear version filter
           </Button>
         ) : null}
-        <p className="w-full text-xs text-neutral-500">
+        <p className="w-full text-xs text-muted-foreground">
           Dates and times use your local timezone. To includes the entire selected day.
         </p>
         {params.size ? (
@@ -219,15 +219,15 @@ export function WorkflowRuns() {
       ) : null}
 
       {!items ? (
-        <p className="text-sm text-neutral-500" role="status">
+        <p className="text-sm text-muted-foreground" role="status">
           Loading runs…
         </p>
       ) : items.length === 0 ? (
-        <p className="rounded-2xl p-10 text-center text-sm text-neutral-500 ring-1 ring-white/[0.08]">
+        <p className="rounded-2xl p-10 text-center text-sm text-muted-foreground ring-1 ring-border">
           No runs match these filters.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl ring-1 ring-white/[0.08]">
+        <div className="overflow-x-auto rounded-2xl ring-1 ring-border">
           <Table aria-label="Workflow runs" className="text-sm">
             <TableHeader>
               <TableRow>
@@ -249,17 +249,17 @@ export function WorkflowRuns() {
                     >
                       {item.event.snapshot.title}
                     </WorkflowRunLink>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-muted-foreground">
                       {FAMILY_NAMES[item.event.snapshot.family]} · {triggeringObject(item)} ·{' '}
                       {item.event.snapshot.repositoryName || sourceName(item.event.sourceAppId)}
                     </p>
                   </TableCell>
                   <TableCell className="whitespace-normal">
                     {definitionName(item.run.definitionId) ?? (
-                      <span className="text-neutral-500">{runHandler(item)}</span>
+                      <span className="text-muted-foreground">{runHandler(item)}</span>
                     )}
                     {item.run.versionRevision ? (
-                      <p className="text-xs text-neutral-500">
+                      <p className="text-xs text-muted-foreground">
                         Revision {item.run.versionRevision}
                       </p>
                     ) : null}
@@ -268,18 +268,18 @@ export function WorkflowRuns() {
                     <RunStatusPill status={item.run.status} />
                     {item.run.failureCode ||
                     (!runActive(item.run.status) && item.run.status !== 'succeeded') ? (
-                      <p className="mt-1 text-xs text-neutral-500">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {FAILURE_CODES[item.run.failureCode] ?? item.run.reason}
                       </p>
                     ) : null}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-xs text-neutral-400">
+                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                     {new Date(item.run.createdAt).toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-xs text-neutral-400">
+                  <TableCell className="text-xs text-muted-foreground">
                     {duration(item.run.createdAt, item.run.completedAt)}
                   </TableCell>
-                  <TableCell className="text-xs text-neutral-400">
+                  <TableCell className="text-xs text-muted-foreground">
                     {[
                       item.run.outputs.releaseId ? 'Release' : '',
                       item.run.outputs.campaignId ? 'Campaign' : '',

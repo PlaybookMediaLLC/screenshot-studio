@@ -4,7 +4,11 @@ import * as React from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Folder01Icon, MoreHorizontalIcon, Search01Icon } from 'hugeicons-react'
+import {
+  FolderOpen as Folder01Icon,
+  Ellipsis as MoreHorizontalIcon,
+  Search as Search01Icon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { EmptyState } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -134,13 +138,17 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
     try {
       await trpcClient.project.delete.mutate({ projectId: deleting.id })
       forgetProject(deleting.id)
-      queryClient.setQueryData(options.queryKey, (current) => current ? {
-        ...current,
-        pages: current.pages.map((page) => ({
-          ...page,
-          items: page.items.filter((item) => item.id !== deleting.id),
-        })),
-      } : current)
+      queryClient.setQueryData(options.queryKey, (current) =>
+        current
+          ? {
+              ...current,
+              pages: current.pages.map((page) => ({
+                ...page,
+                items: page.items.filter((item) => item.id !== deleting.id),
+              })),
+            }
+          : current
+      )
       toast.success(`Deleted “${shortName(deleting.name)}”`)
       setDeleting(null)
     } catch (error) {
@@ -253,25 +261,29 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
               className="group overflow-hidden rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]"
               key={project.id}
             >
-              <Link
-                aria-label={`Open ${project.name}`}
-                className="block aspect-video focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-foreground"
-                href={editorHref(project.id)}
-              >
-                <ProjectPreview alt={`Preview of ${project.name}`} document={project.document} />
-              </Link>
+              <div className="relative aspect-video">
+                <ProjectPreview
+                  retryable
+                  alt={`Preview of ${project.name}`}
+                  document={project.document}
+                />
+                <Link
+                  aria-label={`Open ${project.name}`}
+                  href={editorHref(project.id)}
+                  className="absolute inset-0 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring"
+                />
+              </div>
               <div className="flex items-center gap-2 p-4">
                 <div className="min-w-0 flex-1">
                   <Link
                     className="block truncate text-sm font-medium text-foreground hover:underline"
                     href={editorHref(project.id)}
-                    tabIndex={-1}
                     title={project.name}
                   >
                     {project.name}
                   </Link>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Edited{' '}
+                    Screenshot · Workspace · Edited{' '}
                     {project.updatedAt.toLocaleString(undefined, {
                       dateStyle: 'medium',
                       timeStyle: 'short',
@@ -310,7 +322,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
                       <DropdownMenuItem
                         onSelect={() => router.push(`/canvas/new?project=${project.id}`)}
                       >
-                        Open in Canvas
+                        Create Canvas copy
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setRenaming(project)}>
                         Rename…
@@ -319,12 +331,26 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
                         Duplicate
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={() => {
-                        void trpcClient.project.get.query({ projectId: project.id }).then((latest) => {
-                          setDeleting({ ...project, updatedAt: latest.updatedAt, name: latest.name })
-                          void projects.refetch()
-                        }).catch((error: unknown) => toast.error(error instanceof Error ? error.message : 'Could not load project.'))
-                      }} variant="destructive">
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          void trpcClient.project.get
+                            .query({ projectId: project.id })
+                            .then((latest) => {
+                              setDeleting({
+                                ...project,
+                                updatedAt: latest.updatedAt,
+                                name: latest.name,
+                              })
+                              void projects.refetch()
+                            })
+                            .catch((error: unknown) =>
+                              toast.error(
+                                error instanceof Error ? error.message : 'Could not load project.'
+                              )
+                            )
+                        }}
+                        variant="destructive"
+                      >
                         Delete…
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -371,6 +397,10 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
         onSubmit={async (name) => {
           if (!renaming) return
           await trpcClient.project.rename.mutate({ name, projectId: renaming.id })
+          await queryClient.invalidateQueries({ queryKey: trpc.project.list.queryKey() })
+          if (query && !name.toLocaleLowerCase().includes(query.toLocaleLowerCase())) {
+            returnFocus.current = searchRef.current
+          }
         }}
         open={renaming !== null}
         submitLabel="Rename"
@@ -390,7 +420,12 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
               {deleting ? (
                 <>
                   {' '}
-                  Last edited {deleting.updatedAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}. Project ID: {deleting.id}.
+                  Last edited{' '}
+                  {deleting.updatedAt.toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                  . Project ID: {deleting.id}.
                 </>
               ) : null}
             </AlertDialogDescription>

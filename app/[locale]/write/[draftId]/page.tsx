@@ -42,6 +42,7 @@ export default async function WriteDraftPage({ params, searchParams }: WriteDraf
       organizationName={access.organization.name}
     >
       <WriteFrame
+        campaignsEnabled={access.campaignWorkflowEnabled}
         activeId={draft.id}
         canEdit={canEdit}
         canManageSets={canManageSets}

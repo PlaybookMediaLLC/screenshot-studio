@@ -1,6 +1,6 @@
 'use client'
 
-import { MagicWand01Icon } from 'hugeicons-react'
+import { WandSparkles as MagicWand01Icon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
@@ -139,7 +139,10 @@ export function RevisePanel({
 
   return (
     <div
-      className={cn('space-y-3 rounded-xl bg-foreground/[0.02] p-3 ring-1 ring-foreground/[0.08]', className)}
+      className={cn(
+        'space-y-3 rounded-xl bg-foreground/[0.02] p-3 ring-1 ring-foreground/[0.08]',
+        className
+      )}
     >
       {proposed ? (
         <div className="space-y-3">
@@ -170,7 +173,7 @@ export function RevisePanel({
                       className="mt-1 size-4 accent-white"
                       onCheckedChange={(checked) => {
                         const next = new Set(related)
-                        if ((checked === true)) next.add(index)
+                        if (checked === true) next.add(index)
                         else next.delete(index)
                         setRelated(next)
                       }}
@@ -259,7 +262,10 @@ export function RevisePanel({
         </form>
       )}
       {error ? (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300" role="alert">
+        <p
+          className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}

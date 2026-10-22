@@ -1,4 +1,22 @@
 {
+  "platformNavigation": {
+    "home": "Home",
+    "create": "Create",
+    "campaigns": "Campaigns",
+    "publish": "Publish",
+    "library": "Library",
+    "automate": "Automate",
+    "activity": "Activity",
+    "settings": "Settings",
+    "workspace": "Workspace",
+    "search": "Search",
+    "new": "New",
+    "searchCommands": "Search and commands",
+    "collapse": "Collapse navigation",
+    "expand": "Expand navigation",
+    "openNavigation": "Open navigation",
+    "navigation": "Navigation"
+  },
   "common": {
     "openEditor": "Open Editor",
     "startCreating": "Start Creating",

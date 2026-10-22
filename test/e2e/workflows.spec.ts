@@ -194,6 +194,7 @@ test('Workflow C: a branded bento with badges becomes a preset, then a chosen va
   const panel = page.getByRole('region', { name: 'AI copilot' })
   await panel.getByLabel('Ask the copilot').fill('Give me four versions of this design')
   await panel.getByLabel('Ask the copilot').press('Enter')
+  await panel.getByRole('button', { name: 'Make 4 versions', exact: true }).click()
   const versions = panel.getByRole('list', { name: 'Versions' })
   await expect(versions.getByRole('button', { name: /^Inspect / })).toHaveCount(4, {
     timeout: 120_000,

@@ -1,6 +1,14 @@
 'use client'
 
 import * as React from 'react'
+import dynamic from 'next/dynamic'
+const LibraryAssetPicker = dynamic(
+  () =>
+    import('@/components/platform-hub/LibraryAssetPicker').then(
+      (module) => module.LibraryAssetPicker
+    ),
+  { ssr: false }
+)
 import { toast } from 'sonner'
 import {
   BaseEditorKit,
@@ -24,7 +32,13 @@ import {
   usePluginOption,
 } from '@shots/platejs-editor/platejs/react'
 import { createYjsPlugin, YjsPlugin } from '@shots/platejs-editor/collaboration'
-import { BlockPlaceholderKit, BlockSelectionKit, commentPlugin, discussionPlugin, type TDiscussion } from '@shots/platejs-editor/plugins'
+import {
+  BlockPlaceholderKit,
+  BlockSelectionKit,
+  commentPlugin,
+  discussionPlugin,
+  type TDiscussion,
+} from '@shots/platejs-editor/plugins'
 import {
   Editor,
   EditorContainer,
@@ -34,7 +48,7 @@ import {
   ToolbarButton,
   ToolbarGroup,
 } from '@shots/platejs-editor/ui'
-import { MoreHorizontalIcon } from 'hugeicons-react'
+import { Ellipsis as MoreHorizontalIcon } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,7 +97,9 @@ function HashtagChips({ hashtags }: { hashtags: string[] }) {
     <div className={cn('flex flex-wrap items-center gap-1.5 pb-6', POST_COLUMN)}>
       <span className="text-[11px] text-muted-foreground">Your hashtags</span>
       {hashtags.map((tag) => (
-        <Button variant="custom" size={null}
+        <Button
+          variant="custom"
+          size={null}
           className="rounded-full border border-foreground/[0.08] px-2 py-0.5 text-xs text-foreground/65 hover:border-sky-400/40 hover:text-foreground"
           key={tag}
           onClick={() => {
@@ -194,12 +210,12 @@ function CommentColumn({ children }: { children: React.ReactNode }) {
   }, [])
   return (
     <div ref={wrapper}>
-    <EditorContainer
-      className={cn('h-auto min-h-[160px]', open && wide && 'pr-80')}
-      data-testid="draft-editor"
-    >
-      {children}
-    </EditorContainer>
+      <EditorContainer
+        className={cn('h-auto min-h-[160px]', open && wide && 'pr-80')}
+        data-testid="draft-editor"
+      >
+        {children}
+      </EditorContainer>
     </div>
   )
 }
@@ -427,6 +443,7 @@ function DraftToolbar({
     const nodes = editor.getApi({ key: KEYS.markdown }).markdown.deserialize(await file.text())
     editor.tf.insertNodes(nodes, { at: [editor.children.length] })
   }
+  const [libraryOpen, setLibraryOpen] = React.useState(false)
   const exportDocument = async () => {
     const { exportToDocx } = await import('@shots/platejs-editor/@platejs/docx-io')
     const blob = await exportToDocx(threadAsRules(editor.children), {
@@ -444,7 +461,10 @@ function DraftToolbar({
   }
 
   return (
-    <Toolbar aria-label="Draft formatting" className="flex flex-wrap items-center justify-center gap-0.5 rounded-2xl border border-foreground/[0.08] bg-secondary/95 px-1.5 py-1 shadow-xl shadow-black/40 backdrop-blur">
+    <Toolbar
+      aria-label="Draft formatting"
+      className="flex flex-wrap items-center justify-center gap-0.5 rounded-2xl border border-foreground/[0.08] bg-secondary/95 px-1.5 py-1 shadow-xl shadow-black/40 backdrop-blur"
+    >
       <ToolbarGroup>
         <MarkToolbarButton aria-label="Bold" nodeType={KEYS.bold} tooltip="Bold">
           <span className="font-bold">B</span>
@@ -473,24 +493,66 @@ function DraftToolbar({
           Media
         </FileButton>
       </ToolbarGroup>
+      <ToolbarGroup>
+        <ToolbarButton
+          aria-label="Attach from Library"
+          tooltip="Attach from Library"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => setLibraryOpen(true)}
+        >
+          Library
+        </ToolbarButton>
+      </ToolbarGroup>
+      {libraryOpen ? (
+        <LibraryAssetPicker
+          onClose={() => {
+            setLibraryOpen(false)
+            editor.tf.focus()
+          }}
+          onInsert={(node) => {
+            if (!editor.selection) editor.tf.select(editor.api.end([]))
+            editor.tf.insertNodes(node)
+            editor.tf.focus()
+          }}
+        />
+      ) : null}
       {extras ? <ToolbarGroup>{extras}</ToolbarGroup> : null}
       <ToolbarGroup>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <ToolbarButton aria-label="Insert" tooltip="Insert">Insert ▾</ToolbarButton>
+            <ToolbarButton aria-label="Insert" tooltip="Insert">
+              Insert ▾
+            </ToolbarButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" onCloseAutoFocus={(event) => { event.preventDefault(); editor.tf.focus() }}>
+          <DropdownMenuContent
+            side="top"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault()
+              editor.tf.focus()
+            }}
+          >
             {[
               { label: 'Table', insert: () => insertBlock(editor, KEYS.table) },
               { label: 'Math', insert: () => insertBlock(editor, KEYS.equation) },
-              { label: 'Footnote', insert: () => insertInlineElement(editor, KEYS.footnoteReference) },
+              {
+                label: 'Footnote',
+                insert: () => insertInlineElement(editor, KEYS.footnoteReference),
+              },
               { label: 'Split post at caret', insert: () => splitPostAtCaret(editor) },
             ].map((item) => (
-              <DropdownMenuItem key={item.label} onSelect={() => { item.insert(); editor.tf.focus() }}>
+              <DropdownMenuItem
+                key={item.label}
+                onSelect={() => {
+                  item.insert()
+                  editor.tf.focus()
+                }}
+              >
                 {item.label}
               </DropdownMenuItem>
             ))}
-            <p className="max-w-64 px-2 py-1 text-xs text-muted-foreground">Tables and math publish as images. Footnotes publish as text.</p>
+            <p className="max-w-64 px-2 py-1 text-xs text-muted-foreground">
+              Tables and math publish as images. Footnotes publish as text.
+            </p>
           </DropdownMenuContent>
         </DropdownMenu>
       </ToolbarGroup>
@@ -552,7 +614,7 @@ export default function DraftEditor({
           { color: colorFor(user.id), name: user.name, userId: user.id }
         )
       : null
-    const hosted = (extraPlugins ?? []) as typeof PostBreakPlugin[]
+    const hosted = (extraPlugins ?? []) as (typeof PostBreakPlugin)[]
     return createEditorKit({
       recipe: 'collaborative',
       // Social handles remain literal; resolved platform mentions use the dedicated picker.
@@ -562,7 +624,9 @@ export default function DraftEditor({
       // the upstream demo users.
       overridePlugins: [
         BlockSelectionKit[0].configure({ options: { disableSelectAll: true } }),
-        BlockPlaceholderKit[0].configure({ options: { placeholders: { [KEYS.p]: 'What would you like to share?' } } }),
+        BlockPlaceholderKit[0].configure({
+          options: { placeholders: { [KEYS.p]: 'What would you like to share?' } },
+        }),
         // Comments sit in a column beside the post; only a phone-narrow
         // editor falls back to opening them over the text.
         commentPlugin.configure({ options: { overlapWidth: 580 } }),
@@ -603,7 +667,9 @@ export default function DraftEditor({
         : emptyValue(),
   })
   const reportEditor = React.useEffectEvent(() => onEditor?.(editor))
-  React.useEffect(() => { reportEditor() }, [editor])
+  React.useEffect(() => {
+    reportEditor()
+  }, [editor])
   const firstValue = React.useRef(initialValue)
   const [initiallyEmpty] = React.useState(() => draftPlainText(initialValue).length === 0)
   React.useEffect(() => {
@@ -621,7 +687,14 @@ export default function DraftEditor({
     let initialized = false
     let cancelled = false
     const ready = () => {
-      if (!cancelled && initialized && editor.getOptions(YjsPlugin)._providers.some((provider) => provider.type === 'hocuspocus' && provider.isSynced)) setLive(true)
+      if (
+        !cancelled &&
+        initialized &&
+        editor
+          .getOptions(YjsPlugin)
+          ._providers.some((provider) => provider.type === 'hocuspocus' && provider.isSynced)
+      )
+        setLive(true)
     }
     editor.setOption(YjsPlugin, 'onSyncChange', ready)
     editor.setOption(YjsPlugin, 'onError', () => {
@@ -641,7 +714,10 @@ export default function DraftEditor({
               ? (normalizePosts(firstValue.current as PlateBody) as Value)
               : emptyValue(),
         })
-        .then(() => { initialized = true; ready() })
+        .then(() => {
+          initialized = true
+          ready()
+        })
         .catch((error: unknown) => console.error('[drafts] live session failed', error))
     }, 0)
     return () => {
@@ -660,24 +736,44 @@ export default function DraftEditor({
     <EditorServicesProvider services={services}>
       <PostHeaderContext.Provider value={postHeader}>
         <PostToolsContext.Provider value={postTools}>
-          <Plate editor={editor} onValueChange={({ value }) => { if (!collaboration || live) onChange(value) }} readOnly={readOnly}>
+          <Plate
+            editor={editor}
+            onValueChange={({ value }) => {
+              if (!collaboration || live) onChange(value)
+            }}
+            readOnly={readOnly}
+          >
             {collaboration ? <Presence /> : null}
             <DiscussionsWatcher onChange={onDiscussionsChange} />
-            {!collaboration || live ? <CommentColumn>
-              <ThreadLine />
-              <Editor
-                autoFocus={false}
-                aria-label="Draft body"
-                className={cn(POST_COLUMN, 'min-h-0 pt-1 pb-4 text-[15px] leading-relaxed [&_[placeholder]]:before:pointer-events-none [&_[placeholder]]:before:absolute [&_[placeholder]]:before:text-neutral-400 [&_[placeholder]]:before:content-[attr(placeholder)]')}
-                dir={textDirection}
-                placeholder="What would you like to share?"
-                variant="default"
-              />
-              <ReadyEditor draftId={draftId} focus={!readOnly && initiallyEmpty} />
-            </CommentColumn> : <p role="status" className="p-6">Connecting your draft…</p>}
+            {!collaboration || live ? (
+              <CommentColumn>
+                <ThreadLine />
+                <Editor
+                  autoFocus={false}
+                  aria-label="Draft body"
+                  className={cn(
+                    POST_COLUMN,
+                    'min-h-0 pt-1 pb-4 text-[15px] leading-relaxed [&_[placeholder]]:before:pointer-events-none [&_[placeholder]]:before:absolute [&_[placeholder]]:before:text-neutral-400 [&_[placeholder]]:before:content-[attr(placeholder)]'
+                  )}
+                  dir={textDirection}
+                  placeholder="What would you like to share?"
+                  variant="default"
+                />
+                <ReadyEditor draftId={draftId} focus={!readOnly && initiallyEmpty} />
+              </CommentColumn>
+            ) : (
+              <p role="status" className="p-6">
+                Connecting your draft…
+              </p>
+            )}
             {readOnly ? null : (
               <div className={cn('pb-6', POST_COLUMN)}>
-                <Button variant="outline" size="sm" onMouseDown={(event) => event.preventDefault()} onClick={() => insertPostAfter(editor, postRanges(editor.children).length)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => insertPostAfter(editor, postRanges(editor.children).length)}
+                >
                   Add another post
                 </Button>
               </div>
@@ -713,7 +809,10 @@ function ReadyEditor({ draftId, focus }: { draftId?: string; focus: boolean }) {
     if (!mounted || done.current) return
     done.current = true
     const pending = draftId ? takePendingDraft(draftId) : null
-    if (pending !== null || (focus && !document.activeElement?.matches('input,textarea,[contenteditable="true"]'))) {
+    if (
+      pending !== null ||
+      (focus && !document.activeElement?.matches('input,textarea,[contenteditable="true"]'))
+    ) {
       editor.tf.select(editor.api.end([]))
       if (pending) editor.tf.insertText(pending)
       editor.tf.focus()

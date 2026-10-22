@@ -1,3 +1,4 @@
+import { withoutLocale } from "@/lib/settings/appearance";
 import { locales } from "@/i18n/routing";
 
 export const ADSENSE_CLIENT = "ca-pub-8704843786311642";
@@ -11,5 +12,7 @@ const AD_FREE_PATH = new RegExp(
 
 /** True for editor workspaces, with or without a locale prefix, where ads must never appear. */
 export function isAdFreePath(pathname: string): boolean {
-  return AD_FREE_PATH.test(pathname);
+  const path = withoutLocale(pathname);
+  const platform = ['/home', '/create', '/library', '/projects', '/assets', '/canvas', '/creative-sets', '/campaigns', '/releases', '/write', '/drafts', '/workflows', '/workspace', '/activity', '/link-preview'];
+  return AD_FREE_PATH.test(pathname) || platform.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }

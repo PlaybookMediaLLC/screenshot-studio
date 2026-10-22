@@ -1,12 +1,6 @@
 "use client"
 
-import {
-  CheckmarkCircle02Icon,
-  InformationCircleIcon,
-  Loading03Icon,
-  AlertCircleIcon,
-  Alert02Icon,
-} from "hugeicons-react"
+import { CircleCheck as CheckmarkCircle02Icon, Info as InformationCircleIcon, LoaderCircle as Loading03Icon, CircleAlert as AlertCircleIcon, TriangleAlert as Alert02Icon } from 'lucide-react'
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {

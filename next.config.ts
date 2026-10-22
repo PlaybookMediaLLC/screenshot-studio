@@ -104,12 +104,13 @@ const nextConfig: NextConfig = {
         destination: '/remove-background',
         permanent: true,
       },
-      // Old /home editor URL → new / root
-      {
+      // Preserve old query-bearing editor links; plain /home now resumes platform work.
+      ...['project', 'editor', 'storeProject'].map((key) => ({
         source: '/home',
+        has: [{ type: 'query' as const, key }],
         destination: '/',
         permanent: true,
-      },
+      })),
       {
         source: '/free-screenshot-editor',
         destination: '/features/screenshot-beautifier',

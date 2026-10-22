@@ -1,3 +1,5 @@
+import { ReturnToWork } from '@/components/platform-hub/ReturnToWork'
+import { AreaNavigation, AUTOMATE_LINKS } from '@/components/platform-hub/AreaNavigation'
 import type { Metadata } from 'next'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
@@ -26,8 +28,10 @@ export default async function WorkflowsPage({ params }: WorkflowsPageProps) {
           </>
         }
         description="Turn shipped changes into reviewable campaigns. Every run, decision, and output stays inspectable."
-        title="Workflows"
+        title="Automate"
       >
+        <ReturnToWork />
+        <AreaNavigation label="Automate" items={AUTOMATE_LINKS} />
         <WorkflowsDashboard canManage={access.canManage} key={access.organization.id} />
       </Page>
     </PlatformShell>

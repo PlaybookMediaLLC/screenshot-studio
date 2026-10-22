@@ -45,18 +45,16 @@ for (const scenario of ['expired', 'uncertain'] as const) {
       )
     try {
       await signUpViaApi(identity, page)
-      const workspace = z
-        .object({ id: z.string() })
-        .parse(
-          await browserJson(page, '/api/auth/organization/create', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-              name: identity.workspaceName,
-              slug: `recovery-${randomUUID()}`,
-            }),
-          })
-        )
+      const workspace = z.object({ id: z.string() }).parse(
+        await browserJson(page, '/api/auth/organization/create', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            name: identity.workspaceName,
+            slug: `recovery-${randomUUID()}`,
+          }),
+        })
+      )
       await grantWorkspacePlan(workspace.id, 'pro')
       await page.goto('/workspace/notifications')
       await page.getByRole('switch', { name: 'Personal Slack messages', exact: true }).uncheck()

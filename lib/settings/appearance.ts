@@ -10,6 +10,12 @@ import { navigationLayoutSchema } from '@/lib/api/contracts/settings-platform'
 
 /** Route prefixes whose pages follow the chosen theme. */
 export const THEMED_ROUTE_PREFIXES = [
+  '/home',
+  '/create',
+  '/library',
+  '/write',
+  '/workflows',
+  '/link-preview',
   '/activity',
   '/assets',
   '/campaigns',
@@ -37,7 +43,9 @@ export function followsTheme(pathname: string): boolean {
 }
 
 /** The calendar week's first day as a JavaScript weekday (0 is Sunday). */
-export const weekStartDaySchema = z.enum(['monday', 'sunday']).transform((day) => (day === 'monday' ? 1 : 0))
+export const weekStartDaySchema = z
+  .enum(['monday', 'sunday'])
+  .transform((day) => (day === 'monday' ? 1 : 0))
 
 /** The first day of the week holding `date`, at local midnight. */
 export function startOfWeek(date: Date, weekStart: z.input<typeof weekStartDaySchema>): Date {
@@ -51,9 +59,9 @@ export function startOfWeek(date: Date, weekStart: z.input<typeof weekStartDaySc
 /** The cookie the shell reads to render the chosen navigation on first paint. */
 export const NAVIGATION_COOKIE = 'shots-nav'
 
-/** A navigation cookie's layout, or compact. */
+/** A navigation cookie's layout, or expanded for a new user. */
 export function parseNavigation(value: string | undefined): z.infer<typeof navigationLayoutSchema> {
-  return navigationLayoutSchema.catch('compact').parse(value)
+  return navigationLayoutSchema.catch('expanded').parse(value)
 }
 
 /** The width from which a dynamic navigation shows its labels. */

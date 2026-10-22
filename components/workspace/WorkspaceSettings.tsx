@@ -1,3 +1,4 @@
+import { ReturnToWork } from '@/components/platform-hub/ReturnToWork'
 import { Page, Section } from '@/components/platform-ui'
 import { SettingsNav } from '@/components/settings/SettingsNav'
 import { WorkspaceDeletionRecovery } from './WorkspaceDeletionSettings'
@@ -55,9 +56,10 @@ export function WorkspaceSettings({ section, ...props }: WorkspaceSettingsProps)
   const current = SETTINGS_SECTIONS.find((item) => item.id === section) ?? SETTINGS_SECTIONS[0]!
   return (
     <Page title="Settings">
+      <ReturnToWork />
       <div className="flex flex-col gap-6 lg:flex-row lg:gap-10">
         <SettingsNav />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 max-w-[880px] flex-1">
           <Section description={current.description} title={current.title}>
             <WorkspaceSettingContent section={section} {...props} />
           </Section>

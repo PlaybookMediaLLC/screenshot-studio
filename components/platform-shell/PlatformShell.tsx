@@ -39,16 +39,20 @@ export async function PlatformShell({
   return (
     <PreferencesProvider>
       <div
-        // Pages show at 80% on wider screens (app/globals.css); the editors'
-        // artboards stay at their real size.
-        data-app-zoom={variant === 'page' ? '' : undefined}
+        data-platform-shell
         className={cn(
-          'flex min-h-screen flex-col text-foreground md:flex-row',
+          'platform-shell flex min-h-screen flex-col text-foreground md:flex-row',
           variant === 'editor' &&
             '[--editor-height:calc(100dvh-3.5rem)] md:[--editor-height:100dvh]',
           surface.base
         )}
       >
+        <a
+          className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-background focus:p-3"
+          href="#platform-content"
+        >
+          Skip to content
+        </a>
         <PlatformSidebar
           campaignsEnabled={campaignsEnabled}
           draftsEnabled={contentDraftsEnabled()}
@@ -57,7 +61,7 @@ export async function PlatformShell({
           variant={variant}
         />
         {variant === 'page' ? (
-          <div className="min-w-0 flex-1 md:py-2 md:pr-2">
+          <div id="platform-content" tabIndex={-1} className="min-w-0 flex-1 md:py-2 md:pe-2">
             <div
               className={cn(
                 'min-h-full md:min-h-[calc(100vh-1rem)] md:rounded-2xl md:border md:shadow-xs',
@@ -69,7 +73,9 @@ export async function PlatformShell({
             </div>
           </div>
         ) : (
-          <div className="min-w-0 flex-1 bg-background">{children}</div>
+          <div id="platform-content" tabIndex={-1} className="min-w-0 flex-1 bg-background">
+            {children}
+          </div>
         )}
         <OnboardingProgressCard />
       </div>

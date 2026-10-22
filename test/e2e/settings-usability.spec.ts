@@ -44,7 +44,7 @@ test('brand colors retain the last valid preview and block publication until cor
   page,
 }) => {
   await signUpAndCreateWorkspace(identity, page)
-  await openWorkspaceSetting(page, 'Brand kit')
+  await openWorkspaceSetting(page, 'Brand voice & visual kits')
   await page.getByLabel('Brand kit name').fill('Validation test')
   await page.getByLabel('Accent', { exact: true }).fill('#123456')
   await page.getByLabel('Accent', { exact: true }).fill('not-a-color')
@@ -86,6 +86,7 @@ test('an expired freshness window offers sign-in recovery back to Account', asyn
     await database.end()
   }
   await openWorkspaceSetting(page, 'Account')
+  await page.getByRole('button', { name: 'View signed-in devices' }).click()
   await expect(
     page.getByText('Confirm your sign-in to view and manage your sessions.')
   ).toBeVisible()
@@ -129,13 +130,13 @@ test('social-only accounts do not get an unusable authenticator password form', 
   await expect(page.getByLabel('Current password')).toHaveCount(0)
 })
 
-test('settings search groups destinations and workspace creation lives in the account menu', async ({
+test('settings search groups destinations and workspace creation lives in the workspace menu', async ({
   identity,
   page,
 }) => {
   await signUpAndCreateWorkspace(identity, page)
   await openWorkspaceSetting(page, 'General')
-  const navigation = page.getByRole('navigation', { name: 'Settings', exact: true })
+  const navigation = page.getByRole('navigation', { name: 'Settings sections', exact: true })
   await expect(navigation.getByText('Brand & content', { exact: true })).toBeVisible()
   await expect(navigation.getByRole('link', { name: 'Create workspace' })).toHaveCount(0)
   await navigation.getByRole('searchbox', { name: 'Search settings' }).fill('billing')
@@ -145,8 +146,8 @@ test('settings search groups destinations and workspace creation lives in the ac
   await expect(page.getByText(/Allowances reset .* at 00:00 UTC/)).toBeVisible()
   await navigation.getByRole('searchbox', { name: 'Search settings' }).fill('no-such-setting')
   await expect(navigation.getByText('No settings match your search.')).toBeVisible()
-  await page.getByRole('button', { name: 'Open account menu' }).click()
-  await page.getByRole('link', { name: 'Create workspace', exact: true }).click()
+  await page.getByRole('button', { name: /^Workspace:/ }).click()
+  await page.getByRole('button', { name: 'Create workspace', exact: true }).click()
   await expect(page.getByRole('textbox', { name: 'Workspace name', exact: true })).toBeVisible()
 })
 
@@ -155,7 +156,7 @@ test('a brand draft survives reload and is published only by the publish action'
   page,
 }) => {
   await signUpAndCreateWorkspace(identity, page)
-  await openWorkspaceSetting(page, 'Brand kit')
+  await openWorkspaceSetting(page, 'Brand voice & visual kits')
   await page.getByLabel('Brand kit name').fill('Reviewable brand')
   await page.getByLabel('Accent', { exact: true }).fill('#123456')
   await page.getByRole('button', { name: 'Save draft', exact: true }).click()

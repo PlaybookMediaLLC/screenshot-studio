@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { Button } from '@/components/ui/button'
 import type { DesignDocument } from '@/lib/design/document'
 import type { StageOutput } from '@/lib/render/capture'
 import { useDocumentPreview } from '@/lib/render/use-document-preview'
@@ -15,9 +16,12 @@ export function useNearViewport<T extends Element>(): [React.RefObject<T | null>
   React.useEffect(() => {
     const element = ref.current
     if (!element || near) return
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) setNear(true)
-    }, { rootMargin: '200px' })
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) setNear(true)
+      },
+      { rootMargin: '200px' }
+    )
     observer.observe(element)
     return () => observer.disconnect()
   }, [near])
@@ -34,11 +38,13 @@ export function DocumentPreview({
   className,
   document,
   output = PREVIEW_OUTPUT,
+  onRetry,
   time,
 }: {
   alt: string
   className?: string
   document: DesignDocument | null
+  onRetry?: () => void
   output?: StageOutput
   time?: number
 }) {
@@ -53,9 +59,26 @@ export function DocumentPreview({
         <div aria-hidden className="absolute inset-0 animate-pulse bg-foreground/[0.06]" />
       ) : null}
       {status === 'error' && !url ? (
-        <p className="absolute inset-0 grid place-items-center text-[10px] text-muted-foreground">
-          Preview unavailable
-        </p>
+        <div
+          role="status"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 text-center text-xs text-muted-foreground"
+        >
+          <p>Preview could not render. Open the original to keep working.</p>
+          {onRetry ? (
+            <Button
+              className="relative z-10"
+              size="sm"
+              variant="outline"
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onRetry()
+              }}
+            >
+              Retry preview
+            </Button>
+          ) : null}
+        </div>
       ) : null}
     </div>
   )

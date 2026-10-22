@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Clock01Icon } from 'hugeicons-react';
+import { Clock as Clock01Icon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,

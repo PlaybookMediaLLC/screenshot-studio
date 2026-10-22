@@ -43,7 +43,7 @@ test('edit on the canvas, undo, persist across reloads, and export exact store s
   await page.keyboard.press('ControlOrMeta+Shift+z')
   await expect(canvas).toContainText('Train smarter')
 
-  await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+  await expect(page.getByText('Saved on this browser', { exact: true })).toBeVisible()
   await page.reload()
   await expect(page.locator('[data-store-canvas-slide]')).toContainText('Train smarter')
 

@@ -49,6 +49,7 @@ export default async function WritePlanPage({ params, searchParams }: PlanPagePr
       organizationName={access.organization.name}
     >
       <WriteFrame
+        campaignsEnabled={access.campaignWorkflowEnabled}
         activeId="plan"
         canEdit={hasPermission(access.role, 'artifact:edit')}
         canManageSets={canManageSets}

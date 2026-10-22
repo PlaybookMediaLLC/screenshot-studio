@@ -4,14 +4,14 @@ import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  Alert02Icon,
-  ArrowDown01Icon,
-  Copy01Icon,
-  FloppyDiskIcon,
-  Folder01Icon,
-  PencilEdit01Icon,
-  WorkHistoryIcon,
-} from 'hugeicons-react'
+  TriangleAlert as Alert02Icon,
+  ChevronDown as ArrowDown01Icon,
+  Copy as Copy01Icon,
+  Save as FloppyDiskIcon,
+  FolderOpen as Folder01Icon,
+  SquarePen as PencilEdit01Icon,
+  History as WorkHistoryIcon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -53,7 +53,7 @@ const STATUS_LABELS: Record<ProjectSaveStatus, string> = {
   error: 'Not saved',
   loading: 'Opening…',
   offline: 'Offline, saved on this device',
-  saved: 'Saved',
+  saved: 'Saved to workspace',
   saving: 'Saving…',
   unsaved: 'Unsaved changes',
 }
@@ -166,7 +166,9 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
   if (!project.projectId) {
     return (
       <>
-        <Button variant="custom" size={null}
+        <Button
+          variant="custom"
+          size={null}
           className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
           onClick={() => setNameDialog('create')}
           type="button"
@@ -187,7 +189,9 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="custom" size={null}
+          <Button
+            variant="custom"
+            size={null}
             aria-label={`Project ${project.name || ''}: ${statusLabel}`}
             className="inline-flex h-8 min-w-[120px] max-w-[260px] shrink-0 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-foreground/[0.06] data-[state=open]:bg-foreground/[0.08]"
             type="button"

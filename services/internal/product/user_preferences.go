@@ -67,7 +67,7 @@ func (e *UserPreferencesConflictError) Unwrap() error { return publishing.ErrCon
 
 func defaultUserPreferences() UserPreferences {
 	return UserPreferences{DismissedTips: []string{}, EmailNotifications: true, Experiments: map[string]bool{},
-		Navigation: "compact", ShowScrollbars: true, TextDirection: "ltr", Theme: "dark", WeekStart: "monday"}
+		Navigation: "expanded", ShowScrollbars: true, TextDirection: "ltr", Theme: "dark", WeekStart: "monday"}
 }
 
 func userPreferencesRecord(row *ent.UserPreference) UserPreferences {

@@ -1,6 +1,6 @@
 'use client'
 
-import { Alert02Icon, DocumentValidationIcon } from 'hugeicons-react'
+import { TriangleAlert as Alert02Icon, FileCheck as DocumentValidationIcon } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'

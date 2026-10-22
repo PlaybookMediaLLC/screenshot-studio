@@ -5,7 +5,7 @@ import { useWriteRouter } from '@/components/write/write-context'
 import * as React from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Add01Icon, PinIcon } from 'hugeicons-react'
+import { Plus as Add01Icon, Pin as PinIcon } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -109,10 +109,14 @@ export function WriteRail() {
   }
   return (
     <aside
-      aria-label="Write library"
+      aria-label="Publish library"
       className="flex h-full min-h-0 w-full flex-col"
       data-testid="write-rail"
     >
+      <div className="px-3 pt-4">
+        <h2 className="text-base font-medium">Publish</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Publishing brand</p>
+      </div>
       <div className="flex items-center gap-1 px-3 pt-3 pb-2">
         <div className="min-w-0 flex-1">
           <SocialSetSwitcher />
@@ -130,6 +134,21 @@ export function WriteRail() {
           Settings
         </Link>
       </div>
+      <nav
+        aria-label="Publishing utilities"
+        className="mb-3 flex flex-wrap gap-3 px-3 text-xs text-muted-foreground"
+      >
+        <Link
+          href={`/link-preview?returnTo=${encodeURIComponent(data.activeSet ? `/write?set=${data.activeSet.id}` : '/write')}`}
+        >
+          Link checks
+        </Link>
+        <Link
+          href={data.activeSet ? `/write/deliveries?set=${data.activeSet.id}` : '/write/deliveries'}
+        >
+          Campaign deliveries
+        </Link>
+      </nav>
       <div className="px-3" role="tablist" aria-label="Library">
         <div className="grid grid-cols-4 rounded-lg bg-white/[0.04] p-0.5">
           {TABS.map((item) => (
@@ -162,16 +181,37 @@ export function WriteRail() {
       {tab === 'queue' ? null : <LibraryFilters onManageTags={() => setManagingTags(true)} />}
       {tab !== 'queue' && (data.query.q || data.query.kind || data.query.tag) ? (
         <div aria-label="Active filters" className="flex flex-wrap gap-1 px-3 pt-2">
-          {([
-            { key: 'q', label: data.query.q },
-            { key: 'kind', label: data.query.kind ? KIND_LABELS[data.query.kind] : undefined },
-            { key: 'tag', label: data.query.tag ? data.tags.find((tag) => tag.id === data.query.tag)?.name ?? 'Tag' : undefined },
-          ] as const).filter((filter) => filter.label).map((filter) => (
-            <Button key={filter.key} aria-label={`Remove ${filter.label} filter`} size="sm" variant="outline" onClick={() => setQuery({ [filter.key]: undefined })}>
-              {filter.label} ×
-            </Button>
-          ))}
-          <Button size="sm" variant="ghost" onClick={() => setQuery({ q: undefined, tag: undefined, kind: undefined })}>Clear filters</Button>
+          {(
+            [
+              { key: 'q', label: data.query.q },
+              { key: 'kind', label: data.query.kind ? KIND_LABELS[data.query.kind] : undefined },
+              {
+                key: 'tag',
+                label: data.query.tag
+                  ? (data.tags.find((tag) => tag.id === data.query.tag)?.name ?? 'Tag')
+                  : undefined,
+              },
+            ] as const
+          )
+            .filter((filter) => filter.label)
+            .map((filter) => (
+              <Button
+                key={filter.key}
+                aria-label={`Remove ${filter.label} filter`}
+                size="sm"
+                variant="outline"
+                onClick={() => setQuery({ [filter.key]: undefined })}
+              >
+                {filter.label} ×
+              </Button>
+            ))}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setQuery({ q: undefined, tag: undefined, kind: undefined })}
+          >
+            Clear filters
+          </Button>
         </div>
       ) : null}
       {canEdit && tab !== 'queue' ? <NewDraftMenu /> : null}
@@ -192,7 +232,16 @@ export function WriteRail() {
                   posted: 'Nothing posted from this set yet.',
                   queue: '',
                 }[tab]}
-            {data.query.q || data.query.tag || data.query.kind ? <Button className="mt-2 block" size="sm" variant="outline" onClick={() => setQuery({ q: undefined, tag: undefined, kind: undefined })}>Clear filters</Button> : null}
+            {data.query.q || data.query.tag || data.query.kind ? (
+              <Button
+                className="mt-2 block"
+                size="sm"
+                variant="outline"
+                onClick={() => setQuery({ q: undefined, tag: undefined, kind: undefined })}
+              >
+                Clear filters
+              </Button>
+            ) : null}
           </div>
         ) : (
           <ul>
@@ -352,12 +401,16 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
   const create = async (kind: DraftKind, target?: { sourceDraftId?: string; url?: string }) => {
     setCreating(true)
     try {
-      await createWritingDraft({
-        kind,
-        socialSetId: data.activeSet?.id,
-        tagIds: data.experiments.tags && data.query.tag ? [data.query.tag] : undefined,
-        target,
-      }, (id) => router.push(draftHref(id, data.activeSet?.id)), beforeLeaveRef.current ?? undefined)
+      await createWritingDraft(
+        {
+          kind,
+          socialSetId: data.activeSet?.id,
+          tagIds: data.experiments.tags && data.query.tag ? [data.query.tag] : undefined,
+          target,
+        },
+        (id) => router.push(draftHref(id, data.activeSet?.id)),
+        beforeLeaveRef.current ?? undefined
+      )
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'The draft could not be created.')
     } finally {
@@ -625,7 +678,14 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
       <span className="text-sky-300" key="next">
         Scheduled{' '}
         <LocalTime
-          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short', timeZone, timeZoneName: 'short' }}
+          options={{
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            month: 'short',
+            timeZone,
+            timeZoneName: 'short',
+          }}
           value={draft.nextPostAt}
         />
       </span>
@@ -635,7 +695,14 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
       <span className="text-violet-300" key="planned">
         {draft.status === 'archived' ? 'Previously planned' : 'Planned'}{' '}
         <LocalTime
-          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short', timeZone, timeZoneName: 'short' }}
+          options={{
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            month: 'short',
+            timeZone,
+            timeZoneName: 'short',
+          }}
           value={draft.plannedFor}
         />
       </span>
@@ -799,10 +866,17 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
             <>
               <DropdownMenuSeparator />
               {draft.status === 'archived' ? (
-                <DropdownMenuItem onSelect={() => void act(async () => {
-                  const current = await draftsApi.get(draft.id)
-                  await draftsApi.save(draft.id, { baseVersion: current.version, status: 'draft' })
-                }, 'Restored to drafts.')}>
+                <DropdownMenuItem
+                  onSelect={() =>
+                    void act(async () => {
+                      const current = await draftsApi.get(draft.id)
+                      await draftsApi.save(draft.id, {
+                        baseVersion: current.version,
+                        status: 'draft',
+                      })
+                    }, 'Restored to drafts.')
+                  }
+                >
                   Restore draft
                 </DropdownMenuItem>
               ) : null}
@@ -833,13 +907,17 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
               }
               onClick={() =>
                 confirm === 'delete'
-                  ? void act(async () => {
-                      await beforeLeaveRef.current?.()
-                      await draftsApi.remove(draft.id)
-                      hideDraft(draft.id)
-                      if (activeId === draft.id) router.replace('/write')
-                      else router.refresh()
-                    }, 'Draft deleted.', false)
+                  ? void act(
+                      async () => {
+                        await beforeLeaveRef.current?.()
+                        await draftsApi.remove(draft.id)
+                        hideDraft(draft.id)
+                        if (activeId === draft.id) router.replace('/write')
+                        else router.refresh()
+                      },
+                      'Draft deleted.',
+                      false
+                    )
                   : void act(async () => {
                       const shared = await draftsApi.share(draft.id, true)
                       if (shared.shareToken) {
@@ -930,7 +1008,11 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
   const [progress, setProgress] = React.useState<number | null>(null)
   const run = async (label: string, work: (id: string) => Promise<unknown>) => {
     if (progress !== null) return
-    try { await beforeLeaveRef.current?.() } catch { return }
+    try {
+      await beforeLeaveRef.current?.()
+    } catch {
+      return
+    }
     setProgress(0)
     let removedActive = false
     // One at a time: a duplicate points at its source, and deleting both at
@@ -963,7 +1045,11 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
       role="toolbar"
       aria-label="Selected drafts"
     >
-      <span className="mr-auto text-sky-200">{progress === null ? `${selected.length} selected` : `${progress} of ${selected.length} completed…`}</span>
+      <span className="mr-auto text-sky-200">
+        {progress === null
+          ? `${selected.length} selected`
+          : `${progress} of ${selected.length} completed…`}
+      </span>
       <Button
         disabled={progress !== null}
         onClick={() => void run('Pinned', (id) => writeApi.properties(id, { pinned: true }))}
@@ -997,7 +1083,14 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
       >
         Delete
       </Button>
-      <Button disabled={progress !== null} aria-label="Clear selection" onClick={onDone} size="sm" type="button" variant="ghost">
+      <Button
+        disabled={progress !== null}
+        aria-label="Clear selection"
+        onClick={onDone}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
         ✕
       </Button>
       <AlertDialog onOpenChange={setConfirm} open={confirm}>

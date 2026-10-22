@@ -79,7 +79,7 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     description: 'Activity preferences, delivery channels, and Slack notifications.',
   },
   {
-    description: 'Theme, navigation, calendar, editor direction, and scrollbars.',
+    description: 'Theme, navigation, calendar, and editor direction.',
     group: 'personal',
     id: 'appearance',
     slug: 'appearance',
@@ -100,7 +100,8 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     title: 'Install',
   },
   {
-    description: 'Workspace name, slug, logo URL, time zone (timezone), release preferences, and defaults.',
+    description:
+      'Workspace name, slug, logo URL, time zone (timezone), release preferences, and defaults.',
     group: 'workspace',
     id: 'general',
     slug: '',
@@ -146,7 +147,7 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     group: 'brand',
     id: 'brand',
     slug: 'brand-kit',
-    title: 'Brand kit',
+    title: 'Brand voice & visual kits',
   },
   {
     description: 'What your product is, who it is for, and what campaigns can claim.',
@@ -210,7 +211,7 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     group: 'publishing',
     id: 'social-sets',
     slug: 'social-sets',
-    title: 'Brands',
+    title: 'Publishing brands',
   },
   {
     description: 'Every connected account in the workspace and the set it belongs to.',

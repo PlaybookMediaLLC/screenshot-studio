@@ -1,5 +1,7 @@
 'use client'
 
+import { prepareWorkspaceSwitch } from '@/lib/platform/navigation-guard'
+
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import type { WorkspaceCreationResult } from 'screenshot-studio-backend-sdk'
 import { Button } from '@/components/ui/button'
@@ -119,6 +121,7 @@ export function WorkspaceCreationDialog({
     setBusy(true)
     setError(null)
     try {
+      await prepareWorkspaceSwitch()
       await client.workspace.setActive.mutate({ organizationId: created.id })
       if (!mounted.current) return
       window.location.assign(path)

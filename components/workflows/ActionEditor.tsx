@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 import type {
   AutomationAction,
@@ -9,6 +10,7 @@ import type {
   AutomationNode,
   AutomationOverview,
 } from '@/lib/api/contracts/release-automation'
+import { DesignTemplatePreview } from '@/components/design/DesignTemplatePreview'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -50,6 +52,11 @@ export function ActionEditor({
   overview: AutomationOverview
   onChange: (action: AutomationAction) => void
 }) {
+  const pathname = usePathname()
+  const params = useSearchParams()
+  const back = new URLSearchParams(params.toString())
+  back.set('node', node.id)
+  const returnTo = encodeURIComponent(`${pathname}?${back}`)
   const action = node.action ?? blankAction('create_release')
   const spec = WORKFLOW_ACTIONS[action.type]
   const availability = actionAvailability(overview, action.type)
@@ -120,7 +127,7 @@ export function ActionEditor({
       {action.type === 'create_campaign' ? (
         <>
           <Label className="grid gap-1 text-sm">
-            Brand kit
+            Visual brand kit
             <Select
               value={action.brandKitId || EMPTY}
               onValueChange={(nextValue) =>
@@ -145,7 +152,7 @@ export function ActionEditor({
               Create and publish a brand kit, then return to this tab.{' '}
               <Link
                 className="underline"
-                href="/workspace/brand-kit"
+                href={`/workspace/brand-kit?returnTo=${returnTo}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -181,7 +188,7 @@ export function ActionEditor({
                 Connect a destination in{' '}
                 <Link
                   className="underline"
-                  href="/workspace/channels"
+                  href={`/workspace/channels?returnTo=${returnTo}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -234,7 +241,8 @@ export function ActionEditor({
           <fieldset className="space-y-2">
             <legend className="text-sm">Design templates (1–3)</legend>
             {(overview.templates ?? []).map((template) => (
-              <Label key={template.id} className="flex items-center gap-2 text-sm">
+              <Label key={template.id} className="grid gap-2 rounded-lg border p-3 text-sm">
+                <DesignTemplatePreview id={template.id} />
                 <Checkbox
                   checked={action.templateIds?.includes(template.id) ?? false}
                   disabled={

@@ -32,8 +32,8 @@ type Review = { status: string; posts: { status: string }[] }
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-xs text-neutral-500">{label}</dt>
-      <dd className="break-all text-sm text-neutral-200">{children}</dd>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="break-all text-sm text-foreground">{children}</dd>
     </div>
   )
 }
@@ -89,7 +89,7 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
     return (
       <Page title="Workflow run">
         <p
-          className={error ? 'text-sm text-red-300' : 'text-sm text-neutral-500'}
+          className={error ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}
           role={error ? 'alert' : 'status'}
         >
           {error ?? 'Loading run…'}
@@ -172,7 +172,7 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
       ) : null}
 
       <Section title="Summary">
-        <dl className="grid gap-4 rounded-2xl p-5 ring-1 ring-white/[0.08] sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="grid gap-4 rounded-2xl p-5 ring-1 ring-border sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Workflow">
             {definition ? (
               <Link className="underline" href={`/workflows/${definition.id}`}>
@@ -286,7 +286,9 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
           ) : null}
           {!run.outputs.releaseId && !run.outputs.campaignId ? (
             <Row>
-              <p className="text-sm text-neutral-500">This run produced no release or campaign.</p>
+              <p className="text-sm text-muted-foreground">
+                This run produced no release or campaign.
+              </p>
             </Row>
           ) : null}
         </Group>
@@ -300,7 +302,7 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div
               aria-label="Executed workflow graph"
-              className="h-[420px] overflow-hidden rounded-2xl ring-1 ring-white/[0.08]"
+              className="h-[420px] overflow-hidden rounded-2xl ring-1 ring-border"
               role="region"
             >
               <ReactFlow
@@ -327,10 +329,7 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
                 />
               </ReactFlow>
             </div>
-            <aside
-              aria-label="Node details"
-              className="rounded-2xl p-4 text-sm ring-1 ring-white/[0.08]"
-            >
+            <aside aria-label="Node details" className="rounded-2xl p-4 text-sm ring-1 ring-border">
               {node ? (
                 <dl className="flex flex-col gap-3">
                   <Field label="Node">
@@ -376,16 +375,16 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
                       <Field label="Action key">{receipt.actionKey}</Field>
                     </>
                   ) : (
-                    <p className="text-neutral-500">This node did not run.</p>
+                    <p className="text-muted-foreground">This node did not run.</p>
                   )}
                 </dl>
               ) : (
-                <p className="text-neutral-500">Select a node on the graph or the timeline.</p>
+                <p className="text-muted-foreground">Select a node on the graph or the timeline.</p>
               )}
             </aside>
           </div>
         ) : (
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-muted-foreground">
             No version was selected for this event, so no graph ran. {run.reason}
           </p>
         )}
@@ -396,7 +395,7 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
         title="Timeline"
       >
         <ol aria-label="Run timeline" className="flex flex-col gap-2">
-          <li className="rounded-xl p-3 text-sm ring-1 ring-white/[0.08]">
+          <li className="rounded-xl p-3 text-sm ring-1 ring-border">
             Event received · {new Date(event.receivedAt).toLocaleString()} · {event.mode} mode
           </li>
           {receipts.map((item) => (
@@ -419,7 +418,7 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
                     : item.nodeId}{' '}
                   · {item.nodeId}
                 </span>
-                <span className="text-xs font-normal text-neutral-400">
+                <span className="text-xs font-normal text-muted-foreground">
                   {item.status} · {item.attempts} attempt{item.attempts === 1 ? '' : 's'}
                   {item.decision.status === 'evaluated'
                     ? ` · ${item.decision.match ? 'true' : 'false'} branch`
@@ -433,7 +432,7 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
             </li>
           ))}
           {run.completedAt ? (
-            <li className="rounded-xl p-3 text-sm ring-1 ring-white/[0.08]">
+            <li className="rounded-xl p-3 text-sm ring-1 ring-border">
               Finished {run.status.replaceAll('_', ' ')} ·{' '}
               {new Date(run.completedAt).toLocaleString()}
             </li>
@@ -445,19 +444,19 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
         description="The normalized event this run evaluated. Source text is untrusted evidence; no raw payload or credential is kept."
         title="Event evidence"
       >
-        <div className="overflow-x-auto rounded-2xl ring-1 ring-white/[0.08]">
+        <div className="overflow-x-auto rounded-2xl ring-1 ring-border">
           <table aria-label="Event fields" className="w-full text-left text-sm">
             <tbody>
               {Object.entries(fields).map(([field, value]) => (
                 <tr className="border-t border-white/[0.06] first:border-t-0" key={field}>
                   <th
-                    className="px-4 py-2 font-mono text-xs font-normal text-neutral-400"
+                    className="px-4 py-2 font-mono text-xs font-normal text-muted-foreground"
                     scope="row"
                   >
                     {field}
                   </th>
-                  <td className="px-4 py-2 text-xs text-neutral-500">{value.state}</td>
-                  <td className="px-4 py-2 text-xs break-all text-neutral-200">
+                  <td className="px-4 py-2 text-xs text-muted-foreground">{value.state}</td>
+                  <td className="px-4 py-2 text-xs break-all text-foreground">
                     {value.boolean !== undefined
                       ? String(value.boolean)
                       : value.values?.length
@@ -475,7 +474,7 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
         {event.snapshot.notes ? (
           <div>
             <h3 className="mb-2 text-sm font-medium">Release notes (Markdown source)</h3>
-            <pre className="max-h-64 overflow-auto rounded-2xl p-4 text-xs whitespace-pre-wrap text-neutral-400 ring-1 ring-white/[0.08]">
+            <pre className="max-h-64 overflow-auto rounded-2xl p-4 text-xs whitespace-pre-wrap text-muted-foreground ring-1 ring-border">
               {event.snapshot.notes}
             </pre>
           </div>

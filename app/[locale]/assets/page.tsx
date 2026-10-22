@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
+import { AreaNavigation, LIBRARY_LINKS } from '@/components/platform-hub/AreaNavigation'
 import { Page } from '@/components/platform-ui'
 import { WorkspaceAssets } from '@/components/workspace/WorkspaceAssets'
 import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
@@ -33,6 +34,7 @@ export default async function AssetsPage({ params }: AssetsPageProps) {
         description="Screenshots and video your team has saved from the editor."
         title="Assets"
       >
+        <AreaNavigation label="Library" items={LIBRARY_LINKS} />
         <WorkspaceAssets />
       </Page>
     </PlatformShell>

@@ -1,8 +1,10 @@
 'use client'
 
+import { platformHref, safeReturnPath } from '@/lib/platform/navigation'
+
 import { useEffect, useState, type FormEvent } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth/client'
@@ -36,17 +38,18 @@ type AuthFormProps = {
 }
 
 function getCallbackUrl(value: string | null): string {
-  return value?.startsWith('/') && !value.startsWith('//') ? value : '/'
+  return safeReturnPath(value)
 }
 
 export function AuthForm({ mode, passwordAuthEnabled, socialProviders }: AuthFormProps) {
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [error, setError] = useState<string | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isSignUp = mode === 'sign-up'
-  const callbackURL = getCallbackUrl(searchParams.get('callbackURL'))
+  const callbackURL = platformHref(pathname, getCallbackUrl(searchParams.get('callbackURL')))
   const hasSocialProviders = socialProviders.length > 0
 
   useEffect(() => {
@@ -73,7 +76,7 @@ export function AuthForm({ mode, passwordAuthEnabled, socialProviders }: AuthFor
             result.error.message || 'Account creation is unavailable. Please try again.'
           )
         if (result.data?.token) {
-          window.location.assign(callbackURL === '/' ? '/onboarding' : callbackURL)
+          window.location.assign(!searchParams.get('callbackURL') ? '/onboarding' : callbackURL)
           return
         }
         setMessage('Check your email to verify your account, then sign in.')

@@ -1,5 +1,5 @@
-@import "tailwindcss" source(none);
-@import "tw-animate-css";
+@import 'tailwindcss' source(none);
+@import 'tw-animate-css';
 
 /* Watch UI sources only; root scanning also watches generated logs in worktrees. */
 @source "./";
@@ -10,72 +10,72 @@
 
 /* SF Pro Display - Local Font */
 @font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFPRODISPLAYREGULAR.OTF") format("opentype");
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYREGULAR.OTF') format('opentype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFPRODISPLAYMEDIUM.OTF") format("opentype");
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYMEDIUM.OTF') format('opentype');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFPRODISPLAYBOLD.OTF") format("opentype");
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYBOLD.OTF') format('opentype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFPRODISPLAYLIGHTITALIC.OTF") format("opentype");
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYLIGHTITALIC.OTF') format('opentype');
   font-weight: 300;
   font-style: italic;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFPRODISPLAYTHINITALIC.OTF") format("opentype");
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYTHINITALIC.OTF') format('opentype');
   font-weight: 100;
   font-style: italic;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFPRODISPLAYULTRALIGHTITALIC.OTF") format("opentype");
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYULTRALIGHTITALIC.OTF') format('opentype');
   font-weight: 200;
   font-style: italic;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFPRODISPLAYSEMIBOLDITALIC.OTF") format("opentype");
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYSEMIBOLDITALIC.OTF') format('opentype');
   font-weight: 600;
   font-style: italic;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFPRODISPLAYHEAVYITALIC.OTF") format("opentype");
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYHEAVYITALIC.OTF') format('opentype');
   font-weight: 800;
   font-style: italic;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFPRODISPLAYBLACKITALIC.OTF") format("opentype");
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYBLACKITALIC.OTF') format('opentype');
   font-weight: 900;
   font-style: italic;
   font-display: swap;
@@ -116,10 +116,9 @@
   --sidebar-accent-foreground: #1e1e1e;
   --sidebar-border: #e5e5e5;
   --sidebar-ring: #737373;
-  --font-sans:
-    Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: "Fira Code", monospace;
+  --font-mono: 'Fira Code', monospace;
   --radius: 0.5rem;
   --shadow-x: 0px;
   --shadow-y: 2px;
@@ -129,16 +128,11 @@
   --shadow-color: #000000;
   --shadow-2xs: 0px 2px 10px 0px hsl(0 0% 0% / 0.03);
   --shadow-xs: 0px 2px 10px 0px hsl(0 0% 0% / 0.03);
-  --shadow-sm:
-    0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
-  --shadow:
-    0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
-  --shadow-md:
-    0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 2px 4px -1px hsl(0 0% 0% / 0.05);
-  --shadow-lg:
-    0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 4px 6px -1px hsl(0 0% 0% / 0.05);
-  --shadow-xl:
-    0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 8px 10px -1px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+  --shadow: 0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+  --shadow-md: 0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 2px 4px -1px hsl(0 0% 0% / 0.05);
+  --shadow-lg: 0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 4px 6px -1px hsl(0 0% 0% / 0.05);
+  --shadow-xl: 0px 2px 10px 0px hsl(0 0% 0% / 0.05), 0px 8px 10px -1px hsl(0 0% 0% / 0.05);
   --shadow-2xl: 0px 2px 10px 0px hsl(0 0% 0% / 0.13);
   --tracking-normal: -0.01em;
   --spacing: 0.25rem;
@@ -148,15 +142,12 @@
   --bento-glow-rgb: 255, 255, 255;
   --nav-cta-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   --nav-cta-hover-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.1),
-    0 3px 5px var(--nav-cta-glow),
+    0 1px 2px rgba(0, 0, 0, 0.1), 0 3px 5px var(--nav-cta-glow),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
   --card-highlight-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.06);
   --card-edge-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --preview-ambient-glow: rgba(0, 0, 0, 0.04);
-  --preview-shell-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 24px 64px rgba(0, 0, 0, 0.2);
+  --preview-shell-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 24px 64px rgba(0, 0, 0, 0.2);
   --canvas-control-surface: #ffffff;
   --canvas-selection: #3b82f6;
   --canvas-destructive: #ef4444;
@@ -197,9 +188,9 @@
   --sidebar-border: #212121;
   --sidebar-ring: #858585;
   --font-sans:
-    var(--font-geist-sans), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    var(--font-geist-sans), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: var(--font-geist-mono), "Fira Code", monospace;
+  --font-mono: var(--font-geist-mono), 'Fira Code', monospace;
   --radius: 0.75rem;
   --shadow-x: 0px;
   --shadow-y: 4px;
@@ -209,31 +200,23 @@
   --shadow-color: #000000;
   --shadow-2xs: 0px 4px 12px 0px hsl(0 0% 0% / 0.15);
   --shadow-xs: 0px 4px 12px 0px hsl(0 0% 0% / 0.15);
-  --shadow-sm:
-    0px 4px 12px 0px hsl(0 0% 0% / 0.3), 0px 1px 2px -1px hsl(0 0% 0% / 0.3);
-  --shadow:
-    0px 4px 12px 0px hsl(0 0% 0% / 0.3), 0px 1px 2px -1px hsl(0 0% 0% / 0.3);
-  --shadow-md:
-    0px 4px 12px 0px hsl(0 0% 0% / 0.3), 0px 2px 4px -1px hsl(0 0% 0% / 0.3);
-  --shadow-lg:
-    0px 4px 12px 0px hsl(0 0% 0% / 0.3), 0px 4px 6px -1px hsl(0 0% 0% / 0.3);
-  --shadow-xl:
-    0px 4px 12px 0px hsl(0 0% 0% / 0.3), 0px 8px 10px -1px hsl(0 0% 0% / 0.3);
+  --shadow-sm: 0px 4px 12px 0px hsl(0 0% 0% / 0.3), 0px 1px 2px -1px hsl(0 0% 0% / 0.3);
+  --shadow: 0px 4px 12px 0px hsl(0 0% 0% / 0.3), 0px 1px 2px -1px hsl(0 0% 0% / 0.3);
+  --shadow-md: 0px 4px 12px 0px hsl(0 0% 0% / 0.3), 0px 2px 4px -1px hsl(0 0% 0% / 0.3);
+  --shadow-lg: 0px 4px 12px 0px hsl(0 0% 0% / 0.3), 0px 4px 6px -1px hsl(0 0% 0% / 0.3);
+  --shadow-xl: 0px 4px 12px 0px hsl(0 0% 0% / 0.3), 0px 8px 10px -1px hsl(0 0% 0% / 0.3);
   --shadow-2xl: 0px 4px 12px 0px hsl(0 0% 0% / 0.75);
   --nav-cta-bg: #ffffff;
   --nav-cta-fg: #0a0a0a;
   --nav-cta-glow: rgba(255, 255, 255, 0.5);
   --nav-cta-text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   --nav-cta-hover-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.1),
-    0 3px 5px var(--nav-cta-glow),
+    0 1px 2px rgba(0, 0, 0, 0.1), 0 3px 5px var(--nav-cta-glow),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
   --card-highlight-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --card-edge-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.05);
   --preview-ambient-glow: rgba(255, 255, 255, 0.04);
-  --preview-shell-shadow:
-    0 1px 2px rgba(255, 255, 255, 0.04),
-    0 24px 64px rgba(0, 0, 0, 0.45);
+  --preview-shell-shadow: 0 1px 2px rgba(255, 255, 255, 0.04), 0 24px 64px rgba(0, 0, 0, 0.45);
 }
 
 @theme inline {
@@ -308,83 +291,72 @@
     outline-offset: -2px;
     border-radius: var(--radius);
   }
-  /* The signed-in pages at 80%, as the browser's zoom would show them, on
-     screens wider than a phone: rem lengths follow the root font size and
-     pixel lengths follow --app-zoom (postcss-app-zoom.cjs). PlatformShell
-     marks its page variant with data-app-zoom; the editors stay at 100%. */
-  @media (min-width: 768px) {
-    html:has([data-app-zoom]) {
-      font-size: 80%;
-      --app-zoom: 0.8;
-    }
-  }
-  /* Icons sized by their width and height attributes follow the zoom; a size
-     class still wins. */
-  :where(svg[width="10"][height="10"]) {
+  /* Explicit icon geometry; utility size classes still win. */
+  :where(svg[width='10'][height='10']) {
     width: 10px;
     height: 10px;
   }
-  :where(svg[width="11"][height="11"]) {
+  :where(svg[width='11'][height='11']) {
     width: 11px;
     height: 11px;
   }
-  :where(svg[width="12"][height="12"]) {
+  :where(svg[width='12'][height='12']) {
     width: 12px;
     height: 12px;
   }
-  :where(svg[width="13"][height="13"]) {
+  :where(svg[width='13'][height='13']) {
     width: 13px;
     height: 13px;
   }
-  :where(svg[width="14"][height="14"]) {
+  :where(svg[width='14'][height='14']) {
     width: 14px;
     height: 14px;
   }
-  :where(svg[width="15"][height="15"]) {
+  :where(svg[width='15'][height='15']) {
     width: 15px;
     height: 15px;
   }
-  :where(svg[width="16"][height="16"]) {
+  :where(svg[width='16'][height='16']) {
     width: 16px;
     height: 16px;
   }
-  :where(svg[width="17"][height="17"]) {
+  :where(svg[width='17'][height='17']) {
     width: 17px;
     height: 17px;
   }
-  :where(svg[width="18"][height="18"]) {
+  :where(svg[width='18'][height='18']) {
     width: 18px;
     height: 18px;
   }
-  :where(svg[width="20"][height="20"]) {
+  :where(svg[width='20'][height='20']) {
     width: 20px;
     height: 20px;
   }
-  :where(svg[width="22"][height="22"]) {
+  :where(svg[width='22'][height='22']) {
     width: 22px;
     height: 22px;
   }
-  :where(svg[width="24"][height="24"]) {
+  :where(svg[width='24'][height='24']) {
     width: 24px;
     height: 24px;
   }
-  :where(svg[width="28"][height="28"]) {
+  :where(svg[width='28'][height='28']) {
     width: 28px;
     height: 28px;
   }
-  :where(svg[width="32"][height="32"]) {
+  :where(svg[width='32'][height='32']) {
     width: 32px;
     height: 32px;
   }
-  :where(svg[width="36"][height="36"]) {
+  :where(svg[width='36'][height='36']) {
     width: 36px;
     height: 36px;
   }
-  :where(svg[width="40"][height="40"]) {
+  :where(svg[width='40'][height='40']) {
     width: 40px;
     height: 40px;
   }
-  :where(svg[width="48"][height="48"]) {
+  :where(svg[width='48'][height='48']) {
     width: 48px;
     height: 48px;
   }
@@ -406,14 +378,14 @@
   /* Improve touch targets on mobile */
   button,
   a,
-  [role="button"] {
+  [role='button'] {
     @apply touch-manipulation;
   }
 
   @media (max-width: 768px) {
-    button:not([class*="size"]):not([class*="h-"]),
-    a:not([class*="size"]):not([class*="h-"]),
-    [role="button"]:not([class*="size"]):not([class*="h-"]) {
+    button:not([class*='size']):not([class*='h-']),
+    a:not([class*='size']):not([class*='h-']),
+    [role='button']:not([class*='size']):not([class*='h-']) {
       min-height: 44px;
     }
   }
@@ -429,42 +401,14 @@
 
   * {
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
   }
 
   @media (max-width: 768px) {
     button,
     a,
-    [role="button"] {
+    [role='button'] {
       touch-action: manipulation;
     }
-  }
-
-  /* Scrollbar - minimal */
-  *::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  *::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  *::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 3px;
-  }
-  *::-webkit-scrollbar-thumb:hover {
-    background: var(--muted-foreground);
-  }
-  *::-webkit-scrollbar-corner {
-    background: transparent;
-  }
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
   }
 
   /* Marquee animation */
@@ -622,8 +566,8 @@
 }
 
 @media (max-width: 1023px) {
-  .mobile-editor-drawer button:not([role="switch"]):not([role="slider"]),
-  .mobile-editor-drawer input:not([type="checkbox"]):not([type="color"]),
+  .mobile-editor-drawer button:not([role='switch']):not([role='slider']),
+  .mobile-editor-drawer input:not([type='checkbox']):not([type='color']),
   .mobile-editor-drawer select {
     min-height: 44px;
   }
@@ -636,17 +580,56 @@
   }
 }
 
-/* Settings → Appearance → Show scrollbars off (RFC 043). Scrolling still works
-   by wheel, touch and keyboard; only the bars are hidden. Safari applies the
-   ::-webkit-scrollbar rule to already-rendered containers after a reload. */
-html.hide-scrollbars,
-html.hide-scrollbars * {
-  scrollbar-width: none;
+/* Keep every scroll container usable without drawing native scrollbar chrome. */
+html,
+html * {
+  scrollbar-width: none !important;
 }
-html.hide-scrollbars::-webkit-scrollbar,
-html.hide-scrollbars ::-webkit-scrollbar {
-  display: none;
+html::-webkit-scrollbar,
+html *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-.react-flow__attribution { background: var(--card); color: var(--muted-foreground); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 10px; line-height: 1.4; }
-.react-flow__attribution a { color: inherit; text-decoration: none; }
+.react-flow__attribution {
+  background: var(--card);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.react-flow__attribution a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Platform chrome uses readable sizes without changing document/export geometry. */
+.platform-shell {
+  --platform-nav-expanded: 240px;
+  --platform-nav-compact: 56px;
+  --platform-header-height: 56px;
+  --platform-form-width: 880px;
+  font-size: 14px;
+}
+.platform-shell :focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+@media (pointer: coarse) {
+  .platform-shell [data-platform-nav],
+  .platform-shell button:not([role='switch']):not([role='slider']) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .platform-shell *,
+  .platform-shell *::before,
+  .platform-shell *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

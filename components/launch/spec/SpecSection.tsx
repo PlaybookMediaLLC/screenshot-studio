@@ -1,6 +1,6 @@
 'use client'
 
-import { PencilEdit02Icon } from 'hugeicons-react'
+import { SquarePen as PencilEdit02Icon } from 'lucide-react'
 import { ArrowRight } from 'lucide-react'
 import { type FormEvent, type ReactNode, useId, useState } from 'react'
 import { RevisePanel } from '@/components/launch/RevisePanel'

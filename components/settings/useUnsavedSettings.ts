@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { registerNavigationGuard } from '@/lib/platform/navigation-guard'
 
 let activeForms = 0
 let removeListeners: (() => void) | undefined
@@ -15,6 +16,10 @@ export function useUnsavedSettings(dirty: boolean) {
         if (--activeForms === 0) removeListeners?.()
       }
     const message = 'You have unsaved changes. Leave this page without saving?'
+    const removeGuard = registerNavigationGuard(() => {
+      if (!window.confirm(message))
+        throw new Error('Workspace switch cancelled. Save or discard the open settings first.')
+    })
     const unload = (event: BeforeUnloadEvent) => {
       event.preventDefault()
       event.returnValue = ''
@@ -54,6 +59,7 @@ export function useUnsavedSettings(dirty: boolean) {
     if (navigation) navigation.addEventListener('navigate', navigate)
     document.addEventListener('click', click, true)
     removeListeners = () => {
+      removeGuard()
       window.removeEventListener('beforeunload', unload)
       navigation?.removeEventListener('navigate', navigate)
       document.removeEventListener('click', click, true)

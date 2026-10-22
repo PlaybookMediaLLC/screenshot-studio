@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { expect, type Page, type Response } from '@playwright/test'
 import type { E2EIdentity } from './flow'
 import { browserJson, browserRequest, type BrowserRequest } from './browser'
-import { grantWorkspacePlan } from './services'
+import { createE2EDatabase, grantWorkspacePlan } from './services'
 import { getTotpCode } from './totp'
 import { SETTINGS_SECTIONS, settingsHref } from '../../../components/workspace/settings-sections'
 
@@ -71,7 +71,9 @@ export async function signUp(identity: E2EIdentity, page: Page): Promise<void> {
   await page.getByLabel('Password').fill(identity.password)
   const registration = await submitAuthForm(page, '/api/auth/sign-up/email', 'Create account')
   expect(registration.status()).toBe(200)
-  if (z.object({ token: z.string().nullable() }).parse(await registration.json()).token === null) {
+  // A successful form can navigate before Chromium exposes its response body.
+  const session = await page.request.get(getE2EUrl('/api/auth/get-session'))
+  if (!z.object({ user: z.object({ id: z.string() }) }).safeParse(await session.json()).success) {
     // Production intentionally does not auto-sign-in after registration. The
     // disposable stack disables email verification, so establish a real session
     // through the sign-in form instead of assuming a development-only redirect.
@@ -116,6 +118,20 @@ export async function signUpViaApi(identity: E2EIdentity, page: Page): Promise<v
 }
 
 export async function acceptInvitation(page: Page, invitationId: string): Promise<void> {
+  // The recipient fixture needs verified email; production acceptance always enforces it.
+  const session = await page.request.get(getE2EUrl('/api/auth/get-session'))
+  const { user } = z.object({ user: z.object({ id: z.string() }) }).parse(await session.json())
+  const database = createE2EDatabase()
+  try {
+    const verified = await database.query(
+      'UPDATE "user" SET "emailVerified"=true WHERE id=$1 AND email LIKE $2',
+      [user.id, '%@example.test']
+    )
+    expect(verified.rowCount).toBe(1)
+  } finally {
+    await database.end()
+  }
+
   await page.goto(getE2EUrl(`/accept-invitation?invitationId=${invitationId}`))
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'domcontentloaded' }),

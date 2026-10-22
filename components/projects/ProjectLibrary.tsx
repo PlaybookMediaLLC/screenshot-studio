@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Folder01Icon, MoreHorizontalIcon, Search01Icon } from 'hugeicons-react'
@@ -29,7 +30,7 @@ import { Input } from '@/components/ui/input'
 import { DESIGN_DOCUMENT_VERSION, type DesignDocument } from '@/lib/design/document'
 import { type ProjectSort, projectSortSchema } from '@/lib/projects/schema'
 import { forgetProject } from '@/lib/projects/session'
-import { useTRPCClient } from '@/lib/trpc/react'
+import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
 import { ProjectNameDialog } from './ProjectNameDialog'
 import { ProjectPreview } from './ProjectPreview'
 import { Label } from '@/components/ui/label'
@@ -47,8 +48,6 @@ type LibraryProject = {
   name: string
   updatedAt: Date
 }
-
-type Page = { error: string | null; items: LibraryProject[]; loading: boolean; next: string | null }
 
 const PAGE_SIZE = 24
 const SORT_LABELS: Record<ProjectSort, string> = { name: 'Name', updated: 'Last edited' }
@@ -68,17 +67,24 @@ function editorHref(projectId: string): string {
 /** The workspace's projects: search, open, rename, duplicate, delete, and start new ones. */
 export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
   const trpcClient = useTRPCClient()
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
   const router = useRouter()
   const params = useSearchParams()
   const query = (params.get('search') ?? '').trim().slice(0, 200)
   const sort = projectSortSchema.safeParse(params.get('sort')).data ?? 'updated'
   const [search, setSearch] = React.useState(query)
-  const [page, setPage] = React.useState<Page>({
-    error: null,
-    items: [],
-    loading: true,
-    next: null,
-  })
+  const options = trpc.project.list.infiniteQueryOptions(
+    { limit: PAGE_SIZE, search: query || undefined, sort },
+    { getNextPageParam: (page) => page.nextCursor }
+  )
+  const projects = useInfiniteQuery(options)
+  const page = {
+    items: projects.data?.pages.flatMap((page) => page.items) ?? [],
+    loading: projects.isPending || projects.isFetchingNextPage,
+    error: projects.error ? errorMessage(projects.error) : null,
+    next: projects.hasNextPage,
+  }
   const [creating, setCreating] = React.useState(false)
   const [renaming, setRenaming] = React.useState<LibraryProject | null>(null)
   const [deleting, setDeleting] = React.useState<LibraryProject | null>(null)
@@ -113,46 +119,9 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
     return () => clearTimeout(timer)
   }, [query, search, sort])
 
-  // Only the newest request may write, so a slow earlier search cannot win.
-  const requestRef = React.useRef(0)
-  const load = React.useCallback(
-    async (cursor: string | null) => {
-      const request = ++requestRef.current
-      setPage((current) => ({ ...current, error: null, loading: true }))
-      try {
-        const result = await trpcClient.project.list.query({
-          cursor: cursor ?? undefined,
-          limit: PAGE_SIZE,
-          search: query || undefined,
-          sort,
-        })
-        if (request !== requestRef.current) return
-        setPage((current) => ({
-          error: null,
-          items: cursor ? [...current.items, ...result.items] : result.items,
-          loading: false,
-          next: result.nextCursor,
-        }))
-      } catch (error) {
-        if (request !== requestRef.current) return
-        setPage((current) => ({ ...current, error: errorMessage(error), loading: false }))
-      }
-    },
-    [query, sort, trpcClient]
-  )
-
-  React.useEffect(() => {
-    void load(null)
-    const requests = requestRef
-    return () => {
-      requests.current++
-    }
-  }, [load])
-
   async function duplicate(project: LibraryProject) {
     try {
       const copy = await trpcClient.project.duplicate.mutate({ projectId: project.id })
-      await load(null)
       toast.success(`Duplicated as “${shortName(copy.name)}”`)
     } catch (error) {
       toast.error('Could not duplicate the project', { description: errorMessage(error) })
@@ -165,13 +134,15 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
     try {
       await trpcClient.project.delete.mutate({ projectId: deleting.id })
       forgetProject(deleting.id)
-      setPage((current) => ({
+      queryClient.setQueryData(options.queryKey, (current) => current ? {
         ...current,
-        items: current.items.filter((item) => item.id !== deleting.id),
-      }))
+        pages: current.pages.map((page) => ({
+          ...page,
+          items: page.items.filter((item) => item.id !== deleting.id),
+        })),
+      } : current)
       toast.success(`Deleted “${shortName(deleting.name)}”`)
       setDeleting(null)
-      void load(null)
     } catch (error) {
       toast.error('Could not delete the project', { description: errorMessage(error) })
     } finally {
@@ -244,7 +215,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
               variant="custom"
               size={null}
               className="underline"
-              onClick={() => void load(null)}
+              onClick={() => void projects.refetch()}
               type="button"
             >
               Try again
@@ -351,7 +322,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
                       <DropdownMenuItem onSelect={() => {
                         void trpcClient.project.get.query({ projectId: project.id }).then((latest) => {
                           setDeleting({ ...project, updatedAt: latest.updatedAt, name: latest.name })
-                          void load(null)
+                          void projects.refetch()
                         }).catch((error: unknown) => toast.error(error instanceof Error ? error.message : 'Could not load project.'))
                       }} variant="destructive">
                         Delete…
@@ -368,7 +339,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
       {page.loading ? <p className="text-sm text-muted-foreground">Loading projects…</p> : null}
       {page.next && !page.loading ? (
         <div className="flex justify-center">
-          <Button onClick={() => void load(page.next)} variant="outline">
+          <Button onClick={() => void projects.fetchNextPage()} variant="outline">
             Load more
           </Button>
         </div>
@@ -400,7 +371,6 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
         onSubmit={async (name) => {
           if (!renaming) return
           await trpcClient.project.rename.mutate({ name, projectId: renaming.id })
-          await load(null)
         }}
         open={renaming !== null}
         submitLabel="Rename"

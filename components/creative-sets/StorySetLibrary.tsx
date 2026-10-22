@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { Search01Icon } from 'hugeicons-react'
 import Link from 'next/link'
@@ -18,75 +19,43 @@ import {
 import { creativeSetSortSchema } from '@/lib/creative-sets/schema'
 import { StorySetAccess } from './StorySetAccess'
 import { StorySetFormatPreview } from './StorySetFormatPreview'
-import { useTRPCClient } from '@/lib/trpc/react'
+import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
 import { StorySetIntake } from './StorySetIntake'
 import { usePrivateCreativeSurface } from './use-private-surface'
 import { ImportProject } from './ImportProject'
 
-type Item = Awaited<
-  ReturnType<ReturnType<typeof useTRPCClient>['creativeSet']['list']['query']>
->['items'][number]
-
 export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; canEdit: boolean }) {
   usePrivateCreativeSurface()
   const client = useTRPCClient()
+  const trpc = useTRPC()
   const [ready, setReady] = useState(false),
     [importing, setImporting] = useState(false)
-  const [items, setItems] = useState<Item[]>([]),
-    [cursor, setCursor] = useState<string | null>(null)
   const params = useSearchParams()
-  const search = (params.get('search') ?? '').slice(0, 200)
-  const query = search.trim()
+  const query = (params.get('search') ?? '').trim().slice(0, 200)
+  const [search, setSearch] = useState(query)
   const sort = creativeSetSortSchema.catch('updated').parse(params.get('sort') ?? 'updated')
-  const [creating, setCreating] = useState(false),
-    [refresh, setRefresh] = useState(0)
-  const [error, setError] = useState<string | null>(null),
-    [actionError, setActionError] = useState<string | null>(null),
-    [busy, setBusy] = useState(true)
-  const request = useRef(0)
-  const load = useCallback(
-    async (next: string | null) => {
-      const current = ++request.current
-      setBusy(true)
-      setError(null)
-      try {
-        const result = await client.creativeSet.list.query({
-          cursor: next ?? undefined,
-          search: query || undefined,
-          sort,
-        })
-        if (current !== request.current) return
-        setItems((items) => (next ? [...items, ...result.items] : result.items))
-        setCursor(result.nextCursor)
-      } catch {
-        if (current === request.current)
-          setError('We couldn’t load your Story Sets. Please try again.')
-      } finally {
-        if (current === request.current) setBusy(false)
-      }
-    },
-    [client, query, sort]
-  )
-  useEffect(() => {
-    setReady(true)
-    setBusy(true)
-    setError(null)
-    setItems([])
-    setCursor(null)
-    const timer = setTimeout(() => void load(null), 200)
-    return () => {
-      // Invalidate in-flight requests; this counter is not a DOM ref.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      ++request.current
-      clearTimeout(timer)
-    }
-  }, [load, refresh])
+  const [creating, setCreating] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const sets = useInfiniteQuery(trpc.creativeSet.list.infiniteQueryOptions(
+    { search: query || undefined, sort },
+    { getNextPageParam: (page) => page.nextCursor }
+  ))
+  const items = sets.data?.pages.flatMap((page) => page.items) ?? []
+  const busy = sets.isPending || sets.isFetchingNextPage
+  const error = sets.error ? 'We couldn’t load your Story Sets. Please try again.' : null
   function updateFilter(name: 'search' | 'sort', value: string) {
     const url = new URL(window.location.href)
     if (value) url.searchParams.set(name, value)
     else url.searchParams.delete(name)
     window.history.replaceState(null, '', url)
   }
+  useEffect(() => { setReady(true) }, [])
+  useEffect(() => { setSearch(query) }, [query])
+  useEffect(() => {
+    if (search.trim() === query) return
+    const timer = setTimeout(() => updateFilter('search', search.trim()), 200)
+    return () => clearTimeout(timer)
+  }, [search, query])
   if (creating) return <StorySetIntake onCancel={() => setCreating(false)} />
   return (
     <main className="w-full space-y-8 p-4 sm:p-8">
@@ -132,7 +101,7 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
             placeholder="Search Story Sets"
             maxLength={200}
             value={search}
-            onChange={(event) => updateFilter('search', event.target.value.slice(0, 200))}
+            onChange={(event) => setSearch(event.target.value.slice(0, 200))}
             className="pl-9"
           />
         </div>
@@ -153,7 +122,7 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
         <Alert variant="destructive">
           <AlertDescription>
             {error}
-            <Button variant="outline" onClick={() => void load(cursor)}>
+            <Button variant="outline" onClick={() => void sets.refetch()}>
               Retry
             </Button>
           </AlertDescription>
@@ -244,7 +213,6 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
                       setActionError(null)
                       void client.creativeSet.duplicate
                         .mutate({ creativeSetId: item.id })
-                        .then(() => setRefresh((value) => value + 1))
                         .catch(() =>
                           setActionError('Could not update this Story Set. Please try again.')
                         )
@@ -260,7 +228,6 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
                     setActionError(null)
                     void client.creativeSet.archive
                       .mutate({ creativeSetId: item.id })
-                      .then(() => setRefresh((value) => value + 1))
                       .catch(() =>
                         setActionError('Could not update this Story Set. Please try again.')
                       )
@@ -273,8 +240,8 @@ export function StorySetLibrary({ canCreate, canEdit }: { canCreate: boolean; ca
           </article>
         ))}
       </div>
-      {cursor && !error ? (
-        <Button variant="outline" disabled={busy} onClick={() => void load(cursor)}>
+      {sets.hasNextPage && !error ? (
+        <Button variant="outline" disabled={busy} onClick={() => void sets.fetchNextPage()}>
           Load more
         </Button>
       ) : null}

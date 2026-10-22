@@ -8,6 +8,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
@@ -123,6 +124,31 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 	if err != nil {
 		return nil, err
 	}
+	installationIDs := make([]string, 0, len(sources))
+	for _, source := range sources {
+		installationIDs = append(installationIDs, *source.GithubInstallationID)
+	}
+	installations := map[string]*ent.GitHubInstallation{}
+	linkedInstallations := map[string]bool{}
+	if len(installationIDs) > 0 {
+		rows, err := c.client.GitHubInstallation.Query().Where(githubinstallation.IDIn(installationIDs...)).All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			installations[row.ID] = row
+		}
+		links, err := c.client.WorkspaceGitHubInstallation.Query().Where(
+			workspacegithubinstallation.OrganizationID(actor.OrganizationID),
+			workspacegithubinstallation.GithubInstallationIDIn(installationIDs...),
+		).All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, link := range links {
+			linkedInstallations[link.GithubInstallationID] = true
+		}
+	}
 	for _, source := range sources {
 		item := AutomationSource{ID: source.ID, Name: source.Name, Status: string(source.Status), Mode: "legacy", InstallationStatus: "DELETED"}
 		item.CollectUnmatched = source.AutomationCollectUnmatched
@@ -135,17 +161,10 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 		if source.ReleaseAutomation {
 			item.Mode = "automation"
 		}
-		installation, err := c.client.GitHubInstallation.Get(ctx, *source.GithubInstallationID)
-		if err != nil && !ent.IsNotFound(err) {
-			return nil, err
-		}
-		if installation != nil {
+		if installation := installations[*source.GithubInstallationID]; installation != nil {
 			item.Account, item.InstallationStatus = installation.AccountLogin, string(installation.Status)
 		}
-		linked, err := c.client.WorkspaceGitHubInstallation.Query().Where(workspacegithubinstallation.OrganizationID(actor.OrganizationID), workspacegithubinstallation.GithubInstallationID(*source.GithubInstallationID)).Exist(ctx)
-		if err != nil {
-			return nil, err
-		}
+		linked := linkedInstallations[*source.GithubInstallationID]
 		switch {
 		case !linked:
 			item.ConnectionState = "disconnected"

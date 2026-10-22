@@ -1,0 +1,65 @@
+package product
+
+import (
+	"context"
+	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
+)
+
+// PageAccessSnapshot contains only what the signed-in page gate needs.
+// It includes pending deletion workspaces so their owner can reach recovery.
+type PageAccessSnapshot struct {
+	Active    *ListedWorkspace `json:"active"`
+	Count     int              `json:"count"`
+	Workspace *Workspace       `json:"workspace"`
+	Features  map[string]bool  `json:"features"`
+}
+
+func (c *Configuration) PageAccess(ctx context.Context, actor Actor) (*PageAccessSnapshot, error) {
+	current, err := c.auth.AuthorizeSession(ctx, actor.UserID, actor.SessionID)
+	if err != nil {
+		return nil, err
+	}
+	workspaces, err := c.ListWorkspaces(ctx, actor)
+	if err != nil {
+		return nil, err
+	}
+	result := &PageAccessSnapshot{Count: len(workspaces), Features: map[string]bool{}}
+	if len(workspaces) == 0 {
+		return result, nil
+	}
+	result.Active = &workspaces[0]
+	for i := range workspaces {
+		if current.ActiveOrganizationID != nil && workspaces[i].ID == *current.ActiveOrganizationID {
+			result.Active = &workspaces[i]
+			break
+		}
+	}
+	if current.ActiveOrganizationID == nil || *current.ActiveOrganizationID != result.Active.ID {
+		if err := c.SetActiveWorkspace(ctx, actor, result.Active.ID); err != nil {
+			return nil, err
+		}
+	}
+	if result.Active.IsScheduledForDeletion {
+		return result, nil
+	}
+	actor.OrganizationID = result.Active.ID
+	if err := c.AuthorizeRead(ctx, actor); err != nil {
+		return nil, err
+	}
+	result.Workspace, err = c.GetWorkspace(ctx, actor.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+	if result.Workspace == nil {
+		return result, nil
+	}
+	entitlement, err := c.client.WorkspaceEntitlement.Query().Where(workspaceentitlement.ID(actor.OrganizationID)).Only(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		return nil, err
+	}
+	_, _, result.Features = evaluateBootstrapEntitlement(entitlement, time.Now().UTC())
+	return result, nil
+}

@@ -228,19 +228,32 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
+      - name: Install npm dependencies
+        timeout-minutes: 8
+        run: npm ci --prefer-offline --no-audit
+      - name: Restore Playwright browsers
+        id: browsers
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - name: Install browser test dependencies
-        # Bounded because a hung browser download otherwise consumes the
-        # whole job budget and reports a timeout with no diagnostic, which
-        # reads as a test failure rather than an infrastructure one.
-        timeout-minutes: 8
+          key: playwright-${{ runner.os }}-${{ hashFiles('node_modules/playwright-core/package.json') }}
+      - name: Install browser system dependencies
+        timeout-minutes: 6
         run: |
-          npm ci
-          npx playwright install --with-deps chromium
+          # A stalled Ubuntu mirror must retry instead of consuming the job budget.
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/80-playwright-network
+          npx playwright install-deps chromium
+      - name: Install Chromium
+        timeout-minutes: 6
+        env:
+          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
+        run: npx playwright install chromium
+      - name: Save Playwright browsers
+        if: steps.browsers.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.browsers.outputs.cache-primary-key }}
       - name: Test the design renderer over CDP
         # Real Chromium over CDP, the path Cloudflare Browser Rendering uses in
         # production. Once is enough, so only on shard 1.
@@ -263,7 +276,7 @@ jobs:
       # failing tests. Collecting only at the end left every failure on the
       # recovery shard with no server-side evidence, which is why the
       # two-factor flake could not be diagnosed from CI output.
-      - if: always()
+      - if: always() && hashFiles('.local/dev.env') != ''
         name: Collect end-to-end stack logs
         run: docker compose --env-file .local/dev.env --file compose.yaml --profile e2e logs --no-color
       - name: Verify dependency failure and recovery
@@ -278,10 +291,10 @@ jobs:
             playwright-report/
             test-results/
           if-no-files-found: ignore
-      - if: always()
+      - if: always() && hashFiles('.local/dev.env') != ''
         name: Collect post-recovery stack logs
         run: docker compose --env-file .local/dev.env --file compose.yaml --profile e2e logs --no-color
-      - if: always()
+      - if: always() && hashFiles('.local/dev.env') != ''
         name: Remove local stack data
         run: ./bin/studio down --purge --yes
 
@@ -295,11 +308,19 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install browser test dependencies
+      - name: Install npm dependencies
         timeout-minutes: 8
+        run: npm ci --prefer-offline --no-audit
+      - name: Install browser system dependencies
+        timeout-minutes: 6
         run: |
-          npm ci
-          npx playwright install --with-deps chromium
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/80-playwright-network
+          npx playwright install-deps chromium
+      - name: Install Chromium
+        timeout-minutes: 6
+        env:
+          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
+        run: npx playwright install chromium
       - name: Run real Go social publishing gate
         run: ./bin/social-gate
       - if: failure()

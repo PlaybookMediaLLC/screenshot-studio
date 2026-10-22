@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.35.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.34.0...v2.35.0) (2026-10-22)
+
+
+### Features
+
+* implement the workspace UX redesign and template previews ([#284](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/284)) ([1f79028](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1f790288ec8ef3c70adfdd5d9f1f6435842b9761))
+
 ## [2.34.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.5...v2.34.0) (2026-10-22)
 
 

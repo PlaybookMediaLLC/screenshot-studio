@@ -39,6 +39,7 @@ func (s *Server) registerWorkspace(mux *http.ServeMux) {
 	mux.Handle("POST /v1/workspaces/deletion/cancel", s.authenticateSession(http.HandlerFunc(s.cancelWorkspaceDeletion)))
 	mux.Handle("GET /v1/bootstrap", s.authenticateProduct(http.HandlerFunc(s.bootstrap)))
 	mux.Handle("GET /v1/me", s.authenticateSession(http.HandlerFunc(s.currentUser)))
+	mux.Handle("GET /v1/page-access", s.authenticateSession(http.HandlerFunc(s.pageAccess)))
 	mux.Handle("GET /v1/access", s.authenticateSession(http.HandlerFunc(s.activeAccess)))
 	mux.Handle("GET /v1/support-grants/verify", s.authenticateSession(http.HandlerFunc(s.verifySupportGrant)))
 	mux.Handle("GET /v1/enterprise-features/{feature}", s.authenticateProduct(http.HandlerFunc(s.enterpriseFeature)))
@@ -452,4 +453,13 @@ func workspaceSettingsResponse(settings *ent.WorkspaceSettings) any {
 		"defaultPublishTime": settings.DefaultPublishTime, "aiAgentEnabled": settings.AiAgentEnabled,
 		"createdAt": settings.CreatedAt, "updatedAt": settings.UpdatedAt,
 	}
+}
+
+func (s *Server) pageAccess(w http.ResponseWriter, r *http.Request) {
+	result, err := s.configuration.PageAccess(r.Context(), workspaceActor(r))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }

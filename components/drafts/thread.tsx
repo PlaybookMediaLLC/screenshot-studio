@@ -1,5 +1,7 @@
 'use client'
 
+import { normalizeMentions } from '@/lib/write/normalize-mentions'
+
 import * as React from 'react'
 import {
   createPlatePlugin,
@@ -88,7 +90,9 @@ export function movePost(editor: PlateEditor, from: number, to: number): void {
 export function deletePost(editor: PlateEditor, number: number): void {
   const ranges = postRanges(editor.children)
   if (ranges.length < 2) return
-  const [start, end] = ranges[number - 1]
+  const range = ranges[number - 1]
+  if (!range) return
+  const [start, end] = range
   editor.tf.withoutNormalizing(() => {
     for (let index = end - 1; index >= start; index -= 1) editor.tf.removeNodes({ at: [index] })
   })
@@ -122,7 +126,12 @@ export function splitPostAtCaret(editor: PlateEditor): void {
   const entry = editor.api.block({ highest: true })
   if (!entry) return
   editor.tf.insertNodes(postBreak(), { at: [entry[1][0]] })
-  editor.tf.select(editor.api.start([entry[1][0] + 1]))
+  const path = [entry[1][0] + 1]
+  const start = editor.api.start(path)
+  const leading = editor.api.string(path).match(/^\s+/)?.[0].length ?? 0
+  const end = start && leading ? editor.api.after(start, { distance: leading, unit: 'offset' }) : null
+  if (start && end) editor.tf.delete({ at: { anchor: start, focus: end } })
+  editor.tf.select(editor.api.start(path))
 }
 
 /** Start a new post after the post holding the caret's block, and move into it. */
@@ -230,7 +239,14 @@ export const PostBreakPlugin = createPlatePlugin({
       deleteBackward(unit)
     },
     normalizeNode(entry, options) {
-      const [, path] = entry
+      const [node, path] = entry
+      if (node.type === 'mention_input') {
+        editor.tf.withoutNormalizing(() => {
+          editor.tf.removeNodes({ at: path })
+          editor.tf.insertNodes(normalizeMentions(node) as { text: string }, { at: path })
+        })
+        return
+      }
       if (path.length === 0) {
         const children = editor.children
         if (children[0]?.type !== POST_BREAK) {
@@ -390,14 +406,13 @@ const POST_DRAG = 'application/x-shots-post'
 
 function PostBreakElement(props: PlateElementProps) {
   const { element } = props
-  // Count the breaks up to this one: inserting one above renumbers it.
+  // Slate's DOM path cache can still describe the previous render after a move.
   const number = useEditorSelector(
     (editor) => {
-      const path = editor.api.findPath(element)
-      if (!path) return 1
-      return editor.children.slice(0, path[0] + 1).filter((node) => node.type === POST_BREAK).length
+      return editor.children.filter((node) => node.type === POST_BREAK)
+        .findIndex((node) => node.id === element.id) + 1
     },
-    [element]
+    [element.id]
   )
   const settings = element as unknown as PostSettings
   return (

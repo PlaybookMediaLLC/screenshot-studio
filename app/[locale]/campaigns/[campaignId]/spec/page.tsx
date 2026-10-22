@@ -68,8 +68,8 @@ export default async function SpecPage({ params, searchParams }: SpecPageProps) 
         .filter(Boolean)
         .join('\n\n')}
       campaignId={campaign.id}
-      canApprove={hasPermission(access.role, 'release:approve')}
-      canEdit={hasPermission(access.role, 'release:create')}
+      canApprove={campaign.status !== 'ARCHIVED' && hasPermission(access.role, 'release:approve')}
+      canEdit={campaign.status !== 'ARCHIVED' && hasPermission(access.role, 'release:create')}
       lastRunError={runFailed ? (run.error ?? 'The last draft failed.') : null}
       latestId={specs.latest?.id ?? null}
       spec={

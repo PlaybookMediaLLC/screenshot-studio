@@ -48,6 +48,8 @@ function TransformPreview({ mode }: { mode: ControlMode }) {
     imageScale,
     canvasDimensions,
   } = useImageStore();
+  const composition = useImageStore((state) => state.editorMode === 'device' && state.mockups.length > 0);
+  const previewDocument = useEditorDocument(150);
   const screenshot = useImageStore(useShallow(selectScreenshot));
   const setScreenshot = useImageStore((state) => state.setImagePlacement);
   const cssAspectRatio = useCanvasAspectRatio();
@@ -181,6 +183,11 @@ function TransformPreview({ mode }: { mode: ControlMode }) {
         }}
       />
 
+      {composition ? (
+        <div className="pointer-events-none absolute inset-0">
+          <DocumentPreview alt="Composition transform preview" document={previewDocument} />
+        </div>
+      ) : null}
       {mode === 'zoom' && (
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute left-1/2 top-[12%] bottom-[12%] w-px bg-foreground/15" />
@@ -218,7 +225,7 @@ function TransformPreview({ mode }: { mode: ControlMode }) {
         className="absolute inset-0 flex items-center justify-center pointer-events-none"
         style={{ perspective: `${perspective3D.perspective}px` }}
       >
-        {previewImageUrl ? (
+        {!composition && previewImageUrl ? (
           <div className="w-[85%] h-[85%]" style={transformStyle}>
             <img
               src={previewImageUrl}
@@ -233,7 +240,7 @@ function TransformPreview({ mode }: { mode: ControlMode }) {
               }}
             />
           </div>
-        ) : (
+        ) : composition ? null : (
           <div
             className="w-[85%] h-[85%] bg-muted-foreground/20 rounded-md border border-border/20"
             style={transformStyle}

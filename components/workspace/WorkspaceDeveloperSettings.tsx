@@ -341,7 +341,7 @@ function ApiKeyForm({
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {apiKeyScopes.map((scope) => (
-            <div className="flex items-center gap-2" key={scope}>
+            <div className="flex min-w-0 items-start gap-2" key={scope}>
               <Checkbox
                 checked={scopes.includes(scope)}
                 onCheckedChange={(checked) =>
@@ -355,9 +355,9 @@ function ApiKeyForm({
                 name="scopes"
                 value={scope}
               />
-              <Label className="font-mono text-xs text-foreground/80" htmlFor={`scope-${scope}`}>
+              <Label className="block min-w-0 text-xs text-foreground/80" htmlFor={`scope-${scope}`}>
                 {apiKeyScopeDescriptions[scope]}
-                <span className="block text-muted-foreground">{scope}</span>
+                <span className="mt-1 block break-all font-mono text-muted-foreground">{scope}</span>
               </Label>
             </div>
           ))}

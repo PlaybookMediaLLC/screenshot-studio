@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { TimeZonePicker, browserTimeZone } from '@/components/settings/TimeZonePicker'
 import { Input } from '@/components/ui/input'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { workspaceCreateSchema } from '@/lib/workspace/input-schemas'
@@ -25,6 +26,8 @@ export function OnboardingForm() {
   // The inputs stay uncontrolled so text typed before hydration is kept; this
   // state only drives the preview card.
   const [name, setName] = useState('')
+  const [timeZone, setTimeZone] = useState('UTC')
+  useEffect(() => setTimeZone(browserTimeZone()), [])
   const [slug, setSlug] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
   const slugInputRef = useRef<HTMLInputElement>(null)
@@ -61,13 +64,18 @@ export function OnboardingForm() {
     const input = workspaceCreateSchema.safeParse({
       name: typedName,
       slug: typedSlug || slugify(typedName),
+      timeZone,
     })
     if (!input.success) {
       setError(input.error.issues[0]?.message ?? 'Check the workspace name.')
       return
     }
 
-    if (attempt.current?.name !== input.data.name || attempt.current?.slug !== input.data.slug) {
+    if (
+      attempt.current?.name !== input.data.name ||
+      attempt.current?.slug !== input.data.slug ||
+      attempt.current?.timeZone !== input.data.timeZone
+    ) {
       attempt.current = { ...input.data, idempotencyKey: crypto.randomUUID() }
     }
     pending.current = true
@@ -139,6 +147,12 @@ export function OnboardingForm() {
           The slug uses lowercase letters, numbers, and hyphens. You can change both later.
         </p>
 
+        <TimeZonePicker
+          label="Workspace time zone"
+          value={timeZone}
+          onChange={setTimeZone}
+          disabled={isSubmitting}
+        />
         {error ? <FormAlert>{error}</FormAlert> : null}
       </div>
 

@@ -13,7 +13,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme="dark"
-      position="top-center"
+      position="bottom-left"
+      closeButton
+      expand
+      visibleToasts={2}
       className="toaster group"
       toastOptions={{
         unstyled: true,
@@ -34,13 +37,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
             text-xs text-muted-foreground leading-relaxed mt-0.5
           `,
           actionButton: `
-            text-xs font-medium px-2.5 py-1.5 rounded-md
+            shrink-0 whitespace-nowrap text-xs font-medium px-2.5 py-1.5 rounded-md
             bg-primary text-primary-foreground
             hover:bg-foreground/90
             transition-colors duration-150
           `,
           cancelButton: `
-            text-xs font-medium text-muted-foreground hover:text-foreground transition-colors
+            shrink-0 whitespace-nowrap text-xs font-medium text-muted-foreground hover:text-foreground transition-colors
           `,
           closeButton: `
             absolute top-2.5 right-2.5 p-1 rounded-md
@@ -80,7 +83,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           </div>
         ),
       }}
-      offset={20}
+      offset={24}
       gap={10}
       duration={4000}
       {...props}

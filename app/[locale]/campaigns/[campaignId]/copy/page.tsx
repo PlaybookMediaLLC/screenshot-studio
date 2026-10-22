@@ -51,21 +51,6 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
   const campaign = await getCampaign(access.tenant, campaignId)
   if (!campaign) notFound()
 
-  if (campaign.posts.length === 0) {
-    return (
-      <EmptyState
-        action={
-          <ButtonLink href={`/campaigns/${campaign.id}/assets`} variant="outline">
-            Produce the campaign
-          </ButtonLink>
-        }
-        description="Producing the campaign writes posts for each channel in the plan, citing the spec claims they rely on."
-        icon={Note01Icon}
-        title="No copy yet"
-      />
-    )
-  }
-
   const [plans, specs, designs, members] = await Promise.all([
     getCampaignPlans(access.tenant, campaign.id),
     campaign.release ? getReleaseSpecs(access.tenant, campaign.release.id) : null,
@@ -74,6 +59,25 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
       ? backendSDK(access.tenant).listWorkspaceMembers()
       : { members: [] },
   ])
+  if (campaign.posts.length === 0) {
+    const next = !specs?.latest
+      ? { tab: 'spec', label: 'Draft the spec' }
+      : !plans.latest
+        ? { tab: 'plan', label: 'Plan the campaign' }
+        : { tab: 'assets', label: 'Produce the campaign' }
+    return (
+      <EmptyState
+        action={
+          <ButtonLink href={`/campaigns/${campaign.id}/${next.tab}`} variant="outline">
+            {next.label}
+          </ButtonLink>
+        }
+        description="Complete the next step to create posts for review."
+        icon={Note01Icon}
+        title="No copy yet"
+      />
+    )
+  }
   const workingPlan = plans.approved ?? plans.latest
   const plan = workingPlan?.content
   const workingSpec = specs?.approved ?? specs?.latest
@@ -201,9 +205,11 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
         permissions={{
           aiConfigured: isCampaignStudioConfigured(),
           campaignId: campaign.id,
-          canApprove: hasPermission(access.role, 'release:approve'),
-          canEdit: hasPermission(access.role, 'release:create'),
-          canSchedule: hasPermission(access.role, 'publish:manage'),
+          canApprove:
+            campaign.status !== 'ARCHIVED' && hasPermission(access.role, 'release:approve'),
+          canEdit: campaign.status !== 'ARCHIVED' && hasPermission(access.role, 'release:create'),
+          canSchedule:
+            campaign.status !== 'ARCHIVED' && hasPermission(access.role, 'publish:manage'),
         }}
         posts={posts}
       />

@@ -81,6 +81,8 @@ export function CanvasWorkspace({
   }, [newest, session, flushNative])
   const flush = useCallback(() => {
     try {
+      // Inline text lives in a contenteditable until blur commits its undo step.
+      document.querySelector<HTMLElement>('[data-testid="inline-text-editor"]')?.blur()
       flushNative()
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Correct this edit before continuing.')
@@ -140,15 +142,19 @@ export function CanvasWorkspace({
     const end = () => {
       pointing = false
     }
-    const timer = setInterval(() => {
-      if (
-        pointing ||
-        (document.activeElement as HTMLElement | null)?.isContentEditable ||
-        document.activeElement?.closest('input,textarea,[role="dialog"]')
-      )
-        return
-      void session.refreshRemote(flushNative)
-    }, 4000)
+    const timer = setInterval(
+      () => {
+        if (
+          document.visibilityState === 'hidden' ||
+          pointing ||
+          (document.activeElement as HTMLElement | null)?.isContentEditable ||
+          document.activeElement?.closest('input,textarea,[role="dialog"]')
+        )
+          return
+        void session.refreshRemote(flushNative)
+      },
+      presence.status === 'live' ? 30000 : 4000
+    )
     window.addEventListener('pointerdown', start, true)
     window.addEventListener('pointerup', end, true)
     return () => {
@@ -156,14 +162,14 @@ export function CanvasWorkspace({
       window.removeEventListener('pointerdown', start, true)
       window.removeEventListener('pointerup', end, true)
     }
-  }, [session, flushNative])
+  }, [session, flushNative, presence.status])
 
   // Leaving with unsaved work asks first; a pending native edit is committed.
   useEffect(() => {
     const leave = (event: BeforeUnloadEvent) => {
       let failed = false
       try {
-        flushNative()
+        flush()
       } catch {
         failed = true
       }
@@ -174,19 +180,19 @@ export function CanvasWorkspace({
     }
     window.addEventListener('beforeunload', leave)
     return () => window.removeEventListener('beforeunload', leave)
-  }, [session, flushNative])
+  }, [session, flush])
 
   /** Screenshots dropped or pasted: into the open artboard, or as new announcement artboards. */
   const addScreenshots = useCallback(
     async (files: File[], at?: Point) => {
       if (!files.length || !canEdit) return
-      if (useCanvasUi.getState().activeId && native.ready) {
-        const result = importImages(files)
-        if (result.rejected.length)
-          toast.error(`${result.rejected[0]!.name}: ${result.rejected[0]!.reason}`)
-        return
-      }
       try {
+        if (useCanvasUi.getState().activeId && native.ready) {
+          const result = await importImages(files)
+          if (result.rejected.length)
+            toast.error(`${result.rejected[0]!.name}: ${result.rejected[0]!.reason}`)
+          return
+        }
         const shots = await Promise.all(files.slice(0, 6).map(screenshotFromFile))
         const made = shots.flatMap((shot) =>
           buildRecipe('feature-announcement', { screenshots: [shot] })

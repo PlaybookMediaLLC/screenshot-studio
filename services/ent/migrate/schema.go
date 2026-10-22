@@ -2076,6 +2076,7 @@ var (
 		{Name: "priority", Type: field.TypeInt, Default: 0},
 		{Name: "revision", Type: field.TypeInt, Default: 1},
 		{Name: "enabled", Type: field.TypeBool, Default: false},
+		{Name: "archived", Type: field.TypeBool, Default: false},
 		{Name: "activePriority", Type: field.TypeInt, Default: 0},
 		{Name: "activeVersionId", Type: field.TypeString, Nullable: true},
 		{Name: "draft", Type: field.TypeJSON},

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
@@ -59,6 +60,7 @@ type GeneratedAssetRecord struct {
 }
 
 type AssetUploadInput struct {
+	ProjectID      string  `json:"projectId"`
 	Bytes          int     `json:"bytes"`
 	Classification string  `json:"classification"`
 	ContentType    string  `json:"contentType"`
@@ -169,7 +171,15 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 	if err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.asset_upload_signed", "asset", row.ID); err != nil {
+	metadata := map[string]any{"fileName": input.FileName, "classification": input.Classification}
+	if input.ProjectID != "" {
+		project, err := c.GetProject(ctx, actor, input.ProjectID)
+		if err != nil {
+			return nil, err
+		}
+		metadata["projectId"], metadata["projectName"] = project.ID, project.Name
+	}
+	if err := appendConfigurationAudit(ctx, tx, actor, "product.asset_upload_signed", "asset", row.ID, metadata); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -214,6 +224,10 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	if err := c.checkUploadedBytes(ctx, actor, row); err != nil {
 		return nil, err
 	}
+	dimensions, err := c.uploadedImageDimensions(ctx, row)
+	if err != nil {
+		return nil, err
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
@@ -221,6 +235,9 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	defer tx.Rollback()
 	update := tx.Asset.Update().Where(asset.ID(row.ID), asset.OrganizationID(actor.OrganizationID),
 		asset.StatusEQ(asset.StatusPENDING)).SetStatus(asset.StatusUPLOADED)
+	if dimensions != nil {
+		update.SetWidth(dimensions.Width).SetHeight(dimensions.Height)
+	}
 	if sha256 != nil {
 		update.SetSha256(*sha256)
 	}
@@ -321,6 +338,15 @@ func (c *Configuration) ReadAsset(ctx context.Context, actor Actor, assetID stri
 	}
 	if !current {
 		return nil, "", publishing.ErrNotFound
+	}
+	// Repair legacy image records as they are viewed, using the authorized bytes.
+	if strings.HasPrefix(row.MediaType, "image/") && (row.Width == nil || row.Height == nil) {
+		if dimensions, err := decodeAssetDimensions(bytes.NewReader(body)); err == nil {
+			if _, err := c.client.Asset.Update().Where(asset.ID(row.ID), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED)).
+				SetWidth(dimensions.Width).SetHeight(dimensions.Height).Save(ctx); err != nil {
+				return nil, "", err
+			}
+		}
 	}
 	return body, row.MediaType, nil
 }

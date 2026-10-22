@@ -30,6 +30,8 @@ const (
 	FieldRevision = "revision"
 	// FieldEnabled holds the string denoting the enabled field in the database.
 	FieldEnabled = "enabled"
+	// FieldArchived holds the string denoting the archived field in the database.
+	FieldArchived = "archived"
 	// FieldActivePriority holds the string denoting the active_priority field in the database.
 	FieldActivePriority = "activePriority"
 	// FieldActiveVersionID holds the string denoting the active_version_id field in the database.
@@ -59,6 +61,7 @@ var Columns = []string{
 	FieldPriority,
 	FieldRevision,
 	FieldEnabled,
+	FieldArchived,
 	FieldActivePriority,
 	FieldActiveVersionID,
 	FieldDraft,
@@ -87,6 +90,8 @@ var (
 	DefaultRevision int
 	// DefaultEnabled holds the default value on creation for the "enabled" field.
 	DefaultEnabled bool
+	// DefaultArchived holds the default value on creation for the "archived" field.
+	DefaultArchived bool
 	// DefaultActivePriority holds the default value on creation for the "active_priority" field.
 	DefaultActivePriority int
 	// DefaultLayout holds the default value on creation for the "layout" field.
@@ -145,6 +150,11 @@ func ByRevision(opts ...sql.OrderTermOption) OrderOption {
 // ByEnabled orders the results by the enabled field.
 func ByEnabled(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEnabled, opts...).ToFunc()
+}
+
+// ByArchived orders the results by the archived field.
+func ByArchived(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldArchived, opts...).ToFunc()
 }
 
 // ByActivePriority orders the results by the active_priority field.

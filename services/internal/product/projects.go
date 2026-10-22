@@ -171,7 +171,7 @@ func (c *Configuration) CreateProject(ctx context.Context, actor Actor, name str
 	if _, err := recordProjectVersion(ctx, tx, actor, row, projectversion.KindAutosave, &created); err != nil {
 		return nil, err
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.project_created", "project", row.ID); err != nil {
+	if err := appendConfigurationAudit(ctx, tx, actor, "product.project_created", "project", row.ID, map[string]any{"name": row.Name}); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -285,7 +285,7 @@ func (c *Configuration) RenameProject(ctx context.Context, actor Actor, id, name
 	if count == 0 {
 		return nil, publishing.ErrNotFound
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.project_renamed", "project", id); err != nil {
+	if err := appendConfigurationAudit(ctx, tx, actor, "product.project_renamed", "project", id, map[string]any{"name": name}); err != nil {
 		return nil, err
 	}
 	row, err := tx.Project.Get(ctx, id)
@@ -386,7 +386,7 @@ func (c *Configuration) UpdateProjectDocument(ctx context.Context, actor Actor, 
 	// checkpoints rather than every keystroke-sized write.
 	if checkpointed {
 		if err := appendConfigurationAudit(ctx, tx, actor, "product.project_checkpointed", "project", id,
-			map[string]any{"revision": row.Revision}); err != nil {
+			map[string]any{"revision": row.Revision, "name": row.Name}); err != nil {
 			return nil, err
 		}
 	}
@@ -412,14 +412,21 @@ func (c *Configuration) DuplicateProject(ctx context.Context, actor Actor, id st
 	if err != nil {
 		return nil, err
 	}
-	copyName := source.Name + " copy"
-	if utf8.RuneCountInString(copyName) > projectNameLimit {
-		copyName = source.Name
-	}
+	var copyName string
 	if name != nil {
 		if copyName, err = projectName(*name, projectNameLimit); err != nil {
 			return nil, err
 		}
+	} else {
+		// Serialize automatic naming within the workspace, including simultaneous copies.
+		if _, err := tx.PlatformExec(ctx, `SELECT id FROM organization WHERE id=$1 FOR UPDATE`, actor.OrganizationID); err != nil {
+			return nil, err
+		}
+		names, err := tx.Project.Query().Where(project.OrganizationID(actor.OrganizationID)).Select(project.FieldName).Strings(ctx)
+		if err != nil {
+			return nil, err
+		}
+		copyName = projectCopyName(source.Name, names)
 	}
 	row, err := tx.Project.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetName(copyName).
 		SetDocument(source.Document).SetDocumentVersion(source.DocumentVersion).
@@ -446,6 +453,27 @@ func (c *Configuration) DuplicateProject(ctx context.Context, actor Actor, id st
 	return &result, nil
 }
 
+func projectCopyName(source string, names []string) string {
+	used := make(map[string]bool, len(names))
+	for _, name := range names {
+		used[strings.ToLower(name)] = true
+	}
+	for number := 1; ; number++ {
+		suffix := " copy"
+		if number > 1 {
+			suffix = fmt.Sprintf(" copy %d", number)
+		}
+		base := []rune(source)
+		if len(base)+len(suffix) > projectNameLimit {
+			base = base[:projectNameLimit-len(suffix)]
+		}
+		candidate := string(base) + suffix
+		if !used[strings.ToLower(candidate)] {
+			return candidate
+		}
+	}
+}
+
 func (c *Configuration) DeleteProject(ctx context.Context, actor Actor, id string) error {
 	if err := c.authorizeRoles(ctx, actor, projectEditRoles...); err != nil {
 		return err
@@ -455,6 +483,13 @@ func (c *Configuration) DeleteProject(ctx context.Context, actor Actor, id strin
 		return err
 	}
 	defer tx.Rollback()
+	row, err := tx.Project.Query().Where(project.ID(id), project.OrganizationID(actor.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return publishing.ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
 	// Versions go with the project (ON DELETE CASCADE).
 	deleted, err := tx.Project.Delete().Where(project.ID(id), project.OrganizationID(actor.OrganizationID)).Exec(ctx)
 	if err != nil {
@@ -463,7 +498,7 @@ func (c *Configuration) DeleteProject(ctx context.Context, actor Actor, id strin
 	if deleted == 0 {
 		return publishing.ErrNotFound
 	}
-	if err := appendConfigurationAudit(ctx, tx, actor, "product.project_deleted", "project", id); err != nil {
+	if err := appendConfigurationAudit(ctx, tx, actor, "product.project_deleted", "project", id, map[string]any{"name": row.Name, "lastEditedAt": row.UpdatedAt.UTC().Format(time.RFC3339Nano)}); err != nil {
 		return err
 	}
 	return tx.Commit()

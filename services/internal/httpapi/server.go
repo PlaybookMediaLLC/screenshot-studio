@@ -193,11 +193,12 @@ type ConfigurationStore interface {
 	GetRecipientInvitation(context.Context, product.Actor, string) (*product.RecipientInvitation, error)
 	RespondInvitation(context.Context, product.Actor, string, string) (*product.InvitationResponse, error)
 	Bootstrap(context.Context, product.Actor) (*product.BootstrapSnapshot, error)
+	PageAccess(context.Context, product.Actor) (*product.PageAccessSnapshot, error)
 	GetCurrentUser(context.Context, product.Actor) (*product.CurrentUser, error)
 	GetActiveAccess(context.Context, product.Actor) (*product.ActiveAccess, error)
 	VerifySupportGrant(context.Context, product.Actor, string, string) (*product.SupportGrantAccess, error)
 	RequireEnterpriseFeature(context.Context, product.Actor, string) error
-	ListAssets(context.Context, product.Actor, int, string) (*product.AssetPage, error)
+	ListAssets(context.Context, product.Actor, product.AssetListOptions) (*product.AssetPage, error)
 	DeleteAsset(context.Context, product.Actor, string) (product.AssetDeletionResult, error)
 	SignAssetUpload(context.Context, product.Actor, product.AssetUploadInput) (*product.AssetUploadResult, error)
 	CompleteAssetUpload(context.Context, product.Actor, string, *string) (*product.AssetRecord, error)
@@ -237,6 +238,7 @@ type ConfigurationStore interface {
 	UpdateDesignDocument(context.Context, product.Actor, string, map[string]any) error
 	SetDesignRender(context.Context, product.Actor, string, string, *string) error
 	ListCampaignDesigns(context.Context, product.Actor, string) ([]product.DesignRecord, error)
+	ApproveCampaignAsset(context.Context, product.Actor, string, string) (*product.CreativeApprovalDecision, error)
 	ApproveCampaignDesign(context.Context, product.Actor, string, string) (*product.CreativeApprovalDecision, error)
 	GetEntitlementSummary(context.Context, product.Actor) (*product.EntitlementSummary, error)
 	GetFeatureDecision(context.Context, product.Actor, string) (*product.FeatureDecision, error)

@@ -1,5 +1,7 @@
 'use client'
 
+import { UserAvatar } from '@/components/auth/UserAvatar'
+
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import Link from 'next/link'
@@ -28,23 +30,7 @@ const PROVIDER_NAMES: Record<string, string> = {
 const emailSchema = z.string().trim().toLowerCase().email().max(320)
 
 function Avatar({ image, name }: { image: string | null | undefined; name: string }) {
-  const initials = name
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-  return image ? (
-    // An avatar URL from the sign-in provider, any host: next/image would need each one allowed.
-    <img alt="" className="size-12 rounded-full object-cover" src={image} />
-  ) : (
-    <span
-      aria-hidden
-      className="grid size-12 place-items-center rounded-full bg-foreground/[0.08] text-sm font-medium text-foreground"
-    >
-      {initials || '?'}
-    </span>
-  )
+  return <UserAvatar image={image} name={name} className="size-12 text-sm" />
 }
 
 function SignInEmail({ email }: { email: string }) {
@@ -106,23 +92,33 @@ function SignInEmail({ email }: { email: string }) {
 function DisplayTimeZone() {
   const { preferences, save, status } = usePreferences()
   const [state, run] = useSaveState()
+  const [draft, setDraft] = useState<{ timeZone: string | null } | null>(null)
+  const value = draft ? draft.timeZone || null : preferences?.timeZone ?? null
+  const dirty = value !== (preferences?.timeZone ?? null)
   return (
     <Row
       description="How times show to you in lists, notifications and the composer. Each social set keeps its own scheduling time zone, and changing this one reschedules nothing."
       label={
         <span className="flex items-center gap-2">
-          Display time zone <SaveStatus state={state} />
+          Display time zone <SaveStatus state={dirty ? 'idle' : state} />
         </span>
       }
       layout="stacked"
     >
       <TimeZonePicker
         allowBrowser
-        disabled={status !== 'ready'}
+        disabled={status !== 'ready' || state === 'saving'}
         label="Display time zone"
-        onChange={(timeZone) => void run(() => save({ timeZone }))}
-        value={preferences?.timeZone ?? null}
+        onChange={(timeZone) => setDraft({ timeZone })}
+        value={value}
       />
+      <div className="flex items-center gap-2">
+        <Button disabled={!dirty || state === 'saving'} onClick={async () => {
+          if (await run(() => save({ timeZone: value ?? '' }))) setDraft(null)
+        }}>Save time zone</Button>
+        <Button variant="outline" disabled={!dirty || state === 'saving'} onClick={() => setDraft(null)}>Discard</Button>
+        {dirty ? <span className="text-xs text-muted-foreground">Unsaved time zone</span> : null}
+      </div>
     </Row>
   )
 }
@@ -181,6 +177,7 @@ function deviceName(userAgent: string | null | undefined): string {
 }
 
 function Sessions() {
+  const [requested, setRequested] = useState(false)
   const queryClient = useQueryClient()
   const { data: current } = useHydratedSession()
   const sessions = useQuery({
@@ -193,6 +190,7 @@ function Sessions() {
       return data
     },
     queryKey: ['auth', 'sessions'],
+    enabled: requested,
     retry: false,
   })
 
@@ -209,12 +207,13 @@ function Sessions() {
   return (
     <>
       <Row description="Devices signed in to your account." label="Sessions" layout="stacked">
-        {sessions.isPending ? (
+        {!requested ? <Button variant="outline" onClick={() => setRequested(true)}>View signed-in devices</Button> : null}
+        {requested && sessions.isPending ? (
           <p className="text-sm text-muted-foreground">Loading sessions…</p>
         ) : null}
         {sessions.isError ? (
           <div className="grid gap-2">
-            <p className="text-sm text-red-700 dark:text-red-300" role="alert">
+            <p className={'code' in sessions.error && sessions.error.code === 'SESSION_NOT_FRESH' ? 'text-sm text-muted-foreground' : 'text-sm text-red-700 dark:text-red-300'} role="status">
               {'code' in sessions.error && sessions.error.code === 'SESSION_NOT_FRESH'
                 ? 'Confirm your sign-in to view and manage your sessions.'
                 : settingsErrorMessage(sessions.error)}
@@ -225,14 +224,14 @@ function Sessions() {
                   Verify identity
                 </Link>
               </Button>
-              <Button
+              {!('code' in sessions.error && sessions.error.code === 'SESSION_NOT_FRESH') ? <Button
                 disabled={sessions.isFetching}
                 onClick={() => void sessions.refetch()}
                 type="button"
                 variant="outline"
               >
                 Retry
-              </Button>
+              </Button> : null}
             </div>
           </div>
         ) : null}

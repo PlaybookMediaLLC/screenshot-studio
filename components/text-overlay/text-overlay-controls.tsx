@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from 'react';
 import { useEditorPanels } from '@/lib/store/editor-panels';
-import { useImageStore } from '@/lib/store';
+import { useImageStore, withTypingHistory } from '@/lib/store';
 import { Delete02Icon, ViewIcon, ViewOffSlashIcon, Add01Icon, TextIcon } from 'hugeicons-react';
 import { getAvailableFontWeights } from '@/lib/constants/fonts';
 import { FontPicker } from '@/components/editor/typography/FontPicker';
@@ -181,7 +181,8 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
               aria-label="Text content"
               ref={editInputRef}
               value={selectedOverlay.text}
-              onChange={(e) => updateTextOverlay(selectedOverlay.id, { text: e.target.value })}
+              onChange={(e) => withTypingHistory(`text:${selectedOverlay.id}`, () =>
+                updateTextOverlay(selectedOverlay.id, { text: e.target.value }))}
               placeholder="Type your text..."
               rows={2}
               className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
@@ -214,7 +215,7 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
                 aria-label="Custom text color"
                 type="color"
                 value={selectedOverlay.color}
-                onChange={(e) => updateTextOverlay(selectedOverlay.id, { color: e.target.value })}
+                onInput={(e) => updateTextOverlay(selectedOverlay.id, { color: e.currentTarget.value })}
                 className="w-5 h-5 rounded-full cursor-pointer border border-border/50 appearance-none bg-transparent [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0"
               />
             </div>

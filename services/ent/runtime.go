@@ -1214,20 +1214,24 @@ func init() {
 	entreleaseautomationDescEnabled := entreleaseautomationFields[8].Descriptor()
 	// entreleaseautomation.DefaultEnabled holds the default value on creation for the enabled field.
 	entreleaseautomation.DefaultEnabled = entreleaseautomationDescEnabled.Default.(bool)
+	// entreleaseautomationDescArchived is the schema descriptor for archived field.
+	entreleaseautomationDescArchived := entreleaseautomationFields[9].Descriptor()
+	// entreleaseautomation.DefaultArchived holds the default value on creation for the archived field.
+	entreleaseautomation.DefaultArchived = entreleaseautomationDescArchived.Default.(bool)
 	// entreleaseautomationDescActivePriority is the schema descriptor for active_priority field.
-	entreleaseautomationDescActivePriority := entreleaseautomationFields[9].Descriptor()
+	entreleaseautomationDescActivePriority := entreleaseautomationFields[10].Descriptor()
 	// entreleaseautomation.DefaultActivePriority holds the default value on creation for the active_priority field.
 	entreleaseautomation.DefaultActivePriority = entreleaseautomationDescActivePriority.Default.(int)
 	// entreleaseautomationDescLayout is the schema descriptor for layout field.
-	entreleaseautomationDescLayout := entreleaseautomationFields[12].Descriptor()
+	entreleaseautomationDescLayout := entreleaseautomationFields[13].Descriptor()
 	// entreleaseautomation.DefaultLayout holds the default value on creation for the layout field.
 	entreleaseautomation.DefaultLayout = entreleaseautomationDescLayout.Default.(map[string]releaseautomation.Position)
 	// entreleaseautomationDescCreatedAt is the schema descriptor for created_at field.
-	entreleaseautomationDescCreatedAt := entreleaseautomationFields[14].Descriptor()
+	entreleaseautomationDescCreatedAt := entreleaseautomationFields[15].Descriptor()
 	// entreleaseautomation.DefaultCreatedAt holds the default value on creation for the created_at field.
 	entreleaseautomation.DefaultCreatedAt = entreleaseautomationDescCreatedAt.Default.(func() time.Time)
 	// entreleaseautomationDescUpdatedAt is the schema descriptor for updated_at field.
-	entreleaseautomationDescUpdatedAt := entreleaseautomationFields[15].Descriptor()
+	entreleaseautomationDescUpdatedAt := entreleaseautomationFields[16].Descriptor()
 	// entreleaseautomation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	entreleaseautomation.DefaultUpdatedAt = entreleaseautomationDescUpdatedAt.Default.(func() time.Time)
 	// entreleaseautomation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

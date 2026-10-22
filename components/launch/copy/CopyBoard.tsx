@@ -8,10 +8,11 @@ import { useRouter } from 'next/navigation'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
 import { RevisePanel } from '@/components/launch/RevisePanel'
+import { CampaignLocalTime as LocalTime } from '@/components/campaigns/CampaignLocalTime'
 import { Pill, type PillTone } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
 import { getErrorMessage } from '@/components/workspace/settings-client'
-import { CHANNEL_RULES } from '@/lib/launch/guards'
+import { campaignPostReviewIssue, CHANNEL_RULES } from '@/lib/launch/guards'
 import { postEditBlock } from '@/lib/launch/post-edit'
 import { connectionsForChannel } from '@/lib/launch/schedule'
 import type { LaunchChannel } from '@/lib/launch/spec-schema'
@@ -84,15 +85,6 @@ const LIVE_DELIVERY: readonly ScheduledPostStatus[] = ['DRAFT', 'SCHEDULED']
 /** Scheduled posts that never reached the channel; these can be scheduled again. */
 const DEAD_DELIVERY: readonly ScheduledPostStatus[] = ['CANCELLED', 'FAILED']
 
-/** A timestamp in the reader's time zone; the server renders UTC, so hydration may differ. */
-function LocalTime({ value }: { value: string }) {
-  return (
-    <time dateTime={value} suppressHydrationWarning>
-      {new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-    </time>
-  )
-}
-
 const POST_STATUS: Record<CampaignPostStatus, { label: string; tone: PillTone }> = {
   APPROVED: { label: 'Approved', tone: 'green' },
   DRAFT: { label: 'Draft', tone: 'gray' },
@@ -124,6 +116,7 @@ function ReviewActions({ permissions, post }: { permissions: Permissions; post: 
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const reviewIssue = campaignPostReviewIssue(post)
   const available = DECISIONS.filter(
     ({ decision }) =>
       canTransitionCampaignPost(decision, post.status) &&
@@ -151,7 +144,10 @@ function ReviewActions({ permissions, post }: { permissions: Permissions; post: 
   }
 
   const alert = error ? (
-    <div className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300" role="alert">
+    <div
+      className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+      role="alert"
+    >
       {error}
     </div>
   ) : null
@@ -163,7 +159,7 @@ function ReviewActions({ permissions, post }: { permissions: Permissions; post: 
           className="flex flex-col gap-2"
           onSubmit={(event) => {
             event.preventDefault()
-            void decide(noting, note.trim())
+            if (noting !== 'request_changes' || note.trim()) void decide(noting, note.trim())
           }}
         >
           <div className="flex items-baseline justify-between gap-3">
@@ -198,7 +194,12 @@ function ReviewActions({ permissions, post }: { permissions: Permissions; post: 
             >
               Cancel
             </Button>
-            <Button className="rounded-lg" disabled={busy} size="sm" type="submit">
+            <Button
+              className="rounded-lg"
+              disabled={busy || (noting === 'request_changes' && !note.trim())}
+              size="sm"
+              type="submit"
+            >
               {busy ? 'Sending…' : 'Send'}
             </Button>
           </div>
@@ -213,7 +214,10 @@ function ReviewActions({ permissions, post }: { permissions: Permissions; post: 
       {available.map(({ decision, label, needsNote, variant }) => (
         <Button
           className="h-8 rounded-lg text-xs"
-          disabled={busy}
+          disabled={
+            busy || (Boolean(reviewIssue) && (decision === 'submit' || decision === 'approve'))
+          }
+          title={reviewIssue ?? undefined}
           key={decision}
           onClick={() => (needsNote ? setNoting(decision) : void decide(decision))}
           size="sm"
@@ -258,7 +262,9 @@ function SubmitAll({ permissions, posts }: { permissions: Permissions; posts: Co
   const trpcClient = useTRPCClient()
   const router = useRouter()
   const [busy, setBusy] = useState(false)
-  const count = posts.filter((post) => canTransitionCampaignPost('submit', post.status)).length
+  const eligible = posts.filter((post) => canTransitionCampaignPost('submit', post.status))
+  const count = eligible.length
+  const blocked = eligible.some((post) => campaignPostReviewIssue(post))
   if (!permissions.canEdit || count === 0) return null
 
   async function submitAll() {
@@ -282,7 +288,8 @@ function SubmitAll({ permissions, posts }: { permissions: Permissions; posts: Co
   return (
     <Button
       className="rounded-lg"
-      disabled={busy}
+      disabled={busy || blocked}
+      title={blocked ? 'Shorten the flagged posts before submitting all.' : undefined}
       onClick={() => void submitAll()}
       size="sm"
       type="button"
@@ -299,11 +306,13 @@ function ApprovePosts({
   onDone,
   permissions,
   postIds,
+  blocked = false,
 }: {
   label: string
   onDone?: () => void
   permissions: Permissions
   postIds: string[]
+  blocked?: boolean
 }) {
   const trpcClient = useTRPCClient()
   const router = useRouter()
@@ -333,7 +342,8 @@ function ApprovePosts({
   return (
     <Button
       className="rounded-lg"
-      disabled={busy}
+      disabled={busy || blocked}
+      title={blocked ? 'Shorten the flagged posts before approving.' : undefined}
       onClick={() => void approve()}
       size="sm"
       type="button"
@@ -353,7 +363,7 @@ function ScheduleActions({
   permissions: Permissions
   post: CopyPost
 }) {
-  if (!permissions.canSchedule) return null
+  if (!permissions.canSchedule || campaignPostReviewIssue(post)) return null
   const live =
     post.status === 'SCHEDULED' &&
     post.scheduledPostId !== null &&
@@ -412,7 +422,7 @@ function PostCard({
               aria-label={`Select ${post.title ?? `${channelLabel} post`} for approval`}
               checked={selected}
               className="mr-1 size-4 accent-white"
-              onCheckedChange={(checked) => onSelect((checked === true))}
+              onCheckedChange={(checked) => onSelect(checked === true)}
             />
           ) : null}
           {post.phase ? <Pill>{post.phase}</Pill> : null}
@@ -452,6 +462,20 @@ function PostCard({
               </div>
             ) : null}
           </>
+        )}
+        {campaignPostReviewIssue(post) ? (
+          <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+            {campaignPostReviewIssue(post)}
+          </p>
+        ) : null}
+        {post.visuals.length > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Visuals: {post.visuals.map((visual) => visual.label).join(', ')}
+          </p>
+        ) : (
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            No approved visual yet. Review the campaign assets before scheduling.
+          </p>
         )}
         {post.approval || post.scheduledAt ? (
           <div className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -500,8 +524,17 @@ function PostCard({
       </div>
       {/* Open forms and panels are divs and forms, and take the full row. */}
       <div className="flex flex-wrap items-center gap-2 border-t border-foreground/[0.06] px-5 py-3 [&>div]:basis-full [&>form]:basis-full">
-        <ReviewActions permissions={permissions} post={post} />
-        <ScheduleActions channelLabel={channelLabel} permissions={permissions} post={post} />
+        <ReviewActions
+          permissions={
+            editing ? { ...permissions, canEdit: false, canApprove: false } : permissions
+          }
+          post={post}
+        />
+        <ScheduleActions
+          channelLabel={channelLabel}
+          permissions={editing ? { ...permissions, canSchedule: false } : permissions}
+          post={post}
+        />
         {permissions.canEdit && !editing ? (
           editBlock ? (
             <span className="text-xs text-muted-foreground">{editBlock}</span>
@@ -579,12 +612,18 @@ export function CopyBoard({
               onDone={() => setSelected(new Set())}
               permissions={permissions}
               postIds={selectedIds}
+              blocked={posts.some(
+                (post) => selectedIds.includes(post.id) && campaignPostReviewIssue(post) !== null
+              )}
             />
           ) : (
             <ApprovePosts
               label={`Approve all ${inReview.length}`}
               permissions={permissions}
               postIds={inReview}
+              blocked={posts.some(
+                (post) => inReview.includes(post.id) && campaignPostReviewIssue(post) !== null
+              )}
             />
           )}
         </div>

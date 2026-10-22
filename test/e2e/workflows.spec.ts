@@ -87,7 +87,7 @@ test('Workflow A: 30 screenshots in a brand preset export in three sizes as one 
   await createAndApplyBrand(page, 'Acme')
   await savePreset(page, 'Acme hero')
 
-  await page.getByRole('button', { exact: true, name: 'Save' }).click()
+  await page.getByRole('button', { exact: true, name: 'Export' }).click()
   await page.getByRole('button', { name: /Batch export/ }).click()
   const batch = page.getByRole('dialog', { name: 'Batch export' })
   await batch.getByRole('radio', { name: /Acme hero/ }).click()
@@ -209,7 +209,7 @@ test('Workflow C: a branded bento with badges becomes a preset, then a chosen va
   await panel.getByRole('button', { name: 'Close' }).click()
 
   // Export it in two sizes.
-  await page.getByRole('button', { exact: true, name: 'Save' }).click()
+  await page.getByRole('button', { exact: true, name: 'Export' }).click()
   await page
     .getByRole('group', { name: 'Format' })
     .getByRole('button', { exact: true, name: 'PNG' })

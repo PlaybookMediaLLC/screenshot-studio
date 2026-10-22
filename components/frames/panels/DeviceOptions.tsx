@@ -52,7 +52,9 @@ export function DeviceOptions({ target }: { target: FrameTarget }) {
 
   return (
     <div className="space-y-4">
+      <div>
       <SegmentedControl
+        className="!h-auto flex-wrap [&>div:first-child]:hidden [&>button]:min-w-[70px] [&>button]:min-h-9"
         ariaLabel="Device family"
         onChange={(value) => setFamily(value as DeviceFamily)}
         options={FAMILIES.map((item) => ({
@@ -63,6 +65,7 @@ export function DeviceOptions({ target }: { target: FrameTarget }) {
         size="sm"
         value={family}
       />
+      </div>
       <div className="grid grid-cols-2 gap-2">
         {getMockupsByFamily(family).map((definition) => {
           const selected = current?.id === definition.id

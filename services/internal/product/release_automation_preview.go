@@ -8,6 +8,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
@@ -51,6 +52,7 @@ type AutomationOverview struct {
 	ExecutorAvailable bool                                    `json:"executorAvailable"`
 	Executor          AutomationExecutor                      `json:"executor"`
 	Actions           []AutomationActionAvailability          `json:"actions"`
+	LegacyRunCounts   map[string]int                          `json:"legacyRunCounts"`
 	RunCounts         map[string]int                          `json:"runCounts"`
 }
 
@@ -106,7 +108,10 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 	if result.Actions, err = c.automationActions(ctx, actor.OrganizationID, result.Executor); err != nil {
 		return nil, err
 	}
-	if result.RunCounts, err = c.automationRunCounts(ctx, actor.OrganizationID); err != nil {
+	if result.LegacyRunCounts, err = c.automationRunCounts(ctx, actor.OrganizationID, "legacy"); err != nil {
+		return nil, err
+	}
+	if result.RunCounts, err = c.automationRunCounts(ctx, actor.OrganizationID, "automation"); err != nil {
 		return nil, err
 	}
 	if err := c.attachLastRuns(ctx, actor.OrganizationID, result.Definitions); err != nil {
@@ -118,6 +123,31 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 	sources, err := c.client.SourceApp.Query().Where(sourceapp.OrganizationID(actor.OrganizationID), sourceapp.Provider("github"), sourceapp.GithubInstallationIDNotNil()).Order(ent.Asc(sourceapp.FieldName)).All(ctx)
 	if err != nil {
 		return nil, err
+	}
+	installationIDs := make([]string, 0, len(sources))
+	for _, source := range sources {
+		installationIDs = append(installationIDs, *source.GithubInstallationID)
+	}
+	installations := map[string]*ent.GitHubInstallation{}
+	linkedInstallations := map[string]bool{}
+	if len(installationIDs) > 0 {
+		rows, err := c.client.GitHubInstallation.Query().Where(githubinstallation.IDIn(installationIDs...)).All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			installations[row.ID] = row
+		}
+		links, err := c.client.WorkspaceGitHubInstallation.Query().Where(
+			workspacegithubinstallation.OrganizationID(actor.OrganizationID),
+			workspacegithubinstallation.GithubInstallationIDIn(installationIDs...),
+		).All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, link := range links {
+			linkedInstallations[link.GithubInstallationID] = true
+		}
 	}
 	for _, source := range sources {
 		item := AutomationSource{ID: source.ID, Name: source.Name, Status: string(source.Status), Mode: "legacy", InstallationStatus: "DELETED"}
@@ -131,17 +161,10 @@ func (c *Configuration) ReleaseAutomationOverview(ctx context.Context, actor Act
 		if source.ReleaseAutomation {
 			item.Mode = "automation"
 		}
-		installation, err := c.client.GitHubInstallation.Get(ctx, *source.GithubInstallationID)
-		if err != nil && !ent.IsNotFound(err) {
-			return nil, err
-		}
-		if installation != nil {
+		if installation := installations[*source.GithubInstallationID]; installation != nil {
 			item.Account, item.InstallationStatus = installation.AccountLogin, string(installation.Status)
 		}
-		linked, err := c.client.WorkspaceGitHubInstallation.Query().Where(workspacegithubinstallation.OrganizationID(actor.OrganizationID), workspacegithubinstallation.GithubInstallationID(*source.GithubInstallationID)).Exist(ctx)
-		if err != nil {
-			return nil, err
-		}
+		linked := linkedInstallations[*source.GithubInstallationID]
 		switch {
 		case !linked:
 			item.ConnectionState = "disconnected"

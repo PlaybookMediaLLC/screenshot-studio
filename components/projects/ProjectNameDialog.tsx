@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useTRPCClient } from '@/lib/trpc/react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,6 +24,7 @@ export function ProjectNameDialog({
   label,
   maxLength,
   onOpenChange,
+  onCloseAutoFocus,
   onSubmit,
   open,
   submitLabel,
@@ -33,18 +35,23 @@ export function ProjectNameDialog({
   label: string
   maxLength: number
   onOpenChange: (open: boolean) => void
+  onCloseAutoFocus?: (event: Event) => void
   onSubmit: (name: string) => Promise<void>
   open: boolean
   submitLabel: string
   title: string
 }) {
+  const client = useTRPCClient()
+  const [duplicateConfirmed, setDuplicateConfirmed] = React.useState(false)
   const [name, setName] = React.useState(initialName)
   const [error, setError] = React.useState<string | null>(null)
   const [pending, setPending] = React.useState(false)
+  const submitting = React.useRef(false)
   const inputId = React.useId()
 
   React.useEffect(() => {
     if (open) {
+      setDuplicateConfirmed(false)
       setName(initialName)
       setError(null)
     }
@@ -52,26 +59,41 @@ export function ProjectNameDialog({
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
+    if (submitting.current) return
     const trimmed = name.trim()
     if (!trimmed) {
       setError('Enter a name.')
       return
     }
+    if (trimmed.length > maxLength) {
+      setError(`Use ${maxLength} characters or fewer.`)
+      return
+    }
+    submitting.current = true
     setPending(true)
     setError(null)
     try {
+      if (label === 'Project name' && trimmed !== initialName && !duplicateConfirmed) {
+        const page = await client.project.list.query({ search: trimmed, limit: 100 })
+        if (page.items.some((project) => project.name.toLocaleLowerCase() === trimmed.toLocaleLowerCase())) {
+          setDuplicateConfirmed(true)
+          setError('A project with this name already exists. Choose another name or submit again to keep both.')
+          return
+        }
+      }
       await onSubmit(trimmed)
       onOpenChange(false)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'That did not work. Try again.')
     } finally {
+      submitting.current = false
       setPending(false)
     }
   }
 
   return (
     <Dialog onOpenChange={pending ? undefined : onOpenChange} open={open}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="sm:max-w-[420px]" onCloseAutoFocus={onCloseAutoFocus}>
         <form className="grid gap-4" onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
@@ -80,14 +102,17 @@ export function ProjectNameDialog({
           <div className="grid gap-2">
             <Label htmlFor={inputId}>{label}</Label>
             <Input
-              aria-describedby={error ? `${inputId}-error` : undefined}
+              aria-describedby={`${inputId}-limit${error ? ` ${inputId}-error` : ''}`}
               aria-invalid={Boolean(error)}
               autoFocus
               id={inputId}
               maxLength={maxLength}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => { setName(event.target.value); setError(null); setDuplicateConfirmed(false) }}
               value={name}
             />
+            <p className="text-xs text-muted-foreground" id={`${inputId}-limit`}>
+              {name.length} / {maxLength} characters
+            </p>
             {error ? (
               <p className="text-xs text-destructive" id={`${inputId}-error`} role="alert">
                 {error}

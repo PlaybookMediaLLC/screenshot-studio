@@ -8,6 +8,7 @@ const SECTION_LABELS: Record<string, string> = {
   devices: 'Devices',
   elements: 'Elements',
   image: 'Screenshot',
+  layerOrder: 'Layer order',
   mode: 'Mode',
   overlays: 'Overlays',
   pattern: 'Pattern',

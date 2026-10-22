@@ -90,6 +90,7 @@ func (c *Configuration) AuthorizeSensitive(ctx context.Context, actor Actor) err
 type CreateWorkspaceInput struct {
 	Name                          string         `json:"name"`
 	Slug                          string         `json:"slug"`
+	TimeZone                      string         `json:"timeZone,omitempty"`
 	IdempotencyKey                string         `json:"idempotencyKey,omitempty"`
 	KeepCurrentActiveOrganization bool           `json:"keepCurrentActiveOrganization,omitempty"`
 	Logo                          *string        `json:"logo,omitempty"`

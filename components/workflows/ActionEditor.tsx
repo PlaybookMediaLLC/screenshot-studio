@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 import type {
   AutomationAction,
   AutomationActionType,
@@ -138,12 +140,29 @@ export function ActionEditor({
               </SelectContent>
             </Select>
           </Label>
+          {overview.brands.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Create and publish a brand kit, then return to this tab.{' '}
+              <Link
+                className="underline"
+                href="/workspace/brand-kit"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Create brand kit (new tab)
+              </Link>
+            </p>
+          ) : null}
           <fieldset className="space-y-2">
             <legend className="text-sm">Draft destinations</legend>
             {overview.destinations.map((destination) => (
               <Label key={destination.id} className="flex items-center gap-2 text-sm">
                 <Checkbox
                   checked={action.destinationIds?.includes(destination.id) ?? false}
+                  disabled={
+                    !action.destinationIds?.includes(destination.id) &&
+                    (action.destinationIds?.length ?? 0) >= 10
+                  }
                   onCheckedChange={(checked) =>
                     onChange({
                       ...action,
@@ -159,7 +178,16 @@ export function ActionEditor({
             ))}
             {overview.destinations.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Connect a destination in workspace Channels first.
+                Connect a destination in{' '}
+                <Link
+                  className="underline"
+                  href="/workspace/channels"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  workspace Channels (new tab)
+                </Link>
+                , then return to this tab.
               </p>
             ) : null}
           </fieldset>

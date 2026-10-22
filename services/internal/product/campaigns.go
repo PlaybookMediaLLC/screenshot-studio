@@ -510,6 +510,9 @@ func (c *Configuration) UpdateCampaignPost(ctx context.Context, actor Actor, cam
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := mutableCampaign(ctx, tx, actor, campaignID); err != nil {
+		return nil, err
+	}
 	post, err := tx.CampaignPost.Query().Where(campaignpost.ID(postID), campaignpost.CampaignID(campaignID),
 		campaignpost.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {

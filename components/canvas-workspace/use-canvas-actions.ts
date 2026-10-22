@@ -112,8 +112,11 @@ export function useCanvasActions(session: CanvasSession, flush: () => void) {
         const bounds = boundsOf(rects(ids).map((item) => item.rect))
         if (!bounds) return
         const made = copies(ids, { x: 0, y: bounds.height + ARTBOARD_GAP }, ' copy')
-        if (run({ type: 'duplicate-artboards', copies: made }))
-          ui().select(made.map((copy) => copy.id))
+        if (run({ type: 'duplicate-artboards', copies: made })) {
+          const ids = made.map((copy) => copy.id)
+          ui().select(ids)
+          focus(boundsOf(rects(ids).map((item) => item.rect)))
+        }
       },
       /** New artboards adapted to other sizes, laid out again rather than stretched. */
       adaptTo(ids: readonly string[], presets: readonly ArtboardPreset[]) {
@@ -149,6 +152,7 @@ export function useCanvasActions(session: CanvasSession, flush: () => void) {
           if (ids.includes(ui().activeId ?? '')) ui().activate(null)
           ui().select([])
           toast(`${removed === 1 ? 'Artboard' : `${removed} artboards`} deleted`, {
+            duration: 10000,
             action: { label: 'Undo', onClick: () => actions.undo() },
           })
         }

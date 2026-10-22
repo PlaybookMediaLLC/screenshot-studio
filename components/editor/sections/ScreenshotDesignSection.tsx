@@ -3,7 +3,7 @@
 import * as React from "react";
 import { SectionWrapper } from "./SectionWrapper";
 import { cn } from "@/lib/utils";
-import { useImageStore } from "@/lib/store";
+import { useImageStore, withHistoryStep } from "@/lib/store";
 import { Button } from '@/components/ui/button'
 
 interface DesignTheme {
@@ -115,6 +115,17 @@ export const themes: DesignTheme[] = [
 ];
 
 export function ScreenshotDesignSection() {
+  const border = useImageStore((state) => state.imageBorder);
+  const radius = useImageStore((state) => state.borderRadius);
+  const active = border.enabled ? themes.find((theme) => {
+    const signatures: Record<string, [string, number, number]> = {
+      glass: ['glass-light', 1, 16], neon: ['border-light', 3, 12],
+      minimal: ['outline-light', 1, 8], vintage: ['photograph', 12, 4],
+      'dark-elegant': ['border-dark', 2, 10], polaroid: ['photograph', 20, 2],
+    };
+    const [type, width, rounding] = signatures[theme.id];
+    return border.type === type && border.width === width && radius === rounding;
+  })?.id : undefined;
   return (
     <SectionWrapper
       title="Design Themes"
@@ -125,8 +136,9 @@ export function ScreenshotDesignSection() {
         {themes.map((theme) => (
           <Button variant="custom" size={null}
             key={theme.id}
-            onClick={theme.apply}
-            className="group relative overflow-hidden rounded-xl border border-border/30 hover:border-border/60 transition-all duration-200 active:scale-[0.98]"
+            aria-pressed={active === theme.id}
+            onClick={() => withHistoryStep(theme.apply)}
+            className="aria-pressed:border-primary aria-pressed:ring-2 aria-pressed:ring-primary group flex flex-col items-stretch relative overflow-hidden rounded-xl border border-border/30 hover:border-border/60 transition-all duration-200 active:scale-[0.98]"
           >
             <div className="aspect-[4/3] flex items-center justify-center bg-card p-3">
               <div
@@ -139,7 +151,7 @@ export function ScreenshotDesignSection() {
               </div>
             </div>
             <div className="px-2.5 py-2 text-left">
-              <p className="text-[11px] font-semibold text-foreground">{theme.name}</p>
+              <p className="text-[11px] font-semibold text-foreground">{theme.name}{active === theme.id ? ' ✓' : ''}</p>
               <p className="text-[9px] text-muted-foreground truncate">{theme.description}</p>
             </div>
           </Button>

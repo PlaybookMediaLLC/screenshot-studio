@@ -1,7 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
+import { useUnsavedCampaignChanges } from '@/components/campaigns/useUnsavedCampaignChanges'
+import { CHANNEL_RULES } from '@/lib/launch/guards'
+import type { LaunchChannel } from '@/lib/launch/spec-schema'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -21,9 +24,6 @@ import type { CampaignPostStatus } from '@/lib/tenant/campaign-status'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
-
-/** Autosave waits this long after the last keystroke. */
-const AUTOSAVE_MS = 800
 
 /** The live per-channel length, counted the way the copy guard counts it. */
 export function LengthCounter({
@@ -58,8 +58,8 @@ function SaveIndicator({ state }: { state: SaveState }) {
 }
 
 /**
- * Inline edit of a post's title, copy, and call to action. Edits autosave
- * after a pause and on blur, against the copy they were made from: if the
+ * Inline edit of a post's title, copy, and call to action. Save explicitly
+ * against the copy the edit was made from: if the
  * post changed elsewhere, both versions show and the author picks one. Copy
  * with a prohibited term is refused with the terms and reasons, and the typed
  * text is never dropped.
@@ -75,6 +75,7 @@ export function PostEditor({
   onDone: () => void
   post: {
     callToAction: string | null
+    channel: string
     copy: string
     id: string
     status: CampaignPostStatus
@@ -90,24 +91,14 @@ export function PostEditor({
   // What the backend holds, and the copy the next save is made against.
   const saved = useRef(postFields(post))
   const expectedCopy = useRef(post.copy)
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const inFlight = useRef<Promise<void> | null>(null)
   const pending = useRef(false)
   // A conflict waits for the author; nothing saves over it.
   const conflicted = useRef(false)
 
-  // Leaving with an autosave still waiting saves it rather than dropping it.
-  const flush = useRef<() => Promise<void>>(undefined)
-  useEffect(
-    () => () => {
-      if (timer.current !== undefined) void flush.current?.()
-    },
-    []
-  )
+  useUnsavedCampaignChanges(!samePostFields(draft, saved.current))
 
   function save(): Promise<void> {
-    clearTimeout(timer.current)
-    timer.current = undefined
     if (inFlight.current) {
       pending.current = true
       return inFlight.current
@@ -149,14 +140,11 @@ export function PostEditor({
     return inFlight.current
   }
 
-  flush.current = save
-
   function change(field: keyof PostFields, value: string) {
     const next = { ...latest.current, [field]: value }
     latest.current = next
     setDraft(next)
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => void save(), AUTOSAVE_MS)
+    if (inFlight.current) pending.current = true
   }
 
   function resolve(choice: PostConflictChoice) {
@@ -190,19 +178,20 @@ export function PostEditor({
           Editing sends this post back to draft. It needs approval again before it publishes.
         </p>
       ) : null}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-xs font-medium text-foreground/65" htmlFor={`${id}-title`}>
-          Title
-        </Label>
-        <Input
-          className={cn('h-9', fieldClassName)}
-          id={`${id}-title`}
-          maxLength={200}
-          onBlur={() => void save()}
-          onChange={(event) => change('title', event.target.value)}
-          value={draft.title}
-        />
-      </div>
+      {CHANNEL_RULES[post.channel as LaunchChannel]?.title.required || draft.title ? (
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs font-medium text-foreground/65" htmlFor={`${id}-title`}>
+            Title
+          </Label>
+          <Input
+            className={cn('h-9', fieldClassName)}
+            id={`${id}-title`}
+            maxLength={200}
+            onChange={(event) => change('title', event.target.value)}
+            value={draft.title}
+          />
+        </div>
+      ) : null}
       <div className="flex flex-col gap-1.5">
         <Label className="text-xs font-medium text-foreground/65" htmlFor={`${id}-copy`}>
           Copy
@@ -212,7 +201,6 @@ export function PostEditor({
           className={cn('min-h-32 leading-6', fieldClassName)}
           id={`${id}-copy`}
           maxLength={10_000}
-          onBlur={() => void save()}
           onChange={(event) => change('copy', event.target.value)}
           value={draft.copy}
         />
@@ -225,7 +213,6 @@ export function PostEditor({
           className={cn('h-9', fieldClassName)}
           id={`${id}-cta`}
           maxLength={300}
-          onBlur={() => void save()}
           onChange={(event) => change('callToAction', event.target.value)}
           value={draft.callToAction}
         />
@@ -312,6 +299,14 @@ export function PostEditor({
       ) : null}
       <div className="flex flex-wrap items-center gap-3">
         <SaveIndicator state={state} />
+        <Button
+          className="h-8 rounded-lg text-xs"
+          disabled={state.kind === 'saving'}
+          variant="ghost"
+          onClick={onDone}
+        >
+          Cancel
+        </Button>
         {limit ? (
           <LengthCounter callToAction={draft.callToAction} copy={draft.copy} limit={limit} />
         ) : null}
@@ -322,7 +317,7 @@ export function PostEditor({
           type="button"
           variant="outline"
         >
-          Done editing
+          {state.kind === 'saving' ? 'Saving…' : 'Save changes'}
         </Button>
       </div>
     </div>

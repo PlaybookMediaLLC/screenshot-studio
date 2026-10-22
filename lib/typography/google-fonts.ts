@@ -98,6 +98,9 @@ export function googleFontsStylesheet(id: string, weights: readonly string[]): s
   return `${GOOGLE_FONT_ORIGINS[0]}/css2?family=${family}${axis}&display=block`
 }
 
+/** A family Google Fonts definitively rejects, distinct from an offline load. */
+export class InvalidGoogleFontFamily extends Error {}
+
 const loads = new Map<string, Promise<void>>()
 
 /**
@@ -107,7 +110,7 @@ const loads = new Map<string, Promise<void>>()
  */
 export function loadGoogleFont(id: string, weights: readonly string[], timeoutMs = 12_000): Promise<void> {
   if (!isGoogleFontId(id)) return Promise.reject(new Error(`Not a Google Fonts family: ${id}`))
-  const href = googleFontsStylesheet(id, weights.length ? weights : ['normal'])
+  const href = googleFontsStylesheet(id, weights)
   const existing = loads.get(href)
   if (existing) return existing
   const load = new Promise<void>((resolve, reject) => {
@@ -117,9 +120,23 @@ export function loadGoogleFont(id: string, weights: readonly string[], timeoutMs
     link.crossOrigin = 'anonymous'
     link.dataset.googleFont = googleFontFamily(id)
     const timer = setTimeout(() => reject(new Error(`${googleFontFamily(id)} took too long to load.`)), timeoutMs)
-    link.onerror = () => {
+    link.onerror = async () => {
       clearTimeout(timer)
       link.remove()
+      // Some display families only provide one weight. Ask for their default
+      // face before deciding the family is invalid; browsers synthesize bold.
+      if (weights.length) {
+        try { await loadGoogleFont(id, [], timeoutMs); resolve() }
+        catch (error) { reject(error) }
+        return
+      }
+      try {
+        const response = await fetch(href, { signal: AbortSignal.timeout(timeoutMs) })
+        if (response.status === 400 || response.status === 404) {
+          reject(new InvalidGoogleFontFamily(`${googleFontFamily(id)} is not a Google Fonts family.`))
+          return
+        }
+      } catch { /* An offline request must not rewrite a saved font. */ }
       reject(new Error(`${googleFontFamily(id)} is not available from Google Fonts.`))
     }
     link.onload = () => {

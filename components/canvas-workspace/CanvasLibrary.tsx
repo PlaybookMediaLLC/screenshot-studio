@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { toast } from 'sonner'
 import { MoreHorizontalIcon } from 'hugeicons-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -87,19 +89,23 @@ export function CanvasLibrary({
   const client = useTRPCClient()
   const [items, setItems] = useState<Item[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-  const [sort, setSort] = useState<CreativeSetSort>('updated')
+  const params = useSearchParams()
+  const search = (params.get('search') ?? '').slice(0, 200)
+  const sort: CreativeSetSort = params.get('sort') === 'name' ? 'name' : 'updated'
+  const archived = params.get('view') === 'archived'
+  const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refresh, setRefresh] = useState(0)
   const [renaming, setRenaming] = useState<Item | null>(null)
+  const [deleting, setDeleting] = useState<Item | null>(null)
   const [archiving, setArchiving] = useState<Item | null>(null)
   useEffect(() => {
     let active = true
     const timer = setTimeout(() => {
       setLoading(true)
       client.canvas.list
-        .query({ search: search || undefined, sort, limit: 24 })
+        .query({ search: search || undefined, sort, archived, limit: 24 })
         .then(
           (page) => {
             if (!active) return
@@ -120,15 +126,25 @@ export function CanvasLibrary({
       active = false
       clearTimeout(timer)
     }
-  }, [client, search, sort, refresh])
+  }, [client, search, sort, archived, refresh])
+
+  function filter(key: string, value: string) {
+    const url = new URL(window.location.href)
+    if (value) url.searchParams.set(key, value)
+    else url.searchParams.delete(key)
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash)
+  }
 
   async function act(action: () => Promise<unknown>) {
+    setBusy(true)
     try {
       await action()
       setError(null)
       setRefresh((value) => value + 1)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'That did not work.')
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -188,12 +204,13 @@ export function CanvasLibrary({
           aria-label="Search canvases"
           placeholder="Search canvases"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => filter('search', event.target.value)}
+          maxLength={200}
           className="max-w-sm"
         />
         <Select
           value={sort}
-          onValueChange={(value) => setSort(value === 'name' ? 'name' : 'updated')}
+          onValueChange={(value) => filter('sort', value === 'name' ? 'name' : '')}
         >
           <SelectTrigger aria-label="Sort canvases">
             <SelectValue />
@@ -201,6 +218,18 @@ export function CanvasLibrary({
           <SelectContent>
             <SelectItem value="updated">Last edited</SelectItem>
             <SelectItem value="name">Name</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={archived ? 'archived' : 'active'}
+          onValueChange={(value) => filter('view', value === 'archived' ? 'archived' : '')}
+        >
+          <SelectTrigger aria-label="Canvas view">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Active canvases</SelectItem>
+            <SelectItem value="archived">Archived canvases</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -213,7 +242,9 @@ export function CanvasLibrary({
         <p className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
           {search
             ? 'No canvas matches that name.'
-            : 'No canvases yet. Start with a blank canvas or a screenshot.'}
+            : archived
+              ? 'No archived canvases.'
+              : 'No canvases yet. Start with a blank canvas or a screenshot.'}
         </p>
       ) : null}
       <ul aria-label="Canvases" className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -261,7 +292,12 @@ export function CanvasLibrary({
               {canEdit ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" aria-label={`Actions for ${item.name}`}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={busy}
+                      aria-label={`Actions for ${item.name}`}
+                    >
                       <MoreHorizontalIcon className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -272,15 +308,38 @@ export function CanvasLibrary({
                     <DropdownMenuItem onSelect={() => setRenaming(item)}>Rename…</DropdownMenuItem>
                     <DropdownMenuItem
                       onSelect={() =>
-                        void act(() => client.canvas.duplicate.mutate({ canvasId: item.id }))
+                        void act(async () => {
+                          const copy = await client.canvas.duplicate.mutate({
+                            canvasId: item.id,
+                            name: `${item.name.slice(0, 193)} (copy)`,
+                          })
+                          toast.success(`Created “${copy.name}”.`)
+                        })
                       }
                     >
                       Duplicate
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onSelect={() => setArchiving(item)}>
-                      Archive…
-                    </DropdownMenuItem>
+                    {archived ? (
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          void act(async () => {
+                            await client.canvas.archive.mutate({
+                              canvasId: item.id,
+                              archived: false,
+                            })
+                            toast.success(`Restored “${item.name}” to active canvases.`)
+                          })
+                        }
+                      >
+                        Restore to active canvases
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem variant="destructive" onSelect={() => setArchiving(item)}>
+                        Archive…
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(item)}>Delete permanently…</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : null}
@@ -293,7 +352,7 @@ export function CanvasLibrary({
           variant="outline"
           onClick={() =>
             void client.canvas.list
-              .query({ search: search || undefined, sort, cursor, limit: 24 })
+              .query({ search: search || undefined, sort, archived, cursor, limit: 24 })
               .then((page) => {
                 setItems((previous) => [...previous, ...page.items])
                 setCursor(page.nextCursor)
@@ -316,13 +375,29 @@ export function CanvasLibrary({
           }
         />
       ) : null}
+      {deleting ? (
+        <Dialog open onOpenChange={(open) => { if (!open && !busy) setDeleting(null) }}>
+          <DialogContent>
+            <DialogTitle>Delete “{deleting.name}” permanently?</DialogTitle>
+            <DialogDescription>This removes the canvas and all its versions. Delivered campaign assets remain available. This cannot be undone.</DialogDescription>
+            <div className="flex justify-end gap-2">
+              <Button disabled={busy} variant="outline" onClick={() => setDeleting(null)}>Cancel</Button>
+              <Button disabled={busy} variant="destructive" onClick={() => void act(async () => {
+                await client.canvas.delete.mutate({ canvasId: deleting.id })
+                setDeleting(null)
+                toast.success('Canvas deleted')
+              })}>Delete permanently</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
       {archiving ? (
         <Dialog open onOpenChange={(open) => (open ? null : setArchiving(null))}>
           <DialogContent>
             <DialogTitle>Archive “{archiving.name}”?</DialogTitle>
             <DialogDescription>
-              It leaves this list. Its versions, and anything it delivered to campaigns, stay
-              intact.
+              It moves to Archived canvases, where you can restore it at any time. Its versions and
+              campaign deliveries stay intact.
             </DialogDescription>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setArchiving(null)}>
@@ -330,9 +405,25 @@ export function CanvasLibrary({
               </Button>
               <Button
                 variant="destructive"
+                disabled={busy}
                 onClick={() =>
                   void act(async () => {
                     await client.canvas.archive.mutate({ canvasId: archiving.id })
+                    const item = archiving
+                    toast.success(`Archived “${item.name}”.`, {
+                      duration: 10000,
+                      action: {
+                        label: 'Undo',
+                        onClick: () =>
+                          void act(async () => {
+                            await client.canvas.archive.mutate({
+                              canvasId: item.id,
+                              archived: false,
+                            })
+                            toast.success(`Restored “${item.name}”.`)
+                          }),
+                      },
+                    })
                     setArchiving(null)
                   })
                 }
@@ -385,6 +476,9 @@ export function RenameDialog({
             maxLength={200}
             onChange={(event) => setValue(event.target.value)}
           />
+          <p className="text-right text-xs tabular-nums text-muted-foreground" aria-live="polite">
+            {value.length}/200 characters
+          </p>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel

@@ -124,6 +124,16 @@ export function SpecEditor({
   }
 
   async function approve() {
+    const unanswered = current.content.openQuestions.filter(
+      (question) => !question.answer.trim()
+    ).length
+    if (
+      unanswered &&
+      !window.confirm(
+        `${unanswered} questions are unanswered. Review these gaps before approving. Approve anyway?`
+      )
+    )
+      return
     setApproving(true)
     setError(null)
     try {
@@ -177,6 +187,11 @@ export function SpecEditor({
         </p>
       ) : null}
 
+      {editable && current.status === 'APPROVED' ? (
+        <p className="text-sm text-amber-700 dark:text-amber-300">
+          Editing this approved spec creates a new draft version that needs approval again.
+        </p>
+      ) : null}
       {!isLatest ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-foreground/[0.03] px-4 py-3 text-sm text-foreground/80 ring-1 ring-foreground/[0.08]">
           <span>You are viewing v{current.version}, an earlier version. It is read-only.</span>

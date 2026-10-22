@@ -176,11 +176,12 @@ function SourceRow({
           <Button
             disabled={busy}
             onClick={() =>
+              window.confirm(`Stop watching ${source.name}? Pending runs will be cancelled.`) &&
               perform(() => client.releaseAutomation.disconnectSource.mutate({ id: source.id }))
             }
             size="sm"
             type="button"
-            variant="ghost"
+            variant="destructive"
           >
             Stop watching {source.name}
           </Button>

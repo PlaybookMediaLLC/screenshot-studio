@@ -60,7 +60,7 @@ export async function signUpAndCreateWorkspace(identity: E2EIdentity, page: Page
   await page.goto(getE2EUrl('/'))
   await expectPath(page, '/')
   await waitForEditorHydration(page)
-  await expect(page.getByRole('button', { exact: true, name: 'Save' })).toBeVisible()
+  await expect(page.getByRole('button', { exact: true, name: 'Export' })).toBeVisible()
   return organizationId
 }
 

@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useTRPCClient } from '@/lib/trpc/react'
+import { exampleStorySet } from '@/lib/creative-sets/example'
+import { StorySetFormatPreview } from './StorySetFormatPreview'
 
 /** A useful next step and a static example for workspaces awaiting early access. */
 export function StorySetAccess() {
@@ -42,8 +43,8 @@ export function StorySetAccess() {
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link prefetch={false} href="/design-partners">
-              About the program
+            <Link prefetch={false} href="/design-partners" target="_blank" rel="noopener noreferrer">
+              About the program (opens a new tab)
             </Link>
           </Button>
         </div>
@@ -60,34 +61,8 @@ export function StorySetAccess() {
         <p className="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Example · Your team’s work, together
         </p>
-        <div className="grid max-w-3xl grid-cols-3 items-end gap-2 sm:gap-4">
-          {[
-            { label: 'Wide', dimensions: '1600 × 900', aspect: 'aspect-video' },
-            { label: 'Square', dimensions: '1080 × 1080', aspect: 'aspect-square' },
-            { label: 'Portrait', dimensions: '1080 × 1350', aspect: 'aspect-[4/5]' },
-          ].map(({ label, dimensions, aspect }) => (
-            <figure key={label} className="min-w-0">
-              <div
-                className={`${aspect} flex flex-col justify-center gap-1 overflow-hidden sm:gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2 sm:p-4`}
-              >
-                <p className="hidden font-semibold sm:block sm:text-sm">
-                  Your team’s work, together
-                </p>
-                <Image
-                  src="/demo/notion-showcase.webp"
-                  alt="Example product screenshot"
-                  loading="eager"
-                  width={640}
-                  height={360}
-                  className="min-h-0 rounded border object-contain"
-                />
-              </div>
-              <figcaption className="mt-2 text-xs text-muted-foreground">
-                {label}
-                <span className="hidden sm:inline"> · {dimensions}</span>
-              </figcaption>
-            </figure>
-          ))}
+        <div className="max-w-3xl">
+          <StorySetFormatPreview setId="example" revision={1} document={exampleStorySet} />
         </div>
       </div>
     </section>

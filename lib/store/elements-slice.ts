@@ -1,3 +1,5 @@
+import type { ImageState } from './index'
+import { orderedLayerIds, moveLayer } from '@/lib/editor/layer-order'
 import { z } from 'zod'
 import { useDeviceUIStore } from './device-ui'
 import type { CanvasElement } from '@/lib/editor/elements/schema'
@@ -29,8 +31,8 @@ export type ElementChanges = Partial<Omit<CanvasElement, 'id' | 'type' | 'props'
 
 type SetState = (
   partial:
-    | Partial<ElementsSlice & SelectionFields>
-    | ((state: ElementsSlice) => Partial<ElementsSlice & SelectionFields>)
+    | Partial<ElementsSlice & SelectionFields & { layerOrder: string[] }>
+    | ((state: ElementsSlice) => Partial<ElementsSlice & SelectionFields & { layerOrder: string[] }>)
 ) => void
 
 /** Selections an element selection replaces. */
@@ -74,7 +76,14 @@ export function createElementsSlice(set: SetState, get: () => ElementsSlice): El
     elements: [],
     selectedElementId: null,
     addElement: (element) =>
-      set((state) => ({ elements: [...state.elements, element], ...select(element.id) })),
+      set((state) => {
+        let placed = element
+        // Keep explicit placement, but cascade exact overlaps so each new element can be picked.
+        for (let attempt = 0; attempt < 12 && state.elements.some((item) => Math.abs(item.x - placed.x) < 0.02 && Math.abs(item.y - placed.y) < 0.02); attempt++) {
+          placed = { ...placed, x: Math.min(0.9, placed.x + 0.04), y: Math.min(0.9, placed.y + 0.04) }
+        }
+        return { layerOrder: [...orderedLayerIds(state as ImageState), element.id], elements: [...state.elements, placed], ...select(element.id) }
+      }),
     updateElement: (id, changes) =>
       set((state) => ({
         elements: state.elements.map((element) =>
@@ -101,13 +110,13 @@ export function createElementsSlice(set: SetState, get: () => ElementsSlice): El
         x: Math.min(1.4, source.x + 0.03),
         y: Math.min(1.4, source.y + 0.03),
       }
-      set((state) => ({ elements: [...state.elements, copy], ...select(copy.id) }))
+      set((state) => ({ layerOrder: [...orderedLayerIds(state as ImageState), copy.id], elements: [...state.elements, copy], ...select(copy.id) }))
       return copy.id
     },
     reorderElement: (id, direction) =>
       set((state) => {
         const index = state.elements.findIndex((element) => element.id === id)
-        return index === -1 ? {} : { elements: moved(state.elements, index, direction) }
+        return index === -1 ? {} : { elements: moved(state.elements, index, direction), layerOrder: moveLayer(orderedLayerIds(state as ImageState), id, direction) }
       }),
     setSelectedElementId: (id) => set(id ? select(id) : { selectedElementId: null }),
   }

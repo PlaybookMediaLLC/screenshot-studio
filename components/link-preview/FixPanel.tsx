@@ -1,5 +1,7 @@
 'use client'
 
+import { characterCount } from '@/lib/link-preview/text'
+import { isHttpUrl } from '@/lib/link-preview/urls'
 import { Check, Copy, Loader2, RotateCcw, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { z } from 'zod'
@@ -135,7 +137,7 @@ function AiCopy({
               <p className="text-sm font-medium text-foreground">{variant.title}</p>
               <p className="flex-1 text-sm text-muted-foreground">{variant.description}</p>
               <p className="text-[11px] tabular-nums text-muted-foreground">
-                {variant.title.length} / 60 · {variant.description.length} / 160
+                {characterCount(variant.title)} / 60 · {characterCount(variant.description)} / 160
               </p>
               <Button type="button" size="sm" variant="secondary" onClick={() => onPick(variant)}>
                 Use this
@@ -178,7 +180,8 @@ export function FixPanel({
   const remaining = auditLinkPreview(edited).filter(
     (issue) =>
       issue.category === issueCategorySchema.enum.content ||
-      issue.category === issueCategorySchema.enum.social
+      issue.category === issueCategorySchema.enum.social ||
+      issue.category === issueCategorySchema.enum.images
   )
   const changed = Object.values(edits).some((value) => value.trim())
 
@@ -214,8 +217,8 @@ export function FixPanel({
                 <span className="flex items-center justify-between text-xs text-muted-foreground">
                   {field.label}
                   {field.limit && (
-                    <span className={cn(shown.length > field.limit && 'text-amber-400')}>
-                      {shown.length} / {field.limit}
+                    <span className={cn(characterCount(shown) > field.limit && 'text-amber-400')}>
+                      {characterCount(shown)} / {field.limit}
                     </span>
                   )}
                 </span>
@@ -223,6 +226,7 @@ export function FixPanel({
                   value={value}
                   placeholder={field.placeholder(preview) ?? `No ${field.label.toLowerCase()} yet`}
                   onChange={(event) => onEdit({ ...edits, [field.key]: event.target.value })}
+                  aria-invalid={field.key === 'image' && !!value.trim() && !isHttpUrl(value.trim())}
                   rows={field.multiline ? 3 : undefined}
                   className={cn(INPUT, field.multiline && 'resize-none')}
                 />
@@ -303,7 +307,7 @@ export function FixPanel({
 
       <section className="space-y-3">
         <h3 className="text-sm font-medium text-foreground">
-          Copy and social issues left{changed ? ' with your edits' : ''}
+          Copy, social, and image issues left{changed ? ' with your edits' : ''}
         </h3>
         <IssueList issues={remaining} />
       </section>

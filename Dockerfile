@@ -24,19 +24,21 @@ FROM dependencies AS builder
 
 WORKDIR /app
 
-COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
 # Public values are compiled into the browser bundle. Do not pass secrets here.
 ARG NEXT_PUBLIC_POSTHOG_HOST
 ARG NEXT_PUBLIC_POSTHOG_KEY
 ARG NEXT_PUBLIC_R2_PUBLIC_URL
+ARG NEXT_DEPLOYMENT_ID
 
 ENV NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
     NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
-    NEXT_PUBLIC_R2_PUBLIC_URL=$NEXT_PUBLIC_R2_PUBLIC_URL
+    NEXT_PUBLIC_R2_PUBLIC_URL=$NEXT_PUBLIC_R2_PUBLIC_URL \
+    NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 
-RUN npm run build
+# The editor bundle exceeds Node's default 2 GiB heap on some build hosts.
+RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build
 
 # The app uses R2 for these backgrounds when its public URL is configured.
 # Keep local files only for self-contained builds without R2.

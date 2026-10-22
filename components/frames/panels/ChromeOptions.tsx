@@ -15,6 +15,7 @@ import {
   windowStyleSchema,
 } from '@/lib/frames/schema'
 import { cn } from '@/lib/utils'
+import { withTypingHistory } from '@/lib/store'
 import { ChromeFrame } from '../ChromeFrame'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -174,12 +175,15 @@ function TabsField({
             aria-label={`Tab ${index + 1} title`}
             className={fieldClass}
             maxLength={60}
+            aria-describedby={`${group}-${index}-count`}
             onChange={(event) =>
-              write(tabs.map((tab, at) => (at === index ? event.target.value : tab)))
+              withTypingHistory(`${group}:${index}`, () =>
+                write(tabs.map((tab, at) => (at === index ? event.target.value : tab))))
             }
             placeholder={index === 0 ? 'Page title' : `Tab ${index + 1}`}
             value={title}
           />
+          <span id={`${group}-${index}-count`} className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{title.length}/60</span>
           {tabs.length > 1 ? (
             <Button variant="custom" size={null}
               aria-label={`Remove tab ${index + 1}`}
@@ -210,7 +214,7 @@ function TabsField({
         >
           <Add01Icon size={12} /> Add tab
         </Button>
-      ) : null}
+      ) : <p className="text-xs text-muted-foreground">Maximum {MAX_FRAME_TABS} tabs. Remove a tab to add another.</p>}
     </fieldset>
   )
 }

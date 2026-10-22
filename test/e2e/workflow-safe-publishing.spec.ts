@@ -37,6 +37,7 @@ test('Workflow D: redacted work publishes without the sensitive text or face', a
   await page.getByRole('button', { exact: true, name: 'Share' }).click()
   const share = page.getByRole('dialog', { name: 'Share design' })
   await share.getByLabel('Title').fill('Redacted dashboard')
+  await share.getByRole('button', { name: 'Anyone with the link', exact: true }).click()
   await share.getByRole('button', { name: 'Publish link' }).click()
   const published = page.getByRole('dialog', { name: 'Published' })
   await expect(published).toBeVisible({ timeout: 60_000 })
@@ -47,8 +48,11 @@ test('Workflow D: redacted work publishes without the sensitive text or face', a
   const visitor = await browser.newContext()
   const media = await visitor.request.get(url.replace('/s/', '/api/share/') + '/media')
   expect(media.status()).toBe(200)
+  const contentType = media.headers()['content-type'].split(';')[0]
+  expect(contentType).toMatch(/^image\/(jpeg|png|webp)$/)
   const bytes = await media.body()
-  const file = path.join(tmpdir(), `published-${Date.now()}.png`)
+  const fileName = `published-${Date.now()}.${contentType.split('/')[1]}`
+  const file = path.join(tmpdir(), fileName)
   await writeFile(file, bytes)
   const text = (await ocr(file)).replace(/\s+/g, ' ')
   expect(text).toContain('Dashboard')
@@ -62,17 +66,17 @@ test('Workflow D: redacted work publishes without the sensitive text or face', a
   await expect(page.locator('img[alt="Main image"]')).toHaveCount(0)
   await page.locator('[data-local-dropzone]').waitFor()
   await page.evaluate(
-    async (bytes) => {
-      const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' })
+    async ({ bytes, contentType, fileName }) => {
+      const blob = new Blob([new Uint8Array(bytes)], { type: contentType })
       const data = new DataTransfer()
-      data.items.add(new File([blob], 'published.png', { type: 'image/png' }))
+      data.items.add(new File([blob], fileName, { type: contentType }))
       document
         .querySelector('[data-local-dropzone]')!
         .dispatchEvent(
           new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: data })
         )
     },
-    [...bytes]
+    { bytes: [...bytes], contentType, fileName }
   )
   await expect(page.locator('img[alt="Main image"]')).toHaveCount(1)
   await page.getByRole('button', { exact: true, name: 'Scan screenshot' }).click()

@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"slices"
 	"strings"
@@ -30,6 +31,7 @@ type AutomationDefinition struct {
 	Priority        int                            `json:"priority"`
 	ActivePriority  int                            `json:"activePriority"`
 	Revision        int                            `json:"revision"`
+	Archived        bool                           `json:"archived"`
 	Enabled         bool                           `json:"enabled"`
 	ActiveVersionID *string                        `json:"activeVersionId"`
 	Draft           automation.Graph               `json:"draft"`
@@ -54,7 +56,7 @@ type SaveAutomationInput struct {
 
 func automationDefinition(row *ent.ReleaseAutomation) AutomationDefinition {
 	return AutomationDefinition{ID: row.ID, SourceAppID: row.SourceAppID, Name: row.Name, Description: row.Description,
-		Priority: row.Priority, ActivePriority: row.ActivePriority, Revision: row.Revision, Enabled: row.Enabled, ActiveVersionID: row.ActiveVersionID,
+		Priority: row.Priority, ActivePriority: row.ActivePriority, Revision: row.Revision, Enabled: row.Enabled, Archived: row.Archived, ActiveVersionID: row.ActiveVersionID,
 		Draft: row.Draft, Layout: row.Layout, ModifiedBy: row.ModifiedBy, UpdatedAt: row.UpdatedAt, Issues: automation.Validate(row.Draft)}
 }
 
@@ -118,6 +120,9 @@ func (c *Configuration) SaveReleaseAutomation(ctx context.Context, actor Actor, 
 	if err := c.authorizeAutomationAdmin(ctx, actor); err != nil {
 		return nil, err
 	}
+	if input.Priority < 0 || input.Priority > 9999 {
+		return nil, fmt.Errorf("%w: priority must be a whole number from 0 to 9999", ErrInvalidInput)
+	}
 	if !automation.BoundedDraft(input.Graph) {
 		return nil, ErrInvalidInput
 	}
@@ -161,7 +166,7 @@ func (c *Configuration) SaveReleaseAutomation(ctx context.Context, actor Actor, 
 		_, err = tx.ReleaseAutomation.Create().SetID(id).SetOrganizationID(actor.OrganizationID).SetSourceAppID(source.ID).SetName(strings.TrimSpace(input.Name)).SetDescription(input.Description).SetFamily(string(input.Graph.Family)).SetPriority(input.Priority).SetDraft(input.Graph).SetLayout(input.Layout).SetModifiedBy(actor.UserID).Save(ctx)
 	} else {
 		var count int
-		count, err = tx.ReleaseAutomation.Update().Where(releaseautomation.ID(id), releaseautomation.OrganizationID(actor.OrganizationID), releaseautomation.SourceAppID(source.ID), releaseautomation.Family(string(input.Graph.Family)), releaseautomation.Revision(input.ExpectedRevision)).SetName(strings.TrimSpace(input.Name)).SetDescription(input.Description).SetPriority(input.Priority).SetDraft(input.Graph).SetLayout(input.Layout).SetModifiedBy(actor.UserID).AddRevision(1).Save(ctx)
+		count, err = tx.ReleaseAutomation.Update().Where(releaseautomation.ID(id), releaseautomation.OrganizationID(actor.OrganizationID), releaseautomation.SourceAppID(source.ID), releaseautomation.Family(string(input.Graph.Family)), releaseautomation.Archived(false), releaseautomation.Revision(input.ExpectedRevision)).SetName(strings.TrimSpace(input.Name)).SetDescription(input.Description).SetPriority(input.Priority).SetDraft(input.Graph).SetLayout(input.Layout).SetModifiedBy(actor.UserID).AddRevision(1).Save(ctx)
 		if err == nil && count != 1 {
 			return nil, publishing.ErrConflict
 		}
@@ -277,7 +282,7 @@ func (c *Configuration) ActivateReleaseAutomation(ctx context.Context, actor Act
 	if err != nil {
 		return nil, err
 	}
-	if row.Revision != revision {
+	if row.Archived || row.Revision != revision {
 		return nil, publishing.ErrConflict
 	}
 	if len(automation.Validate(row.Draft)) > 0 {
@@ -323,7 +328,7 @@ func (c *Configuration) ActivateReleaseAutomation(ctx context.Context, actor Act
 	if err != nil {
 		return nil, err
 	}
-	count, err := tx.ReleaseAutomation.Update().Where(releaseautomation.ID(id), releaseautomation.OrganizationID(actor.OrganizationID), releaseautomation.Revision(revision)).SetActiveVersionID(versionID).SetActivePriority(row.Priority).SetEnabled(true).AddRevision(1).SetModifiedBy(actor.UserID).Save(ctx)
+	count, err := tx.ReleaseAutomation.Update().Where(releaseautomation.ID(id), releaseautomation.OrganizationID(actor.OrganizationID), releaseautomation.Archived(false), releaseautomation.Revision(revision)).SetActiveVersionID(versionID).SetActivePriority(row.Priority).SetEnabled(true).AddRevision(1).SetModifiedBy(actor.UserID).Save(ctx)
 	if err != nil {
 		return nil, err
 	}

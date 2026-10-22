@@ -20,7 +20,10 @@ const recoverySchema = z.discriminatedUnion('status', [
 ])
 
 /** Make an independent intent; identical display names remain distinct. */
-export function newWorkspaceCreationAttempt(name: string): WorkspaceCreationAttempt {
+export function newWorkspaceCreationAttempt(
+  name: string,
+  timeZone?: string
+): WorkspaceCreationAttempt {
   const key = crypto.randomUUID()
   const base = name
     .toLowerCase()
@@ -35,6 +38,7 @@ export function newWorkspaceCreationAttempt(name: string): WorkspaceCreationAtte
       slug: `${base || 'team'}-${key}`,
       idempotencyKey: key,
       keepCurrentActiveOrganization: true,
+      timeZone,
     },
   })
 }

@@ -1,5 +1,98 @@
 # Changelog
 
+## [2.33.5](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.4...v2.33.5) (2026-10-22)
+
+
+### Performance Improvements
+
+* improve signed-in caching and data loading ([#279](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/279)) ([fd23bc7](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/fd23bc713d4afd4e9bcc7294c22957822e4bf820))
+
+## [2.33.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.3...v2.33.4) (2026-10-21)
+
+
+### Bug Fixes
+
+* resolve 95 QA findings across editors and workspace ([#277](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/277)) ([14ee655](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/14ee655d925782c25b49574431c06f2e39da56e1))
+
+## [2.33.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.2...v2.33.3) (2026-10-21)
+
+
+### Bug Fixes
+
+* prevent notification count clipping in sidebar ([#275](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/275)) ([72f2f5c](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/72f2f5c1ac9988dd3647fafa86285e5ffc6995cd))
+
+## [2.33.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.1...v2.33.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* restore production releases and failing draft workflows ([#266](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/266)) ([80a2c4b](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/80a2c4be38cb404a5568a1e5e1bbb8d950f4b12a))
+
+## [2.33.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.33.0...v2.33.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **notifications:** retain seen activity and require explicit actions ([#272](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/272)) ([6ce18bf](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/6ce18bf11102c2f1f429ef05fb5c988895168c06))
+
+## [2.33.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.7...v2.33.0) (2026-10-21)
+
+
+### Features
+
+* **story-sets:** preview saved formats in library cards ([#269](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/269)) ([fbfaf59](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/fbfaf5908900cb60025265f9ec46af6125c472c6))
+
+## [2.32.7](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.6...v2.32.7) (2026-10-21)
+
+
+### Bug Fixes
+
+* **editor:** resolve image imports, autosave, and slide QA regressions ([#267](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/267)) ([d8c15b7](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/d8c15b7ebda64ef45a15f71c8bf5bf3141af3844))
+
+## [2.32.6](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.5...v2.32.6) (2026-10-21)
+
+
+### Bug Fixes
+
+* **link-preview:** preserve drafts and align audit results ([#264](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/264)) ([b1c08bf](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/b1c08bf242eda7ab5b2ea0ae3e06e9ab6f31d0b7))
+
+## [2.32.5](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.4...v2.32.5) (2026-10-21)
+
+
+### Bug Fixes
+
+* **assets:** correct library freshness, pagination, and previews ([#262](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/262)) ([74750cc](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/74750cc199af4bda7845ea75cda409ebdad69351))
+
+## [2.32.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.3...v2.32.4) (2026-10-21)
+
+
+### Bug Fixes
+
+* **canvas:** preserve edits and repair export and library workflows ([002ecab](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/002ecabd1b3ec94b5e7e215953694c31f033462c))
+
+## [2.32.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.2...v2.32.3) (2026-10-21)
+
+
+### Bug Fixes
+
+* **projects:** isolate previews and recover library workflows ([#258](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/258)) ([d0e8cea](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/d0e8cea893d71049f82a2a2aa579720e0d3ff6f5))
+* **ui:** improve muted text, input, and keyboard focus visibility ([93397ca](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/93397ca63bc38e40d1401f70713a4173d3fb2ac9))
+* **write:** preserve edits and repair draft controls ([#259](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/259)) ([32d219f](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/32d219f85b53d8f784c9d3c480b19ce48561053a))
+
+## [2.32.2](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.1...v2.32.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* **workflows:** address workflow QA findings and add recoverable archives ([#253](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/253)) ([ad41e0e](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/ad41e0e78c07fc9fc86b7c35b14264de911283ec))
+
+## [2.32.1](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.32.0...v2.32.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **campaigns:** repair drafting, review, and campaign workflow ([#252](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/252)) ([bee52be](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/bee52be39b7dc019b8032a42399b712902681c87))
+
 ## [2.32.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.31.2...v2.32.0) (2026-10-21)
 
 

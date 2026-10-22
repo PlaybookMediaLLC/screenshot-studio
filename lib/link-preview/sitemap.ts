@@ -19,3 +19,17 @@ export function robotsSitemaps(robotsText: string): string[] {
     .map(([, url]) => url!)
     .filter((url) => /^https?:\/\//i.test(url))
 }
+
+/** Prefer a reachable robots.txt declaration, falling back to the conventional location. */
+export async function discoverSitemap(
+  robotsText: string,
+  origin: string,
+  probe: (url: string) => Promise<boolean>
+): Promise<string | undefined> {
+  const declared = [...new Set(robotsSitemaps(robotsText))].slice(0, 5)
+  const found = await Promise.all(declared.map(async (url) => (await probe(url)) ? url : undefined))
+  const first = found.find(Boolean)
+  if (first) return first
+  const fallback = new URL('/sitemap.xml', origin).toString()
+  return await probe(fallback) ? fallback : undefined
+}

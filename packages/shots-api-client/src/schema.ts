@@ -1412,6 +1412,8 @@ export interface components {
         };
         AssetUploadRequest: {
             bytes: number;
+            /** Format: cuid */
+            projectId?: string;
             /**
              * @default input
              * @enum {string}

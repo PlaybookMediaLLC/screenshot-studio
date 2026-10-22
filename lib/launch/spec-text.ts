@@ -17,28 +17,34 @@ import {
  *                  A: Yes, through the existing connection. [S2]
  *   summary        One paragraph. [S1, brief]
  *
- * Every factual line ends in its citations. `parseSection` reports the line
+ * Every factual line includes its citations. `parseSection` reports the line
  * of each problem so the editor can point at it.
  */
 
 export type ParseResult<T> = { errors: string[]; ok: false } | { ok: true; value: T }
 
-const CITATION = /\s*\[([^\]]*)\]\s*$/
+const CITATION = /\[([^\]]*)\]/g
 
 function splitCitation(
   line: string,
   lineNumber: number,
   errors: string[]
 ): { body: string; sources: string[] } | null {
-  const match = line.match(CITATION)
-  if (!match) {
-    errors.push(`Line ${lineNumber}: end it with its sources, such as [brief] or [S1].`)
+  const matches = [...line.matchAll(CITATION)].filter(
+    (match) =>
+      /(?:^|,)\s*(?:brief|S\d+)\s*(?:,|$)/.test(match[1]!) ||
+      match.index + match[0].length === line.length
+  )
+  if (matches.length === 0) {
+    errors.push(`Line ${lineNumber}: add sources, such as [brief] or [S1].`)
     return null
   }
-  const sources = match[1]!
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean)
+  const sources = matches.flatMap((match) =>
+    match[1]!
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+  )
   const invalid = sources.filter((value) => !sourceRefSchema.safeParse(value).success)
   if (sources.length === 0 || invalid.length > 0) {
     errors.push(
@@ -46,7 +52,18 @@ function splitCitation(
     )
     return null
   }
-  return { body: line.slice(0, match.index).trim(), sources: [...new Set(sources)] }
+  return {
+    body: matches
+      .toReversed()
+      .reduce(
+        (body, match) => body.slice(0, match.index) + body.slice(match.index + match[0].length),
+        line
+      )
+      .replace(/ {2,}/g, ' ')
+      .replace(/ +([.,;:!?])/g, '$1')
+      .trim(),
+    sources: [...new Set(sources)],
+  }
 }
 
 const cite = (sources: string[]) => ` [${sources.join(', ')}]`

@@ -1,3 +1,4 @@
+import { withRequestReads } from '@/lib/auth/request-reads'
 import { initTRPC } from '@trpc/server'
 import superjson from 'superjson'
 import { ZodError } from 'zod'
@@ -37,4 +38,8 @@ const domainErrorMiddleware = middleware(async ({ next }) => {
   return result
 })
 
-export const publicProcedure = t.procedure.use(domainErrorMiddleware)
+export const publicProcedure = t.procedure
+  .use(domainErrorMiddleware)
+  .use(({ ctx, type, next }) =>
+    withRequestReads(type === 'query' ? (ctx.reads ?? new Map()) : undefined, next)
+  )

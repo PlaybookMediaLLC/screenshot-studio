@@ -99,6 +99,9 @@ func (c *Configuration) LinkCampaignAsset(ctx context.Context, actor Actor, camp
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := mutableCampaign(ctx, tx, actor, campaignID); err != nil {
+		return nil, err
+	}
 	owned, err := tx.Campaign.Query().Where(campaign.ID(campaignID), campaign.OrganizationID(actor.OrganizationID)).Exist(ctx)
 	if err != nil {
 		return nil, err
@@ -163,6 +166,9 @@ func (c *Configuration) SaveCampaignCopy(ctx context.Context, actor Actor, campa
 		return err
 	}
 	defer tx.Rollback()
+	if err := mutableCampaign(ctx, tx, actor, campaignID); err != nil {
+		return err
+	}
 	owned, err := tx.Campaign.Query().Where(campaign.ID(campaignID), campaign.OrganizationID(actor.OrganizationID)).Exist(ctx)
 	if err != nil {
 		return err
@@ -232,6 +238,9 @@ func (c *Configuration) ReplaceDesign(ctx context.Context, actor Actor, id strin
 		return err
 	}
 	defer tx.Rollback()
+	if err := mutableDesignCampaign(ctx, tx, actor, id); err != nil {
+		return err
+	}
 	if err := requireDesignAssets(ctx, tx, actor.OrganizationID, input.Document); err != nil {
 		return err
 	}

@@ -15,4 +15,16 @@ export const workspaceCreateSchema = z.object({
   slug: workspaceSlugSchema,
   idempotencyKey: z.uuid().optional(),
   keepCurrentActiveOrganization: z.boolean().optional(),
+  timeZone: z
+    .string()
+    .max(100)
+    .refine((zone) => {
+      try {
+        Intl.DateTimeFormat(undefined, { timeZone: zone })
+        return true
+      } catch {
+        return false
+      }
+    }, 'Choose a valid time zone.')
+    .optional(),
 })

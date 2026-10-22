@@ -21,6 +21,22 @@ import { useTRPCClient } from '@/lib/trpc/react'
 export function ProjectLoader() {
   const trpcClient = useTRPCClient()
   const startedRef = React.useRef(false)
+  const { status, error } = useProjectSession()
+
+  React.useEffect(() => {
+    if (status === 'error' || status === 'offline' || status === 'conflict') {
+      toast.error('Your project has not been saved', {
+        id: 'project-save-error',
+        description: error ?? 'Open the project menu to resolve the problem.',
+        duration: Infinity,
+        action: status === 'conflict' ? undefined : {
+          label: 'Retry', onClick: () => void saveProjectNow(),
+        },
+      })
+    } else if (status === 'saved') {
+      toast.dismiss('project-save-error')
+    }
+  }, [status, error])
 
   React.useEffect(() => {
     if (startedRef.current) return

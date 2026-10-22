@@ -85,9 +85,10 @@ export function AudioSection() {
         {status.importing ? 'Importing audio…' : 'Import audio'}
       </Button>
       {status.error ? (
-        <p className="text-xs text-destructive" role="alert">
-          {status.error}
-        </p>
+        <div className="flex items-start gap-2 text-xs text-destructive" role="alert">
+          <p className="flex-1">{status.error}</p>
+          <Button variant="ghost" size="sm" onClick={() => setStatus({ error: null, importing: false })}>Dismiss</Button>
+        </div>
       ) : null}
       {clips.length === 0 ? (
         <p className="text-xs text-muted-foreground">
@@ -169,6 +170,7 @@ const WEIGHT_CHOICES = captionWeightSchema.options.map((value) => ({
 
 /** One caption's text and timing. Clearing the text keeps the last words until new ones are typed. */
 function CaptionRow({ item }: { item: CaptionItem }) {
+  const duration = useImageStore((state) => state.timeline.duration)
   const updateMotion = useImageStore((state) => state.updateMotion)
   const [draft, setDraft] = React.useState(item.text)
   React.useEffect(() => setDraft(item.text), [item.text])
@@ -194,11 +196,14 @@ function CaptionRow({ item }: { item: CaptionItem }) {
       ) : null}
       <SecondsField
         label="Start"
+        max={Math.max(0, Math.min(item.end, duration) - 1) / 1000}
         onChange={(start) => updateMotion((motion) => updateCaption(motion, item.id, { start }))}
         valueMs={item.start}
       />
       <SecondsField
         label="End"
+        min={(item.start + 1) / 1000}
+        max={duration / 1000}
         onChange={(end) => updateMotion((motion) => updateCaption(motion, item.id, { end }))}
         valueMs={item.end}
       />
@@ -225,12 +230,9 @@ export function CaptionsSection() {
       <Button variant="custom" size={null}
         className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-foreground/10 py-2 text-xs font-medium text-foreground hover:bg-foreground/[0.06]"
         onClick={() => {
-          const start = Math.round(usePlaybackStore.getState().playhead)
-          // Two seconds, kept inside the timeline when there is room.
-          const end = Math.min(
-            start + 2000,
-            Math.max(start + 500, useImageStore.getState().timeline.duration)
-          )
+          const duration = useImageStore.getState().timeline.duration
+          const start = Math.max(0, Math.min(Math.round(usePlaybackStore.getState().playhead), duration - 1))
+          const end = Math.min(start + 2000, duration)
           updateMotion((motion) =>
             addCaption(motion, { end, id: newMotionId('caption'), start, text: 'New caption' })
           )

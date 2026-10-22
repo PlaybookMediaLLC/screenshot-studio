@@ -104,6 +104,11 @@ func Enabled(v bool) predicate.ReleaseAutomation {
 	return predicate.ReleaseAutomation(sql.FieldEQ(FieldEnabled, v))
 }
 
+// Archived applies equality check predicate on the "archived" field. It's identical to ArchivedEQ.
+func Archived(v bool) predicate.ReleaseAutomation {
+	return predicate.ReleaseAutomation(sql.FieldEQ(FieldArchived, v))
+}
+
 // ActivePriority applies equality check predicate on the "active_priority" field. It's identical to ActivePriorityEQ.
 func ActivePriority(v int) predicate.ReleaseAutomation {
 	return predicate.ReleaseAutomation(sql.FieldEQ(FieldActivePriority, v))
@@ -542,6 +547,16 @@ func EnabledEQ(v bool) predicate.ReleaseAutomation {
 // EnabledNEQ applies the NEQ predicate on the "enabled" field.
 func EnabledNEQ(v bool) predicate.ReleaseAutomation {
 	return predicate.ReleaseAutomation(sql.FieldNEQ(FieldEnabled, v))
+}
+
+// ArchivedEQ applies the EQ predicate on the "archived" field.
+func ArchivedEQ(v bool) predicate.ReleaseAutomation {
+	return predicate.ReleaseAutomation(sql.FieldEQ(FieldArchived, v))
+}
+
+// ArchivedNEQ applies the NEQ predicate on the "archived" field.
+func ArchivedNEQ(v bool) predicate.ReleaseAutomation {
+	return predicate.ReleaseAutomation(sql.FieldNEQ(FieldArchived, v))
 }
 
 // ActivePriorityEQ applies the EQ predicate on the "active_priority" field.

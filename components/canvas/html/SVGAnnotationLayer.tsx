@@ -1,5 +1,8 @@
 'use client';
 
+import { useImageStore } from '@/lib/store';
+import { orderedLayerIds } from '@/lib/editor/layer-order';
+
 import { shouldIgnoreEditorShortcut } from '@/lib/editor-shortcuts';
 
 import { useRef, useState, useCallback, useEffect } from 'react';
@@ -727,7 +730,28 @@ export function SVGAnnotationLayer({
   // full-size background rect with pointer-events:auto to capture drawing.
   // Individual annotation shapes always have pointer-events:auto so they
   // can be selected/dragged even when no tool is active.
+  const stack = useImageStore((state) => state.layerOrder);
+  const layerIds = orderedLayerIds({ ...useImageStore.getState(), layerOrder: stack });
   return (
+    <>
+      {annotations.map((annotation) => (
+        <svg key={annotation.id} data-annotation-id={annotation.id} viewBox={`0 0 ${canvasW} ${canvasH}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 20 + layerIds.indexOf(annotation.id) }}>
+        <AnnotationElement
+          annotation={annotation}
+          isSelected={selectedId === annotation.id}
+          isHovered={hoveredId === annotation.id}
+          onSelect={() => setSelectedId(annotation.id)}
+          onDragStart={(e) => handleDragStart(annotation.id, e)}
+          onControlDrag={
+            annotation.type === 'curved-arrow'
+              ? (e) => handleControlDragStart(annotation.id, e)
+              : undefined
+          }
+          onEndpointDrag={(endpoint, e) => handleEndpointDragStart(annotation.id, endpoint, e)}
+          onHover={(h) => setHoveredId(h ? annotation.id : null)}
+        />
+        </svg>
+      ))}
     <svg
       ref={svgRef}
       viewBox={`0 0 ${canvasW} ${canvasH}`}
@@ -759,24 +783,6 @@ export function SVGAnnotationLayer({
         onPointerUp={handlePointerUp}
       />
 
-      {annotations.map((annotation) => (
-        <g key={annotation.id} data-annotation-id={annotation.id}>
-        <AnnotationElement
-          annotation={annotation}
-          isSelected={selectedId === annotation.id}
-          isHovered={hoveredId === annotation.id}
-          onSelect={() => setSelectedId(annotation.id)}
-          onDragStart={(e) => handleDragStart(annotation.id, e)}
-          onControlDrag={
-            annotation.type === 'curved-arrow'
-              ? (e) => handleControlDragStart(annotation.id, e)
-              : undefined
-          }
-          onEndpointDrag={(endpoint, e) => handleEndpointDragStart(annotation.id, endpoint, e)}
-          onHover={(h) => setHoveredId(h ? annotation.id : null)}
-        />
-        </g>
-      ))}
       {renderDrawingPreview()}
 
       {/* Delete button on selected annotation */}
@@ -796,5 +802,6 @@ export function SVGAnnotationLayer({
         );
       })()}
     </svg>
+    </>
   );
 }

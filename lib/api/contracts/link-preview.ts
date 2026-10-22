@@ -174,7 +174,7 @@ export const linkPreviewSchema = z.object({
   twitterCreator: text,
   /** The site's `/robots.txt` URL, when it answers. */
   robotsFile: text,
-  /** The site's `/sitemap.xml` URL, when it answers. */
+  /** A reachable sitemap declared in robots.txt, or the /sitemap.xml fallback. */
   sitemap: text,
   /** The schema.org types the page declares in JSON-LD. */
   jsonLd: z.array(z.string()),

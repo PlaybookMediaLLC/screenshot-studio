@@ -332,3 +332,26 @@ test('stored release notes are a fenced source, and the GitHub page is not fetch
   )
   assert.equal(fetched.length, 4)
 })
+
+test('diagnostic text fetches retain HTTP error bodies without bypassing SSRF or size limits', async () => {
+  const { transport } = stubTransport({
+    'https://public.example/missing': { status: 404, body: '<title>Moved page</title>' },
+    'https://public.example/private': { status: 302, headers: { location: 'http://127.0.0.1/' } },
+  })
+  const options = { resolve: async () => [{ address: '93.184.216.34', family: 4 }], transport }
+  assert.equal((await safeFetchText('https://public.example/missing', options)).ok, false)
+  const page = await safeFetchText('https://public.example/missing', {
+    ...options,
+    acceptErrorStatus: true,
+    maxBytes: 10,
+  })
+  assert.ok(page.ok)
+  assert.equal(page.hops?.at(-1)?.status, 404)
+  assert.equal(page.body, '<title>Mov')
+  assert.equal(page.truncated, true)
+  assert.equal(
+    (await safeFetchText('https://public.example/private', { ...options, acceptErrorStatus: true }))
+      .ok,
+    false
+  )
+})

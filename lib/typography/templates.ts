@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { arrangeScreens, documentCanvasAspect } from '@/lib/frames/arrange'
+import { compositionLayoutSchema } from '@/lib/frames/layouts'
 import type { DesignDocument } from '@/lib/design/document'
 import type { TextAlign, TextFill, TextFit, TextRole } from './text-style'
 
@@ -184,4 +186,35 @@ export function withTypographyTemplate(
     }
   })
   return [...kept, ...placed]
+}
+
+/** Reserve a copy band and arrange media below it as one template operation. */
+export function withTypographyLayout(document: DesignDocument, template: TypographyTemplate): DesignDocument {
+  const texts = withTypographyTemplate(document.texts, template)
+  const roles = new Set(template.layers.map((layer) => layer.role))
+  const aspect = documentCanvasAspect(document)
+  let y = 0.04
+  const placed = texts.map((text) => {
+    if (!text.role || !roles.has(text.role)) return text
+    const fontSize = Math.min(text.fontSize, (text.role === 'headline' ? 0.065 : 0.032) / aspect)
+    const lineHeight = text.lineHeight ?? 1.2
+    const lines = text.fit === 'wrap' ? Math.max(1, Math.ceil(text.text.length * fontSize * 0.55 / (text.maxWidth ?? 0.8))) : 1
+    const height = Math.min(0.15, fontSize * aspect * lineHeight * lines)
+    const position = { ...text.position, y: (y + height / 2) * 100 }
+    y += height + 0.02
+    return { ...text, fontSize, position }
+  })
+  const top = Math.min(0.45, y + 0.03)
+  const body = 1 - top
+  const layout = compositionLayoutSchema.safeParse(document.devices?.layoutId)
+  return {
+    ...document,
+    texts: placed.map((text) => text.role && roles.has(text.role) ? text : { ...text, position: { ...text.position, y: top * 100 + text.position.y * body } }),
+    devices: document.devices ? { ...document.devices,
+      mockups: arrangeScreens(document.devices.mockups, layout.success ? layout.data : 'grid', aspect / body).map((screen) => ({ ...screen, position: { ...screen.position, y: top + screen.position.y * body } })),
+    } : undefined,
+    image: document.devices?.mockups.length ? { ...document.image, scale: 100, offset: { x: 0, y: 0 } } : {
+      ...document.image, scale: Math.max(10, Math.min(document.image.scale ?? 100, 100 * body)), offset: { x: 0, y: top / 2 },
+    },
+  }
 }

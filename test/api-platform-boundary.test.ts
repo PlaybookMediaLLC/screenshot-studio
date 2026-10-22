@@ -23,7 +23,6 @@ const UPSTREAM_FILES = new Set([
   'app/api/cleanup-cache/route.ts',
   'app/api/export/route.ts',
   'app/api/image-proxy/route.ts',
-  'app/api/indexnow/route.ts',
   'app/api/llms-full/route.ts',
   'app/api/llms/route.ts',
   'app/api/md/route.ts',

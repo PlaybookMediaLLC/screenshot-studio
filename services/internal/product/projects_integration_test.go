@@ -228,6 +228,35 @@ func TestProjects(t *testing.T) {
 		if err != nil || copied.Name != "Launch hero copy" || copied.Revision != 1 || projectHeadline(copied.Document) != "v2" {
 			t.Fatalf("copied=%+v err=%v", copied, err)
 		}
+		type copyResult struct {
+			project *ProjectRecord
+			err     error
+		}
+		results := make(chan copyResult, 2)
+		for range 2 {
+			go func() {
+				row, err := repo.DuplicateProject(ctx, actor, created.ID, nil)
+				results <- copyResult{row, err}
+			}()
+		}
+		names := map[string]bool{}
+		var copies []string
+		for range 2 {
+			result := <-results
+			if result.err != nil {
+				t.Fatal(result.err)
+			}
+			names[result.project.Name] = true
+			copies = append(copies, result.project.ID)
+		}
+		if !names["Launch hero copy 2"] || !names["Launch hero copy 3"] {
+			t.Fatalf("simultaneous copies reused a name: %v", names)
+		}
+		for _, id := range copies {
+			if err := repo.DeleteProject(ctx, actor, id); err != nil {
+				t.Fatal(err)
+			}
+		}
 		if _, err := repo.RenameProject(ctx, actor, copied.ID, "Pricing banner"); err != nil {
 			t.Fatal(err)
 		}

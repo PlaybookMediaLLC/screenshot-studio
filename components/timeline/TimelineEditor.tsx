@@ -1,4 +1,7 @@
-'use client';
+'use client'
+
+import { SlidePreview } from '@/components/canvas/SlidePreview';
+import { toast } from 'sonner';
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
@@ -424,7 +427,7 @@ function VideoTrack({ width }: { width: number }) {
           <Image01Icon size={16} className="text-muted-foreground shrink-0" />
         )}
         <span className="truncate text-[10px] font-medium text-muted-foreground">
-          {imageName || 'Screenshot'}
+          {slides.length > 1 ? `${slides.length} slides` : imageName || 'Screenshot'}
         </span>
       </div>
 
@@ -434,7 +437,7 @@ function VideoTrack({ width }: { width: number }) {
       >
         <div className="absolute inset-0 flex">
           {mediaItems.map((item) => {
-            const itemWidthPercent = 100 / mediaItems.length;
+            const itemWidthPercent = item.duration / durationSeconds * 100;
             return (
               <div
                 key={item.id}
@@ -448,7 +451,7 @@ function VideoTrack({ width }: { width: number }) {
                 <div className="absolute inset-1 overflow-hidden rounded-md border border-foreground/10 bg-foreground/[0.05]">
                   <div className="flex h-full items-center gap-2 px-2">
                     <div className="h-8 w-8 shrink-0 overflow-hidden rounded border border-foreground/10">
-                      <img src={item.src} alt="" className="h-full w-full object-cover" />
+                      <SlidePreview src={item.src} />
                     </div>
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate text-[10px] font-medium text-foreground/80">
@@ -468,6 +471,7 @@ function VideoTrack({ width }: { width: number }) {
                     onClick={(e) => {
                       e.stopPropagation();
                       removeSlide(item.id);
+                      toast('Slide removed', { action: { label: 'Undo', onClick: () => useImageStore.temporal.getState().undo() } });
                     }}
                     aria-label={`Remove slide ${mediaItems.indexOf(item) + 1}`}
                   >

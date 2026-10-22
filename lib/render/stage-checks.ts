@@ -3,6 +3,7 @@
 import { STAGE_ELEMENT_ID } from './capture'
 import { loadTextFonts } from '@/lib/typography/load-text-fonts'
 import { useImageStore } from '@/lib/store'
+import { overlappingTextLayers, type TextLineBounds } from './text-collisions'
 
 /** Strict delivery checks run on the same DOM that is captured, after layout and fonts settle. */
 export async function assertStageReady(): Promise<void> {
@@ -22,9 +23,11 @@ export async function assertStageReady(): Promise<void> {
     })
   )
   const bounds = stage.getBoundingClientRect()
+  const layers: { label: string; lines: TextLineBounds[] }[] = []
   for (const text of stage.querySelectorAll<HTMLElement>('[data-text-overlay-id]')) {
     const style = getComputedStyle(text)
-    if (style.display === 'none' || Number(style.opacity) === 0) continue
+    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0)
+      continue
     const content = (text.textContent ?? '').trim()
     if (!content) continue
     const label = `“${content.length > 48 ? `${content.slice(0, 48)}…` : content}”`
@@ -50,5 +53,15 @@ export async function assertStageReady(): Promise<void> {
         `${label} extends beyond its text box or canvas. Shorten the copy, reduce its size, or move it inward.`
       )
     }
+    // Text ranges measure the lines, not the full-width wrapping box or its background.
+    const range = document.createRange()
+    range.selectNodeContents(text)
+    layers.push({ label, lines: Array.from(range.getClientRects()) })
+  }
+  const collision = overlappingTextLayers(layers)
+  if (collision) {
+    throw new Error(
+      `${collision[0]} overlaps ${collision[1]}. Move the text apart, shorten the copy, or reduce its size.`
+    )
   }
 }

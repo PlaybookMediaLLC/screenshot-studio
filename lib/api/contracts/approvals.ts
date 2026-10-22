@@ -70,7 +70,7 @@ export const listApprovalsContract = defineContract({
 /** `POST /api/v1/campaigns/{campaignId}/approvals` */
 export const decideCampaignApprovalContract = defineContract({
   access: { feature: 'campaign:workflow', permission: 'release:approve' },
-  body: campaignApprovalSchema.extend({ decision: reviewDecisionSchema }).strict(),
+  body: campaignApprovalSchema.safeExtend({ decision: reviewDecisionSchema }).strict(),
   docs: memberDocs({
     bodyName: 'CampaignApprovalRequest',
     description:

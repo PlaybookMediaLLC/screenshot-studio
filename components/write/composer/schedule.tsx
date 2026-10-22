@@ -158,6 +158,7 @@ export function ScheduleDialog({
     zone,
     data.queue.map((item) => item.at)
   )
+  const nextSlot = slots.find((slot) => !slot.busy)
   const schedule = async () => {
     setBusy(true)
     try {
@@ -319,7 +320,7 @@ export function ScheduleDialog({
               type="button"
               variant="outline"
             >
-              {option.label}
+              {option.label} ({zone})
             </Button>
           ))}
           <Button
@@ -330,7 +331,7 @@ export function ScheduleDialog({
             type="button"
             variant="outline"
           >
-            Next free slot
+            Next free slot{nextSlot ? ` · ${new Date(nextSlot.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: zone, timeZoneName: 'short' })}` : ' · none available'}
           </Button>
         </div>
         <details className="rounded-lg border border-white/10 p-3" open={initialQueue || undefined}>

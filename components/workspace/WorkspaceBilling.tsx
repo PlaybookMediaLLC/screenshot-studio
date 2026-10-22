@@ -6,10 +6,13 @@ import { CheckoutButton } from '@/components/platform-landing/CheckoutButton'
 import { CtaLink } from '@/components/platform-landing/CtaLink'
 import { checkoutPathSchema } from '@/components/platform-landing/primitives'
 import { Group, Pill, type PillTone, Row, Section } from '@/components/platform-ui'
+import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { checkoutPlanSchema } from '@/lib/billing/plans'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
+
+type Subscription = Awaited<ReturnType<ReturnType<typeof useTRPCClient>['billing']['subscription']['query']>>
 
 type Summary = Awaited<ReturnType<ReturnType<typeof useTRPCClient>['billing']['summary']['query']>>
 
@@ -68,6 +71,10 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
   const outcome = useSearchParams().get('credits')
   const [summary, setSummary] = useState<Summary | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [refresh, setRefresh] = useState(0)
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true)
 
   useEffect(() => {
     trpcClient.billing.summary
@@ -75,6 +82,19 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
       .then(setSummary)
       .catch((requestError: unknown) => setError(getErrorMessage(requestError)))
   }, [trpcClient])
+
+  useEffect(() => {
+    let active = true
+    setSubscriptionLoading(true)
+    setSubscriptionError(null)
+    void trpcClient.billing.subscription.query()
+      .then((result) => { if (active) setSubscription(result) })
+      .catch((requestError: unknown) => { if (active) setSubscriptionError(getErrorMessage(requestError)) })
+      .finally(() => { if (active) setSubscriptionLoading(false) })
+    return () => { active = false }
+  }, [trpcClient, refresh])
+
+  const cycle = subscription?.cycle
 
   const status = summary
     ? (STATUS[summary.status] ?? { label: summary.status, tone: 'gray' })
@@ -127,34 +147,36 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
                 layout="inline"
               >
                 <span className="text-sm font-medium">
-                  {summary.cycle?.priceLabel ??
-                    (summary.plan === 'enterprise'
+                  {cycle?.priceLabel ??
+                    (subscriptionLoading ? 'Loading subscription…' : summary.plan === 'enterprise'
                       ? 'Contract pricing — see your agreement'
-                      : 'Price unavailable — open Manage subscription')}
+                      : subscriptionError ? 'Subscription temporarily unavailable' : 'No online subscription linked')}
                 </span>
               </Row>
             ) : null}
-            {summary.paid && !summary.cycle ? (
+            {summary.paid && !cycle ? (
               <Row
                 label="Renewal"
-                description="Subscription details could not be loaded. Check your agreement or Manage subscription for the next billing date."
-              />
+                description={subscriptionLoading ? 'Loading renewal details…' : subscriptionError ?? 'No active online subscription is linked to this workspace. Contact your workspace administrator to confirm your billing arrangement.'}
+              >
+                {subscriptionError ? <Button variant="outline" disabled={subscriptionLoading} onClick={() => setRefresh((value) => value + 1)}>Retry subscription details</Button> : null}
+              </Row>
             ) : null}
             {summary.paid &&
-            summary.cycle &&
-            (summary.cycle.cancelsAt ?? summary.cycle.renewsAt) ? (
+            cycle &&
+            (cycle.cancelsAt ?? cycle.renewsAt) ? (
               <Row
                 description={
-                  summary.cycle.cancelsAt
+                  cycle.cancelsAt
                     ? 'Cancelled: the plan ends then. The workspace keeps its drafts, campaigns and assets, but its features and monthly allowances stop until someone chooses a plan. Renew in the billing portal before then to keep it.'
-                    : `Billed ${summary.cycle.interval === 'annual' ? 'yearly' : 'monthly'}. Cancelling in the billing portal ends the plan at the end of the period, not at once.`
+                    : `Billed ${cycle.interval === 'annual' ? 'yearly' : 'monthly'}. Cancelling in the billing portal ends the plan at the end of the period, not at once.`
                 }
-                label={summary.cycle.cancelsAt ? 'Ends' : 'Renews'}
+                label={cycle.cancelsAt ? 'Ends' : 'Renews'}
                 layout="inline"
               >
                 <span className="text-sm font-medium text-foreground tabular-nums">
                   {new Date(
-                    summary.cycle.cancelsAt ?? summary.cycle.renewsAt ?? ''
+                    cycle.cancelsAt ?? cycle.renewsAt ?? ''
                   ).toLocaleDateString(undefined, { dateStyle: 'medium' })}
                 </span>
               </Row>

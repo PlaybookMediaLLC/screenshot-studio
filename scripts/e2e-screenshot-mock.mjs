@@ -199,6 +199,26 @@ const server = createServer((request, response) => {
       response.end(productImage)
       return
     }
+    if (requestUrl.pathname.startsWith('/link-preview/')) {
+      if (requestUrl.pathname === '/link-preview/broken-image') {
+        response.writeHead(404).end()
+        return
+      }
+      const origin = `http://${request.headers.host}`
+      const name = requestUrl.pathname.endsWith('/two') ? 'Second page' : 'First page'
+      response.writeHead(requestUrl.pathname.endsWith('/missing') ? 404 : 200, { 'content-type': 'text/html' })
+      response.end(`<!doctype html><html lang="en"><head><title>${name} for link preview regression checks</title>
+        <meta name="description" content="A deterministic page for testing preview edits, sharing, and navigation.">
+        <meta name="viewport" content="width=device-width">
+        <meta property="og:title" content="${name}">
+        <meta property="og:description" content="A deterministic page for testing link previews.">
+        <meta property="og:image" content="${origin}/image">
+        <meta property="og:type" content="website">
+        <meta name="twitter:card" content="summary_large_image">
+        <link rel="canonical" href="${origin}${requestUrl.pathname}">
+        <link rel="icon" href="${origin}/image"></head><body>${name}</body></html>`)
+      return
+    }
     const file = acmeFiles[requestUrl.pathname]
     if (file) {
       response.writeHead(200, { 'content-type': file.type })
@@ -228,6 +248,6 @@ const server = createServer((request, response) => {
   }
 })
 
-server.listen(5678, '0.0.0.0', () => {
-  console.log('screenshot-mock listening on 5678')
+server.listen(Number(process.env.PORT ?? 5678), '0.0.0.0', () => {
+  console.log(`screenshot-mock listening on ${process.env.PORT ?? 5678}`)
 })

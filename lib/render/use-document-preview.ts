@@ -37,7 +37,7 @@ export function useDocumentPreview(
     }
     const controller = new AbortController()
     setState((previous) => ({ ...previous, status: 'rendering' }))
-    renderPreview(key, document, output, { signal: controller.signal, time }).then(
+    renderPreview(key, document, output, { time, signal: controller.signal }).then(
       (url) => {
         if (!controller.signal.aborted) setState({ key, status: 'ready', url })
       },

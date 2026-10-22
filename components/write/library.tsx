@@ -1,9 +1,9 @@
 'use client'
 
+import { useWriteRouter } from '@/components/write/write-context'
+
 import * as React from 'react'
-import { socialSetHref } from '@/components/workspace/settings-sections'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Add01Icon, PinIcon } from 'hugeicons-react'
 import {
@@ -53,6 +53,7 @@ import { SetDot, SocialSetSwitcher } from './sets'
 import { TagChip, TagManager } from './tags'
 import { draftHref, type LibraryDraft, since, useWrite } from './write-context'
 import { useKeys } from './shortcuts'
+import { createWritingDraft } from './pending-draft'
 
 /** The library tabs, in order. */
 const TABS = [
@@ -86,6 +87,11 @@ const KIND_LABELS: Record<DraftKind, string> = {
  */
 export function WriteRail() {
   const { activeId, canEdit, data, setQuery } = useWrite()
+  const [now, setNow] = React.useState<number | undefined>()
+  React.useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(timer)
+  }, [])
   const [selected, setSelected] = React.useState<string[]>([])
   const [lastClicked, setLastClicked] = React.useState<string | null>(null)
   const [managingTags, setManagingTags] = React.useState(false)
@@ -119,7 +125,7 @@ export function WriteRail() {
         </Link>
         <Link
           className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
-          href={data.activeSet ? socialSetHref(data.activeSet.id, 'scheduling') : '/write/settings'}
+          href={data.activeSet ? `/write/settings?set=${data.activeSet.id}` : '/write/settings'}
         >
           Settings
         </Link>
@@ -192,6 +198,7 @@ export function WriteRail() {
           <ul>
             {data.library.map((draft) => (
               <DraftRow
+                now={now}
                 active={draft.id === activeId}
                 draft={draft}
                 key={draft.id}
@@ -326,9 +333,9 @@ type NewKind = { kind: DraftKind; label: string; needs?: 'url' | 'source' }
  * on carries that tag.
  */
 export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
-  const router = useRouter()
+  const router = useWriteRouter()
   const { mod } = useKeys()
-  const { data } = useWrite()
+  const { beforeLeaveRef, data } = useWrite()
   const [creating, setCreating] = React.useState(false)
   const [asking, setAsking] = React.useState<NewKind | null>(null)
   const channels = new Set(data.activeSet?.accounts.map((account) => account.channel) ?? [])
@@ -345,15 +352,15 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
   const create = async (kind: DraftKind, target?: { sourceDraftId?: string; url?: string }) => {
     setCreating(true)
     try {
-      const draft = await draftsApi.create({
+      await createWritingDraft({
         kind,
         socialSetId: data.activeSet?.id,
         tagIds: data.experiments.tags && data.query.tag ? [data.query.tag] : undefined,
         target,
-      })
-      router.push(draftHref(draft.id, data.activeSet?.id))
+      }, (id) => router.push(draftHref(id, data.activeSet?.id)), beforeLeaveRef.current ?? undefined)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'The draft could not be created.')
+    } finally {
       setCreating(false)
     }
   }
@@ -509,12 +516,14 @@ function TargetDialog({
 
 /** A draft's line: its text, title, destinations, time, status and tags. */
 function DraftRow({
+  now,
   active,
   draft,
   onSelect,
   selected,
   selecting,
 }: {
+  now?: number
   active: boolean
   draft: LibraryDraft
   onSelect: (id: string, range: boolean) => void
@@ -539,6 +548,7 @@ function DraftRow({
         active ? 'border-l-sky-400 bg-white/[0.04]' : 'border-l-transparent hover:bg-white/[0.02]',
         selected && 'bg-sky-400/[0.06]'
       )}
+      data-selecting={selecting || undefined}
       data-testid="draft-row"
     >
       <Link
@@ -580,7 +590,7 @@ function DraftRow({
               <ChannelIcon channel={channel} key={channel} />
             ))}
           </span>
-          <span className="shrink-0">{hydrated ? since(shown.updatedAt) : null}</span>
+          <span className="shrink-0">{hydrated ? since(shown.updatedAt, now) : null}</span>
         </p>
         <RowStatus draft={draft} />
         {tags.length > 0 ? (
@@ -615,7 +625,7 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
       <span className="text-sky-300" key="next">
         Scheduled{' '}
         <LocalTime
-          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short', timeZone }}
+          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short', timeZone, timeZoneName: 'short' }}
           value={draft.nextPostAt}
         />
       </span>
@@ -625,7 +635,7 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
       <span className="text-violet-300" key="planned">
         {draft.status === 'archived' ? 'Previously planned' : 'Planned'}{' '}
         <LocalTime
-          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short', timeZone }}
+          options={{ day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short', timeZone, timeZoneName: 'short' }}
           value={draft.plannedFor}
         />
       </span>
@@ -654,16 +664,16 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
  * says it gives anyone with the link read and comment access.
  */
 export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelect?: () => void }) {
-  const router = useRouter()
+  const router = useWriteRouter()
   const { mod } = useKeys()
-  const { canEdit, data } = useWrite()
+  const { activeId, beforeLeaveRef, canEdit, data, hideDraft } = useWrite()
   const [confirm, setConfirm] = React.useState<'delete' | 'share' | null>(null)
   const [copyTo, setCopyTo] = React.useState<string | null>(null)
-  const act = async (work: () => Promise<unknown>, done: string) => {
+  const act = async (work: () => Promise<unknown>, done: string, refresh = true) => {
     try {
       await work()
       toast.success(done)
-      router.refresh()
+      if (refresh) router.refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'That did not work.')
     }
@@ -824,9 +834,12 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
               onClick={() =>
                 confirm === 'delete'
                   ? void act(async () => {
+                      await beforeLeaveRef.current?.()
                       await draftsApi.remove(draft.id)
-                      if (window.location.pathname.includes(draft.id)) router.push('/write')
-                    }, 'Draft deleted.')
+                      hideDraft(draft.id)
+                      if (activeId === draft.id) router.replace('/write')
+                      else router.refresh()
+                    }, 'Draft deleted.', false)
                   : void act(async () => {
                       const shared = await draftsApi.share(draft.id, true)
                       if (shared.shareToken) {
@@ -866,7 +879,7 @@ function CopyDialog({
   setName: string
   socialSetId: string
 }) {
-  const router = useRouter()
+  const router = useWriteRouter()
   const [busy, setBusy] = React.useState(false)
   const copy = async (tagMode: 'match' | 'drop') => {
     setBusy(true)
@@ -911,34 +924,48 @@ function CopyDialog({
 
 /** Actions on several selected drafts. */
 function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] }) {
-  const router = useRouter()
-  const { data } = useWrite()
+  const router = useWriteRouter()
+  const { activeId, beforeLeaveRef, data, hideDraft } = useWrite()
   const [confirm, setConfirm] = React.useState(false)
+  const [progress, setProgress] = React.useState<number | null>(null)
   const run = async (label: string, work: (id: string) => Promise<unknown>) => {
+    if (progress !== null) return
+    try { await beforeLeaveRef.current?.() } catch { return }
+    setProgress(0)
+    let removedActive = false
     // One at a time: a duplicate points at its source, and deleting both at
     // once can race on that link.
     let failed = 0
     for (const id of selected) {
       try {
         await work(id)
+        if (label === 'Deleted') {
+          hideDraft(id)
+          if (id === activeId) removedActive = true
+        }
       } catch {
         failed += 1
       }
+      setProgress((current) => (current ?? 0) + 1)
     }
     if (failed > 0) toast.error(`${label}: ${failed} of ${selected.length} did not change.`)
     else toast.success(`${label}: ${selected.length} drafts.`)
+    setProgress(null)
     onDone()
-    router.refresh()
+    if (removedActive) router.replace(data.activeSet ? `/write?set=${data.activeSet.id}` : '/write')
+    else router.refresh()
   }
   const version = (id: string) => data.library.find((draft) => draft.id === id)
   return (
     <div
       className="mx-3 mt-2 flex flex-wrap items-center gap-1 rounded-lg border border-sky-400/30 bg-sky-400/[0.05] px-2 py-1.5 text-xs"
+      aria-busy={progress !== null}
       role="toolbar"
       aria-label="Selected drafts"
     >
-      <span className="mr-auto text-sky-200">{selected.length} selected</span>
+      <span className="mr-auto text-sky-200">{progress === null ? `${selected.length} selected` : `${progress} of ${selected.length} completed…`}</span>
       <Button
+        disabled={progress !== null}
         onClick={() => void run('Pinned', (id) => writeApi.properties(id, { pinned: true }))}
         size="sm"
         type="button"
@@ -947,6 +974,7 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
         Pin
       </Button>
       <Button
+        disabled={progress !== null}
         onClick={() =>
           void run('Archived', async (id) => {
             const fresh = await draftsApi.get(id)
@@ -960,6 +988,7 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
         Archive
       </Button>
       <Button
+        disabled={progress !== null}
         className="text-red-300"
         onClick={() => setConfirm(true)}
         size="sm"
@@ -968,7 +997,7 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
       >
         Delete
       </Button>
-      <Button aria-label="Clear selection" onClick={onDone} size="sm" type="button" variant="ghost">
+      <Button disabled={progress !== null} aria-label="Clear selection" onClick={onDone} size="sm" type="button" variant="ghost">
         ✕
       </Button>
       <AlertDialog onOpenChange={setConfirm} open={confirm}>
@@ -1032,6 +1061,7 @@ function QueueList() {
                   minute: '2-digit',
                   month: 'short',
                   timeZone: data.activeSet?.timeZone,
+                  timeZoneName: 'short',
                   weekday: 'short',
                 }}
                 value={item.at}

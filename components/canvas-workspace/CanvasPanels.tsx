@@ -46,7 +46,7 @@ import {
   updateScreenCode,
 } from '@/lib/frames/commands'
 import { useImageStore } from '@/lib/store'
-import { validateImageFile } from '@/lib/editor/import-images'
+import { validateImageContents } from '@/lib/editor/import-images'
 import { cn } from '@/lib/utils'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { screenshotFromAsset, screenshotFromUrl } from '@/lib/canvas/create'
@@ -324,10 +324,10 @@ function ScreenshotButtons({ disabled }: { disabled: boolean }) {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/png,image/jpeg,image/webp'
-    input.onchange = () => {
+    input.onchange = async () => {
       const file = input.files?.[0]
       if (!file) return
-      const problem = validateImageFile(file)
+      const problem = await validateImageContents(file)
       if (problem) toast.error(problem)
       else onFile(file)
     }
@@ -712,10 +712,14 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
             maxLength={120}
             disabled={!canEdit}
             aria-label="Artboard name"
-            onBlur={(event) =>
-              event.target.value.trim() !== artboard.name &&
-              actions.rename(artboard.id, event.target.value)
-            }
+            onBlur={(event) => {
+              const name = event.currentTarget.value.trim()
+              if (!name) {
+                event.currentTarget.value = artboard.name
+                toast.error('Enter an artboard name. The previous name has been kept.')
+              } else if (name !== artboard.name) actions.rename(artboard.id, name)
+              else event.currentTarget.value = name
+            }}
             onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
           />
         </label>
@@ -731,7 +735,10 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
                 aria-label={`Artboard ${axis.toUpperCase()}`}
                 onBlur={(event) => {
                   const value = Number(event.target.value)
-                  if (Number.isFinite(value) && value !== artboard[axis])
+                  if (!event.currentTarget.value.trim() || !Number.isFinite(value)) {
+                    event.currentTarget.value = String(Math.round(artboard[axis]))
+                    toast.error('Enter a number. The previous position has been kept.')
+                  } else if (value !== artboard[axis])
                     actions.move([
                       {
                         id: artboard.id,

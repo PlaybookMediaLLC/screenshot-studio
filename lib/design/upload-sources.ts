@@ -19,14 +19,15 @@ export function rememberUploadedSources(sources: Record<string, string>): void {
 /** The workspace reference of a local image, uploading it unless it already was. */
 export async function uploadSource(
   trpcClient: TRPCClient<AppRouter>,
-  ref: string
+  ref: string,
+  fileName?: string
 ): Promise<string> {
   const known = uploads.get(ref)
   if (known) return known
   const blob = await (await fetch(ref)).blob()
   const { assetId } = await saveExportToWorkspace({
     blob,
-    fileName: buildExportFileName(blob.type),
+    fileName: fileName?.replace(/[^a-zA-Z0-9._-]/g, '-').replace(/^[^a-zA-Z0-9]+/, '').slice(0, 128) || buildExportFileName(blob.type),
     trpcClient,
   })
   uploads.set(ref, `asset:${assetId}`)
@@ -40,7 +41,12 @@ export async function uploadDesignSources(
 ): Promise<DesignDocument> {
   // ponytail: uploads are remembered for this page only; after a reload, recovered
   // local images upload again. Key by content hash if that duplication matters.
-  for (const ref of getLocalDesignSources(document)) await uploadSource(trpcClient, ref)
+  for (const ref of getLocalDesignSources(document)) {
+    const name = ref === document.image.src ? document.image.name :
+      document.slides?.items.find((slide) => slide.src === ref)?.name ??
+      document.devices?.mockups.find((screen) => screen.screen.src === ref)?.screen.name
+    await uploadSource(trpcClient, ref, name)
+  }
   return withUploadedSources(document)
 }
 

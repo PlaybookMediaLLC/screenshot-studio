@@ -13,7 +13,7 @@ const INSERTABLE: { hint: string; icon: React.ReactNode; type: ElementType }[] =
   { hint: 'A numbered step marker', icon: <CircleIcon size={16} />, type: 'badge' },
   { hint: 'A mouse pointer, with an optional click ring', icon: <Cursor01Icon size={16} />, type: 'cursor' },
   { hint: 'Dim everything but one area', icon: <Sun01Icon size={16} />, type: 'spotlight' },
-  { hint: 'Magnify part of the screenshot', icon: <ZoomInAreaIcon size={16} />, type: 'callout' },
+  { hint: 'Magnify part of the rendered canvas', icon: <ZoomInAreaIcon size={16} />, type: 'callout' },
 ]
 
 /** Add a composition element at the centre of the canvas and edit it in the inspector. */

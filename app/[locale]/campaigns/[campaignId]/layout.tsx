@@ -2,11 +2,14 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
 import { AskShotsButton } from '@/components/campaign-copilot/CopilotLaunchers'
+import { CampaignLocalTime } from '@/components/campaigns/CampaignLocalTime'
 import { CampaignStatusPill } from '@/components/campaigns/CampaignStatusPill'
 import { CampaignSubnav } from '@/components/launch/CampaignSubnav'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
-import { Page } from '@/components/platform-ui'
+import { Page, Pill } from '@/components/platform-ui'
 import { backendSDK } from '@/lib/backend/sdk'
+import { getCampaignPlans, getReleaseSpecs } from '@/lib/launch/store'
+import { latestLaunchRuns } from '@/lib/launch/runs'
 import { getCampaign } from '@/lib/tenant/campaigns'
 import { requireCampaignPageAccess } from '../page-access'
 
@@ -28,6 +31,33 @@ export default async function CampaignLayout({ children, params }: CampaignLayou
     backendSDK(access.tenant).getBootstrap(),
   ])
   if (!campaign) notFound()
+  const [plans, specs, runs] = await Promise.all([
+    getCampaignPlans(access.tenant, campaign.id),
+    campaign.release ? getReleaseSpecs(access.tenant, campaign.release.id) : null,
+    latestLaunchRuns(access.tenant, campaign.id),
+  ])
+  const progress =
+    runs.produce?.status === 'RUNNING'
+      ? 'Producing'
+      : runs.plan?.status === 'RUNNING'
+        ? 'Planning'
+        : runs.spec?.status === 'RUNNING'
+          ? 'Drafting spec'
+          : campaign.posts.length
+            ? campaign.posts.every((post) =>
+                ['APPROVED', 'SCHEDULED', 'PUBLISHED'].includes(post.status)
+              )
+              ? 'Posts approved'
+              : 'Copy ready for review'
+            : plans.approved
+              ? 'Plan approved'
+              : plans.latest
+                ? 'Plan drafted'
+                : specs?.approved
+                  ? 'Spec approved'
+                  : specs?.latest
+                    ? 'Spec drafted'
+                    : null
 
   return (
     <PlatformShell campaignsEnabled organizationName={access.organization.name}>
@@ -37,20 +67,23 @@ export default async function CampaignLayout({ children, params }: CampaignLayou
         }
         description={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <CampaignStatusPill status={campaign.status} />
+            {campaign.status === 'DRAFT' && progress ? (
+              <Pill tone="blue">{progress}</Pill>
+            ) : (
+              <CampaignStatusPill status={campaign.status} />
+            )}
             <span>
-              Updated{' '}
-              {campaign.updatedAt.toLocaleString('en', {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-                timeZone: 'UTC',
-              })}{' '}
-              UTC
+              Updated <CampaignLocalTime value={campaign.updatedAt.toISOString()} />
             </span>
           </span>
         }
         title={campaign.name}
       >
+        {campaign.status === 'ARCHIVED' ? (
+          <p className="text-sm text-muted-foreground">
+            This campaign is archived and read-only. Restore it from Overview to make changes.
+          </p>
+        ) : null}
         <CampaignSubnav campaignId={campaign.id} />
         {children}
       </Page>

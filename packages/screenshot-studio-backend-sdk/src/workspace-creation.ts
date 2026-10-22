@@ -39,6 +39,7 @@ export const workspaceCreationInputSchema = z.strictObject({
   slug: z.string().min(1),
   idempotencyKey: z.uuid().optional(),
   keepCurrentActiveOrganization: z.boolean().optional(),
+  timeZone: z.string().max(100).optional(),
   logo: workspaceCreationLogoSchema.nullish(),
   metadata: workspaceCreationMetadataSchema.optional(),
 })

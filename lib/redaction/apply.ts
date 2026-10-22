@@ -111,6 +111,10 @@ export function replaceScreenshotEverywhere(previousUrl: string, nextUrl: string
       mockups: state.mockups.map((mockup) =>
         mockup.screen.src === previousUrl ? { ...mockup, screen: { ...mockup.screen, src: nextUrl } } : mockup
       ),
+      deviceLayoutSnapshot: state.deviceLayoutSnapshot?.map((mockup) =>
+        mockup.screen.src === previousUrl ? { ...mockup, screen: { ...mockup.screen, src: nextUrl } } : mockup
+      ) ?? null,
+      imageOverlays: state.imageOverlays.map((overlay) => overlay.src === previousUrl ? { ...overlay, src: nextUrl } : overlay),
       slides: state.slides.map((slide) => (slide.src === previousUrl ? { ...slide, src: nextUrl } : slide)),
       uploadedImageUrl: state.uploadedImageUrl === previousUrl ? nextUrl : state.uploadedImageUrl,
     }))

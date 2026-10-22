@@ -6,8 +6,12 @@ import { NEUTRAL_IMAGE_FILTERS } from '@/lib/editor/image-adjustments'
 import type { TextAlign, TextFill, TextFit, TextRole } from '@/lib/typography/text-style'
 import type { BrandBinding } from '@/lib/brand/binding'
 import type { DesignCopy } from '@/lib/captions/channels'
+import { orderedLayerIds, moveLayer } from '@/lib/editor/layer-order'
 import { createElementsSlice, type ElementsSlice } from './elements-slice'
 import { createFramesSlice, type FramesSlice } from './frames-slice'
+import { arrangeScreens } from '@/lib/frames/arrange'
+import { compositionLayoutSchema } from '@/lib/frames/layouts'
+import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
 import { isChromeFrameType } from '@/lib/frames/main-frame'
 import { createMotionSlice, type MotionSlice } from './motion-slice'
 import { emptyMotion } from '@/lib/animation/motion-schema'
@@ -72,6 +76,8 @@ interface Slide {
 export interface TextOverlay {
   id: string
   text: string
+  /** Stacking level relative to screens (20), image overlays (200) and elements (205). */
+  zIndex?: number
   position: { x: number; y: number }
   fontSize: number
   fontWeight: string
@@ -223,6 +229,7 @@ export interface BackgroundPattern {
 
 /** Main image offset from the canvas centre, in stage px, and its rotation in degrees. */
 export interface ImagePlacement {
+  anchor?: 'tl' | 'tc' | 'tr' | 'ml' | 'mc' | 'mr' | 'bl' | 'bc' | 'br'
   offsetX: number
   offsetY: number
   rotation: number
@@ -270,6 +277,7 @@ export function endHistoryGesture() {
 
 // Re-export existing ImageState interface and store
 export interface ImageState extends ElementsSlice, FramesSlice, MotionSlice {
+  layerOrder: string[]
   uploadedImageUrl: string | null
   imageName: string | null
   selectedGradient: GradientKey
@@ -476,6 +484,43 @@ export interface ImageState extends ElementsSlice, FramesSlice, MotionSlice {
   setSelectedBlurId: (id: string | null) => void
 }
 
+/** Keep every slide and animation on the timeline without retaining deleted slide time. */
+function slideTimelineDuration(state: ImageState, slides: ImageState['slides']): number {
+  return lastingMotion(Math.max(
+    slides.length ? slides.reduce((sum, slide) => sum + slide.duration * 1000, 0) : DEFAULT_TIMELINE_STATE.duration,
+    ...state.animationClips.map((clip) => clip.startTime + clip.duration),
+    ...state.timeline.tracks.flatMap((track) => track.keyframes.map((keyframe) => keyframe.time)),
+  ), state.motion)
+}
+
+/** Resize normalized layers uniformly and reflow an active composition in the same edit. */
+function resizeCanvas(state: ImageState, aspectRatio: AspectRatioKey, custom = state.customDimensions) {
+  const aspect = (key: AspectRatioKey, size: ImageState['customDimensions']) => {
+    const dimensions = key === 'custom' ? size : getAspectRatioPreset(key)
+    return dimensions ? dimensions.width / dimensions.height : 4 / 3
+  }
+  const before = aspect(state.selectedAspectRatio, state.customDimensions)
+  const after = aspect(aspectRatio, custom)
+  const layout = compositionLayoutSchema.safeParse(state.activeDeviceLayoutId)
+  return {
+    selectedAspectRatio: aspectRatio,
+    elements: before === after ? state.elements : state.elements.map((element) => ({
+      ...element, height: element.height * after / before,
+    })),
+    mockups: layout.success ? arrangeScreens(state.mockups, layout.data, after) : state.mockups,
+  }
+}
+
+/** Bind the primary composition screen to the selected slide, keeping custom screens. */
+function slideScreens(state: ImageState, src: string | null, name: string | null) {
+  const linked = state.mockups.some((mockup) => !mockup.screen.code &&
+    (!mockup.screen.isCustom || mockup.screen.src === state.uploadedImageUrl))
+  const firstImage = state.mockups.findIndex((mockup) => !mockup.screen.code)
+  return state.mockups.map((mockup, index) => !mockup.screen.code &&
+    (linked ? !mockup.screen.isCustom || mockup.screen.src === state.uploadedImageUrl : index === firstImage)
+    ? { ...mockup, screen: { ...mockup.screen, src, name, isCustom: false } } : mockup)
+}
+
 export const useImageStore = create<ImageState>()(
   temporal(
     (set, get) => ({
@@ -491,9 +536,21 @@ export const useImageStore = create<ImageState>()(
         animation: 'fade', // 'none' | 'fade' | 'slide'
       },
       setSlideshow: (updates) => {
-        set((state) => ({
-          slideshow: { ...state.slideshow, ...updates },
-        }))
+        if (updates.defaultDuration !== undefined &&
+            (!Number.isFinite(updates.defaultDuration) || updates.defaultDuration < 0.5 || updates.defaultDuration > 30)) return
+        set((state) => {
+          const slides = updates.defaultDuration === undefined ||
+            state.slides.every((slide) => slide.duration === updates.defaultDuration) ? state.slides :
+            state.slides.map((slide) => ({ ...slide, duration: updates.defaultDuration! }))
+          if (slides === state.slides && Object.entries(updates).every(([key, value]) =>
+            state.slideshow[key as keyof ImageState['slideshow']] === value)) return state
+          return {
+            slideshow: { ...state.slideshow, ...updates },
+            slides,
+            timeline: updates.defaultDuration === undefined ? state.timeline :
+              { ...state.timeline, duration: slideTimelineDuration(state, slides) },
+          }
+        })
       },
       isPreviewing: false,
       previewIndex: 0,
@@ -513,6 +570,7 @@ export const useImageStore = create<ImageState>()(
       },
       backgroundBlur: 0,
       backgroundNoise: 0,
+      layerOrder: [],
       textOverlays: [],
       imageOverlays: [],
       mockups: [],
@@ -674,86 +732,10 @@ export const useImageStore = create<ImageState>()(
       },
 
       clearImage: () => {
-        // ponytail: keep blob URLs for session-long undo; reclaim on history
-        // eviction if history becomes bounded. The browser frees them on unload.
-        // Clear everything and reset ALL effects to defaults
-        set({
-          uploadedImageUrl: null,
-          imageName: null,
-          slides: [],
-          activeSlideId: null,
-          isPreviewing: false,
-          previewIndex: 0,
-          previewStartedAt: null,
-          // Reset image settings
-          imageScale: 100,
-          imageOpacity: 1,
-          borderRadius: 10,
-          backgroundBorderRadius: 10,
-          // Reset background
-          backgroundConfig: {
-            type: 'image',
-            value: 'backgrounds/raycast/red_distortion_4.webp',
-            opacity: 1,
-          },
-          backgroundBlur: 0,
-          backgroundNoise: 0,
-          selectedGradient: 'vibrant_orange_pink',
-          // Reset shadow
-          imageShadow: {
-            enabled: true,
-            blur: 15,
-            offsetX: 5,
-            offsetY: 8,
-            spread: 3,
-            color: 'rgba(0, 0, 0, 0.6)',
-            opacity: 0.5,
-          },
-          // Reset border/frame
-          imageBorder: {
-            enabled: false,
-            width: 8,
-            color: '#000000',
-            type: 'none',
-            padding: 20,
-            title: '',
-          },
-          imageStylePreset: 'default' as ImageStylePreset,
-          shadowPreset: 'soft' as ShadowPreset,
-          // Reset 3D perspective
-          perspective3D: {
-            perspective: 200,
-            rotateX: 0,
-            rotateY: 0,
-            rotateZ: 0,
-            translateX: 0,
-            translateY: 0,
-            scale: 1,
-          },
-          // Reset filters
-          imageFilters: { ...NEUTRAL_IMAGE_FILTERS },
-          imagePlacement: { ...DEFAULT_IMAGE_PLACEMENT },
-          pattern: { ...DEFAULT_BACKGROUND_PATTERN },
-          // Clear overlays
-          textOverlays: [],
-          imageOverlays: [],
-          mockups: [],
-          activeDeviceLayoutId: null,
-          deviceLayoutSnapshot: null,
-          // Reset annotations & blur
-          annotations: [],
-          activeAnnotationTool: null,
-          blurRegions: [],
-          elements: [],
-          motion: emptyMotion(),
-          selectedElementId: null,
-          brand: null,
-          copy: null,
-          // Reset timeline/animation
-          timeline: { ...DEFAULT_TIMELINE_STATE },
-          animationClips: [],
-          showTimeline: false,
-        })
+        // A new document must not inherit the previous project's URL, fonts,
+        // frame chrome, slide timing, or selection state.
+        resetPlayback()
+        set({ ...useImageStore.getInitialState(), canvasDimensions: get().canvasDimensions })
       },
 
       removeMainImage: () => {
@@ -791,12 +773,13 @@ export const useImageStore = create<ImageState>()(
 
       setAspectRatio: (aspectRatio: AspectRatioKey) => {
         trackAspectRatioChange(aspectRatio)
-        set({ selectedAspectRatio: aspectRatio })
+        set((state) => resizeCanvas(state, aspectRatio))
       },
 
       setCustomDimensions: (width: number, height: number) => {
         trackAspectRatioChange('custom')
-        set({ selectedAspectRatio: 'custom', customDimensions: { width, height } })
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return
+        set((state) => ({ ...resizeCanvas(state, 'custom', { width, height }), customDimensions: { width, height } }))
       },
 
       setBackgroundConfig: (config: BackgroundConfig) => {
@@ -878,13 +861,13 @@ export const useImageStore = create<ImageState>()(
           fontSize: 32,
           fontWeight: 'normal',
           fontFamily: 'inter',
-          color: '#ffffff',
+          color: '#171717',
           opacity: 1,
           isVisible: true,
           orientation: 'horizontal',
           textShadow: {
             enabled: true,
-            color: 'rgba(0, 0, 0, 0.5)',
+            color: 'rgba(255, 255, 255, 0.8)',
             blur: 4,
             offsetX: 2,
             offsetY: 2,
@@ -895,6 +878,7 @@ export const useImageStore = create<ImageState>()(
         const id = `text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         set((state) => ({
           textOverlays: [...state.textOverlays, { ...overlay, id }],
+          layerOrder: [...orderedLayerIds(state), id],
         }))
         return id
       },
@@ -922,11 +906,17 @@ export const useImageStore = create<ImageState>()(
         const id = `overlay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         set((state) => ({
           imageOverlays: [...state.imageOverlays, { blur: 0, ...overlay, id }],
+          layerOrder: [...orderedLayerIds(state), id],
+          selectedOverlayId: id,
+          selectedTextId: null,
+          selectedElementId: null,
+          isMainImageSelected: false,
         }))
       },
 
       updateImageOverlay: (id, updates) => {
         set((state) => ({
+          ...(updates.layer ? { layerOrder: moveLayer(orderedLayerIds(state), id, updates.layer === 'back' ? 'bottom' : 'top') } : {}),
           imageOverlays: state.imageOverlays.map((overlay) =>
             overlay.id === id ? { ...overlay, ...updates } : overlay
           ),
@@ -965,10 +955,9 @@ export const useImageStore = create<ImageState>()(
               break
           }
 
-          if (newIndex === index) return state
           const [item] = overlays.splice(index, 1)
           overlays.splice(newIndex, 0, item)
-          return { imageOverlays: overlays }
+          return { imageOverlays: overlays, layerOrder: moveLayer(orderedLayerIds(state), id, direction) }
         })
       },
 
@@ -977,6 +966,7 @@ export const useImageStore = create<ImageState>()(
         const id = `mockup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         set((state) => ({
           mockups: [...state.mockups, { ...mockup, id }],
+          layerOrder: [...orderedLayerIds(state), id],
           activeDeviceLayoutId: null,
           deviceLayoutSnapshot: null,
         }))
@@ -992,11 +982,15 @@ export const useImageStore = create<ImageState>()(
       },
 
       removeMockup: (id) => {
-        set((state) => ({
-          mockups: state.mockups.filter((mockup) => mockup.id !== id),
-          activeDeviceLayoutId: null,
-          deviceLayoutSnapshot: null,
-        }))
+        set((state) => {
+          const remaining = state.mockups.filter((mockup) => mockup.id !== id)
+          const layout = compositionLayoutSchema.safeParse(state.activeDeviceLayoutId)
+          const size = state.selectedAspectRatio === 'custom' ? state.customDimensions : getAspectRatioPreset(state.selectedAspectRatio)
+          return {
+            mockups: layout.success ? arrangeScreens(remaining, layout.data, size ? size.width / size.height : 4 / 3) : remaining,
+            deviceLayoutSnapshot: null,
+          }
+        })
       },
 
       clearMockups: () => {
@@ -1219,7 +1213,7 @@ export const useImageStore = create<ImageState>()(
                   imageName: TEMPLATE_DEMO_IMAGE_NAME,
                 }
               : {}),
-            selectedAspectRatio: preset.aspectRatio,
+            ...resizeCanvas(state, preset.aspectRatio),
             backgroundConfig: preset.backgroundConfig,
             borderRadius: preset.borderRadius,
             backgroundBorderRadius: preset.backgroundBorderRadius,
@@ -1240,7 +1234,7 @@ export const useImageStore = create<ImageState>()(
               translateY: DEFAULT_ANIMATABLE_PROPERTIES.translateY,
               scale: DEFAULT_ANIMATABLE_PROPERTIES.scale,
             },
-            ...(options.scene
+            ...(options.scene && state.mockups.length === 0
               ? {
                   editorMode:
                     options.scene.kind === 'device' ? ('device' as const) : ('screenshot' as const),
@@ -1311,7 +1305,7 @@ export const useImageStore = create<ImageState>()(
                   imageName: TEMPLATE_DEMO_IMAGE_NAME,
                 }
               : {}),
-            selectedAspectRatio: visualPreset.aspectRatio,
+            ...resizeCanvas(state, visualPreset.aspectRatio),
             backgroundConfig: visualPreset.backgroundConfig,
             borderRadius: visualPreset.borderRadius,
             backgroundBorderRadius: visualPreset.backgroundBorderRadius,
@@ -1332,9 +1326,8 @@ export const useImageStore = create<ImageState>()(
               translateY: DEFAULT_ANIMATABLE_PROPERTIES.translateY,
               scale: DEFAULT_ANIMATABLE_PROPERTIES.scale,
             },
-            editorMode: 'screenshot' as const,
-            mockups: [],
-            activeDeviceLayoutId: null,
+            editorMode: state.mockups.length ? state.editorMode : 'screenshot' as const,
+            activeDeviceLayoutId: state.activeDeviceLayoutId,
             deviceLayoutSnapshot: null,
             animationClips: [animation.clip],
             timeline: {
@@ -1381,7 +1374,11 @@ export const useImageStore = create<ImageState>()(
       },
 
       setImagePlacement: (placement) => {
-        set((state) => ({ imagePlacement: { ...state.imagePlacement, ...placement } }))
+        set((state) => ({ imagePlacement: {
+          ...state.imagePlacement,
+          ...((placement.offsetX !== undefined || placement.offsetY !== undefined) ? { anchor: undefined } : {}),
+          ...placement,
+        } }))
       },
 
       setCanvasPadding: (padding) => {
@@ -1472,29 +1469,30 @@ export const useImageStore = create<ImageState>()(
       },
 
       addImages: (files: File[]) => {
-        const { slides, slideshow, timeline } = get()
+        const { slides, slideshow, timeline, uploadedImageUrl, imageName } = get()
 
         const newSlides = files.map((file) => ({
           id: `slide-${crypto.randomUUID()}`,
           src: URL.createObjectURL(file),
           name: file.name,
-          duration: slideshow.defaultDuration,
+          duration: Number.isFinite(slideshow.defaultDuration) && slideshow.defaultDuration >= 0.5 && slideshow.defaultDuration <= 30 ? slideshow.defaultDuration : 3,
         }))
 
-        const allSlides = [...slides, ...newSlides]
+        const existing = slides.length || !uploadedImageUrl ? slides : [{
+          id: `slide-${crypto.randomUUID()}`, src: uploadedImageUrl,
+          name: imageName ?? 'Screenshot', duration: Number.isFinite(slideshow.defaultDuration) && slideshow.defaultDuration >= 0.5 && slideshow.defaultDuration <= 30 ? slideshow.defaultDuration : 3,
+        }]
+        const allSlides = [...existing, ...newSlides]
         const activeSlide = allSlides.find((slide) => slide.id === get().activeSlideId) ?? allSlides[0]
 
         // Calculate total slideshow duration based on slides and their durations
-        const totalSlideDuration = allSlides.reduce((sum, slide) => sum + slide.duration * 1000, 0)
-        const newTimelineDuration = Math.max(timeline.duration, totalSlideDuration)
+        const newTimelineDuration = Math.max(timeline.duration, slideTimelineDuration(get(), allSlides))
 
         set({
           slides: allSlides,
           activeSlideId: activeSlide?.id ?? null,
           uploadedImageUrl: activeSlide?.src ?? null,
           imageName: activeSlide?.name ?? null,
-          // Auto-show timeline when multiple slides are added
-          showTimeline: allSlides.length > 1 ? true : get().showTimeline,
           // Extend timeline to fit all slides
           timeline: {
             ...timeline,
@@ -1507,25 +1505,33 @@ export const useImageStore = create<ImageState>()(
         const slide = get().slides.find((s) => s.id === id)
         if (!slide) return
 
-        set({
-          activeSlideId: id,
-          uploadedImageUrl: slide.src,
-          imageName: slide.name,
-        })
+        const history = useImageStore.temporal.getState()
+        const tracking = history.isTracking
+        if (tracking) history.pause()
+        try {
+          set({ activeSlideId: id, uploadedImageUrl: slide.src, imageName: slide.name, mockups: slideScreens(get(), slide.src, slide.name) })
+        } finally {
+          if (tracking) history.resume()
+        }
       },
 
       removeSlide: (id) => {
         const { slides, activeSlideId } = get()
         const remaining = slides.filter((s) => s.id !== id)
+        if (remaining.length === slides.length) return
         const nextActive = activeSlideId === id ? (remaining[0]?.id ?? null) : activeSlideId
         const nextSlide = remaining.find((s) => s.id === nextActive)
 
         set({
           slides: remaining,
+          mockups: slideScreens(get(), nextSlide?.src ?? null, nextSlide?.name ?? null),
           activeSlideId: nextActive,
           uploadedImageUrl: nextSlide?.src ?? null,
           imageName: nextSlide?.name ?? null,
+          timeline: { ...get().timeline, duration: slideTimelineDuration(get(), remaining) },
         })
+        usePlaybackStore.getState().pause()
+        usePlaybackStore.getState().seek(usePlaybackStore.getState().playhead)
       },
 
       startPreview: () => {
@@ -1809,6 +1815,7 @@ export const useImageStore = create<ImageState>()(
         const id = `ann-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         set((state) => ({
           annotations: [...state.annotations, { ...annotation, id }],
+          layerOrder: [...orderedLayerIds(state), id],
           selectedAnnotationId: id,
         }))
       },
@@ -1839,6 +1846,7 @@ export const useImageStore = create<ImageState>()(
         const id = `blur-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         set((state) => ({
           blurRegions: [...state.blurRegions, { ...region, id }],
+          layerOrder: [...orderedLayerIds(state), id],
         }))
       },
       updateBlurRegion: (id, updates) => {
@@ -1957,6 +1965,14 @@ export const useImageStore = create<ImageState>()(
         selectedElementId: _element,
         activeAnnotationTool: _tool,
         canvasDimensions: _dimensions,
+        showTemplates: _templates,
+        showTimeline: _timeline,
+        showRulers: _rulers,
+        showGrid: _grid,
+        rulerInterval: _rulerInterval,
+        isPreviewing: _previewing,
+        previewIndex: _previewIndex,
+        previewStartedAt: _previewStartedAt,
         ...state
       }) => state,
       equality: shallow,
@@ -1974,7 +1990,17 @@ export const useImageStore = create<ImageState>()(
 
 // Selection is transient: deleting, resetting, restoring, or undoing layers must
 // never leave controls or keyboard shortcuts targeting a removed image.
-useImageStore.subscribe((state) => {
+useImageStore.subscribe((state, previous) => {
+  if (state.activeSlideId !== previous.activeSlideId || state.slides !== previous.slides) {
+    const index = state.slides.findIndex((slide) => slide.id === state.activeSlideId)
+    if (index >= 0) {
+      const start = state.slides.slice(0, index).reduce((sum, slide) => sum + slide.duration * 1000, 0)
+      const time = usePlaybackStore.getState().playhead
+      if (time < start || time >= start + state.slides[index].duration * 1000) {
+        usePlaybackStore.getState().seek(start)
+      }
+    }
+  }
   if (
     state.selectedOverlayId &&
     !state.imageOverlays.some((overlay) => overlay.id === state.selectedOverlayId)
@@ -2010,6 +2036,24 @@ export function selectScreenshot(state: ImageState) {
 export type ScreenshotView = ReturnType<typeof selectScreenshot>
 
 type HistoryEntry = ReturnType<typeof useImageStore.temporal.getState>['pastStates'][number]
+
+let typingHistory: { key: string; time: number; state: ImageState; past: HistoryEntry[] } | null = null
+
+/** Consecutive keystrokes in one field undo together, until a pause or another edit. */
+export function withTypingHistory(key: string, change: () => void): void {
+  const history = useImageStore.temporal.getState()
+  const time = Date.now()
+  const group = history.isTracking && typingHistory?.key === key &&
+    time - typingHistory.time < 750 && typingHistory.state === useImageStore.getState() &&
+    typingHistory.past === history.pastStates && history.futureStates.length === 0
+  if (group) history.pause()
+  try {
+    change()
+  } finally {
+    if (group) history.resume()
+  }
+  typingHistory = { key, time, state: useImageStore.getState(), past: useImageStore.temporal.getState().pastStates }
+}
 
 /** An open undo step: the newest history entry before it began, or null when history was empty. */
 export type HistoryStep = { anchor: HistoryEntry | null }

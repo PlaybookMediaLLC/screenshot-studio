@@ -50,6 +50,7 @@ const QUICK_PROMPTS = [
 ]
 
 export function EditorAiPanel() {
+  const aspectRatio = useImageStore((state) => state.selectedAspectRatio)
   const trpcClient = useTRPCClient()
   const [status, setStatus] = useState<Status | null>(null)
   const [open, setOpen] = useState(false)
@@ -107,13 +108,21 @@ export function EditorAiPanel() {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight })
   }, [entries])
 
-  const review = useCallback(async () => {
+  const reviewCache = useRef<{ key: string; suggestions: Suggestion[] } | null>(null)
+  const review = useCallback(async (force = false) => {
+    const document = exportDesignDocument()
+    const key = JSON.stringify(document)
+    if (!force && reviewCache.current?.key === key) {
+      setSuggestions(reviewCache.current.suggestions)
+      return
+    }
     setReviewing(true)
     try {
       const { suggestions: found } = await trpcClient.editorAi.critique.mutate({
-        document: exportDesignDocument(),
-        snapshot: await captureCanvasSnapshot(768),
+        document,
+        snapshot: await captureCanvasSnapshot(480),
       })
+      reviewCache.current = { key, suggestions: found }
       setSuggestions(found)
     } catch (error) {
       toast.error('Could not review the design', {
@@ -156,7 +165,7 @@ export function EditorAiPanel() {
       <Button
         aria-expanded={open}
         aria-label="Open the AI copilot"
-        className="fixed bottom-4 right-4 z-40 gap-1.5 rounded-full shadow-lg"
+        className="fixed top-[72px] right-4 lg:right-[276px] z-30 gap-1.5 rounded-full shadow-lg"
         onClick={() => (open ? setOpen(false) : openCopilot(false))}
         size="sm"
         type="button"
@@ -211,12 +220,13 @@ export function EditorAiPanel() {
                   <Button variant="custom" size={null}
                     className="text-xs underline disabled:opacity-50"
                     disabled={reviewing || !hasImage}
-                    onClick={() => void review()}
+                    onClick={() => void review(true)}
                     type="button"
                   >
                     {reviewing ? 'Reviewing…' : 'Review again'}
                   </Button>
                 </div>
+                {reviewing ? <p role="status" className="mt-2 text-xs text-muted-foreground">Review runs in the background. You can keep editing.</p> : null}
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {suggestions?.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Looks good. Nothing to fix.</p>
@@ -243,7 +253,7 @@ export function EditorAiPanel() {
                       ⌘Z.
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {QUICK_PROMPTS.map((prompt) => (
+                      {QUICK_PROMPTS.filter((prompt) => aspectRatio !== '9_16' || !prompt.includes('9:16')).map((prompt) => (
                         <Button variant="custom" size={null}
                           className="rounded-full border px-2.5 py-1 text-xs hover:bg-muted"
                           disabled={isRunning}

@@ -13,7 +13,7 @@ import {
 import { duplicateGroups } from '@/lib/link-preview/insights'
 import { scoreLinkPreview } from '@/lib/link-preview/metadata'
 import { cn } from '@/lib/utils'
-import { downloadText, normalizeUrl, requestPreview } from './client'
+import { downloadText, normalizeUrl, parseUrlLines, requestPreview } from './client'
 import { PANEL } from './MetadataPanels'
 import { hostname } from './PlatformPreviews'
 import { Input } from '@/components/ui/input'
@@ -74,7 +74,7 @@ export function BatchCheck({
 }: {
   agent: LinkPreviewAgent
   /** Open one link in the full single-link view. */
-  onOpen: (url: string) => void
+  onOpen: (url: string, preview?: LinkPreview) => void
 }) {
   const [text, setText] = useState('')
   const [rows, setRows] = useState<Row[]>([])
@@ -113,16 +113,12 @@ export function BatchCheck({
     }
   }
 
-  const urls = [
-    ...new Set(
-      text
-        .split(/[\s,]+/)
-        .map(normalizeUrl)
-        .filter((url) => url !== null)
-    ),
-  ]
+  const { urls, invalid } = parseUrlLines(text)
+  const [checkedAgent, setCheckedAgent] = useState(agent)
 
   async function start() {
+    if (invalid.length) return
+    setCheckedAgent(agent)
     const id = ++run.current
     const queue = urls.slice(0, MAX_LINKS)
     setRows(queue.map((url) => ({ url })))
@@ -171,6 +167,7 @@ export function BatchCheck({
 
   return (
     <div className="space-y-6">
+      {rows.length > 0 && checkedAgent !== agent && <p role="status">These results are for {checkedAgent}. Choose Check all to use {agent}.</p>}
       <section className={cn(PANEL, 'space-y-3 p-5')}>
         <form
           onSubmit={(event) => {
@@ -199,18 +196,23 @@ export function BatchCheck({
           </span>
           <Textarea
             value={text}
+            aria-invalid={invalid.length > 0}
+            aria-describedby="batch-url-errors"
             onChange={(event) => setText(event.target.value)}
             rows={6}
             placeholder={'example.com\nexample.com/pricing\nexample.com/blog/launch'}
             className="w-full resize-y rounded-lg bg-white/[0.03] px-3 py-2 font-mono text-sm text-foreground ring-1 ring-white/[0.08] outline-none placeholder:text-muted-foreground focus:ring-white/25"
           />
         </Label>
+        <p id="batch-url-errors" role={invalid.length ? 'alert' : undefined} className="min-h-5 text-xs text-red-400">
+          {invalid.length ? `Invalid URL lines: ${invalid.join(', ')}. Enter one web URL per line.` : '\u00a0'}
+        </p>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
             {urls.length} link{urls.length === 1 ? '' : 's'}
             {urls.length > MAX_LINKS ? `; the first ${MAX_LINKS} are checked` : ''}
           </p>
-          <Button onClick={start} disabled={running || urls.length === 0}>
+          <Button onClick={start} disabled={running || urls.length === 0 || invalid.length > 0}>
             {running && <Loader2 className="animate-spin" />}
             {running ? `Checking ${done} of ${rows.length}` : 'Check all'}
           </Button>
@@ -221,7 +223,7 @@ export function BatchCheck({
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-sm font-medium text-foreground">
-              Results · {done} of {rows.length}
+              Results · {checked.length} checked, {done - checked.length} failed · {done} of {rows.length}
               {checked.length > 0 &&
                 ` · average score ${Math.round(checked.reduce((sum, row) => sum + row.score, 0) / checked.length)}`}
             </h3>
@@ -301,7 +303,7 @@ export function BatchCheck({
                     <TableCell className="whitespace-normal max-w-64 px-4 py-3">
                       <Button variant="custom" size={null}
                         type="button"
-                        onClick={() => onOpen(url)}
+                        onClick={() => onOpen(url, result && 'preview' in result ? result.preview : undefined)}
                         className="block truncate text-left text-foreground hover:underline"
                         title={url}
                       >

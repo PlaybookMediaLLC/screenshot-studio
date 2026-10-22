@@ -26,6 +26,15 @@ func normalizeWorkspaceCreation(input CreateWorkspaceInput) (CreateWorkspaceInpu
 	if err != nil || len(input.Slug) < 2 || len(input.Slug) > 100 || !creationSlugPattern.MatchString(input.Slug) {
 		return input, "", "", ErrInvalidInput
 	}
+	if input.TimeZone == "" {
+		input.TimeZone = "UTC"
+	}
+	if len(input.TimeZone) > 100 {
+		return input, "", "", ErrInvalidInput
+	}
+	if _, err := time.LoadLocation(input.TimeZone); err != nil {
+		return input, "", "", ErrInvalidInput
+	}
 	if input.Logo != nil {
 		parsed, err := url.Parse(*input.Logo)
 		if err != nil || len(*input.Logo) > 2048 || parsed.Host == "" || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.User != nil {
@@ -168,7 +177,7 @@ func (c *Configuration) CreateWorkspace(ctx context.Context, actor Actor, input 
 	if err != nil {
 		return nil, err
 	}
-	settings, err := tx.WorkspaceSettings.Create().SetID(org.ID).Save(ctx)
+	settings, err := tx.WorkspaceSettings.Create().SetID(org.ID).SetTimeZone(input.TimeZone).Save(ctx)
 	if err != nil {
 		return nil, err
 	}

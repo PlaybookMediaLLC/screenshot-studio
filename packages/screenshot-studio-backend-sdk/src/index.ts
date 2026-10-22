@@ -601,6 +601,11 @@ export type BackendAsset = {
 }
 
 export type BackendAssetListItem = {
+  fileName?: string
+  classification?: string
+  projectId?: string
+  projectName?: string
+  uploadedBy?: string
   bytes: number
   createdAt: string
   height: number | null
@@ -612,6 +617,7 @@ export type BackendAssetListItem = {
 export type BackendAssetPage = { assets: BackendAssetListItem[]; nextCursor: string | null }
 
 export type BackendAssetUploadInput = {
+  projectId?: string
   bytes: number
   classification?: 'capture' | 'derived' | 'export' | 'input'
   contentType: string
@@ -1280,6 +1286,7 @@ export type BackendCreativeSetVersion = {
 
 /** Filters for a creativeSet list; `cursor` comes from the previous page. `kind` defaults to Story Sets. */
 export type BackendCreativeSetListQuery = {
+  archived?: boolean
   cursor?: string
   kind?: BackendCreativeSetKind
   limit?: number
@@ -2390,9 +2397,20 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ enabled: true }>(`v1/enterprise-features/${feature}`)
   }
 
-  async listAssets(options: { cursor?: string; limit: number }) {
+  async listAssets(options: {
+    search?: string
+    classification?: string
+    cursor?: string
+    limit: number
+    type?: 'all' | 'image' | 'video'
+    sort?: 'newest' | 'oldest'
+  }) {
     const parameters = new URLSearchParams({ limit: String(options.limit) })
     if (options.cursor) parameters.set('cursor', options.cursor)
+    if (options.type) parameters.set('type', options.type)
+    if (options.sort) parameters.set('sort', options.sort)
+    if (options.search) parameters.set('search', options.search)
+    if (options.classification) parameters.set('classification', options.classification)
     return this.request<BackendAssetPage>(`v1/assets?${parameters}`)
   }
 
@@ -2597,6 +2615,14 @@ export class ScreenshotStudioBackendSDK {
   async approveCampaignDesign(campaignId: string, designId: string) {
     return this.request<{ approval: BackendCreativeApproval; variant: BackendCreativeVariant }>(
       `v1/campaigns/${encodeURIComponent(campaignId)}/designs/${encodeURIComponent(designId)}/approval`,
+      { method: 'POST' }
+    )
+  }
+
+  /** Approves a campaign product shot through the design/render approval flow. */
+  async approveCampaignAsset(campaignId: string, assetId: string) {
+    return this.request<{ approval: BackendCreativeApproval; variant: BackendCreativeVariant }>(
+      `v1/campaigns/${encodeURIComponent(campaignId)}/assets/${encodeURIComponent(assetId)}/approval`,
       { method: 'POST' }
     )
   }
@@ -3275,10 +3301,20 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  async archiveCreativeSet(id: string) {
-    return this.request<{ archived: true }>(`v1/creative-sets/${encodeURIComponent(id)}/archive`, {
-      method: 'POST',
+  /** Permanently remove a canvas and its versions; delivered assets are retained. */
+  async deleteCanvas(id: string) {
+    return this.request<{ deleted: boolean }>(`v1/canvases/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
     })
+  }
+
+  async archiveCreativeSet(id: string, archived = true) {
+    return this.request<{ archived: boolean }>(
+      `v1/creative-sets/${encodeURIComponent(id)}/archive?archived=${archived}`,
+      {
+        method: 'POST',
+      }
+    )
   }
 
   async listCreativeSetVersions(id: string) {
@@ -3430,7 +3466,7 @@ export class ScreenshotStudioBackendSDK {
       body,
     })
   }
-  /** Reauthorize a link, including after its inbox row was deleted. */
+  /** Reauthorize a link, including after its inbox row was archived. */
   resolveNotification(id: string) {
     return this.request<{ href: string }>(
       `v1/workspace/notifications/resolve/${encodeURIComponent(id)}`
@@ -3862,6 +3898,14 @@ export class ScreenshotStudioBackendSDK {
     return this.request<AutomationDefinition>(
       `v1/release-automation/${encodeURIComponent(id)}/activation`,
       { method: 'POST', body: { revision } }
+    )
+  }
+
+  /** Archive or restore a definition, retaining immutable versions and runs. */
+  async archiveReleaseAutomation(id: string, revision: number, archived: boolean) {
+    return this.request<{ archived: boolean }>(
+      `v1/release-automation/${encodeURIComponent(id)}/archive`,
+      { method: 'PUT', body: { revision, archived } }
     )
   }
 
@@ -4326,6 +4370,16 @@ export class ScreenshotStudioBackendSDK {
       body: input,
       method: 'PUT',
     })
+  }
+
+  /** Current session workspace and page entitlements, without dashboard counters. */
+  async getPageAccess() {
+    return this.request<{
+      active: ListedWorkspace | null
+      count: number
+      workspace: Workspace | null
+      features: Record<string, boolean>
+    }>('v1/page-access')
   }
 
   async getBootstrap() {

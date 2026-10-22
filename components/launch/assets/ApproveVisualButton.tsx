@@ -11,10 +11,12 @@ import { useTRPCClient } from '@/lib/trpc/react'
 export function ApproveVisualButton({
   campaignId,
   designId,
+  assetId,
   label = 'Approve visual',
 }: {
   campaignId: string
-  designId: string
+  designId?: string
+  assetId?: string
   label?: string
 }) {
   const trpcClient = useTRPCClient()
@@ -24,7 +26,9 @@ export function ApproveVisualButton({
   async function approve() {
     setPending(true)
     try {
-      await trpcClient.campaign.approveDesign.mutate({ campaignId, designId })
+      if (designId) await trpcClient.campaign.approveDesign.mutate({ campaignId, designId })
+      else if (assetId) await trpcClient.campaign.approveAsset.mutate({ campaignId, assetId })
+      else throw new Error('This visual has no render to approve.')
       toast.success('Visual approved')
       router.refresh()
     } catch (error) {

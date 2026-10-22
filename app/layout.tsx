@@ -41,6 +41,7 @@ import { getRootJsonLd } from '@/lib/seo/json-ld'
 import { ADSENSE_CLIENT } from '@/lib/adsense'
 import { ConsentBanner } from '@/components/ConsentBanner'
 import { PRODUCT_FACTS, atLeast } from '@/lib/seo/product-facts'
+import { installDeploymentRecovery } from '@/lib/platform/deployment-recovery'
 
 // System UI fonts
 const geistSans = Geist({
@@ -429,6 +430,9 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={fontVariables} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `(${installDeploymentRecovery.toString()})()` }} />
+      </head>
       <meta name="msvalidate.01" content="A3B8CB50BBD78710971A13FA3EE1E544" />
       <link rel="alternate" type="text/markdown" href="/llms.txt" title="LLMs.txt" />
       <link

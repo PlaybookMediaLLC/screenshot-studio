@@ -1,6 +1,12 @@
 'use client';
 
+import { validateImageContents } from '@/lib/editor/import-images';
+import { toast } from 'sonner';
+
 import * as React from 'react';
+import { orderedLayerIds } from '@/lib/editor/layer-order';
+import { reorderLayer } from '@/lib/editor/use-layer-depth';
+import { useDeviceUIStore } from '@/lib/store/device-ui';
 import { useImageStore } from '@/lib/store';
 import { useEditorPanels } from '@/lib/store/editor-panels';
 import type { ImageOverlay, ImageOverlayTilt, ImageShadow } from '@/lib/store';
@@ -69,7 +75,7 @@ const LOCAL_OBJECTS = [
 
 // ── Layer type helpers ───────────────────────────────────────────────────────
 
-type LayerType = 'image-overlay' | 'text-overlay' | 'element' | 'annotation' | 'blur';
+type LayerType = 'image-overlay' | 'text-overlay' | 'element' | 'annotation' | 'blur' | 'screen';
 
 interface LayerItem {
   id: string;
@@ -95,7 +101,6 @@ export function DepthSection() {
     addImageOverlay,
     updateImageOverlay,
     removeImageOverlay,
-    reorderImageOverlay,
     updateTextOverlay,
     removeTextOverlay,
     removeAnnotation,
@@ -104,17 +109,22 @@ export function DepthSection() {
   } = useImageStore();
 
   // Selection is the editor's own, so the inspector shows whatever is picked here.
+  const hasScreens = useImageStore((state) => isScreenScene(state) && state.mockups.length > 0);
   const selectedTextId = useImageStore((state) => state.selectedTextId);
   const selectedAnnotationId = useImageStore((state) => state.selectedAnnotationId);
   const selectedBlurId = useImageStore((state) => state.selectedBlurId);
   const selectedElementId = useImageStore((state) => state.selectedElementId);
+  const mockups = useImageStore((state) => state.mockups);
+  const order = useImageStore((state) => state.layerOrder);
   const elements = useImageStore((state) => state.elements);
   // In a composition the screenshot is drawn by its screen, listed under Screens.
   const mainImageUrl = useImageStore((state) => (isScreenScene(state) ? null : state.uploadedImageUrl));
+  const selectedDevice = useDeviceUIStore((state) => state.selectedDeviceId);
   const selectedLayerId =
-    selectedOverlayId ?? selectedTextId ?? selectedElementId ?? selectedAnnotationId ?? selectedBlurId;
+    selectedOverlayId ?? selectedTextId ?? selectedElementId ?? selectedAnnotationId ?? selectedBlurId ?? selectedDevice;
   const selectLayer = (layer: LayerItem | null) => {
     const state = useImageStore.getState();
+    useDeviceUIStore.getState().setSelectedDeviceId(layer?.type === 'screen' ? layer.id : null);
     state.setSelectedOverlayId(layer?.type === 'image-overlay' ? layer.id : null);
     state.setSelectedTextId(layer?.type === 'text-overlay' ? layer.id : null);
     state.setSelectedAnnotationId(layer?.type === 'annotation' ? layer.id : null);
@@ -192,13 +202,18 @@ export function DepthSection() {
       });
     });
 
-    return items;
-  }, [imageOverlays, textOverlays, elements, annotations, blurRegions]);
+    if (hasScreens) mockups.forEach((screen, index) => items.push({ id: screen.id, type: 'screen', label: screen.screen.name || `Screen ${index + 1}`, isVisible: screen.isVisible, thumbnailSrc: screen.screen.src ?? undefined }));
+    const ids = orderedLayerIds({ ...useImageStore.getState(), layerOrder: order });
+    return items.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+  }, [imageOverlays, textOverlays, elements, annotations, blurRegions, hasScreens, mockups, order]);
 
   // Handle file upload for custom overlay
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
+    const error = await validateImageContents(file);
+    if (error) { toast.error(error); return; }
 
     const blobUrl = URL.createObjectURL(file);
     addImageOverlay({
@@ -236,6 +251,9 @@ export function DepthSection() {
   // Toggle visibility for any layer type
   const handleToggleVisibility = (layer: LayerItem) => {
     switch (layer.type) {
+      case 'screen':
+        useImageStore.getState().updateMockup(layer.id, { isVisible: !layer.isVisible });
+        break;
       case 'image-overlay':
         updateImageOverlay(layer.id, { isVisible: !layer.isVisible });
         break;
@@ -257,6 +275,9 @@ export function DepthSection() {
   // Remove any layer type
   const handleRemoveLayer = (layer: LayerItem) => {
     switch (layer.type) {
+      case 'screen':
+        useImageStore.getState().removeMockup(layer.id);
+        break;
       case 'image-overlay':
         removeImageOverlay(layer.id);
         break;
@@ -279,6 +300,7 @@ export function DepthSection() {
   // Get icon for layer type
   const getLayerIcon = (type: LayerType) => {
     switch (type) {
+      case 'screen':
       case 'image-overlay':
         return <Image01Icon size={14} />;
       case 'text-overlay':
@@ -312,7 +334,7 @@ export function DepthSection() {
           <div className="flex flex-col items-center gap-2 py-6 text-center">
             <LayersLogoIcon size={28} className="text-muted-foreground/50" />
             <p className="text-xs text-muted-foreground">
-              No layers yet. Add assets below or use the Edit tab.
+              {hasScreens ? 'Your screenshots are listed under Screens above. Add text, elements or assets to create more layers.' : 'No layers yet. Add assets below or use the Edit tab.'}
             </p>
           </div>
         ) : (
@@ -334,6 +356,10 @@ export function DepthSection() {
                     tabIndex={0}
                     aria-pressed={isSelected}
                     onKeyDown={(event) => {
+                      if (event.altKey && ['ArrowUp', 'ArrowDown'].includes(event.key)) {
+                        event.preventDefault(); event.stopPropagation();
+                        reorderLayer(layer.id, event.key === 'ArrowUp' ? 'up' : 'down'); return;
+                      }
                       if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
                         event.preventDefault();
                         event.currentTarget.click();
@@ -418,12 +444,18 @@ export function DepthSection() {
                     </div>
                   </div>
 
+                  <div className="flex gap-1 px-2.5 pb-2">
+                    <Button aria-label={`Move ${layer.label} forward`} variant="ghost" size="sm" onClick={() => reorderLayer(layer.id, 'up')}>↑</Button>
+                    <Button aria-label={`Move ${layer.label} backward`} variant="ghost" size="sm" onClick={() => reorderLayer(layer.id, 'down')}>↓</Button>
+                    <Button variant="ghost" size="sm" onClick={() => reorderLayer(layer.id, 'top')}>Front</Button>
+                    <Button variant="ghost" size="sm" onClick={() => reorderLayer(layer.id, 'bottom')}>Back</Button>
+                  </div>
                   {isSelected && isImageOverlay && (
                     <div className="flex items-center gap-1 px-2.5 pb-2 pt-0.5">
                       <Button variant="custom" size={null}
                         onClick={(e) => {
                           e.stopPropagation();
-                          reorderImageOverlay(layer.id, 'up');
+                          reorderLayer(layer.id, 'up');
                         }}
                         className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors border border-foreground/10"
                         title="Move forward"
@@ -433,7 +465,7 @@ export function DepthSection() {
                       <Button variant="custom" size={null}
                         onClick={(e) => {
                           e.stopPropagation();
-                          reorderImageOverlay(layer.id, 'down');
+                          reorderLayer(layer.id, 'down');
                         }}
                         className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors border border-foreground/10"
                         title="Move backward"
@@ -510,7 +542,7 @@ export function DepthSection() {
           <Input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp"
             onChange={handleFileUpload}
             className="hidden"
           />

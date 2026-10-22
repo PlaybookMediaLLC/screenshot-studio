@@ -1,7 +1,9 @@
 'use client'
 
+import { useWriteRouter } from '@/components/write/write-context'
+
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
+import { createWritingDraft } from './pending-draft'
 import {
   CommandDialog,
   CommandEmpty,
@@ -11,7 +13,6 @@ import {
   CommandList,
   CommandShortcut,
 } from '@shots/platejs-editor/ui'
-import { draftsApi } from '@/lib/content-drafts/client'
 import { useKeys } from './shortcuts'
 import { draftHref, rememberSet, useWrite } from './write-context'
 
@@ -28,8 +29,8 @@ export default function CommandPalette({
   onShortcuts: () => void
 }) {
   const keys = useKeys()
-  const router = useRouter()
-  const { canEdit, data, setQuery } = useWrite()
+  const router = useWriteRouter()
+  const { beforeLeaveRef, canEdit, data, setQuery } = useWrite()
   const [results, setResults] = React.useState<{ id: string; title: string; plainText: string }[]>(
     []
   )
@@ -87,11 +88,7 @@ export default function CommandPalette({
               onSelect={() =>
                 go(
                   () =>
-                    void draftsApi
-                      .create({
-                        socialSetId: data.activeSet?.id,
-                      })
-                      .then((draft) => router.push(draftHref(draft.id, data.activeSet?.id)))
+                    void createWritingDraft({ socialSetId: data.activeSet?.id }, (id) => router.push(draftHref(id, data.activeSet?.id)), beforeLeaveRef.current ?? undefined)
                 )
               }
             >

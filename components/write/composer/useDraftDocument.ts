@@ -16,6 +16,7 @@ import {
   type PlatformVersions,
   primaryChannel,
 } from '@/lib/write/document'
+import { normalizeMentions } from '@/lib/write/normalize-mentions'
 import { readVersions } from '@/lib/write/versions'
 
 /**
@@ -31,6 +32,12 @@ export type SaveState = 'saved' | 'saving' | 'unsaved' | 'error' | 'offline'
 
 /** How long typing waits before a save. */
 const AUTOSAVE_DELAY_MS = 800
+
+// Keep failed edits across client route changes (including browser Back).
+const pendingDocuments = new Map<
+  string,
+  { document: DraftDocument; discussions: DraftDiscussions; version: number }
+>()
 
 /** The parts of a draft the composer edits and saves. */
 export type DraftDocument = {
@@ -50,8 +57,8 @@ export function documentOf(draft: DraftWire): DraftDocument {
     channelConnectionIds: draft.channelConnectionIds,
     primaryPlatform: primaryChannel(draft.primaryPlatform),
     target: draft.target,
-    title: draft.title,
-    value: draft.body as Value,
+    title: draft.title === 'Untitled draft' ? '' : draft.title,
+    value: normalizeMentions(draft.body) as Value,
     versions: readVersions(
       draft.platformVersions,
       draft.channelText as Partial<Record<DraftChannel, string>>,
@@ -73,16 +80,21 @@ export function useDraftDocument({
   draft: DraftWire
   onSaved?: (saved: DraftWire) => void
 }) {
-  const [document, setDocument] = React.useState<DraftDocument>(() => documentOf(draft))
+  const [recovery] = React.useState(() => pendingDocuments.get(draft.id))
+  const [document, setDocument] = React.useState<DraftDocument>(
+    () => recovery?.document ?? documentOf(draft)
+  )
   const [editorKey, setEditorKey] = React.useState(0)
-  const [saveState, setSaveState] = React.useState<SaveState>('saved')
+  const [saveState, setSaveState] = React.useState<SaveState>(recovery ? 'error' : 'saved')
   const [server, setServer] = React.useState<DraftWire>(draft)
-  const version = React.useRef(draft.version)
+  const version = React.useRef(recovery?.version ?? draft.version)
   const latest = React.useRef(document)
   const savedCallback = React.useRef(onSaved)
   savedCallback.current = onSaved
-  const discussions = React.useRef(readDiscussions(draft.discussions))
-  const dirty = React.useRef(false)
+  const discussions = React.useRef(recovery?.discussions ?? readDiscussions(draft.discussions))
+  const dirty = React.useRef(Boolean(recovery))
+  const [retryCount, setRetryCount] = React.useState(0)
+  const retryable = React.useRef(true)
   const inFlight = React.useRef<Promise<boolean> | null>(null)
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const legacyText = React.useRef(Object.keys(draft.channelText).length > 0)
@@ -111,17 +123,19 @@ export function useDraftDocument({
             article: next.article ?? undefined,
             assetIds: serializeDraft(next.value, 'linkedin').assetIds,
             baseVersion: version.current,
-            body: next.value,
+            body: normalizeMentions(next.value),
             channelConnectionIds: next.channelConnectionIds,
             // Legacy per-channel text moved into platform versions: clear it once.
             ...(legacyText.current ? { channelText: {} } : {}),
             discussions: discussions.current,
             plainText: draftPlainText(next.value),
-            platformVersions: next.versions,
+            platformVersions: normalizeMentions(next.versions),
             primaryPlatform: next.primaryPlatform,
             target: next.target ?? undefined,
             title: next.title,
           })
+          pendingDocuments.delete(draft.id)
+          setRetryCount(0)
           legacyText.current = false
           version.current = saved.version
           setServer(saved)
@@ -164,10 +178,13 @@ export function useDraftDocument({
             (error.status === 404 || error.status === 403)
           ) {
             dirty.current = true
+            retryable.current = false
             setSaveState('error')
             toast.error('You no longer have access to this draft; nothing more is saved.')
             return false
           }
+          retryable.current =
+            !(error instanceof DraftRequestError) || error.status >= 500 || error.status === 429
           dirty.current = true
           setSaveState(typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'error')
           return false
@@ -184,16 +201,28 @@ export function useDraftDocument({
       return await run
     } finally {
       inFlight.current = null
+      if (dirty.current)
+        pendingDocuments.set(draft.id, {
+          document: latest.current,
+          discussions: discussions.current,
+          version: version.current,
+        })
     }
   }, [canEdit, collaborating, draft.id, reloadLatest])
 
   const scheduleSave = React.useCallback(() => {
     if (!canEdit) return
     dirty.current = true
+    setRetryCount(0)
+    pendingDocuments.set(draft.id, {
+      document: latest.current,
+      discussions: discussions.current,
+      version: version.current,
+    })
     setSaveState('unsaved')
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => void save(), AUTOSAVE_DELAY_MS)
-  }, [canEdit, save])
+  }, [canEdit, draft.id, save])
 
   /** Change the document and save it shortly. */
   const update = React.useCallback(
@@ -221,6 +250,18 @@ export function useDraftDocument({
     },
     [scheduleSave]
   )
+
+  React.useEffect(() => {
+    if (saveState !== 'error' || !retryable.current || retryCount >= 3) return
+    const retry = setTimeout(
+      () => {
+        setRetryCount((count) => count + 1)
+        void save()
+      },
+      1000 * 2 ** retryCount
+    )
+    return () => clearTimeout(retry)
+  }, [retryCount, save, saveState])
 
   // A failed save retries when the network comes back, keeping the edits.
   React.useEffect(() => {

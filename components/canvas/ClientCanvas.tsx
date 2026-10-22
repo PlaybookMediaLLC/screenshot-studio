@@ -1,5 +1,6 @@
 "use client";
 
+import { useLayerDepth, reorderLayer } from '@/lib/editor/use-layer-depth';
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { selectScreenshot, useImageStore } from "@/lib/store";
@@ -11,6 +12,7 @@ import { useDeviceUIStore } from "@/lib/store/device-ui";
 import { shouldIgnoreEditorShortcut } from "@/lib/editor-shortcuts";
 import { calculateCanvasDimensions, mainImageRect } from "./utils/canvas-dimensions";
 import { CanvasGeometryContext, type CanvasGeometry } from "./elements/canvas-geometry";
+import { useCompositeSource } from './elements/use-composite-source'
 import { ElementLayer } from "./elements/ElementLayer";
 import { imageFilterCss } from "@/lib/editor/image-adjustments";
 import { toCanvasShadow } from "./utils/shadow-utils";
@@ -125,6 +127,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     opacity: imageBorder.opacity,
   };
 
+  const mainDepth = useLayerDepth('__main__');
   const hasDeviceScene = editorMode === "device" && hasVisibleMockups(mockups);
   const hasSourceImage = !!uploadedImageUrl && !!screenshot.src && shouldRenderSourceImage(editorMode, mockups);
   const mainChrome = useMainChromeFrame();
@@ -176,6 +179,18 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedTextId(null);
   }, [setIsMainImageSelected, setSelectedOverlayId, setSelectedTextId]);
 
+  useEffect(() => {
+    const onReorder = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || shouldIgnoreEditorShortcut(event) || !event.altKey || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      const state = useImageStore.getState();
+      const id = state.selectedElementId ?? state.selectedOverlayId ?? state.selectedAnnotationId ?? state.selectedBlurId ?? useDeviceUIStore.getState().selectedDeviceId ?? (state.isMainImageSelected ? '__main__' : null);
+      if (!id) return;
+      event.preventDefault();
+      reorderLayer(id, event.key === 'ArrowUp' ? 'up' : 'down');
+    };
+    window.addEventListener('keydown', onReorder);
+    return () => window.removeEventListener('keydown', onReorder);
+  }, []);
   useEffect(() => {
     if (!is3DPointerDown) return;
 
@@ -247,7 +262,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         // Don't deselect when interacting with editor panel controls
         // (sliders, inputs, buttons, etc.) so users can tweak selected items
         const el = target as HTMLElement;
-        if (el.closest?.('[data-slot="slider"], input, button, [role="button"], [role="listbox"], [data-radix-collection-item], .moveable-control-box, [data-resize-handle], [data-keep-selection]')) return;
+        if (el.closest?.('[data-slot="slider"], input, textarea, select, label, [contenteditable="true"], button, [role="button"], [role="listbox"], [data-radix-collection-item], .moveable-control-box, [data-resize-handle], [data-keep-selection]')) return;
 
         setSelectedOverlayId(null);
         setIsMainImageSelected(false);
@@ -438,6 +453,8 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
       )
     : undefined;
 
+  const hasCallouts = useImageStore((state) => state.elements.some((element) => element.type === 'callout' && element.visible));
+  const compositeSource = useCompositeSource(canvasContainerRef, canvasW, canvasH, hasCallouts);
   const geometry: CanvasGeometry = {
     canvasH,
     canvasW,
@@ -447,7 +464,12 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     imageRect: hasSourceImage
       ? mainImageRect(dimensions, screenshot, showFrame ? frame.type : "none")
       : null,
-    imageSrc: uploadedImageUrl,
+    imageSrc: hasCallouts ? compositeSource : uploadedImageUrl,
+    ...(hasCallouts ? {
+      imageRect: { x: 0, y: 0, width: canvasW, height: canvasH },
+      imageFilter: undefined,
+      imageObjectPosition: undefined,
+    } : {}),
   };
 
   let selectedSelector: string | null = null;
@@ -499,7 +521,6 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
         height: containerHeight,
         transform: `scale(${previewScale})`,
         transformOrigin: "top left",
-        ...(showRulers ? { marginTop: 20, marginLeft: 20 } : {}),
       }}
     >
       {showRulers && (
@@ -573,7 +594,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
               top: 0,
               width: `${canvasW}px`,
               height: `${canvasH}px`,
-              zIndex: 16,
+              zIndex: mainDepth + 0.1,
               cursor: is3DDragging ? 'grabbing' : 'grab',
               touchAction: 'none',
             }}
@@ -725,7 +746,7 @@ export default function ClientCanvas({
   useEffect(() => {
     setLoadError(false);
 
-    if (!hasContent) {
+    if (!hasContent && !embedded) {
       setImage(null);
       return;
     }
@@ -764,7 +785,7 @@ export default function ClientCanvas({
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [hasContent, hasSourceImage, uploadedImageUrl]);
+  }, [embedded, hasContent, hasSourceImage, uploadedImageUrl]);
 
   useEffect(() => {
     if (image) {
@@ -772,7 +793,7 @@ export default function ClientCanvas({
     }
   }, [image, onReady]);
 
-  if (loadError || !hasContent) {
+  if (loadError || (!hasContent && !embedded)) {
     return null;
   }
 

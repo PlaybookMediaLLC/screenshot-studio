@@ -16,6 +16,7 @@ import {
 import { useTRPCClient } from '@/lib/trpc/react'
 import { settingsErrorMessage } from '@/lib/settings/client'
 import { workspaceNameSchema } from '@/lib/workspace/input-schemas'
+import { TimeZonePicker, browserTimeZone } from '@/components/settings/TimeZonePicker'
 import {
   isTerminalCreationError,
   newWorkspaceCreationAttempt,
@@ -42,6 +43,7 @@ export function WorkspaceCreationDialog({
   const [recoveryBlocked, setRecoveryBlocked] = useState(recovery.status === 'unavailable')
   const [attempt, setAttempt] = useState(recovery.status === 'pending' ? recovery.attempt : null)
   const [name, setName] = useState(() => attempt?.input.name ?? '')
+  const [timeZone, setTimeZone] = useState(() => attempt?.input.timeZone ?? 'UTC')
   const [created, setCreated] = useState<WorkspaceCreationResult['organization'] | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -57,6 +59,9 @@ export function WorkspaceCreationDialog({
       controller.current?.abort()
     }
   }, [])
+  useEffect(() => {
+    if (!attempt) setTimeZone(browserTimeZone())
+  }, [attempt])
 
   const close = () => {
     if (!pending.current) onClose()
@@ -64,7 +69,7 @@ export function WorkspaceCreationDialog({
 
   async function create() {
     if (!parsed.success || pending.current || recoveryBlocked) return
-    const request = attempt ?? newWorkspaceCreationAttempt(parsed.data)
+    const request = attempt ?? newWorkspaceCreationAttempt(parsed.data, timeZone)
     // A reload must reconcile this intent instead of issuing a fresh UUID.
     try {
       sessionStorage.setItem(workspaceCreationStorageKey(userId), JSON.stringify(request))
@@ -255,6 +260,12 @@ export function WorkspaceCreationDialog({
                     : 'Use 2–100 characters. Different workspaces may share a name.'}
               </p>
             </div>
+            <TimeZonePicker
+              disabled={busy || attempt !== null}
+              label="Workspace time zone"
+              onChange={setTimeZone}
+              value={timeZone}
+            />
             {error ? (
               <p role="alert" className="text-sm text-destructive">
                 {error}

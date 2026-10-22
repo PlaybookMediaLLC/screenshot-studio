@@ -19,6 +19,7 @@ import {
   Plate,
   type PlateEditor,
   useEditorRef,
+  useEditorMounted,
   usePlateEditor,
   usePluginOption,
 } from '@shots/platejs-editor/platejs/react'
@@ -60,6 +61,7 @@ import { normalizePosts, postBreak } from '@/lib/write/versions'
 import type { PlateBody } from '@/lib/write/document'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { pendingDraftConnectionError, takePendingDraft } from '@/components/write/pending-draft'
 import type { z } from 'zod'
 import type { textDirectionSchema } from '@/lib/api/contracts/settings-platform'
 
@@ -104,6 +106,7 @@ export type DraftEditorProps = {
   /** The direction text runs in, from Appearance settings. */
   textDirection?: z.infer<typeof textDirectionSchema>
   collaboration: DraftCollaboration | null
+  draftId?: string
   /** The editor, once made: the host restores revisions through it. */
   onEditor?: (editor: PlateEditor) => void
   /** @handles the workspace already writes, offered in the @ picker. */
@@ -181,13 +184,23 @@ function CommentColumn({ children }: { children: React.ReactNode }) {
   const activeId = usePluginOption(commentPlugin, 'activeId')
   const discussions = usePluginOption(discussionPlugin, 'discussions')
   const open = Boolean(activeId) || discussions.some((discussion) => !discussion.isResolved)
+  const wrapper = React.useRef<HTMLDivElement>(null)
+  const [wide, setWide] = React.useState(false)
+  React.useEffect(() => {
+    if (!wrapper.current) return
+    const observer = new ResizeObserver(([entry]) => setWide(entry.contentRect.width >= 900))
+    observer.observe(wrapper.current)
+    return () => observer.disconnect()
+  }, [])
   return (
+    <div ref={wrapper}>
     <EditorContainer
-      className={cn('h-auto min-h-[160px] transition-[padding]', open && 'sm:pr-80')}
+      className={cn('h-auto min-h-[160px]', open && wide && 'pr-80')}
       data-testid="draft-editor"
     >
       {children}
     </EditorContainer>
+    </div>
   )
 }
 
@@ -239,7 +252,7 @@ function Presence() {
   }, [awareness])
   return (
     // Who else is here sits above the post, at the column's right edge.
-    <div className="absolute -top-12 right-6 flex flex-wrap gap-1.5" data-testid="presence">
+    <div className="flex flex-wrap justify-end gap-1.5 px-6 py-2" data-testid="presence">
       {people.map((person, index) => (
         <span
           className="rounded-full px-2 py-0.5 text-xs text-foreground"
@@ -466,7 +479,7 @@ function DraftToolbar({
           <DropdownMenuTrigger asChild>
             <ToolbarButton aria-label="Insert" tooltip="Insert">Insert ▾</ToolbarButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="top">
+          <DropdownMenuContent side="top" onCloseAutoFocus={(event) => { event.preventDefault(); editor.tf.focus() }}>
             {[
               { label: 'Table', insert: () => insertBlock(editor, KEYS.table) },
               { label: 'Math', insert: () => insertBlock(editor, KEYS.equation) },
@@ -504,6 +517,7 @@ function DraftToolbar({
 
 export default function DraftEditor({
   collaboration,
+  draftId,
   textDirection = 'ltr',
   onEditor,
   handles,
@@ -540,6 +554,9 @@ export default function DraftEditor({
       : null
     const hosted = (extraPlugins ?? []) as typeof PostBreakPlugin[]
     return createEditorKit({
+      recipe: 'collaborative',
+      // Social handles remain literal; resolved platform mentions use the dedicated picker.
+      excludePluginKeys: ['mention', 'mention_input', 'autoformatShortcuts'],
       additionalPlugins: live ? [PostBreakPlugin, ...hosted, live] : [PostBreakPlugin, ...hosted],
       // Comments and suggestions are authored by the signed-in member, not
       // the upstream demo users.
@@ -548,7 +565,7 @@ export default function DraftEditor({
         BlockPlaceholderKit[0].configure({ options: { placeholders: { [KEYS.p]: 'What would you like to share?' } } }),
         // Comments sit in a column beside the post; only a phone-narrow
         // editor falls back to opening them over the text.
-        commentPlugin.configure({ options: { overlapWidth: 400 } }),
+        commentPlugin.configure({ options: { overlapWidth: 580 } }),
         discussionPlugin.configure({
           options: {
             currentUserId: user.id,
@@ -585,8 +602,10 @@ export default function DraftEditor({
         ? (normalizePosts(initialValue as PlateBody) as Value)
         : emptyValue(),
   })
-  React.useEffect(() => onEditor?.(editor), [editor, onEditor])
+  const reportEditor = React.useEffectEvent(() => onEditor?.(editor))
+  React.useEffect(() => { reportEditor() }, [editor])
   const firstValue = React.useRef(initialValue)
+  const [initiallyEmpty] = React.useState(() => draftPlainText(initialValue).length === 0)
   React.useEffect(() => {
     if (!collaboration && !readOnly && draftPlainText(firstValue.current).length === 0) {
       editor.tf.select(editor.api.end([])!)
@@ -599,6 +618,15 @@ export default function DraftEditor({
     if (!collaboration) return
     const yjs = editor.getApi(YjsPlugin).yjs
     let started = false
+    let initialized = false
+    let cancelled = false
+    const ready = () => {
+      if (!cancelled && initialized && editor.getOptions(YjsPlugin)._providers.some((provider) => provider.type === 'hocuspocus' && provider.isSynced)) setLive(true)
+    }
+    editor.setOption(YjsPlugin, 'onSyncChange', ready)
+    editor.setOption(YjsPlugin, 'onError', () => {
+      if (draftId) pendingDraftConnectionError(draftId, () => yjs.connect('hocuspocus'))
+    })
     // Deferred a tick: React may mount, unmount and remount at once (Strict
     // Mode), and a session cannot connect twice. The discarded mount never starts.
     const start = setTimeout(() => {
@@ -613,14 +641,15 @@ export default function DraftEditor({
               ? (normalizePosts(firstValue.current as PlateBody) as Value)
               : emptyValue(),
         })
-        .then(() => setLive(true))
+        .then(() => { initialized = true; ready() })
         .catch((error: unknown) => console.error('[drafts] live session failed', error))
     }, 0)
     return () => {
+      cancelled = true
       clearTimeout(start)
       if (started) yjs.destroy()
     }
-  }, [collaboration, editor])
+  }, [collaboration, draftId, editor])
 
   const imageInput = React.useRef<HTMLInputElement>(null)
   const postTools = React.useMemo<PostTools>(
@@ -631,23 +660,24 @@ export default function DraftEditor({
     <EditorServicesProvider services={services}>
       <PostHeaderContext.Provider value={postHeader}>
         <PostToolsContext.Provider value={postTools}>
-          <Plate editor={editor} onValueChange={({ value }) => onChange(value)} readOnly={readOnly}>
+          <Plate editor={editor} onValueChange={({ value }) => { if (!collaboration || live) onChange(value) }} readOnly={readOnly}>
             {collaboration ? <Presence /> : null}
             <DiscussionsWatcher onChange={onDiscussionsChange} />
-            <CommentColumn key={live ? 'live' : 'local'}>
+            {!collaboration || live ? <CommentColumn>
               <ThreadLine />
               <Editor
-                autoFocus={!readOnly && draftPlainText(initialValue).length === 0}
+                autoFocus={false}
                 aria-label="Draft body"
                 className={cn(POST_COLUMN, 'min-h-0 pt-1 pb-4 text-[15px] leading-relaxed [&_[placeholder]]:before:pointer-events-none [&_[placeholder]]:before:absolute [&_[placeholder]]:before:text-neutral-400 [&_[placeholder]]:before:content-[attr(placeholder)]')}
                 dir={textDirection}
                 placeholder="What would you like to share?"
                 variant="default"
               />
-            </CommentColumn>
+              <ReadyEditor draftId={draftId} focus={!readOnly && initiallyEmpty} />
+            </CommentColumn> : <p role="status" className="p-6">Connecting your draft…</p>}
             {readOnly ? null : (
               <div className={cn('pb-6', POST_COLUMN)}>
-                <Button variant="outline" size="sm" onClick={() => insertPostAfter(editor, postRanges(editor.children).length)}>
+                <Button variant="outline" size="sm" onMouseDown={(event) => event.preventDefault()} onClick={() => insertPostAfter(editor, postRanges(editor.children).length)}>
                   Add another post
                 </Button>
               </div>
@@ -672,4 +702,22 @@ export default function DraftEditor({
       </PostHeaderContext.Provider>
     </EditorServicesProvider>
   )
+}
+
+/** Focus once after Plate has mounted, never while a keystroke is being applied. */
+function ReadyEditor({ draftId, focus }: { draftId?: string; focus: boolean }) {
+  const editor = useEditorRef()
+  const mounted = useEditorMounted()
+  const done = React.useRef(false)
+  React.useEffect(() => {
+    if (!mounted || done.current) return
+    done.current = true
+    const pending = draftId ? takePendingDraft(draftId) : null
+    if (pending !== null || (focus && !document.activeElement?.matches('input,textarea,[contenteditable="true"]'))) {
+      editor.tf.select(editor.api.end([]))
+      if (pending) editor.tf.insertText(pending)
+      editor.tf.focus()
+    }
+  }, [draftId, editor, focus, mounted])
+  return null
 }

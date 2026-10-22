@@ -68,6 +68,11 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
   await expect(page.getByText('#1 billing tool')).toHaveCount(0)
   await expect(page.getByText('customer list')).toHaveCount(0)
   await expect(page.getByText('What measurable result can we cite?')).toBeVisible()
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('confirm')
+    expect(dialog.message()).toContain('questions are unanswered')
+    await dialog.accept()
+  })
   await page.getByRole('button', { name: 'Approve spec' }).click()
   await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible()
 
@@ -213,7 +218,7 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
     ).toBeVisible()
 
     // ---------------------------------------------------------- hand edit
-    // Editing an approved post autosaves and sends it back to draft.
+    // Saving an edited approved post sends it back to draft.
     const editedCopy = `${revised.copy} Edited by hand.`
     await page.getByRole('tab', { name: /LinkedIn/ }).click()
     await page
@@ -223,11 +228,13 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
       .click()
     const editor = page
       .getByRole('article')
-      .filter({ has: page.getByRole('button', { name: 'Done editing' }) })
+      .filter({ has: page.getByRole('button', { name: 'Save changes' }) })
     await expect(editor.getByText(/^Editing sends this post back to draft\./)).toBeVisible()
     await editor.getByLabel('Copy', { exact: true }).fill(editedCopy)
-    await expect(editor.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible()
-    await expect(editor.getByText('Draft', { exact: true })).toBeVisible()
+    await editor.getByRole('button', { name: 'Save changes' }).click()
+    const editedCard = page.getByRole('article').filter({ hasText: editedCopy })
+    await expect(editedCard.getByText('Draft', { exact: true })).toBeVisible()
+    await editedCard.getByRole('button', { name: 'Edit', exact: true }).click()
     const postRow = () =>
       queryRow<{ copy: string; status: string }>(
         database,
@@ -245,13 +252,14 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
     })
     expect(brand.status, JSON.stringify(brand.body)).toBe(200)
     await editor.getByLabel('Copy', { exact: true }).fill(`${editedCopy} Better than Zorblax.`)
+    await editor.getByRole('button', { name: 'Save changes' }).click()
     await expect(editor.getByRole('alert').filter({ hasText: '“Zorblax”' })).toContainText(
       'A competitor name'
     )
     expect((await postRow())?.copy).toBe(editedCopy)
     await editor.getByLabel('Copy', { exact: true }).fill(editedCopy)
-    await editor.getByRole('button', { name: 'Done editing' }).click()
-    await expect(page.getByRole('button', { name: 'Done editing' })).toHaveCount(0)
+    await editor.getByRole('button', { name: 'Save changes' }).click()
+    await expect(page.getByRole('button', { name: 'Save changes' })).toHaveCount(0)
 
     // Production made product shots (no renderer in e2e), so the approvable
     // design is one rendered from the A1 shot.
@@ -269,9 +277,11 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
       [`c${randomBytes(12).toString('hex')}`, shot.organizationId, campaignId, shot.assetId]
     )
     await page.goto(`/campaigns/${campaignId}/assets`)
-    await page.getByRole('button', { name: 'Approve visual' }).click()
+    const hero = page.getByRole('listitem').filter({ hasText: 'Launch hero' })
+    await hero.getByRole('button', { name: 'Approve visual' }).click()
     await expect(page.getByText('Visual approved')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Approve visual' })).toHaveCount(0)
+    await expect(hero.getByText('Approved', { exact: true })).toBeVisible()
+    await expect(hero.getByRole('button', { name: 'Approve visual' })).toHaveCount(0)
 
     // ------------------------------------------------------------ schedule
     await enablePublishingTwoFactor(page, identity.password)

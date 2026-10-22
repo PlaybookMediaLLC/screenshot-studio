@@ -17,6 +17,7 @@ function imageQueryOptions(imageUrl: string | null | undefined) {
     enabled: !!imageUrl,
     staleTime: Infinity,
     gcTime: 24 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   }
 }
 

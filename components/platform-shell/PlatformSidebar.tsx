@@ -20,12 +20,12 @@ import { usePathname } from 'next/navigation'
 import { type ComponentType, useEffect, useState } from 'react'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { SidebarConnection } from '@/components/social-connections/SidebarConnection'
+import { UserAvatar } from '@/components/auth/UserAvatar'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useHydratedSession } from '@/lib/auth/client'
 import { cn } from '@/lib/utils'
-import { workspaceInitials } from '@/lib/workspace/initials'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { DYNAMIC_NAVIGATION_QUERY } from '@/lib/settings/appearance'
@@ -71,17 +71,6 @@ function routePath(pathname: string): string {
 function isActive(pathname: string, href: string): boolean {
   const path = routePath(pathname)
   return href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`)
-}
-
-function WorkspaceBadge({ name }: { name: string }) {
-  return (
-    <span
-      aria-hidden
-      className="grid size-6 shrink-0 place-items-center rounded-md bg-gradient-to-br from-fuchsia-500 via-violet-500 to-indigo-500 text-[10px] font-semibold text-white"
-    >
-      {workspaceInitials(name) || 'W'}
-    </span>
-  )
 }
 
 function NavLink({
@@ -186,7 +175,11 @@ function WorkspaceSwitcher({
         collapsed && 'size-8 justify-center px-0'
       )}
     >
-      <WorkspaceBadge name={organizationName} />
+      <UserAvatar
+        name={session?.user.name || session?.user.email || 'Account'}
+        image={session?.user.image}
+        className="size-6"
+      />
       {collapsed ? null : (
         <>
           <span className="min-w-0 flex-1">
@@ -273,7 +266,7 @@ export function PlatformSidebar({
           <Brand collapsed={collapsed} />
         </div>
 
-        <div className="mt-5 min-h-0 flex-1 overflow-y-auto px-1 [scrollbar-width:none]">
+        <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-1 pt-1 [scrollbar-width:none]">
           <Navigation
             campaignsEnabled={campaignsEnabled}
             collapsed={collapsed}

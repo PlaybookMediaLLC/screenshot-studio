@@ -130,6 +130,7 @@ export const CANVAS_RECIPES: Record<
     outcome: RecipeOutcome
     screenshots: number
     artboards: string
+    preview?: { screenshots?: number; layout?: 'sequence' }
   }
 > = {
   'feature-announcement': {
@@ -146,6 +147,7 @@ export const CANVAS_RECIPES: Record<
     outcome: 'announce',
     screenshots: 0,
     artboards: '1 artboard · 16:9',
+    preview: { screenshots: 1 },
   },
   'product-launch': {
     name: 'Product launch',
@@ -153,6 +155,7 @@ export const CANVAS_RECIPES: Record<
     outcome: 'launch',
     screenshots: 1,
     artboards: '5 artboards · 16:9',
+    preview: { layout: 'sequence' },
   },
   walkthrough: {
     name: 'Feature walkthrough',

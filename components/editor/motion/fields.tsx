@@ -1,5 +1,6 @@
 'use client'
 
+import { toast } from 'sonner'
 import * as React from 'react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -46,7 +47,9 @@ export function NumberField({
           onChange={(event) => {
             const number = Number(event.target.value)
             if (event.target.value.trim() === '' || !Number.isFinite(number)) return
-            onChange(Math.min(max ?? Infinity, Math.max(min ?? -Infinity, number)))
+            const clamped = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, number))
+            if (clamped !== number) toast.error(`${label} must be ${min ?? '−∞'} to ${max ?? '∞'}${suffix ?? ''}. Kept within that range.`)
+            onChange(clamped)
           }}
           step={step}
           type="number"

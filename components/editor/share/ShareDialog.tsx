@@ -79,8 +79,8 @@ export function ShareDialog({
   const [title, setTitle] = React.useState('')
   const [description, setDescription] = React.useState('')
   const [altText, setAltText] = React.useState('')
-  const [access, setAccess] = React.useState<ShareAccess>('PUBLIC')
-  const [expiry, setExpiry] = React.useState<ShareExpiry>('never')
+  const [access, setAccess] = React.useState<ShareAccess>('WORKSPACE')
+  const [expiry, setExpiry] = React.useState<ShareExpiry>('7d')
   const [pending, setPending] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [link, setLink] = React.useState<ShareLink | null>(null)
@@ -115,6 +115,8 @@ export function ShareDialog({
       const blob = await render()
       const { assetId } = await saveExportToWorkspace({
         blob,
+        classification: 'export',
+        projectId: project.projectId ?? undefined,
         fileName: buildExportFileName(blob.type),
         trpcClient,
       })

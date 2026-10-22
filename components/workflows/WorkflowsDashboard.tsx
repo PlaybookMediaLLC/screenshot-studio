@@ -2,9 +2,10 @@
 
 import { Search01Icon, WorkflowSquare03Icon } from 'hugeicons-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNotificationPageVisible } from '@/lib/notifications/client'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { EmptyState, Group, Pill, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -26,6 +27,8 @@ import {
 import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
 import { FAMILY_NAMES } from './workflow-canvas'
 import { RunStatusPill, relativeTime, triggeringObject } from './workflow-ui'
+import { WorkflowArchiveButton } from './WorkflowArchiveButton'
+import { runHandler } from '@/lib/workflows/history'
 import { WorkflowRunLink } from './WorkflowRunLink'
 import { WorkflowSources } from './WorkflowSources'
 
@@ -33,14 +36,17 @@ const PAGE_SIZE = 10
 const STATES = {
   all: 'All workflows',
   active: 'Active',
-  inactive: 'Disabled',
+  inactive: 'Inactive',
+  disabled: 'Previously activated',
+  archived: 'Archived',
   draft: 'Never activated',
 }
 const SORTS = { priority: 'Priority', name: 'Name', lastRun: 'Last run', updated: 'Last edited' }
 
 function stateOf(definition: AutomationDefinition): keyof typeof STATES {
+  if (definition.archived) return 'archived'
   if (definition.enabled) return 'active'
-  return definition.activeVersionId ? 'inactive' : 'draft'
+  return definition.activeVersionId ? 'disabled' : 'draft'
 }
 
 function Stat({ href, label, value }: { href?: string; label: string; value: number }) {
@@ -63,19 +69,23 @@ function Stat({ href, label, value }: { href?: string; label: string; value: num
 
 /** Every workflow in the workspace, what is running, and what needs a person. */
 export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
+  const pageVisible = useNotificationPageVisible()
   const client = useTRPCClient()
-  const router = useRouter()
+  const params = useSearchParams()
+  const pathname = usePathname()
   const trpc = useTRPC()
   const overviewQuery = useQuery(
     trpc.releaseAutomation.overview.queryOptions(undefined, {
-      staleTime: 15_000,
-      refetchInterval: 15_000,
+      staleTime: 60_000,
+      refetchInterval: pageVisible ? 60_000 : false,
+      refetchIntervalInBackground: false,
     })
   )
   const recentQuery = useQuery(
     trpc.releaseAutomation.recentRuns.queryOptions(undefined, {
       staleTime: 15_000,
-      refetchInterval: 15_000,
+      refetchInterval: pageVisible ? 15_000 : false,
+      refetchIntervalInBackground: false,
     })
   )
   const overview = overviewQuery.data
@@ -86,11 +96,28 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
   const { refetch: refreshOverview } = overviewQuery
   const { refetch: refreshRecent } = recentQuery
   const [busy, setBusy] = useState(false)
-  const [query, setQuery] = useState('')
-  const [state, setState] = useState<keyof typeof STATES>('all')
-  const [family, setFamily] = useState<string>('all')
-  const [sort, setSort] = useState<keyof typeof SORTS>('priority')
-  const [page, setPage] = useState(0)
+  const query = params.get('q') ?? ''
+  const state = (
+    params.get('state') && params.get('state')! in STATES ? params.get('state') : 'all'
+  ) as keyof typeof STATES
+  const family = params.get('family') ?? 'all'
+  const sort = (
+    params.get('sort') && params.get('sort')! in SORTS ? params.get('sort') : 'priority'
+  ) as keyof typeof SORTS
+  const page = Math.max(0, Number.parseInt(params.get('page') ?? '0', 10) || 0)
+  function setFilter(key: string, value: string) {
+    const next = new URLSearchParams(params.toString())
+    if (value && value !== 'all') next.set(key, value)
+    else next.delete(key)
+    if (key !== 'page') next.delete('page')
+    window.history.replaceState(null, '', `${pathname}?${next}`)
+  }
+  const setQuery = (value: string) => setFilter('q', value)
+  const setState = (value: string) => setFilter('state', value)
+  const setFamily = (value: string) => setFilter('family', value)
+  const setSort = (value: string) => setFilter('sort', value)
+  const setPage = (value: number) => setFilter('page', String(value))
+  const clearFilters = () => window.history.replaceState(null, '', pathname)
 
   const load = useCallback(async () => {
     await Promise.all([refreshOverview(), refreshRecent()])
@@ -113,14 +140,19 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
     [overview]
   )
   const visible = useMemo(() => {
-    const search = query.trim().toLowerCase()
+    const search = query.trim().toLowerCase().replace(/\s+/g, ' ')
     const rows = (overview?.definitions ?? []).filter(
       (definition) =>
-        (state === 'all' || stateOf(definition) === state) &&
+        (state === 'all'
+          ? !definition.archived
+          : state === 'inactive'
+            ? !definition.enabled && !definition.archived
+            : stateOf(definition) === state) &&
         (family === 'all' || definition.draft.family === family) &&
         (!search ||
-          `${definition.name} ${definition.description} ${sources.get(definition.sourceAppId)?.name ?? ''}`
+          `${definition.name} ${definition.description} ${FAMILY_NAMES[definition.draft.family]} ${sources.get(definition.sourceAppId)?.name ?? ''}`
             .toLowerCase()
+            .replace(/\s+/g, ' ')
             .includes(search))
     )
     const key = (definition: AutomationDefinition) =>
@@ -133,7 +165,9 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
             : definition.enabled
               ? definition.activePriority
               : 10_000 + definition.priority
-    return rows.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0))
+    return rows.sort((a, b) =>
+      key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : a.id.localeCompare(b.id)
+    )
   }, [overview, query, state, family, sort, sources])
 
   if (!overview) {
@@ -149,27 +183,17 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
   }
 
   const counts = overview.runCounts ?? {}
+  const current = overview.definitions.filter((definition) => !definition.archived)
+  const legacyTotal = Object.values(overview.legacyRunCounts ?? {}).reduce(
+    (sum, value) => sum + value,
+    0
+  )
   const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
-  const shown = visible.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
+  const currentPage = Math.min(page, pages - 1)
+  const shown = visible.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE)
   const definitionName = (id: string | null) =>
     overview.definitions.find((definition) => definition.id === id)?.name
   const campaigns = recent.filter((item) => item.run.outputs.campaignId).slice(0, 5)
-
-  function duplicate(definition: AutomationDefinition) {
-    perform(async () => {
-      const copy = await client.releaseAutomation.save.mutate({
-        id: '',
-        sourceAppId: definition.sourceAppId,
-        name: `${definition.name} (copy)`.slice(0, 160),
-        description: definition.description,
-        priority: definition.priority,
-        expectedRevision: 0,
-        graph: definition.draft,
-        layout: definition.layout,
-      })
-      router.push(`/workflows/${copy.id}`)
-    })
-  }
 
   return (
     <div className="flex flex-col gap-10">
@@ -189,58 +213,70 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
 
       <section
         aria-label="Workflow summary"
-        className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-9"
+        className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-5"
       >
-        <Stat label="Workflows" value={overview.definitions.length} />
+        <Stat href="/workflows#definitions" label="Workflows" value={current.length} />
         <Stat
+          href="/workflows?state=active#definitions"
           label="Active"
-          value={overview.definitions.filter((definition) => definition.enabled).length}
+          value={current.filter((definition) => definition.enabled).length}
         />
         <Stat
+          href="/workflows?state=inactive#definitions"
           label="Inactive"
-          value={overview.definitions.filter((definition) => !definition.enabled).length}
+          value={current.filter((definition) => !definition.enabled).length}
         />
         <Stat
-          href="/workflows/runs?status=running"
+          href="/workflows/runs?mode=automation&status=running"
           label="Running now"
-          value={(counts.queued ?? 0) + (counts.running ?? 0)}
+          value={counts.running ?? 0}
         />
         <Stat
-          href="/workflows/runs?status=succeeded"
-          label="Succeeded"
+          href="/workflows/runs?mode=automation&status=succeeded"
+          label="Automation succeeded"
           value={counts.succeeded ?? 0}
         />
-        <Stat href="/workflows/runs?status=skipped" label="Skipped" value={counts.skipped ?? 0} />
-        <Stat href="/workflows/runs?status=failed" label="Failed" value={counts.failed ?? 0} />
         <Stat
-          href="/workflows/runs?status=needs_attention"
+          href="/workflows/runs?mode=automation&status=failed"
+          label="Automation failed"
+          value={counts.failed ?? 0}
+        />
+        <Stat
+          href="/workflows/runs?mode=automation&status=needs_attention"
           label="Need attention"
           value={counts.needs_attention ?? 0}
         />
         <Stat
+          href="/workflows/runs?mode=automation&status=queued"
+          label="Queued"
+          value={counts.queued ?? 0}
+        />
+        <Stat
+          href="/workflows/runs?mode=automation&status=skipped"
+          label="Skipped"
+          value={counts.skipped ?? 0}
+        />
+        <Stat
+          href="/workflows#sources"
           label="Connected sources"
           value={overview.sources.filter((source) => source.connectionState === 'connected').length}
         />
       </section>
 
+      <p className="-mt-6 text-xs text-neutral-500">
+        Run totals cover automation events.{' '}
+        <Link className="underline" href="/workflows/runs?mode=legacy">
+          Legacy intake: {legacyTotal} events
+        </Link>
+        , counted separately.
+      </p>
+      <div id="definitions" />
       <Section
-        actions={
-          canManage ? (
-            <ButtonLink href="/workflows/new" size="sm">
-              New workflow
-            </ButtonLink>
-          ) : null
-        }
         description="Each workflow runs one GitHub event family for one repository. Lower priority wins; the first match runs."
         title="Definitions"
       >
         {overview.definitions.length === 0 ? (
           <EmptyState
-            action={
-              canManage ? (
-                <ButtonLink href="/workflows/new">Start from a template</ButtonLink>
-              ) : null
-            }
             description="Turn a published release, a merged pull request, or a production deployment into campaign drafts for review."
             icon={WorkflowSquare03Icon}
             title="No workflows yet"
@@ -258,13 +294,15 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                   className="h-9 w-full rounded-lg bg-white/[0.03] pr-3 pl-9 text-sm"
                   onChange={(event) => {
                     setQuery(event.target.value)
-                    setPage(0)
                   }}
                   placeholder="Search"
                   type="search"
                   value={query}
                 />
               </Label>
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
               {(
                 [
                   ['Filter by state', state, setState, STATES],
@@ -289,7 +327,6 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                   key={label}
                   onValueChange={(next) => {
                     ;(set as (value: string) => void)(next)
-                    setPage(0)
                   }}
                   value={value}
                 >
@@ -310,11 +347,28 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
               {shown.length === 0 ? (
                 <Row>
                   <p className="text-sm text-neutral-500">No workflows match these filters.</p>
+
                 </Row>
               ) : (
                 shown.map((definition) => {
                   const source = sources.get(definition.sourceAppId)
                   const definitionState = stateOf(definition)
+                  const order = current
+                    .filter(
+                      (candidate) =>
+                        candidate.sourceAppId === definition.sourceAppId &&
+                        candidate.draft.family === definition.draft.family &&
+                        candidate.enabled
+                    )
+                    .sort((a, b) => a.activePriority - b.activePriority || a.id.localeCompare(b.id))
+                  const ties = current.filter(
+                    (candidate) =>
+                      candidate.id !== definition.id &&
+                      candidate.sourceAppId === definition.sourceAppId &&
+                      candidate.draft.family === definition.draft.family &&
+                      (candidate.enabled ? candidate.activePriority : candidate.priority) ===
+                        (definition.enabled ? definition.activePriority : definition.priority)
+                  )
                   return (
                     <Row
                       description={
@@ -341,13 +395,27 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                             </time>
                           </span>
                           {definition.issues.map((issue, index) => (
-                            <span
-                              className="block text-amber-500"
-                              key={`${issue.nodeId}-${issue.code}-${index}`}
+                            <Link
+                              key={index}
+                              className="block text-amber-300 underline"
+                              href={`/workflows/${definition.id}?node=${encodeURIComponent(issue.nodeId)}`}
                             >
-                              {issue.message}
-                            </span>
+                              {issue.message} · Fix in editor
+                            </Link>
                           ))}
+                          {ties.length ? (
+                            <span className="block text-amber-300">
+                              Priority tie with {ties.map((item) => item.name).join(', ')}. Active
+                              ties run by definition ID; inactive drafts do not compete.
+                            </span>
+                          ) : null}
+                          {definition.enabled && order.length > 1 ? (
+                            <span className="block">
+                              Run order {order.findIndex((item) => item.id === definition.id) + 1}{' '}
+                              of {order.length}. {order[0]?.name} is checked first; the first match
+                              wins.
+                            </span>
+                          ) : null}
                         </>
                       }
                       key={definition.id}
@@ -359,6 +427,12 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                           <Pill tone={definitionState === 'active' ? 'green' : 'gray'}>
                             {STATES[definitionState]}
                           </Pill>
+                          {definition.issues.length ? (
+                            <Pill tone="yellow">
+                              {definition.issues.length} validation{' '}
+                              {definition.issues.length === 1 ? 'issue' : 'issues'}
+                            </Pill>
+                          ) : null}
                         </span>
                       }
                     >
@@ -384,15 +458,18 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                         </ButtonLink>
                         {canManage ? (
                           <>
-                            <Button
-                              disabled={busy}
-                              onClick={() => duplicate(definition)}
+                            <ButtonLink
+                              href={`/workflows/${definition.id}?copy=1`}
                               size="sm"
-                              type="button"
                               variant="ghost"
                             >
                               Duplicate<span className="sr-only"> {definition.name}</span>
-                            </Button>
+                            </ButtonLink>
+                            <WorkflowArchiveButton
+                              definition={definition}
+                              disabled={busy}
+                              onChanged={() => void load()}
+                            />
                             {definition.enabled ? (
                               <Button
                                 disabled={busy}
@@ -410,7 +487,7 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                               >
                                 Deactivate<span className="sr-only"> {definition.name}</span>
                               </Button>
-                            ) : (
+                            ) : !definition.archived ? (
                               <Button
                                 disabled={
                                   busy ||
@@ -436,7 +513,7 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                               >
                                 Activate<span className="sr-only"> {definition.name}</span>
                               </Button>
-                            )}
+                            ) : null}
                           </>
                         ) : null}
                       </div>
@@ -451,19 +528,19 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                 className="flex items-center justify-end gap-2 text-sm"
               >
                 <Button
-                  disabled={page === 0}
-                  onClick={() => setPage(page - 1)}
+                  disabled={currentPage === 0}
+                  onClick={() => setPage(currentPage - 1)}
                   size="sm"
                   variant="outline"
                 >
                   Previous
                 </Button>
                 <span className="text-neutral-500">
-                  Page {page + 1} of {pages}
+                  Page {currentPage + 1} of {pages}
                 </span>
                 <Button
-                  disabled={page + 1 >= pages}
-                  onClick={() => setPage(page + 1)}
+                  disabled={currentPage + 1 >= pages}
+                  onClick={() => setPage(currentPage + 1)}
                   size="sm"
                   variant="outline"
                 >
@@ -493,7 +570,7 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
             ) : (
               recent.slice(0, 6).map((item) => (
                 <Row
-                  description={`${definitionName(item.run.definitionId) ?? 'No workflow selected'} · ${triggeringObject(item)} · ${relativeTime(item.event.receivedAt)}`}
+                  description={`${definitionName(item.run.definitionId) ?? runHandler(item)} · ${triggeringObject(item)} · ${relativeTime(item.event.receivedAt)}`}
                   key={item.run.id}
                   label={
                     <WorkflowRunLink

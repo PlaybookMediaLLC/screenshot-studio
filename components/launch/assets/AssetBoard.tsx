@@ -205,20 +205,24 @@ function VisualCard({
         </div>
         {visual.critique ? (
           <CritiqueSummary critique={visual.critique} />
-        ) : visual.designId ? (
-          <p className="text-xs text-muted-foreground">Not reviewed yet.</p>
-        ) : null}
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            No automated review is available. Check this visual before approving.
+          </p>
+        )}
         {/* An open revise panel is a div and takes the full row. */}
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1 [&>div]:basis-full">
-          <ButtonLink
-            className="h-8 rounded-lg text-xs"
-            href={visual.editHref}
-            size="sm"
-            variant="outline"
-          >
-            Open in editor
-          </ButtonLink>
-          {visual.designId ? (
+          {options.canEdit ? (
+            <ButtonLink
+              className="h-8 rounded-lg text-xs"
+              href={visual.editHref}
+              size="sm"
+              variant="outline"
+            >
+              Open in editor
+            </ButtonLink>
+          ) : null}
+          {options.canEdit && visual.designId ? (
             <ButtonLink
               className="h-8 rounded-lg text-xs"
               href={`/canvas/new?design=${visual.designId}`}
@@ -228,13 +232,11 @@ function VisualCard({
               Edit in Canvas
             </ButtonLink>
           ) : null}
-          {options.canApprove &&
-          visual.designId &&
-          visual.renderedAssetId &&
-          (changed || !approved) ? (
+          {options.canApprove && visual.renderedAssetId && (changed || !approved) ? (
             <ApproveVisualButton
               campaignId={options.campaignId}
-              designId={visual.designId}
+              designId={visual.designId ?? undefined}
+              assetId={!visual.designId ? visual.renderedAssetId : undefined}
               label={changed ? 'Approve new render' : 'Approve visual'}
             />
           ) : null}
@@ -323,7 +325,7 @@ function PlanAssetVisuals({
               <div className="mt-4">
                 <VisualGrid
                   format={format}
-                  options={options}
+                  options={{ ...options, canApprove: false, canEdit: false }}
                   planCreatedAt={planCreatedAt}
                   visuals={earlier}
                 />

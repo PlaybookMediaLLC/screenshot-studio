@@ -130,6 +130,7 @@ export const automationDefinitionSchema = z.object({
   priority: z.number(),
   revision: z.number(),
   enabled: z.boolean(),
+  archived: z.boolean().optional(),
   activeVersionId: z.string().nullable(),
   activePriority: z.number(),
   draft: automationGraphSchema,
@@ -192,10 +193,7 @@ export const automationPreviewInputSchema = z
     example: automationEventSchema.optional(),
     assumeIrrelevant: z.boolean().optional(),
   })
-  .refine(
-    (value) => Boolean(value.eventId) !== Boolean(value.example),
-    'Choose an example or recorded event.'
-  )
+  .refine(({ eventId, example }) => !!eventId !== !!example, 'Choose one event or example.')
 
 /** A condition's explicit result; unresolved evidence never chooses an else branch. */
 export const automationDecisionSchema = z.object({
@@ -264,6 +262,7 @@ export const automationOverviewSchema = z.object({
   executorAvailable: z.boolean(),
   executor: automationExecutorSchema.optional(),
   actions: z.array(automationActionAvailabilitySchema).optional(),
+  legacyRunCounts: z.record(z.string(), z.number().int()).optional(),
   runCounts: z.record(z.string(), z.number().int()).optional(),
 })
 

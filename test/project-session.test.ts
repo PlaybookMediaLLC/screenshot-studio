@@ -135,6 +135,38 @@ test('a comparison names the sections that changed', () => {
   editHeadline('After')
   useImageStore.getState().setBackgroundOpacity(0.5)
   const after = exportDesignDocument()
-  assert.deepEqual(changedSections(before, after).sort(), ['background', 'texts'])
+  assert.deepEqual(changedSections(before, after).sort(), ['background', 'layerOrder', 'texts'])
   assert.deepEqual(changedSections(after, after), [])
+})
+
+test('slide selection, playback, and layout measurement do not save a project', async () => {
+  useImageStore.setState(useImageStore.getInitialState(), true)
+  const slides = [
+    { id: 'one', src: 'https://example.com/one.png', name: 'one.png', duration: 2 },
+    { id: 'two', src: 'https://example.com/two.png', name: 'two.png', duration: 2 },
+  ]
+  useImageStore.setState({
+    slides,
+    activeSlideId: 'one',
+    uploadedImageUrl: slides[0].src,
+    imageName: slides[0].name,
+  })
+  const fake = fakeClient()
+  await createProjectFromEditor(fake.client, 'Slides')
+  const { usePlaybackStore } = await import('../lib/store/playback')
+  usePlaybackStore.getState().play()
+  usePlaybackStore.getState().seek(2500)
+  useImageStore.getState().setActiveSlide('two')
+  useImageStore
+    .getState()
+    .setCanvasDimensions({ canvasW: 1200, canvasH: 900, framedW: 1000, framedH: 800 })
+  assert.equal(useProjectSession.getState().status, 'saved')
+  await saveProjectNow()
+  assert.equal(fake.writes.length, 0)
+  editHeadline('A real edit while viewing slide two')
+  await saveProjectNow()
+  assert.equal(fake.writes.length, 1)
+  usePlaybackStore.getState().pause()
+  closeProject()
+  useImageStore.setState(useImageStore.getInitialState(), true)
 })

@@ -77,7 +77,12 @@ function wrap(context: CanvasRenderingContext2D, text: string, width: number, ma
     while (last && context.measureText(`${last}…`).width > width) last = last.slice(0, -1)
     lines[maxLines - 1] = `${last.trimEnd()}…`
   }
-  return lines
+  return lines.map((line) => {
+    if (context.measureText(line).width <= width) return line
+    const chars = [...line]
+    while (chars.length && context.measureText(`${chars.join('')}…`).width > width) chars.pop()
+    return `${chars.join('')}…`
+  })
 }
 
 function text(
@@ -302,6 +307,11 @@ export function ImageStudio({
   const [shot, setShot] = useState<HTMLImageElement | null>(null)
   const [capturing, setCapturing] = useState(false)
   const [captureError, setCaptureError] = useState('')
+  const [exportError, setExportError] = useState('')
+  const generatedUrl = useRef<string | null>(null)
+  useEffect(() => () => {
+    if (generatedUrl.current) URL.revokeObjectURL(generatedUrl.current)
+  }, [])
 
   useEffect(() => {
     const context = canvas.current?.getContext('2d')
@@ -348,20 +358,42 @@ export function ImageStudio({
     }
   }
 
-  const toBlob = () =>
-    new Promise<Blob>((resolve, reject) =>
-      canvas.current?.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error('The image could not be made.'))),
-        'image/png'
+  async function toBlob(): Promise<Blob> {
+    const element = canvas.current
+    const context = element?.getContext('2d')
+    if (!element || !context) throw new Error('The image could not be made.')
+    await document.fonts.ready
+    draw(context, { host: hostname(url), palette, shot, site, subtitle, template, title })
+    for (const quality of [0.92, 0.8, 0.65, 0.45]) {
+      const blob = await new Promise<Blob | null>((resolve) =>
+        element.toBlob(resolve, 'image/jpeg', quality)
       )
-    )
+      if (blob && blob.size <= 600 * 1024) return blob
+    }
+    throw new Error('The image is over 600 KB. Try a simpler layout or remove the screenshot.')
+  }
+
+  async function exportImage(download: boolean) {
+    setExportError('')
+    try {
+      const blob = await toBlob()
+      if (download) downloadBlob(`${hostname(url)}-${template}-preview.jpg`, blob)
+      else {
+        if (generatedUrl.current) URL.revokeObjectURL(generatedUrl.current)
+        generatedUrl.current = URL.createObjectURL(blob)
+        onUse(generatedUrl.current)
+      }
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'The image could not be made.')
+    }
+  }
 
   return (
     <section className={cn(PANEL, 'space-y-5 p-5')}>
       <div>
         <h3 className="text-sm font-medium text-foreground">Create a preview image</h3>
         <p className="text-xs text-muted-foreground">
-          A 1200 × 630 PNG from the page&apos;s own copy, in your brand color or a preset.
+          A 1200 × 630 JPEG under 600 KB from the page&apos;s own copy, in your brand color or a preset.
         </p>
       </div>
       <canvas
@@ -461,7 +493,7 @@ export function ImageStudio({
         <Button
           type="button"
           size="sm"
-          onClick={async () => onUse(URL.createObjectURL(await toBlob()))}
+          onClick={() => exportImage(false)}
         >
           <Eye />
           Preview on every platform
@@ -470,12 +502,13 @@ export function ImageStudio({
           type="button"
           variant="outline"
           size="sm"
-          onClick={async () => downloadBlob(`${hostname(url)}-og-image.png`, await toBlob())}
+          onClick={() => exportImage(true)}
         >
           <Download />
-          Download PNG
+          Download JPEG
         </Button>
-        <SaveToWorkspaceButton createExport={toBlob} />
+        <SaveToWorkspaceButton createExport={toBlob} fileName={`${hostname(url)}-${template}-preview.jpg`} />
+        {exportError && <p role="alert" className="w-full text-sm text-red-400">{exportError}</p>}
       </div>
     </section>
   )

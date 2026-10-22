@@ -77,6 +77,7 @@ test('unsaved changes survive a reload before autosave runs', async ({ identity,
   await expect(projectButton(page, 'Interrupted', 'Offline, saved on this device')).toBeVisible({
     timeout: 30_000,
   })
+  await expect(page.getByText('Your project has not been saved', { exact: true })).toBeVisible()
   // Let the draft autosave (1 s) write the edit before reloading.
   await page.waitForTimeout(2_000)
   await page.reload()
@@ -153,6 +154,9 @@ test('the library searches, duplicates, and deletes, and other workspaces see no
       otherPage
     )
     expect((await trpcQuery(otherPage, 'project.get', { projectId })).status).toBe(404)
+    expect((await trpcMutation(otherPage, 'canvas.openProject', { projectId })).status).toBe(404)
+    const canvases = await trpcQuery(otherPage, 'canvas.list', {})
+    expect((canvases.body as { items: unknown[] }).items).toHaveLength(0)
     const list = await trpcQuery(otherPage, 'project.list', {})
     expect((list.body as { items: unknown[] }).items).toHaveLength(0)
     const write = await trpcMutation(otherPage, 'project.updateDocument', {

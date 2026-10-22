@@ -1,3 +1,4 @@
+import { normalizeMentions } from './normalize-mentions'
 import { POST_BREAK, serializeDraft } from '@/lib/content-drafts/serialize'
 import {
   type DraftChannel,
@@ -47,7 +48,7 @@ export function postBreak(settings: PostSettings = {}): PostBreakNode {
  * row at the start (two editors adding one at once) keep the first.
  */
 export function normalizePosts(body: PlateBody): PlateBody {
-  const nodes = [...(body as Node[])]
+  const nodes = [...(normalizeMentions(body) as Node[])]
   while (nodes.length > 1 && nodes[0]?.type === POST_BREAK && nodes[1]?.type === POST_BREAK) {
     nodes.splice(1, 1)
   }

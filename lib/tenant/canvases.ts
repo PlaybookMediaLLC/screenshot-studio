@@ -111,9 +111,9 @@ export async function duplicateCanvas(context: TenantContext, canvasId: string, 
 }
 
 /** Archive a canvas, keeping its history and delivered references; false when it is not here. */
-export async function archiveCanvas(context: TenantContext, canvasId: string) {
+export async function archiveCanvas(context: TenantContext, canvasId: string, archived = true) {
   if (!(await canvasRow(context, canvasId))) return false
-  return (await orNull(backendSDK(context).archiveCreativeSet(canvasId))) !== null
+  return (await orNull(backendSDK(context).archiveCreativeSet(canvasId, archived))) !== null
 }
 
 /** A canvas's versions, newest first, without documents; null when it is not here. */
@@ -169,4 +169,9 @@ export async function attachCanvasDelivery(context: TenantContext, input: Canvas
   const { canvasId, ...handoff } = input
   if (!(await canvasRow(context, canvasId))) return null
   return backendSDK(context).attachCreativeSetDelivery(canvasId, handoff)
+}
+
+/** Permanently remove a workspace canvas and its history. */
+export async function deleteCanvas(context: TenantContext, canvasId: string) {
+  return backendSDK(context).deleteCanvas(canvasId)
 }

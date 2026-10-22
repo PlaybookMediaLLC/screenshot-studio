@@ -1,6 +1,4 @@
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
-import { socialSetHref } from '@/components/workspace/settings-sections'
 import { DraftSettingsForm } from '@/components/drafts/DraftSettingsForm'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { WriteFrame } from '@/components/write/WriteFrame'
@@ -22,7 +20,6 @@ export default async function WriteSettingsPage({ params, searchParams }: Settin
   const access = await requireDraftsPageAccess(locale, '/write/settings')
   const canManageSets = hasPermission(access.role, 'workspace:update')
   const data = await loadWrite(access.tenant, await searchParams)
-  if (data.activeSet) redirect(`/${locale}${socialSetHref(data.activeSet.id, 'scheduling')}`)
   const settings = await getContentDraftSettings(access.tenant)
   return (
     <PlatformShell

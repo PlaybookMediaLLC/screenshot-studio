@@ -1,7 +1,11 @@
 'use client'
 
-import { Album02Icon, MoreHorizontalIcon, Video01Icon } from 'hugeicons-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { Album02Icon, MoreHorizontalIcon } from 'hugeicons-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { TRPCClientError } from '@trpc/client'
+import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { EmptyState } from '@/components/platform-ui'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
@@ -14,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useTRPCClient } from '@/lib/trpc/react'
+import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { getErrorMessage } from './settings-client'
 import { Label } from '@/components/ui/label'
@@ -35,6 +39,7 @@ import {
  */
 
 type AssetSummary = {
+  fileName?: string
   bytes: number
   createdAt: string | Date
   height: number | null
@@ -68,50 +73,54 @@ function describeType(mediaType: string): string {
   return `${(subtype ?? '').replace(/^x-/, '').toUpperCase()} ${kind}`.trim()
 }
 
-/**
- * Assets are private, so each preview needs a signed URL. It is signed only
- * once the card nears the viewport: the tRPC client batches the visible
- * cards into one request, and assets nobody scrolls to get no URL at all.
- */
-function AssetPreview({ asset }: { asset: AssetSummary }) {
-  const trpcClient = useTRPCClient()
-  const ref = useRef<HTMLDivElement>(null)
-  const [url, setUrl] = useState<string | null>(null)
+/** Stable private URLs avoid reusing expired signatures and resize image previews. */
+function AssetPreview({
+  asset,
+  onMetadataAvailable,
+}: {
+  asset: AssetSummary
+  onMetadataAvailable: () => void
+}) {
+  const notified = useRef(false)
+  const [failed, setFailed] = useState(false)
+  const isImage = asset.mediaType.startsWith('image/')
   const isVideo = asset.mediaType.startsWith('video/')
-  const isFont = asset.mediaType.startsWith('font/')
-
-  useEffect(() => {
-    const element = ref.current
-    if (!element || isFont) return
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return
-        observer.disconnect()
-        trpcClient.asset.signDownload
-          .query({ assetId: asset.id })
-          .then((result) => setUrl(result.downloadUrl))
-          .catch(() => undefined)
-      },
-      { rootMargin: '200px' }
-    )
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [asset.id, trpcClient, isFont])
+  const url = `/api/v1/assets/${asset.id}/content${isImage ? '?variant=thumbnail' : ''}`
 
   return (
-    <div
-      className="relative grid aspect-[16/10] place-items-center overflow-hidden bg-[radial-gradient(circle_at_center,#1a1a1a,#0c0c0c)]"
-      ref={ref}
-    >
-      {isFont ? <span className="text-4xl text-foreground/65" aria-label="Font file">Aa</span> : url && isVideo ? (
-        <video className="size-full object-contain" muted preload="metadata" src={url} />
-      ) : url ? (
-        // A signed, short-lived storage URL, so a plain img: next/image would cache it.
-        <img alt="" className="size-full object-contain p-3" loading="lazy" src={url} />
+    <div className="relative grid aspect-[16/10] place-items-center overflow-hidden bg-[radial-gradient(circle_at_center,#1a1a1a,#0c0c0c)]">
+      {failed ? (
+        <span role="status" className="text-sm text-muted-foreground">
+          Preview unavailable
+        </span>
+      ) : isImage ? (
+        // Private endpoint: next/image's shared optimizer must not cache tenant content.
+        <img
+          alt={`${describeType(asset.mediaType)} preview`}
+          className="absolute inset-0 size-full object-contain p-3"
+          loading="lazy"
+          src={url}
+          onError={() => setFailed(true)}
+          onLoad={() => {
+            if ((!asset.width || !asset.height) && !notified.current) {
+              notified.current = true
+              onMetadataAvailable()
+            }
+          }}
+        />
       ) : isVideo ? (
-        <Video01Icon className="text-muted-foreground/50" size={28} />
+        <video
+          className="absolute inset-0 size-full object-contain"
+          muted
+          preload="none"
+          controls
+          src={url}
+          onError={() => setFailed(true)}
+        />
       ) : (
-        <div className="size-full animate-pulse bg-foreground/[0.02]" />
+        <span className="text-4xl text-foreground/65" aria-label={describeType(asset.mediaType)}>
+          {asset.mediaType.startsWith('font/') ? 'Aa' : 'File'}
+        </span>
       )}
     </div>
   )
@@ -119,49 +128,57 @@ function AssetPreview({ asset }: { asset: AssetSummary }) {
 
 export function WorkspaceAssets() {
   const trpcClient = useTRPCClient()
-  const [assets, setAssets] = useState<AssetSummary[]>([])
-  const [cursor, setCursor] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
-  const [sort, setSort] = useState<'newest' | 'oldest'>('newest')
-  // The id of the asset whose delete awaits confirmation, so one stray
-  // click cannot destroy work.
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const searchParams = useSearchParams()
+  const search = searchParams.get('search') ?? ''
+  const classificationParam = searchParams.get('classification')
+  const classification = classificationParam === 'input' || classificationParam === 'export' ? classificationParam : undefined
+  const typeParam = searchParams.get('type')
+  const typeFilter: TypeFilter = typeParam === 'image' || typeParam === 'video' ? typeParam : 'all'
+  const sort = searchParams.get('sort') === 'oldest' ? 'oldest' : 'newest'
+  const options = trpc.asset.list.infiniteQueryOptions(
+    { limit: PAGE_SIZE, type: typeFilter, sort, search: search || undefined, classification },
+    {
+      getNextPageParam: (page) => page.nextCursor,
+    }
+  )
+  const query = useInfiniteQuery(options)
+  const assets = useMemo(() => query.data?.pages.flatMap((page) => page.assets) ?? [], [query.data])
+  const isLoading = query.isPending
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const deleting = useRef(false)
+  const metadataRefresh = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const confirmButton = useRef<HTMLButtonElement>(null)
 
-  const loadPage = useCallback(
-    async (after?: string): Promise<void> => {
-      setIsLoading(true)
-      try {
-        const result = await trpcClient.asset.list.query({
-          ...(after ? { cursor: after } : {}),
-          limit: PAGE_SIZE,
-        })
-        // Append rather than replace, so paging forward keeps what the
-        // reader has already scrolled past.
-        setAssets((current) => (after ? [...current, ...result.assets] : result.assets))
-        setCursor(result.nextCursor)
-        setError(null)
-      } catch (requestError) {
-        setError(getErrorMessage(requestError))
-      } finally {
-        setIsLoading(false)
-      }
+  function refreshMetadata(): void {
+    if (metadataRefresh.current) clearTimeout(metadataRefresh.current)
+    metadataRefresh.current = setTimeout(() => {
+      void queryClient.invalidateQueries(trpc.asset.list.pathFilter())
+    }, 250)
+  }
+
+  useEffect(
+    () => () => {
+      if (metadataRefresh.current) clearTimeout(metadataRefresh.current)
     },
-    [trpcClient]
+    []
   )
 
   useEffect(() => {
-    void loadPage()
-  }, [loadPage])
+    const refresh = (event: PageTransitionEvent) => {
+      if (event.persisted) void queryClient.invalidateQueries(trpc.asset.list.pathFilter())
+    }
+    window.addEventListener('pageshow', refresh)
+    return () => window.removeEventListener('pageshow', refresh)
+  }, [queryClient, trpc])
 
-  const visible = useMemo(() => {
-    const filtered = assets.filter(
-      (asset) => typeFilter === 'all' || asset.mediaType.startsWith(`${typeFilter}/`)
-    )
-    return sort === 'newest' ? filtered : [...filtered].reverse()
-  }, [assets, sort, typeFilter])
+  function updateView(key: 'type' | 'sort' | 'search' | 'classification', value: string): void {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set(key, value)
+    window.history.replaceState(null, '', `?${params}`)
+  }
 
   async function handleOpen(assetId: string): Promise<void> {
     try {
@@ -173,37 +190,39 @@ export function WorkspaceAssets() {
   }
 
   async function handleDelete(assetId: string): Promise<void> {
+    if (deleting.current) return
+    deleting.current = true
     setDeletingId(assetId)
+    let alreadyDeleted = false
     try {
-      await trpcClient.asset.delete.mutate({ assetId })
-      setAssets((current) => current.filter((asset) => asset.id !== assetId))
+      try {
+        await trpcClient.asset.delete.mutate({ assetId })
+      } catch (requestError) {
+        // A teammate may already have deleted the asset. The desired state is reached.
+        if (!(requestError instanceof TRPCClientError) || requestError.data?.code !== 'NOT_FOUND')
+          throw requestError
+        alreadyDeleted = true
+      }
+      queryClient.setQueryData(options.queryKey, (current) =>
+        current
+          ? {
+              ...current,
+              pages: current.pages.map((page) => ({
+                ...page,
+                assets: page.assets.filter((asset) => asset.id !== assetId),
+              })),
+            }
+          : current
+      )
+      toast.success('Asset deleted')
+      if (alreadyDeleted) await queryClient.invalidateQueries(trpc.asset.list.pathFilter())
     } catch (requestError) {
-      // The server refuses when a creative variant still references the
-      // asset, and its message says so. Show it rather than translate it.
       toast.error('Could not delete the asset', { description: getErrorMessage(requestError) })
     } finally {
+      deleting.current = false
       setDeletingId(null)
       setConfirmingDeleteId(null)
     }
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    )
-  }
-
-  if (!isLoading && assets.length === 0) {
-    return (
-      <EmptyState
-        action={<ButtonLink href="/">Open the editor</ButtonLink>}
-        description="Open the editor, compose a screenshot, then choose Save to workspace to keep it here for your team."
-        icon={Album02Icon}
-        title="No saved assets yet"
-      />
-    )
   }
 
   return (
@@ -215,7 +234,9 @@ export function WorkspaceAssets() {
           role="group"
         >
           {TYPE_FILTERS.map((filter) => (
-            <Button variant="custom" size={null}
+            <Button
+              variant="custom"
+              size={null}
               aria-pressed={typeFilter === filter.value}
               className={cn(
                 'rounded-md px-3 py-1 text-sm font-medium transition-colors',
@@ -224,7 +245,7 @@ export function WorkspaceAssets() {
                   : 'text-muted-foreground hover:text-foreground'
               )}
               key={filter.value}
-              onClick={() => setTypeFilter(filter.value)}
+              onClick={() => updateView('type', filter.value)}
               type="button"
             >
               {filter.label}
@@ -233,10 +254,7 @@ export function WorkspaceAssets() {
         </div>
         <Label className="flex items-center gap-2 text-sm text-muted-foreground">
           Sort
-          <Select
-            onValueChange={(nextValue) => setSort(nextValue as 'newest' | 'oldest')}
-            value={sort}
-          >
+          <Select onValueChange={(nextValue) => updateView('sort', nextValue)} value={sort}>
             <SelectTrigger className="h-8 rounded-lg bg-foreground/[0.03] px-2 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none">
               <SelectValue />
             </SelectTrigger>
@@ -248,6 +266,25 @@ export function WorkspaceAssets() {
         </Label>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3">
+        <Input className="max-w-sm" type="search" placeholder="Search filenames" aria-label="Search assets by filename" value={search} maxLength={200} onChange={(event) => updateView('search', event.target.value)} />
+        <Select value={classification ?? 'all'} onValueChange={(value) => updateView('classification', value)}>
+          <SelectTrigger aria-label="Asset source"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="all">All sources</SelectItem><SelectItem value="export">Saved exports</SelectItem><SelectItem value="input">Uploaded originals</SelectItem></SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Files in this workspace are shared with its members.</p>
+      </div>
+      {query.error ? (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {getErrorMessage(query.error)}{' '}
+            <Button variant="ghost" onClick={() => void query.refetch()}>
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       {isLoading && assets.length === 0 ? (
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }, (_, index) => (
@@ -257,13 +294,24 @@ export function WorkspaceAssets() {
             />
           ))}
         </ul>
-      ) : visible.length === 0 ? (
-        <p className="py-16 text-center text-sm text-muted-foreground">
-          No {typeFilter === 'video' ? 'videos' : 'images'} saved yet.
-        </p>
+      ) : assets.length === 0 && !query.error ? (
+        <EmptyState
+          action={<ButtonLink href="/">Open the editor</ButtonLink>}
+          description={
+            typeFilter === 'video'
+              ? 'Export a video in the editor and choose Save to workspace to keep it here for your team.'
+              : 'Compose a screenshot in the editor and choose Save to workspace to keep it here for your team.'
+          }
+          icon={Album02Icon}
+          title={
+            typeFilter === 'all'
+              ? 'No saved assets yet'
+              : `No ${typeFilter === 'video' ? 'videos' : 'images'} saved yet`
+          }
+        />
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {visible.map((asset) => {
+          {assets.map((asset) => {
             const dimensions = formatDimensions(asset)
             const isImage = asset.mediaType.startsWith('image/')
             const isConfirmingDelete = confirmingDeleteId === asset.id
@@ -273,12 +321,18 @@ export function WorkspaceAssets() {
                 className="group overflow-hidden rounded-xl bg-foreground/[0.02] ring-1 ring-foreground/[0.08] transition hover:ring-foreground/[0.16]"
                 key={asset.id}
               >
-                <AssetPreview asset={asset} />
+                {asset.mediaType.startsWith('video/') ? <AssetPreview asset={asset} onMetadataAvailable={refreshMetadata} /> : (
+                  <a className="block focus-visible:ring-2" href={`/api/v1/assets/${asset.id}/content`} target="_blank" rel="noopener noreferrer" aria-label={`Open ${asset.fileName || describeType(asset.mediaType)}`}>
+                    <AssetPreview asset={asset} onMetadataAvailable={refreshMetadata} />
+                  </a>
+                )}
                 <div className="flex items-start justify-between gap-3 border-t border-foreground/[0.06] px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">
-                      {describeType(asset.mediaType)}
+                      {asset.fileName || `${describeType(asset.mediaType)} · ${asset.id.slice(0, 8)}`}
                     </p>
+                    {asset.projectName ? <a className="block truncate text-xs text-primary underline" href={`/?project=${asset.projectId}`}>From {asset.projectName}</a> : null}
+                    <p className="text-xs text-muted-foreground">{asset.classification === 'export' ? 'Saved export' : asset.classification === 'input' ? 'Uploaded original' : 'Workspace asset'}{asset.uploadedBy ? ` · ${asset.uploadedBy}` : ''}</p>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       {[dimensions, formatBytes(asset.bytes)].filter(Boolean).join(' · ')}
                       {' · '}
@@ -287,20 +341,32 @@ export function WorkspaceAssets() {
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="custom" size={null}
-                        aria-label="Asset actions"
+                      <Button
+                        variant="custom"
+                        size={null}
+                        aria-label={`Actions for ${describeType(asset.mediaType)} ${asset.id.slice(0, 8)}`}
                         className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground opacity-60 transition hover:bg-foreground/[0.06] hover:text-foreground hover:opacity-100 group-hover:opacity-100"
                         type="button"
                       >
                         <MoreHorizontalIcon size={16} />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-44"
+                      onCloseAutoFocus={(event) => {
+                        if (confirmingDeleteId === asset.id) {
+                          event.preventDefault()
+                          confirmButton.current?.focus()
+                        }
+                      }}
+                    >
+                      {asset.projectId ? <DropdownMenuItem asChild><a href={`/?project=${asset.projectId}`}>Open source project</a></DropdownMenuItem> : null}
                       {isImage ? (
                         <DropdownMenuItem asChild>
                           {/* The editor reads this parameter on load and pulls
                               the asset onto the canvas for another pass. */}
-                          <a href={`/?asset=${asset.id}`}>Edit</a>
+                          <a href={`/?asset=${asset.id}`}>Use image in new design</a>
                         </DropdownMenuItem>
                       ) : null}
                       <DropdownMenuItem onSelect={() => void handleOpen(asset.id)}>
@@ -329,6 +395,7 @@ export function WorkspaceAssets() {
                         Cancel
                       </Button>
                       <Button
+                        ref={confirmButton}
                         disabled={isDeleting}
                         onClick={() => void handleDelete(asset.id)}
                         size="sm"
@@ -346,16 +413,16 @@ export function WorkspaceAssets() {
         </ul>
       )}
 
-      {cursor ? (
+      {query.hasNextPage ? (
         <div className="flex justify-center">
           <Button
             className="rounded-lg"
-            disabled={isLoading}
-            onClick={() => loadPage(cursor)}
+            disabled={query.isFetching}
+            onClick={() => void query.fetchNextPage()}
             type="button"
             variant="outline"
           >
-            {isLoading ? 'Loading…' : 'Load more'}
+            {query.isFetchingNextPage ? 'Loading…' : 'Load more'}
           </Button>
         </div>
       ) : null}

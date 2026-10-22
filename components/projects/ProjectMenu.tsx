@@ -172,7 +172,7 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
           type="button"
         >
           <FloppyDiskIcon className="shrink-0" size={15} />
-          {!compact ? <span>Save as project</span> : null}
+          {!compact ? <span className="whitespace-nowrap">Save as project</span> : null}
           {compact ? <span className="sr-only">Save as project</span> : null}
         </Button>
         {dialogs}
@@ -189,7 +189,7 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
         <DropdownMenuTrigger asChild>
           <Button variant="custom" size={null}
             aria-label={`Project ${project.name || ''}: ${statusLabel}`}
-            className="inline-flex h-8 min-w-0 max-w-[260px] shrink cursor-pointer items-center gap-2 rounded-lg px-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-foreground/[0.06] data-[state=open]:bg-foreground/[0.08]"
+            className="inline-flex h-8 min-w-[120px] max-w-[260px] shrink-0 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-foreground/[0.06] data-[state=open]:bg-foreground/[0.08]"
             type="button"
           >
             <span

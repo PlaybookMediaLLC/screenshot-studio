@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -89,8 +91,13 @@ func (memoryObjects) SignDownload(_ context.Context, key string) (string, error)
 }
 func (memoryObjects) Exists(context.Context, string) (bool, error)         { return true, nil }
 func (memoryObjects) Put(context.Context, string, string, io.Reader) error { return nil }
-func (memoryObjects) Read(context.Context, string) ([]byte, error)         { return nil, nil }
 func (memoryObjects) Delete(context.Context, string) error                 { return nil }
+
+func (memoryObjects) Read(context.Context, string) ([]byte, error) {
+	var body bytes.Buffer
+	err := png.Encode(&body, image.NewRGBA(image.Rect(0, 0, 1, 1)))
+	return body.Bytes(), err
+}
 
 type fakeCapture struct{ pages []string }
 

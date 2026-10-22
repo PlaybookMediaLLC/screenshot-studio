@@ -24,6 +24,7 @@ func (ReleaseAutomation) Fields() []ent.Field {
 		field.String("source_app_id").StorageKey("sourceAppId").Immutable(),
 		field.String("name"), field.String("description").Default(""), field.String("family").Immutable(),
 		field.Int("priority").Default(0), field.Int("revision").Default(1), field.Bool("enabled").Default(false),
+		field.Bool("archived").Default(false),
 		field.Int("active_priority").StorageKey("activePriority").Default(0),
 		field.String("active_version_id").StorageKey("activeVersionId").Optional().Nillable(),
 		field.JSON("draft", releaseautomation.Graph{}),

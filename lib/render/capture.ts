@@ -1,5 +1,6 @@
 'use client'
 
+import { waitForCompositeSources } from '@/components/canvas/elements/use-composite-source'
 import { getCanvasContainer } from '@/components/canvas/ClientCanvas'
 import { currentImageMotion } from '@/lib/animation/use-image-motion'
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils'
@@ -72,6 +73,7 @@ export async function captureStage(output: StageOutput): Promise<StageCapture> {
   if (!preset) throw new Error('Unknown aspect ratio.')
   const size = stageOutputSize(preset, output)
   if (output.format === 'svg') {
+    await waitForCompositeSources()
     const png = () => captureStage({ ...output, format: 'png' }).then((capture) => capture.blob)
     return { blob: await captureStageSvg(STAGE_ELEMENT_ID, size, png), height: size.height, width: size.width }
   }

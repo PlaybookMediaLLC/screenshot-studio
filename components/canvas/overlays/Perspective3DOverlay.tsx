@@ -1,5 +1,6 @@
 'use client';
 
+import { useLayerDepth } from '@/lib/editor/use-layer-depth';
 import { getFrameImageStyle, type FrameConfig } from '../frames/Frame3DOverlay';
 import type { MainChromeFrame } from '../html/HTMLMainImageLayer';
 import { ChromeFrame } from '@/components/frames/ChromeFrame';
@@ -76,6 +77,7 @@ export function Perspective3DOverlay({
   imageFilters,
   imageObjectPosition,
 }: Perspective3DOverlayProps) {
+  const depth = useLayerDepth('__main__');
   if (!has3DTransform) return null;
 
   const imageFilterStyle = imageFilterCss(imageFilters);
@@ -173,7 +175,7 @@ export function Perspective3DOverlay({
         height: `${canvasH}px`,
         perspective: `${perspective3D.perspective}px`,
         transformStyle: 'preserve-3d',
-        zIndex: 15,
+        zIndex: depth,
         pointerEvents: 'none',
         overflow: 'hidden',
         clipPath: `inset(0 0 0 0)`,

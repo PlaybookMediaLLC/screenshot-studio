@@ -113,9 +113,12 @@ export const assetContentContract = defineContract({
   method: 'GET',
   headers: z.object({ range: z.string().max(256).optional() }),
   name: 'assets.content',
+  query: z.object({
+    downloadToken: z.string().min(1).max(4096).optional(),
+    variant: z.enum(['original', 'thumbnail']).default('original'),
+  }),
   output: z.never(),
   params: assetParamsSchema,
-  query: z.object({ downloadToken: z.string().min(1).max(4096).optional() }),
   path: '/api/v1/assets/{assetId}/content',
   summary: 'Read a workspace asset',
 })

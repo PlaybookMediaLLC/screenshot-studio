@@ -61,7 +61,7 @@ test('a founder connects a product, describes a release, and returns to the same
   await page.getByRole('button', { name: 'Edit brief' }).click()
   await page.getByLabel('Description').fill('Schedules, reminders, and automatic retries.')
   await page.getByRole('button', { name: 'Save brief' }).click()
-  await expect(page.getByText('Brief updated.')).toBeVisible()
+  await expect(page.getByText(/^Brief updated\./)).toBeVisible()
   await expect(page.getByText('Schedules, reminders, and automatic retries.')).toBeVisible()
   expect(new URL(page.url()).pathname).toBe(campaignPath)
 

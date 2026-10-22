@@ -11,7 +11,7 @@ import { critiqueSchema } from '@/lib/ai/launch/critique'
 import { hasPermission } from '@/lib/auth/permissions'
 import type { TenantContext } from '@/lib/auth/access'
 import { latestLaunchRuns } from '@/lib/launch/runs'
-import { getCampaignPlans } from '@/lib/launch/store'
+import { getCampaignPlans, getReleaseSpecs } from '@/lib/launch/store'
 import { createTenantDownloadUrl } from '@/lib/storage/client'
 import { getCampaign } from '@/lib/tenant/campaigns'
 import { listCampaignDesigns } from '@/lib/tenant/designs'
@@ -39,10 +39,11 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
   // Scoped to the active workspace: another workspace's id is a 404.
   const campaign = await getCampaign(access.tenant, campaignId)
   if (!campaign) notFound()
-  const [designs, plans, runs] = await Promise.all([
+  const [designs, plans, runs, specs] = await Promise.all([
     listCampaignDesigns(access.tenant, campaign.id),
     getCampaignPlans(access.tenant, campaign.id),
     latestLaunchRuns(access.tenant, campaign.id),
+    campaign.release ? getReleaseSpecs(access.tenant, campaign.release.id) : null,
   ])
   const plan = plans.approved ?? plans.latest
   const sign = (assetId: string) => signAssetUrl(access.tenant, assetId)
@@ -73,7 +74,11 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
         variantLabel: design.variantLabel,
       })),
       ...campaign.assets
-        .filter((link) => link.kind === 'product-shot')
+        .filter(
+          (link) =>
+            link.kind === 'product-shot' &&
+            !designs.some((design) => design.renderedAsset?.id === link.assetId)
+        )
         .map(async (link): Promise<BoardVisual> => ({
           approvedVariant: null,
           caption: link.caption,
@@ -91,7 +96,7 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
           },
           name: 'Product shot',
           planAssetKey: link.planAssetKey,
-          renderedAssetId: null,
+          renderedAssetId: link.asset.id,
           variantLabel: link.variantLabel,
         })),
     ]),
@@ -109,7 +114,7 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
     ),
   ])
 
-  const canEdit = hasPermission(access.role, 'release:create')
+  const canEdit = campaign.status !== 'ARCHIVED' && hasPermission(access.role, 'release:create')
   const aiConfigured = isCampaignStudioConfigured()
   const produce = runs.produce
 
@@ -122,7 +127,7 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
               ? { id: produce.id, startedAt: produce.startedAt.toISOString() }
               : null
           }
-          blocker={!plan ? 'plan' : !aiConfigured ? 'ai' : null}
+          blocker={!specs?.latest ? 'spec' : !plan ? 'plan' : !aiConfigured ? 'ai' : null}
           campaignId={campaign.id}
           lastError={produce?.status === 'FAILED' ? produce.error : null}
         />
@@ -132,7 +137,8 @@ export default async function CampaignAssetsPage({ params }: CampaignAssetsPageP
         options={{
           aiConfigured,
           campaignId: campaign.id,
-          canApprove: hasPermission(access.role, 'release:approve'),
+          canApprove:
+            campaign.status !== 'ARCHIVED' && hasPermission(access.role, 'release:approve'),
           canEdit,
         }}
         plan={plan?.content ?? null}

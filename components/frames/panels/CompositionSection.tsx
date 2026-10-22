@@ -70,7 +70,7 @@ export function CompositionSection() {
       <div className="space-y-3">
         <p className="text-[11px] leading-snug text-muted-foreground">
           {scene
-            ? `${count} of ${MAX_SCREENS} screens. Select one on the canvas to frame it on its own.`
+            ? `${count} screens in this composition (maximum ${MAX_SCREENS}). Select one on the canvas to frame it on its own.`
             : 'Show several screenshots, or code, side by side in one design.'}
         </p>
         <div className="grid grid-cols-2 gap-1.5">

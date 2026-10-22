@@ -121,6 +121,17 @@ func (c *Configuration) TransitionCampaign(ctx context.Context, actor Actor, id,
 			return nil, publishing.ErrConflict
 		}
 	}
+	if to == campaign.StatusREADY_FOR_REVIEW || to == campaign.StatusAPPROVED {
+		posts, err := tx.CampaignPost.Query().Where(campaignpost.CampaignID(id), campaignpost.OrganizationID(actor.OrganizationID)).All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, post := range posts {
+			if err := validateCampaignPostReview(post); err != nil {
+				return nil, err
+			}
+		}
+	}
 	count, err := tx.Campaign.Update().Where(campaign.ID(id), campaign.OrganizationID(actor.OrganizationID),
 		campaign.StatusEQ(current.Status)).SetStatus(to).Save(ctx)
 	if err != nil {
@@ -160,6 +171,7 @@ func postDecision(decision string) (from []campaignpost.Status, to campaignpost.
 
 func (c *Configuration) TransitionCampaignPosts(ctx context.Context, actor Actor, campaignID string, input CampaignPostDecision) (*CampaignPostTransition, error) {
 	from, to, roles, ok := postDecision(input.Decision)
+
 	if !ok || len(input.PostIDs) > 100 || (input.Note != nil && len(*input.Note) > 1000) || len(input.IdempotencyKey) > 128 || (input.IdempotencyKey != "" && input.Decision != "submit") {
 		return nil, ErrInvalidInput
 	}
@@ -171,6 +183,9 @@ func (c *Configuration) TransitionCampaignPosts(ctx context.Context, actor Actor
 	}
 	if err := authorize(ctx, actor, roles...); err != nil {
 		return nil, err
+	}
+	if input.Decision == "request_changes" && (input.Note == nil || strings.TrimSpace(*input.Note) == "") {
+		return nil, invalid("Add a review note explaining what should change.")
 	}
 	if input.Decision == "submit" && actor.Kind == "api_key" {
 		allowed, err := c.apiKeyAllows(ctx, actor, "release", "create")
@@ -193,6 +208,9 @@ func (c *Configuration) TransitionCampaignPosts(ctx context.Context, actor Actor
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := mutableCampaign(ctx, tx, actor, campaignID); err != nil {
+		return nil, err
+	}
 	if input.IdempotencyKey != "" {
 		prior, err := tx.OutboxEvent.Query().Where(outboxevent.OrganizationID(actor.OrganizationID),
 			outboxevent.IdempotencyKey("campaign-review:"+campaignID+":"+input.IdempotencyKey)).Only(ctx)
@@ -232,6 +250,11 @@ func (c *Configuration) TransitionCampaignPosts(ctx context.Context, actor Actor
 	}
 	ids := make([]string, 0, len(rows))
 	for _, row := range rows {
+		if input.Decision == "submit" || input.Decision == "approve" {
+			if err := validateCampaignPostReview(row); err != nil {
+				return nil, err
+			}
+		}
 		ids = append(ids, row.ID)
 	}
 	update := tx.CampaignPost.Update().Where(campaignpost.IDIn(ids...), campaignpost.CampaignID(campaignID),

@@ -10,6 +10,7 @@ import (
 
 // CreativeSetStore keeps a workspace's cloud creativeSets and their version history.
 type CreativeSetStore interface {
+	DeleteCanvas(context.Context, product.Actor, string) error
 	IssueCreativeSetCollabToken(context.Context, product.Actor, string) (*product.CollabToken, error)
 	AttachCreativeSetDelivery(context.Context, product.Actor, string, product.CreativeSetHandoffInput) (*product.CreativeSetHandoffResult, error)
 	CreateCreativeSet(context.Context, product.Actor, string, string, map[string]any) (*product.CreativeSetRecord, error)
@@ -18,7 +19,7 @@ type CreativeSetStore interface {
 	RenameCreativeSet(context.Context, product.Actor, string, string) (*product.CreativeSetRecord, error)
 	UpdateCreativeSetDocument(context.Context, product.Actor, string, product.CreativeSetDocumentWrite) (*product.CreativeSetWriteResult, error)
 	DuplicateCreativeSet(context.Context, product.Actor, string, *string) (*product.CreativeSetRecord, error)
-	ArchiveCreativeSet(context.Context, product.Actor, string) error
+	ArchiveCreativeSet(context.Context, product.Actor, string, ...bool) error
 	ListCreativeSetVersions(context.Context, product.Actor, string) ([]product.CreativeSetVersionRecord, error)
 	GetCreativeSetVersion(context.Context, product.Actor, string, string) (*product.CreativeSetVersionRecord, error)
 	CreateCreativeSetVersion(context.Context, product.Actor, string, string, ...int) (*product.CreativeSetVersionRecord, error)
@@ -26,6 +27,7 @@ type CreativeSetStore interface {
 }
 
 func (s *Server) registerCreativeSets(mux *http.ServeMux) {
+	mux.Handle("DELETE /v1/canvases/{id}", s.authenticateProduct(http.HandlerFunc(s.deleteCanvas)))
 	mux.Handle("POST /v1/creative-sets/{id}/collab-token", s.authenticateProduct(http.HandlerFunc(s.issueCreativeSetCollabToken)))
 	mux.Handle("POST /v1/creative-sets/{id}/campaign", s.authenticateProduct(http.HandlerFunc(s.attachCreativeSetDelivery)))
 	mux.Handle("GET /v1/creative-sets", s.authenticateProduct(http.HandlerFunc(s.listCreativeSets)))
@@ -89,8 +91,13 @@ func (s *Server) listCreativeSets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	query := r.URL.Query()
+	if value := query.Get("archived"); value != "" && value != "true" && value != "false" {
+		writeError(w, http.StatusBadRequest, "invalid archived filter")
+		return
+	}
 	page, err := s.configuration.ListCreativeSets(r.Context(), workspaceActor(r), product.CreativeSetListQuery{
-		Cursor: query.Get("cursor"), Kind: query.Get("kind"), Limit: limit, Search: query.Get("search"), Sort: query.Get("sort"),
+		Archived: query.Get("archived") == "true",
+		Cursor:   query.Get("cursor"), Kind: query.Get("kind"), Limit: limit, Search: query.Get("search"), Sort: query.Get("sort"),
 	})
 	if err != nil {
 		writeStoreError(w, err)
@@ -155,11 +162,17 @@ func (s *Server) archiveCreativeSet(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.configuration.ArchiveCreativeSet(r.Context(), workspaceActor(r), id); err != nil {
+	value := r.URL.Query().Get("archived")
+	if value != "" && value != "true" && value != "false" {
+		writeError(w, http.StatusBadRequest, "invalid archived state")
+		return
+	}
+	archived := value != "false"
+	if err := s.configuration.ArchiveCreativeSet(r.Context(), workspaceActor(r), id, archived); err != nil {
 		writeStoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]bool{"archived": true})
+	writeJSON(w, http.StatusOK, map[string]bool{"archived": archived})
 }
 
 func (s *Server) updateCreativeSetDocument(w http.ResponseWriter, r *http.Request) {
@@ -286,4 +299,16 @@ func (s *Server) issueCreativeSetCollabToken(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	writeJSON(w, http.StatusOK, token)
+}
+
+func (s *Server) deleteCanvas(w http.ResponseWriter, r *http.Request) {
+	id, ok := creativeSetPathID(w, r, "id")
+	if !ok {
+		return
+	}
+	if err := s.configuration.DeleteCanvas(r.Context(), workspaceActor(r), id); err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
 }

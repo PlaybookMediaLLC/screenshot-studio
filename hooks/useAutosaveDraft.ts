@@ -24,11 +24,15 @@ import {
   autoCleanIndexedDB,
 } from "@/lib/draft-storage";
 import type { PersistedImageState } from "@/lib/draft-storage";
+import { useProjectSession } from '@/lib/projects/session'
 import { trackDraftRestore } from "@/lib/projects/draft-ready";
 
 const AUTOSAVE_DELAY = 1000;
 // A returning editor waits for the save started by the previous mount.
 let pendingDraftSave: Promise<void> = Promise.resolve();
+// Navigation keeps the live store. Rehydrating it again would replace uploaded
+// URLs with draft data URLs and turn a clean project into an unsaved edit.
+let restoredThisPage = false;
 
 /**
  * Live session state. It is written to the draft so the persisted shape stays
@@ -111,6 +115,7 @@ export function useAutosaveDraft() {
   const lastSnapshotRef = useRef<string>('');
   // Warn about a full quota once per session, not once per autosave tick.
   const hasWarnedQuotaRef = useRef(false);
+  const conflictRef = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
@@ -118,6 +123,11 @@ export function useAutosaveDraft() {
   useEffect(() => {
     const loadDraft = async () => {
       if (hasLoadedRef.current) return;
+      if (restoredThisPage) {
+        hasLoadedRef.current = true;
+        lastSnapshotRef.current = JSON.stringify(toPersistedImageState(useImageStore.getState()));
+        return;
+      }
 
       try {
         await pendingDraftSave;
@@ -134,6 +144,7 @@ export function useAutosaveDraft() {
         if (!draft) {
           lastSnapshotRef.current = JSON.stringify(toPersistedImageState(useImageStore.getState()));
           hasLoadedRef.current = true;
+          restoredThisPage = true;
           return;
         }
 
@@ -210,6 +221,7 @@ export function useAutosaveDraft() {
         setLastSaved(new Date(draft.timestamp));
         lastSnapshotRef.current = JSON.stringify(toPersistedImageState(useImageStore.getState()));
         hasLoadedRef.current = true;
+        restoredThisPage = true;
       } catch (error) {
         console.error("Failed to load draft:", error);
         hasLoadedRef.current = true;
@@ -223,7 +235,7 @@ export function useAutosaveDraft() {
   const saveNow = useCallback(() => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = null;
-    if (!hasLoadedRef.current) return pendingDraftSave;
+    if (!hasLoadedRef.current || conflictRef.current) return pendingDraftSave;
     // Capture before navigation can replace the live project; serialize writes.
     const persistedImage = toPersistedImageState(useImageStore.getState());
     const save = async () => {
@@ -342,6 +354,17 @@ export function useAutosaveDraft() {
         const result = await saveDraft(imageState);
 
         if (!result.ok) {
+          if (result.reason === 'conflict') {
+            conflictRef.current = true;
+            // Saved projects use server revisions for conflicts; the shared local
+            // recovery slot is not their save status.
+            if (useProjectSession.getState().projectId) return;
+            toast.error('This draft was changed in another tab', {
+              id: 'draft-conflict',
+              description: 'This tab has stopped saving locally. Export your work or save it as a project before reloading.',
+              duration: Infinity,
+            });
+          }
           // Leave lastSnapshotRef untouched so the next change retries this
           // save instead of treating the failed write as already persisted.
           console.warn("[draft] autosave failed:", result.reason, result.error);
@@ -382,7 +405,7 @@ export function useAutosaveDraft() {
       if (document.visibilityState === "hidden") flush();
     };
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!hasLoadedRef.current) return;
+      if (!hasLoadedRef.current || useProjectSession.getState().projectId) return;
       const snapshot = JSON.stringify(toPersistedImageState(useImageStore.getState()));
       if (snapshot === lastSnapshotRef.current) return;
       flush();
@@ -400,9 +423,19 @@ export function useAutosaveDraft() {
     };
   }, [saveNow]);
 
+  useEffect(() => useProjectSession.subscribe((session, previous) => {
+    if (session.projectId) toast.dismiss('draft-conflict');
+    else if (previous.projectId && conflictRef.current) {
+      toast.warning('Local recovery is paused', { id: 'draft-conflict', duration: Infinity,
+        description: 'Another tab owns this browser draft. Save this design as a project or export it before closing.' });
+    }
+  }), []);
+
   const clearDraft = async () => {
     try {
       await deleteDraft();
+      conflictRef.current = false;
+      toast.dismiss('draft-conflict');
       imageStore.resetSlideshow();
       imageStore.clearImage();
       imageStore.clearTextOverlays();

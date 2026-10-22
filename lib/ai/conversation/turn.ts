@@ -23,6 +23,9 @@ import { isRunStale } from '@/lib/launch/run-lease'
 import { keepRunAlive } from '@/lib/launch/runs'
 import { defuseMarkup } from '@/lib/launch/sanitize'
 import { getActiveBrand, LaunchError } from '@/lib/launch/store'
+import { postLength } from '@/lib/launch/post-edit'
+import { CHANNEL_RULES } from '@/lib/launch/guards'
+import type { LaunchChannel } from '@/lib/launch/spec-schema'
 import { getCampaign } from '@/lib/tenant/campaigns'
 import { getProductProfile } from '@/lib/tenant/product-profile'
 import { buildTurnContext, mayAskClarification } from './context'
@@ -49,7 +52,7 @@ const DEFAULT_TITLE = 'New conversation'
 
 const MODEL_UNREACHABLE = 'I could not reach the model. Retry.'
 const NO_PRODUCT =
-  'I need to know your product before I can market it. Add it at /onboarding/product, then tell me what you shipped.'
+  'I need to know your product before I can market it. Add your product using the button below, then tell me what you shipped.'
 const STEP_CAP =
   'I reached this turn’s step limit. Everything made so far is kept; send another message to continue.'
 const LOOPED = 'I repeated a step and stopped. Everything made so far is kept.'
@@ -97,9 +100,12 @@ function formatCampaign(campaign: Awaited<ReturnType<typeof getCampaign>>): stri
       ? `Angles:\n${campaign.angles.map((angle) => `- ${text(angle.title)}`).join('\n')}`
       : 'Angles: none yet',
     campaign.posts.length
-      ? `Posts (id, channel, status, opening):\n${campaign.posts
+      ? `Posts (id, channel, status, character count including CTA, opening):\n${campaign.posts
           .slice(0, 30)
-          .map((post) => `- ${post.id} ${post.channel} ${post.status}: ${text(post.copy, 80)}`)
+          .map(
+            (post) =>
+              `- ${post.id} ${post.channel} ${post.status} ${postLength(post.copy, post.callToAction)}/${CHANNEL_RULES[post.channel as LaunchChannel]?.bodyMax ?? 3000} characters: ${text(post.copy, 80)}`
+          )
           .join('\n')}`
       : 'Posts: none yet',
     `Visuals: ${campaign.assets.length}`,
@@ -187,15 +193,16 @@ async function executeTurn(
   })
   let modelCalled = false
   try {
-    const [profile, brand, campaign] = await Promise.all([
+    const [profile, brand, campaign, { productSurfaces }] = await Promise.all([
       getProductProfile(access),
       getActiveBrand(access),
       conversation.campaignId ? getCampaign(access, conversation.campaignId) : null,
+      backend.listProductSurfaces(),
     ])
-    if (!profile) {
+    if (!profile && !campaign && productSurfaces.length === 0) {
       // No question: the agent cannot market a product it does not know.
       await reply(NO_PRODUCT, 'text', 'onboarding')
-      await backend.finishLaunchRun(runId, { status: 'SUCCEEDED', stepCount: 0 })
+      await backend.finishLaunchRun(runId, { status: 'FAILED', error: NO_PRODUCT, stepCount: 0 })
       return
     }
     const state: TurnState = {
@@ -206,6 +213,16 @@ async function executeTurn(
     const { messages, system } = buildTurnContext({
       context: [
         formatProductProfile(profile),
+        productSurfaces.length
+          ? `<registered_products>
+${productSurfaces
+  .map(
+    (surface) =>
+      `${defuseMarkup(surface.name)} (${defuseMarkup(surface.slug)}): ${defuseMarkup(surface.url)} — ${defuseMarkup(surface.description ?? '')}`
+  )
+  .join('\n')}
+</registered_products>`
+          : null,
         formatBrandVoice(brand),
         formatBrandKit(brand.kit),
         formatCampaign(campaign),

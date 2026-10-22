@@ -6,6 +6,8 @@ import { createTRPCClient, httpBatchLink } from '@trpc/client'
 import superjson from 'superjson'
 import type { AppRouter } from '@/lib/trpc/router'
 import { TRPCProvider } from './react'
+import { browserTRPCFetch } from './browser-fetch'
+import { invalidateListsLink } from './invalidate-lists'
 
 function getBaseUrl(): string {
   if (typeof window !== 'undefined') return ''
@@ -17,7 +19,9 @@ export function TRPCReactProvider({ children }: { children: React.ReactNode }) {
   const [trpcClient] = useState(() =>
     createTRPCClient<AppRouter>({
       links: [
+        invalidateListsLink(queryClient),
         httpBatchLink({
+          fetch: browserTRPCFetch,
           transformer: superjson,
           url: `${getBaseUrl()}/api/trpc`,
         }),

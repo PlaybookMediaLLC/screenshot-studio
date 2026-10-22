@@ -44,6 +44,8 @@ const SUPPORTED_CONTENT_TYPES = new Set([
 const MAX_ASSET_BYTES = 50 * 1024 * 1024
 
 export interface SaveToWorkspaceInput {
+  projectId?: string
+  classification?: 'input' | 'export' | 'derived' | 'capture'
   blob: Blob
   fileName: string
   trpcClient: TRPCClient<AppRouter>
@@ -109,7 +111,8 @@ export async function saveExportToWorkspace(input: SaveToWorkspaceInput): Promis
 
   const { asset, uploadUrl } = await trpcClient.asset.signUpload.mutate({
     bytes: blob.size,
-    classification: 'input',
+    classification: input.classification ?? 'input',
+    projectId: input.projectId,
     contentType: blob.type,
     fileName,
     sha256,

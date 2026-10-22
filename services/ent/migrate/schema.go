@@ -1779,6 +1779,34 @@ var (
 		Columns:    PlatformSlackPacingColumns,
 		PrimaryKey: []*schema.Column{PlatformSlackPacingColumns[0]},
 	}
+	// PlatformSlackPersonalConnectionColumns holds the columns for the "platform_slack_personal_connection" table.
+	PlatformSlackPersonalConnectionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "userId", Type: field.TypeString},
+		{Name: "member_id", Type: field.TypeString},
+		{Name: "installation_id", Type: field.TypeString},
+		{Name: "slack_user_id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// PlatformSlackPersonalConnectionTable holds the schema information for the "platform_slack_personal_connection" table.
+	PlatformSlackPersonalConnectionTable = &schema.Table{
+		Name:       "platform_slack_personal_connection",
+		Columns:    PlatformSlackPersonalConnectionColumns,
+		PrimaryKey: []*schema.Column{PlatformSlackPersonalConnectionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformslackpersonalconnection_organizationId_userId",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformSlackPersonalConnectionColumns[1], PlatformSlackPersonalConnectionColumns[2]},
+			},
+			{
+				Name:    "platformslackpersonalconnection_installation_id",
+				Unique:  false,
+				Columns: []*schema.Column{PlatformSlackPersonalConnectionColumns[4]},
+			},
+		},
+	}
 	// PlatformWorkspaceCreationColumns holds the columns for the "platform_workspace_creation" table.
 	PlatformWorkspaceCreationColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -3115,6 +3143,7 @@ var (
 		PlatformSlackConnectionTable,
 		PlatformSlackInstallationTable,
 		PlatformSlackPacingTable,
+		PlatformSlackPersonalConnectionTable,
 		PlatformWorkspaceCreationTable,
 		PostAutomationRunTable,
 		ProductProfileTable,
@@ -3338,6 +3367,9 @@ func init() {
 	}
 	PlatformSlackPacingTable.Annotation = &entsql.Annotation{
 		Table: "platform_slack_pacing",
+	}
+	PlatformSlackPersonalConnectionTable.Annotation = &entsql.Annotation{
+		Table: "platform_slack_personal_connection",
 	}
 	PlatformWorkspaceCreationTable.Annotation = &entsql.Annotation{
 		Table: "platform_workspace_creation",

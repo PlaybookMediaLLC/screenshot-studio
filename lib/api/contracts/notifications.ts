@@ -105,7 +105,7 @@ export const connectNotificationSlackContract = defineContract({
   shell: true,
   output: z.object({ url: z.string().url() }),
   body: z.strictObject({
-    purpose: z.enum(['notifications', 'design', 'publishing']).default('notifications'),
+    purpose: z.enum(['notifications', 'design', 'publishing', 'personal']).default('notifications'),
     connectionId: z.string().min(1).max(128).optional(),
   }),
 })
@@ -154,7 +154,10 @@ export const testNotificationContract = defineContract({
   summary: 'testNotification',
   shell: true,
   output: z.object({ deliveryId: z.string() }),
-  body: z.strictObject({ channel: z.enum(['email', 'slack']), key: z.string().min(16).max(128) }),
+  body: z.strictObject({
+    channel: z.enum(['email', 'slack', 'slack_dm']),
+    key: z.string().min(16).max(128),
+  }),
 })
 
 /** `GET /api/workspace/notifications/deliveries`: session-scoped workspace activity. */
@@ -199,4 +202,15 @@ export const changeNotificationStateContract = defineContract({
   shell: true,
   body: notificationStateInputSchema,
   output: notificationStateResultSchema,
+})
+
+/** Disconnect only the authenticated member's personal Slack destination. */
+export const disconnectPersonalSlackContract = defineContract({
+  method: 'DELETE',
+  name: 'notifications.disconnectpersonalslack',
+  path: '/api/workspace/notifications/slack/personal/{id}',
+  summary: 'Disconnect my Slack direct messages',
+  shell: true,
+  output: z.object({ disconnected: z.boolean() }),
+  params: z.object({ id: z.string().min(1).max(128) }),
 })

@@ -18,6 +18,7 @@ export type NotificationPreferences = {
 }
 /** Slack installation metadata, never credentials. */
 export type NotificationConnection = {
+  slackUserId?: string
   id: string
   teamId: string
   teamName: string
@@ -47,6 +48,7 @@ export type NotificationSettings = {
   emailAvailable: boolean
   slackAvailable: boolean
   connections: NotificationConnection[]
+  personalSlack?: NotificationConnection | null
   effective: Record<string, Record<string, { enabled: boolean; reason: string }>>
 }
 export type { NotificationItem, NotificationPage } from './notification-state.js'

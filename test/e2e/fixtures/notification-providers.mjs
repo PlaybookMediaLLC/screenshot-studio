@@ -51,6 +51,7 @@ const server = createServer(async (request, response) => {
         access_token: 'fixture-slack-token',
         scope: 'chat:write,channels:read,groups:read,files:write,channels:join',
         team: { id: 'T012345', name: 'Fixture team' },
+        authed_user: { id: 'U012345' },
       })
     }
     if (url.pathname.startsWith('/api/')) {
@@ -76,9 +77,13 @@ const server = createServer(async (request, response) => {
         const body = request.headers['content-type']?.includes('json')
           ? JSON.parse(raw)
           : Object.fromEntries(form)
-        assert.equal(body.channel, channel.id)
+        assert.ok([channel.id, 'U012345'].includes(body.channel))
         sink.slack.push(body)
-        return json({ ok: true, channel: channel.id, ts: `123.${sink.slack.length}` })
+        return json({
+          ok: true,
+          channel: body.channel === 'U012345' ? 'D012345' : channel.id,
+          ts: `123.${sink.slack.length}`,
+        })
       }
     }
     if (url.pathname === '/emails') {

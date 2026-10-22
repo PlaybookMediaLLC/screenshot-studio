@@ -16,7 +16,7 @@ type ChannelDecision struct {
 	Reason  string `json:"reason"`
 }
 
-func effectiveSettings(p Policy, pref Preferences, emailAvailable bool, connections []SlackConnection) map[string]map[string]ChannelDecision {
+func effectiveSettings(p Policy, pref Preferences, emailAvailable bool, connections []SlackConnection, personalSlack ...*SlackConnection) map[string]map[string]ChannelDecision {
 	result := map[string]map[string]ChannelDecision{}
 	connected := false
 	for _, c := range connections {
@@ -45,6 +45,19 @@ func effectiveSettings(p Policy, pref Preferences, emailAvailable bool, connecti
 			}
 			decisions[ch] = ChannelDecision{Enabled: reason == "", Reason: reason}
 		}
+
+		dmReason := ""
+		switch {
+		case !availableChannel(p, "slack_dm"):
+			dmReason = "This channel is unavailable in this workspace."
+		case !pref.Events[d.ID].Slack:
+			dmReason = "Disabled in your preferences."
+		case len(personalSlack) == 0 || personalSlack[0] == nil:
+			dmReason = "Connect your Slack account to receive direct messages."
+		case personalSlack[0].Health != "CONNECTED":
+			dmReason = "Reconnect your Slack account."
+		}
+		decisions["slack_dm"] = ChannelDecision{Enabled: dmReason == "", Reason: dmReason}
 		result[d.ID] = decisions
 	}
 	return result
@@ -81,7 +94,7 @@ func (s *Service) Test(ctx context.Context, p Principal, channel, key string) (s
 	if err := s.Authorize(ctx, p, channel == "slack"); err != nil {
 		return "", err
 	}
-	if (channel != "email" && channel != "slack") || len(key) < 16 || len(key) > 128 {
+	if (channel != "email" && channel != "slack" && channel != "slack_dm") || len(key) < 16 || len(key) > 128 {
 		return "", ErrInvalid
 	}
 	pol, err := policy(ctx, s.DB, p.OrganizationID)
@@ -101,6 +114,18 @@ func (s *Service) Test(ctx context.Context, p Principal, channel, key string) (s
 		if _, err = s.ValidateChannel(ctx, p.OrganizationID, connection, destination); err != nil {
 			return "", err
 		}
+	} else if channel == "slack_dm" {
+		personal, e := personalSlack(ctx, s.DB, p.OrganizationID, p.UserID)
+		if e != nil {
+			return "", e
+		}
+		if personal == nil {
+			return "", invalid("connect your Slack account before sending a test")
+		}
+		if personal.Health != "CONNECTED" {
+			return "", invalid("reconnect your Slack account before sending a test")
+		}
+		connection = personal.ID
 	} else if !emailConfigured() {
 		return "", ErrUnavailable
 	}
@@ -158,7 +183,7 @@ func (s *Service) DeliveryStatus(ctx context.Context, p Principal, id string) (*
 	}
 	admin := s.Authorize(ctx, p, true) == nil
 	var d Delivery
-	err := s.DB.QueryRowContext(ctx, `SELECT id,"organizationId",event_id,kind,channel,destination,status,failure_code,provider_receipt,attempts,created_at,updated_at FROM platform_notification_delivery WHERE id=$1 AND "organizationId"=$2 AND ($3 OR channel='email' AND destination=$4)`, id, p.OrganizationID, admin, p.UserID).Scan(&d.ID, &d.OrganizationID, &d.EventID, &d.Kind, &d.Channel, &d.Destination, &d.Status, &d.FailureCode, &d.ProviderReceipt, &d.Attempts, &d.CreatedAt, &d.UpdatedAt)
+	err := s.DB.QueryRowContext(ctx, `SELECT id,"organizationId",event_id,kind,channel,destination,status,failure_code,provider_receipt,attempts,created_at,updated_at FROM platform_notification_delivery WHERE id=$1 AND "organizationId"=$2 AND (($3 AND channel<>'slack_dm') OR channel IN ('email','slack_dm') AND destination=$4)`, id, p.OrganizationID, admin, p.UserID).Scan(&d.ID, &d.OrganizationID, &d.EventID, &d.Kind, &d.Channel, &d.Destination, &d.Status, &d.FailureCode, &d.ProviderReceipt, &d.Attempts, &d.CreatedAt, &d.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, publishing.ErrNotFound
 	}

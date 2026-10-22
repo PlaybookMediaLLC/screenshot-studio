@@ -71,6 +71,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpersonalconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformworkspacecreation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
@@ -132,106 +133,107 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAccountDeletionRequest         = "AccountDeletionRequest"
-	TypeAgentAuthorization             = "AgentAuthorization"
-	TypeApikey                         = "Apikey"
-	TypeApproval                       = "Approval"
-	TypeAsset                          = "Asset"
-	TypeAudienceSubscriber             = "AudienceSubscriber"
-	TypeAuditDrain                     = "AuditDrain"
-	TypeAuditDrainDelivery             = "AuditDrainDelivery"
-	TypeAuditLog                       = "AuditLog"
-	TypeAuditOutbox                    = "AuditOutbox"
-	TypeAuditRetentionPolicy           = "AuditRetentionPolicy"
-	TypeBillingEntitlementEvent        = "BillingEntitlementEvent"
-	TypeBrandKit                       = "BrandKit"
-	TypeBrandProfile                   = "BrandProfile"
-	TypeCampaign                       = "Campaign"
-	TypeCampaignAsset                  = "CampaignAsset"
-	TypeCampaignPlan                   = "CampaignPlan"
-	TypeCampaignPost                   = "CampaignPost"
-	TypeCampaignRevision               = "CampaignRevision"
-	TypeChannelConnection              = "ChannelConnection"
-	TypeCommunicationAttempt           = "CommunicationAttempt"
-	TypeCommunicationRecipient         = "CommunicationRecipient"
-	TypeContentAngle                   = "ContentAngle"
-	TypeContentDraft                   = "ContentDraft"
-	TypeContentDraftFinisher           = "ContentDraftFinisher"
-	TypeContentDraftRevision           = "ContentDraftRevision"
-	TypeContentDraftSettings           = "ContentDraftSettings"
-	TypeContentDraftTag                = "ContentDraftTag"
-	TypeConversation                   = "Conversation"
-	TypeConversationMessage            = "ConversationMessage"
-	TypeCreativeTemplate               = "CreativeTemplate"
-	TypeCreativeVariant                = "CreativeVariant"
-	TypeCustomerCommunication          = "CustomerCommunication"
-	TypeDeploymentEvent                = "DeploymentEvent"
-	TypeDesign                         = "Design"
-	TypeEnrichmentRecord               = "EnrichmentRecord"
-	TypeGitHubInstallStart             = "GitHubInstallStart"
-	TypeGitHubInstallation             = "GitHubInstallation"
-	TypeIdealCustomerProfile           = "IdealCustomerProfile"
-	TypeIntegrationConnection          = "IntegrationConnection"
-	TypeInvitation                     = "Invitation"
-	TypeLaunchRun                      = "LaunchRun"
-	TypeLaunchRunStep                  = "LaunchRunStep"
-	TypeMember                         = "Member"
-	TypeOnboardingRun                  = "OnboardingRun"
-	TypeOrganization                   = "Organization"
-	TypeOrganizationEnterpriseSettings = "OrganizationEnterpriseSettings"
-	TypeOutboxEvent                    = "OutboxEvent"
-	TypePageKnowledge                  = "PageKnowledge"
-	TypePlatformCreativeSet            = "PlatformCreativeSet"
-	TypePlatformCreativeSetVersion     = "PlatformCreativeSetVersion"
-	TypePlatformNotificationDelivery   = "PlatformNotificationDelivery"
-	TypePlatformNotificationInbox      = "PlatformNotificationInbox"
-	TypePlatformNotificationPolicy     = "PlatformNotificationPolicy"
-	TypePlatformNotificationPreference = "PlatformNotificationPreference"
-	TypePlatformNotificationSeenAction = "PlatformNotificationSeenAction"
-	TypePlatformSlackConnection        = "PlatformSlackConnection"
-	TypePlatformSlackInstallation      = "PlatformSlackInstallation"
-	TypePlatformSlackPacing            = "PlatformSlackPacing"
-	TypePlatformWorkspaceCreation      = "PlatformWorkspaceCreation"
-	TypePostAutomationRun              = "PostAutomationRun"
-	TypeProductProfile                 = "ProductProfile"
-	TypeProductSurface                 = "ProductSurface"
-	TypeProject                        = "Project"
-	TypeProjectVersion                 = "ProjectVersion"
-	TypePublicationAttempt             = "PublicationAttempt"
-	TypeRelease                        = "Release"
-	TypeReleaseAutomation              = "ReleaseAutomation"
-	TypeReleaseAutomationExecutor      = "ReleaseAutomationExecutor"
-	TypeReleaseAutomationNode          = "ReleaseAutomationNode"
-	TypeReleaseAutomationRun           = "ReleaseAutomationRun"
-	TypeReleaseAutomationVersion       = "ReleaseAutomationVersion"
-	TypeReleaseDocument                = "ReleaseDocument"
-	TypeReleaseSourceEvent             = "ReleaseSourceEvent"
-	TypeReleaseSpec                    = "ReleaseSpec"
-	TypeScheduledPost                  = "ScheduledPost"
-	TypeScreenshotCache                = "ScreenshotCache"
-	TypeSession                        = "Session"
-	TypeShareLink                      = "ShareLink"
-	TypeSocialOAuthStart               = "SocialOAuthStart"
-	TypeSocialSet                      = "SocialSet"
-	TypeSocialSetWritingSample         = "SocialSetWritingSample"
-	TypeSocialTenantBinding            = "SocialTenantBinding"
-	TypeSourceApp                      = "SourceApp"
-	TypeSourceChange                   = "SourceChange"
-	TypeStorePublishingCredential      = "StorePublishingCredential"
-	TypeStoreReview                    = "StoreReview"
-	TypeStoreReviewComment             = "StoreReviewComment"
-	TypeSupportAccessGrant             = "SupportAccessGrant"
-	TypeSurfaceCapture                 = "SurfaceCapture"
-	TypeUser                           = "User"
-	TypeUserPreference                 = "UserPreference"
-	TypeWebhookDelivery                = "WebhookDelivery"
-	TypeWebhookDeliveryAttempt         = "WebhookDeliveryAttempt"
-	TypeWebhookSubscription            = "WebhookSubscription"
-	TypeWorkspaceCreditGrant           = "WorkspaceCreditGrant"
-	TypeWorkspaceDeletion              = "WorkspaceDeletion"
-	TypeWorkspaceEntitlement           = "WorkspaceEntitlement"
-	TypeWorkspaceGitHubInstallation    = "WorkspaceGitHubInstallation"
-	TypeWorkspaceSettings              = "WorkspaceSettings"
+	TypeAccountDeletionRequest          = "AccountDeletionRequest"
+	TypeAgentAuthorization              = "AgentAuthorization"
+	TypeApikey                          = "Apikey"
+	TypeApproval                        = "Approval"
+	TypeAsset                           = "Asset"
+	TypeAudienceSubscriber              = "AudienceSubscriber"
+	TypeAuditDrain                      = "AuditDrain"
+	TypeAuditDrainDelivery              = "AuditDrainDelivery"
+	TypeAuditLog                        = "AuditLog"
+	TypeAuditOutbox                     = "AuditOutbox"
+	TypeAuditRetentionPolicy            = "AuditRetentionPolicy"
+	TypeBillingEntitlementEvent         = "BillingEntitlementEvent"
+	TypeBrandKit                        = "BrandKit"
+	TypeBrandProfile                    = "BrandProfile"
+	TypeCampaign                        = "Campaign"
+	TypeCampaignAsset                   = "CampaignAsset"
+	TypeCampaignPlan                    = "CampaignPlan"
+	TypeCampaignPost                    = "CampaignPost"
+	TypeCampaignRevision                = "CampaignRevision"
+	TypeChannelConnection               = "ChannelConnection"
+	TypeCommunicationAttempt            = "CommunicationAttempt"
+	TypeCommunicationRecipient          = "CommunicationRecipient"
+	TypeContentAngle                    = "ContentAngle"
+	TypeContentDraft                    = "ContentDraft"
+	TypeContentDraftFinisher            = "ContentDraftFinisher"
+	TypeContentDraftRevision            = "ContentDraftRevision"
+	TypeContentDraftSettings            = "ContentDraftSettings"
+	TypeContentDraftTag                 = "ContentDraftTag"
+	TypeConversation                    = "Conversation"
+	TypeConversationMessage             = "ConversationMessage"
+	TypeCreativeTemplate                = "CreativeTemplate"
+	TypeCreativeVariant                 = "CreativeVariant"
+	TypeCustomerCommunication           = "CustomerCommunication"
+	TypeDeploymentEvent                 = "DeploymentEvent"
+	TypeDesign                          = "Design"
+	TypeEnrichmentRecord                = "EnrichmentRecord"
+	TypeGitHubInstallStart              = "GitHubInstallStart"
+	TypeGitHubInstallation              = "GitHubInstallation"
+	TypeIdealCustomerProfile            = "IdealCustomerProfile"
+	TypeIntegrationConnection           = "IntegrationConnection"
+	TypeInvitation                      = "Invitation"
+	TypeLaunchRun                       = "LaunchRun"
+	TypeLaunchRunStep                   = "LaunchRunStep"
+	TypeMember                          = "Member"
+	TypeOnboardingRun                   = "OnboardingRun"
+	TypeOrganization                    = "Organization"
+	TypeOrganizationEnterpriseSettings  = "OrganizationEnterpriseSettings"
+	TypeOutboxEvent                     = "OutboxEvent"
+	TypePageKnowledge                   = "PageKnowledge"
+	TypePlatformCreativeSet             = "PlatformCreativeSet"
+	TypePlatformCreativeSetVersion      = "PlatformCreativeSetVersion"
+	TypePlatformNotificationDelivery    = "PlatformNotificationDelivery"
+	TypePlatformNotificationInbox       = "PlatformNotificationInbox"
+	TypePlatformNotificationPolicy      = "PlatformNotificationPolicy"
+	TypePlatformNotificationPreference  = "PlatformNotificationPreference"
+	TypePlatformNotificationSeenAction  = "PlatformNotificationSeenAction"
+	TypePlatformSlackConnection         = "PlatformSlackConnection"
+	TypePlatformSlackInstallation       = "PlatformSlackInstallation"
+	TypePlatformSlackPacing             = "PlatformSlackPacing"
+	TypePlatformSlackPersonalConnection = "PlatformSlackPersonalConnection"
+	TypePlatformWorkspaceCreation       = "PlatformWorkspaceCreation"
+	TypePostAutomationRun               = "PostAutomationRun"
+	TypeProductProfile                  = "ProductProfile"
+	TypeProductSurface                  = "ProductSurface"
+	TypeProject                         = "Project"
+	TypeProjectVersion                  = "ProjectVersion"
+	TypePublicationAttempt              = "PublicationAttempt"
+	TypeRelease                         = "Release"
+	TypeReleaseAutomation               = "ReleaseAutomation"
+	TypeReleaseAutomationExecutor       = "ReleaseAutomationExecutor"
+	TypeReleaseAutomationNode           = "ReleaseAutomationNode"
+	TypeReleaseAutomationRun            = "ReleaseAutomationRun"
+	TypeReleaseAutomationVersion        = "ReleaseAutomationVersion"
+	TypeReleaseDocument                 = "ReleaseDocument"
+	TypeReleaseSourceEvent              = "ReleaseSourceEvent"
+	TypeReleaseSpec                     = "ReleaseSpec"
+	TypeScheduledPost                   = "ScheduledPost"
+	TypeScreenshotCache                 = "ScreenshotCache"
+	TypeSession                         = "Session"
+	TypeShareLink                       = "ShareLink"
+	TypeSocialOAuthStart                = "SocialOAuthStart"
+	TypeSocialSet                       = "SocialSet"
+	TypeSocialSetWritingSample          = "SocialSetWritingSample"
+	TypeSocialTenantBinding             = "SocialTenantBinding"
+	TypeSourceApp                       = "SourceApp"
+	TypeSourceChange                    = "SourceChange"
+	TypeStorePublishingCredential       = "StorePublishingCredential"
+	TypeStoreReview                     = "StoreReview"
+	TypeStoreReviewComment              = "StoreReviewComment"
+	TypeSupportAccessGrant              = "SupportAccessGrant"
+	TypeSurfaceCapture                  = "SurfaceCapture"
+	TypeUser                            = "User"
+	TypeUserPreference                  = "UserPreference"
+	TypeWebhookDelivery                 = "WebhookDelivery"
+	TypeWebhookDeliveryAttempt          = "WebhookDeliveryAttempt"
+	TypeWebhookSubscription             = "WebhookSubscription"
+	TypeWorkspaceCreditGrant            = "WorkspaceCreditGrant"
+	TypeWorkspaceDeletion               = "WorkspaceDeletion"
+	TypeWorkspaceEntitlement            = "WorkspaceEntitlement"
+	TypeWorkspaceGitHubInstallation     = "WorkspaceGitHubInstallation"
+	TypeWorkspaceSettings               = "WorkspaceSettings"
 )
 
 // AccountDeletionRequestMutation represents an operation that mutates the AccountDeletionRequest nodes in the graph.
@@ -55076,6 +55078,608 @@ func (m *PlatformSlackPacingMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *PlatformSlackPacingMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PlatformSlackPacing edge %s", name)
+}
+
+// PlatformSlackPersonalConnectionMutation represents an operation that mutates the PlatformSlackPersonalConnection nodes in the graph.
+type PlatformSlackPersonalConnectionMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	user_id         *string
+	member_id       *string
+	installation_id *string
+	slack_user_id   *string
+	created_at      *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*PlatformSlackPersonalConnection, error)
+	predicates      []predicate.PlatformSlackPersonalConnection
+}
+
+var _ ent.Mutation = (*PlatformSlackPersonalConnectionMutation)(nil)
+
+// platformslackpersonalconnectionOption allows management of the mutation configuration using functional options.
+type platformslackpersonalconnectionOption func(*PlatformSlackPersonalConnectionMutation)
+
+// newPlatformSlackPersonalConnectionMutation creates new mutation for the PlatformSlackPersonalConnection entity.
+func newPlatformSlackPersonalConnectionMutation(c config, op Op, opts ...platformslackpersonalconnectionOption) *PlatformSlackPersonalConnectionMutation {
+	m := &PlatformSlackPersonalConnectionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformSlackPersonalConnection,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformSlackPersonalConnectionID sets the ID field of the mutation.
+func withPlatformSlackPersonalConnectionID(id string) platformslackpersonalconnectionOption {
+	return func(m *PlatformSlackPersonalConnectionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformSlackPersonalConnection
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformSlackPersonalConnection, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformSlackPersonalConnection.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformSlackPersonalConnection sets the old PlatformSlackPersonalConnection of the mutation.
+func withPlatformSlackPersonalConnection(node *PlatformSlackPersonalConnection) platformslackpersonalconnectionOption {
+	return func(m *PlatformSlackPersonalConnectionMutation) {
+		m.oldValue = func(context.Context) (*PlatformSlackPersonalConnection, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformSlackPersonalConnectionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformSlackPersonalConnectionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformSlackPersonalConnection entities.
+func (m *PlatformSlackPersonalConnectionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformSlackPersonalConnectionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformSlackPersonalConnectionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformSlackPersonalConnection.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PlatformSlackPersonalConnectionMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PlatformSlackPersonalConnectionMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PlatformSlackPersonalConnection entity.
+// If the PlatformSlackPersonalConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackPersonalConnectionMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PlatformSlackPersonalConnectionMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *PlatformSlackPersonalConnectionMutation) SetUserID(s string) {
+	m.user_id = &s
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *PlatformSlackPersonalConnectionMutation) UserID() (r string, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the PlatformSlackPersonalConnection entity.
+// If the PlatformSlackPersonalConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackPersonalConnectionMutation) OldUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *PlatformSlackPersonalConnectionMutation) ResetUserID() {
+	m.user_id = nil
+}
+
+// SetMemberID sets the "member_id" field.
+func (m *PlatformSlackPersonalConnectionMutation) SetMemberID(s string) {
+	m.member_id = &s
+}
+
+// MemberID returns the value of the "member_id" field in the mutation.
+func (m *PlatformSlackPersonalConnectionMutation) MemberID() (r string, exists bool) {
+	v := m.member_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMemberID returns the old "member_id" field's value of the PlatformSlackPersonalConnection entity.
+// If the PlatformSlackPersonalConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackPersonalConnectionMutation) OldMemberID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMemberID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMemberID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMemberID: %w", err)
+	}
+	return oldValue.MemberID, nil
+}
+
+// ResetMemberID resets all changes to the "member_id" field.
+func (m *PlatformSlackPersonalConnectionMutation) ResetMemberID() {
+	m.member_id = nil
+}
+
+// SetInstallationID sets the "installation_id" field.
+func (m *PlatformSlackPersonalConnectionMutation) SetInstallationID(s string) {
+	m.installation_id = &s
+}
+
+// InstallationID returns the value of the "installation_id" field in the mutation.
+func (m *PlatformSlackPersonalConnectionMutation) InstallationID() (r string, exists bool) {
+	v := m.installation_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInstallationID returns the old "installation_id" field's value of the PlatformSlackPersonalConnection entity.
+// If the PlatformSlackPersonalConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackPersonalConnectionMutation) OldInstallationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInstallationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInstallationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInstallationID: %w", err)
+	}
+	return oldValue.InstallationID, nil
+}
+
+// ResetInstallationID resets all changes to the "installation_id" field.
+func (m *PlatformSlackPersonalConnectionMutation) ResetInstallationID() {
+	m.installation_id = nil
+}
+
+// SetSlackUserID sets the "slack_user_id" field.
+func (m *PlatformSlackPersonalConnectionMutation) SetSlackUserID(s string) {
+	m.slack_user_id = &s
+}
+
+// SlackUserID returns the value of the "slack_user_id" field in the mutation.
+func (m *PlatformSlackPersonalConnectionMutation) SlackUserID() (r string, exists bool) {
+	v := m.slack_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSlackUserID returns the old "slack_user_id" field's value of the PlatformSlackPersonalConnection entity.
+// If the PlatformSlackPersonalConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackPersonalConnectionMutation) OldSlackUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSlackUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSlackUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSlackUserID: %w", err)
+	}
+	return oldValue.SlackUserID, nil
+}
+
+// ResetSlackUserID resets all changes to the "slack_user_id" field.
+func (m *PlatformSlackPersonalConnectionMutation) ResetSlackUserID() {
+	m.slack_user_id = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlatformSlackPersonalConnectionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlatformSlackPersonalConnectionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PlatformSlackPersonalConnection entity.
+// If the PlatformSlackPersonalConnection object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSlackPersonalConnectionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlatformSlackPersonalConnectionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the PlatformSlackPersonalConnectionMutation builder.
+func (m *PlatformSlackPersonalConnectionMutation) Where(ps ...predicate.PlatformSlackPersonalConnection) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformSlackPersonalConnectionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformSlackPersonalConnectionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformSlackPersonalConnection, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformSlackPersonalConnectionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformSlackPersonalConnectionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformSlackPersonalConnection).
+func (m *PlatformSlackPersonalConnectionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformSlackPersonalConnectionMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.organization_id != nil {
+		fields = append(fields, platformslackpersonalconnection.FieldOrganizationID)
+	}
+	if m.user_id != nil {
+		fields = append(fields, platformslackpersonalconnection.FieldUserID)
+	}
+	if m.member_id != nil {
+		fields = append(fields, platformslackpersonalconnection.FieldMemberID)
+	}
+	if m.installation_id != nil {
+		fields = append(fields, platformslackpersonalconnection.FieldInstallationID)
+	}
+	if m.slack_user_id != nil {
+		fields = append(fields, platformslackpersonalconnection.FieldSlackUserID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, platformslackpersonalconnection.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformSlackPersonalConnectionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformslackpersonalconnection.FieldOrganizationID:
+		return m.OrganizationID()
+	case platformslackpersonalconnection.FieldUserID:
+		return m.UserID()
+	case platformslackpersonalconnection.FieldMemberID:
+		return m.MemberID()
+	case platformslackpersonalconnection.FieldInstallationID:
+		return m.InstallationID()
+	case platformslackpersonalconnection.FieldSlackUserID:
+		return m.SlackUserID()
+	case platformslackpersonalconnection.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformSlackPersonalConnectionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformslackpersonalconnection.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case platformslackpersonalconnection.FieldUserID:
+		return m.OldUserID(ctx)
+	case platformslackpersonalconnection.FieldMemberID:
+		return m.OldMemberID(ctx)
+	case platformslackpersonalconnection.FieldInstallationID:
+		return m.OldInstallationID(ctx)
+	case platformslackpersonalconnection.FieldSlackUserID:
+		return m.OldSlackUserID(ctx)
+	case platformslackpersonalconnection.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformSlackPersonalConnection field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSlackPersonalConnectionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformslackpersonalconnection.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case platformslackpersonalconnection.FieldUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case platformslackpersonalconnection.FieldMemberID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMemberID(v)
+		return nil
+	case platformslackpersonalconnection.FieldInstallationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInstallationID(v)
+		return nil
+	case platformslackpersonalconnection.FieldSlackUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSlackUserID(v)
+		return nil
+	case platformslackpersonalconnection.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSlackPersonalConnection field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformSlackPersonalConnectionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformSlackPersonalConnectionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSlackPersonalConnectionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlatformSlackPersonalConnection numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformSlackPersonalConnectionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformSlackPersonalConnectionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformSlackPersonalConnectionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformSlackPersonalConnection nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformSlackPersonalConnectionMutation) ResetField(name string) error {
+	switch name {
+	case platformslackpersonalconnection.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case platformslackpersonalconnection.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case platformslackpersonalconnection.FieldMemberID:
+		m.ResetMemberID()
+		return nil
+	case platformslackpersonalconnection.FieldInstallationID:
+		m.ResetInstallationID()
+		return nil
+	case platformslackpersonalconnection.FieldSlackUserID:
+		m.ResetSlackUserID()
+		return nil
+	case platformslackpersonalconnection.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSlackPersonalConnection field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformSlackPersonalConnectionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformSlackPersonalConnectionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformSlackPersonalConnectionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformSlackPersonalConnectionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformSlackPersonalConnectionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformSlackPersonalConnectionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformSlackPersonalConnectionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSlackPersonalConnection unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformSlackPersonalConnectionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSlackPersonalConnection edge %s", name)
 }
 
 // PlatformWorkspaceCreationMutation represents an operation that mutates the PlatformWorkspaceCreation nodes in the graph.

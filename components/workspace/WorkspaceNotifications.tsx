@@ -45,7 +45,11 @@ function SettingsForm({
   const [preferences, setPreferences] = useState(initial.preferences)
   const [busy, setBusy] = useState('')
   const [panel, setPanel] = useState(
-    search.has('connected') || search.has('error') ? 'delivery' : 'personal'
+    search.get('connected') !== 'personal-slack' &&
+      initial.canManage &&
+      (search.has('connected') || search.has('error'))
+      ? 'delivery'
+      : 'personal'
   )
   const { preferences: personal } = usePreferences()
   const preferencesDirty = JSON.stringify(preferences) !== JSON.stringify(settings.preferences)
@@ -58,7 +62,9 @@ function SettingsForm({
   )
   const [saved, setSaved] = useState(
     search.has('connected')
-      ? 'Slack connected. Select a destination and save your workspace policy.'
+      ? search.get('connected') === 'personal-slack'
+        ? 'Your Slack account is connected. Choose which direct messages to receive below.'
+        : 'Slack connected. Select a destination and save your workspace policy.'
       : ''
   )
   const [testDelivery, setTestDelivery] = useState('')
@@ -139,7 +145,7 @@ function SettingsForm({
       setSaved(section === 'policy' ? 'Workspace policy saved.' : 'Your preferences are saved.')
     })
   }
-  async function connect() {
+  async function connect(purpose: 'notifications' | 'personal' = 'notifications') {
     await perform('connect', async () => {
       const result = await notificationRequest(
         identity,
@@ -147,7 +153,12 @@ function SettingsForm({
         z.object({ url: z.string().url() }),
         {
           method: 'POST',
-          body: { purpose: 'notifications', connectionId: policy.slackConnectionId || undefined },
+          body: {
+            purpose,
+            connectionId:
+              (purpose === 'personal' ? settings.personalSlack?.id : policy.slackConnectionId) ||
+              undefined,
+          },
         }
       )
       window.location.assign(result.url)
@@ -173,7 +184,7 @@ function SettingsForm({
       setSaved('Slack disconnected from this workspace.')
     })
   }
-  async function test(channel: 'email' | 'slack') {
+  async function test(channel: 'email' | 'slack' | 'slack_dm') {
     await perform(`test-${channel}`, async () => {
       const result = await notificationRequest(
         identity,
@@ -185,6 +196,22 @@ function SettingsForm({
       setTestDelivery(result.deliveryId)
       setSaved('Test queued. Its status appears below.')
       await queryClient.invalidateQueries({ queryKey: [...identity.key, 'deliveries'] })
+    })
+  }
+  async function disconnectPersonal() {
+    const id = settings.personalSlack?.id
+    if (!id) return
+    await perform('disconnect-personal', async () => {
+      await notificationRequest(
+        identity,
+        `/slack/personal/${encodeURIComponent(id)}`,
+        z.object({ disconnected: z.boolean() }),
+        { method: 'DELETE' }
+      )
+      const next = await notificationRequest(identity, '', notificationSettingsSchema)
+      setSettings(next)
+      queryClient.setQueryData([...identity.key, 'settings'], next)
+      setSaved('Your Slack direct messages are disconnected.')
     })
   }
   const groups = [...new Set(settings.catalogue.map((event) => event.group))]
@@ -245,6 +272,56 @@ function SettingsForm({
         </Section>
 
         <Section
+          title="Personal Slack messages"
+          description="Receive your notifications in a direct message from Shots. Choose the Slack account you want to use on the authorization screen."
+        >
+          <Group>
+            <div className="space-y-3 p-5">
+              <p className="text-sm">
+                {settings.personalSlack
+                  ? `${settings.personalSlack.teamName} · ${settings.personalSlack.slackUserId} · ${settings.personalSlack.health === 'CONNECTED' ? 'Connected' : 'Reconnect required'}`
+                  : 'No personal Slack account connected.'}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="outline"
+                  disabled={!settings.slackAvailable || preferencesDirty || policyDirty}
+                  onClick={() => void connect('personal')}
+                >
+                  {settings.personalSlack ? 'Reconnect my Slack' : 'Connect my Slack'}
+                </Button>
+                {settings.personalSlack ? (
+                  <Button variant="outline" onClick={() => void disconnectPersonal()}>
+                    Disconnect my Slack
+                  </Button>
+                ) : null}
+                <Button
+                  variant="outline"
+                  disabled={
+                    settings.personalSlack?.health !== 'CONNECTED' ||
+                    !settings.policy.availability.slack ||
+                    !!testUntil.slack_dm
+                  }
+                  onClick={() => void test('slack_dm')}
+                >
+                  Send test to my Slack
+                </Button>
+              </div>
+              {!settings.slackAvailable ? (
+                <p className="text-sm text-muted-foreground">
+                  Slack is unavailable. Contact your administrator to enable it.
+                </p>
+              ) : null}
+              {preferencesDirty || policyDirty ? (
+                <p className="text-sm text-muted-foreground">
+                  Save or discard changes before connecting Slack.
+                </p>
+              ) : null}
+            </div>
+          </Group>
+        </Section>
+
+        <Section
           title="Your preferences"
           description="Your selections are remembered separately from current delivery. Save changes to apply them. Workspace rules and the email switch can block delivery."
         >
@@ -271,6 +348,9 @@ function SettingsForm({
                         <th scope="col" className="px-3 pb-3 font-medium">
                           Email
                         </th>
+                        <th scope="col" className="px-3 pb-3 font-medium">
+                          Slack DM
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -281,17 +361,27 @@ function SettingsForm({
                             <th scope="row" className="py-3 pr-4 font-normal">
                               {event.label}
                             </th>
-                            {(['inApp', 'email'] as const).map((channel) => {
+                            {(['inApp', 'email', 'slack'] as const).map((channel) => {
                               const effective =
                                 settings.effective[event.id]?.[
-                                  channel === 'inApp' ? 'in_app' : channel
+                                  channel === 'inApp'
+                                    ? 'in_app'
+                                    : channel === 'slack'
+                                      ? 'slack_dm'
+                                      : channel
                                 ]
                               const blocked =
                                 !settings.policy.availability[channel] ||
-                                !settings.policy.events[event.id]?.[channel]
+                                (channel !== 'slack' &&
+                                  !settings.policy.events[event.id]?.[channel])
                               const masterOff =
                                 channel === 'email' && personal?.emailNotifications === false
-                              const label = channel === 'inApp' ? 'In-app' : 'Email'
+                              const label =
+                                channel === 'inApp'
+                                  ? 'In-app'
+                                  : channel === 'slack'
+                                    ? 'Slack DM'
+                                    : 'Email'
                               const reason = blocked
                                 ? 'Blocked by workspace policy'
                                 : masterOff
@@ -304,8 +394,11 @@ function SettingsForm({
                                   <label className="flex items-center gap-2">
                                     <Checkbox
                                       disabled={blocked || masterOff}
-                                      aria-label={`${event.label}: your ${channel === 'inApp' ? 'in-app' : 'email'} preference`}
-                                      checked={preferences.events[event.id]?.[channel] ?? true}
+                                      aria-label={`${event.label}: your ${channel === 'inApp' ? 'in-app' : channel === 'slack' ? 'Slack DM' : 'email'} preference`}
+                                      checked={
+                                        preferences.events[event.id]?.[channel] ??
+                                        channel !== 'slack'
+                                      }
                                       onCheckedChange={(checked) =>
                                         setPreferences((current) => ({
                                           ...current,
@@ -321,7 +414,8 @@ function SettingsForm({
                                     />
                                     <span className="text-xs">
                                       Your preference:{' '}
-                                      {(preferences.events[event.id]?.[channel] ?? true)
+                                      {(preferences.events[event.id]?.[channel] ??
+                                      channel !== 'slack')
                                         ? 'On'
                                         : 'Off'}
                                     </span>
@@ -342,13 +436,6 @@ function SettingsForm({
               </details>
             ))}
           </Group>
-          <details className="mt-3 text-sm text-muted-foreground">
-            <summary className="cursor-pointer">Slack delivery details</summary>
-            <p>
-              Workspace activity can go to a Slack channel. Direct messages are unavailable because
-              the app does not request im:write.
-            </p>
-          </details>
           <div className="mt-6">
             <SocialSetNotifications
               disabled={!!busy}

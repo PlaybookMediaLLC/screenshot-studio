@@ -27,7 +27,12 @@ function back(slug: ProviderSlug, outcome: { connected: string } | { error: stri
  * returns to the workspace's integration settings with a message.
  */
 export const GET = route(integrationCallbackContract, {
-  auth: organizationAccess('workspace:update'),
+  auth: async (input) =>
+    organizationAccess(
+      new URL(input.request.url).pathname === '/api/integrations/slack/callback'
+        ? 'workspace:read'
+        : 'workspace:update'
+    )(input),
   handler: async ({ access, params, query, request }) => {
     const provider = providerOfSlug(params.provider)
     const name = PROVIDER_NAMES[provider]
@@ -41,7 +46,9 @@ export const GET = route(integrationCallbackContract, {
           code: query.code,
           state: query.state,
         })
-        return back(params.provider, { connected: connection.teamName })
+        return back(params.provider, {
+          connected: connection.slackUserId ? 'personal-slack' : connection.teamName,
+        })
       } catch {
         return back(params.provider, {
           error:

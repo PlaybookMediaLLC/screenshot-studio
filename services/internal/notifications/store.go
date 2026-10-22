@@ -57,6 +57,7 @@ func (p Preferences) socialSetAllows(setID, kind string) bool {
 }
 
 type Settings struct {
+	PersonalSlack  *SlackConnection                      `json:"personalSlack"`
 	Effective      map[string]map[string]ChannelDecision `json:"effective"`
 	Catalogue      []activity.Definition                 `json:"catalogue"`
 	Policy         Policy                                `json:"policy"`
@@ -229,9 +230,13 @@ func (s *Service) Settings(ctx context.Context, p Principal) (*Settings, error) 
 	if err != nil {
 		return nil, err
 	}
+	personal, err := personalSlack(ctx, s.DB, p.OrganizationID, p.UserID)
+	if err != nil {
+		return nil, err
+	}
 	_, keyErr := encryptionKey("PLATFORM_NOTIFICATION_ENCRYPTION_KEY")
 	available := emailConfigured() && keyErr == nil
-	return &Settings{Catalogue: activity.Catalogue, Policy: pol, Preferences: pref, CanManage: s.Authorize(ctx, p, true) == nil, EmailAvailable: available, SlackAvailable: s.slackConfigured(), Connections: connections, Effective: effectiveSettings(pol, pref, available, connections)}, nil
+	return &Settings{PersonalSlack: personal, Catalogue: activity.Catalogue, Policy: pol, Preferences: pref, CanManage: s.Authorize(ctx, p, true) == nil, EmailAvailable: available, SlackAvailable: s.slackConfigured(), Connections: connections, Effective: effectiveSettings(pol, pref, available, connections, personal)}, nil
 }
 func validEvents(events map[string]Channels, personal bool) bool {
 	if len(events) > len(activity.Catalogue) {
@@ -239,7 +244,7 @@ func validEvents(events map[string]Channels, personal bool) bool {
 	}
 	for k, v := range events {
 		d, ok := activity.Lookup(k)
-		if !ok || personal && v.Slack || d.Restricted && v.Slack {
+		if !ok || !personal && d.Restricted && v.Slack {
 			return false
 		}
 	}

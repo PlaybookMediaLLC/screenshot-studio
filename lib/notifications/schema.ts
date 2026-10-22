@@ -24,6 +24,7 @@ export const notificationPreferencesSchema = z.object({
 })
 /** Provider identity and health without credentials. */
 export const notificationConnectionSchema = z.object({
+  slackUserId: z.string().optional(),
   id: z.string(),
   teamId: z.string(),
   teamName: z.string(),
@@ -55,6 +56,7 @@ export const notificationSettingsSchema = z.object({
   emailAvailable: z.boolean(),
   slackAvailable: z.boolean(),
   connections: z.array(notificationConnectionSchema),
+  personalSlack: notificationConnectionSchema.nullable().optional(),
   effective: z.record(
     z.string(),
     z.record(z.string(), z.object({ enabled: z.boolean(), reason: z.string() }))

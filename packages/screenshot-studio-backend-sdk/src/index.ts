@@ -3438,7 +3438,7 @@ export class ScreenshotStudioBackendSDK {
   }
   /** Begin backend-owned, session-bound Slack OAuth. */
   connectNotificationSlack(
-    purpose: 'notifications' | 'design' | 'publishing' = 'notifications',
+    purpose: 'notifications' | 'design' | 'publishing' | 'personal' = 'notifications',
     connectionId?: string
   ) {
     return this.request<{ url: string }>('v1/workspace/notifications/slack/connect', {
@@ -3446,6 +3446,14 @@ export class ScreenshotStudioBackendSDK {
       body: { purpose, connectionId },
     })
   }
+  /** Disconnect only the authenticated member's personal Slack destination. */
+  disconnectPersonalSlack(id: string) {
+    return this.request<{ disconnected: boolean }>(
+      `v1/workspace/notifications/slack/personal/${encodeURIComponent(id)}`,
+      { method: 'DELETE' }
+    )
+  }
+
   /** Consume one OAuth state and store verified provider identity in Go. */
   completeNotificationSlack(body: { state: string; code: string }) {
     return this.request<NotificationConnection>('v1/workspace/notifications/slack/callback', {
@@ -3467,7 +3475,7 @@ export class ScreenshotStudioBackendSDK {
     )
   }
   /** Request an explicitly targeted test with a stable retry key. */
-  testNotification(body: { channel: 'email' | 'slack'; key: string }) {
+  testNotification(body: { channel: 'email' | 'slack' | 'slack_dm'; key: string }) {
     return this.request<{ deliveryId: string }>('v1/workspace/notifications/test', {
       method: 'POST',
       body,

@@ -173,3 +173,16 @@ func (PlatformSlackPacing) Annotations() []schema.Annotation {
 func (PlatformSlackPacing) Fields() []ent.Field {
 	return []ent.Field{field.String("id"), field.String("installation_id"), field.String("channel_id"), field.Time("next_at")}
 }
+
+// PlatformSlackPersonalConnection binds one authorizing Slack user to a current member.
+type PlatformSlackPersonalConnection struct{ ent.Schema }
+
+func (PlatformSlackPersonalConnection) Annotations() []schema.Annotation {
+	return []schema.Annotation{entsql.Annotation{Table: "platform_slack_personal_connection"}}
+}
+func (PlatformSlackPersonalConnection) Fields() []ent.Field {
+	return []ent.Field{field.String("id"), field.String("organization_id").StorageKey("organizationId"), field.String("user_id").StorageKey("userId"), field.String("member_id"), field.String("installation_id"), field.String("slack_user_id"), field.Time("created_at").Default(time.Now)}
+}
+func (PlatformSlackPersonalConnection) Indexes() []ent.Index {
+	return []ent.Index{index.Fields("organization_id", "user_id").Unique(), index.Fields("installation_id")}
+}

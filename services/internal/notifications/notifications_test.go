@@ -33,8 +33,8 @@ func TestPreferenceCeilingAndRestrictedChannels(t *testing.T) {
 	if validEvents(map[string]Channels{d.ID: {Slack: true}}, false) {
 		t.Fatal("restricted Slack stream accepted")
 	}
-	if validEvents(map[string]Channels{"capture.completed": {Slack: true}}, true) {
-		t.Fatal("personal preferences can configure Slack")
+	if !validEvents(map[string]Channels{"capture.completed": {Slack: true}}, true) {
+		t.Fatal("personal preferences cannot configure Slack DMs")
 	}
 	if validEvents(map[string]Channels{"invented": {InApp: true}}, false) {
 		t.Fatal("unknown event accepted")

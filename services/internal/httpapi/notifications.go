@@ -13,7 +13,7 @@ func (s *Server) registerNotifications(mux *http.ServeMux) {
 		"POST /v1/workspace/notifications/test", "GET /v1/workspace/notifications/resolve/{id}", "GET /v1/workspace/notifications/inbox", "GET /v1/workspace/notifications/count", "POST /v1/workspace/notifications/seen",
 		"POST /v1/workspace/notifications/state",
 		"POST /v1/workspace/notifications/slack/connect", "POST /v1/workspace/notifications/slack/callback", "GET /v1/workspace/notifications/slack/channels",
-		"DELETE /v1/workspace/notifications/slack/{id}", "GET /v1/workspace/notifications/deliveries", "GET /v1/workspace/notifications/deliveries/{id}", "POST /v1/workspace/notifications/deliveries/{id}/recover",
+		"DELETE /v1/workspace/notifications/slack/personal/{id}", "DELETE /v1/workspace/notifications/slack/{id}", "GET /v1/workspace/notifications/deliveries", "GET /v1/workspace/notifications/deliveries/{id}", "POST /v1/workspace/notifications/deliveries/{id}/recover",
 	} {
 		mux.Handle(pattern, s.authenticateProduct(http.HandlerFunc(s.workspaceNotifications)))
 	}
@@ -114,6 +114,9 @@ func (s *Server) workspaceNotifications(w http.ResponseWriter, r *http.Request) 
 		}
 	case "GET /v1/workspace/notifications/slack/channels":
 		result, err = service.Channels(r.Context(), p, r.URL.Query().Get("connectionId"), r.URL.Query().Get("cursor"))
+	case "DELETE /v1/workspace/notifications/slack/personal/{id}":
+		err = service.DisconnectPersonalSlack(r.Context(), p, r.PathValue("id"))
+		result = map[string]bool{"disconnected": err == nil}
 	case "DELETE /v1/workspace/notifications/slack/{id}":
 		err = service.Disconnect(r.Context(), p, r.PathValue("id"))
 		result = map[string]bool{"disconnected": err == nil}

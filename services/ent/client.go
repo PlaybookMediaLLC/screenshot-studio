@@ -74,6 +74,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpersonalconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformworkspacecreation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
@@ -240,6 +241,8 @@ type Client struct {
 	PlatformSlackInstallation *PlatformSlackInstallationClient
 	// PlatformSlackPacing is the client for interacting with the PlatformSlackPacing builders.
 	PlatformSlackPacing *PlatformSlackPacingClient
+	// PlatformSlackPersonalConnection is the client for interacting with the PlatformSlackPersonalConnection builders.
+	PlatformSlackPersonalConnection *PlatformSlackPersonalConnectionClient
 	// PlatformWorkspaceCreation is the client for interacting with the PlatformWorkspaceCreation builders.
 	PlatformWorkspaceCreation *PlatformWorkspaceCreationClient
 	// PostAutomationRun is the client for interacting with the PostAutomationRun builders.
@@ -392,6 +395,7 @@ func (c *Client) init() {
 	c.PlatformSlackConnection = NewPlatformSlackConnectionClient(c.config)
 	c.PlatformSlackInstallation = NewPlatformSlackInstallationClient(c.config)
 	c.PlatformSlackPacing = NewPlatformSlackPacingClient(c.config)
+	c.PlatformSlackPersonalConnection = NewPlatformSlackPersonalConnectionClient(c.config)
 	c.PlatformWorkspaceCreation = NewPlatformWorkspaceCreationClient(c.config)
 	c.PostAutomationRun = NewPostAutomationRunClient(c.config)
 	c.ProductProfile = NewProductProfileClient(c.config)
@@ -523,108 +527,109 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:                            ctx,
-		config:                         cfg,
-		AccountDeletionRequest:         NewAccountDeletionRequestClient(cfg),
-		AgentAuthorization:             NewAgentAuthorizationClient(cfg),
-		Apikey:                         NewApikeyClient(cfg),
-		Approval:                       NewApprovalClient(cfg),
-		Asset:                          NewAssetClient(cfg),
-		AudienceSubscriber:             NewAudienceSubscriberClient(cfg),
-		AuditDrain:                     NewAuditDrainClient(cfg),
-		AuditDrainDelivery:             NewAuditDrainDeliveryClient(cfg),
-		AuditLog:                       NewAuditLogClient(cfg),
-		AuditOutbox:                    NewAuditOutboxClient(cfg),
-		AuditRetentionPolicy:           NewAuditRetentionPolicyClient(cfg),
-		BillingEntitlementEvent:        NewBillingEntitlementEventClient(cfg),
-		BrandKit:                       NewBrandKitClient(cfg),
-		BrandProfile:                   NewBrandProfileClient(cfg),
-		Campaign:                       NewCampaignClient(cfg),
-		CampaignAsset:                  NewCampaignAssetClient(cfg),
-		CampaignPlan:                   NewCampaignPlanClient(cfg),
-		CampaignPost:                   NewCampaignPostClient(cfg),
-		CampaignRevision:               NewCampaignRevisionClient(cfg),
-		ChannelConnection:              NewChannelConnectionClient(cfg),
-		CommunicationAttempt:           NewCommunicationAttemptClient(cfg),
-		CommunicationRecipient:         NewCommunicationRecipientClient(cfg),
-		ContentAngle:                   NewContentAngleClient(cfg),
-		ContentDraft:                   NewContentDraftClient(cfg),
-		ContentDraftFinisher:           NewContentDraftFinisherClient(cfg),
-		ContentDraftRevision:           NewContentDraftRevisionClient(cfg),
-		ContentDraftSettings:           NewContentDraftSettingsClient(cfg),
-		ContentDraftTag:                NewContentDraftTagClient(cfg),
-		Conversation:                   NewConversationClient(cfg),
-		ConversationMessage:            NewConversationMessageClient(cfg),
-		CreativeTemplate:               NewCreativeTemplateClient(cfg),
-		CreativeVariant:                NewCreativeVariantClient(cfg),
-		CustomerCommunication:          NewCustomerCommunicationClient(cfg),
-		DeploymentEvent:                NewDeploymentEventClient(cfg),
-		Design:                         NewDesignClient(cfg),
-		EnrichmentRecord:               NewEnrichmentRecordClient(cfg),
-		GitHubInstallStart:             NewGitHubInstallStartClient(cfg),
-		GitHubInstallation:             NewGitHubInstallationClient(cfg),
-		IdealCustomerProfile:           NewIdealCustomerProfileClient(cfg),
-		IntegrationConnection:          NewIntegrationConnectionClient(cfg),
-		Invitation:                     NewInvitationClient(cfg),
-		LaunchRun:                      NewLaunchRunClient(cfg),
-		LaunchRunStep:                  NewLaunchRunStepClient(cfg),
-		Member:                         NewMemberClient(cfg),
-		OnboardingRun:                  NewOnboardingRunClient(cfg),
-		Organization:                   NewOrganizationClient(cfg),
-		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
-		OutboxEvent:                    NewOutboxEventClient(cfg),
-		PageKnowledge:                  NewPageKnowledgeClient(cfg),
-		PlatformCreativeSet:            NewPlatformCreativeSetClient(cfg),
-		PlatformCreativeSetVersion:     NewPlatformCreativeSetVersionClient(cfg),
-		PlatformNotificationDelivery:   NewPlatformNotificationDeliveryClient(cfg),
-		PlatformNotificationInbox:      NewPlatformNotificationInboxClient(cfg),
-		PlatformNotificationPolicy:     NewPlatformNotificationPolicyClient(cfg),
-		PlatformNotificationPreference: NewPlatformNotificationPreferenceClient(cfg),
-		PlatformNotificationSeenAction: NewPlatformNotificationSeenActionClient(cfg),
-		PlatformSlackConnection:        NewPlatformSlackConnectionClient(cfg),
-		PlatformSlackInstallation:      NewPlatformSlackInstallationClient(cfg),
-		PlatformSlackPacing:            NewPlatformSlackPacingClient(cfg),
-		PlatformWorkspaceCreation:      NewPlatformWorkspaceCreationClient(cfg),
-		PostAutomationRun:              NewPostAutomationRunClient(cfg),
-		ProductProfile:                 NewProductProfileClient(cfg),
-		ProductSurface:                 NewProductSurfaceClient(cfg),
-		Project:                        NewProjectClient(cfg),
-		ProjectVersion:                 NewProjectVersionClient(cfg),
-		PublicationAttempt:             NewPublicationAttemptClient(cfg),
-		Release:                        NewReleaseClient(cfg),
-		ReleaseAutomation:              NewReleaseAutomationClient(cfg),
-		ReleaseAutomationExecutor:      NewReleaseAutomationExecutorClient(cfg),
-		ReleaseAutomationNode:          NewReleaseAutomationNodeClient(cfg),
-		ReleaseAutomationRun:           NewReleaseAutomationRunClient(cfg),
-		ReleaseAutomationVersion:       NewReleaseAutomationVersionClient(cfg),
-		ReleaseDocument:                NewReleaseDocumentClient(cfg),
-		ReleaseSourceEvent:             NewReleaseSourceEventClient(cfg),
-		ReleaseSpec:                    NewReleaseSpecClient(cfg),
-		ScheduledPost:                  NewScheduledPostClient(cfg),
-		ScreenshotCache:                NewScreenshotCacheClient(cfg),
-		Session:                        NewSessionClient(cfg),
-		ShareLink:                      NewShareLinkClient(cfg),
-		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
-		SocialSet:                      NewSocialSetClient(cfg),
-		SocialSetWritingSample:         NewSocialSetWritingSampleClient(cfg),
-		SocialTenantBinding:            NewSocialTenantBindingClient(cfg),
-		SourceApp:                      NewSourceAppClient(cfg),
-		SourceChange:                   NewSourceChangeClient(cfg),
-		StorePublishingCredential:      NewStorePublishingCredentialClient(cfg),
-		StoreReview:                    NewStoreReviewClient(cfg),
-		StoreReviewComment:             NewStoreReviewCommentClient(cfg),
-		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
-		SurfaceCapture:                 NewSurfaceCaptureClient(cfg),
-		User:                           NewUserClient(cfg),
-		UserPreference:                 NewUserPreferenceClient(cfg),
-		WebhookDelivery:                NewWebhookDeliveryClient(cfg),
-		WebhookDeliveryAttempt:         NewWebhookDeliveryAttemptClient(cfg),
-		WebhookSubscription:            NewWebhookSubscriptionClient(cfg),
-		WorkspaceCreditGrant:           NewWorkspaceCreditGrantClient(cfg),
-		WorkspaceDeletion:              NewWorkspaceDeletionClient(cfg),
-		WorkspaceEntitlement:           NewWorkspaceEntitlementClient(cfg),
-		WorkspaceGitHubInstallation:    NewWorkspaceGitHubInstallationClient(cfg),
-		WorkspaceSettings:              NewWorkspaceSettingsClient(cfg),
+		ctx:                             ctx,
+		config:                          cfg,
+		AccountDeletionRequest:          NewAccountDeletionRequestClient(cfg),
+		AgentAuthorization:              NewAgentAuthorizationClient(cfg),
+		Apikey:                          NewApikeyClient(cfg),
+		Approval:                        NewApprovalClient(cfg),
+		Asset:                           NewAssetClient(cfg),
+		AudienceSubscriber:              NewAudienceSubscriberClient(cfg),
+		AuditDrain:                      NewAuditDrainClient(cfg),
+		AuditDrainDelivery:              NewAuditDrainDeliveryClient(cfg),
+		AuditLog:                        NewAuditLogClient(cfg),
+		AuditOutbox:                     NewAuditOutboxClient(cfg),
+		AuditRetentionPolicy:            NewAuditRetentionPolicyClient(cfg),
+		BillingEntitlementEvent:         NewBillingEntitlementEventClient(cfg),
+		BrandKit:                        NewBrandKitClient(cfg),
+		BrandProfile:                    NewBrandProfileClient(cfg),
+		Campaign:                        NewCampaignClient(cfg),
+		CampaignAsset:                   NewCampaignAssetClient(cfg),
+		CampaignPlan:                    NewCampaignPlanClient(cfg),
+		CampaignPost:                    NewCampaignPostClient(cfg),
+		CampaignRevision:                NewCampaignRevisionClient(cfg),
+		ChannelConnection:               NewChannelConnectionClient(cfg),
+		CommunicationAttempt:            NewCommunicationAttemptClient(cfg),
+		CommunicationRecipient:          NewCommunicationRecipientClient(cfg),
+		ContentAngle:                    NewContentAngleClient(cfg),
+		ContentDraft:                    NewContentDraftClient(cfg),
+		ContentDraftFinisher:            NewContentDraftFinisherClient(cfg),
+		ContentDraftRevision:            NewContentDraftRevisionClient(cfg),
+		ContentDraftSettings:            NewContentDraftSettingsClient(cfg),
+		ContentDraftTag:                 NewContentDraftTagClient(cfg),
+		Conversation:                    NewConversationClient(cfg),
+		ConversationMessage:             NewConversationMessageClient(cfg),
+		CreativeTemplate:                NewCreativeTemplateClient(cfg),
+		CreativeVariant:                 NewCreativeVariantClient(cfg),
+		CustomerCommunication:           NewCustomerCommunicationClient(cfg),
+		DeploymentEvent:                 NewDeploymentEventClient(cfg),
+		Design:                          NewDesignClient(cfg),
+		EnrichmentRecord:                NewEnrichmentRecordClient(cfg),
+		GitHubInstallStart:              NewGitHubInstallStartClient(cfg),
+		GitHubInstallation:              NewGitHubInstallationClient(cfg),
+		IdealCustomerProfile:            NewIdealCustomerProfileClient(cfg),
+		IntegrationConnection:           NewIntegrationConnectionClient(cfg),
+		Invitation:                      NewInvitationClient(cfg),
+		LaunchRun:                       NewLaunchRunClient(cfg),
+		LaunchRunStep:                   NewLaunchRunStepClient(cfg),
+		Member:                          NewMemberClient(cfg),
+		OnboardingRun:                   NewOnboardingRunClient(cfg),
+		Organization:                    NewOrganizationClient(cfg),
+		OrganizationEnterpriseSettings:  NewOrganizationEnterpriseSettingsClient(cfg),
+		OutboxEvent:                     NewOutboxEventClient(cfg),
+		PageKnowledge:                   NewPageKnowledgeClient(cfg),
+		PlatformCreativeSet:             NewPlatformCreativeSetClient(cfg),
+		PlatformCreativeSetVersion:      NewPlatformCreativeSetVersionClient(cfg),
+		PlatformNotificationDelivery:    NewPlatformNotificationDeliveryClient(cfg),
+		PlatformNotificationInbox:       NewPlatformNotificationInboxClient(cfg),
+		PlatformNotificationPolicy:      NewPlatformNotificationPolicyClient(cfg),
+		PlatformNotificationPreference:  NewPlatformNotificationPreferenceClient(cfg),
+		PlatformNotificationSeenAction:  NewPlatformNotificationSeenActionClient(cfg),
+		PlatformSlackConnection:         NewPlatformSlackConnectionClient(cfg),
+		PlatformSlackInstallation:       NewPlatformSlackInstallationClient(cfg),
+		PlatformSlackPacing:             NewPlatformSlackPacingClient(cfg),
+		PlatformSlackPersonalConnection: NewPlatformSlackPersonalConnectionClient(cfg),
+		PlatformWorkspaceCreation:       NewPlatformWorkspaceCreationClient(cfg),
+		PostAutomationRun:               NewPostAutomationRunClient(cfg),
+		ProductProfile:                  NewProductProfileClient(cfg),
+		ProductSurface:                  NewProductSurfaceClient(cfg),
+		Project:                         NewProjectClient(cfg),
+		ProjectVersion:                  NewProjectVersionClient(cfg),
+		PublicationAttempt:              NewPublicationAttemptClient(cfg),
+		Release:                         NewReleaseClient(cfg),
+		ReleaseAutomation:               NewReleaseAutomationClient(cfg),
+		ReleaseAutomationExecutor:       NewReleaseAutomationExecutorClient(cfg),
+		ReleaseAutomationNode:           NewReleaseAutomationNodeClient(cfg),
+		ReleaseAutomationRun:            NewReleaseAutomationRunClient(cfg),
+		ReleaseAutomationVersion:        NewReleaseAutomationVersionClient(cfg),
+		ReleaseDocument:                 NewReleaseDocumentClient(cfg),
+		ReleaseSourceEvent:              NewReleaseSourceEventClient(cfg),
+		ReleaseSpec:                     NewReleaseSpecClient(cfg),
+		ScheduledPost:                   NewScheduledPostClient(cfg),
+		ScreenshotCache:                 NewScreenshotCacheClient(cfg),
+		Session:                         NewSessionClient(cfg),
+		ShareLink:                       NewShareLinkClient(cfg),
+		SocialOAuthStart:                NewSocialOAuthStartClient(cfg),
+		SocialSet:                       NewSocialSetClient(cfg),
+		SocialSetWritingSample:          NewSocialSetWritingSampleClient(cfg),
+		SocialTenantBinding:             NewSocialTenantBindingClient(cfg),
+		SourceApp:                       NewSourceAppClient(cfg),
+		SourceChange:                    NewSourceChangeClient(cfg),
+		StorePublishingCredential:       NewStorePublishingCredentialClient(cfg),
+		StoreReview:                     NewStoreReviewClient(cfg),
+		StoreReviewComment:              NewStoreReviewCommentClient(cfg),
+		SupportAccessGrant:              NewSupportAccessGrantClient(cfg),
+		SurfaceCapture:                  NewSurfaceCaptureClient(cfg),
+		User:                            NewUserClient(cfg),
+		UserPreference:                  NewUserPreferenceClient(cfg),
+		WebhookDelivery:                 NewWebhookDeliveryClient(cfg),
+		WebhookDeliveryAttempt:          NewWebhookDeliveryAttemptClient(cfg),
+		WebhookSubscription:             NewWebhookSubscriptionClient(cfg),
+		WorkspaceCreditGrant:            NewWorkspaceCreditGrantClient(cfg),
+		WorkspaceDeletion:               NewWorkspaceDeletionClient(cfg),
+		WorkspaceEntitlement:            NewWorkspaceEntitlementClient(cfg),
+		WorkspaceGitHubInstallation:     NewWorkspaceGitHubInstallationClient(cfg),
+		WorkspaceSettings:               NewWorkspaceSettingsClient(cfg),
 	}, nil
 }
 
@@ -642,108 +647,109 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:                            ctx,
-		config:                         cfg,
-		AccountDeletionRequest:         NewAccountDeletionRequestClient(cfg),
-		AgentAuthorization:             NewAgentAuthorizationClient(cfg),
-		Apikey:                         NewApikeyClient(cfg),
-		Approval:                       NewApprovalClient(cfg),
-		Asset:                          NewAssetClient(cfg),
-		AudienceSubscriber:             NewAudienceSubscriberClient(cfg),
-		AuditDrain:                     NewAuditDrainClient(cfg),
-		AuditDrainDelivery:             NewAuditDrainDeliveryClient(cfg),
-		AuditLog:                       NewAuditLogClient(cfg),
-		AuditOutbox:                    NewAuditOutboxClient(cfg),
-		AuditRetentionPolicy:           NewAuditRetentionPolicyClient(cfg),
-		BillingEntitlementEvent:        NewBillingEntitlementEventClient(cfg),
-		BrandKit:                       NewBrandKitClient(cfg),
-		BrandProfile:                   NewBrandProfileClient(cfg),
-		Campaign:                       NewCampaignClient(cfg),
-		CampaignAsset:                  NewCampaignAssetClient(cfg),
-		CampaignPlan:                   NewCampaignPlanClient(cfg),
-		CampaignPost:                   NewCampaignPostClient(cfg),
-		CampaignRevision:               NewCampaignRevisionClient(cfg),
-		ChannelConnection:              NewChannelConnectionClient(cfg),
-		CommunicationAttempt:           NewCommunicationAttemptClient(cfg),
-		CommunicationRecipient:         NewCommunicationRecipientClient(cfg),
-		ContentAngle:                   NewContentAngleClient(cfg),
-		ContentDraft:                   NewContentDraftClient(cfg),
-		ContentDraftFinisher:           NewContentDraftFinisherClient(cfg),
-		ContentDraftRevision:           NewContentDraftRevisionClient(cfg),
-		ContentDraftSettings:           NewContentDraftSettingsClient(cfg),
-		ContentDraftTag:                NewContentDraftTagClient(cfg),
-		Conversation:                   NewConversationClient(cfg),
-		ConversationMessage:            NewConversationMessageClient(cfg),
-		CreativeTemplate:               NewCreativeTemplateClient(cfg),
-		CreativeVariant:                NewCreativeVariantClient(cfg),
-		CustomerCommunication:          NewCustomerCommunicationClient(cfg),
-		DeploymentEvent:                NewDeploymentEventClient(cfg),
-		Design:                         NewDesignClient(cfg),
-		EnrichmentRecord:               NewEnrichmentRecordClient(cfg),
-		GitHubInstallStart:             NewGitHubInstallStartClient(cfg),
-		GitHubInstallation:             NewGitHubInstallationClient(cfg),
-		IdealCustomerProfile:           NewIdealCustomerProfileClient(cfg),
-		IntegrationConnection:          NewIntegrationConnectionClient(cfg),
-		Invitation:                     NewInvitationClient(cfg),
-		LaunchRun:                      NewLaunchRunClient(cfg),
-		LaunchRunStep:                  NewLaunchRunStepClient(cfg),
-		Member:                         NewMemberClient(cfg),
-		OnboardingRun:                  NewOnboardingRunClient(cfg),
-		Organization:                   NewOrganizationClient(cfg),
-		OrganizationEnterpriseSettings: NewOrganizationEnterpriseSettingsClient(cfg),
-		OutboxEvent:                    NewOutboxEventClient(cfg),
-		PageKnowledge:                  NewPageKnowledgeClient(cfg),
-		PlatformCreativeSet:            NewPlatformCreativeSetClient(cfg),
-		PlatformCreativeSetVersion:     NewPlatformCreativeSetVersionClient(cfg),
-		PlatformNotificationDelivery:   NewPlatformNotificationDeliveryClient(cfg),
-		PlatformNotificationInbox:      NewPlatformNotificationInboxClient(cfg),
-		PlatformNotificationPolicy:     NewPlatformNotificationPolicyClient(cfg),
-		PlatformNotificationPreference: NewPlatformNotificationPreferenceClient(cfg),
-		PlatformNotificationSeenAction: NewPlatformNotificationSeenActionClient(cfg),
-		PlatformSlackConnection:        NewPlatformSlackConnectionClient(cfg),
-		PlatformSlackInstallation:      NewPlatformSlackInstallationClient(cfg),
-		PlatformSlackPacing:            NewPlatformSlackPacingClient(cfg),
-		PlatformWorkspaceCreation:      NewPlatformWorkspaceCreationClient(cfg),
-		PostAutomationRun:              NewPostAutomationRunClient(cfg),
-		ProductProfile:                 NewProductProfileClient(cfg),
-		ProductSurface:                 NewProductSurfaceClient(cfg),
-		Project:                        NewProjectClient(cfg),
-		ProjectVersion:                 NewProjectVersionClient(cfg),
-		PublicationAttempt:             NewPublicationAttemptClient(cfg),
-		Release:                        NewReleaseClient(cfg),
-		ReleaseAutomation:              NewReleaseAutomationClient(cfg),
-		ReleaseAutomationExecutor:      NewReleaseAutomationExecutorClient(cfg),
-		ReleaseAutomationNode:          NewReleaseAutomationNodeClient(cfg),
-		ReleaseAutomationRun:           NewReleaseAutomationRunClient(cfg),
-		ReleaseAutomationVersion:       NewReleaseAutomationVersionClient(cfg),
-		ReleaseDocument:                NewReleaseDocumentClient(cfg),
-		ReleaseSourceEvent:             NewReleaseSourceEventClient(cfg),
-		ReleaseSpec:                    NewReleaseSpecClient(cfg),
-		ScheduledPost:                  NewScheduledPostClient(cfg),
-		ScreenshotCache:                NewScreenshotCacheClient(cfg),
-		Session:                        NewSessionClient(cfg),
-		ShareLink:                      NewShareLinkClient(cfg),
-		SocialOAuthStart:               NewSocialOAuthStartClient(cfg),
-		SocialSet:                      NewSocialSetClient(cfg),
-		SocialSetWritingSample:         NewSocialSetWritingSampleClient(cfg),
-		SocialTenantBinding:            NewSocialTenantBindingClient(cfg),
-		SourceApp:                      NewSourceAppClient(cfg),
-		SourceChange:                   NewSourceChangeClient(cfg),
-		StorePublishingCredential:      NewStorePublishingCredentialClient(cfg),
-		StoreReview:                    NewStoreReviewClient(cfg),
-		StoreReviewComment:             NewStoreReviewCommentClient(cfg),
-		SupportAccessGrant:             NewSupportAccessGrantClient(cfg),
-		SurfaceCapture:                 NewSurfaceCaptureClient(cfg),
-		User:                           NewUserClient(cfg),
-		UserPreference:                 NewUserPreferenceClient(cfg),
-		WebhookDelivery:                NewWebhookDeliveryClient(cfg),
-		WebhookDeliveryAttempt:         NewWebhookDeliveryAttemptClient(cfg),
-		WebhookSubscription:            NewWebhookSubscriptionClient(cfg),
-		WorkspaceCreditGrant:           NewWorkspaceCreditGrantClient(cfg),
-		WorkspaceDeletion:              NewWorkspaceDeletionClient(cfg),
-		WorkspaceEntitlement:           NewWorkspaceEntitlementClient(cfg),
-		WorkspaceGitHubInstallation:    NewWorkspaceGitHubInstallationClient(cfg),
-		WorkspaceSettings:              NewWorkspaceSettingsClient(cfg),
+		ctx:                             ctx,
+		config:                          cfg,
+		AccountDeletionRequest:          NewAccountDeletionRequestClient(cfg),
+		AgentAuthorization:              NewAgentAuthorizationClient(cfg),
+		Apikey:                          NewApikeyClient(cfg),
+		Approval:                        NewApprovalClient(cfg),
+		Asset:                           NewAssetClient(cfg),
+		AudienceSubscriber:              NewAudienceSubscriberClient(cfg),
+		AuditDrain:                      NewAuditDrainClient(cfg),
+		AuditDrainDelivery:              NewAuditDrainDeliveryClient(cfg),
+		AuditLog:                        NewAuditLogClient(cfg),
+		AuditOutbox:                     NewAuditOutboxClient(cfg),
+		AuditRetentionPolicy:            NewAuditRetentionPolicyClient(cfg),
+		BillingEntitlementEvent:         NewBillingEntitlementEventClient(cfg),
+		BrandKit:                        NewBrandKitClient(cfg),
+		BrandProfile:                    NewBrandProfileClient(cfg),
+		Campaign:                        NewCampaignClient(cfg),
+		CampaignAsset:                   NewCampaignAssetClient(cfg),
+		CampaignPlan:                    NewCampaignPlanClient(cfg),
+		CampaignPost:                    NewCampaignPostClient(cfg),
+		CampaignRevision:                NewCampaignRevisionClient(cfg),
+		ChannelConnection:               NewChannelConnectionClient(cfg),
+		CommunicationAttempt:            NewCommunicationAttemptClient(cfg),
+		CommunicationRecipient:          NewCommunicationRecipientClient(cfg),
+		ContentAngle:                    NewContentAngleClient(cfg),
+		ContentDraft:                    NewContentDraftClient(cfg),
+		ContentDraftFinisher:            NewContentDraftFinisherClient(cfg),
+		ContentDraftRevision:            NewContentDraftRevisionClient(cfg),
+		ContentDraftSettings:            NewContentDraftSettingsClient(cfg),
+		ContentDraftTag:                 NewContentDraftTagClient(cfg),
+		Conversation:                    NewConversationClient(cfg),
+		ConversationMessage:             NewConversationMessageClient(cfg),
+		CreativeTemplate:                NewCreativeTemplateClient(cfg),
+		CreativeVariant:                 NewCreativeVariantClient(cfg),
+		CustomerCommunication:           NewCustomerCommunicationClient(cfg),
+		DeploymentEvent:                 NewDeploymentEventClient(cfg),
+		Design:                          NewDesignClient(cfg),
+		EnrichmentRecord:                NewEnrichmentRecordClient(cfg),
+		GitHubInstallStart:              NewGitHubInstallStartClient(cfg),
+		GitHubInstallation:              NewGitHubInstallationClient(cfg),
+		IdealCustomerProfile:            NewIdealCustomerProfileClient(cfg),
+		IntegrationConnection:           NewIntegrationConnectionClient(cfg),
+		Invitation:                      NewInvitationClient(cfg),
+		LaunchRun:                       NewLaunchRunClient(cfg),
+		LaunchRunStep:                   NewLaunchRunStepClient(cfg),
+		Member:                          NewMemberClient(cfg),
+		OnboardingRun:                   NewOnboardingRunClient(cfg),
+		Organization:                    NewOrganizationClient(cfg),
+		OrganizationEnterpriseSettings:  NewOrganizationEnterpriseSettingsClient(cfg),
+		OutboxEvent:                     NewOutboxEventClient(cfg),
+		PageKnowledge:                   NewPageKnowledgeClient(cfg),
+		PlatformCreativeSet:             NewPlatformCreativeSetClient(cfg),
+		PlatformCreativeSetVersion:      NewPlatformCreativeSetVersionClient(cfg),
+		PlatformNotificationDelivery:    NewPlatformNotificationDeliveryClient(cfg),
+		PlatformNotificationInbox:       NewPlatformNotificationInboxClient(cfg),
+		PlatformNotificationPolicy:      NewPlatformNotificationPolicyClient(cfg),
+		PlatformNotificationPreference:  NewPlatformNotificationPreferenceClient(cfg),
+		PlatformNotificationSeenAction:  NewPlatformNotificationSeenActionClient(cfg),
+		PlatformSlackConnection:         NewPlatformSlackConnectionClient(cfg),
+		PlatformSlackInstallation:       NewPlatformSlackInstallationClient(cfg),
+		PlatformSlackPacing:             NewPlatformSlackPacingClient(cfg),
+		PlatformSlackPersonalConnection: NewPlatformSlackPersonalConnectionClient(cfg),
+		PlatformWorkspaceCreation:       NewPlatformWorkspaceCreationClient(cfg),
+		PostAutomationRun:               NewPostAutomationRunClient(cfg),
+		ProductProfile:                  NewProductProfileClient(cfg),
+		ProductSurface:                  NewProductSurfaceClient(cfg),
+		Project:                         NewProjectClient(cfg),
+		ProjectVersion:                  NewProjectVersionClient(cfg),
+		PublicationAttempt:              NewPublicationAttemptClient(cfg),
+		Release:                         NewReleaseClient(cfg),
+		ReleaseAutomation:               NewReleaseAutomationClient(cfg),
+		ReleaseAutomationExecutor:       NewReleaseAutomationExecutorClient(cfg),
+		ReleaseAutomationNode:           NewReleaseAutomationNodeClient(cfg),
+		ReleaseAutomationRun:            NewReleaseAutomationRunClient(cfg),
+		ReleaseAutomationVersion:        NewReleaseAutomationVersionClient(cfg),
+		ReleaseDocument:                 NewReleaseDocumentClient(cfg),
+		ReleaseSourceEvent:              NewReleaseSourceEventClient(cfg),
+		ReleaseSpec:                     NewReleaseSpecClient(cfg),
+		ScheduledPost:                   NewScheduledPostClient(cfg),
+		ScreenshotCache:                 NewScreenshotCacheClient(cfg),
+		Session:                         NewSessionClient(cfg),
+		ShareLink:                       NewShareLinkClient(cfg),
+		SocialOAuthStart:                NewSocialOAuthStartClient(cfg),
+		SocialSet:                       NewSocialSetClient(cfg),
+		SocialSetWritingSample:          NewSocialSetWritingSampleClient(cfg),
+		SocialTenantBinding:             NewSocialTenantBindingClient(cfg),
+		SourceApp:                       NewSourceAppClient(cfg),
+		SourceChange:                    NewSourceChangeClient(cfg),
+		StorePublishingCredential:       NewStorePublishingCredentialClient(cfg),
+		StoreReview:                     NewStoreReviewClient(cfg),
+		StoreReviewComment:              NewStoreReviewCommentClient(cfg),
+		SupportAccessGrant:              NewSupportAccessGrantClient(cfg),
+		SurfaceCapture:                  NewSurfaceCaptureClient(cfg),
+		User:                            NewUserClient(cfg),
+		UserPreference:                  NewUserPreferenceClient(cfg),
+		WebhookDelivery:                 NewWebhookDeliveryClient(cfg),
+		WebhookDeliveryAttempt:          NewWebhookDeliveryAttemptClient(cfg),
+		WebhookSubscription:             NewWebhookSubscriptionClient(cfg),
+		WorkspaceCreditGrant:            NewWorkspaceCreditGrantClient(cfg),
+		WorkspaceDeletion:               NewWorkspaceDeletionClient(cfg),
+		WorkspaceEntitlement:            NewWorkspaceEntitlementClient(cfg),
+		WorkspaceGitHubInstallation:     NewWorkspaceGitHubInstallationClient(cfg),
+		WorkspaceSettings:               NewWorkspaceSettingsClient(cfg),
 	}, nil
 }
 
@@ -791,13 +797,14 @@ func (c *Client) Use(hooks ...Hook) {
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
 		c.PlatformSlackInstallation, c.PlatformSlackPacing,
-		c.PlatformWorkspaceCreation, c.PostAutomationRun, c.ProductProfile,
-		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
-		c.ReleaseAutomation, c.ReleaseAutomationExecutor, c.ReleaseAutomationNode,
-		c.ReleaseAutomationRun, c.ReleaseAutomationVersion, c.ReleaseDocument,
-		c.ReleaseSourceEvent, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
-		c.Session, c.ShareLink, c.SocialOAuthStart, c.SocialSet,
-		c.SocialSetWritingSample, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
+		c.PlatformSlackPersonalConnection, c.PlatformWorkspaceCreation,
+		c.PostAutomationRun, c.ProductProfile, c.ProductSurface, c.Project,
+		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseAutomation,
+		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
+		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
+		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
+		c.SocialOAuthStart, c.SocialSet, c.SocialSetWritingSample,
+		c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
 		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.UserPreference,
 		c.WebhookDelivery, c.WebhookDeliveryAttempt, c.WebhookSubscription,
@@ -830,13 +837,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
 		c.PlatformSlackInstallation, c.PlatformSlackPacing,
-		c.PlatformWorkspaceCreation, c.PostAutomationRun, c.ProductProfile,
-		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
-		c.ReleaseAutomation, c.ReleaseAutomationExecutor, c.ReleaseAutomationNode,
-		c.ReleaseAutomationRun, c.ReleaseAutomationVersion, c.ReleaseDocument,
-		c.ReleaseSourceEvent, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
-		c.Session, c.ShareLink, c.SocialOAuthStart, c.SocialSet,
-		c.SocialSetWritingSample, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
+		c.PlatformSlackPersonalConnection, c.PlatformWorkspaceCreation,
+		c.PostAutomationRun, c.ProductProfile, c.ProductSurface, c.Project,
+		c.ProjectVersion, c.PublicationAttempt, c.Release, c.ReleaseAutomation,
+		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
+		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
+		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
+		c.SocialOAuthStart, c.SocialSet, c.SocialSetWritingSample,
+		c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
 		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.UserPreference,
 		c.WebhookDelivery, c.WebhookDeliveryAttempt, c.WebhookSubscription,
@@ -968,6 +976,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PlatformSlackInstallation.mutate(ctx, m)
 	case *PlatformSlackPacingMutation:
 		return c.PlatformSlackPacing.mutate(ctx, m)
+	case *PlatformSlackPersonalConnectionMutation:
+		return c.PlatformSlackPersonalConnection.mutate(ctx, m)
 	case *PlatformWorkspaceCreationMutation:
 		return c.PlatformWorkspaceCreation.mutate(ctx, m)
 	case *PostAutomationRunMutation:
@@ -8982,6 +8992,139 @@ func (c *PlatformSlackPacingClient) mutate(ctx context.Context, m *PlatformSlack
 	}
 }
 
+// PlatformSlackPersonalConnectionClient is a client for the PlatformSlackPersonalConnection schema.
+type PlatformSlackPersonalConnectionClient struct {
+	config
+}
+
+// NewPlatformSlackPersonalConnectionClient returns a client for the PlatformSlackPersonalConnection from the given config.
+func NewPlatformSlackPersonalConnectionClient(c config) *PlatformSlackPersonalConnectionClient {
+	return &PlatformSlackPersonalConnectionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformslackpersonalconnection.Hooks(f(g(h())))`.
+func (c *PlatformSlackPersonalConnectionClient) Use(hooks ...Hook) {
+	c.hooks.PlatformSlackPersonalConnection = append(c.hooks.PlatformSlackPersonalConnection, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformslackpersonalconnection.Intercept(f(g(h())))`.
+func (c *PlatformSlackPersonalConnectionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformSlackPersonalConnection = append(c.inters.PlatformSlackPersonalConnection, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformSlackPersonalConnection entity.
+func (c *PlatformSlackPersonalConnectionClient) Create() *PlatformSlackPersonalConnectionCreate {
+	mutation := newPlatformSlackPersonalConnectionMutation(c.config, OpCreate)
+	return &PlatformSlackPersonalConnectionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformSlackPersonalConnection entities.
+func (c *PlatformSlackPersonalConnectionClient) CreateBulk(builders ...*PlatformSlackPersonalConnectionCreate) *PlatformSlackPersonalConnectionCreateBulk {
+	return &PlatformSlackPersonalConnectionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformSlackPersonalConnectionClient) MapCreateBulk(slice any, setFunc func(*PlatformSlackPersonalConnectionCreate, int)) *PlatformSlackPersonalConnectionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformSlackPersonalConnectionCreateBulk{err: fmt.Errorf("calling to PlatformSlackPersonalConnectionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformSlackPersonalConnectionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformSlackPersonalConnectionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformSlackPersonalConnection.
+func (c *PlatformSlackPersonalConnectionClient) Update() *PlatformSlackPersonalConnectionUpdate {
+	mutation := newPlatformSlackPersonalConnectionMutation(c.config, OpUpdate)
+	return &PlatformSlackPersonalConnectionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformSlackPersonalConnectionClient) UpdateOne(_m *PlatformSlackPersonalConnection) *PlatformSlackPersonalConnectionUpdateOne {
+	mutation := newPlatformSlackPersonalConnectionMutation(c.config, OpUpdateOne, withPlatformSlackPersonalConnection(_m))
+	return &PlatformSlackPersonalConnectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformSlackPersonalConnectionClient) UpdateOneID(id string) *PlatformSlackPersonalConnectionUpdateOne {
+	mutation := newPlatformSlackPersonalConnectionMutation(c.config, OpUpdateOne, withPlatformSlackPersonalConnectionID(id))
+	return &PlatformSlackPersonalConnectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformSlackPersonalConnection.
+func (c *PlatformSlackPersonalConnectionClient) Delete() *PlatformSlackPersonalConnectionDelete {
+	mutation := newPlatformSlackPersonalConnectionMutation(c.config, OpDelete)
+	return &PlatformSlackPersonalConnectionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformSlackPersonalConnectionClient) DeleteOne(_m *PlatformSlackPersonalConnection) *PlatformSlackPersonalConnectionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformSlackPersonalConnectionClient) DeleteOneID(id string) *PlatformSlackPersonalConnectionDeleteOne {
+	builder := c.Delete().Where(platformslackpersonalconnection.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformSlackPersonalConnectionDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformSlackPersonalConnection.
+func (c *PlatformSlackPersonalConnectionClient) Query() *PlatformSlackPersonalConnectionQuery {
+	return &PlatformSlackPersonalConnectionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformSlackPersonalConnection},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformSlackPersonalConnection entity by its id.
+func (c *PlatformSlackPersonalConnectionClient) Get(ctx context.Context, id string) (*PlatformSlackPersonalConnection, error) {
+	return c.Query().Where(platformslackpersonalconnection.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformSlackPersonalConnectionClient) GetX(ctx context.Context, id string) *PlatformSlackPersonalConnection {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformSlackPersonalConnectionClient) Hooks() []Hook {
+	return c.hooks.PlatformSlackPersonalConnection
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformSlackPersonalConnectionClient) Interceptors() []Interceptor {
+	return c.inters.PlatformSlackPersonalConnection
+}
+
+func (c *PlatformSlackPersonalConnectionClient) mutate(ctx context.Context, m *PlatformSlackPersonalConnectionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformSlackPersonalConnectionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformSlackPersonalConnectionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformSlackPersonalConnectionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformSlackPersonalConnectionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformSlackPersonalConnection mutation op: %q", m.Op())
+	}
+}
+
 // PlatformWorkspaceCreationClient is a client for the PlatformWorkspaceCreation schema.
 type PlatformWorkspaceCreationClient struct {
 	config
@@ -14501,17 +14644,18 @@ type (
 		PlatformNotificationDelivery, PlatformNotificationInbox,
 		PlatformNotificationPolicy, PlatformNotificationPreference,
 		PlatformNotificationSeenAction, PlatformSlackConnection,
-		PlatformSlackInstallation, PlatformSlackPacing, PlatformWorkspaceCreation,
-		PostAutomationRun, ProductProfile, ProductSurface, Project, ProjectVersion,
-		PublicationAttempt, Release, ReleaseAutomation, ReleaseAutomationExecutor,
-		ReleaseAutomationNode, ReleaseAutomationRun, ReleaseAutomationVersion,
-		ReleaseDocument, ReleaseSourceEvent, ReleaseSpec, ScheduledPost,
-		ScreenshotCache, Session, ShareLink, SocialOAuthStart, SocialSet,
-		SocialSetWritingSample, SocialTenantBinding, SourceApp, SourceChange,
-		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
-		SurfaceCapture, User, UserPreference, WebhookDelivery, WebhookDeliveryAttempt,
-		WebhookSubscription, WorkspaceCreditGrant, WorkspaceDeletion,
-		WorkspaceEntitlement, WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
+		PlatformSlackInstallation, PlatformSlackPacing,
+		PlatformSlackPersonalConnection, PlatformWorkspaceCreation, PostAutomationRun,
+		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
+		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
+		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
+		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ShareLink, SocialOAuthStart, SocialSet, SocialSetWritingSample,
+		SocialTenantBinding, SourceApp, SourceChange, StorePublishingCredential,
+		StoreReview, StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
+		UserPreference, WebhookDelivery, WebhookDeliveryAttempt, WebhookSubscription,
+		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
+		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
 	}
 	inters struct {
 		AccountDeletionRequest, AgentAuthorization, Apikey, Approval, Asset,
@@ -14529,17 +14673,17 @@ type (
 		PlatformNotificationDelivery, PlatformNotificationInbox,
 		PlatformNotificationPolicy, PlatformNotificationPreference,
 		PlatformNotificationSeenAction, PlatformSlackConnection,
-		PlatformSlackInstallation, PlatformSlackPacing, PlatformWorkspaceCreation,
-		PostAutomationRun, ProductProfile, ProductSurface, Project, ProjectVersion,
-		PublicationAttempt, Release, ReleaseAutomation, ReleaseAutomationExecutor,
-		ReleaseAutomationNode, ReleaseAutomationRun, ReleaseAutomationVersion,
-		ReleaseDocument, ReleaseSourceEvent, ReleaseSpec, ScheduledPost,
-		ScreenshotCache, Session, ShareLink, SocialOAuthStart, SocialSet,
-		SocialSetWritingSample, SocialTenantBinding, SourceApp, SourceChange,
-		StorePublishingCredential, StoreReview, StoreReviewComment, SupportAccessGrant,
-		SurfaceCapture, User, UserPreference, WebhookDelivery, WebhookDeliveryAttempt,
-		WebhookSubscription, WorkspaceCreditGrant, WorkspaceDeletion,
-		WorkspaceEntitlement, WorkspaceGitHubInstallation,
-		WorkspaceSettings []ent.Interceptor
+		PlatformSlackInstallation, PlatformSlackPacing,
+		PlatformSlackPersonalConnection, PlatformWorkspaceCreation, PostAutomationRun,
+		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
+		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
+		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
+		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ShareLink, SocialOAuthStart, SocialSet, SocialSetWritingSample,
+		SocialTenantBinding, SourceApp, SourceChange, StorePublishingCredential,
+		StoreReview, StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
+		UserPreference, WebhookDelivery, WebhookDeliveryAttempt, WebhookSubscription,
+		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
+		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Interceptor
 	}
 )

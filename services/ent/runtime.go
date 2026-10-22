@@ -64,6 +64,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationseenaction"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpersonalconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformworkspacecreation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
@@ -1031,6 +1032,12 @@ func init() {
 	platformslackinstallationDescUpdatedAt := platformslackinstallationFields[13].Descriptor()
 	// platformslackinstallation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	platformslackinstallation.DefaultUpdatedAt = platformslackinstallationDescUpdatedAt.Default.(func() time.Time)
+	platformslackpersonalconnectionFields := schema.PlatformSlackPersonalConnection{}.Fields()
+	_ = platformslackpersonalconnectionFields
+	// platformslackpersonalconnectionDescCreatedAt is the schema descriptor for created_at field.
+	platformslackpersonalconnectionDescCreatedAt := platformslackpersonalconnectionFields[6].Descriptor()
+	// platformslackpersonalconnection.DefaultCreatedAt holds the default value on creation for the created_at field.
+	platformslackpersonalconnection.DefaultCreatedAt = platformslackpersonalconnectionDescCreatedAt.Default.(func() time.Time)
 	platformworkspacecreationFields := schema.PlatformWorkspaceCreation{}.Fields()
 	_ = platformworkspacecreationFields
 	// platformworkspacecreationDescRequestKey is the schema descriptor for request_key field.

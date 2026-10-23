@@ -105,10 +105,11 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
+            data-platform-action
             ref={trigger}
             type="button"
             aria-label={`Notifications${n ? `, ${n} unread` : ''}`}
-            className={`relative flex h-10 items-center gap-3 rounded-xl px-3 text-sm text-muted-foreground hover:text-foreground ${collapsed ? 'size-11 justify-center px-0' : 'w-full'}`}
+            className={`relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground ${collapsed ? 'size-11 justify-center px-0' : 'w-full'}`}
           >
             <Inbox className="size-5 shrink-0" aria-hidden="true" />
             {!collapsed ? <span>Notifications</span> : null}
@@ -135,7 +136,7 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
           side="bottom"
           sideOffset={12}
           collisionPadding={12}
-          className="flex h-[min(38rem,calc(100dvh-6rem))] w-[min(25rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl p-0"
+          className="platform-overlay flex h-[min(38rem,calc(100dvh-6rem))] w-[min(25rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl p-0"
         >
           <Tabs value={view} onValueChange={selectTab} className="min-h-0 flex-1 gap-0">
             <div className="flex items-center justify-between gap-2 border-b p-3">
@@ -177,7 +178,7 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
       </Popover>
       <Dialog open={settings} onOpenChange={setSettings}>
         <DialogContent
-          className="max-h-[90dvh] overflow-y-auto sm:max-w-4xl"
+          className="platform-overlay max-h-[90dvh] overflow-y-auto sm:max-w-4xl"
           onCloseAutoFocus={(event) => {
             event.preventDefault()
             trigger.current?.focus()

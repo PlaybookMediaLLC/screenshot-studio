@@ -50,22 +50,23 @@ export function ShellActions({
   return (
     <div className="grid gap-1">
       <Button
+        data-platform-action
         variant="ghost"
         className={cn(
-          'h-10 justify-start gap-3 rounded-xl px-3',
+          'h-10 justify-start gap-3 px-3 text-muted-foreground hover:text-foreground',
           collapsed && 'size-11 justify-center px-0'
         )}
         aria-label={t('searchCommands')}
         title={`${t('searchCommands')} (${keys.label({ key: 'k', mod: true })})`}
         onClick={() => window.dispatchEvent(new Event('shots:search'))}
       >
-        <Search size={20} aria-hidden="true" />
+        <Search className="size-5" aria-hidden="true" />
         {!collapsed ? (
           <>
             <span>{t('search')}</span>
             <kbd
               aria-hidden="true"
-              className="ms-auto rounded border px-1 text-[10px] text-muted-foreground"
+              className="ms-auto rounded border border-border bg-card px-1.5 py-0.5 font-sans text-[10px] leading-none text-muted-foreground"
             >
               {keys.label({ key: 'k', mod: true })}
             </kbd>
@@ -75,18 +76,23 @@ export function ShellActions({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            data-platform-action
             variant="outline"
             className={cn(
-              'h-10 justify-start gap-3 rounded-xl px-3',
+              'h-10 justify-start gap-3 px-3',
               collapsed && 'size-11 justify-center px-0'
             )}
             aria-label={t('new')}
           >
-            <Plus size={20} aria-hidden="true" />
+            <Plus className="size-5" aria-hidden="true" />
             {!collapsed ? t('new') : null}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
+        <DropdownMenuContent
+          align="start"
+          className="platform-overlay min-w-52"
+          collisionPadding={12}
+        >
           {NEW_ITEMS.filter(
             (item) =>
               (campaignsEnabled || item.label !== 'Campaign') &&
@@ -158,13 +164,13 @@ export function ShellSearch({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
-        className="w-[80vw] max-w-[80vw] gap-5 rounded-2xl p-5 sm:max-w-[80vw] sm:p-8"
+        className="platform-overlay max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl gap-5 overflow-y-auto rounded-2xl p-5 sm:max-w-xl sm:p-6"
         onCloseAutoFocus={(event) => {
           event.preventDefault()
           launcher.current?.focus()
         }}
       >
-        <DialogHeader>
+        <DialogHeader className="text-start">
           <DialogTitle>{t('searchCommands')}</DialogTitle>
           <DialogDescription>This workspace · Destinations</DialogDescription>
         </DialogHeader>
@@ -178,13 +184,13 @@ export function ShellSearch({
         <nav aria-label="Search results" className="grid max-h-[50dvh] gap-1 overflow-y-auto">
           {items.map((item) => (
             <SidebarLink
-              className="rounded-lg px-3 py-2 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
               href={item.href}
               key={item.key}
               onClick={() => setOpen(false)}
             >
               {t(item.key)}
-              <span className="ms-3 text-xs text-muted-foreground">Destination</span>
+              <span className="shrink-0 text-xs text-muted-foreground">Destination</span>
             </SidebarLink>
           ))}
           {!items.length ? (

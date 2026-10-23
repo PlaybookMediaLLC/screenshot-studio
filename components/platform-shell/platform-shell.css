@@ -1,0 +1,282 @@
+/* Authenticated chrome. Keep these rules out of canvas and export geometry. */
+.platform-shell,
+.platform-overlay {
+  --platform-nav-expanded: 16rem;
+  --platform-nav-compact: 4.75rem;
+  --platform-header-height: 3.5rem;
+  --platform-form-width: 55rem;
+  --platform-control-radius: 0.5rem;
+  --platform-ease: cubic-bezier(0.2, 0, 0, 1);
+  --platform-duration: 160ms;
+  --nav-cta-bg: var(--primary);
+  --nav-cta-fg: var(--primary-foreground);
+  --nav-cta-text-shadow: none;
+  --nav-cta-hover-shadow: 0 2px 5px rgb(0 0 0 / 12%);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.platform-shell [data-platform-scroll] {
+  isolation: isolate;
+  scroll-padding-block: 2rem;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 3%);
+}
+
+.platform-shell[data-platform-variant='editor'] {
+  --editor-height: calc(100dvh - var(--platform-header-height) - env(safe-area-inset-top));
+}
+
+@media (min-width: 768px) {
+  .platform-shell[data-platform-variant='editor'] {
+    --editor-height: 100dvh;
+  }
+}
+
+/* A single navigation rhythm in the expanded rail, compact rail, and drawer. */
+[data-platform-sidebar] {
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+}
+
+[data-platform-sidebar] :where([data-platform-nav], [data-platform-action]) {
+  min-width: 0;
+  border-radius: var(--platform-control-radius);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  transition:
+    background-color var(--platform-duration) var(--platform-ease),
+    border-color var(--platform-duration) var(--platform-ease),
+    color var(--platform-duration) var(--platform-ease),
+    box-shadow var(--platform-duration) var(--platform-ease);
+}
+
+[data-platform-sidebar] [data-platform-nav] {
+  border: 1px solid transparent;
+  color: var(--muted-foreground);
+}
+
+[data-platform-sidebar] [data-platform-nav][aria-current='page'] {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+}
+
+[data-platform-sidebar] :where(button, a) > svg {
+  flex-shrink: 0;
+}
+
+[data-platform-sidebar] [data-platform-nav][aria-current='page'] svg {
+  color: var(--foreground);
+}
+
+.platform-workspace-trigger {
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+}
+
+.platform-mobile-header {
+  min-height: calc(var(--platform-header-height) + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  padding-inline: max(0.75rem, env(safe-area-inset-left)) max(0.75rem, env(safe-area-inset-right));
+}
+
+.platform-navigation-drawer {
+  width: min(20rem, calc(100vw - 2rem));
+  max-width: none;
+  height: 100dvh;
+  padding-block: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-bottom));
+  padding-inline-start: max(0.75rem, env(safe-area-inset-left));
+}
+
+/* Fallback focus for plain links and custom buttons; inputs retain their state ring. */
+:where(.platform-shell, .platform-overlay) :focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.platform-shell [data-platform-scroll]:focus-visible {
+  outline-offset: -3px;
+}
+
+[data-platform-sidebar] :focus-visible {
+  outline-offset: 2px;
+}
+
+.platform-overlay:focus-visible {
+  outline: none;
+}
+
+/* Page controls share states without changing editor tools or rendered artwork. */
+:where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):not(
+    [type='radio'],
+    [type='checkbox'],
+    [type='range'],
+    [type='color']
+  ) {
+  border-color: var(--input);
+  border-radius: var(--platform-control-radius);
+  background-color: var(--card);
+  box-shadow: none;
+  transition:
+    border-color var(--platform-duration) var(--platform-ease),
+    box-shadow var(--platform-duration) var(--platform-ease),
+    background-color var(--platform-duration) var(--platform-ease);
+}
+
+:where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):focus-visible {
+  border-color: var(--ring);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
+}
+
+:where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+  :where(
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger']
+  )[aria-invalid='true'] {
+  border-color: var(--destructive);
+}
+
+:where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+  :where(
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger']
+  )[aria-invalid='true']:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--destructive) 18%, transparent);
+}
+
+:where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):disabled {
+  background-color: var(--muted);
+  cursor: not-allowed;
+}
+
+:where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+  :where([data-slot='input'], [data-slot='textarea'])::placeholder {
+  color: var(--muted-foreground);
+}
+
+:where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+  [data-slot='button']:not([data-variant='custom']):not([data-variant='integration']) {
+  border-radius: var(--platform-control-radius);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: var(--platform-duration);
+  transition-timing-function: var(--platform-ease);
+}
+
+:where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+  [data-slot='button']:is([data-variant='outline'], [data-variant='secondary']) {
+  border-color: var(--border);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+}
+
+.platform-shell[data-platform-variant='page'] :where(th, td, time) {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (forced-colors: active) {
+  [data-platform-sidebar] [data-platform-nav][aria-current='page'] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+    :where(
+      [data-slot='input'],
+      [data-slot='textarea'],
+      [data-slot='select-trigger']
+    ):focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+@media (hover: hover) {
+  [data-platform-sidebar] [data-platform-nav]:not([aria-current='page']):hover {
+    background: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
+  }
+
+  .platform-workspace-trigger:hover {
+    border-color: color-mix(in srgb, var(--foreground) 20%, var(--border));
+    background: var(--muted);
+  }
+
+  :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+    :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):not(
+      :disabled,
+      :focus-visible,
+      [aria-invalid='true'],
+      [type='radio'],
+      [type='checkbox'],
+      [type='range'],
+      [type='color']
+    ):hover {
+    border-color: color-mix(in srgb, var(--foreground) 25%, var(--input));
+  }
+
+  :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+    [data-slot='button']:is([data-variant='outline'], [data-variant='secondary']):not(
+      :disabled,
+      [aria-disabled='true']
+    ):hover {
+    border-color: color-mix(in srgb, var(--foreground) 20%, var(--border));
+    background: var(--muted);
+  }
+}
+
+@media (pointer: coarse) {
+  :where([data-platform-sidebar], .platform-mobile-header, .platform-overlay)
+    :where(button, [data-platform-nav], [data-slot='button']):not(
+      [role='switch'],
+      [role='slider'],
+      [role='checkbox'],
+      [role='radio']
+    ) {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
+  .platform-shell[data-platform-variant='page']
+    :where([data-slot='button'], [data-slot='input'], [data-slot='select-trigger']):not(
+      [type='radio'],
+      [type='checkbox'],
+      [type='range'],
+      [type='color']
+    ) {
+    min-height: 2.75rem;
+  }
+}
+
+@media (max-width: 767px) {
+  :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+    :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']) {
+    font-size: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where([data-platform-sidebar], .platform-mobile-header, .platform-overlay),
+  :where([data-platform-sidebar], .platform-mobile-header, .platform-overlay) *,
+  .platform-shell[data-platform-variant='page'] *,
+  .platform-shell[data-platform-variant='page'] *::before,
+  .platform-shell[data-platform-variant='page'] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -26,16 +26,24 @@ export function Page({
   return (
     <main
       className={cn(
-        'mx-auto flex w-full flex-col gap-8 px-4 pt-8 pb-16 md:px-8',
+        'mx-auto flex w-full min-w-0 flex-col gap-8 px-5 pt-7 pb-[max(4rem,env(safe-area-inset-bottom))] sm:px-8 md:pt-9 lg:gap-10 lg:px-10',
         PAGE_WIDTH[width]
       )}
     >
-      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <header className="flex min-w-0 flex-wrap items-start justify-between gap-x-6 gap-y-5">
         <div className="min-w-0">
-          <h1 className="text-2xl font-medium tracking-tight text-foreground">{title}</h1>
-          {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
+          <h1 className="text-2xl leading-tight font-semibold tracking-tight text-foreground [overflow-wrap:anywhere]">
+            {title}
+          </h1>
+          {description ? (
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-pretty text-muted-foreground">
+              {description}
+            </p>
+          ) : null}
         </div>
-        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+        {actions ? (
+          <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div>
+        ) : null}
       </header>
       {children}
     </main>
@@ -56,15 +64,21 @@ export function Section({
   title: string
 }) {
   return (
-    <section className="flex flex-col gap-4" id={id}>
-      <div className="flex items-end justify-between gap-4">
+    <section className="flex min-w-0 scroll-mt-8 flex-col gap-4" id={id}>
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-6">
         <div className="min-w-0">
-          <h2 className="text-lg font-medium text-foreground">{title}</h2>
+          <h2 className="text-base leading-6 font-semibold tracking-tight text-foreground [overflow-wrap:anywhere]">
+            {title}
+          </h2>
           {description ? (
-            <p className="mt-1 text-sm text-balance text-muted-foreground">{description}</p>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-pretty text-muted-foreground">
+              {description}
+            </p>
           ) : null}
         </div>
-        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+        {actions ? (
+          <div className="flex max-w-full flex-wrap items-center gap-2 sm:shrink-0">{actions}</div>
+        ) : null}
       </div>
       {children}
     </section>
@@ -76,7 +90,7 @@ export function Group({ children, className }: { children: ReactNode; className?
   return (
     <div
       className={cn(
-        'flex w-full flex-col divide-y divide-foreground/[0.07] overflow-hidden rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]',
+        '@container/platform-group flex w-full min-w-0 flex-col divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-xs',
         className
       )}
     >
@@ -86,7 +100,7 @@ export function Group({ children, className }: { children: ReactNode; className?
 }
 
 /**
- * One row in a Group. `split` puts the control beside the label from md up,
+ * One row in a Group. `split` puts the control beside the label in roomy groups,
  * `inline` always does (for switches and buttons), `stacked` puts it below.
  */
 export function Row({
@@ -100,25 +114,35 @@ export function Row({
   label?: ReactNode
   layout?: 'inline' | 'split' | 'stacked'
 }) {
-  if (!label) return <div className="flex flex-col gap-4 p-5">{children}</div>
+  if (!label) return <div className="flex min-w-0 flex-col gap-4 p-5 sm:p-6">{children}</div>
   return (
     <div
       className={cn(
-        'flex gap-4 p-5',
+        'flex min-w-0 gap-x-8 gap-y-4 p-5 sm:p-6',
         layout === 'inline' && 'flex-row items-center justify-between',
-        layout === 'split' && 'flex-col md:flex-row md:items-center md:justify-between',
+        layout === 'split' &&
+          'flex-col @min-[36rem]/platform-group:flex-row @min-[36rem]/platform-group:items-center @min-[36rem]/platform-group:justify-between',
         layout === 'stacked' && 'flex-col'
       )}
     >
-      <div className={cn('min-w-0', layout === 'split' && 'md:max-w-[50%]')}>
-        <h3 className="text-sm font-medium text-foreground">{label}</h3>
-        {description ? <p className="mt-0.5 text-xs text-muted-foreground">{description}</p> : null}
+      <div
+        className={cn('min-w-0', layout === 'split' && '@min-[36rem]/platform-group:max-w-[50%]')}
+      >
+        <h3 className="text-sm leading-5 font-medium text-foreground [overflow-wrap:anywhere]">
+          {label}
+        </h3>
+        {description ? (
+          <p className="mt-1 text-xs leading-relaxed text-pretty text-muted-foreground">
+            {description}
+          </p>
+        ) : null}
       </div>
       {children ? (
         <div
           className={cn(
-            'flex min-w-0 items-center gap-2',
-            layout === 'split' && 'md:w-1/2 md:justify-end',
+            'flex min-w-0 max-w-full flex-wrap items-center gap-2 [&>*]:min-w-0 [&>*]:max-w-full',
+            layout === 'split' &&
+              '@min-[36rem]/platform-group:w-1/2 @min-[36rem]/platform-group:shrink-0 @min-[36rem]/platform-group:justify-end',
             layout === 'inline' && 'shrink-0'
           )}
         >
@@ -144,7 +168,7 @@ export function Pill({ children, tone = 'gray' }: { children: ReactNode; tone?: 
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset',
+        'inline-flex min-h-6 items-center rounded-full px-2.5 py-0.5 text-xs leading-5 font-medium whitespace-nowrap ring-1 ring-inset',
         PILL_TONES[tone]
       )}
     >
@@ -165,13 +189,19 @@ export function EmptyState({
   title: string
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-5 rounded-2xl bg-foreground/[0.02] px-6 py-24 text-center ring-1 ring-foreground/[0.06] md:py-32">
-      <Icon className="text-muted-foreground/75" size={32} aria-hidden="true" />
-      <div>
-        <h3 className="text-lg font-medium text-foreground">{title}</h3>
-        <p className="mt-1 max-w-md text-sm text-muted-foreground">{description}</p>
+    <div className="flex min-w-0 flex-col items-center justify-center gap-5 rounded-xl border border-dashed border-border bg-muted/30 px-6 py-14 text-center sm:py-20">
+      <span className="grid size-12 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-xs">
+        <Icon size={24} aria-hidden="true" />
+      </span>
+      <div className="min-w-0">
+        <h3 className="text-base font-semibold tracking-tight text-foreground">{title}</h3>
+        <p className="mt-2 max-w-md text-sm leading-relaxed text-pretty text-muted-foreground">
+          {description}
+        </p>
       </div>
-      {action}
+      {action ? (
+        <div className="flex max-w-full flex-wrap justify-center gap-2">{action}</div>
+      ) : null}
     </div>
   )
 }

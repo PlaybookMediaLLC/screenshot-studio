@@ -1,5 +1,9 @@
 # RFC 001: Guided Release Kit
 
+> **Roadmap disposition (2026-10-23):** Historical architecture; retain the release-kit insight. RFC 045 defines the product direction and RFC 049 the current kit contract.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Superseded by the AI launch pipeline
 **Status note (2026-10-16):** The guided release kit was built as the AI launch pipeline. This document is kept for history.
 **Superseded by:** the AI launch pipeline (`lib/ai/launch/`, runs in `lib/launch/runs.ts`) and RFC 035

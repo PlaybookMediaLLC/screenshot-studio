@@ -1,5 +1,9 @@
 # RFC 018: Campaign Workspace
 
+> **Roadmap disposition (2026-10-23):** Reuse review and workspace components. Prioritize release facts and role-specific kit readiness under RFC 049.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Partially implemented
 **Status note (2026-10-16):** Shipped behind the `campaign:workflow` rollout flag, which design-partner workspaces receive through feature overrides.
 **Date:** 2026-08-17

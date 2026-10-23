@@ -1,7 +1,11 @@
 # RFC 012: Product Intelligence Pipeline
 
-**Status:** Not started
-**Status note (2026-10-16):** Nothing in this RFC is built.
+> **Roadmap disposition (2026-10-23):** Reuse the implemented product-profile and onboarding foundation. Release-specific claim verification is RFC 047.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
+**Status:** Partially implemented (product profile, provenance, human locks and onboarding pipeline present)
+**Status note (2026-10-23):** ProductProfile and field precedence/locks exist in services/internal/product/product_profile.go; RFC 032 implements onboarding. The former claim that nothing is built is obsolete.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 004, RFC 010, and RFC 011
@@ -20,9 +24,10 @@ founder will disagree with some of them and needs to know what to correct.
 
 ## Context
 
-`BrandProfile` and `ProductSurface` already exist in the tenant schema.
-`ProductProfile` does not. The gap is the product understanding that sits
-between "we know your colors" and "we can write about what you do".
+`BrandProfile`, `ProductSurface` and `ProductProfile` now exist in the Go
+tenant schemas. Product-profile field provenance and human edit locks are
+implemented. This design remains context for maintaining that foundation;
+release-specific claim verification is new work in RFC 047.
 
 This RFC defines the data model and the extraction contract. RFC 032 defines
 the two-speed execution architecture that runs it. Read them together; RFC 032

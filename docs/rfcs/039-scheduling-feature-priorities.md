@@ -1,6 +1,11 @@
 # RFC 039: Scheduling Feature Priorities
 
-**Status:** Proposed  
+> **Roadmap disposition (2026-10-23):** Deferred expansion; the priority order below is superseded by release readiness. Maintain existing scheduling behavior.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
+**Status:** Deferred; original priority order superseded
+**Status note (2026-10-23):** Broader network parity, bulk social scheduling and social analytics are deferred. Maintain the existing Write and settings implementation; prioritize approved release kits.
 **Date:** 2026-10-19  
 **Owners:** Product Engineering  
 **Depends on:** RFC 009, RFC 020, RFC 027, RFC 035, RFC 037

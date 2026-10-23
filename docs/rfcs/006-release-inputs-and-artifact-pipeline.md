@@ -1,5 +1,9 @@
 # RFC 006: Release Inputs and Branded Artifact Pipeline
 
+> **Roadmap disposition (2026-10-23):** Reusable foundation for source evidence and versioned kit artifacts. Current execution is Go/Temporal, with Go-owned product data.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Partially implemented
 **Status note (2026-10-16):** Release intake, private R2 asset storage, and launch drafts shipped. Capture uses Microlink for screenshots and Cloudflare Browser Rendering for design renders, not Steel Browser. Background work runs on Temporal or Next.js `after()`, not Trigger.dev.
 **Implementation update (2026-10-19):** [Release automation](../release-automation.md) adds explicit published-release, merged-PR, and successful-deployment definitions. Historical imports never run marketing actions; automated change association uses explicit PR evidence and provider occurrence cutoffs, including late arrivals.

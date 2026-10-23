@@ -1,5 +1,9 @@
 # RFC 027: Post Performance Analytics
 
+> **Roadmap disposition (2026-10-23):** Deferred social-performance expansion. RFC 045 and RFC 050 measure kit adoption; social metrics remain secondary.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Not started
 **Status note (2026-10-16):** Nothing in this RFC is built.
 **Date:** 2026-08-17

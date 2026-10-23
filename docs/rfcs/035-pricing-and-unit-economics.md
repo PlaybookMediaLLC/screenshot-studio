@@ -1,5 +1,9 @@
 # RFC 035: Pricing and Unit Economics
 
+> **Roadmap disposition (2026-10-23):** Maintain existing paid plans and metering. RFC 045 validates pilot packaging and service costs; it does not change entitlements.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Implemented; revised for no free plan (see Implementation)  
 **Status note (2026-10-16):** The Free plan was removed. Every workspace needs a paid plan to use the product.  
 **Phase 0 update (2026-10-16):** Checkout returns to `/api/billing/checkout/return` and applies the plan immediately; `/pricing` shows why a visitor is there; onboarding has a plan step; workspace settings have a Billing section; credit packs require a subscription. No trial.  

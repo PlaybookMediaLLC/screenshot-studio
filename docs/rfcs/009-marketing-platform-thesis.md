@@ -1,7 +1,11 @@
 # RFC 009: Marketing Platform Thesis and Customer Loop
 
-**Status:** Partially implemented
-**Status note (2026-10-16):** V1 (the editor plus AI creative generation) shipped. Part of V2 (URL to campaign) shipped through the launch pipeline.
+> **Roadmap disposition (2026-10-23):** Product direction superseded by RFC 045 and the release-readiness vision. The numerical build order below is historical.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
+**Status:** Superseded as product direction by RFC 045; reusable implementation retained
+**Status note (2026-10-23):** The former URL-to-campaign and seven-post north star is historical. See RFC 045 and the current execution order for release-readiness priorities.
 **Date:** 2026-08-17
 **Depends on:** RFC 001 through RFC 008
 **Owners:** Product and Engineering

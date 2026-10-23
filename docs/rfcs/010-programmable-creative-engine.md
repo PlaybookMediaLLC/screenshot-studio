@@ -1,5 +1,9 @@
 # RFC 010: Programmable Creative Engine
 
+> **Roadmap disposition (2026-10-23):** Reuse the existing creative engine for kit screenshots and exports. Further general-purpose rendering expansion requires pilot evidence.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Partially implemented
 **Status note (2026-10-16):** DesignDocument v1 and the Cloudflare Browser Rendering renderer shipped (`lib/design/`). The rest of this RFC is not built.
 **Date:** 2026-08-17

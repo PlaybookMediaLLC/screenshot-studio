@@ -1,5 +1,9 @@
 # RFC 033: Monorepo Workspace Migration
 
+> **Roadmap disposition (2026-10-23):** Historical migration decision, superseded by RFC 037. npm workspaces already exist.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Superseded
 **Status note (2026-10-17):** The editor package became the second shared package the app consumes, which is the trigger below. RFC 037 adopts npm workspaces with the app kept at the root. This document's cost analysis is out of date (it predates the Go backend owning product data, and mentions Prisma and Trigger.dev); its migration order and interim practice still apply.
 **Superseded by:** [RFC 037](037-workspaces-and-content-drafts.md)

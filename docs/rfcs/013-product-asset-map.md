@@ -1,7 +1,11 @@
 # RFC 013: Product Asset Map
 
-**Status:** Partially implemented (`ProductSurface` model and tRPC router exist; capture binding and freshness do not)
-**Status note (2026-10-16):** Still partial. Models are Go `ent` schemas in `services/ent/schema`.
+> **Roadmap disposition (2026-10-23):** Reuse surface matching, capture history and age labels. Semantic evidence freshness is RFC 051; authenticated capture is RFC 048.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
+**Status:** Partially implemented (surface matching, capture binding/history and age-based freshness present)
+**Status note (2026-10-23):** services/internal/product/surfaces.go records and finds captures; lib/tenant/surface-freshness.ts supplies age labels. This is not evidence-based claim or image validity.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 010 and RFC 012

@@ -11,9 +11,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # Fork development rules
 
 This repo is a PlaybookMediaLLC fork of KartikLabhshetwar/screenshot-studio.
-The fork is the product of record: the cloud marketing platform. The plan
-lives in `docs/rfcs/` and the README roadmap. Upstream remains the original
-browser screenshot editor.
+The fork is the product of record: Shots, the release-readiness platform.
+Product direction lives in `company.md` and `vision.md`; the authoritative
+execution order lives in `docs/rfcs/README.md` and the README roadmap. Upstream
+remains the original browser screenshot editor.
 
 ## Keep upstream merges cheap
 

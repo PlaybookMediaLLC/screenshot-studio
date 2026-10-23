@@ -1,5 +1,9 @@
 # RFC 007: MVP RPC Product Surface and Developer Workflow
 
+> **Roadmap disposition (2026-10-23):** Reuse the implemented tRPC contracts. The original single-service/no-Go decision is historical; Go owns product data today.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Implemented (tRPC surface; see `lib/trpc/`)
 **Status note (2026-10-16):** Shipped. Its decision not to build a Go backend is superseded: product data now sits behind the Go backend in `services/`, which the web calls through `lib/backend/sdk.ts`.
 **Implementation update (2026-10-19):** The `releaseAutomation` tRPC router uses Zod contracts and the backend SDK for definitions, preview, activation, source modes, and history/recovery. [Release automation](../release-automation.md) retains the web/database boundary and owner/admin management checks.

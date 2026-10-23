@@ -1,5 +1,9 @@
 # RFC 008: Cloudflare Data Plane for Release Assets
 
+> **Roadmap disposition (2026-10-23):** Deferred data-plane expansion. Existing object storage is reusable; this historical Trigger.dev-based proposal is not a prerequisite.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Not started
 **Status note (2026-10-16):** Its premise, Trigger.dev as the job runner, is obsolete. Background work runs on Temporal.
 **Date:** 2026-08-13

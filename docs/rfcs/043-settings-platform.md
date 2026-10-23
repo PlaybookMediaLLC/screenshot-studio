@@ -1,5 +1,9 @@
 # RFC 043: The Settings Platform and Social Sets
 
+> **Roadmap disposition (2026-10-23):** Maintain existing workspace, membership and connection settings. Unrelated settings/social-set expansion is deferred.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Accepted; implementation tracked in [the coverage matrix](../implementation/typefully-settings-coverage.md)
 
 **Date:** 2026-10-20

@@ -1,5 +1,9 @@
 # RFC 040: Story Sets
 
+> **Roadmap disposition (2026-10-23):** Reuse existing native visual compositions. Additional creative breadth is deferred pending paid release-kit evidence.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Expanded implementation; local runtime checks passed; pilot validation pending
 
 **Date:** 2026-10-19

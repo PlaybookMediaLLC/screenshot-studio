@@ -1,7 +1,11 @@
 # RFC 011: First-Class Brand Context
 
-**Status:** Partially implemented (`BrandProfile` and `BrandKit` models exist; validation, versioning, and enforcement do not)
-**Status note (2026-10-16):** Still partial. Models are Go `ent` schemas in `services/ent/schema`.
+> **Roadmap disposition (2026-10-23):** Reuse brand kits, profiles and enforced copy rules for release materials; do not restart the brand foundation.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
+**Status:** Partially implemented (brand kits/profiles, validation and copy-rule enforcement present)
+**Status note (2026-10-23):** Brand-rule validation and enforcement exist in services/internal/product/brand_rules.go and launch copy guards. Full original acceptance criteria are not re-certified by this source audit.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 010
@@ -23,13 +27,10 @@ audience. The user must not repeat them.
 `definition` is JSON, and `CreativeVariant` pins `brandKitId` plus
 `brandKitVersion`. That is the right shape.
 
-`BrandProfile` ships as a single unversioned row per organization with
-`prohibitedTerms`, `preferredStyles`, and `socialHandles` as untyped JSON. The
-model exists; the contract does not. Nothing validates the JSON, nothing
-enforces prohibited terms, and no generated copy has ever been checked against
-it because copy generation does not exist yet.
-
-This RFC defines those contracts before RFC 015 starts generating copy.
+The original proposal treated brand-profile validation and enforcement as
+missing. They now exist in the backend brand-rule service and launch copy
+guards. The remaining design below must be assessed against current code,
+not used to infer that copy generation or brand enforcement is absent.
 
 ## Goals
 

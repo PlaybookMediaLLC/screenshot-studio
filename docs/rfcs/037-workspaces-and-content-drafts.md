@@ -1,6 +1,11 @@
 # RFC 037: npm Workspaces, the Plate.js Editor Package, and Content Drafts
 
-**Status:** Accepted  
+> **Roadmap disposition (2026-10-23):** Reuse implemented npm workspaces, document editing and content-draft revisions for role-specific kit artifacts.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
+**Status:** Partially implemented (npm workspaces, Plate editor, drafts and collaboration present)
+**Status note (2026-10-23):** The workspace and draft foundations exist. Reuse them for kit documents; this audit does not re-certify every acceptance criterion or live-provider flow.
 **Date:** 2026-10-17  
 **Decided:** 2026-10-17 (see Decisions)  
 **Supersedes:** [RFC 033](033-workspace-migration.md)  

@@ -1,5 +1,9 @@
 # RFC 041: Creative Canvas
 
+> **Roadmap disposition (2026-10-23):** Maintain and reuse the implemented canvas. Additional general-purpose canvas work is not on the release-readiness critical path.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Implemented locally; end-to-end, unit and Go checks pass on a local stack; not deployed
 
 **Date:** 2026-10-20

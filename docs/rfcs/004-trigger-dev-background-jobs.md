@@ -1,5 +1,9 @@
 # RFC 004: Trigger.dev Background Jobs at Scale
 
+> **Roadmap disposition (2026-10-23):** Superseded execution architecture. Reuse the existing Go/Temporal workers; do not introduce Trigger.dev.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Superseded by Temporal
 **Status note (2026-10-16):** Trigger.dev was never adopted. AI launch runs still run in Next.js `after()` (`lib/launch/runs.ts`), not in Temporal.
 **Phase 0 update (2026-10-16):** Launch runs keep running in Next.js `after()`, now under a lease: a partial unique index allows one RUNNING run per campaign and kind, the web heartbeats every 30 seconds, a run with no heartbeat for two minutes is expired, and runs can be cancelled (`HeartbeatLaunchRun`, `CancelLaunchRun`). Runs still do not survive a web restart; that needs checkpointed, idempotent stages.

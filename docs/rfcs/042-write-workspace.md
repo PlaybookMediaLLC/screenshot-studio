@@ -1,5 +1,9 @@
 # RFC 042: The Write Workspace
 
+> **Roadmap disposition (2026-10-23):** Reuse authoring and review. Wider social publishing feature parity is deferred.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Accepted; implemented (each section's state is in the [coverage matrix](../scheduling/typefully/write/implementation-matrix.md))
 
 **Date:** 2026-10-20

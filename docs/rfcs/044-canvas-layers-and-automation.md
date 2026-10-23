@@ -1,5 +1,9 @@
 # RFC 044: Canvas layers, components, presence, store groups, automation and vector PDF
 
+> **Roadmap disposition (2026-10-23):** Reuse existing canvas capabilities. Further layer, component, store and automation expansion is deferred.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Implemented locally; unit, Go and end-to-end checks pass on a local stack; not deployed
 
 **Date:** 2026-10-20

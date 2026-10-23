@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.36.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.36.3...v2.36.4) (2026-10-23)
+
+
+### Bug Fixes
+
+* **ui:** polish authenticated layouts and responsive controls ([#300](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/300)) ([dda74d8](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/dda74d8684b2a2e16423d945e1ddba5f0135bca8))
+
 ## [2.36.3](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.36.2...v2.36.3) (2026-10-22)
 
 

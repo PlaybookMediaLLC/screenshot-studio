@@ -1,7 +1,11 @@
 # RFC 014: Structured Marketing Objects
 
-**Status:** Partially implemented (`Campaign`, `ContentAngle`, `CampaignPost` exist; `Creative` linkage, `Performance`, and versioning do not)
-**Status note (2026-10-16):** Still partial. Models are Go `ent` schemas in `services/ent/schema`.
+> **Roadmap disposition (2026-10-23):** Preserve existing campaigns and versioned launch objects. RFC 049 adds role-specific kits without requiring a social campaign.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
+**Status:** Partially implemented (campaign linkage, spec/plan versions, revisions and post provenance present)
+**Status note (2026-10-23):** Existing campaign and launch schemas provide structured objects and versioned content. The role-specific release-kit relationship is proposed in RFC 049; normalized performance is not required for it.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Depends on:** RFC 011 through RFC 013
@@ -23,9 +27,10 @@ what a campaign is.
 a status enum, and audit coverage. `CampaignPost` links optionally to a
 `CreativeVariant` and to a `ScheduledPost`. The object graph exists.
 
-What is missing: campaign-level lifecycle rules, content versioning, the
-generation-provenance fields that make regeneration auditable, and the
-performance attachment point that RFC 027 needs.
+Campaign lifecycle transitions, spec/plan versioning, revision proposals and
+post generation provenance now exist. The broad normalized performance loop
+remains outside the current critical path; RFC 049 adds role-specific kits
+around the reusable objects rather than waiting for RFC 027.
 
 ## Data model
 

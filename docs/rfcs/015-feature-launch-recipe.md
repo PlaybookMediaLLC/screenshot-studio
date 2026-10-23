@@ -1,5 +1,9 @@
 # RFC 015: Deterministic Feature Launch Recipe
 
+> **Roadmap disposition (2026-10-23):** Historical recipe proposal, superseded by the launch pipeline. Reuse bounded existing stages for kit preparation.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Superseded by the AI launch pipeline
 **Status note (2026-10-16):** The launch recipe was built as the AI launch pipeline. This document is kept for history.
 **Superseded by:** the AI launch pipeline in `lib/ai/launch/`

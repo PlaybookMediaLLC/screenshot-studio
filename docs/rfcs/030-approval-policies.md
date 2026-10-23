@@ -1,5 +1,9 @@
 # RFC 030: Approval Policies
 
+> **Roadmap disposition (2026-10-23):** Deferred automatic-approval policy engine. Maintain explicit human verification and kit approval in the active workflow.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Not started
 **Status note (2026-10-16):** Nothing in this RFC is built.
 **Implementation boundary (2026-10-19):** [Release automation](../release-automation.md) can submit drafts through the existing review transition and then ends. It implements none of this RFC's policy-based approval or approval bypass proposals.

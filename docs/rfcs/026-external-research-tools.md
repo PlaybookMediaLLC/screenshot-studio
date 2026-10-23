@@ -1,5 +1,9 @@
 # RFC 026: External Research Tools
 
+> **Roadmap disposition (2026-10-23):** Deferred broad research expansion. Reuse existing context, prioritizing the customer’s own release evidence.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Not started
 **Status note (2026-10-16):** Nothing in this RFC is built.
 **Date:** 2026-08-17

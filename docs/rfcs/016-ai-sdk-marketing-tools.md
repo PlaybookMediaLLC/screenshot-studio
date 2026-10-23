@@ -1,5 +1,9 @@
 # RFC 016: AI SDK and Typed Marketing Tools
 
+> **Roadmap disposition (2026-10-23):** Reuse guarded domain tools for draft assistance. Human factual verification and kit approval remain backend decisions.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Partially implemented
 **Status note (2026-10-16):** The AI SDK and domain tools in `lib/ai/` power the launch pipeline and the editor copilot. The full tool surface and security model in this RFC are not complete.
 **Date:** 2026-08-17

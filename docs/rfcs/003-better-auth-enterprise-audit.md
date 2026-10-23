@@ -1,5 +1,9 @@
 # RFC 003: Better Auth, Enterprise Access, and Audit Logging
 
+> **Roadmap disposition (2026-10-23):** Reusable foundation. Maintain identity, tenant boundaries, human decision authority and audit behavior.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Partially implemented
 **Status note (2026-10-16):** Mostly shipped. Missing: the support-grant approval flow, required TOTP, and a database-enforced append-only audit log.
 **Date:** 2026-08-14

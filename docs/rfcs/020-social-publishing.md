@@ -1,5 +1,9 @@
 # RFC 020: Social Publishing Abstraction
 
+> **Roadmap disposition (2026-10-23):** Maintain existing publishing reliability. Social variants are optional kit outputs; wider network parity is deferred.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Partially implemented (see `lib/tenant/publishing-backend.ts` and `services/internal/publishing`)
 **Status note (2026-10-17):** Settings → Channels connects X, LinkedIn and Instagram, and the launch Schedule dialog schedules approved posts (#129). Missing: disconnect, provider token revocation, and publishing for the Facebook Login Instagram flow.
 **Phase 0 update (2026-10-16):** Launch visuals become schedulable: `ApproveCampaignDesign` creates an approved creative variant from a design's render, and `ScheduleCampaignPost` accepts that variant, checks the post channel against the connection platform, and reschedules after CANCELLED or FAILED (never after UNKNOWN_DELIVERY). Posts report their scheduled post's state instead of a write-back from the publish workers. The Approve visual, Schedule, and Channels screens ship with SDK 0.1.12.

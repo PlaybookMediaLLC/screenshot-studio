@@ -1,5 +1,9 @@
 # RFC 032: Background Onboarding Agent and ICP Extraction
 
+> **Roadmap disposition (2026-10-23):** Reuse the implemented onboarding/profile pipeline as optional context. Manual release intake does not depend on URL onboarding.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Implemented behind the onboarding:agent flag
 **Status note (2026-10-17):** All seven rollout steps are built, with the end-to-end test and the dashboard (`infra/dashboards/onboarding.json`). Still open: MCP tools (question 4). Onboarding spends no AI credits, Exa does the third-party enrichment, and the agent is on by default (see Decisions).
 **Date:** 2026-08-17

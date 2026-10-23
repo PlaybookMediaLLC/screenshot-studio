@@ -1,5 +1,9 @@
 # RFC 005: Repository, Webhook, and Scheduling Provider Integrations
 
+> **Roadmap disposition (2026-10-23):** Reuse existing source intake and connections for RFC 046 and RFC 050. Broader provider expansion is deferred.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Partially implemented
 **Status note (2026-10-16):** Shipped: inbound GitHub, GitLab, and generic signed webhooks, the GitHub App, and social API OAuth. Missing: outbound webhooks.
 **Implementation update (2026-10-19):** [Release automation](../release-automation.md) adds atomic tenant event/outbox acceptance and versioned Temporal execution to the existing App flow. It supersedes synchronous App-event processing; outbound webhook delivery remains outside this feature.

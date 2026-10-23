@@ -1,5 +1,9 @@
 # RFC 036: Store Provider End-to-End Verification
 
+> **Roadmap disposition (2026-10-23):** Conditional verification for provider flows customers actually use. Preserve reliability checks; broader store expansion is deferred.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Accepted  
 **Date:** 2026-10-17  
 **Decided:** 2026-10-17 (see Decisions)  

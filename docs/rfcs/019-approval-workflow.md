@@ -1,5 +1,9 @@
 # RFC 019: Campaign Approval Workflow
 
+> **Roadmap disposition (2026-10-23):** Reusable approval authority. RFC 049 extends exact-version readiness to complete kits; no automatic factual approval.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Partially implemented (core shipped; see `lib/tenant/campaign-status.ts`, `lib/tenant/campaigns.ts`, `lib/trpc/routers/campaign.ts`)
 **Status note (2026-10-16):** Missing: a content hash on the approved version, decided-by and decided-at fields, and approval notifications.
 **Phase 0 update (2026-10-16):** Approval now records `approvedByUserId` and `approvedAt`. Revising an APPROVED post returns it to DRAFT; revising a live SCHEDULED or a PUBLISHED post is refused. Approval and scheduling decisions are sessions only in the backend (`authorizeDecision`). A content hash was not added because the launch revision is the only path that edits an existing post's copy.

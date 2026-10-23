@@ -1,5 +1,9 @@
 # RFC 017: Conversational Campaign Creation
 
+> **Roadmap disposition (2026-10-23):** Supporting input surface. Conversational campaign expansion is deferred; the release-kit workflow must work without chat.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Partially implemented
 **Status note (2026-10-17):** Campaign chat shipped in #135 (`lib/ai/conversation/`, the `conversation` tRPC router). AI tools in chat can only submit posts for review.
 **Date:** 2026-08-17

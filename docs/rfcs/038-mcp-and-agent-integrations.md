@@ -1,6 +1,11 @@
 # RFC 038: MCP Server and Agent Integrations
 
-**Status:** Proposed  
+> **Roadmap disposition (2026-10-23):** Reuse the Go MCP implementation and backend authority. New agent breadth is limited to the active release-kit workflow.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
+**Status:** Partially implemented (Go MCP server, tool surface and OAuth present)
+**Status note (2026-10-23):** Implementation exists in services/internal/social/chat/mcp. Older server-inventory text is historical; current code and the release-readiness index govern extensions.
 **Date:** 2026-10-17  
 **Owners:** Platform Engineering  
 **Depends on:** RFC 003, RFC 016, RFC 019, RFC 020, RFC 034, RFC 035

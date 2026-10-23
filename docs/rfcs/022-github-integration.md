@@ -1,5 +1,9 @@
 # RFC 022: GitHub Integration and Marketing-Worthy Change Detection
 
+> **Roadmap disposition (2026-10-23):** Reuse GitHub intake and existing relevance checks. RFC 046 adds accountable human qualification instead of another classifier.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Partially implemented
 **Status note (2026-10-16):** Shipped: the GitHub App, the install handshake, and release backfill. Missing: suggestions.
 **Implementation update (2026-10-19):** [Release automation](../release-automation.md) implements administrator-authored, first-match release definitions and draft/review workflows. Its explicitly activated campaign action supersedes the blanket “never a campaign” statement below for opted-in sources only. Automatic relevance suggestions remain unimplemented; legacy merge collection remains the default. On 2026-10-20 the language gained budgeted AI channel copy (v2), watched-branch editing, run history filters, an AI relevance check node that decides whether an event is worth marketing, tag-push and closed-milestone triggers, version and PR-size fields, and release contents that bundle every unreleased merged PR. Unprompted relevance suggestions outside workflows remain unimplemented.

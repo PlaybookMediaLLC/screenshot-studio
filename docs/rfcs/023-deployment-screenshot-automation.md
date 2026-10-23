@@ -1,5 +1,9 @@
 # RFC 023: Deployment-Driven Screenshot Automation
 
+> **Roadmap disposition (2026-10-23):** Reuse public capture and deployment history. RFC 048 defines the conditional authenticated extension; uploads support early kits.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Partially implemented
 **Status note (2026-10-16):** The first deployment-capture slice shipped. Authenticated capture and the rest of this RFC are not built.
 **Implementation update (2026-10-20):** [Workflows](../release-automation.md) can render campaign creatives from a product page's current capture with the existing design renderer.
@@ -17,8 +21,10 @@ the actual assets.
 This RFC has a hard prerequisite that does not exist yet. Most interesting
 product screens are behind authentication. Without authenticated capture, this
 pipeline can only photograph marketing pages, which is not what "capture the
-feature you shipped" means. Authenticated capture needs its own RFC and is a
-blocking dependency, not a nice-to-have.
+feature you shipped" means. Authenticated capture is now specified in
+[RFC 048](048-authenticated-product-capture.md). It blocks automatic capture of
+private screens, while reviewed uploads and public capture support the initial
+release-kit milestones.
 
 ## Design
 

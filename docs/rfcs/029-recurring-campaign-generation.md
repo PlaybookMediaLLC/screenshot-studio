@@ -1,5 +1,9 @@
 # RFC 029: Recurring Campaign Generation
 
+> **Roadmap disposition (2026-10-23):** Deferred weekly autonomous planning. Existing event-triggered workflows remain supported and do not imply this planner is complete.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Not started
 **Status note (2026-10-16):** Nothing in this RFC is built.
 **Date:** 2026-08-17

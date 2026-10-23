@@ -1,5 +1,9 @@
 # RFC 034: First-Class REST API and Scalar Reference
 
+> **Roadmap disposition (2026-10-23):** Reusable API foundation. Extend existing contracts and clients for release-readiness operations as they are implemented.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Implemented (phases 1–3 shipped)  
 **Status note (2026-10-17):** Campaigns, approvals, and scheduled posts are served under `/api/v1`. Every gated operation publishes `x-shots-entitlement`, a typed client is generated from the document, and CI blocks unintended breaking changes. The questions the owning RFCs leave open are listed under Open questions.  
 **Date:** 2026-08-26  

@@ -1,5 +1,9 @@
 # RFC 031: Autonomy Modes
 
+> **Roadmap disposition (2026-10-23):** Deferred generic autonomy modes. Bounded evidence preparation and reviewed handoffs are the current focus.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Not started
 **Status note (2026-10-16):** Nothing in this RFC is built.
 **Implementation boundary (2026-10-19):** [Release automation](../release-automation.md) is an explicitly authorized draft/review workflow, not an autonomy mode. It does not auto-approve, resume after review, schedule, or publish content.

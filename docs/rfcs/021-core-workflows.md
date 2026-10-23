@@ -1,7 +1,11 @@
 # RFC 021: The Three Core Workflows
 
-**Status:** Partially implemented
-**Status note (2026-10-16):** Parts of the three workflows exist through the launch pipeline and release intake. Scheduling approved posts is blocked on RFC 020.
+> **Roadmap disposition (2026-10-23):** Product milestone superseded by RFC 045. Paid validation now concerns accurate, approved, adopted kits rather than seven scheduled posts.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
+**Status:** Superseded as product milestone by RFC 045; existing workflows retained
+**Status note (2026-10-23):** The chargeable milestone is an accurate, approved kit used by downstream audiences. The workflows below remain historical design context and reusable implementation.
 **Implementation update (2026-10-20):** [Workflows](../release-automation.md) is a sidebar destination with executable templates for a release launch, a merged-PR feature announcement, and deployment-driven marketing, each ending at human review. "Stay visible" remains planned.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26

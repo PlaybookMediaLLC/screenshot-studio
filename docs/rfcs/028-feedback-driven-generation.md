@@ -1,5 +1,9 @@
 # RFC 028: Feedback-Driven Generation
 
+> **Roadmap disposition (2026-10-23):** Deferred performance-weighted generation. First learn from factual corrections, handoff effort and intended-audience use.
+> See the [current execution order](README.md). Older decision text is
+> historical wherever it conflicts with that order or the audited architecture.
+
 **Status:** Not started
 **Status note (2026-10-16):** Nothing in this RFC is built.
 **Date:** 2026-08-17

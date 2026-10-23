@@ -7,6 +7,8 @@ import { NAVIGATION_COOKIE, parseNavigation } from '@/lib/settings/appearance'
 import { cn } from '@/lib/utils'
 import { PlatformSidebar } from './PlatformSidebar'
 import { surface } from './shell-config'
+import './platform-shell.css'
+import '../platform-hub/platform-home.css'
 
 export interface PlatformShellProps {
   /** Show Campaigns; the campaign workflow is behind a rollout flag. */
@@ -40,10 +42,9 @@ export async function PlatformShell({
     <PreferencesProvider>
       <div
         data-platform-shell
+        data-platform-variant={variant}
         className={cn(
           'platform-shell flex h-dvh min-h-0 flex-col overflow-hidden text-foreground md:flex-row',
-          variant === 'editor' &&
-            '[--editor-height:calc(100dvh-3.5rem)] md:[--editor-height:100dvh]',
           surface.base
         )}
       >
@@ -61,7 +62,7 @@ export async function PlatformShell({
           variant={variant}
         />
         {variant === 'page' ? (
-          <div className="min-h-0 min-w-0 flex-1 overflow-hidden md:py-2 md:pe-2">
+          <div className="min-h-0 min-w-0 flex-1 overflow-hidden md:py-3 md:pe-3">
             <div
               data-platform-scroll
               id="platform-content"
@@ -69,7 +70,7 @@ export async function PlatformShell({
               aria-label="Page content"
               role="region"
               className={cn(
-                'h-full min-h-0 overflow-y-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:rounded-2xl md:border md:shadow-xs',
+                'h-full min-h-0 overflow-y-auto overscroll-contain md:rounded-2xl md:border',
                 surface.panel,
                 surface.border
               )}

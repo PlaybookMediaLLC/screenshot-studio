@@ -145,7 +145,7 @@ export function AccountMenu({
         </PopoverTrigger>
         <PopoverContent
           align={align}
-          className="w-72 max-w-[calc(100vw-2rem)] p-2"
+          className="platform-overlay w-72 max-w-[calc(100vw-2rem)] p-2"
           side={side}
           onCloseAutoFocus={(event) => {
             if (creationOpen) event.preventDefault()

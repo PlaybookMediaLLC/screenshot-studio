@@ -1,0 +1,209 @@
+/* Authenticated home and area navigation. */
+.platform-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: clamp(16px, 3vw, 28px);
+  row-gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.platform-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 10px 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  transition: color 150ms ease;
+}
+.platform-tab[aria-current='page']::after {
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 2px;
+  background: var(--foreground);
+  content: '';
+}
+.home-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 72px;
+  border-bottom: 1px solid var(--border);
+}
+.home-start {
+  padding-block: 40px 36px;
+}
+.home-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.platform-home .home-title {
+  font-size: clamp(26px, 2.4vw, 34px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+.home-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+}
+.home-actions > li {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+.home-action {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  height: 100%;
+  border-radius: inherit;
+  padding: 22px 20px;
+  transition: background-color 150ms ease;
+}
+.home-action:focus-visible {
+  background: var(--muted);
+}
+.home-action-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  color: var(--foreground);
+}
+.home-action-arrow {
+  position: absolute;
+  inset-inline-end: 10px;
+  inset-block-start: 10px;
+  color: var(--muted-foreground);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.home-action:is(:hover, :focus-visible) .home-action-arrow {
+  opacity: 1;
+}
+@media (hover: none) {
+  .home-action-arrow {
+    opacity: 1;
+  }
+}
+.home-work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 32px;
+  padding-block: 4px 28px;
+}
+.home-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  min-height: 176px;
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--background) 40%, var(--card));
+}
+.home-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.home-empty-copy {
+  min-width: 0;
+  padding-top: 4px;
+}
+.home-notifications {
+  display: flex;
+  flex-direction: column;
+  min-height: 176px;
+  max-height: 320px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--background) 40%, var(--card));
+}
+.home-notifications [data-notification-empty] {
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px;
+  text-align: start;
+}
+.home-notifications [data-notification-empty] > svg {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 4px;
+  opacity: 0.8;
+}
+.home-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 22px 0 28px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  transition: color 150ms ease;
+}
+.home-brand:focus-visible {
+  color: var(--foreground);
+}
+.home-brand .font-medium {
+  color: var(--foreground);
+}
+@media (hover: hover) {
+  .home-action:hover {
+    background: var(--muted);
+  }
+  .home-brand:hover {
+    color: var(--foreground);
+  }
+}
+@media (min-width: 1100px) {
+  .home-work {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+}
+@media (max-width: 767px) {
+  .home-start {
+    padding-top: 28px;
+  }
+  .home-intro {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .home-action {
+    padding: 18px;
+  }
+  .home-work {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .home-empty {
+    gap: 12px;
+    padding: 24px 20px;
+  }
+  .home-topbar {
+    min-height: 60px;
+  }
+}

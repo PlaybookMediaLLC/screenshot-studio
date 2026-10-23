@@ -78,10 +78,7 @@ function NavLink({
   const pathname = usePathname()
   const active = platformArea(pathname) === platformArea(href)
   const rowClassName = cn(
-    'flex h-10 items-center gap-3 rounded-xl border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-    active
-      ? cn(surface.panel, surface.border, 'text-foreground shadow-xs')
-      : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
+    'flex h-10 items-center gap-3 px-3',
     collapsed && 'size-11 justify-center px-0'
   )
   const link = (
@@ -129,15 +126,15 @@ function Navigation({
       />
       {NAV_GROUPS.map((group, index) => (
         <div
-          className={cn('grid gap-1', index === 1 && 'mt-auto border-t border-border pt-3')}
+          className={cn('grid gap-1', index === 1 && 'mt-auto border-t border-border pt-4')}
           key={index}
         >
-          {index === 1 ? <NotificationCenter collapsed={collapsed} /> : null}
           {group.label && !collapsed ? (
-            <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground/75">
+            <p className="mb-1 px-3 text-[11px] font-medium tracking-wide text-muted-foreground">
               {t('workspace')}
             </p>
           ) : null}
+          {index === 1 ? <NotificationCenter collapsed={collapsed} /> : null}
           {group.items
             .filter((item) => campaignsEnabled || item.href !== '/campaigns')
             .filter((item) => draftsEnabled || item.href !== '/write')
@@ -166,14 +163,14 @@ function WorkspaceSwitcher({
       align={collapsed ? 'end' : 'start'}
       side={collapsed ? 'right' : 'top'}
       triggerClassName={cn(
-        'flex h-11 min-w-0 w-full items-center gap-2.5 rounded-lg px-2 text-left transition-colors hover:bg-foreground/[0.04]',
+        'flex h-12 w-full min-w-0 items-center gap-2.5 rounded-lg px-2 text-start transition-colors hover:bg-muted',
         collapsed && 'size-11 justify-center px-0'
       )}
     >
       <UserAvatar
         name={session?.user.name || session?.user.email || 'Account'}
         image={session?.user.image}
-        className="size-6"
+        className="size-8 shrink-0"
       />
       {collapsed ? null : (
         <>
@@ -194,7 +191,11 @@ function WorkspaceSwitcher({
 
 function Brand({ collapsed }: { collapsed: boolean }) {
   return (
-    <SidebarLink className="flex min-w-0 items-center gap-2.5" href="/home" aria-label="Shots Home">
+    <SidebarLink
+      className="flex min-w-0 items-center gap-2.5 rounded-md"
+      href="/home"
+      aria-label="Shots Home"
+    >
       <Image
         alt=""
         className="size-6 rounded-md"
@@ -292,9 +293,12 @@ export function PlatformSidebar({
       <ShellSearch campaignsEnabled={campaignsEnabled} draftsEnabled={draftsEnabled} />
       <aside
         aria-label="Primary navigation"
+        data-platform-sidebar
         className={cn(
-          'hidden h-full shrink-0 flex-col py-4 md:flex',
-          collapsed ? 'w-[76px] items-center px-3' : 'w-64 px-3',
+          'hidden h-full shrink-0 flex-col px-3 py-5 md:flex',
+          collapsed
+            ? 'w-[var(--platform-nav-compact)] items-center'
+            : 'w-[var(--platform-nav-expanded)]',
           surface.base
         )}
         data-navigation={collapsed ? 'compact' : 'expanded'}
@@ -310,7 +314,7 @@ export function PlatformSidebar({
               align="start"
               side={collapsed ? 'right' : 'bottom'}
               triggerClassName={cn(
-                'flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-border/70 bg-card px-2.5 text-start text-sm transition-colors hover:bg-muted',
+                'platform-workspace-trigger flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2.5 text-start text-sm transition-colors',
                 collapsed && 'size-11 flex-none justify-center px-0'
               )}
             >
@@ -360,7 +364,7 @@ export function PlatformSidebar({
           </div>
         </div>
 
-        <div className="mt-4 min-h-0 w-full flex-1 overflow-y-auto px-1 pt-1">
+        <div className="mt-5 min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-1 py-1">
           <Navigation
             campaignsEnabled={campaignsEnabled}
             collapsed={collapsed}
@@ -373,7 +377,7 @@ export function PlatformSidebar({
           // sits on the switcher and swallows clicks.
           <div
             className={cn(
-              'flex w-full items-center justify-center gap-1 border-t border-border pt-3',
+              'mt-3 flex w-full shrink-0 items-center justify-center gap-1 border-t border-border pt-3',
               collapsed && 'flex-col-reverse',
               process.env.NODE_ENV === 'development' && 'mb-12'
             )}
@@ -386,7 +390,7 @@ export function PlatformSidebar({
 
       <header
         className={cn(
-          'z-30 flex h-14 shrink-0 items-center gap-3 border-b border-foreground/[0.06] px-4 md:hidden',
+          'platform-mobile-header z-30 flex shrink-0 items-center gap-3 border-b border-border md:hidden',
           surface.base
         )}
       >
@@ -403,23 +407,36 @@ export function PlatformSidebar({
             </Button>
           </SheetTrigger>
           <SheetContent
-            className={cn('w-72 gap-0 border-foreground/[0.06] p-3', surface.base)}
+            data-platform-sidebar
+            className="platform-overlay platform-navigation-drawer gap-0 border-border p-3"
             side="left"
           >
             <SheetTitle className="sr-only">{t('navigation')}</SheetTitle>
-            <div className="px-2 py-1">
-              <Brand collapsed={false} />
+            <div className="shrink-0 px-1 pt-1">
+              <div className="flex h-8 items-center px-2 pe-12">
+                <Brand collapsed={false} />
+              </div>
               <AccountMenu
                 scope="workspace"
                 workspaceName={organizationName}
                 align="start"
-                triggerClassName="mt-3 flex min-h-11 w-full items-center justify-between gap-2 rounded-lg px-2 text-start text-sm hover:bg-muted"
+                triggerClassName="platform-workspace-trigger mt-4 flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2.5 text-start text-sm transition-colors"
               >
-                <span className="truncate">{organizationName}</span>
-                <ChevronsUpDown size={20} aria-hidden="true" />
+                <span
+                  aria-hidden="true"
+                  className="grid size-6 shrink-0 place-items-center rounded-md bg-foreground/[0.06] text-muted-foreground"
+                >
+                  <Building2 size={15} />
+                </span>
+                <span className="min-w-0 flex-1 truncate font-medium">{organizationName}</span>
+                <ChevronsUpDown
+                  size={14}
+                  className="shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
               </AccountMenu>
             </div>
-            <div className="mt-6 min-h-0 flex-1 overflow-y-auto">
+            <div className="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 py-1">
               <Navigation
                 campaignsEnabled={campaignsEnabled}
                 collapsed={false}
@@ -429,11 +446,12 @@ export function PlatformSidebar({
             </div>
             <div
               className={cn(
-                'border-t border-foreground/[0.06] pt-2',
+                'mt-3 flex shrink-0 items-center gap-1 border-t border-border pt-3',
                 process.env.NODE_ENV === 'development' && 'mb-12'
               )}
             >
               <WorkspaceSwitcher collapsed={false} organizationName={organizationName} />
+              <ThemeToggle />
             </div>
           </SheetContent>
         </Sheet>

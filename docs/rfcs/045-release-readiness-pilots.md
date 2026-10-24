@@ -87,6 +87,148 @@ materials, missing evidence and operator effort. Weak demand triggers a change
 to the segment, offer or workflow before feature expansion. Existing customer
 support and reliability work continue regardless of the expansion gate.
 
+## Technical design: ledger and reproducible measurement
+
+Use the [shared implementation contracts](../release-readiness-technical-contracts.md)
+for tenant isolation, immutable IDs and later native ingestion. The first pilot
+does not depend on a new analytics service. Keep UTF-8 JSONL records in a
+workspace-approved private store, validate them with a versioned JSON Schema,
+and produce a deterministic report from an explicit export. Do not commit
+customer records to this repository. CSV is a presentation export, not the
+canonical event format: empty, zero and unknown must remain distinct.
+
+### Event and entity schema
+
+The following are proposed ledger records. IDs must be stable across a later
+import; all timestamps use RFC 3339 UTC and all costs are integer micros plus
+an ISO currency. Require server/operator recording time separately from the
+time an event was observed.
+
+```typescript
+type PilotEvent = {
+  schemaVersion: 1
+  eventId: string              // UUID, stable across export/import
+  organizationId: string
+  releaseId: string            // existing release ID, never a PR number
+  canonicalReleaseId: string
+  kitRevisionId: string | null
+  audienceId: string | null
+  kind: 'QUALIFIED' | 'KIT_APPROVED' | 'HANDOFF_RECORDED' | 'USE_CONFIRMED'
+    | 'FACT_CORRECTION' | 'EFFORT_RECORDED' | 'COST_RECORDED'
+    | 'PAYMENT_AUTHORIZED' | 'PAYMENT_COLLECTED' | 'RENEWAL_RECORDED'
+    | 'RECORD_CORRECTED'
+  occurredAt: string
+  recordedAt: string
+  actorId: string
+  provenance: 'CUSTOMER_CONFIRMED' | 'OPERATOR_OBSERVED' | 'ESTIMATED'
+  sourceRef: string | null     // access-controlled evidence reference
+  supersedesEventId: string | null
+  payload: unknown            // discriminated schema for each kind below
+}
+```
+
+| Record | Required payload and validation |
+| --- | --- |
+| Release registration | Existing org/release, canonical ID, owner, eligibility, qualification time, owner-confirmed ready time or null, audience requirement revision. Reject a release from another organization. |
+| Qualification | Human decision reference and immutable required audience/material list. A minimum of one required audience; exclusions require reason and author. Preserve first qualification time through requalification. |
+| Approval | Artifact manifest hash, human reviewer, approval time, evidence/checklist reference. An assisted approval is tagged manual; it is not a native readiness-service result. |
+| Handoff | Exact kit revision/hash, audience, destination identity, occurred time, receipt source and confirmation. Export/download alone fails this schema's delivered predicate. |
+| Use | Exact kit revision, audience, named confirming user or publication reference, observed time, verified/pending/retracted state, verification actor/time. A click event is not an admissible use kind. |
+| Effort | Task category, customer/operator role, integer minutes, measured/estimated, comparable baseline release ID. Do not infer customer time from operator activity duration. |
+| Cost | Meter/run reference or invoice line, category, quantity, integer amount micros, currency, estimated/settled. Deduplicate on provider/meter line identity. |
+| Correction | Delivered revision, affected claim IDs if known, factual/style classification, severity, detection time, resolution revision. Denominator counts kits/releases, not the number of corrected claims. |
+| Commercial | Agreement reference, currency, amount, authorization/collection/refund status, occurrence time. A commitment and an authorized payment cannot populate collected revenue. |
+
+Maintain a separate organization participation record with effective dates for
+paid-pilot/subscription eligibility. Contract-level payment records may use a
+nullable release ID in their discriminated subtype; do not invent a release
+to attach revenue. Allocate organization-level service cost/revenue to releases
+only with an explicit allocation rule, and show unallocated amounts.
+
+Correct errors by appending a replacement event with a reason; never silently
+edit an observed result. Reject cycles, cross-organization supersession and
+two active replacements of the same event. Preserve the original record for
+audit, subject to retention. Erasing confidential source evidence leaves a
+minimal tombstone and downgrades verification to unavailable.
+
+### Aggregation algorithm
+
+Report parameters are metric-definition version, cohort month, as-of time and
+follow-up window in whole days. Store those parameters and input export hash
+with every report. UTC month boundaries are inclusive at start and exclusive
+at the next month's start; day durations are elapsed 24-hour intervals.
+
+```text
+effective events = records recorded by asOf, resolving valid corrections
+cohort = canonical releases first human-qualified in [monthStart, monthEnd)
+         whose organizations participated at first qualification
+observation cutoff per release = min(asOf, firstQualifiedAt + followupDays)
+for each cohort release:
+  load the reviewed audience requirement revision effective before delivery
+  for each required audience:
+    find a valid approval -> confirmed handoff -> verified use chain
+    require the SAME kit revision and audience throughout each chain
+    require all occurredAt values <= that release's observation cutoff
+  adopted = every required audience has such a chain
+active organizations = distinct orgs in cohort, including zero-adoption orgs
+adoption numerator = distinct canonical releases with adopted = true
+```
+
+Audience-specific kit revisions may differ when a correction was delivered,
+but each audience's chain must be internally consistent. An approval of version
+2 does not validate a handoff of version 1. Do not combine use of a draft with
+delivery of an approved version. Show retracted/invalidated use chains and
+substantive corrections alongside the as-of adoption result.
+
+Freeze the denominator at first qualification and retain later withdrawals as
+visible outcomes. An eligibility correction requires an auditable data-quality
+restatement, not deletion from the cohort. Audience requirement changes after
+the first delivery do not retroactively reduce that cohort's denominator;
+store an explicit prospective revision and report the exception separately.
+Unmatured releases are labeled censored; compare matured subsets at the same
+follow-up age and report their counts rather than treating missing follow-up
+as observed failure. Late-recorded evidence restates its original cohort.
+
+Release-to-approval durations may be negative for pre-release approval: report
+those separately, not as zero. Calculate median and p90 only from observed
+durations and publish sample size plus missing count. Labor-saved estimates
+need a comparable baseline and task scope; otherwise return null. Do not sum
+currencies without a dated exchange-rate policy. Cost per adopted kit is not
+applicable when the adoption count is zero; still report absolute cost.
+
+### Native ingestion bridge and delivery slices
+
+RFC 050 adds a session-only import operation under the existing API boundary.
+It accepts at most 200 events / 1 MiB per batch, validates the entire batch,
+and commits it atomically with an idempotency receipt. Uniqueness is
+`(org, importSource, eventId)`. Identical replay returns the original receipt;
+a changed payload conflicts. Unknown native kit IDs go to a staging record
+with the manual manifest hash, never to a fabricated native approval.
+
+Retain original occurrence, recording and import times, actor attribution and
+provenance. An importing admin is not the original approver. Reports support
+manual and native records under the same predicates, with the provenance
+breakdown visible. Reconcile aggregate counts before switching a pilot to
+native reporting; mixed imports cannot count the same event twice.
+
+| Slice | Deliverable | Verification gate |
+| --- | --- | --- |
+| A: assisted cycle | Schema, blank ledger template, private evidence references, report command with explicit parameters | Synthetic complete and incomplete release fixtures produce inspectable rows and totals. |
+| B: cohort review | Qualification/approval/handoff/use joins, effort and commercial reports | A second reviewer reproduces a report from its input hash and parameter manifest. |
+| C: native bridge in 050 | Import receipt and native event adapters, same metric definitions | Manual/native mixed fixture and repeated import produce identical unique release counts. |
+
+### Required measurement fixtures
+
+| Fixture | Expected result |
+| --- | --- |
+| Two required audiences; only sales confirms use | Audience coverage 1/2, fully adopted count 0. |
+| Two kit revisions and three retries for one release | At most one adopted release; evidence must match a delivered approved revision. |
+| One org qualifies two releases, neither used | Active organizations 1, eligible releases 2, adoption 0. |
+| Qualification at 23:59:59 UTC on month end; use next month | Original month cohort, observed only within the selected as-of/follow-up limits. |
+| Late import, duplicate ID, corrected use, merge lineage | Stable IDs deduplicate; valid corrections restate rather than append a second success. |
+| Missing baseline, unknown effort, zero adoption, mixed currencies | Null/not-applicable or separate currency totals; no invented zero or blended margin. |
+| Payment authorized then fails; operator performs all work | Collected revenue 0; customer and operator minutes remain separate. |
+
 ## Acceptance criteria
 
 1. A pilot record names the buyer, launch owner, fact reviewer, release and

@@ -52,6 +52,12 @@ making their unused features prerequisites for release readiness.
 
 ## Architecture and compatibility rules
 
+- RFCs 045–051 now include proposed schemas, commands, state transitions,
+  failure handling and implementation test gates. Their
+  [shared technical contracts](../release-readiness-technical-contracts.md)
+  define tenant keys, authorization, transaction/lock order, version hashes,
+  API errors, outbox dispatch and migration rules. These are implementation
+  designs, not claims that the new workflows have shipped.
 - Reuse Next.js/React, the backend SDK, Go/Ent, PostgreSQL, object storage and
   Temporal. The web never owns database access. New API contracts use the
   existing Zod/route boundary; agent and UI operations share backend authority.

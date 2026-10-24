@@ -125,6 +125,8 @@ MAINTENANCE_TEST_DATABASE_URL='postgresql://USER:PASSWORD@HOST:PORT/maintenance_
 
 Evidence: `purge-before.log`, `purge-after.jsonl`, `maintenance-migrate.log`. This also exercises the maintenance database cases skipped in the earlier G run.
 
+A second review found that a deleted post's 30-day backoff also delayed its entire account. The database regression reproduces both HTTP 404 and 410 before the fix (`deleted-post-before.log`). Collection now preserves the account's 45-minute interval and available status, continues healthy post metrics and follower observations, imports new publications on the next pass, and stops polling the deleted post. The D command with `-race` passed 44 named tests with no failures or skips (`deleted-post-after.jsonl`); `go vet ./internal/product` passed. CI also runs `test/e2e/plan-analyze.spec.ts` independently of the three full-suite browser shards, so these acceptance flows receive a result even when unrelated browser regressions exhaust a shard's time budget.
+
 ## External checks before production enablement
 
 - Use authorized provider accounts, actual granted scopes, supported API tiers and quota. X follower reads, timeline import and private click metrics require the corresponding provider access; unavailable private counters remain absent. LinkedIn personal currently lacks the installed analytics interface; do not infer support from publishing. Page/Instagram/Threads permissions are provider-specific.

@@ -214,8 +214,9 @@ jobs:
       E2E_DOCKER_HOST_GATEWAY: 'true'
     strategy:
       fail-fast: false
-      # Three shards keep each job inside its 30 minutes: shard 1 also tests
-      # the render service and the last shard runs the recovery check.
+      # Three full-suite shards plus an independent Plan/Analyze acceptance run.
+      # The focused run ensures these long workflows execute even when unrelated
+      # browser regressions exhaust a full-suite shard's time budget.
       matrix:
         include:
           - shard: '1/3'
@@ -224,6 +225,8 @@ jobs:
             shard_index: 2
           - shard: '3/3'
             shard_index: 3
+          - shard: 'plan-analyze'
+            shard_index: 4
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -273,7 +276,11 @@ jobs:
       - name: Verify tenant isolation
         run: ./bin/studio tenant-isolation
       - name: Verify browser end-to-end flows
+        if: matrix.shard_index <= 3
         run: ./bin/studio e2e --shard=${{ matrix.shard }}
+      - name: Verify Plan and Analyze acceptance flows
+        if: matrix.shard_index == 4
+        run: ./bin/studio e2e test/e2e/plan-analyze.spec.ts
       # Collected before the recovery check, which calls `compose up
       # --force-recreate app` and so destroys the container that served the
       # failing tests. Collecting only at the end left every failure on the

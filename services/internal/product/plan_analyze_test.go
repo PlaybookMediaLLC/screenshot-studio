@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -19,9 +20,11 @@ import (
 )
 
 type analyticsFixture struct {
-	metrics postoptions.Metrics
-	err     error
-	posts   []ImportedAnalyticsPost
+	metrics    postoptions.Metrics
+	err        error
+	posts      []ImportedAnalyticsPost
+	postErrors map[string]error
+	postCalls  map[string]int
 }
 
 func (f *analyticsFixture) AnalyticsCapabilities(platform string) AnalyticsCapabilities {
@@ -33,7 +36,13 @@ func (f *analyticsFixture) AccountObservations(context.Context, string, string, 
 func (f *analyticsFixture) ImportAnalyticsPosts(context.Context, string, string, string, string, time.Time) ([]ImportedAnalyticsPost, error) {
 	return f.posts, f.err
 }
-func (f *analyticsFixture) PostMetrics(context.Context, string, string, string, string, string) (postoptions.Metrics, error) {
+func (f *analyticsFixture) PostMetrics(_ context.Context, _, _, _, _, remoteID string) (postoptions.Metrics, error) {
+	if f.postCalls != nil {
+		f.postCalls[remoteID]++
+	}
+	if err := f.postErrors[remoteID]; err != nil {
+		return nil, err
+	}
 	return f.metrics, f.err
 }
 
@@ -623,6 +632,68 @@ func TestPlanAnalyzeDatabase(t *testing.T) {
 		}
 		if !found {
 			t.Fatal("post missing")
+		}
+	})
+	t.Run("A19 deleted posts do not defer account collection or healthy posts", func(t *testing.T) {
+		previous := *fixture
+		defer func() { *fixture = previous }()
+		for _, code := range []int{404, 410} {
+			t.Run(fmt.Sprint(code), func(t *testing.T) {
+				goneID, liveID, discoveredID := cuid.New(), cuid.New(), cuid.New()
+				*fixture = analyticsFixture{
+					metrics:    postoptions.Metrics{"likes": 7},
+					postErrors: map[string]error{goneID: analyticsStatusError(code)},
+					postCalls:  map[string]int{},
+				}
+				before := time.Now().UTC()
+				gone, e := repo.importAnalyticsPost(ctx, x, ImportedAnalyticsPost{ID: goneID, At: before.Add(-time.Hour)}, nil)
+				if e != nil {
+					t.Fatal(e)
+				}
+				// Encounter the deleted post before the healthy post in this batch.
+				if _, e = repo.client.AnalyticsPost.UpdateOneID(gone.ID).SetNextCheckAt(before.Add(-time.Hour)).Save(ctx); e != nil {
+					t.Fatal(e)
+				}
+				live, e := repo.importAnalyticsPost(ctx, x, ImportedAnalyticsPost{ID: liveID, At: before.Add(-time.Hour)}, nil)
+				if e != nil {
+					t.Fatal(e)
+				}
+				if e = repo.collectAnalytics(ctx, x, true); e != nil {
+					t.Fatal(e)
+				}
+				state, e := repo.client.AnalyticsAccount.Get(ctx, x.ID)
+				if e != nil {
+					t.Fatal(e)
+				}
+				if state.Availability != analyticsaccount.AvailabilityAvailable || state.NextCheckAt.Before(before.Add(45*time.Minute)) || state.NextCheckAt.After(time.Now().Add(45*time.Minute)) {
+					t.Fatalf("deleted post changed account availability or polling interval: %+v", state)
+				}
+				gone, e = repo.client.AnalyticsPost.Get(ctx, gone.ID)
+				if e != nil || gone.Availability != analyticspost.AvailabilityDeleted || gone.NextCheckAt.Before(before.Add(29*24*time.Hour)) {
+					t.Fatalf("deleted post lost its own backoff: %+v %v", gone, e)
+				}
+				if fixture.postCalls[liveID] != 1 {
+					t.Fatal("deleted post stopped healthy post collection")
+				}
+				observations, e := repo.client.AnalyticsSnapshot.Query().Where(analyticssnapshot.ConnectionID(x.ID), analyticssnapshot.KindEQ(analyticssnapshot.KindAccount)).Count(ctx)
+				if e != nil {
+					t.Fatal(e)
+				}
+				// Exercise the next account pass without waiting for its due time.
+				if _, e = repo.client.AnalyticsPost.UpdateOneID(live.ID).SetNextCheckAt(before).Save(ctx); e != nil {
+					t.Fatal(e)
+				}
+				fixture.posts = []ImportedAnalyticsPost{{ID: discoveredID, At: before.Add(-time.Minute)}}
+				if e := repo.collectAnalytics(ctx, x, true); e != nil {
+					t.Fatal(e)
+				}
+				if fixture.postCalls[goneID] != 1 || fixture.postCalls[liveID] != 2 || fixture.postCalls[discoveredID] != 1 {
+					t.Fatalf("subsequent post collection: %+v", fixture.postCalls)
+				}
+				if after, e := repo.client.AnalyticsSnapshot.Query().Where(analyticssnapshot.ConnectionID(x.ID), analyticssnapshot.KindEQ(analyticssnapshot.KindAccount)).Count(ctx); e != nil || after != observations+1 {
+					t.Fatalf("follower collection did not continue: %d -> %d %v", observations, after, e)
+				}
+			})
 		}
 	})
 	t.Run("A19 revoked accounts reject new observations and public reads", func(t *testing.T) {

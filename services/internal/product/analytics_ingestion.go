@@ -179,8 +179,12 @@ func (c *Configuration) collectAnalytics(ctx context.Context, connection *ent.Ch
 		for _, post := range posts {
 			metrics, e := c.postMetrics.PostMetrics(ctx, connection.OrganizationID, connection.ExternalAccountID, connection.Platform, connection.SecretReference, post.RemoteID)
 			if e != nil {
-				availability := recordError(e)
-				_, retry, _ := analyticsFailure(e, now)
+				availability, retry, _ := analyticsFailure(e, now)
+				// A missing post is terminal for that post, not a failure of the
+				// account's follower, discovery, or other post collection.
+				if availability != "deleted" {
+					recordError(e)
+				}
 				_, _ = c.client.AnalyticsPost.UpdateOneID(post.ID).SetAvailability(analyticspost.Availability(availability)).SetNextCheckAt(retry).Save(ctx)
 				if stopped {
 					break

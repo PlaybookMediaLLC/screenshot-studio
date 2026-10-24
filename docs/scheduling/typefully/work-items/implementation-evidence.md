@@ -131,4 +131,4 @@ The baseline had five checked entries in these sections. Seventeen additional en
 
 The 20 open entries distinguish unsupported/unverified provider mappings, live outcomes, Auto-DM production ingestion/delivery, Article inline video, and the TF-002 free-scheduling requirement. Existing paid `content:drafts` controls have not been weakened. Current official X limits supersede historical 4,000-character text for validation, while that source text is preserved.
 
-No deployment or live provider activation is implied. This report and the original source checkboxes are committed with the implementation; the delivery response identifies the commit.
+Implementation and source-checklist commit: `19e02cc65a3fa272cf15297ff258b877b6761fe5` on branch `work`, targeting `main`. This report includes the verified results for that implementation. No deployment or live provider activation is implied.

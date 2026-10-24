@@ -89,7 +89,7 @@ function blocking(context: ScheduleContext): string[] {
 }
 
 /**
- * Schedule or plan a draft (RFC 042). A planned time only puts the draft on
+ * Schedule or plan a draft (RFC 025). A planned time only puts the draft on
  * the calendar; Confirm makes it publish. Times are chosen in the set's zone
  * and resolved by the backend, which refuses a time the clocks skip and asks
  * which of two a repeated time means.
@@ -109,7 +109,7 @@ export function ScheduleDialog({
 }) {
   const { data } = useWrite()
   const scope = useSocialSetScope()
-  // The draft's set owns the queue: its weekly slots in its zone (RFC 043).
+  // The draft's set owns the queue: its weekly slots in its zone (RFC 024).
   const setId =
     context.draft.socialSetId ?? data.sets.find((item) => item.visibility === 'WORKSPACE')?.id
   const cachedSet = useQueryClient().getQueryData<SocialSetRecord>(socialSetKey(scope, setId ?? ''))
@@ -128,7 +128,7 @@ export function ScheduleDialog({
   )
   const [queue, setQueue] = React.useState(Boolean(initialQueue && data.advancedScheduling))
   const [continueWriting, setContinueWriting] = React.useState(context.draft.status === 'draft')
-  // The draft's own choice, copied from its set when it was created (RFC 043).
+  // The draft's own choice, copied from its set when it was created (RFC 024).
   const [natural, setNatural] = React.useState(
     context.draft.naturalPostingTime && data.advancedScheduling
   )
@@ -687,7 +687,7 @@ function Problems({ problems }: { problems: string[] }) {
 }
 
 /**
- * The final review before publishing now (RFC 042): the set, each exact
+ * The final review before publishing now (RFC 025): the set, each exact
  * account, what each will post, how many posts, media, audience and labels,
  * follow-ups, who may publish and the approval state. Only Publish now
  * publishes, once: the same version and accounts replay rather than repeat.

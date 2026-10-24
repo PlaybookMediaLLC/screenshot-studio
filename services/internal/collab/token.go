@@ -1,5 +1,5 @@
 // Package collab issues and verifies the short-lived tokens that admit a
-// browser to one content draft's real-time session (RFC 037).
+// browser to one content draft's real-time session (RFC 013).
 //
 // Only the Go backend holds the signing key. The collaboration server cannot
 // mint or verify a token; it asks the backend, and it passes the connection's

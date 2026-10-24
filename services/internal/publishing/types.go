@@ -54,7 +54,7 @@ type MediaAsset struct {
 	AssetID   string `json:",omitempty"`
 	MediaType string
 	ObjectKey string
-	// Alt describes an image (RFC 042); jobs recorded before it have none.
+	// Alt describes an image (RFC 025); jobs recorded before it have none.
 	Alt string `json:",omitempty"`
 }
 
@@ -62,7 +62,7 @@ type MediaAsset struct {
 type PublishReply struct {
 	Assets  []MediaAsset
 	Caption string
-	// Options are the reply's own settings (RFC 042); replies from before
+	// Options are the reply's own settings (RFC 025); replies from before
 	// them have none.
 	Options *postoptions.PublishOptions `json:",omitempty"`
 	Poll    *postoptions.Poll           `json:",omitempty"`
@@ -79,7 +79,7 @@ type PublishJob struct {
 	ReplyTo     string
 	AutoActions postoptions.AutoActions
 	Poll        postoptions.Poll
-	// Options are the first post's settings beyond its text (RFC 042).
+	// Options are the first post's settings beyond its text (RFC 025).
 	Options postoptions.PublishOptions
 	// Document is a LinkedIn PDF posted as a document carousel; Cover is an
 	// X article's cover image.
@@ -101,7 +101,7 @@ type RecoverablePost struct {
 	ScheduledFor   time.Time
 }
 
-// AutomationReceipt is a live post's follow-up to record (RFC 042): its
+// AutomationReceipt is a live post's follow-up to record (RFC 025): its
 // key, its kind and when it is first due.
 type AutomationReceipt struct {
 	DueAt time.Time

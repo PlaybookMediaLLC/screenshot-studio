@@ -16,6 +16,19 @@ Product direction lives in `company.md` and `vision.md`; the authoritative
 execution order lives in `docs/rfcs/README.md` and the README roadmap. Upstream
 remains the original browser screenshot editor.
 
+## Branch and release flow
+
+- Start work branches from `develop` and target `develop` in every work PR,
+  including fixes, dependencies, upstream sync and release preparation.
+- `main` is the production release branch. Only a PR from this repository's
+  `develop` branch may target `main`, and only as an intentional release.
+- Merge release PRs with a merge commit; do not squash or rebase `develop`
+  into `main`. Preserve both long-lived branches after merging.
+- Prepare version/changelog changes through Release Please PRs into `develop`.
+  Production deploys and published releases remain tied to `main`.
+- See [branching and releases](docs/branching-and-releases.md) for checks,
+  repository rules and the release procedure.
+
 ## Keep upstream merges cheap
 
 1. Put new platform code in new directories and new files. Edit upstream
@@ -34,7 +47,7 @@ remains the original browser screenshot editor.
 ## Upstream sync
 
 `.github/workflows/sync-upstream.yml` merges upstream main into the
-`upstream` branch every night and opens a PR against main.
+`upstream` branch every night and opens a PR against develop.
 
 Resolve conflicts by class:
 

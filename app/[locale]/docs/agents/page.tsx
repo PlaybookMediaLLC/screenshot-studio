@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 
 const heading = 'mb-3 text-xl font-semibold tracking-[-0.02em] text-foreground'
 
-/** The public setup guide for every supported agent client (RFC 038). */
+/** The public setup guide for every supported agent client (RFC 026). */
 export default function AgentsDocsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-# The collaboration server (RFC 037). Build from the repository root:
+# The collaboration server (RFC 013). Build from the repository root:
 #   docker build --file packages/collab-server/Dockerfile .
 FROM node:22-bookworm-slim AS dependencies
 

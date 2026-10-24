@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { classifyToken } from '@/lib/redaction/patterns'
 
 /**
- * Developer debug logging (RFC 043). Off until a person turns it on in this
+ * Developer debug logging (RFC 024). Off until a person turns it on in this
  * browser. Entries are redacted before they are stored, the log is bounded,
  * it never leaves the browser on its own, and turning it off stops collection
  * at once. It records requests the app makes (method, path, status, time) and

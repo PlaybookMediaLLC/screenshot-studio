@@ -5,8 +5,8 @@ description: Add or change a Screenshot Studio tenant-facing tRPC capability. Us
 
 # Add Tenant RPC Feature
 
-Keep the API in the existing Next.js application. Read RFC 002, RFC 003, RFC
-006, and RFC 007 before changing a tenant capability.
+Keep the API in the existing Next.js application. Read RFC 010, RFC 009, RFC
+011, and RFC 035 before changing a tenant capability.
 
 ## Workflow
 

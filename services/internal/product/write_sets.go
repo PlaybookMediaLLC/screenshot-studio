@@ -11,7 +11,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
-// Write (RFC 042) on the settings platform's social sets (RFC 043): a draft
+// Write (RFC 025) on the settings platform's social sets (RFC 024): a draft
 // belongs to a set the actor may see; drafts written before sets belong to
 // the workspace's default set.
 

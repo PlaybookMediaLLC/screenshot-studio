@@ -11,10 +11,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
-// ContentDraftRevision is a saved point in a draft's history (RFC 037): the
+// ContentDraftRevision is a saved point in a draft's history (RFC 013): the
 // title and body as they were, kept at most every ten minutes of editing and
 // on every schedule, so a writer can look back and recover one. Snapshots are
-// immutable; recovering one makes a new draft (RFC 042).
+// immutable; recovering one makes a new draft (RFC 025).
 type ContentDraftRevision struct{ ent.Schema }
 
 func (ContentDraftRevision) Annotations() []schema.Annotation {
@@ -30,7 +30,7 @@ func (ContentDraftRevision) Fields() []ent.Field {
 		field.String("title").StorageKey("title").Immutable(),
 		field.JSON("body", []any{}).StorageKey("body").Immutable(),
 		field.String("plain_text").StorageKey("plainText").Immutable(),
-		// Write (RFC 042): the platform versions and article as they were, and
+		// Write (RFC 025): the platform versions and article as they were, and
 		// why the snapshot was kept (edit, schedule, plan, publish, recovery).
 		field.JSON("platform_versions", draftdoc.PlatformVersions{}).StorageKey("platformVersions").Optional().Immutable(),
 		field.JSON("article", &draftdoc.Article{}).StorageKey("article").Optional().Immutable(),

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /**
- * The Write document (RFC 042): the structured parts of a content draft
+ * The Write document (RFC 025): the structured parts of a content draft
  * beside its Plate body. Go stores and checks the same shapes
  * (`services/internal/draftdoc`); every field here has a Go counterpart.
  */
@@ -19,7 +19,7 @@ export const draftChannelSchema = z.enum([
 /** One of {@link draftChannelSchema}. */
 export type DraftChannel = z.infer<typeof draftChannelSchema>
 
-/** The channel a draft's body is written for: its primary platform (RFC 043), X when unset. */
+/** The channel a draft's body is written for: its primary platform (RFC 024), X when unset. */
 export function primaryChannel(primaryPlatform: string | null | undefined): DraftChannel {
   return draftChannelSchema.catch('x').parse(primaryPlatform ?? 'x')
 }
@@ -141,8 +141,8 @@ export const plugMetricSchema = z.enum(['likes', 'reposts'])
 export type PlugMetric = z.infer<typeof plugMetricSchema>
 
 /**
- * An X post's follow-ups once live (RFC 042): reposts at set times and
- * their removal, a plug reply at a like or repost count, and the RFC 037
+ * An X post's follow-ups once live (RFC 025): reposts at set times and
+ * their removal, a plug reply at a like or repost count, and the RFC 013
  * like-gated repost and delayed quote.
  */
 export const automationSchema = z.strictObject({

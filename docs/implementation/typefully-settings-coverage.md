@@ -1,7 +1,7 @@
 # Typefully settings: implementation coverage
 
 Tracks [the settings specification](../scheduling/typefully/settings/typefully-settings-spec.md)
-against Screenshot Studio. The design is [RFC 043](../rfcs/043-settings-platform.md).
+against Screenshot Studio. The design is [RFC 024](../rfcs/024-settings-platform.md).
 
 Status values: **Complete and verified**, **Implemented but incomplete**,
 **Missing**, **Blocked by external dependency**. Nothing is marked complete from
@@ -19,7 +19,7 @@ section 11).
 Test evidence used below:
 
 - **Go**: `go test ./... -p 1` and `go vet ./...` in `services/` against
-  PostgreSQL 16; every package passes. RFC 043 tests:
+  PostgreSQL 16; every package passes. RFC 024 tests:
   `internal/product/social_sets_integration_test.go` (`TestSocialSetsPlatform`,
   12 subtests), `webhooks_integration_test.go` (`TestOutboundWebhookDelivery`),
   `settings_platform_test.go` (DST, slot times, natural offset, account health,
@@ -62,7 +62,7 @@ Test evidence used below:
    `WorkspaceSettingDetail.tsx`, `app/[locale]/workspace/[[...section]]/page.tsx`,
    `components/drafts/DraftSettingsDrawer.tsx`, `DraftComposer.tsx`.
 6. **Migrations.** None.
-7. **Authorization.** Each section keeps its gate; new ones follow RFC 043.
+7. **Authorization.** Each section keeps its gate; new ones follow RFC 024.
 8. **Automated verification.** Acceptance 7 and 14.
 9. **External dependencies.** None.
 10. **Status.** Implemented but incomplete (some states are verified by
@@ -231,7 +231,7 @@ Test evidence used below:
 5. **Files.** `social_sets.go`, `internal/publishing/oauth.go`,
    `components/settings/social-sets/`.
 6. **Migrations.** `20261029090000_settings_platform.sql` (with the backfill).
-7. **Authorization.** RFC 043's table, enforced in Go.
+7. **Authorization.** RFC 024's table, enforced in Go.
 8. **Automated verification.** Acceptance 8, 9, 10.
 9. **External dependencies.** Live reconnects need each provider's OAuth app.
 10. **Status.** Implemented but incomplete (live provider OAuth blocked).
@@ -242,7 +242,7 @@ Test evidence used below:
    times with an override, preserved instants, DST rules, atomic slots.
 2. **Built.** Per-set time zone and slots; a grid of 15-minute times; the queue
    reserves a slot under a per-set advisory lock; DST gaps and repeats resolve by
-   RFC 043's rule; natural offsets (±4 minutes) are chosen once, stored with the
+   RFC 024's rule; natural offsets (±4 minutes) are chosen once, stored with the
    post and replayed on retry; existing posts keep their instants when the grid
    changes.
 3. **Verified.** Go: weekdays at two times are ten slots; concurrent queueing
@@ -355,7 +355,7 @@ Test evidence used below:
 4. **Missing.** Nothing required.
 5. **Files.** `services/ent/schema/`, `services/platformmigrations/sql/`.
 6. **Migrations.** `20261029090000_settings_platform.sql`, additive. Rollback is
-   in RFC 043.
+   in RFC 024.
 7. **Authorization.** n/a.
 8. **Automated verification.** As above.
 9. **External dependencies.** None.

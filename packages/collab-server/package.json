@@ -2,7 +2,7 @@
   "name": "@shots/collab-server",
   "version": "0.1.0",
   "private": true,
-  "description": "Hocuspocus server for real-time co-editing of content drafts (RFC 037)",
+  "description": "Hocuspocus server for real-time co-editing of content drafts (RFC 013)",
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {

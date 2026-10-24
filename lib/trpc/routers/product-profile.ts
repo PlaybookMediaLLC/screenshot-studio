@@ -8,7 +8,7 @@ import {
 import { router } from '../init'
 import { organizationProcedure } from '../procedures'
 
-/** The workspace's product profile (docs/rfcs/012-product-intelligence.md). */
+/** The workspace's product profile (docs/rfcs/017-product-intelligence.md). */
 export const productProfileRouter = router({
   get: organizationProcedure('workspace:read').query(async ({ ctx }) => ({
     productProfile: await getProductProfile(ctx.access),

@@ -10,7 +10,7 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
-// SocialSet is a publishing identity (RFC 043): the accounts one person or
+// SocialSet is a publishing identity (RFC 024): the accounts one person or
 // brand posts from, with that identity's schedule, new-draft defaults, public
 // profile and Writing Assistant. Names repeat; the ID is the identity.
 type SocialSet struct{ ent.Schema }

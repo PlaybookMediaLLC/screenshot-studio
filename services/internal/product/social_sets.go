@@ -29,7 +29,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Social sets (RFC 043) are a workspace's publishing identities. A set is
+// Social sets (RFC 024) are a workspace's publishing identities. A set is
 // shared with the workspace or private to its owner; every read below filters
 // by what the actor may see, so a private set is invisible rather than
 // forbidden to everyone else. Mutations need a signed-in person.
@@ -223,7 +223,7 @@ func visibleSocialSet(ctx context.Context, client *ent.Client, actor Actor, id s
 }
 
 // defaultSocialSet is the workspace's oldest shared set. A workspace created
-// after the RFC 043 migration gets one on first use, from the same rule the
+// after the RFC 024 migration gets one on first use, from the same rule the
 // migration applied: its name, its time zone and its saved posting slots.
 func (c *Configuration) defaultSocialSet(ctx context.Context, organizationID string) (*ent.SocialSet, error) {
 	find := func(client *ent.Client) (*ent.SocialSet, error) {

@@ -28,7 +28,7 @@ func (c *Configuration) requireCreativeSetCreation(ctx context.Context, actor Ac
 }
 
 // requireCreativeCreation gates new rows. Story Sets stay behind their rollout
-// feature; a canvas is part of the paid workspace (RFC 041).
+// feature; a canvas is part of the paid workspace (RFC 032).
 func (c *Configuration) requireCreativeCreation(ctx context.Context, actor Actor, kind platformcreativeset.Kind) error {
 	if kind != platformcreativeset.KindCanvas {
 		return c.requireCreativeSetCreation(ctx, actor)

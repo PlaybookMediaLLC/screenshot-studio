@@ -112,7 +112,7 @@ func (CampaignRevision) Indexes() []ent.Index {
 }
 
 // LaunchRun records one AI pipeline run for a campaign, or one agent run
-// (docs/rfcs/016-ai-sdk-marketing-tools.md), which may start without one.
+// (docs/rfcs/027-ai-sdk-marketing-tools.md), which may start without one.
 type LaunchRun struct{ ent.Schema }
 
 func (LaunchRun) Annotations() []schema.Annotation {

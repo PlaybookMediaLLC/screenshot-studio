@@ -33,7 +33,7 @@ export type SetPermissions = {
 }
 
 /**
- * One brand's settings (RFC 043). Each page has its own address, so the
+ * One brand's settings (RFC 024). Each page has its own address, so the
  * set is chosen by its ID in the URL, independent of the page shown.
  */
 export function SocialSetSettings({

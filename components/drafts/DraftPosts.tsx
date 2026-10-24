@@ -329,7 +329,7 @@ const FOLLOW_UP_STATUS: Record<DraftPostWire['automations'][number]['status'], s
   skipped: 'skipped',
 }
 
-/** A live post's follow-ups and their receipts (RFC 042). */
+/** A live post's follow-ups and their receipts (RFC 025). */
 function FollowUps({
   busy,
   onStop,

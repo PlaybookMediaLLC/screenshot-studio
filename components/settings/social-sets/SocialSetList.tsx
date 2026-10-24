@@ -306,7 +306,7 @@ function CopyFromWorkspace({ canManage }: { canManage: boolean }) {
 }
 
 /**
- * Brands (RFC 043): the people and brands this workspace posts as. Each
+ * Brands (RFC 024): the people and brands this workspace posts as. Each
  * row is one set by ID; two sets can share a name and stay apart.
  */
 export function SocialSetList({ canManage }: { canManage: boolean }) {

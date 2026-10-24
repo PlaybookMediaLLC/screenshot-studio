@@ -1,7 +1,7 @@
 # Upstream: oppulence-canvas `packages/platejs-editor`
 
 This package is a vendored copy, decided in
-[RFC 037](../../docs/rfcs/037-workspaces-and-content-drafts.md).
+[RFC 013](../../docs/rfcs/013-workspaces-and-content-drafts.md).
 
 | | |
 | --- | --- |
@@ -67,7 +67,7 @@ Build and tooling (this repository has no Bun, Turbo or Biome):
   trip, and a package `.prettierrc.json` matching the upstream style.
   Upstream files are not reformatted; Prettier checks only `test/`.
 
-Boundaries (RFC 037: the package reaches nothing the app owns, enforced by
+Boundaries (RFC 013: the package reaches nothing the app owns, enforced by
 `test/editor-package-boundary.test.ts`):
 
 - `src/lib/editor-services.tsx` (new): `EditorServicesProvider` injects the

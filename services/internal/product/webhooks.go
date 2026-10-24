@@ -16,7 +16,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Outbound webhooks (RFC 043) are managed by a workspace's owners and admins.
+// Outbound webhooks (RFC 024) are managed by a workspace's owners and admins.
 // A signing secret is returned once, when it is made; afterwards the API
 // only ever says that one exists.
 

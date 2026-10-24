@@ -10,7 +10,7 @@ import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { type SocialSetRecord, useSaveSocialSet } from './api'
 
 /**
- * A set's public profile (RFC 043). Off by default; when on, its page shows
+ * A set's public profile (RFC 024). Off by default; when on, its page shows
  * the set's name, colour and its accounts' public names and handles. Drafts,
  * members and credentials are never on it, and turning it off takes the page
  * down on the next request.

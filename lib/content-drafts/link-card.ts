@@ -4,7 +4,7 @@ import { safeFetchText } from '@/lib/launch/safe-fetch'
 import { parseLinkPreview } from '@/lib/link-preview/metadata'
 
 /**
- * The card a channel shows for a link in a post (RFC 037): its Open Graph
+ * The card a channel shows for a link in a post (RFC 013): its Open Graph
  * title, description, image and site. One page fetch through the same SSRF
  * guards as the link preview tool; no robots, sitemap or image checks.
  */

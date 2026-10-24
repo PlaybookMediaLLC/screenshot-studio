@@ -1,5 +1,5 @@
 // Package postoptions holds what a scheduled post carries beyond its text
-// (RFC 037): follow-up actions after it is live, a poll, and how far a thread
+// (RFC 013): follow-up actions after it is live, a poll, and how far a thread
 // got. A leaf package, so the ent schema can use its types.
 package postoptions
 
@@ -24,7 +24,7 @@ type AutoActions struct {
 	// publication. The provider must grant native quote access at execution.
 	QuoteAfterHours int    `json:"quoteAfterHours,omitempty"`
 	QuoteText       string `json:"quoteText,omitempty"`
-	// Retweets repost the post at each rule's time (RFC 042), and
+	// Retweets repost the post at each rule's time (RFC 025), and
 	// UnretweetAfterMinutes removes each of those reposts this long after
 	// it went up; 0 keeps them.
 	Retweets              []RetweetRule `json:"retweets,omitempty"`
@@ -88,7 +88,7 @@ type ThreadProgress struct {
 // replies, impressions, …), as its platform reports them.
 type Metrics map[string]float64
 
-// PublishOptions are a draft post's settings beyond its text (RFC 042):
+// PublishOptions are a draft post's settings beyond its text (RFC 025):
 // who can reply, its labels, where it goes, and what it quotes. Each field
 // belongs to the platforms whose adapter sends it; scheduling refuses it
 // anywhere else. Zero values are off.

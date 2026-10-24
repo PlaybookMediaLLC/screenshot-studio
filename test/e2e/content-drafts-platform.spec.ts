@@ -17,7 +17,7 @@ import { createE2EDatabase, queryRow, queryRows } from './framework/services'
 
 configureE2EFlow()
 
-// RFC 037, round two: the posting surface around the composer. Posts are
+// RFC 013, round two: the posting surface around the composer. Posts are
 // scheduled for later and live state is set in the database, so nothing is
 // published to a network.
 

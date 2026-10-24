@@ -130,7 +130,7 @@ const SAVE_LABELS: Record<SaveState, string> = {
 }
 
 /**
- * The Write composer (RFC 042). The draft is its primary body plus a version
+ * The Write composer (RFC 025). The draft is its primary body plus a version
  * per platform; the tab being edited is UI state only. Destinations,
  * versions, options and the body save together against the draft's version.
  * Previews, the review and the schedule all use the publication the backend
@@ -278,7 +278,7 @@ export function WriteComposer({
     platformVersions: document.versions,
     target: document.target,
   }
-  // Tables and math post as images, rendered when scheduling (RFC 037);
+  // Tables and math post as images, rendered when scheduling (RFC 013);
   // until then each counts as a pending image, as it will publish.
   const pendingBlocks: BlockImages = Array.from(
     { length: renderableBlockCount(document.value) },
@@ -609,7 +609,7 @@ export function WriteComposer({
       : undefined,
     readOnly: !canEdit,
     services,
-    // Text runs in the direction the person chose in Appearance (RFC 043).
+    // Text runs in the direction the person chose in Appearance (RFC 024).
     textDirection,
     title: document.title,
     user,
@@ -812,7 +812,7 @@ export function WriteComposer({
                     shortcut={`${mod}J`}
                   />
                 ) : null}
-                {/* The set's settings open beside the draft without unmounting it (RFC 043). */}
+                {/* The set's settings open beside the draft without unmounting it (RFC 024). */}
                 {set ? (
                   <DraftSettingsDrawer
                     canManage={canPublish}

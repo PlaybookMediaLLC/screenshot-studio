@@ -9,7 +9,7 @@ import {
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 
 /**
- * A draft's Write operations (RFC 042): its organizing properties, plan,
+ * A draft's Write operations (RFC 025): its organizing properties, plan,
  * duplicates and copies, recovered backups and activity. They take an API
  * key with the drafts scopes. Nothing here publishes.
  */

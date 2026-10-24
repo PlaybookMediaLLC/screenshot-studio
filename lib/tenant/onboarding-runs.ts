@@ -4,7 +4,7 @@ import type { TenantContext } from '@/lib/auth/access'
 import { backendSDK, withDates } from '@/lib/backend/sdk'
 
 /**
- * Onboarding runs (docs/rfcs/032-background-onboarding-agent.md): the Go
+ * Onboarding runs (docs/rfcs/034-background-onboarding-agent.md): the Go
  * backend's fast path and the Temporal run that deepens it. The web only
  * forwards the authenticated workspace; the backend does all the work.
  */

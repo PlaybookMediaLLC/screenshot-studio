@@ -7,7 +7,7 @@ import type {
 import { defineContract, mirrors } from '@/lib/api/contract'
 
 /**
- * The settings platform (RFC 043): a person's preferences, experiments and
+ * The settings platform (RFC 024): a person's preferences, experiments and
  * account deletion. Social sets are in `social-sets.ts` and outbound webhooks
  * in `outbound-webhooks.ts`. Each schema mirrors the backend SDK's type, so
  * the Go contract and this one cannot drift.

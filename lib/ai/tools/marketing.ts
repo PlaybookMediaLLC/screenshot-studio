@@ -10,7 +10,7 @@ import type {
 import { defineTool, type ToolRun } from './executor'
 
 /**
- * The RFC 016 marketing tools: read the workspace's product, brand, and
+ * The RFC 027 marketing tools: read the workspace's product, brand, and
  * product surfaces, capture a registered surface, and submit posts for
  * review. Nothing here approves, schedules, or publishes, and capture takes a
  * surface slug, never a URL, so the model cannot point it at another host.
@@ -148,7 +148,7 @@ export function marketingTools(
     effect: 'mutate',
     execute: async ({ postIds }) => {
       if (!campaignId) return failure('This run has no campaign to submit posts from.')
-      // Submit only: approval needs a person (RFC 019).
+      // Submit only: approval needs a person (RFC 012).
       const result = await services.transitionCampaignPosts(
         run.access,
         campaignId,

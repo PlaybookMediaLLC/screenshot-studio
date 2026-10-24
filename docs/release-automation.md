@@ -36,7 +36,7 @@ string, and GitHub connection callbacks return to `/workflows`.
 | Create a canvas               | Executable (v2): lays out a canvas from the release with 1–3 canvas templates through the web's canvas builder.               |
 | Hand off approved content     | Not exposed: no trigger exists for "approved", and scheduling stays in the human flow.                                        |
 | Manual campaign               | Linked: `/campaigns/new` builds a campaign by hand under the same review rules.                                               |
-| Recurring campaigns (RFC 029) | Planned, shown disabled. Nothing in RFC 029 is built.                                                                         |
+| Recurring campaigns (RFC 041) | Planned, shown disabled. Nothing in RFC 041 is built.                                                                         |
 
 ## Customer flow
 
@@ -185,7 +185,7 @@ at least 1 and never above the limit, and is reported per node and per run.
 **Submit for review ends execution.** There is no automatic approval, approval
 wait/resume, autonomous publishing, or scheduling action. A successful run means
 the chosen draft/review operations completed, not that content was published.
-RFC 030 policies and RFC 031 autonomy remain proposals.
+RFC 043 policies and RFC 044 autonomy remain proposals.
 
 ## Modes and compatibility
 

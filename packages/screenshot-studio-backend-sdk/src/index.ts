@@ -861,7 +861,7 @@ export type BackendCreateDesignInput = {
 /** Where a content draft is in its life. */
 export type BackendContentDraftStatus = 'draft' | 'scheduled' | 'archived'
 
-/** A post written by hand in the document editor (RFC 037). */
+/** A post written by hand in the document editor (RFC 013). */
 export type BackendContentDraft = {
   collabGeneration?: number
   assetIds: string[]
@@ -894,7 +894,7 @@ export type BackendContentDraft = {
   guestComments: { createdAt: string; name: string; text: string }[]
   /** The draft's live posts (lists only). */
   publishedPosts: number
-  /** Write (RFC 042): an article's title and cover, for an article draft. */
+  /** Write (RFC 025): an article's title and cover, for an article draft. */
   article: BackendDraftArticle | null
   /** Posts that failed or whose outcome is unknown (lists only). */
   attentionPosts: number
@@ -912,7 +912,7 @@ export type BackendContentDraft = {
   /** Tags of the draft's set, by id (an experiment). */
   tagIds: string[]
   target: BackendDraftTarget | null
-  /** The draft's social set and what it copied from the set when created (RFC 043). */
+  /** The draft's social set and what it copied from the set when created (RFC 024). */
   engagement: Engagement
   naturalPostingTime: boolean
   /** A planned time puts the draft on the calendar; nothing publishes from it (an experiment). */
@@ -923,7 +923,7 @@ export type BackendContentDraft = {
   socialSetId: string | null
 }
 
-/** What kind of post a draft is (RFC 042). */
+/** What kind of post a draft is (RFC 025). */
 export type BackendDraftKind = 'standard' | 'reply' | 'quote' | 'repurpose' | 'article'
 
 /** The post a reply answers, a quote embeds, or a repurposed draft came from. */
@@ -1052,7 +1052,7 @@ export type BackendSharedContentDraft = {
 
 /**
  * A live post's follow-ups (X): repost and reply at a like count, quote
- * after hours; reposts at set times and their removal (RFC 042).
+ * after hours; reposts at set times and their removal (RFC 025).
  */
 export type BackendAutoActions = {
   plugAtLikes?: number
@@ -1076,7 +1076,7 @@ export type BackendRetweetRule = {
   timeZone?: string
 }
 
-/** An account a post can tag: an X user or a LinkedIn organization (RFC 042). */
+/** An account a post can tag: an X user or a LinkedIn organization (RFC 025). */
 export type BackendSocialMention = {
   handle?: string
   image?: string
@@ -1086,7 +1086,7 @@ export type BackendSocialMention = {
   providerId: string
 }
 
-/** A live post's follow-up and its receipt (RFC 042). */
+/** A live post's follow-up and its receipt (RFC 025). */
 export type BackendPostAutomation = {
   attempts: number
   dueAt: string
@@ -1154,9 +1154,9 @@ export type BackendContentDraftPost = {
   /** A thread: its reply count and how many went out. */
   replies: number
   threadProgress: { lastReplyId?: string; posted: number; total: number }
-  /** Its follow-ups once live, each with its receipt (RFC 042). */
+  /** Its follow-ups once live, each with its receipt (RFC 025). */
   automations?: BackendPostAutomation[]
-  /** How the instant was chosen (RFC 043). */
+  /** How the instant was chosen (RFC 024). */
   naturalOffsetSeconds: number | null
   scheduleMode: 'queue' | 'explicit' | null
   scheduleTimeZone: string | null
@@ -1179,13 +1179,13 @@ export type BackendContentDraftScheduleTarget = {
   }[]
   autoActions?: BackendAutoActions
   poll?: BackendPoll
-  /** The first post's settings beyond its text (RFC 042). */
+  /** The first post's settings beyond its text (RFC 025). */
   options?: BackendPublishOptions
   /** The live X post a reply draft answers. */
   replyTo?: string
 }
 
-/** A post's settings beyond its text, as a scheduled post keeps them (RFC 042). */
+/** A post's settings beyond its text, as a scheduled post keeps them (RFC 025). */
 export type BackendPublishOptions = {
   articleCoverAssetId?: string
   articleTitle?: string
@@ -1211,7 +1211,7 @@ export type BackendPublishOptions = {
   visibility?: 'PUBLIC' | 'CONNECTIONS'
 }
 
-/** When a schedule goes out (RFC 042); the backend resolves local times. */
+/** When a schedule goes out (RFC 025); the backend resolves local times. */
 export type BackendScheduleTiming = {
   disambiguation?: 'earlier' | 'later'
   localTime?: string
@@ -1702,7 +1702,7 @@ export type BackendLaunchRun = {
 export type BackendLaunchRunStatus =
   'BUDGET_EXHAUSTED' | 'CANCELLED' | 'FAILED' | 'RUNNING' | 'SUCCEEDED'
 
-/** An agent or conversation run (RFC 016). It may have no campaign. */
+/** An agent or conversation run (RFC 027). It may have no campaign. */
 export type BackendAgentRun = Omit<BackendLaunchRun, 'campaignId' | 'kind' | 'status'> & {
   campaignId: string | null
   costCents: number
@@ -1758,7 +1758,7 @@ export type BackendLaunchRunStep = {
   toolName: string | null
 }
 
-/** A workspace-visible conversation (RFC 017), without its messages. */
+/** A workspace-visible conversation (RFC 028), without its messages. */
 export type BackendConversation = {
   campaignId: string | null
   createdAt: string
@@ -2119,7 +2119,7 @@ export class ScreenshotStudioBackendSDK {
     return mastodonInstanceSchema.parse(await this.request(`v1/social-instances/mastodon?${query}`))
   }
 
-  /** Begins a provider connection; with a set, the account joins that set (RFC 043). */
+  /** Begins a provider connection; with a set, the account joins that set (RFC 024). */
   async beginSocialOAuth(
     provider: OAuthProvider,
     socialSetId?: string,
@@ -2483,7 +2483,7 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
-  /** Describe an image; the description is posted with it (RFC 042). Empty clears it. */
+  /** Describe an image; the description is posted with it (RFC 025). Empty clears it. */
   async setAssetAltText(id: string, altText: string) {
     return this.request<{ altText: string | null; id: string }>(
       `v1/assets/${encodeURIComponent(id)}/alt-text`,
@@ -2567,7 +2567,7 @@ export class ScreenshotStudioBackendSDK {
   /**
    * Records the member's consent and returns a single-use code; the agent
    * exchanges it at the MCP server's /oauth/token for a workspace API key with
-   * exactly these scopes (RFC 038).
+   * exactly these scopes (RFC 026).
    */
   async approveAgentAuthorization(input: BackendAgentAuthorizationRequest) {
     return this.request<{ code: string; redirectUri: string }>('v1/agent-authorizations', {
@@ -2786,7 +2786,7 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ items: BackendContentDraft[] }>(`v1/content-draft-plans?${params}`)
   }
 
-  /** What the set's account for a channel can mention (RFC 042). */
+  /** What the set's account for a channel can mention (RFC 025). */
   async lookupSocialSetMentions(
     id: string,
     channel: 'x' | 'linkedin',
@@ -3025,7 +3025,7 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  /** The signed-in person's preferences (RFC 043). */
+  /** The signed-in person's preferences (RFC 024). */
   async getUserPreferences() {
     return this.request<UserPreferences>('v1/me/preferences')
   }

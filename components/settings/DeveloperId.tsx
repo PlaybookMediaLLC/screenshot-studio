@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { useDeveloperMode } from '@/components/settings/PreferencesProvider'
 
 /**
- * A stable ID with a copy button, shown only in development mode (RFC 043).
+ * A stable ID with a copy button, shown only in development mode (RFC 024).
  * It shows the resource's own ID, never a credential or another workspace's.
  */
 export function DeveloperId({ id, label }: { id: string; label: string }) {

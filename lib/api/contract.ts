@@ -100,7 +100,7 @@ export const timestampSchema = z.codec(z.date(), z.string(), {
 })
 
 /**
- * The page envelope of a collection (RFC 034). `nextCursor` is opaque: pass
+ * The page envelope of a collection (RFC 014). `nextCursor` is opaque: pass
  * it back as `cursor` for the next page.
  */
 export const paginationSchema = z.object({

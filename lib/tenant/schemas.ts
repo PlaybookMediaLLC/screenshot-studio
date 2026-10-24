@@ -50,7 +50,7 @@ export const assetUploadSchema = z
     fileName: z.string().trim().min(1).max(128),
     sha256: sha256Schema.optional(),
   })
-  // LinkedIn documents take up to 100 MB (RFC 042); everything else 50 MB.
+  // LinkedIn documents take up to 100 MB (RFC 025); everything else 50 MB.
   .refine((input) => input.contentType === 'application/pdf' || input.bytes <= 50 * 1024 * 1024, {
     message: 'Assets are up to 50 MB; PDF documents up to 100 MB.',
     path: ['bytes'],
@@ -61,13 +61,13 @@ const hexColorSchema = z
   .trim()
   .regex(/^#[0-9a-f]{6}$/i, 'Use a #RRGGBB hex color.')
 
-/** Brand fonts are editor catalog ids, never URLs or family names (RFC 011). */
+/** Brand fonts are editor catalog ids, never URLs or family names (RFC 019). */
 const brandFontSchema = z.enum(fontFamilies.map((font) => font.id))
 
 /** Image types a brand logo may be uploaded as. */
 export const brandLogoContentTypeSchema = z.enum(['image/png', 'image/webp', 'image/jpeg'])
 
-/** Largest brand logo upload, in bytes (RFC 011 asset processing). */
+/** Largest brand logo upload, in bytes (RFC 019 asset processing). */
 export const BRAND_LOGO_MAX_BYTES = 5 * 1024 * 1024
 
 /**
@@ -417,7 +417,7 @@ export const scheduledPostCreateSchema = z.object({
   scheduledFor: z.coerce.date().refine((value) => value.getTime() > Date.now(), {
     message: 'Scheduled time must be in the future.',
   }),
-  // Exactly one source (RFC 037); check with hasOneScheduledPostSource.
+  // Exactly one source (RFC 013); check with hasOneScheduledPostSource.
   contentDraftId: z.string().cuid().optional(),
   variantId: z.string().cuid().optional(),
 })

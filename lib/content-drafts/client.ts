@@ -82,7 +82,7 @@ export type DraftSave = {
   /** Labels (an experiment). */
   tags?: string[]
   title?: string
-  /** Write (RFC 042): the draft's structured parts beside the body. */
+  /** Write (RFC 025): the draft's structured parts beside the body. */
   article?: DraftWire['article'] & object
   platformVersions?: DraftWire['platformVersions']
   primaryPlatform?: DraftChannel

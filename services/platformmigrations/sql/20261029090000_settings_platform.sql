@@ -1,4 +1,4 @@
--- The settings platform (RFC 043): personal preferences, social sets with
+-- The settings platform (RFC 024): personal preferences, social sets with
 -- their schedules, defaults, public profiles and Writing Assistant, outbound
 -- customer webhooks, and account deletion requests. Additive only: no column
 -- is dropped and no stored instant changes.
@@ -107,7 +107,7 @@ CREATE INDEX "scheduled_post_socialSetId_slotAt_idx" ON "scheduled_post" ("socia
 ALTER TABLE "workspace_settings" ADD COLUMN "disabledExperiments" JSONB NOT NULL DEFAULT '[]'::jsonb;
 ALTER TABLE "platform_notification_preference" ADD COLUMN social_sets JSONB NOT NULL DEFAULT '{}'::jsonb;
 
--- Outbound customer webhooks (RFC 005 and RFC 043).
+-- Outbound customer webhooks (RFC 015 and RFC 024).
 CREATE TABLE "webhook_subscription" (
   "id" TEXT PRIMARY KEY,
   "organizationId" TEXT NOT NULL REFERENCES "organization"("id") ON DELETE CASCADE,

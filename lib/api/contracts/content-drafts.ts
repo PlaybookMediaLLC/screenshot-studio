@@ -67,7 +67,7 @@ export const contentDraftSchema = z
     publishedPosts: z.number().int(),
     /**
      * The draft's social set and what it copied from the set's defaults when it
-     * was created (RFC 043). Defaults keep an older backend's answer readable.
+     * was created (RFC 024). Defaults keep an older backend's answer readable.
      */
     engagement: draftEngagementSchema,
     naturalPostingTime: z.boolean().default(false),
@@ -282,10 +282,10 @@ export const contentDraftPostSchema = z.object({
     posted: z.number().int(),
     total: z.number().int(),
   }),
-  /** Its follow-ups once live, each with its receipt (RFC 042). */
+  /** Its follow-ups once live, each with its receipt (RFC 025). */
   automations: z.array(postAutomationSchema).default([]),
   /**
-   * How the instant was chosen (RFC 043): queue or explicit, the instant
+   * How the instant was chosen (RFC 024): queue or explicit, the instant
    * before any natural offset, the offset in seconds, and the time zone.
    */
   naturalOffsetSeconds: z.number().int().nullable().default(null),

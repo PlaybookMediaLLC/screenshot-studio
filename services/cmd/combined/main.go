@@ -139,7 +139,7 @@ func publishingEnv(environ []string) ([]string, error) {
 
 // mcpPlatformKeys are the tenant settings the social process's MCP server
 // needs to serve the same domain as the tenant API: the private media bucket,
-// the campaign workflow rollout, and the screenshot API (RFC 038).
+// the campaign workflow rollout, and the screenshot API (RFC 026).
 var sharedPlatformKeys = []string{"R2_ENDPOINT", "R2_BROWSER_ENDPOINT", "R2_REGION", "R2_FORCE_PATH_STYLE", "R2_BUCKET_NAME",
 	"R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "PLATFORM_CAMPAIGN_WORKFLOW", "SCREENSHOT_API_URL", "SCREENSHOT_API_KEY",
 	"PLATFORM_NOTIFICATION_ENCRYPTION_KEY", "SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET", "PLATFORM_SLACK_CALLBACK_URL", "INTEGRATION_ENCRYPTION_KEY"}

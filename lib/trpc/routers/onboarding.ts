@@ -18,7 +18,7 @@ import { organizationProcedure } from '../procedures'
 const runInput = z.object({ runId: z.string().min(1).max(64) })
 
 /**
- * Onboarding's product step (docs/rfcs/032-background-onboarding-agent.md):
+ * Onboarding's product step (docs/rfcs/034-background-onboarding-agent.md):
  * the Go backend reads the site into drafts within ten seconds and a
  * background run deepens them; the confirmed profile starts the first campaign.
  */

@@ -34,7 +34,7 @@ the old `design-renderer` component and requires `PLATFORM_RENDER_CDP_URL`
 and `PLATFORM_RENDER_CDP_TOKEN` (a Cloudflare API token with Browser Rendering
 Edit) in Infisical.
 
-The MCP server (RFC 038) runs in `screenshot-studio-backend` and is public at
+The MCP server (RFC 026) runs in `screenshot-studio-backend` and is public at
 `https://shots-mcp.playbookmedia.io/mcp`. Set `PLATFORM_MCP_URL` to that URL
 in Infisical. The backend deploy then adds the host as an alias domain and, on
 that host only, routes the MCP and OAuth paths (`/mcp*`, `/.well-known`,
@@ -95,6 +95,11 @@ the whole spec by hand: a spec rendered from an older template drops live
 components and credentials.
 
 ## Releases
+
+Work reaches `main` through an intentional release PR from `develop`, merged
+with a merge commit. Ordinary work and release-preparation PRs target `develop`.
+See [branching and releases](branching-and-releases.md). A push to `develop`
+runs validation and release preparation without deploying production.
 
 Every push to `main` deploys what it changed:
 

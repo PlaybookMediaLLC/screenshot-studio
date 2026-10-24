@@ -8,7 +8,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 )
 
-// WriteStore is the Write workspace (RFC 042): a social set's tags, thread
+// WriteStore is the Write workspace (RFC 025): a social set's tags, thread
 // finishers and mention lookups, and a draft's properties, plan, copies,
 // recovered backups, activity and follow-ups.
 type WriteStore interface {

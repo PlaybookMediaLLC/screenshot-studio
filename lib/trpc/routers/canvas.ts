@@ -45,7 +45,7 @@ function found<T>(value: T | null | false, what = 'Canvas'): T {
 }
 
 /**
- * Canvas workspaces (RFC 041): the library, the open canvas's autosave, its
+ * Canvas workspaces (RFC 032): the library, the open canvas's autosave, its
  * version history and campaign handoff. A document write based on an older
  * revision fails with `CONFLICT`.
  */

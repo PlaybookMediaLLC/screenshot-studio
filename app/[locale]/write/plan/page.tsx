@@ -32,7 +32,7 @@ export default async function WritePlanPage({ params, searchParams }: PlanPagePr
     orNull(backendSDK(access.tenant).getUserPreferences()),
   ])
   // The plan is the set's: its days are days in the set's scheduling zone
-  // (RFC 043), starting on the weekday the person chose.
+  // (RFC 024), starting on the weekday the person chose.
   const zone = data.activeSet?.timeZone ?? 'UTC'
   const week = query.week
   const asked = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? week : zonedDayKey(new Date(), zone)

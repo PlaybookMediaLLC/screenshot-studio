@@ -1,5 +1,5 @@
 -- A scheduled post comes from a creative variant or a content draft, never
--- both and never neither (RFC 037). Existing rows all have a variant, so the
+-- both and never neither (RFC 013). Existing rows all have a variant, so the
 -- check holds for them. A draft post carries its own media asset.
 ALTER TABLE "scheduled_post" ALTER COLUMN "variantId" DROP NOT NULL;
 ALTER TABLE "scheduled_post" ADD COLUMN "contentDraftId" TEXT;

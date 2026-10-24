@@ -13,7 +13,7 @@ import {
 } from './publishing'
 
 /**
- * Setup for the content draft flows (RFC 037): a paid workspace bound to the
+ * Setup for the content draft flows (RFC 013): a paid workspace bound to the
  * social API mock, with one connected channel per platform. The mock answers the
  * destination checks only; posts are scheduled for later, so nothing
  * publishes during a test.
@@ -203,7 +203,7 @@ export async function createDraftWorkspace(
 
 /**
  * Turn on draft tags for the signed-in person: a settings platform
- * experiment (RFC 043) the backend enforces. Planning was promoted.
+ * experiment (RFC 024) the backend enforces. Planning was promoted.
  */
 export async function enableDraftTags(page: Page): Promise<void> {
   const response = await apiRequest(page, '/api/v1/me/preferences', {

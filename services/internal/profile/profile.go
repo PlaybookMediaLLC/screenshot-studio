@@ -1,5 +1,5 @@
 // Package profile holds the JSON shapes stored on a workspace's product
-// profile (docs/rfcs/012-product-intelligence.md).
+// profile (docs/rfcs/017-product-intelligence.md).
 package profile
 
 import "time"

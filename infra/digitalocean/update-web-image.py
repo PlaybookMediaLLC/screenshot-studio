@@ -19,7 +19,7 @@ RETIRED_SERVICES = {"design-renderer"}
 RETIRED_WEB_KEYS = {"PLATFORM_RENDER_SERVICE_URL", "PLATFORM_RENDER_SERVICE_SECRET",
                     "SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET", "PLATFORM_SLACK_CALLBACK_URL",
                     "PLATFORM_NOTIFICATION_ENCRYPTION_KEY"}
-# Deployed by the backend workflow when its secrets are set (RFC 037).
+# Deployed by the backend workflow when its secrets are set (RFC 013).
 OPTIONAL_SERVICES = {"collab", "storage"}
 JOBS = {"platform-migrate"}
 LEGACY_JOBS = {"social-migrate", "postiz-migrate"}
@@ -36,7 +36,7 @@ WEB_DATABASE_KEYS = {"DATABASE_URL", "DIRECT_URL", "MIGRATION_DATABASE_URL", "AU
 
 
 def configure_content_drafts(web_envs, secrets, collab_deployed):
-    """Content drafts and co-editing (RFC 037), switched on from Infisical.
+    """Content drafts and co-editing (RFC 013), switched on from Infisical.
 
     PLATFORM_CONTENT_DRAFTS mirrors its Infisical value. The composer joins
     live sessions at wss://<origin>/collab once the backend deploy has added

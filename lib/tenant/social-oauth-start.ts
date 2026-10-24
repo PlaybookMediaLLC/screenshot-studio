@@ -21,7 +21,7 @@ export class SocialOAuthError extends Error {
 
 /**
  * Begins a provider connection. With a social set, the backend binds the set
- * to the grant (RFC 043), so the account joins that set whatever is selected
+ * to the grant (RFC 024), so the account joins that set whatever is selected
  * when the provider sends the person back.
  */
 export async function startSocialOAuth(

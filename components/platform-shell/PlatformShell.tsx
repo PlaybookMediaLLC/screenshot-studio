@@ -25,7 +25,7 @@ export interface PlatformShellProps {
 
 /**
  * Signed-in app chrome: the navigation beside the page, laid out as the
- * person chose (RFC 043), with their preferences loaded for every page.
+ * person chose (RFC 024), with their preferences loaded for every page.
  *
  * Fork-owned on purpose. Pages wrap themselves in it, so upstream editor
  * files and the upstream shadcn sidebar (whose cookie and ⌘B shortcut the

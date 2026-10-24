@@ -85,18 +85,27 @@ keep upstream editor merges inexpensive as described in [AGENTS.md](AGENTS.md).
 
 ## Roadmap
 
+Work PRs target `develop`; releases promote `develop` into `main`. See the
+[branch and release workflow](docs/branching-and-releases.md).
+
 The [RFC index](docs/rfcs/README.md) is the authoritative build order and covers
-every RFC. IDs and filenames remain stable; numerical order is historical.
+every RFC. Numbers and filenames now follow priority: 001–006 active delivery,
+007–008 conditional work, 009–035 existing foundations, 036–045 deferred
+expansion, and 046–052 historical designs. The
+[renumbering map](docs/rfcs/renumbering-2026-10-24.md) resolves earlier IDs.
+
+Start engineering with **RFC 002: release qualification**, while **RFC 001**
+runs the assisted pilot program and measures customer outcomes.
 
 | Milestone | Increment | Definition of progress |
 | --- | --- | --- |
-| 0 | [045: assisted paid pilots](docs/rfcs/045-release-readiness-pilots.md) | Real kits with human fact checks, baseline effort, payment evidence and downstream-use records |
-| 1 | [046: qualified releases](docs/rfcs/046-release-qualification.md) → [047: verified claims](docs/rfcs/047-claim-evidence-and-verification.md) | Owners resolve what shipped and support material claims with versioned evidence |
-| 2 | [049: role-specific kits and readiness](docs/rfcs/049-release-kits-and-readiness.md) | Complete editable kits, exact-version approval gates and approved exports |
-| 3 | [050: handoffs and adoption](docs/rfcs/050-release-kit-handoffs-and-adoption.md) | Receipts for selected destinations, safe retries and evidence of audience use |
-| 4 | [051: evidence-based freshness](docs/rfcs/051-evidence-based-material-freshness.md) | Later changes produce targeted review and approved corrections |
+| 0 | [001: assisted paid pilots](docs/rfcs/001-release-readiness-pilots.md) | Real kits with human fact checks, baseline effort, payment evidence and downstream-use records |
+| 1 | [002: qualified releases](docs/rfcs/002-release-qualification.md) → [003: verified claims](docs/rfcs/003-claim-evidence-and-verification.md) | Owners resolve what shipped and support material claims with versioned evidence |
+| 2 | [004: role-specific kits and readiness](docs/rfcs/004-release-kits-and-readiness.md) | Complete editable kits, exact-version approval gates and approved exports |
+| 3 | [005: handoffs and adoption](docs/rfcs/005-release-kit-handoffs-and-adoption.md) | Receipts for selected destinations, safe retries and evidence of audience use |
+| 4 | [006: evidence-based freshness](docs/rfcs/006-evidence-based-material-freshness.md) | Later changes produce targeted review and approved corrections |
 
-[048: authenticated capture](docs/rfcs/048-authenticated-product-capture.md) is a
+[007: authenticated capture](docs/rfcs/007-authenticated-product-capture.md) is a
 conditional track when paid pilot needs justify it. Reviewed uploads and public
 capture keep the main sequence usable without it.
 
@@ -115,7 +124,7 @@ are secondary. See [vision.md](vision.md) for the definition.
 
 Current subscriptions are Pro **$199/month**, Business **$699/month** and
 Enterprise **from $3,000/month**, with metered AI and no free plan. See
-[RFC 035](docs/rfcs/035-pricing-and-unit-economics.md). The release-readiness
+[RFC 023](docs/rfcs/023-pricing-and-unit-economics.md). The release-readiness
 pilot hypothesis is approximately **$199–$399/month** or a defined per-release
 fee; it is not a new implemented billing plan.
 
@@ -123,7 +132,7 @@ The first 90-day targets are 15 buyer interviews and three pilot commitments,
 payment authorization from at least two buyers, repeat release cycles with
 three customers, and a test of five paying organizations with renewal intent.
 These are validation targets, not current traction. The
-[company brief](company.md) and [RFC 045](docs/rfcs/045-release-readiness-pilots.md)
+[company brief](company.md) and [RFC 001](docs/rfcs/001-release-readiness-pilots.md)
 define the evidence and decision gates.
 
 ## Architecture

@@ -10,7 +10,7 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
-// PostAutomationRun is the receipt of one follow-up of a live post (RFC 042):
+// PostAutomationRun is the receipt of one follow-up of a live post (RFC 025):
 // a first comment, a repost and its removal, a plug reply. One row per post
 // and key; a retried step reads it first, so it never acts twice, and
 // cancelling marks the pending ones.

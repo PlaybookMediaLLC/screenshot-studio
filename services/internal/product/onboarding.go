@@ -20,7 +20,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Onboarding runs (docs/rfcs/032-background-onboarding-agent.md). The run row
+// Onboarding runs (docs/rfcs/034-background-onboarding-agent.md). The run row
 // mirrors the Temporal workflow for the UI; PageKnowledge holds the pages it
 // read. Both are written only for the workspace the run was started in.
 

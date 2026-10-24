@@ -15,7 +15,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// The ideal customer profile (docs/rfcs/032-background-onboarding-agent.md):
+// The ideal customer profile (docs/rfcs/034-background-onboarding-agent.md):
 // one per workspace, with the product profile's provenance rules. A person's
 // edit locks a field; an automated update skips locked fields.
 

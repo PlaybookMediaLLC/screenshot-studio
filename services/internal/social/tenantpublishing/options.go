@@ -16,7 +16,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
-// Write (RFC 042): a post's settings become its adapter's settings JSON on
+// Write (RFC 025): a post's settings become its adapter's settings JSON on
 // top of the connection's own. Only fields the adapter reads are written.
 
 // postSettings merges a post's options over the connection's settings for
@@ -155,7 +155,7 @@ func (p *Publisher) AccountStanding(ctx context.Context, organizationID, destina
 	return product.AccountStanding{Premium: caps.LongPostMaxWeightedCharacters != nil, XCaptionLimit: &limit, XArticles: caps.Articles, XQuotes: socialidentity.XEnterpriseQuotesEnabled()}, nil
 }
 
-// Mentions looks a mention up with the account (RFC 042): an X user by
+// Mentions looks a mention up with the account (RFC 025): an X user by
 // username, a LinkedIn organization by vanity name. A lookup that finds
 // nothing returns none; a platform without a lookup returns none too.
 func (p *Publisher) Mentions(ctx context.Context, organizationID, destinationID, platform, secretReference, query string) ([]product.Mention, error) {

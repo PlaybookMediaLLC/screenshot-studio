@@ -2,11 +2,12 @@ name: Helm chart
 
 on:
   pull_request:
+    branches: [develop, main]
     paths:
       - charts/**
       - .github/workflows/helm.yml
   push:
-    branches: [main]
+    branches: [develop, main]
     paths:
       - charts/**
       - .github/workflows/helm.yml

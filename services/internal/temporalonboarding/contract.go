@@ -1,5 +1,5 @@
 // Package temporalonboarding runs the onboarding agent's background read on
-// Temporal (docs/rfcs/032-background-onboarding-agent.md). A parent workflow
+// Temporal (docs/rfcs/034-background-onboarding-agent.md). A parent workflow
 // per workspace owns the run's outcome; its child pipeline crawls, enriches,
 // and seeds within a 15-minute execution timeout. Workflow code only decides;
 // every fetch, model call, write, and clock read is an activity.

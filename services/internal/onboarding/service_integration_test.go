@@ -213,7 +213,7 @@ func (p *pendingBackground) Progress(context.Context, *product.OnboardingRunReco
 }
 
 // A second submit while a run is active returns that run, even for another
-// URL or key, and starts no second workflow (RFC 032 AC 5).
+// URL or key, and starts no second workflow (RFC 034 AC 5).
 func TestSecondSubmitWhileARunIsActiveReturnsIt(t *testing.T) {
 	site := newTestSite(t)
 	w := newTestWorkspace(t, "pro")

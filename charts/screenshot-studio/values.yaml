@@ -43,7 +43,7 @@ config:
   # PUBLISHING_SERVICE_TOKEN from existingSecret with every backend call.
   publishingApiUrl: ''
   screenshotApiUrl: 'https://api.microlink.io'
-  # Content drafts (RFC 037): 'enabled' turns on the Drafts pages and API.
+  # Content drafts (RFC 013): 'enabled' turns on the Drafts pages and API.
   contentDrafts: ''
 
 # Optional Secret containing application connection, authentication, and audit
@@ -51,7 +51,7 @@ config:
 # Only the migration job and local backend read its DATABASE_URL.
 existingSecret: ''
 
-# Real-time co-editing of content drafts (RFC 037), built from
+# Real-time co-editing of content drafts (RFC 013), built from
 # packages/collab-server/Dockerfile. existingSecret must hold
 # COLLAB_SERVICE_TOKEN (shared with the backend, which also needs
 # COLLAB_TOKEN_SECRET to sign tokens).

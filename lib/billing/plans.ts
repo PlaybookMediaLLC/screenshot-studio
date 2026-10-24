@@ -18,7 +18,7 @@ export const creditPackSchema = z.enum(['launch'])
 
 /**
  * What each pack adds and costs. Pack credits are spent after the monthly
- * allowance and do not expire (docs/rfcs/035-pricing-and-unit-economics.md).
+ * allowance and do not expire (docs/rfcs/023-pricing-and-unit-economics.md).
  */
 export const CREDIT_PACKS: Record<
   z.infer<typeof creditPackSchema>,
@@ -44,7 +44,7 @@ export const workspaceFeatureSchema = z.enum([
   // The campaign workflow. Every paid plan includes it; featureOverrides can
   // still grant or revoke it per workspace.
   'campaign:workflow',
-  // Hand-written content drafts scheduled to channels (RFC 037).
+  // Hand-written content drafts scheduled to channels (RFC 013).
   'content:drafts',
   // The onboarding agent (docs/rfcs/032). Every paid plan includes it;
   // PLATFORM_ONBOARDING_AGENT in the backend can limit or disable it.

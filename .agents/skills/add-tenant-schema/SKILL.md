@@ -5,7 +5,7 @@ description: Add or change a Screenshot Studio PlanetScale Prisma data model. Us
 
 # Add Tenant Schema
 
-Read RFC 002, RFC 003, RFC 004, RFC 005, and RFC 006. Make the smallest schema
+Read RFC 010, RFC 009, RFC 050, RFC 015, and RFC 011. Make the smallest schema
 change that represents a durable product fact.
 
 ## Modeling rules

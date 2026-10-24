@@ -64,7 +64,7 @@ createServer(async (request, response) => {
       Object.assign(state, { actions: [], mode, posts: [], requests: 0 })
       return reply(response, 200, { ok: true })
     }
-    // RFC 042 follow-ups: comments, reposts and their removal, plug replies.
+    // RFC 025 follow-ups: comments, reposts and their removal, plug replies.
     if (request.method === 'GET' && path === '/engagement')
       return reply(response, 200, state.engagement)
     if (request.method === 'POST' && path === '/actions') {

@@ -29,7 +29,7 @@ const (
 )
 
 // planQuotas mirrors lib/billing/plans.ts. The allowances hold a 75% gross
-// margin at half use (docs/rfcs/035-pricing-and-unit-economics.md).
+// margin at half use (docs/rfcs/023-pricing-and-unit-economics.md).
 var planQuotas = map[string]map[string]int{
 	// Basic scheduling is free; AI, emails and background jobs remain paid.
 	"free": {QuotaAPIWriteMinute: 60, QuotaJobsConcurrent: 0,

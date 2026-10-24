@@ -39,7 +39,7 @@ func (s standings) PeopleMentions(_ context.Context, _, destinationID, platform,
 	return []Mention{{Kind: "person", Label: destinationID + ":" + query, ProviderID: "urn:li:person:lookup123"}}, nil
 }
 
-// Planning, scheduling and publishing (RFC 042): the time is resolved in Go,
+// Planning, scheduling and publishing (RFC 025): the time is resolved in Go,
 // queue slots are reserved under a lock, each platform's settings are checked
 // against its own rules, an account is Premium only when its platform says
 // so, and a failed or unknown destination is recovered alone.

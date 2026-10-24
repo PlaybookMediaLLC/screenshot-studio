@@ -217,7 +217,7 @@ test('approving is human-only; agents ask for review and schedule only with post
     assert.equal(contract.access.apiKeyScope, 'post:schedule', contract.name)
     assert.equal(contract.access.quota, 'api:write:minute', contract.name)
   }
-  // A session still needs a fresh second factor where RFC 020 asks for one.
+  // A session still needs a fresh second factor where RFC 030 asks for one.
   assert.equal(scheduledPosts.createScheduledPostContract.access.sensitive, true)
   assert.equal(scheduledPosts.cancelScheduledPostContract.access.sensitive, true)
   const schedule = campaigns.scheduleCampaignPostContract.body

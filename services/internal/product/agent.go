@@ -17,12 +17,12 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Agent runs (docs/rfcs/016-ai-sdk-marketing-tools.md) extend launch_run: a
+// Agent runs (docs/rfcs/027-ai-sdk-marketing-tools.md) extend launch_run: a
 // run of an agent kind may start without a campaign, honors the workspace's
 // AI kill switch, and records a step-by-step trace.
 
 // agentRunKinds may start without a campaign and end CANCELLED or
-// BUDGET_EXHAUSTED. "conversation" is one turn of an RFC 017 conversation.
+// BUDGET_EXHAUSTED. "conversation" is one turn of an RFC 028 conversation.
 var agentRunKinds = []string{"agent", "conversation"}
 
 var (

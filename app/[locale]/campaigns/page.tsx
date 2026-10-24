@@ -19,7 +19,7 @@ type CampaignsPageProps = {
   params: Promise<{ locale: string }>
 }
 
-/** The three RFC 021 workflows; a workflow without an href is planned, not offered yet. */
+/** The three RFC 048 workflows; a workflow without an href is planned, not offered yet. */
 const WORKFLOWS = [
   {
     description: 'Add your product and release brief, then draft launch posts to approve.',

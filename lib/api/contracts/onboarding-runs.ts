@@ -14,7 +14,7 @@ import {
   productProfileValuesSchema,
 } from '@/lib/tenant/product-profile-schema'
 
-/** An onboarding run's lifecycle state (docs/rfcs/032-background-onboarding-agent.md). */
+/** An onboarding run's lifecycle state (docs/rfcs/034-background-onboarding-agent.md). */
 export const onboardingRunStatusSchema = z.enum([
   'queued',
   'running',

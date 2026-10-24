@@ -214,7 +214,7 @@ func nonEmpty(value string) *string {
 }
 
 // isEligible checks the destination is active and, for a variant post, that
-// the variant is approved. A content draft needs no approval (RFC 037): the
+// the variant is approved. A content draft needs no approval (RFC 013): the
 // person scheduling it holds publish:manage.
 func (r *Repository) isEligible(ctx context.Context, organizationID, variantID, connectionID string) (bool, error) {
 	connectionExists, err := r.client.ChannelConnection.Query().Where(

@@ -17,7 +17,7 @@ In-app defaults on for every entry. Email defaults on only for the two existing
 campaign review categories (marked *); other email and Slack require workspace
 configuration. Personal opt-outs and global channel availability take precedence.
 
-Social sets (RFC 043) add three gates. Activity on a private set's drafts and
+Social sets (RFC 024) add three gates. Activity on a private set's drafts and
 posts reaches only the set's owner and never a shared Slack channel. A person
 can turn a publishing kind off for one set, stored in
 `platform_notification_preference.social_sets`. A person's email switch

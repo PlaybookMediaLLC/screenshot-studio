@@ -11,7 +11,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Review notifications (docs/rfcs/019-approval-workflow.md, refinement 4):
+// Review notifications (docs/rfcs/012-approval-workflow.md, refinement 4):
 // submitting posts emails the workspace's approvers, and a decision emails
 // the campaign's creator. TransitionCampaignPosts writes the outbox event in
 // its transaction; the notification service dispatches per-recipient jobs.

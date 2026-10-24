@@ -9,7 +9,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 )
 
-// Mentions picked from the platform (RFC 042). A mention is looked up with
+// Mentions picked from the platform (RFC 025). A mention is looked up with
 // the set's own account, so it names something that account can tag: an X
 // user by exact username, a LinkedIn organization by its vanity name.
 // Authorized Page followers use the separate restricted people lookup.

@@ -59,7 +59,7 @@ export function getE2EObjectStoreBucket(): string {
 /**
  * Put a workspace on a paid plan.
  *
- * Workspaces start on `free`, and RFC 034 makes commercial capability a
+ * Workspaces start on `free`, and RFC 014 makes commercial capability a
  * server-owned entitlement that tenant APIs deliberately cannot mutate. A spec
  * that needs to exercise a gated capability therefore has to grant it out of
  * band, the same way billing would. Writing the row directly keeps the

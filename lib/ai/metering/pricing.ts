@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 /**
  * What a model call costs, in US dollars and AI credits. Pure, so the meter
- * and its tests share one definition (docs/rfcs/035-pricing-and-unit-economics.md).
+ * and its tests share one definition (docs/rfcs/023-pricing-and-unit-economics.md).
  */
 
 /** One AI credit is one cent of model spend at list price. */

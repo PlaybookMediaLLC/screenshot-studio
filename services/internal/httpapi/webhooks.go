@@ -8,7 +8,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 )
 
-// WebhookStore manages a workspace's outbound webhooks (RFC 043).
+// WebhookStore manages a workspace's outbound webhooks (RFC 024).
 type WebhookStore interface {
 	ListWebhooks(context.Context, product.Actor) ([]product.WebhookRecord, error)
 	CreateWebhook(context.Context, product.Actor, product.WebhookInput) (*product.WebhookWithSecret, error)

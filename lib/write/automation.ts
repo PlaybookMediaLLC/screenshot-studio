@@ -3,7 +3,7 @@ import type { Automation, RetweetRule } from '@/lib/write/document'
 import { resolveLocalTime, wallTime } from '@/lib/write/zoned-time'
 
 /**
- * Follow-ups as people read them (RFC 042): when each automatic repost
+ * Follow-ups as people read them (RFC 025): when each automatic repost
  * lands for a given publish time, and what happens after a post is live.
  * Go plans the same times from the same rules when the post goes out.
  */
@@ -25,7 +25,7 @@ export const DEFAULT_AUTOMATION: Automation = {
 }
 
 /**
- * A draft's engagement (RFC 043), which it copied from its set's defaults, as
+ * A draft's engagement (RFC 024), which it copied from its set's defaults, as
  * follow-ups: repost and plug once the post reaches a like count. A draft's
  * X version follows it until the writer sets follow-ups of its own.
  */

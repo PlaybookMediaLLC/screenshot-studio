@@ -15,7 +15,7 @@ import { createE2EDatabase, queryRow } from './framework/services'
 
 configureE2EFlow()
 
-// RFC 043: settings a person, a workspace and a social set own. Every change
+// RFC 024: settings a person, a workspace and a social set own. Every change
 // is checked after a reload, so a save the server did not keep fails here.
 
 async function withDraftWorkspace(

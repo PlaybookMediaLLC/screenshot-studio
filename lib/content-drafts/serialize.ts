@@ -4,7 +4,7 @@ import { numberCaptions } from '@/lib/write/numbering'
 import { xLength } from './x-length'
 
 /**
- * Plate JSON to a social caption (RFC 037). Social channels take plain text,
+ * Plate JSON to a social caption (RFC 013). Social channels take plain text,
  * so this flattens every node the editor can produce, and reports each thing
  * it had to degrade so the composer can warn before scheduling. Pure: the
  * composer previews with it and the schedule route serializes with it, so the

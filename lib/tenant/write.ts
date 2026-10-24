@@ -153,10 +153,11 @@ export async function updateDraftProperties(
 export async function planContentDraft(
   context: TenantContext,
   id: string,
-  input: { plannedFor: string | null; timeZone?: string }
+  input: { baseCalendarVersion?: number; plannedFor: string | null; timeZone?: string }
 ) {
   const draft = await orNull(
     backendSDK(context).planContentDraft(id, {
+      baseCalendarVersion: input.baseCalendarVersion,
       plannedFor: input.plannedFor ? new Date(input.plannedFor) : null,
       timeZone: input.timeZone,
     })
@@ -170,8 +171,12 @@ function readCopy(copy: BackendDraftCopy) {
 }
 
 /** Duplicate a draft in its set; null when it is not visible. */
-export async function duplicateContentDraft(context: TenantContext, id: string) {
-  const copy = await orNull(backendSDK(context).duplicateContentDraft(id))
+export async function duplicateContentDraft(
+  context: TenantContext,
+  id: string,
+  requestKey?: string
+) {
+  const copy = await orNull(backendSDK(context).duplicateContentDraft(id, requestKey))
   return copy ? readCopy(copy) : null
 }
 

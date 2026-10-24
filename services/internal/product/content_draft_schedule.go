@@ -86,11 +86,12 @@ const contentDraftReplyLimit = 24
 // the backend reserves. NaturalPostingTime overrides the draft's own choice
 // for this schedule.
 type ScheduleContentDraftInput struct {
-	NaturalPostingTime *bool                        `json:"naturalPostingTime"`
-	Queue              bool                         `json:"queue"`
-	ScheduledFor       time.Time                    `json:"scheduledFor"`
-	Targets            []ContentDraftScheduleTarget `json:"targets"`
-	Version            int                          `json:"version"`
+	BaseCalendarVersion int                          `json:"baseCalendarVersion"`
+	NaturalPostingTime  *bool                        `json:"naturalPostingTime"`
+	Queue               bool                         `json:"queue"`
+	ScheduledFor        time.Time                    `json:"scheduledFor"`
+	Targets             []ContentDraftScheduleTarget `json:"targets"`
+	Version             int                          `json:"version"`
 	// Write (RFC 025): publish now, or a wall time in a zone (the set's when
 	// empty), resolved here; Disambiguation picks a repeated hour.
 	Disambiguation string `json:"disambiguation"`
@@ -605,6 +606,9 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if draft.Status == contentdraft.StatusArchived {
 		return nil, conflict("Restore this draft before scheduling it.")
 	}
+	if input.BaseCalendarVersion > 0 && draft.CalendarVersion != input.BaseCalendarVersion {
+		return nil, conflict("The calendar changed. Reload before scheduling.")
+	}
 	if draft.Version != input.Version {
 		return nil, &ContentDraftVersionConflictError{Current: draft.Version}
 	}
@@ -703,8 +707,8 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		channelIDs = append(channelIDs, target.ChannelConnectionID)
 	}
 	// A scheduled draft is no longer only planned.
-	count, err := tx.ContentDraft.Update().Where(contentdraft.ID(draft.ID), contentdraft.Version(input.Version)).
-		SetStatus(contentdraft.StatusScheduled).SetChannelConnectionIds(channelIDs).AddVersion(1).
+	count, err := tx.ContentDraft.Update().Where(contentdraft.ID(draft.ID), contentdraft.Version(input.Version), contentdraft.CalendarVersion(draft.CalendarVersion)).
+		SetStatus(contentdraft.StatusScheduled).SetChannelConnectionIds(channelIDs).AddVersion(1).AddCalendarVersion(1).
 		ClearPlannedFor().ClearPlanTimeZone().
 		SetNillableUpdatedByUserID(projectActor(actor)).Save(ctx)
 	if err != nil {

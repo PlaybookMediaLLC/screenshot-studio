@@ -136,6 +136,17 @@ func (e *apiResponseError) rateLimitError() bool { return e.Code == 420 || e.Cod
 // HTTPStatus is the response's status, for receipts that keep a code only.
 func (e *apiResponseError) HTTPStatus() int { return e.Code }
 
+// RetryAt exposes the provider reset without leaking the response payload.
+func (e *apiResponseError) RetryAt() time.Time {
+	if e.RateLimit != nil && e.RateLimit.Reset > 0 {
+		return time.Unix(e.RateLimit.Reset, 0)
+	}
+	if seconds, err := strconv.Atoi(e.Headers["retry-after"]); err == nil && seconds > 0 {
+		return time.Now().Add(time.Duration(seconds) * time.Second)
+	}
+	return time.Time{}
+}
+
 func newAPIError(res *http.Response, body []byte) *apiResponseError {
 	e := &apiResponseError{Type: "response", Code: res.StatusCode, Err: true, Headers: map[string]string{}}
 	for k, v := range res.Header {

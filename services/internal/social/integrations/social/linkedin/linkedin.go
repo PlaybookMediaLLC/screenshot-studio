@@ -171,6 +171,15 @@ func Headers(accessToken, contentType string) map[string]string {
 // FetchJSON is `await (await fetch(url, init)).json()` for the calls the original app
 // makes with the global fetch: no retries and no status classification.
 func FetchJSON(ctx context.Context, method, url string, headers map[string]string, body []byte, out any) error {
+	return fetchJSON(ctx, method, url, headers, body, out, false)
+}
+
+// FetchJSONChecked propagates HTTP failures for analytics callers.
+func FetchJSONChecked(ctx context.Context, method, url string, headers map[string]string, body []byte, out any) error {
+	return fetchJSON(ctx, method, url, headers, body, out, true)
+}
+
+func fetchJSON(ctx context.Context, method, url string, headers map[string]string, body []byte, out any, checked bool) error {
 	var reader io.Reader
 	if body != nil {
 		reader = bytes.NewReader(body)
@@ -187,6 +196,11 @@ func FetchJSON(ctx context.Context, method, url string, headers map[string]strin
 		return err
 	}
 	defer res.Body.Close()
+	if checked {
+		if err := integrations.CheckResponse(res); err != nil {
+			return err
+		}
+	}
 	return json.NewDecoder(res.Body).Decode(out)
 }
 

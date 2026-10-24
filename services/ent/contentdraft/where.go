@@ -99,6 +99,11 @@ func ShareToken(v string) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldShareToken, v))
 }
 
+// CalendarVersion applies equality check predicate on the "calendar_version" field. It's identical to CalendarVersionEQ.
+func CalendarVersion(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldCalendarVersion, v))
+}
+
 // Version applies equality check predicate on the "version" field. It's identical to VersionEQ.
 func Version(v int) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldVersion, v))
@@ -682,6 +687,46 @@ func ShareTokenEqualFold(v string) predicate.ContentDraft {
 // ShareTokenContainsFold applies the ContainsFold predicate on the "share_token" field.
 func ShareTokenContainsFold(v string) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldContainsFold(FieldShareToken, v))
+}
+
+// CalendarVersionEQ applies the EQ predicate on the "calendar_version" field.
+func CalendarVersionEQ(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldCalendarVersion, v))
+}
+
+// CalendarVersionNEQ applies the NEQ predicate on the "calendar_version" field.
+func CalendarVersionNEQ(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldCalendarVersion, v))
+}
+
+// CalendarVersionIn applies the In predicate on the "calendar_version" field.
+func CalendarVersionIn(vs ...int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldCalendarVersion, vs...))
+}
+
+// CalendarVersionNotIn applies the NotIn predicate on the "calendar_version" field.
+func CalendarVersionNotIn(vs ...int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldCalendarVersion, vs...))
+}
+
+// CalendarVersionGT applies the GT predicate on the "calendar_version" field.
+func CalendarVersionGT(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldCalendarVersion, v))
+}
+
+// CalendarVersionGTE applies the GTE predicate on the "calendar_version" field.
+func CalendarVersionGTE(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldCalendarVersion, v))
+}
+
+// CalendarVersionLT applies the LT predicate on the "calendar_version" field.
+func CalendarVersionLT(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldCalendarVersion, v))
+}
+
+// CalendarVersionLTE applies the LTE predicate on the "calendar_version" field.
+func CalendarVersionLTE(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldCalendarVersion, v))
 }
 
 // VersionEQ applies the EQ predicate on the "version" field.

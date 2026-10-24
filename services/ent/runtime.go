@@ -8,6 +8,9 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/accountdeletionrequest"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/agentauthorization"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticsaccount"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticspost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticssnapshot"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -20,6 +23,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/billingentitlementevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandprofile"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/calendarmutation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignasset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignplan"
@@ -130,6 +134,56 @@ func init() {
 	agentauthorizationDescCreatedAt := agentauthorizationFields[15].Descriptor()
 	// agentauthorization.DefaultCreatedAt holds the default value on creation for the created_at field.
 	agentauthorization.DefaultCreatedAt = agentauthorizationDescCreatedAt.Default.(func() time.Time)
+	analyticsaccountFields := schema.AnalyticsAccount{}.Fields()
+	_ = analyticsaccountFields
+	// analyticsaccountDescVersion is the schema descriptor for version field.
+	analyticsaccountDescVersion := analyticsaccountFields[2].Descriptor()
+	// analyticsaccount.DefaultVersion holds the default value on creation for the version field.
+	analyticsaccount.DefaultVersion = analyticsaccountDescVersion.Default.(int)
+	// analyticsaccountDescNextCheckAt is the schema descriptor for next_check_at field.
+	analyticsaccountDescNextCheckAt := analyticsaccountFields[5].Descriptor()
+	// analyticsaccount.DefaultNextCheckAt holds the default value on creation for the next_check_at field.
+	analyticsaccount.DefaultNextCheckAt = analyticsaccountDescNextCheckAt.Default.(func() time.Time)
+	// analyticsaccountDescGoal is the schema descriptor for goal field.
+	analyticsaccountDescGoal := analyticsaccountFields[8].Descriptor()
+	// analyticsaccount.DefaultGoal holds the default value on creation for the goal field.
+	analyticsaccount.DefaultGoal = analyticsaccountDescGoal.Default.(map[string]interface{})
+	analyticspostFields := schema.AnalyticsPost{}.Fields()
+	_ = analyticspostFields
+	// analyticspostDescThreadPosition is the schema descriptor for thread_position field.
+	analyticspostDescThreadPosition := analyticspostFields[7].Descriptor()
+	// analyticspost.DefaultThreadPosition holds the default value on creation for the thread_position field.
+	analyticspost.DefaultThreadPosition = analyticspostDescThreadPosition.Default.(int)
+	// analyticspostDescIsReply is the schema descriptor for is_reply field.
+	analyticspostDescIsReply := analyticspostFields[8].Descriptor()
+	// analyticspost.DefaultIsReply holds the default value on creation for the is_reply field.
+	analyticspost.DefaultIsReply = analyticspostDescIsReply.Default.(bool)
+	// analyticspostDescExcerpt is the schema descriptor for excerpt field.
+	analyticspostDescExcerpt := analyticspostFields[9].Descriptor()
+	// analyticspost.DefaultExcerpt holds the default value on creation for the excerpt field.
+	analyticspost.DefaultExcerpt = analyticspostDescExcerpt.Default.(string)
+	// analyticspostDescURL is the schema descriptor for url field.
+	analyticspostDescURL := analyticspostFields[10].Descriptor()
+	// analyticspost.DefaultURL holds the default value on creation for the url field.
+	analyticspost.DefaultURL = analyticspostDescURL.Default.(string)
+	// analyticspostDescDiscoveredAt is the schema descriptor for discovered_at field.
+	analyticspostDescDiscoveredAt := analyticspostFields[12].Descriptor()
+	// analyticspost.DefaultDiscoveredAt holds the default value on creation for the discovered_at field.
+	analyticspost.DefaultDiscoveredAt = analyticspostDescDiscoveredAt.Default.(func() time.Time)
+	// analyticspostDescNextCheckAt is the schema descriptor for next_check_at field.
+	analyticspostDescNextCheckAt := analyticspostFields[14].Descriptor()
+	// analyticspost.DefaultNextCheckAt holds the default value on creation for the next_check_at field.
+	analyticspost.DefaultNextCheckAt = analyticspostDescNextCheckAt.Default.(func() time.Time)
+	analyticssnapshotFields := schema.AnalyticsSnapshot{}.Fields()
+	_ = analyticssnapshotFields
+	// analyticssnapshotDescCollectedAt is the schema descriptor for collected_at field.
+	analyticssnapshotDescCollectedAt := analyticssnapshotFields[6].Descriptor()
+	// analyticssnapshot.DefaultCollectedAt holds the default value on creation for the collected_at field.
+	analyticssnapshot.DefaultCollectedAt = analyticssnapshotDescCollectedAt.Default.(func() time.Time)
+	// analyticssnapshotDescAgeMinutes is the schema descriptor for age_minutes field.
+	analyticssnapshotDescAgeMinutes := analyticssnapshotFields[9].Descriptor()
+	// analyticssnapshot.DefaultAgeMinutes holds the default value on creation for the age_minutes field.
+	analyticssnapshot.DefaultAgeMinutes = analyticssnapshotDescAgeMinutes.Default.(int)
 	apikeyFields := schema.Apikey{}.Fields()
 	_ = apikeyFields
 	// apikeyDescConfigID is the schema descriptor for config_id field.
@@ -274,6 +328,12 @@ func init() {
 	brandprofile.DefaultUpdatedAt = brandprofileDescUpdatedAt.Default.(func() time.Time)
 	// brandprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	brandprofile.UpdateDefaultUpdatedAt = brandprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
+	calendarmutationFields := schema.CalendarMutation{}.Fields()
+	_ = calendarmutationFields
+	// calendarmutationDescCreatedAt is the schema descriptor for created_at field.
+	calendarmutationDescCreatedAt := calendarmutationFields[5].Descriptor()
+	// calendarmutation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	calendarmutation.DefaultCreatedAt = calendarmutationDescCreatedAt.Default.(func() time.Time)
 	campaignFields := schema.Campaign{}.Fields()
 	_ = campaignFields
 	// campaignDescCreatedAt is the schema descriptor for created_at field.
@@ -396,42 +456,46 @@ func init() {
 	contentdraftDescGuestComments := contentdraftFields[15].Descriptor()
 	// contentdraft.DefaultGuestComments holds the default value on creation for the guest_comments field.
 	contentdraft.DefaultGuestComments = contentdraftDescGuestComments.Default.([]map[string]string)
+	// contentdraftDescCalendarVersion is the schema descriptor for calendar_version field.
+	contentdraftDescCalendarVersion := contentdraftFields[16].Descriptor()
+	// contentdraft.DefaultCalendarVersion holds the default value on creation for the calendar_version field.
+	contentdraft.DefaultCalendarVersion = contentdraftDescCalendarVersion.Default.(int)
 	// contentdraftDescVersion is the schema descriptor for version field.
-	contentdraftDescVersion := contentdraftFields[16].Descriptor()
+	contentdraftDescVersion := contentdraftFields[17].Descriptor()
 	// contentdraft.DefaultVersion holds the default value on creation for the version field.
 	contentdraft.DefaultVersion = contentdraftDescVersion.Default.(int)
 	// contentdraftDescNaturalPostingTime is the schema descriptor for natural_posting_time field.
-	contentdraftDescNaturalPostingTime := contentdraftFields[19].Descriptor()
+	contentdraftDescNaturalPostingTime := contentdraftFields[20].Descriptor()
 	// contentdraft.DefaultNaturalPostingTime holds the default value on creation for the natural_posting_time field.
 	contentdraft.DefaultNaturalPostingTime = contentdraftDescNaturalPostingTime.Default.(bool)
 	// contentdraftDescEngagement is the schema descriptor for engagement field.
-	contentdraftDescEngagement := contentdraftFields[20].Descriptor()
+	contentdraftDescEngagement := contentdraftFields[21].Descriptor()
 	// contentdraft.DefaultEngagement holds the default value on creation for the engagement field.
 	contentdraft.DefaultEngagement = contentdraftDescEngagement.Default.(schema.Engagement)
 	// contentdraftDescPlatformVersions is the schema descriptor for platform_versions field.
-	contentdraftDescPlatformVersions := contentdraftFields[24].Descriptor()
+	contentdraftDescPlatformVersions := contentdraftFields[25].Descriptor()
 	// contentdraft.DefaultPlatformVersions holds the default value on creation for the platform_versions field.
 	contentdraft.DefaultPlatformVersions = contentdraftDescPlatformVersions.Default.(draftdoc.PlatformVersions)
 	// contentdraftDescScratchpad is the schema descriptor for scratchpad field.
-	contentdraftDescScratchpad := contentdraftFields[26].Descriptor()
+	contentdraftDescScratchpad := contentdraftFields[27].Descriptor()
 	// contentdraft.DefaultScratchpad holds the default value on creation for the scratchpad field.
 	contentdraft.DefaultScratchpad = contentdraftDescScratchpad.Default.(string)
 	// contentdraftDescTagIds is the schema descriptor for tag_ids field.
-	contentdraftDescTagIds := contentdraftFields[27].Descriptor()
+	contentdraftDescTagIds := contentdraftFields[28].Descriptor()
 	// contentdraft.DefaultTagIds holds the default value on creation for the tag_ids field.
 	contentdraft.DefaultTagIds = contentdraftDescTagIds.Default.([]string)
 	// contentdraftDescCollabGeneration is the schema descriptor for collab_generation field.
-	contentdraftDescCollabGeneration := contentdraftFields[31].Descriptor()
+	contentdraftDescCollabGeneration := contentdraftFields[32].Descriptor()
 	// contentdraft.DefaultCollabGeneration holds the default value on creation for the collab_generation field.
 	contentdraft.DefaultCollabGeneration = contentdraftDescCollabGeneration.Default.(int)
 	// contentdraft.CollabGenerationValidator is a validator for the "collab_generation" field. It is called by the builders before save.
 	contentdraft.CollabGenerationValidator = contentdraftDescCollabGeneration.Validators[0].(func(int) error)
 	// contentdraftDescCreatedAt is the schema descriptor for created_at field.
-	contentdraftDescCreatedAt := contentdraftFields[35].Descriptor()
+	contentdraftDescCreatedAt := contentdraftFields[36].Descriptor()
 	// contentdraft.DefaultCreatedAt holds the default value on creation for the created_at field.
 	contentdraft.DefaultCreatedAt = contentdraftDescCreatedAt.Default.(func() time.Time)
 	// contentdraftDescUpdatedAt is the schema descriptor for updated_at field.
-	contentdraftDescUpdatedAt := contentdraftFields[36].Descriptor()
+	contentdraftDescUpdatedAt := contentdraftFields[37].Descriptor()
 	// contentdraft.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	contentdraft.DefaultUpdatedAt = contentdraftDescUpdatedAt.Default.(func() time.Time)
 	// contentdraft.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

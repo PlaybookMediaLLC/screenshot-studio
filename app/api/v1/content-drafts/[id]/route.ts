@@ -35,8 +35,10 @@ export const PATCH = route(updateContentDraftContract, {
 /** Delete a content draft. */
 export const DELETE = route(deleteContentDraftContract, {
   auth: tenantAccess(deleteContentDraftContract.access),
-  handler: async ({ access, params }) => {
+  handler: async ({ access, params, query }) => {
     if (!contentDraftsEnabled()) return notFound()
-    return (await deleteContentDraft(access, params.id)) ? { deleted: true as const } : notFound()
+    return (await deleteContentDraft(access, params.id, query))
+      ? { deleted: true as const }
+      : notFound()
   },
 })

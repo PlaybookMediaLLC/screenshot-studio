@@ -112,6 +112,10 @@ func TestScheduleReconciliationPreservesPauseAndCadence(t *testing.T) {
 			if len(o.Spec.Intervals) != 1 || o.Spec.Intervals[0].Every != time.Hour {
 				t.Fatal(o.Spec)
 			}
+		} else if id == "platform-maintenance-social-analytics" {
+			if len(o.Spec.Intervals) != 1 || o.Spec.Intervals[0].Every != 15*time.Minute {
+				t.Fatal(o.Spec)
+			}
 		} else if len(o.Spec.Intervals) != 1 || o.Spec.Intervals[0].Every != time.Minute {
 			t.Fatal(o.Spec)
 		}

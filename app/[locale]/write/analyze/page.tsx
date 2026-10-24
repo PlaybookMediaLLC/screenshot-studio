@@ -1,16 +1,15 @@
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { AnalyzeWorkspace } from '@/components/analyze/AnalyzeWorkspace'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
-import { WriteFrame } from '@/components/write/WriteFrame'
-import { PostingTimes } from '@/components/write/PostingTimes'
-import { calendarPostSchema } from '@/lib/api/contracts/content-draft-platform'
+import { socialSetSchema } from '@/lib/api/contracts/social-sets'
 import { hasPermission } from '@/lib/auth/permissions'
-import { listContentDraftPostsBetween } from '@/lib/tenant/content-drafts'
+import { listSocialSets } from '@/lib/tenant/write'
 import { requireDraftsPageAccess } from '../../drafts/page-access'
-import { loadWrite } from '../write-data'
 
-export const metadata = { title: 'Posting times' }
+export const metadata: Metadata = { title: 'Analyze' }
 
-/** Analyze engagement in the selected social set, retaining Write and Plan context. */
-export default async function PostingTimesPage({
+export default async function AnalyzePage({
   params,
   searchParams,
 }: {
@@ -19,49 +18,22 @@ export default async function PostingTimesPage({
 }) {
   const { locale } = await params
   const access = await requireDraftsPageAccess(locale, '/write/analyze')
-  const data = await loadWrite(access.tenant, await searchParams)
-  const set = data.activeSet
-  const now = new Date()
-  const posts = set
-    ? await listContentDraftPostsBetween(
-        access.tenant,
-        new Date(now.getTime() - 90 * 86_400_000),
-        now,
-        set.id
-      )
-    : []
-  const canManage = hasPermission(access.role, 'workspace:update')
+  const sets = await listSocialSets(access.tenant)
   return (
     <PlatformShell
       campaignsEnabled={access.campaignWorkflowEnabled}
       organizationName={access.organization.name}
     >
-      <WriteFrame
-        activeId="analyze"
-        campaignsEnabled={access.campaignWorkflowEnabled}
-        canEdit={hasPermission(access.role, 'artifact:edit')}
-        canManageSets={canManage}
-        canPublish={hasPermission(access.role, 'publish:manage')}
-        canReview={hasPermission(access.role, 'release:approve')}
-        data={data}
-      >
-        {set ? (
-          <PostingTimes
-            key={set.id}
-            canEdit={canManage}
-            initialSet={{
-              id: set.id,
-              name: set.name,
-              version: set.version,
-              timeZone: set.timeZone,
-              postingSlots: set.postingSlots,
-            }}
-            posts={posts.map((post) => calendarPostSchema.parse(post))}
-          />
-        ) : (
-          <p className="p-6">Connect a social set to see its posting times.</p>
-        )}
-      </WriteFrame>
+      <div className="px-4 pt-3 text-sm">
+        <Link href="/write/analyze/posting-times" className="underline">
+          Best times and posting slots
+        </Link>
+      </div>
+      <AnalyzeWorkspace
+        sets={sets.map((s) => socialSetSchema.parse(s))}
+        canManage={hasPermission(access.role, 'publish:manage')}
+        initial={await searchParams}
+      />
     </PlatformShell>
   )
 }

@@ -12,6 +12,15 @@ type AccountDeletionRequest func(*sql.Selector)
 // AgentAuthorization is the predicate function for agentauthorization builders.
 type AgentAuthorization func(*sql.Selector)
 
+// AnalyticsAccount is the predicate function for analyticsaccount builders.
+type AnalyticsAccount func(*sql.Selector)
+
+// AnalyticsPost is the predicate function for analyticspost builders.
+type AnalyticsPost func(*sql.Selector)
+
+// AnalyticsSnapshot is the predicate function for analyticssnapshot builders.
+type AnalyticsSnapshot func(*sql.Selector)
+
 // Apikey is the predicate function for apikey builders.
 type Apikey func(*sql.Selector)
 
@@ -47,6 +56,9 @@ type BrandKit func(*sql.Selector)
 
 // BrandProfile is the predicate function for brandprofile builders.
 type BrandProfile func(*sql.Selector)
+
+// CalendarMutation is the predicate function for calendarmutation builders.
+type CalendarMutation func(*sql.Selector)
 
 // Campaign is the predicate function for campaign builders.
 type Campaign func(*sql.Selector)

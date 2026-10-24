@@ -1,3 +1,9 @@
+import {
+  mutateCalendarContract,
+  getAnalyticsContract,
+  refreshAnalyticsContract,
+  updateAnalyticsSettingsContract,
+} from './plan-analyze'
 import { mutateDraftCommentContract } from '@/lib/api/contracts/draft-comments'
 import {
   decideCampaignApprovalContract,
@@ -77,6 +83,10 @@ import {
 
 /** Every contract in the public OpenAPI spec, in the order the spec lists them. */
 export const documentedContracts = [
+  mutateCalendarContract,
+  getAnalyticsContract,
+  refreshAnalyticsContract,
+  updateAnalyticsSettingsContract,
   previewMastodonInstanceContract,
   createSocialConnectionAttemptContract,
   getSocialConnectionAvailabilityContract,

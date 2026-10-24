@@ -234,6 +234,27 @@ func (_u *ContentDraftUpdate) AppendGuestComments(v []map[string]string) *Conten
 	return _u
 }
 
+// SetCalendarVersion sets the "calendar_version" field.
+func (_u *ContentDraftUpdate) SetCalendarVersion(v int) *ContentDraftUpdate {
+	_u.mutation.ResetCalendarVersion()
+	_u.mutation.SetCalendarVersion(v)
+	return _u
+}
+
+// SetNillableCalendarVersion sets the "calendar_version" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableCalendarVersion(v *int) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetCalendarVersion(*v)
+	}
+	return _u
+}
+
+// AddCalendarVersion adds value to the "calendar_version" field.
+func (_u *ContentDraftUpdate) AddCalendarVersion(v int) *ContentDraftUpdate {
+	_u.mutation.AddCalendarVersion(v)
+	return _u
+}
+
 // SetVersion sets the "version" field.
 func (_u *ContentDraftUpdate) SetVersion(v int) *ContentDraftUpdate {
 	_u.mutation.ResetVersion()
@@ -676,6 +697,12 @@ func (_u *ContentDraftUpdate) sqlSave(ctx context.Context) (_node int, err error
 			sqljson.Append(u, contentdraft.FieldGuestComments, value)
 		})
 	}
+	if value, ok := _u.mutation.CalendarVersion(); ok {
+		_spec.SetField(contentdraft.FieldCalendarVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedCalendarVersion(); ok {
+		_spec.AddField(contentdraft.FieldCalendarVersion, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(contentdraft.FieldVersion, field.TypeInt, value)
 	}
@@ -994,6 +1021,27 @@ func (_u *ContentDraftUpdateOne) SetGuestComments(v []map[string]string) *Conten
 // AppendGuestComments appends value to the "guest_comments" field.
 func (_u *ContentDraftUpdateOne) AppendGuestComments(v []map[string]string) *ContentDraftUpdateOne {
 	_u.mutation.AppendGuestComments(v)
+	return _u
+}
+
+// SetCalendarVersion sets the "calendar_version" field.
+func (_u *ContentDraftUpdateOne) SetCalendarVersion(v int) *ContentDraftUpdateOne {
+	_u.mutation.ResetCalendarVersion()
+	_u.mutation.SetCalendarVersion(v)
+	return _u
+}
+
+// SetNillableCalendarVersion sets the "calendar_version" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableCalendarVersion(v *int) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetCalendarVersion(*v)
+	}
+	return _u
+}
+
+// AddCalendarVersion adds value to the "calendar_version" field.
+func (_u *ContentDraftUpdateOne) AddCalendarVersion(v int) *ContentDraftUpdateOne {
+	_u.mutation.AddCalendarVersion(v)
 	return _u
 }
 
@@ -1468,6 +1516,12 @@ func (_u *ContentDraftUpdateOne) sqlSave(ctx context.Context) (_node *ContentDra
 		_spec.AddModifier(func(u *sql.UpdateBuilder) {
 			sqljson.Append(u, contentdraft.FieldGuestComments, value)
 		})
+	}
+	if value, ok := _u.mutation.CalendarVersion(); ok {
+		_spec.SetField(contentdraft.FieldCalendarVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedCalendarVersion(); ok {
+		_spec.AddField(contentdraft.FieldCalendarVersion, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(contentdraft.FieldVersion, field.TypeInt, value)

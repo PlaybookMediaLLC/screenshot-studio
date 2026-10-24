@@ -40,6 +40,7 @@ import * as storeScreenshots from '@/lib/api/contracts/store-screenshots'
 import * as unsubscribe from '@/lib/api/contracts/unsubscribe'
 import * as webhooks from '@/lib/api/contracts/webhooks'
 import * as write from '@/lib/api/contracts/write'
+import * as planAnalyze from '@/lib/api/contracts/plan-analyze'
 import { openApiSpec } from '@/lib/api/openapi'
 import { getMinimumPlan } from '@/lib/billing/plans'
 
@@ -83,6 +84,7 @@ const contracts = new Map<string, RouteContract>(
     unsubscribe,
     webhooks,
     write,
+    planAnalyze,
   ]
     .flatMap((module) => Object.entries(module))
     .filter(([, value]) => routeContractSchema.safeParse(value).success)

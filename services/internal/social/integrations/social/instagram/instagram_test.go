@@ -264,3 +264,27 @@ func TestInstagramDTOValidate(t *testing.T) {
 		t.Fatalf("got\n%s", strings.Join(got, "\n"))
 	}
 }
+
+func TestPostAnalyticsFailureIsNotEmptySuccess(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(`{"error":{"message":"permission denied"}}`))
+	})
+	p := setup(t, mux)
+	if _, err := p.PostAnalytics(context.Background(), "u1", "tok", "p1", 0); err == nil {
+		t.Fatal("permission failure was hidden")
+	}
+}
+
+func TestPostAnalyticsPreservesZeroAndMissing(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(`{"data":[{"name":"views","values":[{"value":0}]},{"name":"likes","values":[]}]}`))
+	})
+	p := setup(t, mux)
+	got, err := p.PostAnalytics(context.Background(), "u1", "tok", "p1", 0)
+	if err != nil || len(got) != 1 || got[0].Data[0].Total != "0" {
+		t.Fatalf("counters=%+v error=%v", got, err)
+	}
+}

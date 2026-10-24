@@ -52,6 +52,8 @@ export const updateDraftPropertiesContract = defineContract({
 
 /** A plan: a future time and its zone, or null to clear it. */
 export const draftPlanInputSchema = z.strictObject({
+  /** Omitted legacy revisions can only initialize a never-planned draft. */
+  baseCalendarVersion: z.number().int().positive().optional(),
   plannedFor: z.iso.datetime({ offset: true }).nullable(),
   timeZone: z.string().max(80).optional(),
 })
@@ -106,6 +108,7 @@ export const duplicateContentDraftContract = defineContract({
   }),
   method: 'POST',
   name: 'content-drafts.duplicate',
+  query: z.object({ requestKey: z.string().min(1).max(200).optional() }),
   output: draftCopyResultSchema,
   params: contentDraftParamsSchema,
   path: '/api/v1/content-drafts/{id}/duplicate',

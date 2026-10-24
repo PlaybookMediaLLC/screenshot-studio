@@ -385,6 +385,17 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 		return nil, err
 	}
 	defer tx.Rollback()
+	moved, err := c.moveDraftPostTx(ctx, tx, actor, postID, at)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return moved, nil
+}
+
+func (c *Configuration) moveDraftPostTx(ctx context.Context, tx *ent.Tx, actor Actor, postID string, at time.Time, zones ...string) (*MovedDraftPost, error) {
 	post, err := tx.ScheduledPost.Query().Where(scheduledpost.ID(postID), scheduledpost.OrganizationID(actor.OrganizationID),
 		scheduledpost.ContentDraftIDNotNil()).WithChannelConnection().Only(ctx)
 	if ent.IsNotFound(err) {
@@ -399,14 +410,10 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 	if post.Status != scheduledpost.StatusSCHEDULED {
 		return nil, conflict("Only a queued post can move; this one is " + strings.ToLower(string(post.Status)) + ".")
 	}
-	moved, err := replaceQueuedDraftPost(ctx, tx, actor, post, at)
-	if err != nil {
-		return nil, err
+	if len(zones) > 0 {
+		post.ScheduleTimeZone = &zones[0]
 	}
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-	return moved, nil
+	return replaceQueuedDraftPost(ctx, tx, actor, post, at)
 }
 
 // requireVisibleDraftPost refuses a draft post whose draft the actor cannot see.
@@ -421,12 +428,14 @@ func requireVisibleDraftPost(ctx context.Context, client *ent.Client, actor Acto
 // CalendarPost is a draft post on the calendar, with its draft's title.
 type CalendarPost struct {
 	ContentDraftPost
-	CampaignID    *string  `json:"campaignId,omitempty"`
-	CampaignTitle string   `json:"campaignTitle,omitempty"`
-	DraftID       string   `json:"draftId"`
-	DraftTitle    string   `json:"draftTitle"`
-	SocialSetID   *string  `json:"socialSetId"`
-	TagIDs        []string `json:"tagIds"`
+	CampaignID      *string  `json:"campaignId,omitempty"`
+	CampaignTitle   string   `json:"campaignTitle,omitempty"`
+	DraftID         string   `json:"draftId"`
+	DraftTitle      string   `json:"draftTitle"`
+	SocialSetID     *string  `json:"socialSetId"`
+	TagIDs          []string `json:"tagIds"`
+	Version         int      `json:"version"`
+	CalendarVersion int      `json:"calendarVersion"`
 }
 
 // ListContentDraftPostsBetween lists the workspace's draft posts due in
@@ -458,7 +467,7 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 		scheduledpost.Or(scheduledpost.And(inSets, scheduledpost.ContentDraftIDNotNil()), scheduledpost.And(scheduledpost.ContentDraftIDIsNil(), scheduledpost.HasChannelConnectionWith(channelconnection.OrganizationID(actor.OrganizationID), channelconnection.SocialSetIDIn(visible...)))), scheduledpost.ScheduledForGTE(from), scheduledpost.ScheduledForLT(to),
 		scheduledpost.StatusIn(scheduledpost.StatusSCHEDULED, scheduledpost.StatusPROCESSING,
 			scheduledpost.StatusPUBLISHED, scheduledpost.StatusFAILED, scheduledpost.StatusUNKNOWN_DELIVERY)).
-		WithChannelConnection().Order(ent.Asc(scheduledpost.FieldScheduledFor)).Limit(500).All(ctx)
+		WithChannelConnection().Order(ent.Asc(scheduledpost.FieldScheduledFor)).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -507,7 +516,7 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 			continue
 		}
 		items = append(items, CalendarPost{ContentDraftPost: contentDraftPost(post, post.Edges.ChannelConnection.Platform),
-			DraftID: *post.ContentDraftID, DraftTitle: draft.Title, SocialSetID: draft.SocialSetID, TagIDs: draft.TagIds})
+			DraftID: *post.ContentDraftID, DraftTitle: draft.Title, SocialSetID: draft.SocialSetID, TagIDs: draft.TagIds, Version: draft.Version, CalendarVersion: draft.CalendarVersion})
 	}
 	return items, nil
 }
@@ -533,7 +542,7 @@ func (c *Configuration) ListPlannedContentDrafts(ctx context.Context, actor Acto
 	}
 	rows, err := c.client.ContentDraft.Query().Where(contentdraft.OrganizationID(actor.OrganizationID), sets,
 		contentdraft.StatusNEQ(contentdraft.StatusArchived), contentdraft.PlannedForGTE(from), contentdraft.PlannedForLT(to)).
-		Order(ent.Asc(contentdraft.FieldPlannedFor), ent.Asc(contentdraft.FieldID)).Limit(500).All(ctx)
+		Order(ent.Asc(contentdraft.FieldPlannedFor), ent.Asc(contentdraft.FieldID)).All(ctx)
 	if err != nil {
 		return nil, err
 	}

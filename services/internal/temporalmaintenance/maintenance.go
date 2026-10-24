@@ -20,7 +20,7 @@ const WorkflowName = "platform-maintenance-v1"
 const ActivityName = "platform-maintenance-run-v1"
 const TaskQueue = "platform-maintenance"
 
-var Jobs = []string{"tenant-outbox", "audit-drains", "communications", "workspace-cleanup", "audit-retention", "scheduled-posts", "notifications", "account-deletions", "webhooks"}
+var Jobs = []string{"tenant-outbox", "audit-drains", "communications", "workspace-cleanup", "audit-retention", "scheduled-posts", "notifications", "account-deletions", "webhooks", "social-analytics"}
 
 type Runner interface {
 	Run(context.Context, string) (int, error)
@@ -81,6 +81,9 @@ func Register(w worker.Worker, runner Runner) {
 func ScheduleOptions(job string) client.ScheduleOptions {
 	spec := client.ScheduleSpec{Intervals: []client.ScheduleIntervalSpec{{Every: time.Minute}}}
 	catchup := 5 * time.Minute
+	if job == "social-analytics" {
+		spec = client.ScheduleSpec{Intervals: []client.ScheduleIntervalSpec{{Every: 15 * time.Minute}}}
+	}
 	if job == "account-deletions" {
 		spec = client.ScheduleSpec{Intervals: []client.ScheduleIntervalSpec{{Every: time.Hour}}}
 		catchup = 24 * time.Hour

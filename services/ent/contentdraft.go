@@ -50,6 +50,8 @@ type ContentDraft struct {
 	ShareToken *string `json:"share_token,omitempty"`
 	// GuestComments holds the value of the "guest_comments" field.
 	GuestComments []map[string]string `json:"guest_comments,omitempty"`
+	// CalendarVersion holds the value of the "calendar_version" field.
+	CalendarVersion int `json:"calendar_version,omitempty"`
 	// Version holds the value of the "version" field.
 	Version int `json:"version,omitempty"`
 	// SocialSetID holds the value of the "social_set_id" field.
@@ -104,7 +106,7 @@ func (*ContentDraft) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case contentdraft.FieldNaturalPostingTime:
 			values[i] = new(sql.NullBool)
-		case contentdraft.FieldApprovedVersion, contentdraft.FieldVersion, contentdraft.FieldCollabGeneration:
+		case contentdraft.FieldApprovedVersion, contentdraft.FieldCalendarVersion, contentdraft.FieldVersion, contentdraft.FieldCollabGeneration:
 			values[i] = new(sql.NullInt64)
 		case contentdraft.FieldID, contentdraft.FieldOrganizationID, contentdraft.FieldTitle, contentdraft.FieldPlainText, contentdraft.FieldStatus, contentdraft.FieldReviewStatus, contentdraft.FieldReviewedByUserID, contentdraft.FieldReviewNote, contentdraft.FieldShareToken, contentdraft.FieldSocialSetID, contentdraft.FieldPrimaryPlatform, contentdraft.FieldKind, contentdraft.FieldScratchpad, contentdraft.FieldPlanTimeZone, contentdraft.FieldSourceDraftID, contentdraft.FieldCreatedByUserID, contentdraft.FieldUpdatedByUserID:
 			values[i] = new(sql.NullString)
@@ -236,6 +238,12 @@ func (_m *ContentDraft) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.GuestComments); err != nil {
 					return fmt.Errorf("unmarshal field guest_comments: %w", err)
 				}
+			}
+		case contentdraft.FieldCalendarVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field calendar_version", values[i])
+			} else if value.Valid {
+				_m.CalendarVersion = int(value.Int64)
 			}
 		case contentdraft.FieldVersion:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -469,6 +477,9 @@ func (_m *ContentDraft) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("guest_comments=")
 	builder.WriteString(fmt.Sprintf("%v", _m.GuestComments))
+	builder.WriteString(", ")
+	builder.WriteString("calendar_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CalendarVersion))
 	builder.WriteString(", ")
 	builder.WriteString("version=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Version))

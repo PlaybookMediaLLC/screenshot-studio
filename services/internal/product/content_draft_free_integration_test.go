@@ -66,6 +66,9 @@ func TestFreeSchedulingLimitsAndUpgrade(t *testing.T) {
 	if _, err := repo.SwapContentDraftPosts(ctx, w.owner, "one", "two"); !errors.As(err, &paidGate) || paidGate.Feature != advancedSchedulingFeature {
 		t.Fatalf("free queue swap: %v", err)
 	}
+	if _, err := repo.MutateCalendar(ctx, w.owner, CalendarCommand{Key: "free-calendar-swap", Action: "swap", Items: []CalendarPlacement{{DraftID: "one"}, {DraftID: "two"}}}); !errors.As(err, &paidGate) || paidGate.Feature != advancedSchedulingFeature {
+		t.Fatalf("free calendar swap: %v", err)
+	}
 	if _, err := repo.NextQueueSlot(ctx, w.owner, ""); err == nil {
 		t.Fatal("free next slot")
 	}

@@ -82,9 +82,15 @@ export const writeApi = {
     }),
   properties: (id: string, input: z.input<typeof draftPropertiesInputSchema>) =>
     call<DraftWire>(`${draft(id)}/properties`, { body: input, method: 'PATCH' }),
-  plan: (id: string, input: { plannedFor: string | null; timeZone?: string }) =>
-    call<DraftWire>(`${draft(id)}/plan`, { body: input, method: 'POST' }),
-  duplicate: (id: string) => call<DraftCopyWire>(`${draft(id)}/duplicate`, { method: 'POST' }),
+  plan: (
+    id: string,
+    input: { baseCalendarVersion: number; plannedFor: string | null; timeZone?: string }
+  ) => call<DraftWire>(`${draft(id)}/plan`, { body: input, method: 'POST' }),
+  duplicate: (id: string, requestKey?: string) =>
+    call<DraftCopyWire>(
+      `${draft(id)}/duplicate${requestKey ? `?requestKey=${encodeURIComponent(requestKey)}` : ''}`,
+      { method: 'POST' }
+    ),
   copy: (id: string, input: { socialSetId: string; tagMode: 'match' | 'drop' }) =>
     call<DraftCopyWire>(`${draft(id)}/copy`, { body: input, method: 'POST' }),
   recover: (id: string, revisionId: string) =>

@@ -882,6 +882,7 @@ export type BackendContentDraft = {
   updatedAt: string
   updatedByUserId: string | null
   /** Every update is based on this; a stale one is refused with 409 and `currentVersion`. */
+  calendarVersion: number
   version: number
   /** Review before scheduling; approval holds for `approvedVersion` only. */
   approvedVersion: number | null
@@ -1020,6 +1021,8 @@ export type BackendCalendarPost = BackendContentDraftPost & {
   draftId: string
   draftTitle: string
   socialSetId: string | null
+  version: number
+  calendarVersion: number
   tagIds: string[]
 }
 
@@ -1121,6 +1124,7 @@ export type BackendContentDraftFields = {
 
 /** A new draft: without channels it starts with its set's default platforms. */
 export type BackendContentDraftCreate = BackendContentDraftFields & {
+  requestKey?: string
   kind?: BackendDraftKind
   scratchpad?: string
   socialSetId?: string
@@ -1131,6 +1135,7 @@ export type BackendContentDraftCreate = BackendContentDraftFields & {
 export type BackendContentDraftUpdate = BackendContentDraftFields & {
   collabGeneration?: number
   baseVersion: number
+  baseCalendarVersion?: number
   status?: Exclude<BackendContentDraftStatus, 'scheduled'>
   naturalPostingTime?: boolean
   /** RFC 3339, or an empty string to clear (an experiment). */
@@ -2711,7 +2716,7 @@ export class ScreenshotStudioBackendSDK {
   /** Schedules at `scheduledFor`, or with `queue` at the set's next free slot, which the backend reserves. */
   async scheduleContentDraft(
     id: string,
-    input: BackendScheduleTiming & { targets: BackendContentDraftScheduleTarget[]; version: number }
+    input: BackendScheduleTiming & { targets: BackendContentDraftScheduleTarget[]; version: number; baseCalendarVersion?: number }
   ) {
     return this.request<{
       created: boolean
@@ -2884,15 +2889,33 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Plan a draft on the calendar, or clear its plan with null. Nothing publishes from a plan. */
-  async planContentDraft(id: string, input: { plannedFor: Date | null; timeZone?: string }) {
+  async mutateCalendar(input: unknown) {
+    return this.request<unknown>('v1/calendar/mutations', { body: input, method: 'POST' })
+  }
+  async getAnalytics(id: string, query: Record<string, string | number | undefined>) {
+    const params = new URLSearchParams(Object.entries(query).filter(([,value]) => value !== undefined).map(([key,value]) => [key,String(value)]))
+    return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}?${params}`)
+  }
+  async refreshAnalytics(id: string) {
+    return this.request<{ refreshed: boolean }>(`v1/analytics/${encodeURIComponent(id)}/refresh`, { method: 'POST', body: {} })
+  }
+  async updateAnalyticsSettings(id: string, input: unknown) {
+    return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}/settings`, { method: 'PUT', body: input })
+  }
+  async getPublicAnalytics(token: string, query: Record<string, string | number | undefined>) {
+    const params = new URLSearchParams(Object.entries(query).filter(([,value]) => value !== undefined).map(([key,value]) => [key,String(value)]))
+    return this.request<unknown>(`v1/internal/analytics/${encodeURIComponent(token)}?${params}`)
+  }
+
+  async planContentDraft(id: string, input: { baseCalendarVersion?: number; plannedFor: Date | null; timeZone?: string }) {
     return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}/plan`, {
       body: input,
       method: 'POST',
     })
   }
 
-  async duplicateContentDraft(id: string) {
-    return this.request<BackendDraftCopy>(`v1/content-drafts/${encodeURIComponent(id)}/duplicate`, {
+  async duplicateContentDraft(id: string, requestKey?: string) {
+    return this.request<BackendDraftCopy>(`v1/content-drafts/${encodeURIComponent(id)}/duplicate${requestKey ? `?requestKey=${encodeURIComponent(requestKey)}` : ''}`, {
       body: {},
       method: 'POST',
     })
@@ -3232,8 +3255,9 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  async deleteContentDraft(id: string) {
-    return this.request<{ deleted: true }>(`v1/content-drafts/${encodeURIComponent(id)}`, {
+  async deleteContentDraft(id: string, expected?: { version?: number; calendarVersion?: number }) {
+    const params = new URLSearchParams(Object.entries(expected ?? {}).filter(([,v]) => v !== undefined).map(([k,v]) => [k,String(v)]))
+    return this.request<{ deleted: true }>(`v1/content-drafts/${encodeURIComponent(id)}?${params}`, {
       method: 'DELETE',
     })
   }

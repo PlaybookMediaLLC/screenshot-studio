@@ -1,3 +1,7 @@
+import {
+  collabTokenSchema,
+  draftVersionsQuerySchema,
+} from '@/lib/api/contracts/content-draft-concurrency'
 import { z } from 'zod'
 import { defineContract, timestampSchema } from '@/lib/api/contract'
 import { scheduledPostStatusSchema } from '@/lib/api/contracts/scheduled-posts'
@@ -52,6 +56,7 @@ export const contentDraftSchema = z
     updatedAt: timestampSchema,
     updatedByUserId: z.string().nullable(),
     version: z.number().int().min(1),
+    calendarVersion: z.number().int().min(1).default(1),
     /** Review before scheduling; approval holds for `approvedVersion` only. */
     approvedVersion: z.number().int().nullable(),
     reviewNote: z.string().nullable(),
@@ -97,6 +102,7 @@ export const contentDraftFieldsSchema = draftWriteInputSchema.extend({
  * takes the set's default platforms.
  */
 export const contentDraftCreateSchema = contentDraftFieldsSchema.extend({
+  requestKey: contentDraftIdSchema.optional(),
   kind: draftKindSchema.optional(),
   /** The platform the body is written for; the set's primary platform when omitted. */
   primaryPlatform: platformSchema.optional(),
@@ -111,6 +117,7 @@ export const contentDraftUpdateSchema = contentDraftFieldsSchema.extend({
   baseVersion: z.number().int().min(1),
   /** Current room generation for a live projection; omit when replacing the body externally. */
   collabGeneration: z.number().int().nonnegative().optional(),
+  baseCalendarVersion: z.number().int().positive().optional(),
   status: contentDraftEditableStatusSchema.optional(),
   /** The draft's own choices, which start as copies of its set's defaults. */
   naturalPostingTime: z.boolean().optional(),
@@ -256,6 +263,7 @@ export const deleteContentDraftContract = defineContract({
   }),
   method: 'DELETE',
   name: 'content-drafts.delete',
+  query: draftVersionsQuerySchema,
   output: z.object({ deleted: z.literal(true) }),
   params: contentDraftParamsSchema,
   path: '/api/v1/content-drafts/{id}',
@@ -322,6 +330,7 @@ export const contentDraftScheduleSchema = scheduleTimingSchema.extend({
     .date()
     .refine((value) => value.getTime() > Date.now(), { message: 'Pick a time in the future.' })
     .optional(),
+  baseCalendarVersion: z.number().int().positive().optional(),
   version: z.number().int().min(1),
 })
 
@@ -370,12 +379,7 @@ export const scheduleContentDraftContract = defineContract({
 })
 
 /** A collaboration token: one member, one draft, a few minutes. */
-export const collabTokenSchema = z.object({
-  access: z.enum(['read', 'write']),
-  documentName: z.string(),
-  expiresAt: timestampSchema,
-  token: z.string(),
-})
+export { collabTokenSchema } from '@/lib/api/contracts/content-draft-concurrency'
 
 /**
  * `POST /api/v1/content-drafts/{id}/collab-token`: admits the signed-in member

@@ -37,14 +37,16 @@ test('month moves and swaps persist, failed moves stay put, and publish now requ
     }
     const one = await create('Calendar first', anchor)
     const two = await create('Calendar second', secondAt)
-    const day = (at: Date) => page.locator(`[data-day="${at.toISOString().slice(0, 10)}"]`)
+    const day = (at: Date) =>
+      page.locator(`[data-calendar-date="${at.toISOString().slice(0, 10)}"]`)
     const card = (text: string) => page.getByTestId('calendar-post').filter({ hasText: text })
     await page.goto(`/write/plan?view=month&week=${anchor.toISOString().slice(0, 10)}`)
-    await expect(page.locator('[data-day]')).toHaveCount(42)
+    await expect(day(anchor)).toBeVisible()
     await expect(day(anchor)).toContainText('Calendar first')
     await expect(day(secondAt)).toContainText('Calendar second')
     const swapped = page.waitForResponse(
-      (response) => response.url().endsWith('/swap') && response.request().method() === 'POST',
+      (response) =>
+        response.url().endsWith('/calendar/mutations') && response.request().method() === 'POST',
       { timeout: 20_000 }
     )
     await card('Calendar first').dragTo(card('Calendar second'))
@@ -53,7 +55,7 @@ test('month moves and swaps persist, failed moves stay put, and publish now requ
     await expect(day(anchor)).toContainText('Calendar second')
 
     // An uncertain/failed network response never claims an uncommitted slot.
-    await page.route('**/content-draft-posts/*/move', (route) =>
+    await page.route('**/calendar/mutations', (route) =>
       route.fulfill({
         status: 503,
         contentType: 'application/json',
@@ -64,14 +66,15 @@ test('month moves and swaps persist, failed moves stay put, and publish now requ
     await card('Calendar first').dragTo(day(later))
     await expect(page.getByText('Move unavailable')).toBeVisible()
     await expect(day(secondAt)).toContainText('Calendar first')
-    await page.unroute('**/content-draft-posts/*/move')
+    await page.unroute('**/calendar/mutations')
 
     // The same backend operation is accessible without dragging.
-    await page.getByRole('button', { name: 'Move Calendar first', exact: true }).click()
+    await card('Calendar first').click()
     const dialog = page.getByRole('dialog')
-    await dialog.getByLabel('Day', { exact: true }).fill(later.toISOString().slice(0, 10))
-    await dialog.getByLabel('Time', { exact: true }).fill('13:15')
-    await dialog.getByRole('button', { name: 'Confirm move' }).click()
+    await dialog
+      .getByLabel('Date and time', { exact: true })
+      .fill(`${later.toISOString().slice(0, 10)}T13:15`)
+    await dialog.getByRole('button', { name: 'Move', exact: true }).click()
     await expect(day(later)).toContainText('Calendar first')
     await page.reload()
     await expect(day(later)).toContainText('Calendar first')
@@ -116,15 +119,23 @@ test('month moves and swaps persist, failed moves stay put, and publish now requ
         [two, past, { likes: 12, replies: 3 }]
       )
       await page.goto(`/write/plan?view=month&week=${anchor.toISOString().slice(0, 10)}`)
-      await day(anchor).getByRole('button', { name: 'Pick', exact: true }).first().click()
+      await page
+        .getByRole('button', {
+          name: `Create draft ${anchor.toISOString().slice(0, 10)}`,
+          exact: true,
+        })
+        .click()
+      await page.getByRole('button', { name: 'Choose existing content' }).click()
+      await page.getByRole('button', { name: 'Published', exact: true }).click()
       await page
         .getByRole('dialog')
-        .getByRole('button', { name: 'Calendar second', exact: true })
+        .getByRole('button', { name: /Calendar second/ })
         .click()
-      await page.waitForURL(/\/write\/[a-z0-9]+\?.*panel=schedule/)
+      await page.getByRole('checkbox', { name: 'Open in editor' }).check()
+      await page.getByRole('button', { name: 'Plan', exact: true }).click()
+      await page.waitForURL(/\/write\/[a-z0-9]+$/)
       const copiedId = new URL(page.url()).pathname.split('/').pop()!
       expect(copiedId).not.toBe(two)
-      await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
       await expect(draftEditor(page)).toContainText('Calendar second')
       const copied = await queryRows<{ count: string }>(
         db,
@@ -132,7 +143,7 @@ test('month moves and swaps persist, failed moves stay put, and publish now requ
         [copiedId]
       )
       expect(copied[0].count).toBe('0')
-      await page.goto('/write/analyze')
+      await page.goto('/write/analyze/posting-times')
       await expect(page.getByTestId('posting-times')).toContainText('1 measured posts')
       const weekday = past.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
       await page.getByRole('button', { name: `Add ${weekday} suggested slot` }).click()

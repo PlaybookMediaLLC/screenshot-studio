@@ -206,3 +206,23 @@ func TestPollContainerAndReplyKeepNativeOptions(t *testing.T) {
 		t.Fatal("media poll mutated provider")
 	}
 }
+
+func TestPostAnalyticsFailureIsNotEmptySuccess(t *testing.T) {
+	setup(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(`{"error":{"message":"permission denied"}}`))
+	})
+	if _, err := New().PostAnalytics(context.Background(), "u1", "tok", "p1", 0); err == nil {
+		t.Fatal("permission failure was hidden")
+	}
+}
+
+func TestPostAnalyticsPreservesZeroAndMissing(t *testing.T) {
+	setup(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(`{"data":[{"name":"views","values":[{"value":0}]},{"name":"likes","values":[]}]}`))
+	})
+	got, err := New().PostAnalytics(context.Background(), "u1", "tok", "p1", 0)
+	if err != nil || len(got) != 1 || got[0].Data[0].Total != "0" {
+		t.Fatalf("counters=%+v error=%v", got, err)
+	}
+}

@@ -14,6 +14,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/accountdeletionrequest"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/agentauthorization"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticsaccount"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticspost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticssnapshot"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -26,6 +29,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/billingentitlementevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandprofile"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/calendarmutation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignasset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignplan"
@@ -181,6 +185,9 @@ func checkColumn(t, c string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			accountdeletionrequest.Table:          accountdeletionrequest.ValidColumn,
 			agentauthorization.Table:              agentauthorization.ValidColumn,
+			analyticsaccount.Table:                analyticsaccount.ValidColumn,
+			analyticspost.Table:                   analyticspost.ValidColumn,
+			analyticssnapshot.Table:               analyticssnapshot.ValidColumn,
 			apikey.Table:                          apikey.ValidColumn,
 			approval.Table:                        approval.ValidColumn,
 			asset.Table:                           asset.ValidColumn,
@@ -193,6 +200,7 @@ func checkColumn(t, c string) error {
 			billingentitlementevent.Table:         billingentitlementevent.ValidColumn,
 			brandkit.Table:                        brandkit.ValidColumn,
 			brandprofile.Table:                    brandprofile.ValidColumn,
+			calendarmutation.Table:                calendarmutation.ValidColumn,
 			campaign.Table:                        campaign.ValidColumn,
 			campaignasset.Table:                   campaignasset.ValidColumn,
 			campaignplan.Table:                    campaignplan.ValidColumn,

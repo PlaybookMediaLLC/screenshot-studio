@@ -229,7 +229,7 @@ func main() {
 			os.Exit(1)
 		}
 		defer retention.Close()
-		events := product.NewConfiguration(db.Client).WithCapturer(capture.FromEnvironment())
+		events := product.NewConfiguration(db.Client).WithCapturer(capture.FromEnvironment()).WithPostMetrics(provider).WithAnalytics(provider)
 		if objectStore != nil {
 			events.WithObjectStore(objectStore)
 		}
@@ -247,6 +247,9 @@ func main() {
 			MaxConcurrentActivityExecutionSize: 5, OnFatalError: func(err error) { slog.Error("maintenance worker failed"); stop() },
 		})
 		temporalmaintenance.Register(maintenanceWorker, temporalmaintenance.RunnerFunc(func(ctx context.Context, job string) (int, error) {
+			if job == "social-analytics" {
+				return events.CollectDueAnalytics(ctx)
+			}
 			if job == "scheduled-posts" {
 				return recovery.DispatchDue(ctx)
 			}

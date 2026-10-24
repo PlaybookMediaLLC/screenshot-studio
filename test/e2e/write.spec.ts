@@ -16,7 +16,7 @@ configureE2EFlow()
  * Write (RFC 025) end to end: the library, the composer, platform
  * versions, previews, properties, planning, scheduling, backups and
  * sharing, on a desktop and a phone. Posts are scheduled for later or fail
- * against the social API mock, so nothing reaches a real account.
+ * using fixture-only credentials; blocked or rejected provider requests never reach an authorized account.
  */
 
 /** A screenshot for the delivery report, once dialogs and sheets finish animating. */
@@ -315,6 +315,24 @@ test('refine previews and applies only on accept, the assistant adds a post, fol
       'FAILED',
     ])
     await page.reload()
+    const unknown = page.getByTestId('draft-post').filter({ hasText: 'Outcome unknown' })
+    while (await unknown.count()) {
+      const remaining = await unknown.count()
+      await expect(
+        unknown.first().getByRole('button', { name: 'Retry this destination' })
+      ).toHaveCount(0)
+      await unknown.first().getByRole('button', { name: 'I checked the account…' }).click()
+      // This fixture has no real provider credential, so publication is known not to exist.
+      await page.getByRole('button', { name: 'It is not there', exact: true }).click()
+      await expect
+        .poll(
+          async () =>
+            (await draftPosts(draftId)).filter((post) => post.status === 'UNKNOWN_DELIVERY').length
+        )
+        .toBe(remaining - 1)
+      await expect(unknown).toHaveCount(remaining - 1)
+    }
+    expect((await draftPosts(draftId)).map((post) => post.status)).toEqual(['FAILED', 'FAILED'])
     const failed = page.getByTestId('draft-post').filter({ hasText: 'did not publish' })
     await expect(failed).toHaveCount(2, { timeout: 60_000 })
     await snap(page, 'write-failed-destinations')
@@ -557,9 +575,16 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
       .click()
     const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
     await page.goto(`/write/plan?week=${tomorrow}`)
-    await expect(page.locator(`[data-testid="calendar-planned"][href$="${planned}"]`)).toBeVisible({
-      timeout: 30_000,
-    })
+    const plannedCard = page
+      .getByTestId('calendar-planned')
+      .filter({ hasText: 'Planned, not scheduled', visible: true })
+    await expect(plannedCard).toBeVisible({ timeout: 30_000 })
+    await plannedCard.click()
+    await expect(page.getByRole('link', { name: 'Open in editor', exact: true })).toHaveAttribute(
+      'href',
+      `/write/${planned}`
+    )
+    await page.keyboard.press('Escape')
     await snap(page, 'write-plan')
   } finally {
     await workspace?.provider.close()
@@ -658,8 +683,14 @@ test('draft text survives replacement and navigation; details, filters, archive 
     await page.getByRole('button', { name: 'Clear filters', exact: true }).first().click()
     await expect(page.getByRole('button', { name: 'Remove Article filter' })).toHaveCount(0)
     await page.goto('/write/plan')
-    await page.getByRole('button', { name: 'Plan a post', exact: true }).last().click()
-    await expect(page.getByTestId('schedule-dialog')).toBeVisible()
+    await page
+      .getByRole('button', { name: /^Create draft / })
+      .first()
+      .click()
+    await expect(
+      page.getByRole('dialog').getByRole('heading', { name: 'Plan a draft' })
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
     expect(await draftPosts(draftId)).toEqual([])
   } finally {
     await workspace?.provider.close()

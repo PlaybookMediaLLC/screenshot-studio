@@ -17,6 +17,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/accountdeletionrequest"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/agentauthorization"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticsaccount"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticspost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticssnapshot"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -29,6 +32,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/billingentitlementevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandprofile"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/calendarmutation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignasset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignplan"
@@ -132,6 +136,12 @@ type Client struct {
 	AccountDeletionRequest *AccountDeletionRequestClient
 	// AgentAuthorization is the client for interacting with the AgentAuthorization builders.
 	AgentAuthorization *AgentAuthorizationClient
+	// AnalyticsAccount is the client for interacting with the AnalyticsAccount builders.
+	AnalyticsAccount *AnalyticsAccountClient
+	// AnalyticsPost is the client for interacting with the AnalyticsPost builders.
+	AnalyticsPost *AnalyticsPostClient
+	// AnalyticsSnapshot is the client for interacting with the AnalyticsSnapshot builders.
+	AnalyticsSnapshot *AnalyticsSnapshotClient
 	// Apikey is the client for interacting with the Apikey builders.
 	Apikey *ApikeyClient
 	// Approval is the client for interacting with the Approval builders.
@@ -156,6 +166,8 @@ type Client struct {
 	BrandKit *BrandKitClient
 	// BrandProfile is the client for interacting with the BrandProfile builders.
 	BrandProfile *BrandProfileClient
+	// CalendarMutation is the client for interacting with the CalendarMutation builders.
+	CalendarMutation *CalendarMutationClient
 	// Campaign is the client for interacting with the Campaign builders.
 	Campaign *CampaignClient
 	// CampaignAsset is the client for interacting with the CampaignAsset builders.
@@ -353,6 +365,9 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.AccountDeletionRequest = NewAccountDeletionRequestClient(c.config)
 	c.AgentAuthorization = NewAgentAuthorizationClient(c.config)
+	c.AnalyticsAccount = NewAnalyticsAccountClient(c.config)
+	c.AnalyticsPost = NewAnalyticsPostClient(c.config)
+	c.AnalyticsSnapshot = NewAnalyticsSnapshotClient(c.config)
 	c.Apikey = NewApikeyClient(c.config)
 	c.Approval = NewApprovalClient(c.config)
 	c.Asset = NewAssetClient(c.config)
@@ -365,6 +380,7 @@ func (c *Client) init() {
 	c.BillingEntitlementEvent = NewBillingEntitlementEventClient(c.config)
 	c.BrandKit = NewBrandKitClient(c.config)
 	c.BrandProfile = NewBrandProfileClient(c.config)
+	c.CalendarMutation = NewCalendarMutationClient(c.config)
 	c.Campaign = NewCampaignClient(c.config)
 	c.CampaignAsset = NewCampaignAssetClient(c.config)
 	c.CampaignPlan = NewCampaignPlanClient(c.config)
@@ -551,6 +567,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:                          cfg,
 		AccountDeletionRequest:          NewAccountDeletionRequestClient(cfg),
 		AgentAuthorization:              NewAgentAuthorizationClient(cfg),
+		AnalyticsAccount:                NewAnalyticsAccountClient(cfg),
+		AnalyticsPost:                   NewAnalyticsPostClient(cfg),
+		AnalyticsSnapshot:               NewAnalyticsSnapshotClient(cfg),
 		Apikey:                          NewApikeyClient(cfg),
 		Approval:                        NewApprovalClient(cfg),
 		Asset:                           NewAssetClient(cfg),
@@ -563,6 +582,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BillingEntitlementEvent:         NewBillingEntitlementEventClient(cfg),
 		BrandKit:                        NewBrandKitClient(cfg),
 		BrandProfile:                    NewBrandProfileClient(cfg),
+		CalendarMutation:                NewCalendarMutationClient(cfg),
 		Campaign:                        NewCampaignClient(cfg),
 		CampaignAsset:                   NewCampaignAssetClient(cfg),
 		CampaignPlan:                    NewCampaignPlanClient(cfg),
@@ -676,6 +696,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:                          cfg,
 		AccountDeletionRequest:          NewAccountDeletionRequestClient(cfg),
 		AgentAuthorization:              NewAgentAuthorizationClient(cfg),
+		AnalyticsAccount:                NewAnalyticsAccountClient(cfg),
+		AnalyticsPost:                   NewAnalyticsPostClient(cfg),
+		AnalyticsSnapshot:               NewAnalyticsSnapshotClient(cfg),
 		Apikey:                          NewApikeyClient(cfg),
 		Approval:                        NewApprovalClient(cfg),
 		Asset:                           NewAssetClient(cfg),
@@ -688,6 +711,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BillingEntitlementEvent:         NewBillingEntitlementEventClient(cfg),
 		BrandKit:                        NewBrandKitClient(cfg),
 		BrandProfile:                    NewBrandProfileClient(cfg),
+		CalendarMutation:                NewCalendarMutationClient(cfg),
 		Campaign:                        NewCampaignClient(cfg),
 		CampaignAsset:                   NewCampaignAssetClient(cfg),
 		CampaignPlan:                    NewCampaignPlanClient(cfg),
@@ -809,21 +833,23 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AccountDeletionRequest, c.AgentAuthorization, c.Apikey, c.Approval, c.Asset,
+		c.AccountDeletionRequest, c.AgentAuthorization, c.AnalyticsAccount,
+		c.AnalyticsPost, c.AnalyticsSnapshot, c.Apikey, c.Approval, c.Asset,
 		c.AudienceSubscriber, c.AuditDrain, c.AuditDrainDelivery, c.AuditLog,
 		c.AuditOutbox, c.AuditRetentionPolicy, c.BillingEntitlementEvent, c.BrandKit,
-		c.BrandProfile, c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
-		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
-		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft,
-		c.ContentDraftFinisher, c.ContentDraftRevision, c.ContentDraftSettings,
-		c.ContentDraftTag, c.Conversation, c.ConversationMessage, c.CreativeTemplate,
-		c.CreativeVariant, c.CustomerCommunication, c.DeploymentEvent, c.Design,
-		c.EnrichmentRecord, c.GitHubInstallStart, c.GitHubInstallation,
-		c.IdealCustomerProfile, c.IntegrationConnection, c.Invitation, c.LaunchRun,
-		c.LaunchRunStep, c.Member, c.OnboardingRun, c.Organization,
-		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PageKnowledge,
-		c.PlatformAutoDMCampaign, c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut,
-		c.PlatformAutoDMRecipient, c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
+		c.BrandProfile, c.CalendarMutation, c.Campaign, c.CampaignAsset,
+		c.CampaignPlan, c.CampaignPost, c.CampaignRevision, c.ChannelConnection,
+		c.CommunicationAttempt, c.CommunicationRecipient, c.ContentAngle,
+		c.ContentDraft, c.ContentDraftFinisher, c.ContentDraftRevision,
+		c.ContentDraftSettings, c.ContentDraftTag, c.Conversation,
+		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
+		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
+		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
+		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
+		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
+		c.OutboxEvent, c.PageKnowledge, c.PlatformAutoDMCampaign,
+		c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut, c.PlatformAutoDMRecipient,
+		c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
 		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
@@ -850,21 +876,23 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AccountDeletionRequest, c.AgentAuthorization, c.Apikey, c.Approval, c.Asset,
+		c.AccountDeletionRequest, c.AgentAuthorization, c.AnalyticsAccount,
+		c.AnalyticsPost, c.AnalyticsSnapshot, c.Apikey, c.Approval, c.Asset,
 		c.AudienceSubscriber, c.AuditDrain, c.AuditDrainDelivery, c.AuditLog,
 		c.AuditOutbox, c.AuditRetentionPolicy, c.BillingEntitlementEvent, c.BrandKit,
-		c.BrandProfile, c.Campaign, c.CampaignAsset, c.CampaignPlan, c.CampaignPost,
-		c.CampaignRevision, c.ChannelConnection, c.CommunicationAttempt,
-		c.CommunicationRecipient, c.ContentAngle, c.ContentDraft,
-		c.ContentDraftFinisher, c.ContentDraftRevision, c.ContentDraftSettings,
-		c.ContentDraftTag, c.Conversation, c.ConversationMessage, c.CreativeTemplate,
-		c.CreativeVariant, c.CustomerCommunication, c.DeploymentEvent, c.Design,
-		c.EnrichmentRecord, c.GitHubInstallStart, c.GitHubInstallation,
-		c.IdealCustomerProfile, c.IntegrationConnection, c.Invitation, c.LaunchRun,
-		c.LaunchRunStep, c.Member, c.OnboardingRun, c.Organization,
-		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PageKnowledge,
-		c.PlatformAutoDMCampaign, c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut,
-		c.PlatformAutoDMRecipient, c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
+		c.BrandProfile, c.CalendarMutation, c.Campaign, c.CampaignAsset,
+		c.CampaignPlan, c.CampaignPost, c.CampaignRevision, c.ChannelConnection,
+		c.CommunicationAttempt, c.CommunicationRecipient, c.ContentAngle,
+		c.ContentDraft, c.ContentDraftFinisher, c.ContentDraftRevision,
+		c.ContentDraftSettings, c.ContentDraftTag, c.Conversation,
+		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
+		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
+		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
+		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
+		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
+		c.OutboxEvent, c.PageKnowledge, c.PlatformAutoDMCampaign,
+		c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut, c.PlatformAutoDMRecipient,
+		c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
 		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
@@ -894,6 +922,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AccountDeletionRequest.mutate(ctx, m)
 	case *AgentAuthorizationMutation:
 		return c.AgentAuthorization.mutate(ctx, m)
+	case *AnalyticsAccountMutation:
+		return c.AnalyticsAccount.mutate(ctx, m)
+	case *AnalyticsPostMutation:
+		return c.AnalyticsPost.mutate(ctx, m)
+	case *AnalyticsSnapshotMutation:
+		return c.AnalyticsSnapshot.mutate(ctx, m)
 	case *ApikeyMutation:
 		return c.Apikey.mutate(ctx, m)
 	case *ApprovalMutation:
@@ -918,6 +952,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BrandKit.mutate(ctx, m)
 	case *BrandProfileMutation:
 		return c.BrandProfile.mutate(ctx, m)
+	case *CalendarMutationMutation:
+		return c.CalendarMutation.mutate(ctx, m)
 	case *CampaignMutation:
 		return c.Campaign.mutate(ctx, m)
 	case *CampaignAssetMutation:
@@ -1370,6 +1406,405 @@ func (c *AgentAuthorizationClient) mutate(ctx context.Context, m *AgentAuthoriza
 		return (&AgentAuthorizationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown AgentAuthorization mutation op: %q", m.Op())
+	}
+}
+
+// AnalyticsAccountClient is a client for the AnalyticsAccount schema.
+type AnalyticsAccountClient struct {
+	config
+}
+
+// NewAnalyticsAccountClient returns a client for the AnalyticsAccount from the given config.
+func NewAnalyticsAccountClient(c config) *AnalyticsAccountClient {
+	return &AnalyticsAccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `analyticsaccount.Hooks(f(g(h())))`.
+func (c *AnalyticsAccountClient) Use(hooks ...Hook) {
+	c.hooks.AnalyticsAccount = append(c.hooks.AnalyticsAccount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `analyticsaccount.Intercept(f(g(h())))`.
+func (c *AnalyticsAccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AnalyticsAccount = append(c.inters.AnalyticsAccount, interceptors...)
+}
+
+// Create returns a builder for creating a AnalyticsAccount entity.
+func (c *AnalyticsAccountClient) Create() *AnalyticsAccountCreate {
+	mutation := newAnalyticsAccountMutation(c.config, OpCreate)
+	return &AnalyticsAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AnalyticsAccount entities.
+func (c *AnalyticsAccountClient) CreateBulk(builders ...*AnalyticsAccountCreate) *AnalyticsAccountCreateBulk {
+	return &AnalyticsAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AnalyticsAccountClient) MapCreateBulk(slice any, setFunc func(*AnalyticsAccountCreate, int)) *AnalyticsAccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AnalyticsAccountCreateBulk{err: fmt.Errorf("calling to AnalyticsAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AnalyticsAccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AnalyticsAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AnalyticsAccount.
+func (c *AnalyticsAccountClient) Update() *AnalyticsAccountUpdate {
+	mutation := newAnalyticsAccountMutation(c.config, OpUpdate)
+	return &AnalyticsAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AnalyticsAccountClient) UpdateOne(_m *AnalyticsAccount) *AnalyticsAccountUpdateOne {
+	mutation := newAnalyticsAccountMutation(c.config, OpUpdateOne, withAnalyticsAccount(_m))
+	return &AnalyticsAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AnalyticsAccountClient) UpdateOneID(id string) *AnalyticsAccountUpdateOne {
+	mutation := newAnalyticsAccountMutation(c.config, OpUpdateOne, withAnalyticsAccountID(id))
+	return &AnalyticsAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AnalyticsAccount.
+func (c *AnalyticsAccountClient) Delete() *AnalyticsAccountDelete {
+	mutation := newAnalyticsAccountMutation(c.config, OpDelete)
+	return &AnalyticsAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AnalyticsAccountClient) DeleteOne(_m *AnalyticsAccount) *AnalyticsAccountDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AnalyticsAccountClient) DeleteOneID(id string) *AnalyticsAccountDeleteOne {
+	builder := c.Delete().Where(analyticsaccount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AnalyticsAccountDeleteOne{builder}
+}
+
+// Query returns a query builder for AnalyticsAccount.
+func (c *AnalyticsAccountClient) Query() *AnalyticsAccountQuery {
+	return &AnalyticsAccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAnalyticsAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AnalyticsAccount entity by its id.
+func (c *AnalyticsAccountClient) Get(ctx context.Context, id string) (*AnalyticsAccount, error) {
+	return c.Query().Where(analyticsaccount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AnalyticsAccountClient) GetX(ctx context.Context, id string) *AnalyticsAccount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AnalyticsAccountClient) Hooks() []Hook {
+	return c.hooks.AnalyticsAccount
+}
+
+// Interceptors returns the client interceptors.
+func (c *AnalyticsAccountClient) Interceptors() []Interceptor {
+	return c.inters.AnalyticsAccount
+}
+
+func (c *AnalyticsAccountClient) mutate(ctx context.Context, m *AnalyticsAccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AnalyticsAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AnalyticsAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AnalyticsAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AnalyticsAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AnalyticsAccount mutation op: %q", m.Op())
+	}
+}
+
+// AnalyticsPostClient is a client for the AnalyticsPost schema.
+type AnalyticsPostClient struct {
+	config
+}
+
+// NewAnalyticsPostClient returns a client for the AnalyticsPost from the given config.
+func NewAnalyticsPostClient(c config) *AnalyticsPostClient {
+	return &AnalyticsPostClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `analyticspost.Hooks(f(g(h())))`.
+func (c *AnalyticsPostClient) Use(hooks ...Hook) {
+	c.hooks.AnalyticsPost = append(c.hooks.AnalyticsPost, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `analyticspost.Intercept(f(g(h())))`.
+func (c *AnalyticsPostClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AnalyticsPost = append(c.inters.AnalyticsPost, interceptors...)
+}
+
+// Create returns a builder for creating a AnalyticsPost entity.
+func (c *AnalyticsPostClient) Create() *AnalyticsPostCreate {
+	mutation := newAnalyticsPostMutation(c.config, OpCreate)
+	return &AnalyticsPostCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AnalyticsPost entities.
+func (c *AnalyticsPostClient) CreateBulk(builders ...*AnalyticsPostCreate) *AnalyticsPostCreateBulk {
+	return &AnalyticsPostCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AnalyticsPostClient) MapCreateBulk(slice any, setFunc func(*AnalyticsPostCreate, int)) *AnalyticsPostCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AnalyticsPostCreateBulk{err: fmt.Errorf("calling to AnalyticsPostClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AnalyticsPostCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AnalyticsPostCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AnalyticsPost.
+func (c *AnalyticsPostClient) Update() *AnalyticsPostUpdate {
+	mutation := newAnalyticsPostMutation(c.config, OpUpdate)
+	return &AnalyticsPostUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AnalyticsPostClient) UpdateOne(_m *AnalyticsPost) *AnalyticsPostUpdateOne {
+	mutation := newAnalyticsPostMutation(c.config, OpUpdateOne, withAnalyticsPost(_m))
+	return &AnalyticsPostUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AnalyticsPostClient) UpdateOneID(id string) *AnalyticsPostUpdateOne {
+	mutation := newAnalyticsPostMutation(c.config, OpUpdateOne, withAnalyticsPostID(id))
+	return &AnalyticsPostUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AnalyticsPost.
+func (c *AnalyticsPostClient) Delete() *AnalyticsPostDelete {
+	mutation := newAnalyticsPostMutation(c.config, OpDelete)
+	return &AnalyticsPostDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AnalyticsPostClient) DeleteOne(_m *AnalyticsPost) *AnalyticsPostDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AnalyticsPostClient) DeleteOneID(id string) *AnalyticsPostDeleteOne {
+	builder := c.Delete().Where(analyticspost.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AnalyticsPostDeleteOne{builder}
+}
+
+// Query returns a query builder for AnalyticsPost.
+func (c *AnalyticsPostClient) Query() *AnalyticsPostQuery {
+	return &AnalyticsPostQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAnalyticsPost},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AnalyticsPost entity by its id.
+func (c *AnalyticsPostClient) Get(ctx context.Context, id string) (*AnalyticsPost, error) {
+	return c.Query().Where(analyticspost.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AnalyticsPostClient) GetX(ctx context.Context, id string) *AnalyticsPost {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AnalyticsPostClient) Hooks() []Hook {
+	return c.hooks.AnalyticsPost
+}
+
+// Interceptors returns the client interceptors.
+func (c *AnalyticsPostClient) Interceptors() []Interceptor {
+	return c.inters.AnalyticsPost
+}
+
+func (c *AnalyticsPostClient) mutate(ctx context.Context, m *AnalyticsPostMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AnalyticsPostCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AnalyticsPostUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AnalyticsPostUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AnalyticsPostDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AnalyticsPost mutation op: %q", m.Op())
+	}
+}
+
+// AnalyticsSnapshotClient is a client for the AnalyticsSnapshot schema.
+type AnalyticsSnapshotClient struct {
+	config
+}
+
+// NewAnalyticsSnapshotClient returns a client for the AnalyticsSnapshot from the given config.
+func NewAnalyticsSnapshotClient(c config) *AnalyticsSnapshotClient {
+	return &AnalyticsSnapshotClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `analyticssnapshot.Hooks(f(g(h())))`.
+func (c *AnalyticsSnapshotClient) Use(hooks ...Hook) {
+	c.hooks.AnalyticsSnapshot = append(c.hooks.AnalyticsSnapshot, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `analyticssnapshot.Intercept(f(g(h())))`.
+func (c *AnalyticsSnapshotClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AnalyticsSnapshot = append(c.inters.AnalyticsSnapshot, interceptors...)
+}
+
+// Create returns a builder for creating a AnalyticsSnapshot entity.
+func (c *AnalyticsSnapshotClient) Create() *AnalyticsSnapshotCreate {
+	mutation := newAnalyticsSnapshotMutation(c.config, OpCreate)
+	return &AnalyticsSnapshotCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AnalyticsSnapshot entities.
+func (c *AnalyticsSnapshotClient) CreateBulk(builders ...*AnalyticsSnapshotCreate) *AnalyticsSnapshotCreateBulk {
+	return &AnalyticsSnapshotCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AnalyticsSnapshotClient) MapCreateBulk(slice any, setFunc func(*AnalyticsSnapshotCreate, int)) *AnalyticsSnapshotCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AnalyticsSnapshotCreateBulk{err: fmt.Errorf("calling to AnalyticsSnapshotClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AnalyticsSnapshotCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AnalyticsSnapshotCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AnalyticsSnapshot.
+func (c *AnalyticsSnapshotClient) Update() *AnalyticsSnapshotUpdate {
+	mutation := newAnalyticsSnapshotMutation(c.config, OpUpdate)
+	return &AnalyticsSnapshotUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AnalyticsSnapshotClient) UpdateOne(_m *AnalyticsSnapshot) *AnalyticsSnapshotUpdateOne {
+	mutation := newAnalyticsSnapshotMutation(c.config, OpUpdateOne, withAnalyticsSnapshot(_m))
+	return &AnalyticsSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AnalyticsSnapshotClient) UpdateOneID(id string) *AnalyticsSnapshotUpdateOne {
+	mutation := newAnalyticsSnapshotMutation(c.config, OpUpdateOne, withAnalyticsSnapshotID(id))
+	return &AnalyticsSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AnalyticsSnapshot.
+func (c *AnalyticsSnapshotClient) Delete() *AnalyticsSnapshotDelete {
+	mutation := newAnalyticsSnapshotMutation(c.config, OpDelete)
+	return &AnalyticsSnapshotDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AnalyticsSnapshotClient) DeleteOne(_m *AnalyticsSnapshot) *AnalyticsSnapshotDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AnalyticsSnapshotClient) DeleteOneID(id string) *AnalyticsSnapshotDeleteOne {
+	builder := c.Delete().Where(analyticssnapshot.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AnalyticsSnapshotDeleteOne{builder}
+}
+
+// Query returns a query builder for AnalyticsSnapshot.
+func (c *AnalyticsSnapshotClient) Query() *AnalyticsSnapshotQuery {
+	return &AnalyticsSnapshotQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAnalyticsSnapshot},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AnalyticsSnapshot entity by its id.
+func (c *AnalyticsSnapshotClient) Get(ctx context.Context, id string) (*AnalyticsSnapshot, error) {
+	return c.Query().Where(analyticssnapshot.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AnalyticsSnapshotClient) GetX(ctx context.Context, id string) *AnalyticsSnapshot {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AnalyticsSnapshotClient) Hooks() []Hook {
+	return c.hooks.AnalyticsSnapshot
+}
+
+// Interceptors returns the client interceptors.
+func (c *AnalyticsSnapshotClient) Interceptors() []Interceptor {
+	return c.inters.AnalyticsSnapshot
+}
+
+func (c *AnalyticsSnapshotClient) mutate(ctx context.Context, m *AnalyticsSnapshotMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AnalyticsSnapshotCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AnalyticsSnapshotUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AnalyticsSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AnalyticsSnapshotDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AnalyticsSnapshot mutation op: %q", m.Op())
 	}
 }
 
@@ -2998,6 +3433,139 @@ func (c *BrandProfileClient) mutate(ctx context.Context, m *BrandProfileMutation
 		return (&BrandProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown BrandProfile mutation op: %q", m.Op())
+	}
+}
+
+// CalendarMutationClient is a client for the CalendarMutation schema.
+type CalendarMutationClient struct {
+	config
+}
+
+// NewCalendarMutationClient returns a client for the CalendarMutation from the given config.
+func NewCalendarMutationClient(c config) *CalendarMutationClient {
+	return &CalendarMutationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `calendarmutation.Hooks(f(g(h())))`.
+func (c *CalendarMutationClient) Use(hooks ...Hook) {
+	c.hooks.CalendarMutation = append(c.hooks.CalendarMutation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `calendarmutation.Intercept(f(g(h())))`.
+func (c *CalendarMutationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CalendarMutation = append(c.inters.CalendarMutation, interceptors...)
+}
+
+// Create returns a builder for creating a CalendarMutation entity.
+func (c *CalendarMutationClient) Create() *CalendarMutationCreate {
+	mutation := newCalendarMutationMutation(c.config, OpCreate)
+	return &CalendarMutationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CalendarMutation entities.
+func (c *CalendarMutationClient) CreateBulk(builders ...*CalendarMutationCreate) *CalendarMutationCreateBulk {
+	return &CalendarMutationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CalendarMutationClient) MapCreateBulk(slice any, setFunc func(*CalendarMutationCreate, int)) *CalendarMutationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CalendarMutationCreateBulk{err: fmt.Errorf("calling to CalendarMutationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CalendarMutationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CalendarMutationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CalendarMutation.
+func (c *CalendarMutationClient) Update() *CalendarMutationUpdate {
+	mutation := newCalendarMutationMutation(c.config, OpUpdate)
+	return &CalendarMutationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CalendarMutationClient) UpdateOne(_m *CalendarMutation) *CalendarMutationUpdateOne {
+	mutation := newCalendarMutationMutation(c.config, OpUpdateOne, withCalendarMutation(_m))
+	return &CalendarMutationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CalendarMutationClient) UpdateOneID(id string) *CalendarMutationUpdateOne {
+	mutation := newCalendarMutationMutation(c.config, OpUpdateOne, withCalendarMutationID(id))
+	return &CalendarMutationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CalendarMutation.
+func (c *CalendarMutationClient) Delete() *CalendarMutationDelete {
+	mutation := newCalendarMutationMutation(c.config, OpDelete)
+	return &CalendarMutationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CalendarMutationClient) DeleteOne(_m *CalendarMutation) *CalendarMutationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CalendarMutationClient) DeleteOneID(id string) *CalendarMutationDeleteOne {
+	builder := c.Delete().Where(calendarmutation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CalendarMutationDeleteOne{builder}
+}
+
+// Query returns a query builder for CalendarMutation.
+func (c *CalendarMutationClient) Query() *CalendarMutationQuery {
+	return &CalendarMutationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCalendarMutation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CalendarMutation entity by its id.
+func (c *CalendarMutationClient) Get(ctx context.Context, id string) (*CalendarMutation, error) {
+	return c.Query().Where(calendarmutation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CalendarMutationClient) GetX(ctx context.Context, id string) *CalendarMutation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *CalendarMutationClient) Hooks() []Hook {
+	return c.hooks.CalendarMutation
+}
+
+// Interceptors returns the client interceptors.
+func (c *CalendarMutationClient) Interceptors() []Interceptor {
+	return c.inters.CalendarMutation
+}
+
+func (c *CalendarMutationClient) mutate(ctx context.Context, m *CalendarMutationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CalendarMutationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CalendarMutationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CalendarMutationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CalendarMutationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown CalendarMutation mutation op: %q", m.Op())
 	}
 }
 
@@ -15336,12 +15904,13 @@ func (c *WorkspaceSettingsClient) mutate(ctx context.Context, m *WorkspaceSettin
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AccountDeletionRequest, AgentAuthorization, Apikey, Approval, Asset,
-		AudienceSubscriber, AuditDrain, AuditDrainDelivery, AuditLog, AuditOutbox,
-		AuditRetentionPolicy, BillingEntitlementEvent, BrandKit, BrandProfile,
-		Campaign, CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision,
-		ChannelConnection, CommunicationAttempt, CommunicationRecipient, ContentAngle,
-		ContentDraft, ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
+		AccountDeletionRequest, AgentAuthorization, AnalyticsAccount, AnalyticsPost,
+		AnalyticsSnapshot, Apikey, Approval, Asset, AudienceSubscriber, AuditDrain,
+		AuditDrainDelivery, AuditLog, AuditOutbox, AuditRetentionPolicy,
+		BillingEntitlementEvent, BrandKit, BrandProfile, CalendarMutation, Campaign,
+		CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
+		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
+		ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
 		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
 		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
 		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
@@ -15367,12 +15936,13 @@ type (
 		WorkspaceSettings []ent.Hook
 	}
 	inters struct {
-		AccountDeletionRequest, AgentAuthorization, Apikey, Approval, Asset,
-		AudienceSubscriber, AuditDrain, AuditDrainDelivery, AuditLog, AuditOutbox,
-		AuditRetentionPolicy, BillingEntitlementEvent, BrandKit, BrandProfile,
-		Campaign, CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision,
-		ChannelConnection, CommunicationAttempt, CommunicationRecipient, ContentAngle,
-		ContentDraft, ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
+		AccountDeletionRequest, AgentAuthorization, AnalyticsAccount, AnalyticsPost,
+		AnalyticsSnapshot, Apikey, Approval, Asset, AudienceSubscriber, AuditDrain,
+		AuditDrainDelivery, AuditLog, AuditOutbox, AuditRetentionPolicy,
+		BillingEntitlementEvent, BrandKit, BrandProfile, CalendarMutation, Campaign,
+		CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
+		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
+		ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
 		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
 		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
 		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,

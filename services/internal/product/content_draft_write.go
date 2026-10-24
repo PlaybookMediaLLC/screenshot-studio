@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
@@ -138,8 +139,9 @@ func (c *Configuration) UpdateContentDraftProperties(ctx context.Context, actor 
 // ContentDraftPlanInput puts a draft on the calendar at a time, or takes it
 // off with a null time. A plan never publishes anything.
 type ContentDraftPlanInput struct {
-	PlannedFor *time.Time `json:"plannedFor"`
-	TimeZone   string     `json:"timeZone"`
+	BaseCalendarVersion int        `json:"baseCalendarVersion"`
+	PlannedFor          *time.Time `json:"plannedFor"`
+	TimeZone            string     `json:"timeZone"`
 }
 
 // PlanContentDraft sets or clears the draft's planned time. Planning makes no
@@ -149,25 +151,39 @@ func (c *Configuration) PlanContentDraft(ctx context.Context, actor Actor, id st
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
 		return nil, err
 	}
-	draft, err := c.loadDraft(ctx, actor, id)
-	if err != nil {
-		return nil, err
-	}
-	if draft.Status == contentdraft.StatusArchived {
-		return nil, conflict("Restore this draft before planning it.")
-	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
-	// A plan is not content: the version and the list order stay.
-	update := tx.ContentDraft.UpdateOneID(id).SetUpdatedAt(draft.UpdatedAt)
+	draft, err := visibleContentDraft(ctx, tx.Client(), actor, id)
+	if err != nil {
+		return nil, err
+	}
+	if draft.Status != contentdraft.StatusDraft {
+		return nil, conflict("Only an unpublished draft can be planned. Unschedule or duplicate this content first.")
+	}
+	if err := ensureDraftCanPlan(ctx, tx.Client(), id); err != nil {
+		return nil, err
+	}
+	// Legacy clients may initialize an untouched calendar placement. Never
+	// infer the current revision for an existing plan: that would let a stale
+	// client overwrite a teammate's date, including plans predating this field.
+	if input.BaseCalendarVersion == 0 && draft.CalendarVersion == 1 && draft.PlannedFor == nil {
+		input.BaseCalendarVersion = 1
+	}
+	if input.BaseCalendarVersion < 1 || input.BaseCalendarVersion != draft.CalendarVersion {
+		return nil, conflict("The calendar changed. Reload before placing this draft.")
+	}
+	update := tx.ContentDraft.Update().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID), contentdraft.CalendarVersion(input.BaseCalendarVersion), contentdraft.Version(draft.Version)).AddCalendarVersion(1).SetUpdatedAt(draft.UpdatedAt)
 	metadata := map[string]any{}
 	if input.PlannedFor == nil {
 		update.ClearPlannedFor().ClearPlanTimeZone()
 		metadata["cleared"] = true
 	} else {
+		if err := ensurePlanningDestinations(ctx, tx.Client(), draft); err != nil {
+			return nil, err
+		}
 		if !input.PlannedFor.After(time.Now()) {
 			return nil, invalid("Plan the draft for a time in the future.")
 		}
@@ -178,7 +194,14 @@ func (c *Configuration) PlanContentDraft(ctx context.Context, actor Actor, id st
 		update.SetPlannedFor(input.PlannedFor.UTC()).SetPlanTimeZone(zone)
 		metadata["plannedFor"], metadata["timeZone"] = input.PlannedFor.UTC().Format(time.RFC3339), zone
 	}
-	row, err := update.Save(ctx)
+	count, err := update.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if count != 1 {
+		return nil, publishing.ErrConflict
+	}
+	row, err := tx.ContentDraft.Get(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -337,6 +360,11 @@ func copiedTitle(title, mark string) string {
 
 // DuplicateContentDraft copies a draft within its social set.
 func (c *Configuration) DuplicateContentDraft(ctx context.Context, actor Actor, id string) (*ContentDraftCopyResult, error) {
+	return c.DuplicateContentDraftWithKey(ctx, actor, id, "")
+}
+
+// DuplicateContentDraftWithKey makes retries of a published-content reuse safe.
+func (c *Configuration) DuplicateContentDraftWithKey(ctx context.Context, actor Actor, id, key string) (*ContentDraftCopyResult, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
 		return nil, err
 	}
@@ -353,16 +381,32 @@ func (c *Configuration) DuplicateContentDraft(ctx context.Context, actor Actor, 
 		return nil, err
 	}
 	defer tx.Rollback()
+	replay, hash, err := beginDraftReuse(ctx, tx, actor, id, key)
+	if err != nil {
+		return nil, err
+	}
+	if replay != nil {
+		return replay, nil
+	}
 	content := contentOf(source)
 	content.title = copiedTitle(source.Title, "(copy)")
 	row, dropped, err := c.copyDraft(ctx, tx, actor, source, content, set, nonNilStrings(source.TagIds), "duplicate")
 	if err != nil {
 		return nil, err
 	}
+	result := &ContentDraftCopyResult{Draft: contentDraftRecord(row), Dropped: dropped}
+	if key != "" {
+		data, _ := json.Marshal(result)
+		saved := map[string]any{}
+		_ = json.Unmarshal(data, &saved)
+		if _, err := tx.CalendarMutation.Create().SetID(calendarReceiptID(actor, key)).SetOrganizationID(actor.OrganizationID).SetActorID(actor.UserID).SetInputHash(hash).SetResult(saved).Save(ctx); err != nil {
+			return nil, err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	return &ContentDraftCopyResult{Draft: contentDraftRecord(row), Dropped: dropped}, nil
+	return result, nil
 }
 
 // CopyContentDraftToSet copies a draft into another social set the actor may

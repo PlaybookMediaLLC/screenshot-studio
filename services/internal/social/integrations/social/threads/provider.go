@@ -637,6 +637,9 @@ func rawJSON(ctx context.Context, rawURL string, out any) error {
 		return err
 	}
 	defer res.Body.Close()
+	if err := integrations.CheckResponse(res); err != nil {
+		return err
+	}
 	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
@@ -732,8 +735,7 @@ func (p *Provider) PostAnalytics(ctx context.Context, _, accessToken, postID str
 		} `json:"data"`
 	}
 	if err := rawJSON(ctx, graphURL+"/v1.0/"+postID+"/insights?metric=views,likes,replies,reposts,quotes&access_token="+accessToken, &res); err != nil {
-		fmt.Fprintln(os.Stderr, "Error fetching Threads post analytics:", err)
-		return []integrations.AnalyticsData{}, nil
+		return nil, err
 	}
 
 	result := []integrations.AnalyticsData{}

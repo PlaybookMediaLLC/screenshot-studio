@@ -65,6 +65,8 @@ export const bestPostingTimesContract = defineContract({
 export const calendarPostSchema = contentDraftPostSchema.extend({
   campaignId: z.string().nullish(),
   campaignTitle: z.string().optional(),
+  version: z.number().int().nonnegative(),
+  calendarVersion: z.number().int().nonnegative(),
   draftId: z.string(),
   draftTitle: z.string(),
   socialSetId: z.string().nullable(),
@@ -172,7 +174,17 @@ export const shareContentDraftContract = defineContract({
 })
 
 /** Why a backup was kept. */
-export const revisionReasonSchema = z.enum(['edit', 'schedule', 'plan', 'publish', 'recovery'])
+export const revisionReasonSchema = z.enum([
+  'edit',
+  'schedule',
+  'plan',
+  'publish',
+  'recovery',
+  'calendar.move',
+  'calendar.swap',
+  'calendar.unschedule',
+  'calendar.remove_date',
+])
 
 /** A saved point in a draft's history: an immutable automatic backup. */
 export const contentDraftRevisionSchema = z.object({

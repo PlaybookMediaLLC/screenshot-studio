@@ -162,6 +162,23 @@ func TestDirectPublisherKeepsEachReplyPoll(t *testing.T) {
 	}
 }
 
+func TestThreadReceiptsKeepEachExactProviderIDForAnalytics(t *testing.T) {
+	p, _, _, input := directFixture()
+	input.Replies = []publishing.PublishReply{{Caption: "two"}, {Caption: "three"}}
+	receipt, err := p.PublishThread(context.Background(), input)
+	if err != nil || len(receipt.Thread.Receipts) != 2 {
+		t.Fatalf("receipt=%+v %v", receipt, err)
+	}
+	for i, remote := range receipt.Thread.Receipts {
+		if remote.Position != i+1 || remote.RemoteID == "" || remote.RemoteID == receipt.PostID || remote.PublishedAt.IsZero() {
+			t.Fatalf("reply=%+v", remote)
+		}
+	}
+	if receipt.Thread.Receipts[0].RemoteID == receipt.Thread.Receipts[1].RemoteID {
+		t.Fatal("reply IDs collapsed")
+	}
+}
+
 func TestDirectPublisherAcceptsConfirmedInstagramReceipt(t *testing.T) {
 	p, _, poster, input := directFixture()
 	input.Platform = "instagram-standalone"
@@ -317,5 +334,31 @@ func TestArticlePublisherUsesRichSnapshotAndSignsInlineMediaOnce(t *testing.T) {
 	input.Options.ArticleHTML = `<img data-asset-id="cother000001">`
 	if _, err := p.Publish(context.Background(), input); err == nil || provider.calls != 1 {
 		t.Fatal("unbound image reached provider")
+	}
+}
+
+type analyticsPoster struct{ *fakePoster }
+
+func (p *analyticsPoster) PostAnalytics(context.Context, string, string, string, int64) ([]integrations.AnalyticsData, error) {
+	return []integrations.AnalyticsData{{Label: "Impressions", Data: []integrations.AnalyticsItem{{Total: "0", Date: "2026-10-24"}}}}, nil
+}
+
+func TestAnalyticsCapabilitiesDoNotInheritPublishingRolloutRestrictions(t *testing.T) {
+	p, _, base, input := directFixture()
+	p.integrations.(fakeIntegrations).item.ProviderIdentifier = "facebook"
+	p.resolve = func(string) poster { return &analyticsPoster{base} }
+	if !p.AnalyticsCapabilities("facebook").Posts {
+		t.Fatal("installed analytics capability hidden")
+	}
+	metrics, err := p.PostMetrics(context.Background(), input.OrganizationID, input.DestinationID, "facebook", input.SecretReference, "remote-post")
+	if err != nil || len(metrics) != 1 || metrics["impressions"] != 0 {
+		t.Fatalf("metrics=%v error=%v", metrics, err)
+	}
+	if _, err := p.PostMetrics(context.Background(), input.OrganizationID, input.DestinationID, "facebook", "another-tenant-secret", "remote-post"); err == nil {
+		t.Fatal("analytics bypassed credential binding")
+	}
+	input.Platform = "facebook"
+	if _, err := p.Publish(context.Background(), input); err == nil {
+		t.Fatal("analytics widened publication rollout")
 	}
 }

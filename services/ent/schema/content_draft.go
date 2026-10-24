@@ -46,6 +46,7 @@ func (ContentDraft) Fields() []ent.Field {
 		field.String("share_token").StorageKey("shareToken").Optional().Nillable(),
 		// Comments left through that link: name, text and when.
 		field.JSON("guest_comments", []map[string]string{}).StorageKey("guestComments").Default([]map[string]string{}),
+		field.Int("calendar_version").StorageKey("calendarVersion").Default(1),
 		field.Int("version").StorageKey("version").Default(1),
 		// The set the draft belongs to (RFC 024), and what it copied from the
 		// set when it was created: copies, so changing the set's defaults

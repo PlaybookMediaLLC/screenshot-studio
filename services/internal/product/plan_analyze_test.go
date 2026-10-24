@@ -433,6 +433,47 @@ func TestPlanAnalyzeDatabase(t *testing.T) {
 			}
 		}
 	})
+	t.Run("A19 reconciliation skips receiptless backlogs before applying its batch limit", func(t *testing.T) {
+		d := draft("reconciliation backlog")
+		old := time.Now().UTC().Add(-48 * time.Hour).Truncate(time.Millisecond)
+		builders := make([]*ent.ScheduledPostCreate, 0, 201)
+		ids := make([]string, 201)
+		for i := range ids {
+			ids[i] = cuid.New()
+			builders = append(builders, repo.client.ScheduledPost.Create().SetID(ids[i]).SetOrganizationID(w.org).SetContentDraftID(d.ID).SetChannelConnectionID(x.ID).SetStatus(scheduledpost.StatusPUBLISHED).SetScheduledFor(old).SetCaption("reconciliation fixture").SetIdempotencyKey(ids[i]).SetRemotePostID(ids[i]).SetUpdatedAt(old.Add(time.Duration(i)*time.Second)))
+		}
+		if _, e := repo.client.ScheduledPost.CreateBulk(builders...).Save(ctx); e != nil {
+			t.Fatal(e)
+		}
+		completed := old.Add(time.Hour)
+		attempt := func(index, number int, remote string, at *time.Time) {
+			t.Helper()
+			if _, e := repo.client.PublicationAttempt.Create().SetID(cuid.New()).SetOrganizationID(w.org).SetScheduledPostID(ids[index]).SetAttemptNumber(number).SetStartedAt(old).SetNillableCompletedAt(at).SetProviderPostID(remote).Save(ctx); e != nil {
+				t.Fatal(e)
+			}
+		}
+		// Neither a different provider ID nor an unfinished attempt supplies a date.
+		attempt(0, 1, "different-receipt", &completed)
+		attempt(1, 1, ids[1], nil)
+		attempt(200, 1, ids[200], &completed)
+		for i := 0; i < 2; i++ {
+			if e := repo.importCanonicalAnalyticsPosts(ctx, x); e != nil {
+				t.Fatal(e)
+			}
+		}
+		rows, e := repo.client.AnalyticsPost.Query().Where(analyticspost.ConnectionID(x.ID), analyticspost.RemoteIDIn(ids...)).All(ctx)
+		if e != nil || len(rows) != 1 || rows[0].RemoteID != ids[200] || !rows[0].PublishedAt.Equal(completed) {
+			t.Fatalf("receiptless backlog blocked confirmed publication or invented dates: %+v %v", rows, e)
+		}
+		// A skipped publication becomes eligible as soon as its matching dated receipt arrives.
+		attempt(0, 2, ids[0], &completed)
+		if e := repo.importCanonicalAnalyticsPosts(ctx, x); e != nil {
+			t.Fatal(e)
+		}
+		if count, e := repo.client.AnalyticsPost.Query().Where(analyticspost.ConnectionID(x.ID), analyticspost.RemoteIDIn(ids...)).Count(ctx); e != nil || count != 2 {
+			t.Fatalf("late receipt was never reconciled: %d %v", count, e)
+		}
+	})
 	t.Run("P33 P37 confirmed receipt completes a scheduled plan once and becomes analytics history", func(t *testing.T) {
 		d := plan(draft("confirmed fixture publication"), at)
 		scheduled, e := repo.ScheduleContentDraft(ctx, owner, d.ID, ScheduleContentDraftInput{Version: d.Version, PublishNow: true, Targets: []ContentDraftScheduleTarget{{ChannelConnectionID: x.ID, Caption: d.PlainText}}})

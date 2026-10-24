@@ -13,6 +13,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticspost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticssnapshot"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/lucsky/cuid"
@@ -286,7 +287,16 @@ func (c *Configuration) importAnalyticsPost(ctx context.Context, connection *ent
 	return row, err
 }
 func (c *Configuration) importCanonicalAnalyticsPosts(ctx context.Context, connection *ent.ChannelConnection) error {
-	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(connection.OrganizationID), scheduledpost.ChannelConnectionID(connection.ID), scheduledpost.RemotePostIDNotNil(), scheduledpost.StatusIn(scheduledpost.StatusPUBLISHED, scheduledpost.StatusFAILED), func(s *sql.Selector) {
+	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(connection.OrganizationID), scheduledpost.ChannelConnectionID(connection.ID), scheduledpost.RemotePostIDNEQ(""), scheduledpost.StatusIn(scheduledpost.StatusPUBLISHED, scheduledpost.StatusFAILED), func(s *sql.Selector) {
+		// Manual reconciliation may confirm a remote ID without a dated receipt.
+		// Exclude those rows before the limit so they cannot starve importable posts.
+		r := sql.Table(publicationattempt.Table)
+		s.Where(sql.Exists(sql.Select(r.C(publicationattempt.FieldID)).From(r).Where(sql.And(
+			sql.ColumnsEQ(r.C(publicationattempt.FieldScheduledPostID), s.C(scheduledpost.FieldID)),
+			sql.ColumnsEQ(r.C(publicationattempt.FieldOrganizationID), s.C(scheduledpost.FieldOrganizationID)),
+			sql.ColumnsEQ(r.C(publicationattempt.FieldProviderPostID), s.C(scheduledpost.FieldRemotePostID)),
+			sql.NotNull(r.C(publicationattempt.FieldCompletedAt)),
+		))))
 		a := sql.Table(analyticspost.Table)
 		s.Where(sql.NotExists(sql.Select(a.C(analyticspost.FieldID)).From(a).Where(sql.And(
 			sql.ColumnsEQ(a.C(analyticspost.FieldConnectionID), s.C(scheduledpost.FieldChannelConnectionID)),

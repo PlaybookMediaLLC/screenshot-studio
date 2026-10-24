@@ -131,6 +131,8 @@ Week cards now use separate lanes for overlapping time ranges, including repeate
 
 Archive restoration now restores visibility while retaining the scheduled state of active, uncertain, published or partially published commitments. It preserves provider records and calendar revisions, creates no publishing jobs, and continues to reject actual planning of committed content. The regression reproduced the restore rejection before the fix (`restore-before.log`); D with `-race` then passed 53 tests with no failures or skips (`restore-after.jsonl`), including eight restoration states, stale updates and attempts to combine restoration with replanning. `go vet ./internal/product` passed. Restore notifications no longer imply published content became a new draft.
 
+Canonical reconciliation now requires a matching, completed publication receipt before applying its 200-row limit. The backlog regression reproduced starvation with 200 older receiptless publications and one newer confirmed publication (`reconciliation-before.log`). D with `-race` passed 54 tests with no failures or skips after the fix (`reconciliation-after.jsonl`). The new case also rejects mismatched and unfinished receipts, checks repeated collection, and confirms a previously skipped publication becomes eligible when a dated receipt arrives.
+
 ## External checks before production enablement
 
 - Use authorized provider accounts, actual granted scopes, supported API tiers and quota. X follower reads, timeline import and private click metrics require the corresponding provider access; unavailable private counters remain absent. LinkedIn personal currently lacks the installed analytics interface; do not infer support from publishing. Page/Instagram/Threads permissions are provider-specific.

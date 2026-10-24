@@ -46,6 +46,7 @@ import {
   shiftAnchor,
   validDay,
   visibleItems,
+  weekCardLayout,
   type PlanItem,
   type PlanPreferences,
 } from '@/lib/plan/calendar'
@@ -120,6 +121,19 @@ export function PlanWorkspace({
   const rangeKey = `${days[0]}:${days.at(-1)}:${prefs.zone}`
   const today = zonedDayKey(new Date(), prefs.zone)
   const shown = visibleItems(items, prefs)
+  const weekCardHeight = prefs.density === 'compact' ? 88 : 120
+  const weekLayouts = Object.fromEntries(
+    prefs.view === 'week'
+      ? days.map((day) => [
+          day,
+          weekCardLayout(
+            shown.filter((item) => itemDay(item, prefs.zone) === day),
+            prefs.zone,
+            weekCardHeight
+          ),
+        ])
+      : []
+  )
   const setPref = (patch: Partial<PlanPreferences>) => setPrefs((p) => ({ ...p, ...patch }))
   const allState = selectionState(
     prefs.visible,
@@ -365,7 +379,7 @@ export function PlanWorkspace({
       toast.error((e as Error).message)
     }
   }
-  const card = (item: PlanItem) => (
+  const card = (item: PlanItem, weekly = false) => (
     <button
       key={item.id}
       type="button"
@@ -386,9 +400,9 @@ export function PlanWorkspace({
       }}
       onDrop={(e) => drop(e, itemDay(item, prefs.zone), undefined, item)}
       onClick={() => setDetail(item)}
-      className={`w-full rounded-lg border p-2 text-left text-xs shadow-sm ${item.status === 'Planned' ? 'border-dashed border-violet-400' : item.status === 'Published' ? 'border-emerald-500' : item.status === 'Failed' ? 'border-red-500' : 'border-sky-500'} bg-background`}
+      className={`w-full rounded-lg border p-2 text-left text-xs shadow-sm ${weekly ? 'h-full overflow-hidden' : ''} ${item.status === 'Planned' ? 'border-dashed border-violet-400' : item.status === 'Published' ? 'border-emerald-500' : item.status === 'Failed' ? 'border-red-500' : 'border-sky-500'} bg-background`}
     >
-      <span className="block text-muted-foreground">
+      <span className="block truncate text-muted-foreground">
         {new Date(item.at).toLocaleTimeString(undefined, {
           hour: 'numeric',
           minute: '2-digit',
@@ -828,6 +842,15 @@ export function PlanWorkspace({
             <div
               className="hidden min-w-[700px] grid-cols-7 md:grid"
               aria-label={`${prefs.view} calendar`}
+              style={
+                prefs.view === 'week'
+                  ? {
+                      gridTemplateColumns: days
+                        .map((day) => `minmax(${weekLayouts[day].lanes * 160 + 16}px, 1fr)`)
+                        .join(' '),
+                    }
+                  : undefined
+              }
             >
               {days.map((day) => (
                 <section
@@ -867,7 +890,7 @@ export function PlanWorkspace({
                     ) : null}
                   </div>
                   {prefs.view === 'week' ? (
-                    <div className="relative h-[1440px]">
+                    <div className="relative" style={{ height: 1440 + weekCardHeight }}>
                       {Array.from({ length: 24 }, (_, hour) => (
                         <div
                           key={hour}
@@ -885,27 +908,26 @@ export function PlanWorkspace({
                         </div>
                       ))}
                       {slotsFor(day, true)}
-                      {shown
-                        .filter((i) => itemDay(i, prefs.zone) === day)
-                        .map((item) => {
-                          const time = wallTime(new Date(item.at), prefs.zone)
-                            .slice(11)
-                            .split(':')
-                            .map(Number)
-                          return (
-                            <div
-                              className="absolute left-1 right-0"
-                              style={{ top: time[0] * 60 + time[1] }}
-                              key={item.id}
-                            >
-                              {card(item)}
-                            </div>
-                          )
-                        })}
+                      {weekLayouts[day].cards.map(({ item, top, lane }) => (
+                        <div
+                          className="absolute"
+                          style={{
+                            top,
+                            left: `${(lane / weekLayouts[day].lanes) * 100}%`,
+                            width: `calc(${100 / weekLayouts[day].lanes}% - 4px)`,
+                            height: weekCardHeight,
+                          }}
+                          key={item.id}
+                        >
+                          {card(item, true)}
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="grid gap-2">
-                      {shown.filter((i) => itemDay(i, prefs.zone) === day).map(card)}
+                      {shown
+                        .filter((i) => itemDay(i, prefs.zone) === day)
+                        .map((item) => card(item))}
                     </div>
                   )}
                   {prefs.view !== 'week' ? slotsFor(day) : null}

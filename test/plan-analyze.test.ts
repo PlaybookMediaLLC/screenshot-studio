@@ -12,6 +12,7 @@ import {
   selectedInstant,
   visibleItems,
   itemDay,
+  weekCardLayout,
   type PlanItem,
 } from '../lib/plan/calendar'
 import {
@@ -153,6 +154,41 @@ test('P12 week is exactly seven consecutive dates across year boundaries', () =>
 test('P13 all views contain their anchor without mutating it', () => {
   for (const view of ['flex', 'month', 'week'] as const)
     assert.ok(calendarDays('2026-12-31', view, 1).includes('2026-12-31'))
+})
+test('P12 overlapping weekly cards remain separate and reuse lanes only after a card ends', () => {
+  const near = { ...items[0], id: 'near', at: '2026-04-01T02:00:00Z' }
+  const later = { ...items[0], id: 'later', at: '2026-04-01T03:34:00Z' }
+  const input = [later, items[1], near, items[0]]
+  const layout = weekCardLayout(input, 'UTC', 120)
+  assert.equal(layout.lanes, 3)
+  assert.deepEqual(
+    layout.cards.map(({ item, top, lane }) => [item.id, top, lane]),
+    [
+      ['one', 90, 0],
+      ['two', 90, 1],
+      ['near', 120, 2],
+      ['later', 214, 0],
+    ]
+  )
+  assert.deepEqual(
+    input.map((item) => item.id),
+    ['later', 'two', 'near', 'one']
+  )
+})
+test('P12 repeated DST wall-clock times occupy separate weekly lanes', () => {
+  const input = [
+    { ...items[0], at: '2026-11-01T05:30:00Z' },
+    { ...items[1], at: '2026-11-01T06:30:00Z' },
+  ]
+  const layout = weekCardLayout(input, 'America/New_York', 88)
+  assert.equal(layout.lanes, 2)
+  assert.deepEqual(
+    layout.cards.map(({ top, lane }) => [top, lane]),
+    [
+      [90, 0],
+      [90, 1],
+    ]
+  )
 })
 test('P14 navigation increments weeks or clamped calendar months', () => {
   assert.equal(shiftAnchor('2026-01-31', 'month', 1, 3), '2026-02-28')

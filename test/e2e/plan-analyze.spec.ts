@@ -214,6 +214,58 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
         await db.end()
       }
     })
+    await test.step('P12 simultaneous posts from different accounts remain clickable in Week view', async () => {
+      const created = await apiRequest(page, '/api/v1/content-drafts', {
+        method: 'POST',
+        body: {
+          socialSetId: second.id,
+          plainText: 'Overlapping weekly account post',
+          channelConnectionIds: [workspace!.channels.linkedin],
+        },
+      })
+      expect(created.status, JSON.stringify(created.body)).toBe(201)
+      const overlapping = created.body as { id: string; calendarVersion: number }
+      const planned = await apiRequest(page, `/api/v1/content-drafts/${overlapping.id}/plan`, {
+        method: 'POST',
+        body: { plannedFor, timeZone: 'UTC', baseCalendarVersion: overlapping.calendarVersion },
+      })
+      expect(planned.status, JSON.stringify(planned.body)).toBe(200)
+      await page.goto(`/write/plan?day=${day}`)
+      await page.getByLabel('Calendar view').selectOption('week')
+      const other = page
+        .getByTestId('calendar-planned')
+        .filter({ hasText: 'Overlapping weekly account post', visible: true })
+      await expect(card).toBeVisible()
+      await expect(other).toBeVisible()
+      const firstBox = await card.boundingBox()
+      const secondBox = await other.boundingBox()
+      expect(firstBox).not.toBeNull()
+      expect(secondBox).not.toBeNull()
+      expect(
+        firstBox!.x + firstBox!.width <= secondBox!.x ||
+          secondBox!.x + secondBox!.width <= firstBox!.x
+      ).toBe(true)
+      for (const [target, text] of [
+        [card, 'A planned post from the authenticated calendar'],
+        [other, 'Overlapping weekly account post'],
+      ] as const) {
+        await target.click()
+        await expect(page.getByRole('dialog').getByText(text, { exact: true })).toBeVisible()
+        await page.keyboard.press('Escape')
+      }
+      const revision = planned.body as { version: number; calendarVersion: number }
+      expect(
+        (
+          await apiRequest(
+            page,
+            `/api/v1/content-drafts/${overlapping.id}?version=${revision.version}&calendarVersion=${revision.calendarVersion}`,
+            { method: 'DELETE' }
+          )
+        ).status
+      ).toBe(200)
+      await page.getByLabel('Calendar view').selectOption('month')
+      await page.reload()
+    })
     await test.step('P16 P17 P18 filters density week start and unavailable-tag recovery retain accounts', async () => {
       await page.getByText('Filters', { exact: true }).click()
       await page.getByRole('checkbox', { name: 'Published', exact: true }).check()

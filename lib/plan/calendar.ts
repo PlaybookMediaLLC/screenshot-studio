@@ -108,6 +108,27 @@ export function itemDay(item: PlanItem, zone: string): string {
   return zonedDayKey(new Date(item.at), zone)
 }
 
+/** Reserve a separate lane for every overlapping card, including repeated DST hours. */
+export function weekCardLayout(items: PlanItem[], zone: string, height: number) {
+  const ends: number[] = []
+  const cards = items
+    .map((item) => {
+      const [hour, minute] = wallTime(new Date(item.at), zone).slice(11).split(':').map(Number)
+      return { item, top: hour * 60 + minute }
+    })
+    .sort(
+      (a, b) =>
+        a.top - b.top || a.item.at.localeCompare(b.item.at) || a.item.id.localeCompare(b.item.id)
+    )
+    .map(({ item, top }) => {
+      const available = ends.findIndex((end) => end <= top)
+      const lane = available < 0 ? ends.length : available
+      ends[lane] = top + height + 4
+      return { item, top, lane }
+    })
+  return { cards, lanes: Math.max(1, ends.length) }
+}
+
 /** Slots belong to the account's zone; locate them on the displayed calendar without rewriting them. */
 export function displayDaySlots(
   day: string,

@@ -15,7 +15,7 @@ export const socialMentionSchema = z.object({
   image: z.string().optional(),
   kind: mentionKindSchema,
   label: z.string(),
-  /** The X username, or a LinkedIn organization URN. */
+  /** The native numeric X user ID, or a LinkedIn organization URN. */
   providerId: z.string(),
 })
 

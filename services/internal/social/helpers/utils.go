@@ -3,21 +3,27 @@
 package helpers
 
 import (
+	"net/url"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 )
 
 // HasExtension reports whether path has the extension.
-func HasExtension(path, extension string) bool {
-	if path == "" {
+func HasExtension(location, extension string) bool {
+	if location == "" {
+		return false
+	}
+	parsed, err := url.Parse(location)
+	if err != nil {
 		return false
 	}
 	ext := extension
 	if !strings.HasPrefix(ext, ".") {
 		ext = "." + ext
 	}
-	return strings.Contains(strings.ToLower(path), strings.ToLower(ext))
+	return strings.EqualFold(path.Ext(parsed.Path), ext)
 }
 
 // IsAllowedUploadPath checks RESTRICT_UPLOAD_DOMAINS.

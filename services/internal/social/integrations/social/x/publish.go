@@ -44,13 +44,14 @@ type pendingData struct {
 }
 
 type pendingSettings struct {
-	WhoCanReplyPost *string `json:"who_can_reply_post,omitempty"`
-	Community       *string `json:"community,omitempty"`
-	MadeWithAI      any     `json:"made_with_ai,omitempty"`
-	PaidPartnership any     `json:"paid_partnership,omitempty"`
-	PostType        *string `json:"post_type,omitempty"`
-	ArticleTitle    *string `json:"article_title,omitempty"`
-	ArticleStatus   *string `json:"article_status,omitempty"`
+	TaggedUserIDs   []string `json:"tagged_user_ids,omitempty"`
+	WhoCanReplyPost *string  `json:"who_can_reply_post,omitempty"`
+	Community       *string  `json:"community,omitempty"`
+	MadeWithAI      any      `json:"made_with_ai,omitempty"`
+	PaidPartnership any      `json:"paid_partnership,omitempty"`
+	PostType        *string  `json:"post_type,omitempty"`
+	ArticleTitle    *string  `json:"article_title,omitempty"`
+	ArticleStatus   *string  `json:"article_status,omitempty"`
 	// Write (RFC 025). Pending data from before these fields has neither.
 	ShareWithFollowers *bool   `json:"share_with_followers,omitempty"`
 	QuoteTweetID       *string `json:"quote_tweet_id,omitempty"`
@@ -278,7 +279,7 @@ func (p *Provider) PostPending(ctx context.Context, _, accessToken string, posts
 		if !article {
 			message = toTweetText(message)
 		}
-		if err := checkPublishingContent(caps, message, pendingSettings{QuoteTweetID: settings.QuoteTweetID,
+		if err := checkPublishingContent(caps, message, pendingSettings{TaggedUserIDs: settings.TaggedUserIDs, QuoteTweetID: settings.QuoteTweetID,
 			ArticleTitle: settings.ArticleTitle, ArticleStatus: settings.ArticleStatus}, len(post.Media), article); err != nil {
 			return nil, err
 		}
@@ -330,6 +331,7 @@ func (p *Provider) PostPending(ctx context.Context, _, accessToken string, posts
 	pending := pendingData{
 		Message: message,
 		Settings: pendingSettings{
+			TaggedUserIDs:      settings.TaggedUserIDs,
 			WhoCanReplyPost:    settings.WhoCanReplyPost,
 			Community:          settings.Community,
 			MadeWithAI:         settings.MadeWithAI,
@@ -467,6 +469,9 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 			return nil, publishRejected("An X media attachment is missing or invalid. Prepare the post again.")
 		}
 	}
+	if err := checkPhotoTagFacts(pending.Settings.TaggedUserIDs, pending.MediaFacts); err != nil {
+		return nil, err
+	}
 	if err := checkMediaFacts(caps, pending.MediaFacts, str(pending.Settings.PostType) == "article"); err != nil {
 		return nil, err
 	}
@@ -499,7 +504,7 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 	}
 	body.QuoteTweetID = str(settings.QuoteTweetID)
 	if len(mediaIDs) > 0 {
-		body.Media = &tweetMedia{MediaIDs: mediaIDs}
+		body.Media = &tweetMedia{MediaIDs: mediaIDs, TaggedUserIDs: pending.Settings.TaggedUserIDs}
 	}
 	id, err := p.createTweet(ctx, token, secret, body)
 	if err != nil {
@@ -513,7 +518,8 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 }
 
 type tweetMedia struct {
-	MediaIDs []string `json:"media_ids"`
+	TaggedUserIDs []string `json:"tagged_user_ids,omitempty"`
+	MediaIDs      []string `json:"media_ids"`
 }
 
 type tweetBody struct {
@@ -663,7 +669,7 @@ func (p *Provider) Comment(ctx context.Context, _, postID, lastCommentID, access
 		return nil, err
 	}
 	check := func() error {
-		return checkPublishingContent(caps, commentText, pendingSettings{QuoteTweetID: settings.QuoteTweetID}, len(commentPost.Media), false)
+		return checkPublishingContent(caps, commentText, pendingSettings{TaggedUserIDs: settings.TaggedUserIDs, QuoteTweetID: settings.QuoteTweetID}, len(commentPost.Media), false)
 	}
 	if err := check(); err != nil {
 		return nil, err
@@ -690,6 +696,9 @@ func (p *Provider) Comment(ctx context.Context, _, postID, lastCommentID, access
 		if err := check(); err != nil {
 			return nil, err
 		}
+		if err := checkPhotoTagFacts(settings.TaggedUserIDs, uploadAll.facts); err != nil {
+			return nil, err
+		}
 		if err := checkMediaFacts(caps, uploadAll.facts, false); err != nil {
 			return nil, err
 		}
@@ -711,7 +720,7 @@ func (p *Provider) Comment(ctx context.Context, _, postID, lastCommentID, access
 		body.ReplySettings = who
 	}
 	if len(mediaIDs) > 0 {
-		body.Media = &tweetMedia{MediaIDs: mediaIDs}
+		body.Media = &tweetMedia{MediaIDs: mediaIDs, TaggedUserIDs: settings.TaggedUserIDs}
 	}
 	body.Reply = &struct {
 		InReplyToTweetID string `json:"in_reply_to_tweet_id"`

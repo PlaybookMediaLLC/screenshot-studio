@@ -56,9 +56,25 @@ export type DraftWorkspace = {
 export async function createDraftWorkspace(
   identity: E2EIdentity,
   page: Page,
-  platforms: readonly string[] = ['x', 'linkedin']
+  platforms: readonly string[] = ['x', 'linkedin'],
+  options: { verifiedStandardVideo?: boolean } = {}
 ): Promise<DraftWorkspace> {
   let organizationId = ''
+  const verification = options.verifiedStandardVideo
+    ? {
+        ...xVerification,
+        capabilities: {
+          ...xVerification.capabilities,
+          x: {
+            ...xVerification.capabilities.x,
+            subscriptionType: 'None',
+            articles: false,
+            videoMaxBytes: 8_000_000_000,
+            videoMaxDurationSeconds: 1200,
+          },
+        },
+      }
+    : xVerification
   const provider = await startHttpMockServer((request) => {
     if (request.url === '/api/public/v1/me') {
       return { body: { organization: { id: `go-${organizationId}` } } }
@@ -73,7 +89,7 @@ export async function createDraftWorkspace(
           handle: 'shots_x',
           active: true,
           verifiedAt: new Date().toISOString(),
-          verification: xVerification,
+          verification,
         },
       }
     }
@@ -116,10 +132,10 @@ export async function createDraftWorkspace(
           WHERE id=$1`,
           [
             `social-${organizationId}-x`,
-            xVerification.accountKey,
-            xVerification.accountKind,
-            JSON.stringify(xVerification.grantedScopes),
-            JSON.stringify(xVerification.capabilities),
+            verification.accountKey,
+            verification.accountKind,
+            JSON.stringify(verification.grantedScopes),
+            JSON.stringify(verification.capabilities),
           ]
         )
       }

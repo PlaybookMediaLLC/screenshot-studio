@@ -92,6 +92,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/content-drafts/link-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach a validated page image to the workspace
+         * @description Resolve a safe page image and store a validated workspace attachment.
+         */
+        post: operations["attachDraftLinkImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-drafts/giphy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search the approved GIPHY integration
+         * @description Search GIFs only with operator-confirmed provider approval for server search and storage.
+         */
+        get: operations["searchDraftGiphy"];
+        put?: never;
+        /**
+         * Attach a GIF through an approved durable-storage integration
+         * @description Revalidate a selected GIF and persist it through the workspace upload pipeline.
+         */
+        post: operations["attachDraftGiphy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/calendar/mutations": {
         parameters: {
             query?: never;
@@ -1823,6 +1867,8 @@ export interface components {
             bytes: number;
             /** Format: cuid */
             projectId?: string;
+            /** Format: uuid */
+            parentAssetId?: string;
             /**
              * @default input
              * @enum {string}
@@ -3586,6 +3632,197 @@ export interface operations {
             };
             /** @description The upstream host refused the request. */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    attachDraftLinkImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uri */
+                    url: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Durable image attachment. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        assetId: string;
+                        sourceUrl: string;
+                        width: number;
+                        height: number;
+                    };
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No safe, supported image is available. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    searchDraftGiphy: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approved GIF search results. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            title: string;
+                            /** Format: uri */
+                            previewUrl: string;
+                            /** Format: uri */
+                            sourceUrl: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Approval is not configured or GIPHY is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    attachDraftGiphy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Durable GIF attachment. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        assetId: string;
+                        sourceUrl: string;
+                    };
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The selected GIF is unavailable or invalid. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Approval is not configured or GIPHY is unavailable. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

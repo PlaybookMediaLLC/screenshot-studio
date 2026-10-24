@@ -139,18 +139,33 @@ function FrameLayout({
   const [palette, setPalette] = React.useState(false)
   const [reference, setReference] = React.useState(false)
   const launcher = React.useRef<HTMLElement | null>(null)
-  const open = (setter: (value: boolean) => void) => {
+  const launcherRange = React.useRef<Range | null>(null)
+  const launcherScroll = React.useRef<{ element: HTMLElement; top: number; left: number } | null>(
+    null
+  )
+  const rememberLauncher = React.useCallback(() => {
     launcher.current = document.activeElement as HTMLElement | null
+    const selection = window.getSelection()
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null
+    launcherRange.current =
+      range && launcher.current?.contains(range.commonAncestorContainer) ? range.cloneRange() : null
+    const element = launcher.current?.closest('main')
+    launcherScroll.current = element
+      ? { element, top: element.scrollTop, left: element.scrollLeft }
+      : null
+  }, [])
+  const open = (setter: (value: boolean) => void) => {
+    rememberLauncher()
     setter(true)
   }
   React.useEffect(() => {
     const show = () => {
-      launcher.current = document.activeElement as HTMLElement | null
+      rememberLauncher()
       setPalette(true)
     }
     window.addEventListener('shots:search-write', show)
     return () => window.removeEventListener('shots:search-write', show)
-  }, [])
+  }, [rememberLauncher])
   const step = (delta: number) => {
     const ids = data.library.map((draft) => draft.id)
     const index = activeId ? ids.indexOf(activeId) : -1
@@ -245,8 +260,20 @@ function FrameLayout({
     },
   ])
   const restoreFocus = () => {
-    // Focus goes back to whatever opened the dialog.
-    setTimeout(() => launcher.current?.focus(), 0)
+    // Focusing a contenteditable alone moves its native caret to the start.
+    // Restore its range as well, while leaving the surrounding scroll in place.
+    setTimeout(() => {
+      if (!launcher.current?.isConnected) return
+      launcher.current.focus({ preventScroll: true })
+      const range = launcherRange.current
+      if (range?.startContainer.isConnected && range.endContainer.isConnected) {
+        const selection = window.getSelection()
+        selection?.removeAllRanges()
+        selection?.addRange(range)
+      }
+      const scroll = launcherScroll.current
+      if (scroll?.element.isConnected) scroll.element.scrollTo(scroll.left, scroll.top)
+    }, 0)
   }
   React.useEffect(() => {
     const timer = setTimeout(() => {

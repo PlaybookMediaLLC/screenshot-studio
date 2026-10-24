@@ -52,6 +52,9 @@ func postSettings(platform string, base map[string]any, options *postoptions.Pub
 }
 
 func xSettings(settings map[string]any, options postoptions.PublishOptions, rootID string) {
+	if len(options.TaggedUserIDs) > 0 {
+		settings["tagged_user_ids"] = options.TaggedUserIDs
+	}
 	if options.ReplySettings != "" {
 		settings["who_can_reply_post"] = options.ReplySettings
 	}
@@ -141,6 +144,9 @@ func (p *Publisher) Mentions(ctx context.Context, organizationID, destinationID,
 	}
 	found, _, err := finder.Mention(ctx, account.Token, query, account.InternalID, account)
 	if err != nil {
+		if platform == "x" {
+			return nil, err
+		}
 		// LinkedIn answers an unknown vanity name with an error, not an empty list.
 		slog.InfoContext(ctx, "mention lookup found nothing", "platform", platform, "error", err)
 		return []product.Mention{}, nil
@@ -150,7 +156,7 @@ func (p *Publisher) Mentions(ctx context.Context, organizationID, destinationID,
 		mention := product.Mention{Image: item.Image, Label: item.Label}
 		switch platform {
 		case "x":
-			mention.Kind, mention.Handle, mention.ProviderID = "person", item.ID, item.ID
+			mention.Kind, mention.Handle, mention.ProviderID = "person", item.ID, item.NativeID
 		case "linkedin":
 			mention.Kind, mention.ProviderID = "organization", "urn:li:organization:"+item.ID
 		default:

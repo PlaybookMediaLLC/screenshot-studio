@@ -128,7 +128,12 @@ export function WriteRail() {
         >
           Calendar
         </Link>
-        <Link className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white" href="/write/analyze">Analyze</Link>
+        <Link
+          className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
+          href="/write/analyze"
+        >
+          Analyze
+        </Link>
         <Link
           className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
           href={data.activeSet ? `/write/settings?set=${data.activeSet.id}` : '/write/settings'}

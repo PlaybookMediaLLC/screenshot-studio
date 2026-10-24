@@ -35,7 +35,7 @@ export default function CommandPalette({
   const t = useTranslations('platformNavigation')
   const keys = useKeys()
   const router = useWriteRouter()
-  const { beforeLeaveRef, canEdit, data, setQuery } = useWrite()
+  const { beforeLeaveRef, openPreviewRef, activeId, canEdit, data, setQuery } = useWrite()
   const [results, setResults] = React.useState<{ id: string; title: string; plainText: string }[]>(
     []
   )
@@ -126,6 +126,15 @@ export default function CommandPalette({
           </CommandGroup>
         ) : null}
         <CommandGroup heading="Commands">
+          {activeId ? (
+            <CommandItem
+              value="Preview current draft"
+              onSelect={() => go(() => openPreviewRef.current?.())}
+            >
+              Preview current draft
+              <CommandShortcut>{keys.label({ key: 'v', mod: true, shift: true })}</CommandShortcut>
+            </CommandItem>
+          ) : null}
           {canEdit ? (
             <CommandItem
               onSelect={() =>

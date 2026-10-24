@@ -617,6 +617,7 @@ export type BackendAssetListItem = {
 export type BackendAssetPage = { assets: BackendAssetListItem[]; nextCursor: string | null }
 
 export type BackendAssetUploadInput = {
+  parentAssetId?: string
   projectId?: string
   bytes: number
   classification?: 'capture' | 'derived' | 'export' | 'input'
@@ -1169,6 +1170,7 @@ export type BackendContentDraftScheduleTarget = {
 
 /** A post's settings beyond its text, as a scheduled post keeps them (RFC 025). */
 export type BackendPublishOptions = {
+  taggedUserIds?: string[]
   articleCoverAssetId?: string
   articleTitle?: string
   communityId?: string

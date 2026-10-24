@@ -38,7 +38,7 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 		return nil
 	}
 	o := *options
-	xOnly := o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" || o.QuoteFirstPost ||
+	xOnly := len(o.TaggedUserIDs) > 0 || o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" || o.QuoteFirstPost ||
 		o.ArticleTitle != "" || o.ArticleCoverAssetID != ""
 	linkedInOnly := o.Visibility != "" || o.FirstComment != "" || o.DocumentAssetID != "" || o.PollQuestion != ""
 	switch {

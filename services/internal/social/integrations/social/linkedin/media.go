@@ -5,11 +5,13 @@ import (
 	"context"
 	"fmt"
 	"image"
+	_ "image/gif"
 	"image/jpeg"
 	"image/png"
-	"path"
 	"strings"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/mediaimage"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/medialimits"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"golang.org/x/image/draw"
 )
@@ -17,29 +19,32 @@ import (
 // jpegQuality is sharp's default JPEG quality.
 const jpegQuality = 80
 
-// mimeLookup is mime-types lookup() for the types prepareMediaBuffer branches on.
-func mimeLookup(p string) string {
-	switch strings.ToLower(path.Ext(p)) {
-	case ".gif":
-		return "image/gif"
-	case ".png":
-		return "image/png"
-	case ".jpg", ".jpeg", ".jpe":
-		return "image/jpeg"
-	}
-	return ""
-}
-
 // prepareMediaBuffer reads an image and re-encodes it like the sharp pipeline:
 // GIFs pass through untouched (re-encoding would break animation), PNG and
-// JPEG keep their format, anything else becomes JPEG.
+// JPEG keep their format, anything else becomes JPEG. Inspect bytes rather than
+// URL extensions: signed delivery URLs include query strings.
 func (p *Provider) prepareMediaBuffer(ctx context.Context, mediaURL string) ([]byte, error) {
-	raw, err := p.ReadOrFetch(ctx, mediaURL)
+	raw, err := p.ReadOrFetchBounded(ctx, mediaURL, int64(medialimits.Limits.PaidImageBytes))
 	if err != nil {
 		return nil, err
 	}
-	mime := mimeLookup(mediaURL)
-	if mime == "image/gif" {
+	config, format, err := image.DecodeConfig(bytes.NewReader(raw))
+	if err != nil {
+		return nil, err
+	}
+	pixels := int64(config.Width) * int64(config.Height)
+	if config.Width < 1 || config.Height < 1 || pixels > int64(medialimits.Limits.ImagePixels) {
+		return nil, fmt.Errorf("Choose an image up to %d pixels.", medialimits.Limits.ImagePixels)
+	}
+	if format == "gif" {
+		// LinkedIn accepts at most 250 GIF frames and fewer than 36,152,320
+		// pixels. Reject incompatible animation rather than flattening it.
+		if pixels >= 36152320 {
+			return nil, fmt.Errorf("LinkedIn GIFs must have fewer than 36,152,320 pixels.")
+		}
+		if err := mediaimage.ValidateGIF(raw, mediaimage.GIFLimits{MaxWidth: 65535, MaxHeight: 65535, MaxFrames: 250, MaxCanvasPixels: 300000000}); err != nil {
+			return nil, err
+		}
 		return raw, nil
 	}
 	img, format, err := image.Decode(bytes.NewReader(raw))
@@ -53,11 +58,13 @@ func (p *Provider) prepareMediaBuffer(ctx context.Context, mediaURL string) ([]b
 	img = fitInside(img, 6000, 6000)
 
 	var out bytes.Buffer
-	keepFormat := mime == "image/png" || mime == "image/jpeg"
-	if keepFormat && format == "png" {
+	if format == "png" {
 		err = png.Encode(&out, img)
 	} else {
 		err = jpeg.Encode(&out, img, &jpeg.Options{Quality: jpegQuality})
+	}
+	if err == nil && out.Len() > medialimits.Limits.PaidImageBytes {
+		return nil, fmt.Errorf("The prepared LinkedIn image exceeds the %d-byte application limit.", medialimits.Limits.PaidImageBytes)
 	}
 	return out.Bytes(), err
 }

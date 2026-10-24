@@ -80,6 +80,14 @@ func checkXTarget(ctx context.Context, tx *ent.Tx, connection *ent.ChannelConnec
 				media = append(media, socialidentity.XMedia{MIME: row.MediaType, Bytes: int64(row.Bytes)})
 			}
 		}
+		if options != nil {
+			if isArticle && len(options.TaggedUserIDs) > 0 {
+				return conflict("Photo tags are not supported on articles.")
+			}
+			if err := socialidentity.CheckXPhotoTags(options.TaggedUserIDs, media); err != nil {
+				return conflict(err.Error())
+			}
+		}
 		if err := socialidentity.CheckXMedia(*caps, media); err != nil {
 			return conflict(err.Error())
 		}

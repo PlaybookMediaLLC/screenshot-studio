@@ -41,7 +41,7 @@ func TestBlueskyScheduleChecksOriginalContentAndProof(t *testing.T) {
 	addAsset := func(mime string, size int, org string) string {
 		t.Helper()
 		id := uuid.NewString()
-		if err := w.db.Client.Asset.Create().SetID(id).SetOrganizationID(org).SetObjectKey("org/" + org + "/input/" + id).SetMediaType(mime).SetBytes(size).SetStatus(asset.StatusUPLOADED).Exec(w.ctx); err != nil {
+		if err := w.db.Client.Asset.Create().SetID(id).SetOrganizationID(org).SetObjectKey("org/" + org + "/input/" + id).SetMediaType(mime).SetBytes(size).SetWidth(1).SetHeight(1).SetStatus(asset.StatusUPLOADED).Exec(w.ctx); err != nil {
 			t.Fatal(err)
 		}
 		return id

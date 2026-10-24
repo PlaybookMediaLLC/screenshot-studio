@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -41,8 +42,8 @@ func EnableE2EDraftPlatform() {
 }
 
 // draftChannelImageLimits is how many images each channel takes in one post.
-// A post carries its first images up to that many; the composer's preview
-// says so (lib/content-drafts/serialize.ts holds the same numbers).
+// Excess attachments are rejected, never silently truncated. The composer
+// enforces the same counts (lib/content-drafts/serialize.ts).
 var draftChannelImageLimits = map[string]int{
 	"bluesky": 4, "instagram": 10, "linkedin": 9, "mastodon": 4, "threads": 10, "x": 4,
 }
@@ -231,7 +232,7 @@ func validateDraftTargets(input ScheduleContentDraftInput) error {
 			return invalid("Each channel must be a distinct, valid connection.")
 		}
 		seen[target.ChannelConnectionID] = true
-		if strings.TrimSpace(target.Caption) == "" {
+		if strings.TrimSpace(target.Caption) == "" && len(target.AssetIDs) == 0 && (target.Options == nil || target.Options.DocumentAssetID == "") {
 			return invalid("Every channel needs a caption.")
 		}
 	}
@@ -275,6 +276,9 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 		if target.AssetIDs != nil {
 			ids = target.AssetIDs
 		}
+		if distinctAssetCount(ids) != len(ids) {
+			return nil, nil, invalid("Each attachment in a post must be distinct. Move the copy to another post or apply a distinct edit.")
+		}
 		if err := checkPostOptions(channel, target.Options, true); err != nil {
 			return nil, nil, err
 		}
@@ -291,7 +295,9 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 			}
 			limit = caps.PostTextLimit()
 		}
-		ids = ids[:min(len(ids), draftChannelImageLimits[channel])]
+		if len(ids) > draftChannelImageLimits[channel] {
+			return nil, nil, invalid("Too many attachments for " + channel + ". Remove attachments before scheduling.")
+		}
 		if target.AssetIDs != nil {
 			if ids, err = contentDraftAssets(ctx, tx, organizationID, ids); err != nil {
 				return nil, nil, err
@@ -469,8 +475,13 @@ func checkDraftReplies(ctx context.Context, tx *ent.Tx, organizationID, channel 
 		if err := checkPostOptions(channel, reply.Options, false); err != nil {
 			return err
 		}
-		ids, err := contentDraftAssets(ctx, tx, organizationID,
-			reply.AssetIDs[:min(len(reply.AssetIDs), draftChannelImageLimits[channel])])
+		if distinctAssetCount(reply.AssetIDs) != len(reply.AssetIDs) {
+			return invalid("Each attachment in a reply must be distinct.")
+		}
+		if len(reply.AssetIDs) > draftChannelImageLimits[channel] {
+			return invalid("Too many attachments for " + channel + ".")
+		}
+		ids, err := contentDraftAssets(ctx, tx, organizationID, reply.AssetIDs)
 		if err != nil {
 			return err
 		}
@@ -546,8 +557,23 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if err := validateDraftTargets(input); err != nil {
 		return nil, err
 	}
-	if _, err := c.loadDraft(ctx, actor, draftID); err != nil {
+	loadedDraft, err := c.loadDraft(ctx, actor, draftID)
+	if err != nil {
 		return nil, err
+	}
+	if loadedDraft.Version == input.Version {
+		input.Targets = slices.Clone(input.Targets)
+		for i := range input.Targets {
+			target := &input.Targets[i]
+			target.AssetIDs = slices.Clone(target.AssetIDs)
+			target.Replies = slices.Clone(target.Replies)
+			for j := range target.Replies {
+				target.Replies[j].AssetIDs = slices.Clone(target.Replies[j].AssetIDs)
+			}
+		}
+		if err := c.prepareDraftImages(ctx, actor, input.Targets, loadedDraft.AssetIds); err != nil {
+			return nil, err
+		}
 	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
@@ -802,4 +828,12 @@ func (c *Configuration) ListContentDraftPosts(ctx context.Context, actor Actor, 
 		items = append(items, item)
 	}
 	return items, nil
+}
+
+func distinctAssetCount(ids []string) int {
+	seen := map[string]bool{}
+	for _, id := range ids {
+		seen[id] = true
+	}
+	return len(seen)
 }

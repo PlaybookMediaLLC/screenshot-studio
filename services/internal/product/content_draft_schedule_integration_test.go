@@ -184,7 +184,7 @@ func TestContentDraftScheduling(t *testing.T) {
 		images := make([]string, 5)
 		for i := range images {
 			images[i] = cuid.New()
-			exec(`INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',1,'UPLOADED',now(),now())`,
+			exec(`INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,width,height,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',1,'UPLOADED',1,1,now(),now())`,
 				images[i], org, fmt.Sprintf("org/%s/%d.png", org, i))
 		}
 		t.Cleanup(func() { _, _ = db.SQL.ExecContext(ctx, `DELETE FROM asset WHERE "organizationId" = $1`, org) })
@@ -241,7 +241,7 @@ func TestContentDraftScheduling(t *testing.T) {
 
 	t.Run("an X thread posts its later posts as replies", func(t *testing.T) {
 		photo := cuid.New()
-		exec(`INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',1,'UPLOADED',now(),now())`,
+		exec(`INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,width,height,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',1,'UPLOADED',1,1,now(),now())`,
 			photo, org, "org/"+org+"/reply.png")
 		threadDraft, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Title: "Thread"})
 		if err != nil {

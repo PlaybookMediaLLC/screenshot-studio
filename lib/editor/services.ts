@@ -14,8 +14,8 @@ export function assetContentUrl(assetId: string): string {
  */
 export function workspaceUploadFile(trpcClient: TrpcClient): EditorUploadFile {
   return async (file, options) => {
-    options?.onProgress?.(5)
-    const { assetId } = await saveExportToWorkspace({ blob: file, fileName: file.name, trpcClient })
+    options?.onProgress?.(0)
+    const { assetId } = await saveExportToWorkspace({ blob: file, fileName: file.name, onProgress: options?.onProgress, trpcClient })
     options?.onProgress?.(100)
     return {
       assetId,

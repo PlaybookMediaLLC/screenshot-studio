@@ -1,3 +1,8 @@
+import {
+  draftLinkImageContract,
+  draftGiphySearchContract,
+  draftGiphyAttachContract,
+} from '@/lib/api/contracts/content-draft-platform'
 import { mutateDraftCommentContract } from '@/lib/api/contracts/draft-comments'
 import {
   decideCampaignApprovalContract,
@@ -77,6 +82,9 @@ import {
 
 /** Every contract in the public OpenAPI spec, in the order the spec lists them. */
 export const documentedContracts = [
+  draftLinkImageContract,
+  draftGiphySearchContract,
+  draftGiphyAttachContract,
   previewMastodonInstanceContract,
   createSocialConnectionAttemptContract,
   getSocialConnectionAvailabilityContract,

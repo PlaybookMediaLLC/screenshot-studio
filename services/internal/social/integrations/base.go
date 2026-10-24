@@ -324,11 +324,23 @@ func readFailed(identifier string, details any) error {
 // ReadOrFetch reads a local file or downloads a URL into memory, retrying a
 // stalled read once.
 func (b *Base) ReadOrFetch(ctx context.Context, path string) ([]byte, error) {
+	return b.ReadOrFetchBounded(ctx, path, 0)
+}
+
+// ReadOrFetchBounded enforces the destination byte ceiling on the actual stream,
+// including local files and responses without a trustworthy Content-Length.
+// A zero limit preserves the legacy unbounded reader for existing callers.
+func (b *Base) ReadOrFetchBounded(ctx context.Context, path string, limit int64) ([]byte, error) {
 	if !strings.HasPrefix(path, "http") {
-		return os.ReadFile(path)
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+		return readMediaBytes(file, limit)
 	}
 	for attempt := 0; ; attempt++ {
-		data, err := b.get(ctx, path, nil)
+		data, err := b.get(ctx, path, nil, limit)
 		if err == nil || !isTimeout(err) {
 			return data, err
 		}
@@ -342,7 +354,7 @@ func isTimeout(err error) bool {
 	return errors.Is(err, context.DeadlineExceeded) || strings.Contains(err.Error(), "Client.Timeout")
 }
 
-func (b *Base) get(ctx context.Context, url string, headers map[string]string) ([]byte, error) {
+func (b *Base) get(ctx context.Context, url string, headers map[string]string, limits ...int64) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, MediaReadTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -360,7 +372,22 @@ func (b *Base) get(ctx context.Context, url string, headers map[string]string) (
 	if res.StatusCode >= 400 {
 		return nil, fmt.Errorf("media request failed with status %d", res.StatusCode)
 	}
-	return io.ReadAll(res.Body)
+	var limit int64
+	if len(limits) > 0 {
+		limit = limits[0]
+	}
+	return readMediaBytes(res.Body, limit)
+}
+
+func readMediaBytes(reader io.Reader, limit int64) ([]byte, error) {
+	if limit <= 0 {
+		return io.ReadAll(reader)
+	}
+	data, err := io.ReadAll(io.LimitReader(reader, limit+1))
+	if err == nil && int64(len(data)) > limit {
+		return nil, errors.New("The media exceeds the destination's byte limit.")
+	}
+	return data, err
 }
 
 // MediaSize returns the byte size of a URL or local file. An R2 presigned GET

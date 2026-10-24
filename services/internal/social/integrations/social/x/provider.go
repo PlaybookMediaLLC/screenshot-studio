@@ -516,13 +516,12 @@ func (p *Provider) Mention(ctx context.Context, token, query, _ string, _ *ent.I
 		Data *user `json:"data"`
 	}
 	if err := c.get(ctx, v2("users/by/username/"+url.PathEscape(query)), url.Values{"user.fields": {"username,name,profile_image_url"}}, &res); err != nil {
-		log.Println(err)
-		return []integrations.MentionResult{}, false, nil
+		return nil, false, err
 	}
 	if res.Data == nil || res.Data.Username == "" {
 		return []integrations.MentionResult{}, false, nil
 	}
-	return []integrations.MentionResult{{ID: res.Data.Username, Image: res.Data.ProfileImageURL, Label: res.Data.Name}}, false, nil
+	return []integrations.MentionResult{{NativeID: res.Data.ID, ID: res.Data.Username, Image: res.Data.ProfileImageURL, Label: res.Data.Name}}, false, nil
 }
 
 func (p *Provider) MentionFormat(idOrHandle, _ string) string { return "@" + idOrHandle }

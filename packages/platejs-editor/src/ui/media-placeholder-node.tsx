@@ -260,6 +260,7 @@ function MediaPlaceholderPopover({ children }: { children: React.ReactNode }) {
         type: mediaType,
         url: uploadedFile.url,
         ...(uploadedFile.assetId ? { assetId: uploadedFile.assetId } : {}),
+        ...{ mimeType: uploadedFile.type, processingStatus: "ready" },
       },
       { at: path }
     );

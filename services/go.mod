@@ -12,6 +12,7 @@ require (
 	github.com/aws/smithy-go v1.25.1
 	github.com/btcsuite/btcd/btcec/v2 v2.5.0
 	github.com/coder/websocket v1.8.15
+	github.com/disintegration/imaging v1.6.2
 	github.com/dlclark/regexp2 v1.12.0
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/go-playground/validator/v10 v10.30.5
@@ -21,6 +22,7 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/lucsky/cuid v1.2.1
 	github.com/modelcontextprotocol/go-sdk v1.8.0
+	github.com/pdfcpu/pdfcpu v0.11.1
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/rivo/uniseg v0.4.7
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
@@ -52,6 +54,7 @@ require (
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/btcsuite/btcd/chainhash/v2 v2.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
@@ -65,10 +68,14 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.18.1 // indirect
+	github.com/hhrutter/lzw v1.0.0 // indirect
+	github.com/hhrutter/pkcs7 v0.2.0 // indirect
+	github.com/hhrutter/tiff v1.0.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
+	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/nexus-rpc/nexus-proto-annotations v0.1.0 // indirect
 	github.com/nexus-rpc/sdk-go v0.7.0 // indirect
@@ -90,4 +97,5 @@ require (
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260414002931-afd174a4e478 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

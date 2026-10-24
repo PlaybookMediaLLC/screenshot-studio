@@ -16,6 +16,15 @@ pilot evidence shows repeated uploads are a material bottleneck. A reviewed
 upload remains a supported evidence source. This fills the explicit missing
 authenticated-capture design in RFC 029 without creating a separate demo product.
 
+## Provider evaluation and security review
+
+The [Cloudflare capture design and two-pass security review](authenticated-release-capture-review.md)
+records a managed-browser candidate, tested defects in existing capture/intake
+paths, and remaining integration gates against its stated source baseline.
+Resolve those defects and prove the same isolation, egress, secret-lifecycle,
+and human-review requirements before adopting that provider. This companion
+does not change this RFC's conditional priority or pilot limits.
+
 ## Existing foundation
 
 The [Go capture client](../../services/internal/capture/capture.go) captures

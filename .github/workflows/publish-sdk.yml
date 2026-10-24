@@ -40,8 +40,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      # The app's TypeScript, without installing the app: its lockfile may
-      # already pin the version this run is about to publish.
+      # Install the SDK's locked peer dependencies without installing the app:
+      # the app may already pin the SDK version this run is about to publish.
+      - name: Install SDK dependencies
+        working-directory: .
+        run: npm ci --ignore-scripts --workspace screenshot-studio-backend-sdk --include-workspace-root=false --no-audit --no-fund
+      # Use the app's compiler version for reproducible declarations.
       - name: Build
         run: |
           typescript="$(node -p "require('../../package.json').devDependencies.typescript")"
@@ -88,6 +92,9 @@ jobs:
           registry-url: https://registry.npmjs.org
       # Trusted publishing needs npm 11.5.1 or later.
       - run: npm install --global npm@11
+      - name: Install SDK dependencies
+        working-directory: .
+        run: npm ci --ignore-scripts --workspace screenshot-studio-backend-sdk --include-workspace-root=false --no-audit --no-fund
       - name: Build
         run: |
           typescript="$(node -p "require('../../package.json').devDependencies.typescript")"

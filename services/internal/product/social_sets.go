@@ -76,6 +76,7 @@ type SocialAccount struct {
 	Premium       bool  `json:"premium"`
 	XCaptionLimit *int  `json:"xCaptionLimit"`
 	XArticles     *bool `json:"xArticles"`
+	XQuotes       bool  `json:"xQuotes"`
 }
 
 // WritingAssistantRecord is a set's assistant with its derived status:
@@ -383,6 +384,9 @@ func socialAccount(connection *ent.ChannelConnection, health string) SocialAccou
 
 // workspaceAIEnabled reads the workspace AI switch.
 func (c *Configuration) workspaceAIEnabled(ctx context.Context, organizationID string) bool {
+	if c.requireWorkspaceFeature(ctx, organizationID, "workspace:paid") != nil {
+		return false
+	}
 	settings, err := c.client.WorkspaceSettings.Get(ctx, organizationID)
 	return err != nil || settings.AiAgentEnabled
 }
@@ -437,6 +441,7 @@ func (c *Configuration) socialSetRecords(ctx context.Context, actor Actor, sets 
 			standing := c.accountStanding(ctx, connection)
 			account.Premium, account.XCaptionLimit, account.XArticles, account.PollLimits = standing.Premium, standing.XCaptionLimit, standing.XArticles, standing.PollLimits
 			account.MastodonQuotes = standing.MastodonQuotes
+			account.XQuotes = standing.XQuotes
 		}
 		accounts[*connection.SocialSetID] = append(accounts[*connection.SocialSetID], account)
 	}
@@ -744,6 +749,11 @@ func (c *Configuration) UpdateSocialSet(ctx context.Context, actor Actor, id str
 		}
 		update.SetTimeZone(*input.TimeZone)
 		changed = append(changed, "timeZone")
+	}
+	if input.PostingSlots != nil || (input.NaturalPostingTimes != nil && *input.NaturalPostingTimes) || input.EngagementDefaults != nil {
+		if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+			return nil, err
+		}
 	}
 	if input.PostingSlots != nil {
 		slots, err := queueSlots(*input.PostingSlots)

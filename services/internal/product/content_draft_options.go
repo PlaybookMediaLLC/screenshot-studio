@@ -39,8 +39,8 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 			return invalid("This provider has no verified API control for link preview removal.")
 		}
 	}
-	if o.ShareWithFollowers {
-		return invalid("Share to timeline has no verified X API mapping. Select the community again to clear this option.")
+	if o.ShareWithFollowers && o.CommunityID == "" {
+		return invalid("Share to timeline requires an X community.")
 	}
 	xOnly := o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" || o.ShareWithFollowers ||
 		o.ArticleTitle != "" || o.ArticleCoverAssetID != "" || o.ArticleHTML != ""

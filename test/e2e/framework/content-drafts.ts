@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test'
-import { createE2EDatabase } from './services'
+import { createE2EDatabase, grantWorkspacePlan } from './services'
 import type { E2EIdentity } from './flow'
 import { type HttpMockServer, startHttpMockServer } from './http-server'
 import {
@@ -109,7 +109,8 @@ export type DraftWorkspace = {
 export async function createDraftWorkspace(
   identity: E2EIdentity,
   page: Page,
-  platforms: readonly string[] = ['x', 'linkedin']
+  platforms: readonly string[] = ['x', 'linkedin'],
+  plan: 'free' | 'pro' = 'pro'
 ): Promise<DraftWorkspace> {
   let organizationId = ''
   const provider = await startHttpMockServer((request) => {
@@ -151,6 +152,7 @@ export async function createDraftWorkspace(
   // Connecting a channel and cancelling a post are sensitive actions.
   await enablePublishingTwoFactor(page, identity.password)
   organizationId = await bindTestGoOrganization(page)
+  if (plan === 'free') await grantWorkspacePlan(organizationId, plan)
   // The product checks actual provider credentials in the shared database.
   // The HTTP fixture still owns destination verification; neither path bypasses health.
   const database = createE2EDatabase()

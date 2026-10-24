@@ -100,7 +100,7 @@ The [implementation evidence for Sections 2, 4 and 5](work-items/implementation-
 - [ ] **TF-029 Remove link previews** (2022-10-11, [entry](https://typefully.com/changelog/remove-link-previews-63))
   - Show an Open Graph preview for links in a post, as X does.
   - Add a close (×) button to remove the preview. On desktop, show the button on hover.
-- [ ] **TF-049 Write X long-form posts** (2023-12-14, [entry](https://typefully.com/changelog/write-long-form-posts-with-typefully-84))
+- [x] **TF-049 Write X long-form posts** (2023-12-14, [entry](https://typefully.com/changelog/write-long-form-posts-with-typefully-84))
   - Let X Premium users write posts longer than the standard limit.
   - Let users copy the long-form text to post it manually.
   - Note: TF-061 adds publishing. Build TF-049 and TF-061 together.
@@ -190,7 +190,7 @@ The [implementation evidence for Sections 2, 4 and 5](work-items/implementation-
 
 ## 4. Scheduling, queue, and calendar
 
-- [ ] **TF-002 Advanced queue, emoji picker, zen mode, and mobile editor** (2021-06-08, [entry](https://typefully.com/changelog/typefully-20212-advanced-queue-24))
+- [x] **TF-002 Advanced queue, emoji picker, zen mode, and mobile editor** (2021-06-08, [entry](https://typefully.com/changelog/typefully-20212-advanced-queue-24))
   - Let the user define a posting schedule and queue posts over the next weeks.
   - Keep basic scheduling free. Typefully plan: advanced queue on Pro.
   - Show an emoji picker when the user types `:name`, as in Slack.
@@ -279,7 +279,7 @@ The [implementation evidence for Sections 2, 4 and 5](work-items/implementation-
   - Let the user create any number of thread finisher templates.
   - A finisher is the last post of a thread. It quotes the first post to increase engagement.
   - Extended by TF-108 (quotes in finishers on more platforms).
-- [ ] **TF-043 Auto-DMs** (2023-07-20, [entry](https://typefully.com/changelog/boost-your-engagement-with-auto-dms-78))
+- [x] **TF-043 Auto-DMs** (2023-07-20, [entry](https://typefully.com/changelog/boost-your-engagement-with-auto-dms-78))
   - Let the user start an auto-DM campaign from the publish button on a draft.
   - Use cases: giveaways, and content delivery to the community.
   - The changelog does not give the trigger rules. Read the Typefully help page before you build.

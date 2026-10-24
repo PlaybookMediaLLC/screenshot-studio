@@ -284,8 +284,8 @@ type autoActor interface {
 }
 
 // AutoAct runs a live post's follow-ups that are due: a repost and a plug
-// reply once it has enough likes, and a quote (the text with a link to the
-// post). One the provider cannot do reports done, so it is not tried again.
+// reply once it has enough likes, and a native quote. Provider errors must not
+// be mistaken for a completed quote.
 func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput) (socialapi.AutoActionResult, error) {
 	result := socialapi.AutoActionResult{Plugged: !input.Plug, Quoted: !input.Quote, Reposted: !input.Repost}
 	account, provider, settings, err := p.account(ctx, input.OrganizationID, input.DestinationID, input.Platform,
@@ -316,18 +316,20 @@ func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput
 		}
 	}
 	if input.Quote {
-		link := input.PostURL
-		if link == "" && input.Platform == "x" {
-			link = "https://x.com/i/status/" + input.RemotePostID
-		}
-		_, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
-			ID: input.RemotePostID + "-quote", Message: strings.TrimSpace(input.QuoteText + " " + link), Settings: settings,
-		}}, account)
-		// Quoting once is the point: a failed quote is not retried into a duplicate.
-		result.Quoted = true
+		settings, err = nativeQuoteSettings(input.Platform, settings, input.RemotePostID)
 		if err != nil {
-			slog.ErrorContext(ctx, "quote post failed", "post", input.RemotePostID, "error", err)
+			return result, err
 		}
+		posted, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
+			ID: input.RemotePostID + "-quote", Message: strings.TrimSpace(input.QuoteText), Settings: settings,
+		}}, account)
+		if err != nil {
+			return result, err
+		}
+		if firstPostID(posted) == "" {
+			return result, temporalx.UnknownDelivery(input.Platform, "The provider returned no quote receipt. Reconcile before resending.")
+		}
+		result.Quoted = true
 	}
 	return result, nil
 }

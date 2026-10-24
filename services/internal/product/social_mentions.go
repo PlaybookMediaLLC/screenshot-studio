@@ -12,8 +12,7 @@ import (
 // Mentions picked from the platform (RFC 042). A mention is looked up with
 // the set's own account, so it names something that account can tag: an X
 // user by exact username, a LinkedIn organization by its vanity name.
-// LinkedIn people are not looked up: the connection's API access has no
-// people search, so the composer says so instead of guessing.
+// Authorized Page followers use the separate restricted people lookup.
 
 // Mention is an account a post can tag. ProviderID is how the platform
 // writes it in a post: the X username, or a LinkedIn organization URN.
@@ -122,10 +121,16 @@ func (c *Configuration) recentCompanyMentions(ctx context.Context, actor Actor, 
 			bodies = append(bodies, version.Body)
 		}
 	}
-	return companyMentions(bodies, query), nil
+	return storedMentions(bodies, query, "organization"), nil
 }
 
 func companyMentions(bodies [][]any, query string) []Mention {
+	return storedMentions(bodies, query, "organization")
+}
+
+var linkedInPersonURN = regexp.MustCompile(`^urn:li:person:[A-Za-z0-9_-]{1,100}$`)
+
+func storedMentions(bodies [][]any, query, kind string) []Mention {
 	out := []Mention{}
 	seen := map[string]bool{}
 	query = strings.ToLower(strings.TrimSpace(query))
@@ -139,8 +144,9 @@ func companyMentions(bodies [][]any, query string) []Mention {
 		case map[string]any:
 			id, _ := node["providerId"].(string)
 			label, _ := node["label"].(string)
-			if node["type"] == "social_mention" && node["platform"] == "linkedin" && (node["kind"] == "organization" || node["kind"] == nil) && strings.HasPrefix(id, "urn:li:organization:") && numericID.MatchString(strings.TrimPrefix(id, "urn:li:organization:")) && label != "" && !seen[id] && (query == "" || strings.Contains(strings.ToLower(label), query)) && len(out) < 30 {
-				out = append(out, Mention{Kind: "organization", Label: label, ProviderID: id})
+			validIdentity := kind == "person" && node["kind"] == "person" && linkedInPersonURN.MatchString(id) || kind == "organization" && (node["kind"] == "organization" || node["kind"] == nil) && strings.HasPrefix(id, "urn:li:organization:") && numericID.MatchString(strings.TrimPrefix(id, "urn:li:organization:"))
+			if node["type"] == "social_mention" && node["platform"] == "linkedin" && validIdentity && label != "" && !seen[id] && (query == "" || strings.Contains(strings.ToLower(label), query)) && len(out) < 30 {
+				out = append(out, Mention{Kind: kind, Label: label, ProviderID: id})
 				seen[id] = true
 			}
 			walk(node["children"])
@@ -150,4 +156,52 @@ func companyMentions(bodies [][]any, query string) []Mention {
 		walk(body)
 	}
 	return out
+}
+
+// PeopleMentionFinder is implemented only by an adapter with an authorized
+// native LinkedIn Page follower lookup; it never guesses person identities.
+type PeopleMentionFinder interface {
+	PeopleMentions(context.Context, string, string, string, string, string) ([]Mention, error)
+}
+
+// LookupPeopleMentions uses the same workspace/set boundary as organization
+// mentions. Recent people come from this set's own saved draft documents.
+func (c *Configuration) LookupPeopleMentions(ctx context.Context, actor Actor, setID, query string) ([]Mention, error) {
+	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
+		return nil, err
+	}
+	set, err := visibleSocialSet(ctx, c.client, actor, setID)
+	if err != nil {
+		return nil, err
+	}
+	query = strings.TrimSpace(query)
+	if len(query) > 200 {
+		return nil, invalid("Keep mention searches under 200 characters.")
+	}
+	if query == "" {
+		rows, err := c.client.ContentDraft.Query().Where(contentdraft.OrganizationID(actor.OrganizationID), contentdraft.SocialSetID(set.ID)).Order(ent.Desc(contentdraft.FieldUpdatedAt)).Limit(100).All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		bodies := [][]any{}
+		for _, row := range rows {
+			bodies = append(bodies, row.Body)
+			for _, v := range row.PlatformVersions.Versions {
+				bodies = append(bodies, v.Body)
+			}
+		}
+		return storedMentions(bodies, "", "person"), nil
+	}
+	connection, err := setAccount(ctx, c.client, set, "linkedin-page")
+	if ent.IsNotFound(err) {
+		return nil, conflict("Connect a LinkedIn Page with follower lookup access before searching people.")
+	}
+	if err != nil {
+		return nil, err
+	}
+	finder, ok := c.accounts.(PeopleMentionFinder)
+	if !ok {
+		return nil, conflict("People lookup is unavailable on this server.")
+	}
+	return finder.PeopleMentions(ctx, actor.OrganizationID, connection.ExternalAccountID, connection.Platform, connection.SecretReference, query)
 }

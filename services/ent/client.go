@@ -64,6 +64,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmcampaign"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmdelivery"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmoptout"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
@@ -221,6 +225,14 @@ type Client struct {
 	OutboxEvent *OutboxEventClient
 	// PageKnowledge is the client for interacting with the PageKnowledge builders.
 	PageKnowledge *PageKnowledgeClient
+	// PlatformAutoDMCampaign is the client for interacting with the PlatformAutoDMCampaign builders.
+	PlatformAutoDMCampaign *PlatformAutoDMCampaignClient
+	// PlatformAutoDMDelivery is the client for interacting with the PlatformAutoDMDelivery builders.
+	PlatformAutoDMDelivery *PlatformAutoDMDeliveryClient
+	// PlatformAutoDMOptOut is the client for interacting with the PlatformAutoDMOptOut builders.
+	PlatformAutoDMOptOut *PlatformAutoDMOptOutClient
+	// PlatformAutoDMRecipient is the client for interacting with the PlatformAutoDMRecipient builders.
+	PlatformAutoDMRecipient *PlatformAutoDMRecipientClient
 	// PlatformCreativeSet is the client for interacting with the PlatformCreativeSet builders.
 	PlatformCreativeSet *PlatformCreativeSetClient
 	// PlatformCreativeSetVersion is the client for interacting with the PlatformCreativeSetVersion builders.
@@ -385,6 +397,10 @@ func (c *Client) init() {
 	c.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(c.config)
 	c.OutboxEvent = NewOutboxEventClient(c.config)
 	c.PageKnowledge = NewPageKnowledgeClient(c.config)
+	c.PlatformAutoDMCampaign = NewPlatformAutoDMCampaignClient(c.config)
+	c.PlatformAutoDMDelivery = NewPlatformAutoDMDeliveryClient(c.config)
+	c.PlatformAutoDMOptOut = NewPlatformAutoDMOptOutClient(c.config)
+	c.PlatformAutoDMRecipient = NewPlatformAutoDMRecipientClient(c.config)
 	c.PlatformCreativeSet = NewPlatformCreativeSetClient(c.config)
 	c.PlatformCreativeSetVersion = NewPlatformCreativeSetVersionClient(c.config)
 	c.PlatformNotificationDelivery = NewPlatformNotificationDeliveryClient(c.config)
@@ -578,6 +594,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		OrganizationEnterpriseSettings:  NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                     NewOutboxEventClient(cfg),
 		PageKnowledge:                   NewPageKnowledgeClient(cfg),
+		PlatformAutoDMCampaign:          NewPlatformAutoDMCampaignClient(cfg),
+		PlatformAutoDMDelivery:          NewPlatformAutoDMDeliveryClient(cfg),
+		PlatformAutoDMOptOut:            NewPlatformAutoDMOptOutClient(cfg),
+		PlatformAutoDMRecipient:         NewPlatformAutoDMRecipientClient(cfg),
 		PlatformCreativeSet:             NewPlatformCreativeSetClient(cfg),
 		PlatformCreativeSetVersion:      NewPlatformCreativeSetVersionClient(cfg),
 		PlatformNotificationDelivery:    NewPlatformNotificationDeliveryClient(cfg),
@@ -698,6 +718,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		OrganizationEnterpriseSettings:  NewOrganizationEnterpriseSettingsClient(cfg),
 		OutboxEvent:                     NewOutboxEventClient(cfg),
 		PageKnowledge:                   NewPageKnowledgeClient(cfg),
+		PlatformAutoDMCampaign:          NewPlatformAutoDMCampaignClient(cfg),
+		PlatformAutoDMDelivery:          NewPlatformAutoDMDeliveryClient(cfg),
+		PlatformAutoDMOptOut:            NewPlatformAutoDMOptOutClient(cfg),
+		PlatformAutoDMRecipient:         NewPlatformAutoDMRecipientClient(cfg),
 		PlatformCreativeSet:             NewPlatformCreativeSetClient(cfg),
 		PlatformCreativeSetVersion:      NewPlatformCreativeSetVersionClient(cfg),
 		PlatformNotificationDelivery:    NewPlatformNotificationDeliveryClient(cfg),
@@ -792,7 +816,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.IdealCustomerProfile, c.IntegrationConnection, c.Invitation, c.LaunchRun,
 		c.LaunchRunStep, c.Member, c.OnboardingRun, c.Organization,
 		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PageKnowledge,
-		c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
+		c.PlatformAutoDMCampaign, c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut,
+		c.PlatformAutoDMRecipient, c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
 		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
@@ -832,7 +857,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.IdealCustomerProfile, c.IntegrationConnection, c.Invitation, c.LaunchRun,
 		c.LaunchRunStep, c.Member, c.OnboardingRun, c.Organization,
 		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PageKnowledge,
-		c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
+		c.PlatformAutoDMCampaign, c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut,
+		c.PlatformAutoDMRecipient, c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
 		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
@@ -956,6 +982,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.OutboxEvent.mutate(ctx, m)
 	case *PageKnowledgeMutation:
 		return c.PageKnowledge.mutate(ctx, m)
+	case *PlatformAutoDMCampaignMutation:
+		return c.PlatformAutoDMCampaign.mutate(ctx, m)
+	case *PlatformAutoDMDeliveryMutation:
+		return c.PlatformAutoDMDelivery.mutate(ctx, m)
+	case *PlatformAutoDMOptOutMutation:
+		return c.PlatformAutoDMOptOut.mutate(ctx, m)
+	case *PlatformAutoDMRecipientMutation:
+		return c.PlatformAutoDMRecipient.mutate(ctx, m)
 	case *PlatformCreativeSetMutation:
 		return c.PlatformCreativeSet.mutate(ctx, m)
 	case *PlatformCreativeSetVersionMutation:
@@ -7659,6 +7693,538 @@ func (c *PageKnowledgeClient) mutate(ctx context.Context, m *PageKnowledgeMutati
 		return (&PageKnowledgeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown PageKnowledge mutation op: %q", m.Op())
+	}
+}
+
+// PlatformAutoDMCampaignClient is a client for the PlatformAutoDMCampaign schema.
+type PlatformAutoDMCampaignClient struct {
+	config
+}
+
+// NewPlatformAutoDMCampaignClient returns a client for the PlatformAutoDMCampaign from the given config.
+func NewPlatformAutoDMCampaignClient(c config) *PlatformAutoDMCampaignClient {
+	return &PlatformAutoDMCampaignClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformautodmcampaign.Hooks(f(g(h())))`.
+func (c *PlatformAutoDMCampaignClient) Use(hooks ...Hook) {
+	c.hooks.PlatformAutoDMCampaign = append(c.hooks.PlatformAutoDMCampaign, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformautodmcampaign.Intercept(f(g(h())))`.
+func (c *PlatformAutoDMCampaignClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformAutoDMCampaign = append(c.inters.PlatformAutoDMCampaign, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformAutoDMCampaign entity.
+func (c *PlatformAutoDMCampaignClient) Create() *PlatformAutoDMCampaignCreate {
+	mutation := newPlatformAutoDMCampaignMutation(c.config, OpCreate)
+	return &PlatformAutoDMCampaignCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformAutoDMCampaign entities.
+func (c *PlatformAutoDMCampaignClient) CreateBulk(builders ...*PlatformAutoDMCampaignCreate) *PlatformAutoDMCampaignCreateBulk {
+	return &PlatformAutoDMCampaignCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformAutoDMCampaignClient) MapCreateBulk(slice any, setFunc func(*PlatformAutoDMCampaignCreate, int)) *PlatformAutoDMCampaignCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformAutoDMCampaignCreateBulk{err: fmt.Errorf("calling to PlatformAutoDMCampaignClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformAutoDMCampaignCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformAutoDMCampaignCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformAutoDMCampaign.
+func (c *PlatformAutoDMCampaignClient) Update() *PlatformAutoDMCampaignUpdate {
+	mutation := newPlatformAutoDMCampaignMutation(c.config, OpUpdate)
+	return &PlatformAutoDMCampaignUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformAutoDMCampaignClient) UpdateOne(_m *PlatformAutoDMCampaign) *PlatformAutoDMCampaignUpdateOne {
+	mutation := newPlatformAutoDMCampaignMutation(c.config, OpUpdateOne, withPlatformAutoDMCampaign(_m))
+	return &PlatformAutoDMCampaignUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformAutoDMCampaignClient) UpdateOneID(id string) *PlatformAutoDMCampaignUpdateOne {
+	mutation := newPlatformAutoDMCampaignMutation(c.config, OpUpdateOne, withPlatformAutoDMCampaignID(id))
+	return &PlatformAutoDMCampaignUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformAutoDMCampaign.
+func (c *PlatformAutoDMCampaignClient) Delete() *PlatformAutoDMCampaignDelete {
+	mutation := newPlatformAutoDMCampaignMutation(c.config, OpDelete)
+	return &PlatformAutoDMCampaignDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformAutoDMCampaignClient) DeleteOne(_m *PlatformAutoDMCampaign) *PlatformAutoDMCampaignDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformAutoDMCampaignClient) DeleteOneID(id string) *PlatformAutoDMCampaignDeleteOne {
+	builder := c.Delete().Where(platformautodmcampaign.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformAutoDMCampaignDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformAutoDMCampaign.
+func (c *PlatformAutoDMCampaignClient) Query() *PlatformAutoDMCampaignQuery {
+	return &PlatformAutoDMCampaignQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformAutoDMCampaign},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformAutoDMCampaign entity by its id.
+func (c *PlatformAutoDMCampaignClient) Get(ctx context.Context, id string) (*PlatformAutoDMCampaign, error) {
+	return c.Query().Where(platformautodmcampaign.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformAutoDMCampaignClient) GetX(ctx context.Context, id string) *PlatformAutoDMCampaign {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformAutoDMCampaignClient) Hooks() []Hook {
+	return c.hooks.PlatformAutoDMCampaign
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformAutoDMCampaignClient) Interceptors() []Interceptor {
+	return c.inters.PlatformAutoDMCampaign
+}
+
+func (c *PlatformAutoDMCampaignClient) mutate(ctx context.Context, m *PlatformAutoDMCampaignMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformAutoDMCampaignCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformAutoDMCampaignUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformAutoDMCampaignUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformAutoDMCampaignDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformAutoDMCampaign mutation op: %q", m.Op())
+	}
+}
+
+// PlatformAutoDMDeliveryClient is a client for the PlatformAutoDMDelivery schema.
+type PlatformAutoDMDeliveryClient struct {
+	config
+}
+
+// NewPlatformAutoDMDeliveryClient returns a client for the PlatformAutoDMDelivery from the given config.
+func NewPlatformAutoDMDeliveryClient(c config) *PlatformAutoDMDeliveryClient {
+	return &PlatformAutoDMDeliveryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformautodmdelivery.Hooks(f(g(h())))`.
+func (c *PlatformAutoDMDeliveryClient) Use(hooks ...Hook) {
+	c.hooks.PlatformAutoDMDelivery = append(c.hooks.PlatformAutoDMDelivery, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformautodmdelivery.Intercept(f(g(h())))`.
+func (c *PlatformAutoDMDeliveryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformAutoDMDelivery = append(c.inters.PlatformAutoDMDelivery, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformAutoDMDelivery entity.
+func (c *PlatformAutoDMDeliveryClient) Create() *PlatformAutoDMDeliveryCreate {
+	mutation := newPlatformAutoDMDeliveryMutation(c.config, OpCreate)
+	return &PlatformAutoDMDeliveryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformAutoDMDelivery entities.
+func (c *PlatformAutoDMDeliveryClient) CreateBulk(builders ...*PlatformAutoDMDeliveryCreate) *PlatformAutoDMDeliveryCreateBulk {
+	return &PlatformAutoDMDeliveryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformAutoDMDeliveryClient) MapCreateBulk(slice any, setFunc func(*PlatformAutoDMDeliveryCreate, int)) *PlatformAutoDMDeliveryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformAutoDMDeliveryCreateBulk{err: fmt.Errorf("calling to PlatformAutoDMDeliveryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformAutoDMDeliveryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformAutoDMDeliveryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformAutoDMDelivery.
+func (c *PlatformAutoDMDeliveryClient) Update() *PlatformAutoDMDeliveryUpdate {
+	mutation := newPlatformAutoDMDeliveryMutation(c.config, OpUpdate)
+	return &PlatformAutoDMDeliveryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformAutoDMDeliveryClient) UpdateOne(_m *PlatformAutoDMDelivery) *PlatformAutoDMDeliveryUpdateOne {
+	mutation := newPlatformAutoDMDeliveryMutation(c.config, OpUpdateOne, withPlatformAutoDMDelivery(_m))
+	return &PlatformAutoDMDeliveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformAutoDMDeliveryClient) UpdateOneID(id string) *PlatformAutoDMDeliveryUpdateOne {
+	mutation := newPlatformAutoDMDeliveryMutation(c.config, OpUpdateOne, withPlatformAutoDMDeliveryID(id))
+	return &PlatformAutoDMDeliveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformAutoDMDelivery.
+func (c *PlatformAutoDMDeliveryClient) Delete() *PlatformAutoDMDeliveryDelete {
+	mutation := newPlatformAutoDMDeliveryMutation(c.config, OpDelete)
+	return &PlatformAutoDMDeliveryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformAutoDMDeliveryClient) DeleteOne(_m *PlatformAutoDMDelivery) *PlatformAutoDMDeliveryDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformAutoDMDeliveryClient) DeleteOneID(id string) *PlatformAutoDMDeliveryDeleteOne {
+	builder := c.Delete().Where(platformautodmdelivery.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformAutoDMDeliveryDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformAutoDMDelivery.
+func (c *PlatformAutoDMDeliveryClient) Query() *PlatformAutoDMDeliveryQuery {
+	return &PlatformAutoDMDeliveryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformAutoDMDelivery},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformAutoDMDelivery entity by its id.
+func (c *PlatformAutoDMDeliveryClient) Get(ctx context.Context, id string) (*PlatformAutoDMDelivery, error) {
+	return c.Query().Where(platformautodmdelivery.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformAutoDMDeliveryClient) GetX(ctx context.Context, id string) *PlatformAutoDMDelivery {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformAutoDMDeliveryClient) Hooks() []Hook {
+	return c.hooks.PlatformAutoDMDelivery
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformAutoDMDeliveryClient) Interceptors() []Interceptor {
+	return c.inters.PlatformAutoDMDelivery
+}
+
+func (c *PlatformAutoDMDeliveryClient) mutate(ctx context.Context, m *PlatformAutoDMDeliveryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformAutoDMDeliveryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformAutoDMDeliveryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformAutoDMDeliveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformAutoDMDeliveryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformAutoDMDelivery mutation op: %q", m.Op())
+	}
+}
+
+// PlatformAutoDMOptOutClient is a client for the PlatformAutoDMOptOut schema.
+type PlatformAutoDMOptOutClient struct {
+	config
+}
+
+// NewPlatformAutoDMOptOutClient returns a client for the PlatformAutoDMOptOut from the given config.
+func NewPlatformAutoDMOptOutClient(c config) *PlatformAutoDMOptOutClient {
+	return &PlatformAutoDMOptOutClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformautodmoptout.Hooks(f(g(h())))`.
+func (c *PlatformAutoDMOptOutClient) Use(hooks ...Hook) {
+	c.hooks.PlatformAutoDMOptOut = append(c.hooks.PlatformAutoDMOptOut, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformautodmoptout.Intercept(f(g(h())))`.
+func (c *PlatformAutoDMOptOutClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformAutoDMOptOut = append(c.inters.PlatformAutoDMOptOut, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformAutoDMOptOut entity.
+func (c *PlatformAutoDMOptOutClient) Create() *PlatformAutoDMOptOutCreate {
+	mutation := newPlatformAutoDMOptOutMutation(c.config, OpCreate)
+	return &PlatformAutoDMOptOutCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformAutoDMOptOut entities.
+func (c *PlatformAutoDMOptOutClient) CreateBulk(builders ...*PlatformAutoDMOptOutCreate) *PlatformAutoDMOptOutCreateBulk {
+	return &PlatformAutoDMOptOutCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformAutoDMOptOutClient) MapCreateBulk(slice any, setFunc func(*PlatformAutoDMOptOutCreate, int)) *PlatformAutoDMOptOutCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformAutoDMOptOutCreateBulk{err: fmt.Errorf("calling to PlatformAutoDMOptOutClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformAutoDMOptOutCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformAutoDMOptOutCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformAutoDMOptOut.
+func (c *PlatformAutoDMOptOutClient) Update() *PlatformAutoDMOptOutUpdate {
+	mutation := newPlatformAutoDMOptOutMutation(c.config, OpUpdate)
+	return &PlatformAutoDMOptOutUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformAutoDMOptOutClient) UpdateOne(_m *PlatformAutoDMOptOut) *PlatformAutoDMOptOutUpdateOne {
+	mutation := newPlatformAutoDMOptOutMutation(c.config, OpUpdateOne, withPlatformAutoDMOptOut(_m))
+	return &PlatformAutoDMOptOutUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformAutoDMOptOutClient) UpdateOneID(id string) *PlatformAutoDMOptOutUpdateOne {
+	mutation := newPlatformAutoDMOptOutMutation(c.config, OpUpdateOne, withPlatformAutoDMOptOutID(id))
+	return &PlatformAutoDMOptOutUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformAutoDMOptOut.
+func (c *PlatformAutoDMOptOutClient) Delete() *PlatformAutoDMOptOutDelete {
+	mutation := newPlatformAutoDMOptOutMutation(c.config, OpDelete)
+	return &PlatformAutoDMOptOutDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformAutoDMOptOutClient) DeleteOne(_m *PlatformAutoDMOptOut) *PlatformAutoDMOptOutDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformAutoDMOptOutClient) DeleteOneID(id string) *PlatformAutoDMOptOutDeleteOne {
+	builder := c.Delete().Where(platformautodmoptout.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformAutoDMOptOutDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformAutoDMOptOut.
+func (c *PlatformAutoDMOptOutClient) Query() *PlatformAutoDMOptOutQuery {
+	return &PlatformAutoDMOptOutQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformAutoDMOptOut},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformAutoDMOptOut entity by its id.
+func (c *PlatformAutoDMOptOutClient) Get(ctx context.Context, id string) (*PlatformAutoDMOptOut, error) {
+	return c.Query().Where(platformautodmoptout.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformAutoDMOptOutClient) GetX(ctx context.Context, id string) *PlatformAutoDMOptOut {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformAutoDMOptOutClient) Hooks() []Hook {
+	return c.hooks.PlatformAutoDMOptOut
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformAutoDMOptOutClient) Interceptors() []Interceptor {
+	return c.inters.PlatformAutoDMOptOut
+}
+
+func (c *PlatformAutoDMOptOutClient) mutate(ctx context.Context, m *PlatformAutoDMOptOutMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformAutoDMOptOutCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformAutoDMOptOutUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformAutoDMOptOutUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformAutoDMOptOutDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformAutoDMOptOut mutation op: %q", m.Op())
+	}
+}
+
+// PlatformAutoDMRecipientClient is a client for the PlatformAutoDMRecipient schema.
+type PlatformAutoDMRecipientClient struct {
+	config
+}
+
+// NewPlatformAutoDMRecipientClient returns a client for the PlatformAutoDMRecipient from the given config.
+func NewPlatformAutoDMRecipientClient(c config) *PlatformAutoDMRecipientClient {
+	return &PlatformAutoDMRecipientClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformautodmrecipient.Hooks(f(g(h())))`.
+func (c *PlatformAutoDMRecipientClient) Use(hooks ...Hook) {
+	c.hooks.PlatformAutoDMRecipient = append(c.hooks.PlatformAutoDMRecipient, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformautodmrecipient.Intercept(f(g(h())))`.
+func (c *PlatformAutoDMRecipientClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformAutoDMRecipient = append(c.inters.PlatformAutoDMRecipient, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformAutoDMRecipient entity.
+func (c *PlatformAutoDMRecipientClient) Create() *PlatformAutoDMRecipientCreate {
+	mutation := newPlatformAutoDMRecipientMutation(c.config, OpCreate)
+	return &PlatformAutoDMRecipientCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformAutoDMRecipient entities.
+func (c *PlatformAutoDMRecipientClient) CreateBulk(builders ...*PlatformAutoDMRecipientCreate) *PlatformAutoDMRecipientCreateBulk {
+	return &PlatformAutoDMRecipientCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformAutoDMRecipientClient) MapCreateBulk(slice any, setFunc func(*PlatformAutoDMRecipientCreate, int)) *PlatformAutoDMRecipientCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformAutoDMRecipientCreateBulk{err: fmt.Errorf("calling to PlatformAutoDMRecipientClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformAutoDMRecipientCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformAutoDMRecipientCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformAutoDMRecipient.
+func (c *PlatformAutoDMRecipientClient) Update() *PlatformAutoDMRecipientUpdate {
+	mutation := newPlatformAutoDMRecipientMutation(c.config, OpUpdate)
+	return &PlatformAutoDMRecipientUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformAutoDMRecipientClient) UpdateOne(_m *PlatformAutoDMRecipient) *PlatformAutoDMRecipientUpdateOne {
+	mutation := newPlatformAutoDMRecipientMutation(c.config, OpUpdateOne, withPlatformAutoDMRecipient(_m))
+	return &PlatformAutoDMRecipientUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformAutoDMRecipientClient) UpdateOneID(id string) *PlatformAutoDMRecipientUpdateOne {
+	mutation := newPlatformAutoDMRecipientMutation(c.config, OpUpdateOne, withPlatformAutoDMRecipientID(id))
+	return &PlatformAutoDMRecipientUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformAutoDMRecipient.
+func (c *PlatformAutoDMRecipientClient) Delete() *PlatformAutoDMRecipientDelete {
+	mutation := newPlatformAutoDMRecipientMutation(c.config, OpDelete)
+	return &PlatformAutoDMRecipientDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformAutoDMRecipientClient) DeleteOne(_m *PlatformAutoDMRecipient) *PlatformAutoDMRecipientDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformAutoDMRecipientClient) DeleteOneID(id string) *PlatformAutoDMRecipientDeleteOne {
+	builder := c.Delete().Where(platformautodmrecipient.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformAutoDMRecipientDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformAutoDMRecipient.
+func (c *PlatformAutoDMRecipientClient) Query() *PlatformAutoDMRecipientQuery {
+	return &PlatformAutoDMRecipientQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformAutoDMRecipient},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformAutoDMRecipient entity by its id.
+func (c *PlatformAutoDMRecipientClient) Get(ctx context.Context, id string) (*PlatformAutoDMRecipient, error) {
+	return c.Query().Where(platformautodmrecipient.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformAutoDMRecipientClient) GetX(ctx context.Context, id string) *PlatformAutoDMRecipient {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformAutoDMRecipientClient) Hooks() []Hook {
+	return c.hooks.PlatformAutoDMRecipient
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformAutoDMRecipientClient) Interceptors() []Interceptor {
+	return c.inters.PlatformAutoDMRecipient
+}
+
+func (c *PlatformAutoDMRecipientClient) mutate(ctx context.Context, m *PlatformAutoDMRecipientMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformAutoDMRecipientCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformAutoDMRecipientUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformAutoDMRecipientUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformAutoDMRecipientDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformAutoDMRecipient mutation op: %q", m.Op())
 	}
 }
 
@@ -14640,11 +15206,12 @@ type (
 		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
 		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
 		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
-		PageKnowledge, PlatformCreativeSet, PlatformCreativeSetVersion,
-		PlatformNotificationDelivery, PlatformNotificationInbox,
-		PlatformNotificationPolicy, PlatformNotificationPreference,
-		PlatformNotificationSeenAction, PlatformSlackConnection,
-		PlatformSlackInstallation, PlatformSlackPacing,
+		PageKnowledge, PlatformAutoDMCampaign, PlatformAutoDMDelivery,
+		PlatformAutoDMOptOut, PlatformAutoDMRecipient, PlatformCreativeSet,
+		PlatformCreativeSetVersion, PlatformNotificationDelivery,
+		PlatformNotificationInbox, PlatformNotificationPolicy,
+		PlatformNotificationPreference, PlatformNotificationSeenAction,
+		PlatformSlackConnection, PlatformSlackInstallation, PlatformSlackPacing,
 		PlatformSlackPersonalConnection, PlatformWorkspaceCreation, PostAutomationRun,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
 		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
@@ -14669,11 +15236,12 @@ type (
 		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
 		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
 		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
-		PageKnowledge, PlatformCreativeSet, PlatformCreativeSetVersion,
-		PlatformNotificationDelivery, PlatformNotificationInbox,
-		PlatformNotificationPolicy, PlatformNotificationPreference,
-		PlatformNotificationSeenAction, PlatformSlackConnection,
-		PlatformSlackInstallation, PlatformSlackPacing,
+		PageKnowledge, PlatformAutoDMCampaign, PlatformAutoDMDelivery,
+		PlatformAutoDMOptOut, PlatformAutoDMRecipient, PlatformCreativeSet,
+		PlatformCreativeSetVersion, PlatformNotificationDelivery,
+		PlatformNotificationInbox, PlatformNotificationPolicy,
+		PlatformNotificationPreference, PlatformNotificationSeenAction,
+		PlatformSlackConnection, PlatformSlackInstallation, PlatformSlackPacing,
 		PlatformSlackPersonalConnection, PlatformWorkspaceCreation, PostAutomationRun,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
 		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,

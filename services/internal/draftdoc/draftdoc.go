@@ -65,7 +65,7 @@ type VersionOptions struct {
 type Community struct {
 	ID                 string `json:"id"`
 	Name               string `json:"name,omitempty"`
-	ShareWithFollowers bool   `json:"shareWithFollowers,omitempty"`
+	ShareWithFollowers *bool  `json:"shareWithFollowers,omitempty"`
 }
 
 // NumberingStyles are the numbering formats: #1, 1️⃣, 1., 1/, /1, 1/9, 1 of 9.

@@ -383,3 +383,60 @@ test('TF-075 numbering follows edits on every thread platform without changing a
     assert.equal(shortened.target.caption, 'Moved first')
   }
 })
+
+test('LinkedIn people and punctuated names keep native identities and reject malformed IDs', () => {
+  const body = (providerId: string, label: string) => [
+    brk({ id: 'a' }),
+    {
+      type: 'p',
+      children: [
+        {
+          type: SOCIAL_MENTION,
+          platform: 'linkedin',
+          kind: 'person',
+          providerId,
+          label,
+          children: [{ text: '' }],
+        },
+      ],
+    },
+  ]
+  const person = draft({ body: body('urn:li:person:abc_123', 'Anne (AJ) Doe') })
+  assert.equal(
+    buildPublication(person, linkedin).target.caption,
+    String.raw`@[Anne \(AJ\) Doe](urn:li:person:abc_123)`
+  )
+  assert.equal(buildPublication(person, x).target.caption, 'Anne (AJ) Doe')
+  const invalid = draft({ body: body('urn:li:person:bad/path', 'Plain [name]') })
+  assert.equal(buildPublication(invalid, linkedin).target.caption, 'Plain [name]')
+})
+
+test('X native quotes require the application grant without blocking draft creation', () => {
+  const content = draft({
+    kind: 'quote',
+    target: { platform: 'x', remoteId: '123456789', url: 'https://x.com/i/status/123456789' },
+    body: [brk({ id: 'root' }), p('A native quote')],
+  })
+  assert.ok(buildPublication(content, x).problems.some((message) => message.includes('Enterprise')))
+  const eligible = buildPublication(content, { ...x, standing: { xQuotes: true } })
+  assert.deepEqual(eligible.problems, [])
+  assert.equal(eligible.target.options?.quoteRemoteId, '123456789')
+  assert.equal(eligible.target.caption, 'A native quote')
+})
+
+test('community broadcast explicitly preserves both choices on the root only', () => {
+  for (const shareWithFollowers of [false, true]) {
+    const versions = withOptions(readVersions(undefined), 'x', {
+      community: { id: '42', shareWithFollowers },
+    })
+    const result = buildPublication(draft({ platformVersions: versions }), x)
+    assert.deepEqual(result.problems, [])
+    assert.equal(result.target.options?.communityId, '42')
+    assert.equal(result.target.options?.shareWithFollowers, shareWithFollowers)
+    assert.ok(
+      result.target.replies?.every(
+        (reply) => !reply.options?.communityId && !reply.options?.shareWithFollowers
+      )
+    )
+  }
+})

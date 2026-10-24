@@ -74,6 +74,8 @@ func (ContentDraft) Fields() []ent.Field {
 		// The draft this one was duplicated, copied or recovered from.
 		field.String("source_draft_id").StorageKey("sourceDraftId").Optional().Nillable().Immutable(),
 		// Yjs document state, written only by the collaboration service.
+		// External body replacements invalidate cached rooms and projections.
+		field.Int("collab_generation").StorageKey("collabGeneration").Default(0).NonNegative(),
 		field.Bytes("collab_state").StorageKey("collabState").Optional().Nillable(),
 		field.String("created_by_user_id").StorageKey("createdByUserId").Optional().Nillable(),
 		field.String("updated_by_user_id").StorageKey("updatedByUserId").Optional().Nillable(),

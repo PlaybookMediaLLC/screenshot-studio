@@ -62,6 +62,7 @@ func (e *ContentDraftVersionConflictError) Unwrap() error { return publishing.Er
 // ContentDraftRecord is a draft as the API returns it. The collaboration
 // state is not part of it.
 type ContentDraftRecord struct {
+	CollabGeneration     int               `json:"collabGeneration"`
 	AssetIDs             []string          `json:"assetIds"`
 	Body                 []any             `json:"body"`
 	ChannelConnectionIDs []string          `json:"channelConnectionIds"`
@@ -163,6 +164,8 @@ type ContentDraftInput struct {
 // ContentDraftUpdate changes the fields it sets, based on BaseVersion.
 // Status may move between draft and archived; scheduled is set by scheduling.
 type ContentDraftUpdate struct {
+	// CollabGeneration identifies a live editor projection. Omit for an external body replacement.
+	CollabGeneration     *int               `json:"collabGeneration"`
 	AssetIDs             *[]string          `json:"assetIds"`
 	BaseVersion          int                `json:"baseVersion"`
 	Body                 *[]any             `json:"body"`
@@ -184,7 +187,7 @@ type ContentDraftUpdate struct {
 }
 
 func contentDraftRecord(row *ent.ContentDraft) ContentDraftRecord {
-	return ContentDraftRecord{AssetIDs: nonNilStrings(row.AssetIds), Body: nonNilBody(row.Body),
+	return ContentDraftRecord{CollabGeneration: row.CollabGeneration, AssetIDs: nonNilStrings(row.AssetIds), Body: nonNilBody(row.Body),
 		ChannelConnectionIDs: nonNilStrings(row.ChannelConnectionIds), CreatedAt: row.CreatedAt,
 		CreatedByUserID: row.CreatedByUserID, ChannelText: nonNilChannelText(row.ChannelText), Discussions: nonNilDiscussions(row.Discussions), ID: row.ID, OrganizationID: row.OrganizationID, PlainText: row.PlainText,
 		Status: string(row.Status), Title: row.Title, UpdatedAt: row.UpdatedAt, UpdatedByUserID: row.UpdatedByUserID,
@@ -898,6 +901,13 @@ func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx,
 		body, err := contentDraftBody(*input.Body)
 		if err != nil {
 			return err
+		}
+		if input.CollabGeneration != nil {
+			if *input.CollabGeneration != current.CollabGeneration {
+				return conflict("The draft body was replaced. Reload it before saving.")
+			}
+		} else if !sameJSON(body, current.Body) {
+			update.ClearCollabState().AddCollabGeneration(1)
 		}
 		update.SetBody(body)
 	}

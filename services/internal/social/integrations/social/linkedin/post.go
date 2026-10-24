@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
@@ -378,15 +379,12 @@ func (p *Provider) createMainPost(ctx context.Context, data *pendingData, access
 		payload.ReshareContext = map[string]string{"parent": data.ReshareParent}
 	}
 	body, _ := json.Marshal(payload)
-	// Fetch only returns 200/201, so TypeScript's "Error posting to LinkedIn"
-	// status check cannot trigger here.
-	res, err := p.Fetch(ctx, APIURL+"/rest/posts", integrations.Request{
-		Method: http.MethodPost, Headers: Headers(accessToken, "application/json"), Body: body,
-	})
+	// Post creation must not use the generic retrying fetch helper.
+	res, err := p.mutate(ctx, "/rest/posts", accessToken, body)
 	if err != nil {
 		return "", err
 	}
-	return res.Header.Get("x-restli-id"), nil
+	return p.postReceipt(res)
 }
 
 // Repost reshares parent as author (urn:li:person:... or urn:li:organization:...).
@@ -394,41 +392,55 @@ func (p *Provider) Repost(ctx context.Context, accessToken, author, parent strin
 	payload := newPayload(author, "")
 	payload.ReshareContext = map[string]string{"parent": parent}
 	body, _ := json.Marshal(payload)
-	_, err := p.Fetch(ctx, APIURL+"/rest/posts", integrations.Request{
-		Method: http.MethodPost, Headers: Headers(accessToken, "application/json"), Body: body,
-	})
+	res, err := p.mutate(ctx, "/rest/posts", accessToken, body)
+	if err != nil {
+		return err
+	}
+	_, err = p.postReceipt(res)
 	return err
 }
 
 func (p *Provider) createCommentPost(ctx context.Context, id, accessToken string, post integrations.PostDetails, parentPostID, postType string) (string, error) {
+	if !postURN.MatchString(parentPostID) {
+		return "", temporalx.BadBody(p.identifier, "{}", "{}", "Choose a confirmed LinkedIn post for the first comment.")
+	}
 	body, _ := json.Marshal(map[string]any{
 		"actor":   authorURN(postType, id),
 		"object":  parentPostID,
-		"message": map[string]string{"text": FixText(post.Message)},
+		"message": map[string]string{"text": post.Message},
 	})
-	headers := Headers(accessToken, "application/json")
-	headers["LinkedIn-Version"] = "202306"
-	res, err := p.Fetch(ctx, APIURL+"/rest/socialActions/"+EncodeURIComponent(parentPostID)+"/comments", integrations.Request{
-		Method: http.MethodPost, Headers: headers, Body: body,
-	})
+	res, err := p.mutate(ctx, "/rest/socialActions/"+EncodeURIComponent(parentPostID)+"/comments", accessToken, body)
 	if err != nil {
 		return "", err
 	}
 	var out struct {
-		Object string `json:"object"`
+		Object     string `json:"object"`
+		ID         string `json:"id"`
+		CommentURN string `json:"commentUrn"`
 	}
 	if err := res.JSON(&out); err != nil {
-		return "", err
+		return "", temporalx.UnknownDelivery(p.identifier, "LinkedIn returned an unreadable comment receipt. Check the post before retrying.")
 	}
-	return out.Object, nil
+	if commentURN.MatchString(out.CommentURN) {
+		return out.CommentURN, nil
+	}
+	commentID := res.Header.Get("x-restli-id")
+	if commentID == "" {
+		commentID = out.ID
+	}
+	if organizationID.MatchString(commentID) && commentObject.MatchString(out.Object) {
+		return "urn:li:comment:(" + out.Object + "," + commentID + ")", nil
+	}
+	return "", temporalx.UnknownDelivery(p.identifier, "LinkedIn did not return a valid comment receipt. Check the post before retrying.")
 }
 
 func createPostResponse(postID, originalPostID string, isMainPost bool) integrations.PostResponse {
-	baseURL := "https://www.linkedin.com/embed/feed/update/"
-	if isMainPost {
-		baseURL = "https://www.linkedin.com/feed/update/"
+	link := "https://www.linkedin.com/feed/update/" + postID
+	if !isMainPost && commentURN.MatchString(postID) {
+		parent, _, _ := strings.Cut(strings.TrimPrefix(postID, "urn:li:comment:("), ",")
+		link = "https://www.linkedin.com/feed/update/" + parent + "?commentUrn=" + EncodeURIComponent(postID)
 	}
-	return integrations.PostResponse{Status: "posted", PostID: postID, ID: originalPostID, ReleaseURL: baseURL + postID}
+	return integrations.PostResponse{Status: "posted", PostID: postID, ID: originalPostID, ReleaseURL: link}
 }
 
 func (p *Provider) PostPending(ctx context.Context, id, accessToken string, posts []integrations.PostDetails, integration *ent.Integration) ([]integrations.PostResponse, error) {

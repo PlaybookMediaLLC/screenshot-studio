@@ -49,7 +49,7 @@ const (
 	onboardingAbandonAfter = 10 * time.Minute
 )
 
-// onboardingLimits are a plan's pages and tokens per run. There is no free plan.
+// onboardingLimits are a plan's pages and tokens per run. Free scheduling does not include the onboarding agent.
 func onboardingLimits(plan string) (pages, tokens int) {
 	if plan == "business" || plan == "enterprise" {
 		return 100, 400_000

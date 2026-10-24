@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/png"
 	"io"
@@ -546,5 +547,25 @@ func TestArticlePreservesStylesEmptyParagraphsAndEmbeddedPosts(t *testing.T) {
 	}
 	if len(state.Entities) != 1 || state.Entities[0].Value.Type != "post" || state.Entities[0].Value.Data.(map[string]string)["post_id"] != "123" {
 		t.Fatalf("entities: %+v", state.Entities)
+	}
+}
+
+func TestCommunityBroadcastKeepsExplicitFalse(t *testing.T) {
+	for _, share := range []bool{false, true} {
+		t.Run(fmt.Sprint(share), func(t *testing.T) {
+			calls, done := fakePublishingX(t, func(r recorded) (int, string) { return 201, `{"data":{"id":"99"}}` })
+			defer done()
+			pending := marshal(pendingData{Message: "community", Settings: pendingSettings{WhoCanReplyPost: ptr("everyone"), Community: ptr("https://x.com/i/communities/42"), ShareWithFollowers: &share}, Attempting: true, Confirmed: true})
+			if _, err := New().FinalizePost(context.Background(), "a:b", pending, publishingAccount()); err != nil {
+				t.Fatal(err)
+			}
+			var body map[string]any
+			if err := json.Unmarshal((*calls)[1].body, &body); err != nil {
+				t.Fatal(err)
+			}
+			if body["share_with_followers"] != share || body["community_id"] != "42" {
+				t.Fatalf("broadcast intent lost: %v", body)
+			}
+		})
 	}
 }

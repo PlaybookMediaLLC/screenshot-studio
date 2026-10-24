@@ -597,6 +597,54 @@ func (f PageKnowledgeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PageKnowledgeMutation", m)
 }
 
+// The PlatformAutoDMCampaignFunc type is an adapter to allow the use of ordinary
+// function as PlatformAutoDMCampaign mutator.
+type PlatformAutoDMCampaignFunc func(context.Context, *ent.PlatformAutoDMCampaignMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformAutoDMCampaignFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformAutoDMCampaignMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformAutoDMCampaignMutation", m)
+}
+
+// The PlatformAutoDMDeliveryFunc type is an adapter to allow the use of ordinary
+// function as PlatformAutoDMDelivery mutator.
+type PlatformAutoDMDeliveryFunc func(context.Context, *ent.PlatformAutoDMDeliveryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformAutoDMDeliveryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformAutoDMDeliveryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformAutoDMDeliveryMutation", m)
+}
+
+// The PlatformAutoDMOptOutFunc type is an adapter to allow the use of ordinary
+// function as PlatformAutoDMOptOut mutator.
+type PlatformAutoDMOptOutFunc func(context.Context, *ent.PlatformAutoDMOptOutMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformAutoDMOptOutFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformAutoDMOptOutMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformAutoDMOptOutMutation", m)
+}
+
+// The PlatformAutoDMRecipientFunc type is an adapter to allow the use of ordinary
+// function as PlatformAutoDMRecipient mutator.
+type PlatformAutoDMRecipientFunc func(context.Context, *ent.PlatformAutoDMRecipientMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformAutoDMRecipientFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformAutoDMRecipientMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformAutoDMRecipientMutation", m)
+}
+
 // The PlatformCreativeSetFunc type is an adapter to allow the use of ordinary
 // function as PlatformCreativeSet mutator.
 type PlatformCreativeSetFunc func(context.Context, *ent.PlatformCreativeSetMutation) (ent.Value, error)

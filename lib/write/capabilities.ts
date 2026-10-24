@@ -207,6 +207,7 @@ export const CAPABILITIES: Record<DraftChannel, PlatformCapabilities> = {
 export const accountStandingSchema = z.object({
   maxWeightedCharacters: z.union([z.literal(280), z.literal(25_000)]).nullish(),
   articles: z.boolean().nullish(),
+  xQuotes: z.boolean().optional(),
   mastodonQuotes: z.boolean().nullish(),
   pollLimits: z
     .object({
@@ -249,7 +250,7 @@ export function kindAvailability(
       reason:
         'Reconnect to a Mastodon server with native quotes and read:search/read:statuses permissions.',
     }
-  if (channel === 'x' && kind === 'quote') {
+  if (channel === 'x' && kind === 'quote' && account?.xQuotes !== true) {
     return {
       action: 'none',
       available: false,

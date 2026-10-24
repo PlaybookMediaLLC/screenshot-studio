@@ -61,6 +61,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmcampaign"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmdelivery"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmoptout"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
@@ -223,6 +227,10 @@ func checkColumn(t, c string) error {
 			organizationenterprisesettings.Table:  organizationenterprisesettings.ValidColumn,
 			outboxevent.Table:                     outboxevent.ValidColumn,
 			pageknowledge.Table:                   pageknowledge.ValidColumn,
+			platformautodmcampaign.Table:          platformautodmcampaign.ValidColumn,
+			platformautodmdelivery.Table:          platformautodmdelivery.ValidColumn,
+			platformautodmoptout.Table:            platformautodmoptout.ValidColumn,
+			platformautodmrecipient.Table:         platformautodmrecipient.ValidColumn,
 			platformcreativeset.Table:             platformcreativeset.ValidColumn,
 			platformcreativesetversion.Table:      platformcreativesetversion.ValidColumn,
 			platformnotificationdelivery.Table:    platformnotificationdelivery.ValidColumn,

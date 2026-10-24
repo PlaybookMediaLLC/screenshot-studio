@@ -23,6 +23,9 @@ func (c *Configuration) SwapContentDraftPosts(ctx context.Context, actor Actor, 
 	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, contentDraftFeature); err != nil {
 		return nil, err
 	}
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+		return nil, err
+	}
 	if firstID == secondID {
 		return nil, invalid("Choose two different posts.")
 	}

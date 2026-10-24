@@ -4,12 +4,12 @@
 > See the [current execution order](README.md). Older decision text is
 > historical wherever it conflicts with that order or the audited architecture.
 
-**Status:** Implemented; revised for no free plan (see Implementation)  
-**Status note (2026-10-16):** The Free plan was removed. Every workspace needs a paid plan to use the product.  
+**Status:** Implemented; limited free scheduling approved on 2026-10-24 (see below)
+**Historical status (2026-10-16):** The Free plan was removed. This decision is superseded by the limited scheduling amendment below.
 **Phase 0 update (2026-10-16):** Checkout returns to `/api/billing/checkout/return` and applies the plan immediately; `/pricing` shows why a visitor is there; onboarding has a plan step; workspace settings have a Billing section; credit packs require a subscription. No trial.  
 **Packaging update (2026-10-17):** Seat and social channel limits are enforced; Billing settings show every monthly allowance and the pack balance; launch agents send a smaller design schema and skip visuals a re-run already finished.
 **Date:** 2026-10-15  
-**Revised:** 2026-10-16  
+**Revised:** 2026-10-24
 **Owners:** Product and Engineering  
 **Depends on:** RFC 015, RFC 021, RFC 034, `lib/billing/plans.ts`, `services/internal/product/quota.go`
 
@@ -17,7 +17,7 @@
 
 Sell three paid plans, priced on the value of a launch and protected by a
 cost-based meter, at a 75% gross margin when a workspace uses half its
-allowance. There is no free plan.
+allowance. A limited free scheduling tier is available as approved for TF-002 on 2026-10-24.
 
 | Plan       | Monthly     | Billed annually | Included each month                                                                    |
 | ---------- | ----------- | --------------- | -------------------------------------------------------------------------------------- |
@@ -25,7 +25,7 @@ allowance. There is no free plan.
 | Business   | $699        | $594/mo         | 13,200 AI credits (about 30 launches), 480 posts, 25,000 emails                        |
 | Enterprise | from $3,000 | annual only     | 54,000 AI credits (about 125 launches), 2,400 posts, 100,000 emails, SSO, SCIM, drains |
 
-Every plan includes the editor, every image tool, release intake, and
+Every paid plan includes the image editor, every image tool, release intake, and
 approvals. An extra launch is $29 for 500 AI credits. Pack credits are spent
 after the monthly allowance and do not expire. No trial is configured.
 
@@ -33,22 +33,33 @@ after the monthly allowance and do not expire. No trial is configured.
 consumes credits in proportion to what it costs. With prompt caching and the
 visuals agent on Sonnet, a launch is about 430 credits.
 
-### No free plan
+### Limited free scheduling (approved 2026-10-24)
 
-Every customer pays. The editor and the tools are part of the paid product,
-not a separate free tier, so there is one way in: choose a plan.
+The product owner explicitly approved a free tier while implementing TF-002:
+**one seat, one connected social account, ten scheduled posts per UTC month,
+no AI, with advanced queue features remaining paid**. This amendment supersedes
+the previous paid-only decision for this narrow workflow. Paid prices and their
+allowances remain unchanged.
 
-- A free tier serves people who never buy, and its cost (model spend,
-  captures, storage, support) is paid by the customers who do.
-- The editor and tools are worth paying for on their own. Giving them away
-  sets their price at zero.
-- One rule is easier to enforce than two. The product needs one gate, not a
-  separate allowance table and abuse controls for unpaid use.
+`free` now grants `workspace:use` and `content:drafts`: writing, previewing,
+planning, and explicit-time or immediate scheduling of text/link posts. It
+allows 60 API writes/minute; media storage, AI, email and concurrent agent-job
+allowances remain zero. Media uploads and the screenshot/design tools remain
+paid. Credit packs require a paid subscription, and previously purchased credits
+cannot fund AI on a downgraded free workspace.
 
-`free` remains an internal plan value: it is the state of a workspace without
-a subscription. It has no features and every allowance is zero. A new
-workspace starts in that state, and a workspace returns to it when its
-subscription ends.
+`workspace:paid` protects paid product surfaces. `content:scheduling-advanced`
+protects next-slot selection, best-time recommendations, posting schedules,
+natural posting times and follow-up automation. Go checks those options again
+at commitment time, including defaults inherited before a downgrade. Seat and
+channel admission remains serialized with billing changes; an over-limit
+workspace must remove extra members/accounts or upgrade before free scheduling.
+Usage is preserved across upgrades and downgrades, and replaying a committed
+schedule never consumes another post.
+
+New workspaces can choose **Continue with free scheduling** during onboarding.
+Cancelled subscriptions retain data and return to this limited tier; inactive,
+expired, suspended or unknown entitlement records still fail closed.
 
 ### Allowances
 
@@ -61,7 +72,7 @@ subscription ends.
 | Concurrent jobs         | 5     | 25       | 250        |
 | Storage                 | 25 GB | 250 GB   | 5 TB       |
 
-A workspace without a subscription gets zero of each.
+A free workspace gets ten scheduled posts/month and 60 API writes/minute; all other allowances in this table are zero.
 
 ## What the customer is buying
 
@@ -168,10 +179,12 @@ payment processing is about 1.2%.
 - Monthly plans clear 75% at half use and stay above 60% at full use.
 - Annual plans (15% off) land at 72–73% at half use and about 80% at 30% use,
   which is where annual customers usually sit.
-- There is no unpaid usage to subsidize. A workspace without a subscription
-  cannot run AI actions, schedule posts, or send email, so blended margin is
-  the paid-plan margin above. Its only cost is the data it keeps: at most
-  $0.38 a month for a lapsed Pro workspace at its full 25 GB in R2.
+- The limited free tier adds provider and infrastructure cost outside these
+  paid-plan margins. At the listed X link-post price, ten such posts cost up to
+  $2/month per fully used free workspace, before infrastructure and support.
+  It cannot run AI or send email. Retained data for a lapsed Pro workspace can
+  additionally cost up to $0.38/month at its full 25 GB in R2. Monitor free-tier
+  conversion and provider spend separately from paid-plan gross margin.
 - An extra launch at $29 costs at most $6.14: 500 credits of model spend plus
   card fees (2.9% + $0.30). That is a 79% margin. Its posts and emails come
   from the plan's own allowances.
@@ -235,36 +248,16 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
 8. **Sonnet for the long loops.** The production visuals agent and the
    editor copilot use the `drafting` role. Watch the visual critique pass
    rate and move visuals back to `deep` if it drops.
-9. **Cancellation locks the workspace.** A workspace on `free` keeps its
-   releases, assets, campaigns, and settings, but cannot use any of them
-   until it subscribes again. Nothing is deleted when a subscription ends.
-10. **The `workspace:use` gate.** Using the product at all requires the
-    `workspace:use` feature, which every paid plan includes and `free` does
-    not. It is enforced in these places:
-    - **Go backend.** `services/internal/product/entitlements.go` sets its
-      minimum plan to Pro; `services/internal/product/bootstrap.go` grants it
-      only to an active workspace on a paid plan, which is what the web reads;
-      `services/internal/product/quota.go` gives `free` zero of every
-      allowance and refuses metering for an inactive workspace; storage
-      limits in `services/internal/product/assets_media.go` give `free` 0
-      bytes. A workspace with no entitlement record reads as `free`.
-    - **Web proxy.** `lib/auth/sign-in-gate.ts` redirects the standalone
-      editor tools and every image tool: no session goes to sign-in, no
-      workspace to onboarding, no paid plan to `/pricing?subscribe=required`.
-    - **Page guards.** The editor at `/`, assets, activity, and campaigns
-      read `hasPaidPlan` from `lib/auth/page-access.ts` and redirect the
-      same way.
-    - **Editor utility APIs.** `/api/screenshot`, `/api/export`,
-      `/api/tweet/{id}`, and `/api/image-proxy` call `requirePaidAccess`
-      (`lib/api/require-account.ts`). They accept a session or a workspace
-      API key with `artifact:read`, and return `401 unauthorized` without
-      either and `403 workspace_feature_not_entitled` without a paid plan.
-    - **Tenant API.** `requireTenantAccess` (`lib/tenant/access.ts`) checks
-      `workspace:use` on every `/api/v1` operation, for sessions and API keys.
-    - **Go writes.** Creating releases (API, form, and webhook ingestion) and
-      source apps requires `release:create` and `source-app:create`, which
-      only paid plans grant (`requireWorkspaceFeature` in
-      `services/internal/product/entitlements.go`).
+9. **Cancellation retains data.** Releases, assets and campaigns remain stored;
+   paid operations require resubscription. Basic content drafts and free
+   scheduling remain available within the limits above. Nothing is deleted.
+10. **Separate basic and paid gates.** `workspace:use` admits active free and
+    paid workspaces; `workspace:paid` protects paid pages, tools, credit packs,
+    AI and release APIs. Operation-specific features remain enforced in the
+    tenant REST/MCP contracts and Go services. `content:scheduling-advanced`
+    is checked before scheduling and editing queue defaults. The backend is
+    authoritative; changing client controls cannot grant access. Unknown or
+    inactive plans fail closed. A missing entitlement row is a new free workspace.
 11. **Plan limits.** Seats and social channels are capped per plan in
     `services/internal/product/plan_limits.go`, mirrored in
     `lib/billing/plans.ts` (`test/ai-credit-metering.test.ts` fails if they
@@ -286,7 +279,8 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
     - **Products.** A workspace has one product profile (RFC 012), so the
       product limit is one per workspace on every plan.
     - Existing members and channels above a lower plan's limit are kept after
-      a downgrade; only new ones are refused.
+      a downgrade. New ones are refused, and free scheduling requires reducing
+      active channels and members to one or upgrading again.
 
 Stripe setup. The products live in the Playbook Media organization's account
 (`acct_1OXB7hJ5a5YKQUvY`), in live mode:

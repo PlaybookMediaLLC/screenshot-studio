@@ -8,12 +8,12 @@ import { normalizeOrganizationRole } from '@/lib/auth/permissions'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 /**
- * Shared guard for the drafts pages: a paid workspace member, inside the
+ * Shared guard for the drafts pages: a workspace member with basic scheduling, inside the
  * content drafts rollout (RFC 037). Outside the rollout the pages do not exist.
  */
 export async function requireDraftsPageAccess(locale: string, returnTo: string) {
   const requestHeaders = await headers()
-  const access = await requirePaidPageAccess(requestHeaders, locale, returnTo)
+  const access = await requirePaidPageAccess(requestHeaders, locale, returnTo, 'content:drafts')
   if (!contentDraftsEnabled() || !access.organization) notFound()
   // Reads run as the signed-in session, scoped to the active workspace.
   const tenant: OrganizationAccess = {

@@ -36,6 +36,7 @@ export function AutoDmDraft({
         size="sm"
         className="h-7 rounded-full text-xs"
         onClick={() => {
+          setError('')
           setForm(
             value ?? {
               match: 'any',

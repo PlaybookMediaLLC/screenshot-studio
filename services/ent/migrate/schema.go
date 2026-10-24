@@ -748,6 +748,7 @@ var (
 		{Name: "pinnedAt", Type: field.TypeTime, Nullable: true},
 		{Name: "planTimeZone", Type: field.TypeString, Nullable: true},
 		{Name: "sourceDraftId", Type: field.TypeString, Nullable: true},
+		{Name: "collabGeneration", Type: field.TypeInt, Default: 0},
 		{Name: "collabState", Type: field.TypeBytes, Nullable: true},
 		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
 		{Name: "updatedByUserId", Type: field.TypeString, Nullable: true},
@@ -763,12 +764,12 @@ var (
 			{
 				Name:    "contentdraft_organizationId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[35]},
+				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[36]},
 			},
 			{
 				Name:    "contentdraft_socialSetId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[17], ContentDraftColumns[35]},
+				Columns: []*schema.Column{ContentDraftColumns[17], ContentDraftColumns[36]},
 			},
 		},
 	}
@@ -1515,6 +1516,113 @@ var (
 				Name:    "pageknowledge_organizationId_runId",
 				Unique:  false,
 				Columns: []*schema.Column{PageKnowledgeColumns[1], PageKnowledgeColumns[2]},
+			},
+		},
+	}
+	// PlatformAutoDmCampaignColumns holds the columns for the "platform_auto_dm_campaign" table.
+	PlatformAutoDmCampaignColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "account_id", Type: field.TypeString},
+		{Name: "post_id", Type: field.TypeString},
+		{Name: "snapshot", Type: field.TypeJSON},
+		{Name: "published_at", Type: field.TypeTime},
+		{Name: "disabled", Type: field.TypeBool, Default: false},
+		{Name: "source_removed", Type: field.TypeBool, Default: false},
+	}
+	// PlatformAutoDmCampaignTable holds the schema information for the "platform_auto_dm_campaign" table.
+	PlatformAutoDmCampaignTable = &schema.Table{
+		Name:       "platform_auto_dm_campaign",
+		Columns:    PlatformAutoDmCampaignColumns,
+		PrimaryKey: []*schema.Column{PlatformAutoDmCampaignColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformautodmcampaign_id_organizationId_account_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformAutoDmCampaignColumns[0], PlatformAutoDmCampaignColumns[1], PlatformAutoDmCampaignColumns[2]},
+			},
+			{
+				Name:    "platformautodmcampaign_organizationId_account_id_post_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformAutoDmCampaignColumns[1], PlatformAutoDmCampaignColumns[2], PlatformAutoDmCampaignColumns[3]},
+			},
+			{
+				Name:    "platformautodmcampaign_account_id_published_at",
+				Unique:  false,
+				Columns: []*schema.Column{PlatformAutoDmCampaignColumns[2], PlatformAutoDmCampaignColumns[5]},
+			},
+		},
+	}
+	// PlatformAutoDmDeliveryColumns holds the columns for the "platform_auto_dm_delivery" table.
+	PlatformAutoDmDeliveryColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "account_id", Type: field.TypeString},
+		{Name: "campaign_id", Type: field.TypeString},
+		{Name: "recipient_id", Type: field.TypeString},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"reserved", "sent", "unknown"}, Default: "reserved"},
+		{Name: "remote_id", Type: field.TypeString, Default: ""},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// PlatformAutoDmDeliveryTable holds the schema information for the "platform_auto_dm_delivery" table.
+	PlatformAutoDmDeliveryTable = &schema.Table{
+		Name:       "platform_auto_dm_delivery",
+		Columns:    PlatformAutoDmDeliveryColumns,
+		PrimaryKey: []*schema.Column{PlatformAutoDmDeliveryColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformautodmdelivery_campaign_id_recipient_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformAutoDmDeliveryColumns[3], PlatformAutoDmDeliveryColumns[4]},
+			},
+			{
+				Name:    "platformautodmdelivery_account_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{PlatformAutoDmDeliveryColumns[2], PlatformAutoDmDeliveryColumns[7]},
+			},
+		},
+	}
+	// PlatformAutoDmOptOutColumns holds the columns for the "platform_auto_dm_opt_out" table.
+	PlatformAutoDmOptOutColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "account_id", Type: field.TypeString},
+		{Name: "recipient_id", Type: field.TypeString},
+		{Name: "evidence_id", Type: field.TypeString},
+		{Name: "observed_at", Type: field.TypeTime},
+	}
+	// PlatformAutoDmOptOutTable holds the schema information for the "platform_auto_dm_opt_out" table.
+	PlatformAutoDmOptOutTable = &schema.Table{
+		Name:       "platform_auto_dm_opt_out",
+		Columns:    PlatformAutoDmOptOutColumns,
+		PrimaryKey: []*schema.Column{PlatformAutoDmOptOutColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformautodmoptout_account_id_recipient_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformAutoDmOptOutColumns[1], PlatformAutoDmOptOutColumns[2]},
+			},
+		},
+	}
+	// PlatformAutoDmRecipientColumns holds the columns for the "platform_auto_dm_recipient" table.
+	PlatformAutoDmRecipientColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "account_id", Type: field.TypeString},
+		{Name: "campaign_id", Type: field.TypeString},
+		{Name: "recipient_id", Type: field.TypeString},
+		{Name: "snapshot", Type: field.TypeJSON},
+		{Name: "observed_at", Type: field.TypeTime},
+	}
+	// PlatformAutoDmRecipientTable holds the schema information for the "platform_auto_dm_recipient" table.
+	PlatformAutoDmRecipientTable = &schema.Table{
+		Name:       "platform_auto_dm_recipient",
+		Columns:    PlatformAutoDmRecipientColumns,
+		PrimaryKey: []*schema.Column{PlatformAutoDmRecipientColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformautodmrecipient_campaign_id_recipient_id",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformAutoDmRecipientColumns[3], PlatformAutoDmRecipientColumns[4]},
 			},
 		},
 	}
@@ -3137,6 +3245,10 @@ var (
 		OrganizationEnterpriseSettingsTable,
 		OutboxEventTable,
 		PageKnowledgeTable,
+		PlatformAutoDmCampaignTable,
+		PlatformAutoDmDeliveryTable,
+		PlatformAutoDmOptOutTable,
+		PlatformAutoDmRecipientTable,
 		PlatformCreativeSetTable,
 		PlatformCreativeSetVersionTable,
 		PlatformNotificationDeliveryTable,
@@ -3341,6 +3453,18 @@ func init() {
 	}
 	PageKnowledgeTable.Annotation = &entsql.Annotation{
 		Table: "page_knowledge",
+	}
+	PlatformAutoDmCampaignTable.Annotation = &entsql.Annotation{
+		Table: "platform_auto_dm_campaign",
+	}
+	PlatformAutoDmDeliveryTable.Annotation = &entsql.Annotation{
+		Table: "platform_auto_dm_delivery",
+	}
+	PlatformAutoDmOptOutTable.Annotation = &entsql.Annotation{
+		Table: "platform_auto_dm_opt_out",
+	}
+	PlatformAutoDmRecipientTable.Annotation = &entsql.Annotation{
+		Table: "platform_auto_dm_recipient",
 	}
 	PlatformCreativeSetTable.Annotation = &entsql.Annotation{
 		Table: "platform_creative_set",

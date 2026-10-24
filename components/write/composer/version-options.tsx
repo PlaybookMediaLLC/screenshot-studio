@@ -551,6 +551,9 @@ function CommunityDialog({
 }) {
   const [value, setValue] = React.useState(community?.id ?? '')
   const [name, setName] = React.useState(community?.name ?? '')
+  const [shareWithFollowers, setShareWithFollowers] = React.useState(
+    community?.shareWithFollowers ?? true
+  )
   const [query, setQuery] = React.useState('')
   const [results, setResults] = React.useState<{ id: string; name: string }[] | null>(null)
   const [searching, setSearching] = React.useState(false)
@@ -642,10 +645,20 @@ function CommunityDialog({
           Name, for your reference
           <Input maxLength={200} onChange={(event) => setName(event.target.value)} value={name} />
         </Label>
-        <p className="text-xs text-muted-foreground">
-          Share to timeline is unavailable: X’s documented API field does not establish
-          community-only visibility.
-        </p>
+        <Label className="flex items-center justify-between gap-3 text-sm">
+          <span>
+            Share to timeline
+            <span className="block text-xs text-muted-foreground">
+              Also share with your followers. Turning this off stops that broadcast; the community
+              post remains public.
+            </span>
+          </span>
+          <Switch
+            aria-label="Share to timeline"
+            checked={shareWithFollowers}
+            onCheckedChange={setShareWithFollowers}
+          />
+        </Label>
         <DialogFooter>
           {community ? (
             <Button
@@ -663,7 +676,7 @@ function CommunityDialog({
           <Button
             disabled={!id}
             onClick={() => {
-              if (id) onChange({ id, name: name.trim() || undefined })
+              if (id) onChange({ id, name: name.trim() || undefined, shareWithFollowers })
               onClose()
             }}
             type="button"

@@ -55,7 +55,7 @@ export type GateAccess = {
 /**
  * Where to send a visitor who asks for a product page without everything it
  * needs: sign-in (then back to the page), onboarding, workspace recovery, or
- * choosing a plan. There is no free plan. Null lets the request through.
+ * choosing a paid plan for these image tools. Basic scheduling has its own page guard. Null lets the request through.
  * `loadAccess` reads the session and workspace; it runs only on product pages
  * that carry a session cookie.
  */

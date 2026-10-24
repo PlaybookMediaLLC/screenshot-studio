@@ -99,6 +99,8 @@ export const socialAccountSchema = z.object({
   xCaptionLimit: z.union([z.literal(280), z.literal(25_000)]).nullish(),
   /** Verified Articles access, separate from long-post access. */
   xArticles: z.boolean().nullish(),
+  /** Native quotes require the deployed app's approved X Enterprise grant. */
+  xQuotes: z.boolean().optional(),
   /** Verified Mastodon server poll limits; absent values do not permit a poll. */
   mastodonQuotes: z.boolean().nullish(),
   pollLimits: z

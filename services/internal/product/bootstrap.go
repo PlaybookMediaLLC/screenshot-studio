@@ -18,7 +18,7 @@ import (
 var bootstrapFeatures = []string{
 	"asset:create", "asset:read", "asset:update", "asset:delete", "release:create", "source-app:create",
 	"workspace:use", "enterprise:audit-drain", "enterprise:sso", "enterprise:scim", "campaign:workflow",
-	"content:drafts", OnboardingFeature, CreativeSetsFeature,
+	"content:drafts", "workspace:paid", "content:scheduling-advanced", OnboardingFeature, CreativeSetsFeature,
 }
 
 type BootstrapSnapshot struct {
@@ -134,7 +134,7 @@ func (c *Configuration) Bootstrap(ctx context.Context, actor Actor) (*BootstrapS
 	}
 	result.Entitlements.Plan, result.Entitlements.Status, result.Entitlements.Features = evaluateBootstrapEntitlement(entitlement, time.Now().UTC())
 	result.Capabilities.Publishing = channels > 0
-	result.Capabilities.AIAgent = org.WorkspaceSettings == nil || org.WorkspaceSettings.AiAgentEnabled
+	result.Capabilities.AIAgent = result.Entitlements.Features["workspace:paid"] && (org.WorkspaceSettings == nil || org.WorkspaceSettings.AiAgentEnabled)
 	result.Counters.Approvals, result.Counters.Attention = approvals, attention
 	return result, nil
 }
@@ -149,10 +149,11 @@ func evaluateBootstrapEntitlement(entitlement *ent.WorkspaceEntitlement, now tim
 	for _, feature := range bootstrapFeatures {
 		allowed := false
 		switch feature {
-		// There is no free plan: "free" is a workspace without a subscription,
-		// and it gets nothing until it pays.
+		// Free grants only the writing surface and basic explicit-time scheduling.
+		case "workspace:use", "content:drafts":
+			allowed = true
 		case "asset:create", "asset:read", "asset:update", "asset:delete",
-			"release:create", "source-app:create", "workspace:use", "campaign:workflow", "content:drafts":
+			"release:create", "source-app:create", "workspace:paid", "campaign:workflow", "content:scheduling-advanced":
 			allowed = plan != "free"
 		case "enterprise:audit-drain", "enterprise:sso", "enterprise:scim":
 			allowed = plan == "enterprise"
@@ -167,7 +168,7 @@ func evaluateBootstrapEntitlement(entitlement *ent.WorkspaceEntitlement, now tim
 		}
 		features[feature] = active && allowed
 	}
-	if os.Getenv("PLATFORM_CAMPAIGN_WORKFLOW") == "enabled" {
+	if os.Getenv("PLATFORM_CAMPAIGN_WORKFLOW") == "enabled" && active && plan != "free" {
 		features["campaign:workflow"] = true
 	}
 	// The rollback switch: onboarding becomes manual-only everywhere.

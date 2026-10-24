@@ -12,7 +12,7 @@ const OUTCOMES: Record<string, string> = {
   'credits=cancelled': 'The credit purchase was cancelled. You have not been charged.',
   'credits=success': 'Payment received. Your extra launch credits are on the way.',
   'subscribe=required':
-    'Choose a plan to start using Shots. Every plan includes the editor, the tools, and the API.',
+    'This capability requires a paid plan. Basic text and link scheduling is available free.',
 }
 
 const POLL_MS = 3_000
@@ -33,7 +33,7 @@ function useOpenAppWhenPaid(enabled: boolean) {
         entitlements?: { features?: Record<string, boolean> }
       } | null
       if (
-        body?.entitlements?.features?.['workspace:use'] ||
+        body?.entitlements?.features?.['workspace:paid'] ||
         Date.now() - startedAt > POLL_LIMIT_MS
       ) {
         window.clearInterval(timer)

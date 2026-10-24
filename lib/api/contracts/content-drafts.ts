@@ -36,6 +36,8 @@ export const contentDraftSchema = z
   .object({
     assetIds: z.array(z.string()),
     body: plateValueSchema,
+    /** Collaborative room generation; changes after an external body replacement. */
+    collabGeneration: z.number().int().nonnegative().default(0),
     channelConnectionIds: z.array(z.string()),
     createdAt: timestampSchema,
     createdByUserId: z.string().nullable(),
@@ -107,6 +109,8 @@ export const contentDraftCreateSchema = contentDraftFieldsSchema.extend({
 /** An update: the fields it sets, based on the version the client last saw. */
 export const contentDraftUpdateSchema = contentDraftFieldsSchema.extend({
   baseVersion: z.number().int().min(1),
+  /** Current room generation for a live projection; omit when replacing the body externally. */
+  collabGeneration: z.number().int().nonnegative().optional(),
   status: contentDraftEditableStatusSchema.optional(),
   /** The draft's own choices, which start as copies of its set's defaults. */
   naturalPostingTime: z.boolean().optional(),
@@ -135,7 +139,7 @@ export const contentDraftListQuerySchema = z.object({
 export const contentDraftParamsSchema = z.object({ id: contentDraftIdSchema })
 
 const entitlement = {
-  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'pro' },
+  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'free' },
 }
 
 /** `GET /api/v1/content-drafts` */

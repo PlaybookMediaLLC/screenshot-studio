@@ -31,9 +31,9 @@ const (
 // planQuotas mirrors lib/billing/plans.ts. The allowances hold a 75% gross
 // margin at half use (docs/rfcs/035-pricing-and-unit-economics.md).
 var planQuotas = map[string]map[string]int{
-	// "free" means no subscription: every allowance is zero.
-	"free": {QuotaAPIWriteMinute: 0, QuotaJobsConcurrent: 0,
-		QuotaAICredits: 0, QuotaPosts: 0, QuotaEmails: 0},
+	// Basic scheduling is free; AI, emails and background jobs remain paid.
+	"free": {QuotaAPIWriteMinute: 60, QuotaJobsConcurrent: 0,
+		QuotaAICredits: 0, QuotaPosts: 10, QuotaEmails: 0},
 	"pro": {QuotaAPIWriteMinute: 300, QuotaJobsConcurrent: 5,
 		QuotaAICredits: 3_600, QuotaPosts: 120, QuotaEmails: 5_000},
 	"business": {QuotaAPIWriteMinute: 1_500, QuotaJobsConcurrent: 25,
@@ -94,7 +94,7 @@ func (c *Configuration) workspacePlan(ctx context.Context, org string) (string, 
 		return "", false, err
 	}
 	plan, _, features := evaluateBootstrapEntitlement(entitlement, time.Now().UTC())
-	return plan, features["asset:read"], nil
+	return plan, features["workspace:use"], nil
 }
 
 // ConsumeWorkspaceQuota records amount against a quota and returns what is
@@ -115,7 +115,7 @@ func (c *Configuration) ConsumeWorkspaceQuota(ctx context.Context, actor Actor, 
 	}
 	limit := planQuotas[plan][name]
 	now := time.Now().UTC()
-	if !active {
+	if !active || (plan == "free" && name == QuotaAICredits) {
 		return 0, &QuotaExceededError{Limit: limit, Quota: name, ResetAt: nextMonthStart(now)}
 	}
 	if name == QuotaAICredits {

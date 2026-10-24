@@ -152,7 +152,7 @@ ${guideLines}
 
 ## Pricing
 
-Plans: Pro ($199/mo, or $169/mo billed annually), Business ($699/mo, or $594/mo billed annually), and Enterprise (from $3,000/mo, billed annually). There is no free plan. A signed-in workspace is required on every plan. The screenshot editor and image tools are included in every plan, and exports have no watermark. Launch intelligence is in early access for design partners. Details: ${BASE_URL}/pricing
+Plans: Pro ($199/mo, or $169/mo billed annually), Business ($699/mo, or $594/mo billed annually), and Enterprise (from $3,000/mo, billed annually). Free basic scheduling includes one seat, one connected account and 10 text/link posts per month, without AI. A signed-in workspace is required on every plan. The screenshot editor, media and advanced queues are included in paid plans, and exports have no watermark. Launch intelligence is in early access for design partners. Details: ${BASE_URL}/pricing
 
 ## Technology
 
@@ -455,11 +455,12 @@ No official CLI tool is published yet.
 
 | Plan | Price |
 |------|-------|
+| Free | $0; one seat, one account, 10 basic scheduled posts/month |
 | Pro | $199/mo, or $169/mo billed annually |
 | Business | $699/mo, or $594/mo billed annually |
 | Enterprise | From $3,000/mo, billed annually. Contact team@playbookmedia.io |
 
-There is no free plan. A signed-in workspace is required on every plan. The screenshot editor and image tools are included in every plan, and exports have no watermark. Launch intelligence is in early access for design partners. Details: ${BASE_URL}/pricing
+Free basic scheduling includes one seat, one connected account and 10 text/link posts per month, without AI. A signed-in workspace is required on every plan. The screenshot editor, media and advanced queues are included in paid plans, and exports have no watermark. Launch intelligence is in early access for design partners. Details: ${BASE_URL}/pricing
 
 ## Privacy
 

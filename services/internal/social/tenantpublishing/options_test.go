@@ -27,7 +27,7 @@ func TestPostSettingsMapEachPlatformsFields(t *testing.T) {
 	}
 	got := decode(t, x)
 	if got["who_can_reply_post"] != "following" || got["made_with_ai"] != true || got["paid_partnership"] != nil ||
-		got["community"] != "https://x.com/i/communities/1493446837214187523" || got["share_with_followers"] != nil ||
+		got["community"] != "https://x.com/i/communities/1493446837214187523" || got["share_with_followers"] != false ||
 		got["quote_tweet_id"] != "42" || got["custom"] != "kept" {
 		t.Fatalf("x settings: %v", got)
 	}
@@ -48,9 +48,8 @@ func TestPostSettingsMapEachPlatformsFields(t *testing.T) {
 
 func TestAFinisherQuotesTheFirstPostOnlyOnceItIsLive(t *testing.T) {
 	finisher := &postoptions.PublishOptions{QuoteFirstPost: true}
-	before := decode(t, must(postSettings("x", nil, finisher, "")))
-	if _, ok := before["quote_tweet_id"]; ok {
-		t.Fatalf("a quote of a post that does not exist yet: %v", before)
+	if _, err := postSettings("x", nil, finisher, ""); err == nil {
+		t.Fatal("a quote of a post that does not exist yet was accepted")
 	}
 	after := decode(t, must(postSettings("x", nil, finisher, "1800")))
 	if after["quote_tweet_id"] != "1800" {

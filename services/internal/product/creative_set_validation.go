@@ -21,7 +21,7 @@ func (c *Configuration) requireCreativeSetCreation(ctx context.Context, actor Ac
 	if err := c.AuthorizeRead(ctx, actor); err != nil {
 		return err
 	}
-	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, "workspace:use"); err != nil {
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, "workspace:paid"); err != nil {
 		return err
 	}
 	return c.requireWorkspaceFeature(ctx, actor.OrganizationID, CreativeSetsFeature)
@@ -36,7 +36,7 @@ func (c *Configuration) requireCreativeCreation(ctx context.Context, actor Actor
 	if err := c.AuthorizeRead(ctx, actor); err != nil {
 		return err
 	}
-	return c.requireWorkspaceFeature(ctx, actor.OrganizationID, "workspace:use")
+	return c.requireWorkspaceFeature(ctx, actor.OrganizationID, "workspace:paid")
 }
 
 func number(value any) float64 {

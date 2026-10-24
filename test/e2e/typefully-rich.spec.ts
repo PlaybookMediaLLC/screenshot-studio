@@ -72,6 +72,22 @@ test('article metadata, rich text and embeds persist; prepared DMs remain off', 
     await expect(page.getByRole('dialog')).toContainText(
       'Reconnect X to check this account’s Articles access.'
     )
+    const review = page.getByTestId('publish-review')
+    await review.getByRole('button', { name: 'Auto-DM settings · prepared', exact: true }).click()
+    const prepared = page.getByRole('dialog', { name: 'Prepare Auto-DM campaign', exact: true })
+    await expect(prepared).toContainText('Delivery is off')
+    await prepared
+      .getByRole('textbox', { name: 'Direct message', exact: true })
+      .fill('Saved from publish review for {{first_name}}')
+    await prepared.getByRole('button', { name: 'Save prepared settings', exact: true }).click()
+    await expectSaved(page)
+    await page.reload()
+    await page.getByRole('button', { name: 'Auto-DM settings · prepared', exact: true }).click()
+    await expect(page.getByRole('textbox', { name: 'Direct message', exact: true })).toHaveValue(
+      'Saved from publish review for {{first_name}}'
+    )
+    await page.getByRole('button', { name: 'Close', exact: true }).click()
+    await page.getByTestId('publish-button').click()
     await page.screenshot({ path: '.context/shots/typefully-article-gated.png', fullPage: true })
   } finally {
     await workspace?.provider.close()

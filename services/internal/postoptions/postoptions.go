@@ -20,8 +20,8 @@ type AutoActions struct {
 	PlugAtLikes int    `json:"plugAtLikes,omitempty"`
 	PlugText    string `json:"plugText,omitempty"`
 	PlugMetric  string `json:"plugMetric,omitempty"`
-	// QuoteAfterHours posts QuoteText with a link to the post this many hours
-	// after it went out, which X shows as a quote.
+	// QuoteAfterHours posts QuoteText as a native quote this many hours after
+	// publication. The provider must grant native quote access at execution.
 	QuoteAfterHours int    `json:"quoteAfterHours,omitempty"`
 	QuoteText       string `json:"quoteText,omitempty"`
 	// Retweets repost the post at each rule's time (RFC 042), and

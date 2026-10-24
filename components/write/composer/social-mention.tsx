@@ -86,8 +86,8 @@ function insertMention(editor: PlateEditor, channel: DraftChannel, mention: Foun
 
 /**
  * The mention picker: look an account up on X or LinkedIn with the set's
- * own account and put it in the post. LinkedIn people cannot be looked up
- * through this connection, which it says rather than offering a guess.
+ * own account and put it in the post. People searches use the connected
+ * LinkedIn Page's restricted follower lookup grant.
  */
 export function MentionPicker({
   channels,
@@ -104,29 +104,37 @@ export function MentionPicker({
   const [open, setOpen] = React.useState(false)
   const [channel, setChannel] = React.useState<'x' | 'linkedin'>(lookups[0] ?? 'x')
   const [query, setQuery] = React.useState('')
+  const [kind, setKind] = React.useState<'organization' | 'person'>('organization')
+  const lookupVersion = React.useRef(0)
   const [results, setResults] = React.useState<FoundMention[] | null>(null)
   const [busy, setBusy] = React.useState(false)
   if (!setId || lookups.length === 0) return null
   const search = async (term = query) => {
     if (!term.trim() && channel !== 'linkedin') return
     setBusy(true)
+    const version = ++lookupVersion.current
     try {
       const found = await call<{ items: FoundMention[] }>(
-        `/api/v1/social-sets/${encodeURIComponent(setId)}/mentions?${new URLSearchParams({ channel, q: term.trim() })}`
+        `/api/v1/social-sets/${encodeURIComponent(setId)}/mentions?${new URLSearchParams({ channel, q: term.trim(), kind: channel === 'x' ? 'person' : kind })}`
       )
-      setResults(found.items)
+      if (version === lookupVersion.current) setResults(found.items)
     } catch (error) {
+      if (version !== lookupVersion.current) return
       setResults(null)
       toast.error(error instanceof Error ? error.message : 'The lookup did not work.')
     } finally {
-      setBusy(false)
+      if (version === lookupVersion.current) setBusy(false)
     }
   }
   return (
     <Popover
       onOpenChange={(next) => {
         setOpen(next)
-        if (!next) setResults(null)
+        if (!next) {
+          lookupVersion.current++
+          setBusy(false)
+          setResults(null)
+        }
       }}
       open={open}
     >
@@ -153,6 +161,8 @@ export function MentionPicker({
               )}
               key={item}
               onClick={() => {
+                lookupVersion.current++
+                setBusy(false)
                 setChannel(item)
                 setResults(null)
               }}
@@ -165,6 +175,26 @@ export function MentionPicker({
             </Button>
           ))}
         </div>
+        {channel === 'linkedin' ? (
+          <div className="flex gap-1" aria-label="LinkedIn mention type">
+            {(['organization', 'person'] as const).map((value) => (
+              <Button
+                key={value}
+                size="sm"
+                variant="ghost"
+                aria-pressed={kind === value}
+                onClick={() => {
+                  lookupVersion.current++
+                  setBusy(false)
+                  setKind(value)
+                  setResults(null)
+                }}
+              >
+                {value === 'person' ? 'People' : 'Companies'}
+              </Button>
+            ))}
+          </div>
+        ) : null}
         <form
           className="flex gap-2"
           onSubmit={(event) => {
@@ -178,7 +208,11 @@ export function MentionPicker({
             className="h-8 text-sm"
             onChange={(event) => setQuery(event.target.value)}
             placeholder={
-              channel === 'x' ? 'X username, e.g. @jack' : 'Company page, e.g. acme or its URL'
+              channel === 'x'
+                ? 'X username, e.g. @jack'
+                : kind === 'person'
+                  ? 'Page follower’s first or last name'
+                  : 'Company page, e.g. acme or its URL'
             }
             value={query}
           />
@@ -189,11 +223,13 @@ export function MentionPicker({
         <p className="text-[11px] text-neutral-400">
           {channel === 'x'
             ? 'Looked up on X with this set’s account, by exact username.'
-            : 'Company pages only: LinkedIn does not let this connection look people up. Elsewhere the mention is written as the plain name.'}
+            : kind === 'person'
+              ? 'Search followers of this LinkedIn Page. Requires approved People Typeahead access and r_organization_followers permission.'
+              : 'Search company pages or reuse companies mentioned in this social set. Mentions use native LinkedIn identities.'}
         </p>
         {channel === 'linkedin' ? (
           <Button disabled={busy} variant="ghost" size="sm" onClick={() => void search('')}>
-            Recently mentioned companies
+            Recently mentioned {kind === 'person' ? 'people' : 'companies'}
           </Button>
         ) : null}
         {results?.length === 0 ? (
@@ -227,7 +263,7 @@ export function MentionPicker({
                         ? `@${mention.handle}`
                         : mention.kind === 'organization'
                           ? 'Company page'
-                          : ''}
+                          : 'Person'}
                     </span>
                   </span>
                 </Button>

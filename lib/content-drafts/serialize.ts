@@ -89,11 +89,16 @@ export const SOCIAL_MENTION = 'social_mention'
  * handle elsewhere, and the plain label when nothing better is known.
  */
 function socialMentionText(node: PlateNode, channel: DraftChannel): string {
-  const label = String(node.label ?? '').replace(/[[\]()]/g, '')
+  const label = String(node.label ?? '')
   const id = String(node.providerId ?? '')
   const handle = String(node.handle ?? '')
-  if (node.platform === 'linkedin' && channel === 'linkedin' && id.startsWith('urn:li:')) {
-    return `@[${label}](${id})`
+  if (
+    node.platform === 'linkedin' &&
+    channel === 'linkedin' &&
+    /^urn:li:(?:organization:[0-9]{1,30}|person:[A-Za-z0-9_-]{1,100})$/.test(id)
+  ) {
+    const escapedLabel = label.replace(/[\\|{}@[\]()<>#*_~]/g, '\\$&')
+    return `@[${escapedLabel}](${id})`
   }
   if (node.platform === channel && handle) return `@${handle.replace(/^@/, '')}`
   return label

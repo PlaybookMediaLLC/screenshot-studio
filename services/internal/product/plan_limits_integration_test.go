@@ -51,7 +51,7 @@ func TestPlanLimitsCapSeatsAndChannels(t *testing.T) {
 		atLimit.Name != LimitSeats || err.Error() != "Choose a plan to add seats." {
 		t.Fatalf("unsubscribed invite err=%v", err)
 	}
-	if err := repo.RequireChannel(ctx, orgID, "integration-0"); !errors.As(err, &atLimit) || atLimit.Name != LimitChannels {
+	if err := repo.RequireChannel(ctx, orgID, "integration-0"); err != nil {
 		t.Fatalf("unsubscribed channel err=%v", err)
 	}
 

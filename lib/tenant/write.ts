@@ -39,9 +39,10 @@ export async function lookupSocialSetMentions(
   context: TenantContext,
   id: string,
   channel: 'x' | 'linkedin',
-  query: string
+  query: string,
+  kind?: 'person' | 'organization'
 ) {
-  const result = await orNull(backendSDK(context).lookupSocialSetMentions(id, channel, query))
+  const result = await orNull(backendSDK(context).lookupSocialSetMentions(id, channel, query, kind))
   return result ? result.items : null
 }
 

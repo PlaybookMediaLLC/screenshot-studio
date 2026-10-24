@@ -171,6 +171,7 @@ export async function scheduleContentDraft(
         standing: {
           maxWeightedCharacters: accounts.get(channelConnectionId)?.xCaptionLimit,
           articles: accounts.get(channelConnectionId)?.xArticles,
+          xQuotes: accounts.get(channelConnectionId)?.xQuotes,
           pollLimits: accounts.get(channelConnectionId)?.pollLimits,
           mastodonQuotes: accounts.get(channelConnectionId)?.mastodonQuotes,
         },

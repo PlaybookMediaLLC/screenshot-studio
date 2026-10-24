@@ -863,6 +863,7 @@ export type BackendContentDraftStatus = 'draft' | 'scheduled' | 'archived'
 
 /** A post written by hand in the document editor (RFC 037). */
 export type BackendContentDraft = {
+  collabGeneration?: number
   assetIds: string[]
   /** Plate JSON: the editor's value, a list of block nodes. */
   body: unknown[]
@@ -1128,6 +1129,7 @@ export type BackendContentDraftCreate = BackendContentDraftFields & {
 }
 
 export type BackendContentDraftUpdate = BackendContentDraftFields & {
+  collabGeneration?: number
   baseVersion: number
   status?: Exclude<BackendContentDraftStatus, 'scheduled'>
   naturalPostingTime?: boolean
@@ -2785,9 +2787,14 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** What the set's account for a channel can mention (RFC 042). */
-  async lookupSocialSetMentions(id: string, channel: 'x' | 'linkedin', query: string) {
+  async lookupSocialSetMentions(
+    id: string,
+    channel: 'x' | 'linkedin',
+    query: string,
+    kind?: 'person' | 'organization'
+  ) {
     return this.request<{ items: BackendSocialMention[] }>(
-      `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query })}`
+      `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query, ...(kind ? { kind } : {}) })}`
     )
   }
 

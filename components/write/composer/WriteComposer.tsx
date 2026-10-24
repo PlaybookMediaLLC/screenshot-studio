@@ -158,10 +158,6 @@ export function WriteComposer({
     () => platformEditorServices(trpcClient, aiEnabled),
     [trpcClient, aiEnabled]
   )
-  const collaboration = React.useMemo(
-    () => (collabUrl ? { draftId: initial.id, url: collabUrl } : null),
-    [collabUrl, initial.id]
-  )
   const {
     document,
     editorKey,
@@ -174,7 +170,7 @@ export function WriteComposer({
     versionRef: version,
   } = useDraftDocument({
     canEdit,
-    collaborating: Boolean(collaboration),
+    collaborating: Boolean(collabUrl),
     draft: initial,
     onSaved: (saved) =>
       showSaved({
@@ -184,6 +180,13 @@ export function WriteComposer({
         updatedAt: saved.updatedAt,
       }),
   })
+  const collaboration = React.useMemo(
+    () =>
+      collabUrl
+        ? { draftId: initial.id, url: collabUrl, generation: server.collabGeneration }
+        : null,
+    [collabUrl, initial.id, server.collabGeneration]
+  )
   React.useEffect(() => {
     beforeLeaveRef.current = async () => {
       try {
@@ -299,6 +302,7 @@ export function WriteComposer({
           standing: {
             maxWeightedCharacters: account.xCaptionLimit,
             articles: account.xArticles,
+            xQuotes: account.xQuotes,
             pollLimits: account.pollLimits,
             mastodonQuotes: account.mastodonQuotes,
           },
@@ -354,6 +358,26 @@ export function WriteComposer({
     setTimeZone: set?.timeZone ?? null,
     versionRef: version,
     renderBlocks,
+    community: versionFor(document.versions, 'x').options?.community,
+    onCommunity: canEdit
+      ? (community) =>
+          update((current) => ({
+            versions: withOptions(current.versions, 'x', {
+              ...versionFor(current.versions, 'x').options,
+              community,
+            }),
+          }))
+      : undefined,
+    autoDm: versionFor(document.versions, 'x').options?.autoDm,
+    onAutoDm: canEdit
+      ? (autoDm) =>
+          update((current) => ({
+            versions: withOptions(current.versions, 'x', {
+              ...versionFor(current.versions, 'x').options,
+              autoDm,
+            }),
+          }))
+      : undefined,
     automation:
       versionFor(document.versions, 'x').options?.automation ??
       engagementAutomation(server.engagement),
@@ -996,7 +1020,7 @@ export function WriteComposer({
               collaboration={collaboration}
               initialDiscussions={readDiscussionsOnce(initial)}
               initialValue={document.value}
-              key={`primary-${editorKey}`}
+              key={`primary-${editorKey}-${server.collabGeneration}`}
               onChange={(next) => update({ value: next })}
               onDiscussionsChange={onDiscussionsChange}
               onEditor={(next) => {

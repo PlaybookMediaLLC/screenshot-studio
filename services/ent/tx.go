@@ -110,6 +110,14 @@ type Tx struct {
 	OutboxEvent *OutboxEventClient
 	// PageKnowledge is the client for interacting with the PageKnowledge builders.
 	PageKnowledge *PageKnowledgeClient
+	// PlatformAutoDMCampaign is the client for interacting with the PlatformAutoDMCampaign builders.
+	PlatformAutoDMCampaign *PlatformAutoDMCampaignClient
+	// PlatformAutoDMDelivery is the client for interacting with the PlatformAutoDMDelivery builders.
+	PlatformAutoDMDelivery *PlatformAutoDMDeliveryClient
+	// PlatformAutoDMOptOut is the client for interacting with the PlatformAutoDMOptOut builders.
+	PlatformAutoDMOptOut *PlatformAutoDMOptOutClient
+	// PlatformAutoDMRecipient is the client for interacting with the PlatformAutoDMRecipient builders.
+	PlatformAutoDMRecipient *PlatformAutoDMRecipientClient
 	// PlatformCreativeSet is the client for interacting with the PlatformCreativeSet builders.
 	PlatformCreativeSet *PlatformCreativeSetClient
 	// PlatformCreativeSetVersion is the client for interacting with the PlatformCreativeSetVersion builders.
@@ -394,6 +402,10 @@ func (tx *Tx) init() {
 	tx.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.PageKnowledge = NewPageKnowledgeClient(tx.config)
+	tx.PlatformAutoDMCampaign = NewPlatformAutoDMCampaignClient(tx.config)
+	tx.PlatformAutoDMDelivery = NewPlatformAutoDMDeliveryClient(tx.config)
+	tx.PlatformAutoDMOptOut = NewPlatformAutoDMOptOutClient(tx.config)
+	tx.PlatformAutoDMRecipient = NewPlatformAutoDMRecipientClient(tx.config)
 	tx.PlatformCreativeSet = NewPlatformCreativeSetClient(tx.config)
 	tx.PlatformCreativeSetVersion = NewPlatformCreativeSetVersionClient(tx.config)
 	tx.PlatformNotificationDelivery = NewPlatformNotificationDeliveryClient(tx.config)

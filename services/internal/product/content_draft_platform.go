@@ -96,6 +96,11 @@ func (c *Configuration) UpdateContentDraftSettings(ctx context.Context, actor Ac
 	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, contentDraftFeature); err != nil {
 		return nil, err
 	}
+	if input.PostingSlots != nil {
+		if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+			return nil, err
+		}
+	}
 	current, err := c.draftSettings(ctx, actor.OrganizationID)
 	if err != nil {
 		return nil, err
@@ -245,6 +250,9 @@ func (c *Configuration) NextQueueSlot(ctx context.Context, actor Actor, socialSe
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return time.Time{}, err
 	}
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+		return time.Time{}, err
+	}
 	set, err := c.resolveSocialSet(ctx, actor, socialSetID)
 	if err != nil {
 		return time.Time{}, err
@@ -294,6 +302,9 @@ func postScore(metrics postoptions.Metrics) float64 {
 // little history, the hours social posts do well at generally.
 func (c *Configuration) BestPostingTimes(ctx context.Context, actor Actor, socialSetID string) ([]BestTime, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
+		return nil, err
+	}
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
 		return nil, err
 	}
 	set, err := c.resolveSocialSet(ctx, actor, socialSetID)

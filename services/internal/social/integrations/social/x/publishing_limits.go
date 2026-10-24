@@ -59,7 +59,7 @@ func (p *Provider) AccountMaxLength(in *ent.Integration, settingsRaw json.RawMes
 }
 
 func checkPublishingContent(caps socialidentity.XCapabilities, message string, settings pendingSettings, mediaCount int, article bool) error {
-	if str(settings.QuoteTweetID) != "" {
+	if str(settings.QuoteTweetID) != "" && !socialidentity.XEnterpriseQuotesEnabled() {
 		return publishRejected("X quote posts require verified Enterprise API access, which this connection has not established.")
 	}
 	if article {

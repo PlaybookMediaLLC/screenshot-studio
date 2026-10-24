@@ -68,6 +68,7 @@ const one = (id: string) => `${base}/${encodeURIComponent(id)}`
 
 /** Fields a save writes; `baseVersion` is the version the editor last saw. */
 export type DraftSave = {
+  collabGeneration?: number
   assetIds?: string[]
   baseVersion: number
   body?: unknown[]

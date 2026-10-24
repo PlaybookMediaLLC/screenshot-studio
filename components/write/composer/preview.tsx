@@ -192,15 +192,17 @@ function Truncated({ channel, text }: { channel: DraftChannel; text: string }) {
 
 /** Mentions and links drawn in the platform's link colour; LinkedIn annotations by their name. */
 function Mentions({ channel, text }: { channel: DraftChannel; text: string }) {
-  const parts = text.split(/(@\[[^\]]+\]\(urn:li:[^)]+\)|@[A-Za-z0-9_]{1,30}|https?:\/\/\S+)/g)
+  const parts = text.split(
+    /(@\[(?:\\.|[^\]\\])+\]\(urn:li:(?:organization:[0-9]{1,30}|person:[A-Za-z0-9_-]{1,100})\)|@[A-Za-z0-9_]{1,30}|https?:\/\/\S+)/g
+  )
   return (
     <>
       {parts.map((part, index) => {
-        const annotation = /^@\[([^\]]+)\]/.exec(part)
+        const annotation = /^@\[((?:\\.|[^\]\\])+)\]/.exec(part)
         if (annotation)
           return (
             <span className="font-medium text-sky-400" key={index}>
-              {annotation[1]}
+              {annotation[1].replace(/\\([\\|{}@[\]()<>#*_~])/g, '$1')}
             </span>
           )
         if (/^@|^https?:/.test(part))

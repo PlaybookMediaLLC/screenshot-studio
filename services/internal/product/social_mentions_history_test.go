@@ -18,3 +18,21 @@ func TestCompanyMentionsUsesOnlyNativeLinkedInOrganizationsAndDeduplicates(t *te
 		t.Fatalf("%+v", got)
 	}
 }
+
+func TestPeopleMentionHistorySeparatesKindsAndRejectsGuessedIdentities(t *testing.T) {
+	nodes := []any{}
+	for _, entry := range []struct{ id, kind, platform string }{
+		{"urn:li:person:abc_123", "person", "linkedin"},
+		{"urn:li:person:abc_123", "person", "linkedin"},
+		{"urn:li:organization:42", "organization", "linkedin"},
+		{"urn:li:person:bad/path", "person", "linkedin"},
+		{"urn:li:person:another", "organization", "linkedin"},
+		{"urn:li:person:foreign", "person", "x"},
+	} {
+		nodes = append(nodes, map[string]any{"type": "social_mention", "providerId": entry.id, "label": "Anne", "platform": entry.platform, "kind": entry.kind})
+	}
+	found := storedMentions([][]any{nodes}, "ann", "person")
+	if len(found) != 1 || found[0].ProviderID != "urn:li:person:abc_123" {
+		t.Fatalf("people=%+v", found)
+	}
+}

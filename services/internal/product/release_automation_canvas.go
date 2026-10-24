@@ -85,7 +85,7 @@ func (c *Configuration) automationCreateCanvas(ctx context.Context, org, runID, 
 	if input.ReleaseID == "" {
 		return automation.Outputs{}, ErrInvalidInput
 	}
-	if err := c.requireWorkspaceFeature(ctx, org, "workspace:use"); err != nil {
+	if err := c.requireWorkspaceFeature(ctx, org, "workspace:paid"); err != nil {
 		return automation.Outputs{}, err
 	}
 	capture, err := c.currentCapture(ctx, org, action.SurfaceID)

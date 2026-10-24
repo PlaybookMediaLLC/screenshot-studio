@@ -119,6 +119,7 @@ type AccountStanding struct {
 	Premium        bool                       `json:"premium"`
 	XCaptionLimit  *int                       `json:"xCaptionLimit"`
 	XArticles      *bool                      `json:"xArticles"`
+	XQuotes        bool                       `json:"xQuotes"`
 }
 
 // AccountStandingReader reads an account's standing from its platform
@@ -581,6 +582,9 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		return nil, err
 	}
 	defer tx.Rollback()
+	if _, err := tx.PlatformExec(ctx, `SELECT id FROM organization WHERE id=$1 FOR SHARE`, actor.OrganizationID); err != nil {
+		return nil, err
+	}
 	draft, err := visibleContentDraft(ctx, tx.Client(), actor, draftID)
 	if err != nil {
 		return nil, err
@@ -605,6 +609,11 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		return nil, &ContentDraftVersionConflictError{Current: draft.Version}
 	}
 	if err := c.requireDraftApproval(ctx, draft); err != nil {
+		return nil, err
+	}
+	bound := *c
+	bound.client = tx.Client()
+	if err := bound.requireDraftSchedulingPlan(ctx, actor, draft, input); err != nil {
 		return nil, err
 	}
 	reason := "schedule"

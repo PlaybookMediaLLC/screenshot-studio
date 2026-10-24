@@ -156,7 +156,8 @@ export function activeAutomation(automation: Automation | undefined): Automation
 /** Options without empty fields, or undefined when nothing is set. */
 function compact(options: PublishOptions): PublishOptions | undefined {
   const entries = Object.entries(options).filter(
-    ([, value]) => value !== undefined && value !== '' && value !== false
+    ([key, value]) =>
+      value !== undefined && value !== '' && (value !== false || key === 'shareWithFollowers')
   )
   return entries.length > 0 ? (Object.fromEntries(entries) as PublishOptions) : undefined
 }
@@ -214,7 +215,8 @@ export function buildPublication(
   if (!availability.available) problems.push(availability.reason)
   if (
     ['x', 'mastodon'].includes(channel) &&
-    settings.some((setting, index) => index > 0 && setting.quoteFirstPost)
+    (settings.some((setting, index) => index > 0 && setting.quoteFirstPost) ||
+      (channel === 'x' && Boolean(options.automation?.quoteAfterHours)))
   ) {
     const quote = kindAvailability(channel, 'quote', account.standing)
     if (!quote.available) problems.push(quote.reason)
@@ -248,12 +250,7 @@ export function buildPublication(
   const firstOptions: PublishOptions = { ...postOptions(channel, settings[0] ?? {}, true) }
   if (channel === 'x' && options.community) {
     firstOptions.communityId = options.community.id
-    if (options.community.shareWithFollowers) {
-      problems.push(
-        'Share to timeline has no verified X API mapping. Select the community again to clear this option.'
-      )
-      firstOptions.shareWithFollowers = true
-    }
+    firstOptions.shareWithFollowers = options.community.shareWithFollowers ?? true
   }
   const firstCard = cardFor(first?.caption ?? '', (first?.images ?? 0) + (first?.videos ?? 0))
   if (firstCard) firstOptions.linkPreview = firstCard

@@ -88,7 +88,11 @@ import type { textDirectionSchema } from '@/lib/api/contracts/settings-platform'
 export type DraftEditorUser = { id: string; name: string }
 
 /** A live session: the collab server's URL and the draft it edits. */
-export type DraftCollaboration = { draftId: string; url: string }
+export type DraftCollaboration = { draftId: string; url: string; generation?: number }
+
+function collaborationRoom(session: DraftCollaboration): string {
+  return `content-draft:${session.draftId}${session.generation ? `:${session.generation}` : ''}`
+}
 
 /** Hashtags the workspace uses, one click from the post. */
 function HashtagChips({ hashtags }: { hashtags: string[] }) {
@@ -181,7 +185,7 @@ function colorFor(userId: string): string {
   return `hsl(${hash} 70% 45%)`
 }
 
-async function collabToken(draftId: string): Promise<string> {
+async function collabToken(draftId: string, documentName: string): Promise<string> {
   const response = await fetch(
     `/api/v1/content-drafts/${encodeURIComponent(draftId)}/collab-token`,
     {
@@ -189,7 +193,10 @@ async function collabToken(draftId: string): Promise<string> {
     }
   )
   if (!response.ok) throw new Error(`Collaboration token refused (${response.status}).`)
-  return ((await response.json()) as { token: string }).token
+  const issued = (await response.json()) as { token: string; documentName: string }
+  if (issued.documentName !== documentName)
+    throw new Error('The draft was replaced. Reload it to continue editing.')
+  return issued.token
 }
 
 /**
@@ -605,8 +612,9 @@ export default function DraftEditor({
       ? createYjsPlugin(
           {
             access: readOnly ? 'read' : 'write',
-            documentName: documentName ?? `content-draft:${collaboration.draftId}`,
-            getToken: () => collabToken(collaboration.draftId),
+            documentName: documentName ?? collaborationRoom(collaboration),
+            getToken: () =>
+              collabToken(collaboration.draftId, documentName ?? collaborationRoom(collaboration)),
             hocuspocusUrl: collaboration.url,
             // WebRTC stays off: it would need our own signaling and TURN servers.
             webrtc: null,
@@ -708,7 +716,7 @@ export default function DraftEditor({
       void yjs
         .init({
           autoSelect: 'end',
-          id: `content-draft:${collaboration.draftId}`,
+          id: documentName ?? collaborationRoom(collaboration),
           value:
             firstValue.current.length > 0
               ? (normalizePosts(firstValue.current as PlateBody) as Value)
@@ -725,7 +733,7 @@ export default function DraftEditor({
       clearTimeout(start)
       if (started) yjs.destroy()
     }
-  }, [collaboration, draftId, editor])
+  }, [collaboration, documentName, draftId, editor])
 
   const [keyboardInset, setKeyboardInset] = React.useState(0)
   React.useEffect(() => {

@@ -111,6 +111,12 @@ type Limits struct{ PerMinute, PerHour, PerDay, ActiveCampaigns int }
 
 var ProductLimits = Limits{30, 100, 500, 3}
 
+func validLimits(limits Limits) bool {
+	return limits.PerMinute > 0 && limits.PerHour > 0 && limits.PerDay > 0 && limits.ActiveCampaigns > 0 &&
+		limits.PerMinute <= 30 && limits.PerHour <= 100 &&
+		limits.PerDay <= 500 && limits.ActiveCampaigns <= 3
+}
+
 // Ledger must atomically recheck consent, opt-outs, disabled/removed source,
 // campaign age and account-wide rolling quotas while reserving a unique
 // organization/account/campaign/recipient key. A reservation is permanent:
@@ -135,7 +141,7 @@ func Deliver(ctx context.Context, c Campaign, r Recipient, now time.Time, author
 	if !Eligible(c, r, now) {
 		return nil
 	}
-	if limits.PerMinute < 1 || limits.PerHour < 1 || limits.PerDay < 1 || limits.ActiveCampaigns < 1 || limits.PerMinute > 30 || limits.PerHour > 100 || limits.PerDay > 500 || limits.ActiveCampaigns > 3 {
+	if !validLimits(limits) {
 		return fmt.Errorf("unverified or excessive DM quotas")
 	}
 	message := Message(c, r)
@@ -148,8 +154,8 @@ func Deliver(ctx context.Context, c Campaign, r Recipient, now time.Time, author
 	}
 	id, err := sender.Send(ctx, c.AccountID, r.ID, message)
 	if err != nil || id == "" {
-		_ = ledger.Complete(ctx, c, r, "", "unknown")
-		return fmt.Errorf("DM outcome requires reconciliation; automatic retry disabled")
+		recordErr := ledger.Complete(ctx, c, r, "", "unknown")
+		return errors.Join(fmt.Errorf("DM outcome requires reconciliation; automatic retry disabled"), recordErr)
 	}
 	return ledger.Complete(ctx, c, r, id, "sent")
 }

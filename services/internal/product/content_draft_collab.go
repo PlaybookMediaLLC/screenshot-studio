@@ -82,7 +82,8 @@ func (c *Configuration) IssueContentDraftCollabToken(ctx context.Context, actor 
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
-	if _, err := visibleContentDraft(ctx, c.client, actor, draftID); err != nil {
+	draft, err := visibleContentDraft(ctx, c.client, actor, draftID)
+	if err != nil {
 		return nil, err
 	}
 	access, err := memberAccess(ctx, c.client, actor.OrganizationID, actor.UserID)
@@ -90,12 +91,12 @@ func (c *Configuration) IssueContentDraftCollabToken(ctx context.Context, actor 
 		return nil, err
 	}
 	expires := time.Now().Add(collab.TokenTTL)
-	token, err := collab.Sign(c.collabKey, collab.Claims{Access: access, DraftID: draftID, ExpiresAt: expires.Unix(),
+	token, err := collab.Sign(c.collabKey, collab.Claims{Generation: draft.CollabGeneration, Access: access, DraftID: draftID, ExpiresAt: expires.Unix(),
 		OrganizationID: actor.OrganizationID, UserID: actor.UserID, SessionID: actor.SessionID})
 	if err != nil {
 		return nil, err
 	}
-	return &CollabToken{Access: access, DocumentName: collab.DocumentName(draftID), ExpiresAt: expires, Token: token}, nil
+	return &CollabToken{Access: access, DocumentName: collab.DocumentNameAt(draftID, draft.CollabGeneration), ExpiresAt: expires, Token: token}, nil
 }
 
 // collabClaims verifies a token for draftID (or for documentName when
@@ -108,7 +109,11 @@ func (c *Configuration) collabClaims(ctx context.Context, token, documentName, d
 	if err != nil {
 		return collab.Claims{}, publishing.ErrUnauthorized
 	}
-	if (documentName != "" && documentName != collab.DocumentNameFor(claims.Kind, claims.DraftID)) || (draftID != "" && draftID != claims.DraftID) {
+	expectedName := collab.DocumentNameFor(claims.Kind, claims.DraftID)
+	if claims.Kind != "creative-set" {
+		expectedName = collab.DocumentNameAt(claims.DraftID, claims.Generation)
+	}
+	if (documentName != "" && documentName != expectedName) || (draftID != "" && draftID != claims.DraftID) {
 		return collab.Claims{}, publishing.ErrForbidden
 	}
 	actor := Actor{Kind: "session", OrganizationID: claims.OrganizationID, UserID: claims.UserID, SessionID: claims.SessionID}
@@ -144,6 +149,9 @@ func (c *Configuration) collabClaims(ctx context.Context, token, documentName, d
 		draft, err := c.client.ContentDraft.Get(ctx, claims.DraftID)
 		if err != nil {
 			return collab.Claims{}, err
+		}
+		if draft.CollabGeneration != claims.Generation {
+			return collab.Claims{}, publishing.ErrForbidden
 		}
 		visible, err := contentDraftVisible(ctx, c.client, Actor{OrganizationID: claims.OrganizationID, UserID: claims.UserID}, draft)
 		if err != nil {
@@ -202,6 +210,9 @@ func (c *Configuration) LoadCollabState(ctx context.Context, token, draftID stri
 	if err != nil {
 		return nil, err
 	}
+	if row.CollabGeneration != claims.Generation {
+		return nil, publishing.ErrForbidden
+	}
 	if row.CollabState == nil {
 		return nil, nil
 	}
@@ -251,7 +262,7 @@ func (c *Configuration) StoreCollabState(ctx context.Context, token, draftID str
 		return publishing.ErrForbidden
 	}
 	count, err := tx.ContentDraft.Update().Where(contentdraft.ID(draftID),
-		contentdraft.OrganizationID(claims.OrganizationID)).SetCollabState(state).Save(ctx)
+		contentdraft.OrganizationID(claims.OrganizationID), contentdraft.CollabGeneration(claims.Generation)).SetCollabState(state).Save(ctx)
 	if err != nil {
 		return err
 	}

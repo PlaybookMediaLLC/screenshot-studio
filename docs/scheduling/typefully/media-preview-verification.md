@@ -41,6 +41,8 @@ The RFC verifier's separately reported check total counts RFC document checks. I
 
 Commit preparation also invoked `make check`. Its Docker environment failed during `npm ci` with npm’s “Exit handler never called!” error, before application checks ran. The equivalent host quality checks above passed; this container bootstrap failure is not reported as a passing check.
 
+The full repository browser suite is not green at the merge base, `03982053`. Existing runs on [develop](https://github.com/PlaybookMediaLLC/screenshot-studio/actions/runs/40121685709) and [main](https://github.com/PlaybookMediaLLC/screenshot-studio/actions/runs/40125478774) show the same editor slide-removal, social availability/connection/OAuth, and AI copilot failures observed in [this PR's superseded run](https://github.com/PlaybookMediaLLC/screenshot-studio/actions/runs/40129643307). These failures precede this change; the affected application paths and tests are unchanged by the media work. The passing focused browser scenarios above do not imply that the full browser suite passed. Merge readiness uses the repository's required Branch policy and CI validation checks, the passing backend/social/API checks, and the focused media regression evidence; these existing browser failures remain separate follow-up work.
+
 ### Requested user workflows
 
 | Scenario | Observed result and boundary |

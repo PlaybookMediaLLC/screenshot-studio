@@ -56,6 +56,8 @@ func TestAgentRunsAndConversations(t *testing.T) {
 	campaignID := "campaign_" + id
 	exec(`INSERT INTO campaign (id,"organizationId",name,objective,"updatedAt") VALUES ($1,$2,'Campaign','Adoption',now())`, campaignID, org)
 	repo := NewConfiguration(db.Client)
+	subscribe(t, ctx, repo, org, "pro")
+	subscribe(t, ctx, repo, other, "pro")
 	expect := func(err, kind error, what string) {
 		t.Helper()
 		if !errors.Is(err, kind) {

@@ -64,11 +64,14 @@ export const bestPostingTimesContract = defineContract({
 
 /** A draft post on the calendar or in the queue. */
 export const calendarPostSchema = contentDraftPostSchema.extend({
-  version: z.number().int().positive(),
-  calendarVersion: z.number().int().positive(),
-  tagIds: z.array(z.string()).default([]),
+  campaignId: z.string().nullish(),
+  campaignTitle: z.string().optional(),
+  version: z.number().int().nonnegative(),
+  calendarVersion: z.number().int().nonnegative(),
   draftId: z.string(),
   draftTitle: z.string(),
+  socialSetId: z.string().nullable(),
+  tagIds: z.array(z.string()),
 })
 
 /** `GET /api/v1/content-draft-posts?from&to` */
@@ -88,6 +91,27 @@ export const listCalendarPostsContract = defineContract({
 
 /** Path parameters naming one draft post. */
 export const draftPostParamsSchema = z.object({ id: contentDraftIdSchema })
+
+/** Consume a queued snapshot once and dispatch it immediately. */
+export const publishQueuedDraftPostContract = defineContract({
+  method: 'POST',
+  name: 'content-drafts.post-publish-now',
+  output: z.object({ post: contentDraftPostSchema }),
+  params: draftPostParamsSchema,
+  path: '/api/v1/content-draft-posts/{id}/publish-now',
+  summary: 'Publish a queued post now',
+})
+
+/** Atomically swap two queued commitments on the same account. */
+export const swapDraftPostsContract = defineContract({
+  body: z.object({ withId: contentDraftIdSchema }),
+  method: 'POST',
+  name: 'content-drafts.post-swap',
+  output: z.object({ posts: z.array(contentDraftPostSchema) }),
+  params: draftPostParamsSchema,
+  path: '/api/v1/content-draft-posts/{id}/swap',
+  summary: 'Swap the times of two queued posts on the same account',
+})
 
 /** `POST /api/v1/content-draft-posts/{id}/move` */
 export const moveDraftPostContract = defineContract({

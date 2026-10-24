@@ -7,6 +7,8 @@ This file lists every entry in the Typefully changelog as a feature to build.
 - **Entries:** all 109. The RSS feed and the 6 changelog pages list the same 109 entries.
 - **Read on:** 2026-10-19
 
+The [implementation evidence for Sections 2, 4 and 5](work-items/implementation-evidence.md) records executed tests and unresolved provider gates from the October 24 implementation. The later [work completed without live X access](work-items/implementation-evidence.md#work-completed-without-live-x-access) covers durable mentions, finisher management, LinkedIn share links and explicit poll copying. Provider-dependent outcomes remain visibly unresolved. These entries were explicitly reopened by the implementation assignment; other sections keep their existing scope.
+
 ## When to start
 
 1. Complete the features in the other subfolders of `docs/scheduling/typefully/` first:
@@ -80,32 +82,32 @@ This file lists every entry in the Typefully changelog as a feature to build.
 
 ## 2. Editor and writing
 
-- [ ] **TF-012 New editor, high-fidelity preview, focus mode, and video** (2022-02-08, [entry](https://typefully.com/changelog/new-writing-experience-and-video-support-42))
+- [x] **TF-012 New editor, high-fidelity preview, focus mode, and video** (2022-02-08, [entry](https://typefully.com/changelog/new-writing-experience-and-video-support-42))
   - Rebuild the thread editor for focused, media-rich writing.
   - Add a high-fidelity mode that shows the thread as X shows it, while the user writes.
   - Add a focus mode that hides all other UI.
   - Add more keyboard shortcuts. Publish a list of the shortcuts.
   - Let the user drag a video into the editor to attach it.
-- [ ] **TF-016 Automatic thread making from pasted text** (2022-03-15, [entry](https://typefully.com/changelog/automatic-thread-making-46))
+- [x] **TF-016 Automatic thread making from pasted text** (2022-03-15, [entry](https://typefully.com/changelog/automatic-thread-making-46))
   - Clean text pasted from Notion, Word, Apple Notes, and other sources. Remove useless formatting.
   - Expand links. Format lists with bullets.
   - Show a "Make thread" notice. On click, split the text into a thread.
   - Extended by TF-058 and TF-063.
-- [ ] **TF-020 Automatic thread numbering** (2022-04-15, [entry](https://typefully.com/changelog/automatic-tweet-numbering-51))
+- [x] **TF-020 Automatic thread numbering** (2022-04-15, [entry](https://typefully.com/changelog/automatic-tweet-numbering-51))
   - Add a button that numbers the posts in a thread.
   - Let the user pick a numbering style.
   - Extended by TF-075 (all platforms).
 - [ ] **TF-029 Remove link previews** (2022-10-11, [entry](https://typefully.com/changelog/remove-link-previews-63))
   - Show an Open Graph preview for links in a post, as X does.
   - Add a close (×) button to remove the preview. On desktop, show the button on hover.
-- [ ] **TF-049 Write X long-form posts** (2023-12-14, [entry](https://typefully.com/changelog/write-long-form-posts-with-typefully-84))
+- [x] **TF-049 Write X long-form posts** (2023-12-14, [entry](https://typefully.com/changelog/write-long-form-posts-with-typefully-84))
   - Let X Premium users write posts longer than the standard limit.
   - Let users copy the long-form text to post it manually.
   - Note: TF-061 adds publishing. Build TF-049 and TF-061 together.
-- [ ] **TF-050 Emoji picker** (2024-01-03, [entry](https://typefully.com/changelog/emoji-picker-85))
+- [x] **TF-050 Emoji picker** (2024-01-03, [entry](https://typefully.com/changelog/emoji-picker-85))
   - Add an emoji picker to the editor's bottom toolbar.
   - Keep the `:alias` shortcut to insert emoji.
-- [ ] **TF-058 Keep formatting when you paste from Google Docs and Notion** (2024-05-16, [entry](https://typefully.com/changelog/better-copypaste-from-gdocs-and-notion-96))
+- [x] **TF-058 Keep formatting when you paste from Google Docs and Notion** (2024-05-16, [entry](https://typefully.com/changelog/better-copypaste-from-gdocs-and-notion-96))
   - Keep bold and italic text when the user pastes into a long-form draft.
   - Keep bullet lists.
   - Keep newlines and paragraphs as in the source document.
@@ -113,11 +115,11 @@ This file lists every entry in the Typefully changelog as a feature to build.
 - [ ] **TF-061 Publish and schedule X long-form posts** (2024-08-16, [entry](https://typefully.com/changelog/publish-and-schedule-long-form-posts-98))
   - Publish and schedule long-form posts through the X API.
   - Use a 4,000-character limit for X Premium accounts.
-- [ ] **TF-063 Configurable thread auto-split for X** (2024-09-02, [entry](https://typefully.com/changelog/better-thread-auto-split-for-drafts-99))
+- [x] **TF-063 Configurable thread auto-split for X** (2024-09-02, [entry](https://typefully.com/changelog/better-thread-auto-split-for-drafts-99))
   - Let the user set the maximum length of each post in an X thread.
   - Auto-split pasted text with that limit.
   - Choose the default limit from the account type. X Premium allows up to 25,000 characters.
-- [ ] **TF-075 Auto-numbering for threads** (2025-03-20, [entry](https://typefully.com/changelog/auto-numbering-is-back-112))
+- [x] **TF-075 Auto-numbering for threads** (2025-03-20, [entry](https://typefully.com/changelog/auto-numbering-is-back-112))
   - Number the posts in a thread automatically.
   - Let the user pick a numbering style.
   - Support all platforms.
@@ -190,7 +192,7 @@ This file lists every entry in the Typefully changelog as a feature to build.
 
 ## 4. Scheduling, queue, and calendar
 
-- [ ] **TF-002 Advanced queue, emoji picker, zen mode, and mobile editor** (2021-06-08, [entry](https://typefully.com/changelog/typefully-20212-advanced-queue-24))
+- [x] **TF-002 Advanced queue, emoji picker, zen mode, and mobile editor** (2021-06-08, [entry](https://typefully.com/changelog/typefully-20212-advanced-queue-24))
   - Let the user define a posting schedule and queue posts over the next weeks.
   - Keep basic scheduling free. Typefully plan: advanced queue on Pro.
   - Show an emoji picker when the user types `:name`, as in Slack.
@@ -211,17 +213,17 @@ This file lists every entry in the Typefully changelog as a feature to build.
   - Show the full queue in the sidebar too.
   - Let the user create scheduled posts one after another and see them in the queue.
   - Show when a teammate edits a draft in a team account. See TF-022.
-- [ ] **TF-031 Drag and drop in the queue** (2022-11-23, [entry](https://typefully.com/changelog/drag-and-drop-in-the-queue-65))
+- [x] **TF-031 Drag and drop in the queue** (2022-11-23, [entry](https://typefully.com/changelog/drag-and-drop-in-the-queue-65))
   - Drag a scheduled post into a free slot.
   - Drop a post on another post to swap them.
   - Extended by TF-054 (calendar).
-- [ ] **TF-034 Repurpose published posts** (2023-02-22, [entry](https://typefully.com/changelog/repurpose-published-posts-68))
+- [x] **TF-034 Repurpose published posts** (2023-02-22, [entry](https://typefully.com/changelog/repurpose-published-posts-68))
   - Add a "Pick" action to empty queue slots.
   - Add a "Repurpose published posts" tab. Let the user fill the slot from a published post.
 - [x] **TF-052 Quick change of the scheduled time** (2024-02-08, [entry](https://typefully.com/changelog/quickly-adjust-scheduled-time-87))
   - Let the user change the scheduled time from the schedule interface.
   - Do not require a full reschedule.
-- [ ] **TF-053 Calendar view** (2024-03-18, [entry](https://typefully.com/changelog/calendar-view-88))
+- [x] **TF-053 Calendar view** (2024-03-18, [entry](https://typefully.com/changelog/calendar-view-88))
   - Show published and scheduled drafts in a calendar.
   - Add weekly and monthly views.
   - Let the user schedule into free slots from the calendar.
@@ -229,23 +231,23 @@ This file lists every entry in the Typefully changelog as a feature to build.
   - Give quick access to schedule settings.
   - Show tags and filter drafts by tag.
   - Add keyboard shortcuts to move through the calendar.
-- [ ] **TF-054 Drag and drop in the calendar** (2024-04-05, [entry](https://typefully.com/changelog/drag-and-drop-on-calendar-view-91))
+- [x] **TF-054 Drag and drop in the calendar** (2024-04-05, [entry](https://typefully.com/changelog/drag-and-drop-on-calendar-view-91))
   - Drag a scheduled draft to a different time.
   - Drop a draft on another draft to swap the two times.
-- [ ] **TF-069 "Publish now" for scheduled drafts** (2025-01-22, [entry](https://typefully.com/changelog/publish-now-action-for-scheduled-drafts-107))
+- [x] **TF-069 "Publish now" for scheduled drafts** (2025-01-22, [entry](https://typefully.com/changelog/publish-now-action-for-scheduled-drafts-107))
   - Add a "Publish now" action to the options menu of a scheduled draft.
   - Ask the user to confirm. Then publish immediately.
-- [ ] **TF-072 Natural posting times** (2025-02-05, [entry](https://typefully.com/changelog/natural-posting-times-109))
+- [x] **TF-072 Natural posting times** (2025-02-05, [entry](https://typefully.com/changelog/natural-posting-times-109))
   - Add a per-draft option: "Use natural posting times for this draft".
   - When the option is on, publish at a random time within ±4 minutes of the scheduled time.
-- [ ] **TF-081 Drag and drop in the monthly calendar** (2025-07-02, [entry](https://typefully.com/changelog/drag-and-drop-drafts-in-monthly-calendar-view-118))
+- [x] **TF-081 Drag and drop in the monthly calendar** (2025-07-02, [entry](https://typefully.com/changelog/drag-and-drop-drafts-in-monthly-calendar-view-118))
   - Add the TF-054 drag-and-drop behavior to the monthly view.
-- [ ] **TF-084 Drafts sidebar and queue view** (2025-08-20, [entry](https://typefully.com/changelog/enhanced-calendar-with-drafts-sidebar-and-queue-121))
+- [x] **TF-084 Drafts sidebar and queue view** (2025-08-20, [entry](https://typefully.com/changelog/enhanced-calendar-with-drafts-sidebar-and-queue-121))
   - Add a drafts sidebar to the calendar.
   - Drag a draft from the sidebar onto the calendar to schedule it.
   - Add a kanban-style queue view to schedule a full week at once.
   - Show empty slots in the monthly view.
-- [ ] **TF-104 Team calendar, planned drafts, and new navigation** (2026-08-05, [entry](https://typefully.com/changelog/plan-mode-calendar-for-teams))
+- [x] **TF-104 Team calendar, planned drafts, and new navigation** (2026-08-05, [entry](https://typefully.com/changelog/plan-mode-calendar-for-teams))
   - Show every social set in the workspace in one calendar.
   - Add a "planned" draft state. A planned draft has a date and time but does not publish.
   - Let the user or the account owner confirm a planned draft. Only a confirmed draft publishes.
@@ -269,7 +271,7 @@ This file lists every entry in the Typefully changelog as a feature to build.
   - Quote any X post.
   - Reply to any X post.
   - Continue an old thread.
-- [ ] **TF-027 Default auto-repost and auto-plug settings** (2022-08-25, [entry](https://typefully.com/changelog/remember-auto-retweet-and-auto-plug-58))
+- [x] **TF-027 Default auto-repost and auto-plug settings** (2022-08-25, [entry](https://typefully.com/changelog/remember-auto-retweet-and-auto-plug-58))
   - Let the user save auto-repost and auto-plug settings as defaults for new drafts.
 - [x] **TF-036 Polls on X** (2023-03-14, [entry](https://typefully.com/changelog/polls-70))
   - Add a "Poll" option on any X post.
@@ -279,7 +281,7 @@ This file lists every entry in the Typefully changelog as a feature to build.
   - Let the user create any number of thread finisher templates.
   - A finisher is the last post of a thread. It quotes the first post to increase engagement.
   - Extended by TF-108 (quotes in finishers on more platforms).
-- [ ] **TF-043 Auto-DMs** (2023-07-20, [entry](https://typefully.com/changelog/boost-your-engagement-with-auto-dms-78))
+- [x] **TF-043 Auto-DMs** (2023-07-20, [entry](https://typefully.com/changelog/boost-your-engagement-with-auto-dms-78))
   - Let the user start an auto-DM campaign from the publish button on a draft.
   - Use cases: giveaways, and content delivery to the community.
   - The changelog does not give the trigger rules. Read the Typefully help page before you build.

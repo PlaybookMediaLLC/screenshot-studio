@@ -61,6 +61,8 @@ type fakePoster struct {
 	// replies records each reply as "message>answers", in order.
 	replies          []string
 	poll             *integrations.PollDetails
+	replyPolls       []*integrations.PollDetails
+	message          string
 	path             string
 	err              error
 	status           string
@@ -78,7 +80,10 @@ func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrati
 	if id != wantID || token != "private-token" || len(posts) != 1 || posts[0].ID != "canonical-post-1" {
 		return nil, errors.New("incorrect provider input")
 	}
-	f.path, f.media, f.poll = posts[0].Media[0].Path, len(posts[0].Media), posts[0].Poll
+	f.message, f.media, f.poll = posts[0].Message, len(posts[0].Media), posts[0].Poll
+	if len(posts[0].Media) > 0 {
+		f.path = posts[0].Media[0].Path
+	}
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -98,6 +103,7 @@ func (f *fakePoster) Comment(_ context.Context, _, postID, lastCommentID, _ stri
 		answers = postID
 	}
 	f.replies = append(f.replies, posts[0].Message+">"+answers)
+	f.replyPolls = append(f.replyPolls, posts[0].Poll)
 	if f.afterReply != nil {
 		f.afterReply()
 	}
@@ -142,6 +148,17 @@ func TestDirectPublisherPostsAThreadAsChainedReplies(t *testing.T) {
 	id, err := p.Publish(context.Background(), input)
 	if err != nil || id != "remote-post-1" || strings.Join(poster.replies, ",") != "two>remote-post-1,three>reply-1" {
 		t.Fatalf("id=%q err=%v replies=%v", id, err, poster.replies)
+	}
+}
+
+func TestDirectPublisherKeepsEachReplyPoll(t *testing.T) {
+	p, _, poster, input := directFixture()
+	input.Replies = []publishing.PublishReply{{Caption: "First reply"}, {Caption: "Question?", Poll: &postoptions.Poll{DurationMinutes: 6, Options: []string{"Yes", "No"}}}}
+	if _, err := p.Publish(context.Background(), input); err != nil {
+		t.Fatal(err)
+	}
+	if len(poster.replyPolls) != 2 || poster.replyPolls[0] != nil || poster.replyPolls[1] == nil || poster.replyPolls[1].DurationMinutes != 6 {
+		t.Fatalf("reply polls were lost or moved: %+v", poster.replyPolls)
 	}
 }
 
@@ -300,6 +317,26 @@ func TestLegacyAutoActPreservesUnknownDelivery(t *testing.T) {
 	}
 }
 
+func TestArticlePublisherUsesRichSnapshotAndSignsInlineMediaOnce(t *testing.T) {
+	p, signer, provider, input := directFixture()
+	account := p.integrations.(fakeIntegrations).item
+	verifiedDirectAccount(t, account, "x")
+	provider.expectedNativeID = account.InternalID
+	input.Platform = "x"
+	input.Assets = []publishing.MediaAsset{{AssetID: "casset000001", MediaType: "image/png", ObjectKey: "org/product-org/inline.png"}}
+	input.Options = &postoptions.PublishOptions{ArticleTitle: "Article", ArticleHTML: `<p><em>rich</em></p><img data-asset-id="casset000001">`}
+	if _, err := p.Publish(context.Background(), input); err != nil {
+		t.Fatal(err)
+	}
+	if signer.calls != 1 || provider.media != 0 || !strings.Contains(provider.message, `<em>rich</em>`) || !strings.Contains(provider.message, `src="https://r2.example/private/image.png?fresh-signature"`) {
+		t.Fatalf("signs=%d media=%d message=%s", signer.calls, provider.media, provider.message)
+	}
+	input.Options.ArticleHTML = `<img data-asset-id="cother000001">`
+	if _, err := p.Publish(context.Background(), input); err == nil || provider.calls != 1 {
+		t.Fatal("unbound image reached provider")
+	}
+}
+
 type analyticsPoster struct{ *fakePoster }
 
 func (p *analyticsPoster) PostAnalytics(context.Context, string, string, string, int64) ([]integrations.AnalyticsData, error) {
@@ -308,19 +345,19 @@ func (p *analyticsPoster) PostAnalytics(context.Context, string, string, string,
 
 func TestAnalyticsCapabilitiesDoNotInheritPublishingRolloutRestrictions(t *testing.T) {
 	p, _, base, input := directFixture()
-	p.integrations.(fakeIntegrations).item.ProviderIdentifier = "linkedin-page"
+	p.integrations.(fakeIntegrations).item.ProviderIdentifier = "facebook"
 	p.resolve = func(string) poster { return &analyticsPoster{base} }
-	if !p.AnalyticsCapabilities("linkedin-page").Posts {
+	if !p.AnalyticsCapabilities("facebook").Posts {
 		t.Fatal("installed analytics capability hidden")
 	}
-	metrics, err := p.PostMetrics(context.Background(), input.OrganizationID, input.DestinationID, "linkedin-page", input.SecretReference, "remote-post")
+	metrics, err := p.PostMetrics(context.Background(), input.OrganizationID, input.DestinationID, "facebook", input.SecretReference, "remote-post")
 	if err != nil || len(metrics) != 1 || metrics["impressions"] != 0 {
 		t.Fatalf("metrics=%v error=%v", metrics, err)
 	}
-	if _, err := p.PostMetrics(context.Background(), input.OrganizationID, input.DestinationID, "linkedin-page", "another-tenant-secret", "remote-post"); err == nil {
+	if _, err := p.PostMetrics(context.Background(), input.OrganizationID, input.DestinationID, "facebook", "another-tenant-secret", "remote-post"); err == nil {
 		t.Fatal("analytics bypassed credential binding")
 	}
-	input.Platform = "linkedin-page"
+	input.Platform = "facebook"
 	if _, err := p.Publish(context.Background(), input); err == nil {
 		t.Fatal("analytics widened publication rollout")
 	}

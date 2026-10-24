@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { LinkPreviewCard } from './link-cards'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -107,7 +108,9 @@ export function PreviewPanel({
       <DescribeMediaContext.Provider value={onDescribe}>
         <ScaledPreview width={size?.width ?? 600} height={size?.height}>
           <div data-testid={`preview-${item.account.channel}`} key={item.account.id}>
-            {item.account.channel === 'linkedin' ? (
+            {item.publication.target.options?.articleTitle ? (
+              <ArticlePreview item={item} />
+            ) : item.account.channel === 'linkedin' ? (
               <LinkedInPost item={item} target={target} />
             ) : (
               <ThreadPreview item={item} target={target} />
@@ -262,15 +265,17 @@ function Truncated({ channel, text }: { channel: DraftChannel; text: string }) {
 
 /** Mentions and links drawn in the platform's link colour; LinkedIn annotations by their name. */
 function Mentions({ channel, text }: { channel: DraftChannel; text: string }) {
-  const parts = text.split(/(@\[[^\]]+\]\(urn:li:[^)]+\)|@[A-Za-z0-9_]{1,30}|https?:\/\/\S+)/g)
+  const parts = text.split(
+    /(@\[(?:\\.|[^\]\\])+\]\(urn:li:(?:organization:[0-9]{1,30}|person:[A-Za-z0-9_-]{1,100})\)|@[A-Za-z0-9_]{1,30}|https?:\/\/\S+)/g
+  )
   return (
     <>
       {parts.map((part, index) => {
-        const annotation = /^@\[([^\]]+)\]/.exec(part)
+        const annotation = /^@\[((?:\\.|[^\]\\])+)\]/.exec(part)
         if (annotation)
           return (
             <span className="font-medium text-sky-400" key={index}>
-              {annotation[1]}
+              {annotation[1].replace(/\\([\\|{}@[\]()<>#*_~])/g, '$1')}
             </span>
           )
         if (/^@|^https?:/.test(part))
@@ -427,8 +432,19 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
               </p>
               <Truncated channel={channel} text={post.caption} />
               <Media media={post.media} />
-              {index === 0 && publication.target.poll ? (
-                <Poll channel={channel} poll={publication.target.poll} />
+              {settings.poll ? <Poll channel={channel} poll={settings.poll} /> : null}
+              {(
+                index === 0
+                  ? publication.target.options?.linkPreview
+                  : publication.target.replies?.[index - 1]?.options?.linkPreview
+              ) ? (
+                <LinkPreviewCard
+                  card={
+                    (index === 0
+                      ? publication.target.options?.linkPreview
+                      : publication.target.replies?.[index - 1]?.options?.linkPreview)!
+                  }
+                />
               ) : null}
               {index === 0 && target?.kind === 'quote' ? <TargetCard target={target} /> : null}
               {settings.quoteFirstPost ? (
@@ -494,6 +510,34 @@ function LinkedInPost({ item, target }: { item: PreviewItem; target: DraftTarget
           {options.firstComment}
         </div>
       ) : null}
+    </article>
+  )
+}
+
+/** The article body comes exclusively from articleContent's escaped allowlisted serializer. */
+function ArticlePreview({ item }: { item: PreviewItem }) {
+  const options = item.publication.target.options!
+  const html = (options.articleHtml ?? '').replace(
+    /data-asset-id="([a-z0-9-]+)"/g,
+    (_, id: string) => `src="${assetContentUrl(id)}"`
+  )
+  return (
+    <article className="p-4" data-testid="article-preview">
+      {options.articleCoverAssetId ? (
+        <img
+          alt="Article cover"
+          className="mb-4 aspect-video rounded-lg object-cover"
+          src={assetContentUrl(options.articleCoverAssetId)}
+        />
+      ) : null}
+      <h1 className="mb-3 text-2xl font-bold">{options.articleTitle}</h1>
+      <p className="mb-4 text-sm text-neutral-400">
+        {item.account.displayName ?? item.account.handle}
+      </p>
+      <div
+        className="prose prose-invert max-w-none [&_p]:mb-3 [&_h1]:text-2xl [&_h2]:text-xl [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-5 [&_a]:text-sky-400 [&_img]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:pl-3"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </article>
   )
 }

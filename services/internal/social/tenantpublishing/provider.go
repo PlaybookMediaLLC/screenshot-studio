@@ -15,6 +15,7 @@ import (
 	"time"
 
 	productent "github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/articlebody"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	socialdatabase "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database"
@@ -196,8 +197,23 @@ func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishIn
 	if err != nil {
 		return socialapi.Receipt{}, err
 	}
+	message := input.Caption
+	if input.Options != nil && input.Options.ArticleHTML != "" {
+		signed := map[string]string{}
+		for i, asset := range assets {
+			if i < len(media) {
+				signed[asset.AssetID] = media[i].Path
+			}
+		}
+		message, err = articlebody.Render(input.Options.ArticleHTML, signed)
+		if err != nil {
+			return socialapi.Receipt{}, socialapi.NewError(http.StatusBadRequest, false, err.Error())
+		}
+		// Images are now in the article body; do not append them a second time.
+		media = nil
+	}
 	details := []integrations.PostDetails{{
-		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media, Poll: pollFor(input.Poll, input.Options),
+		ID: input.PostID, Message: message, Settings: settings, Media: media, Poll: pollFor(input.Poll, input.Options),
 	}}
 	var response []integrations.PostResponse
 	if input.ReplyTo != "" {
@@ -281,8 +297,8 @@ type autoActor interface {
 }
 
 // AutoAct runs a live post's follow-ups that are due: a repost and a plug
-// reply once it has enough likes, and a quote (the text with a link to the
-// post). One the provider cannot do reports done, so it is not tried again.
+// reply once it has enough likes, and a native quote. Provider errors must not
+// be mistaken for a completed quote.
 func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput) (socialapi.AutoActionResult, error) {
 	result := socialapi.AutoActionResult{Plugged: !input.Plug, Quoted: !input.Quote, Reposted: !input.Repost}
 	account, provider, settings, err := p.account(ctx, input.OrganizationID, input.DestinationID, input.Platform,
@@ -313,18 +329,20 @@ func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput
 		}
 	}
 	if input.Quote {
-		link := input.PostURL
-		if link == "" && input.Platform == "x" {
-			link = "https://x.com/i/status/" + input.RemotePostID
-		}
-		_, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
-			ID: input.RemotePostID + "-quote", Message: strings.TrimSpace(input.QuoteText + " " + link), Settings: settings,
-		}}, account)
-		// Quoting once is the point: a failed quote is not retried into a duplicate.
-		result.Quoted = true
+		settings, err = nativeQuoteSettings(input.Platform, settings, input.RemotePostID)
 		if err != nil {
-			slog.ErrorContext(ctx, "quote post failed", "post", input.RemotePostID, "error", err)
+			return result, err
 		}
+		posted, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
+			ID: input.RemotePostID + "-quote", Message: strings.TrimSpace(input.QuoteText), Settings: settings,
+		}}, account)
+		if err != nil {
+			return result, err
+		}
+		if firstPostID(posted) == "" {
+			return result, temporalx.UnknownDelivery(input.Platform, "The provider returned no quote receipt. Reconcile before resending.")
+		}
+		result.Quoted = true
 	}
 	return result, nil
 }
@@ -370,7 +388,7 @@ func (p *Publisher) postReplies(ctx context.Context, provider poster, account *s
 		if err == nil {
 			var response []integrations.PostResponse
 			response, err = commenter.Comment(ctx, account.InternalID, postID, last, account.Token, []integrations.PostDetails{{
-				ID: fmt.Sprintf("%s-reply-%d", input.PostID, index+1), Message: reply.Caption, Settings: replySettings, Media: media,
+				ID: fmt.Sprintf("%s-reply-%d", input.PostID, index+1), Message: reply.Caption, Settings: replySettings, Media: media, Poll: pollFor(reply.Poll, reply.Options),
 			}}, account)
 			if err == nil && (len(response) == 0 || response[0].PostID == "") {
 				err = errors.New("provider returned no reply receipt")

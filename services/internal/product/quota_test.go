@@ -22,8 +22,9 @@ func TestMonthlyQuotaPeriods(t *testing.T) {
 
 func TestPlanQuotasCoverEveryPlan(t *testing.T) {
 	for name, limit := range planQuotas["free"] {
-		if limit != 0 {
-			t.Fatalf("unsubscribed workspace has %d %s", limit, name)
+		want := map[string]int{QuotaPosts: 10, QuotaAPIWriteMinute: 60}[name]
+		if limit != want {
+			t.Fatalf("free %s=%d want %d", name, limit, want)
 		}
 	}
 	for _, plan := range []string{"pro", "business", "enterprise"} {

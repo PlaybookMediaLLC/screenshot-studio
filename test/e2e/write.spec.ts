@@ -170,6 +170,7 @@ test('a thread is written once, adapted per platform, planned, scheduled, backed
     await page.getByTestId('schedule-button').click()
     await expect(schedule).toBeVisible()
     await schedule.getByRole('button', { name: /^Tomorrow 9:00/ }).click()
+    await schedule.getByLabel('Open a new draft after scheduling').uncheck()
     await schedule.getByRole('button', { name: /^Confirm schedule/ }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
     const posts = await draftPosts(draftId)
@@ -280,7 +281,7 @@ test('refine previews and applies only on accept, the assistant adds a post, fol
     const publish = page.getByTestId('publish-review')
     await expect(publish).toContainText('Publishing as')
     await expect(publish.getByTestId('review-destination')).toHaveCount(2)
-    await expect(publish.getByTestId('automation-auto-dm')).toContainText('direct-message access')
+    await expect(publish.getByTestId('automation-auto-dm')).toContainText('authorized X messaging')
     await expect(publish.getByTestId('automation-auto-dm').getByRole('switch')).toBeDisabled()
     await publish.getByTestId('automation-auto-rt').getByRole('switch').click()
     const autoRT = page.getByTestId('auto-rt-dialog')
@@ -295,20 +296,24 @@ test('refine previews and applies only on accept, the assistant adds a post, fol
     )
     await snap(page, 'write-publish-review')
 
-    // The direct worker uses fixture-only credentials. A transport rejection may conservatively be unknown; reconcile that outcome before retrying.
+    // Commit through Publish now, then seed confirmed provider failures.
+    // Worker outcome semantics are covered by the Go state-machine tests;
+    // this browser case never sends fixture credentials to real providers.
     await publish.getByRole('button', { name: 'Publish now' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
-    await expect
-      .poll(
-        async () =>
-          (await draftPosts(draftId)).every((post) =>
-            ['FAILED', 'UNKNOWN_DELIVERY'].includes(post.status)
-          ),
-        {
-          timeout: 180_000,
-        }
+    const db = createE2EDatabase()
+    try {
+      await db.query(
+        `UPDATE scheduled_post SET status='FAILED' WHERE "contentDraftId"=$1 AND status='SCHEDULED'`,
+        [draftId]
       )
-      .toBe(true)
+    } finally {
+      await db.end()
+    }
+    expect((await draftPosts(draftId)).map((post) => post.status).sort()).toEqual([
+      'FAILED',
+      'FAILED',
+    ])
     await page.reload()
     const unknown = page.getByTestId('draft-post').filter({ hasText: 'Outcome unknown' })
     while (await unknown.count()) {
@@ -383,6 +388,25 @@ test('on a phone the library is the page, panels are sheets, and the review keep
     await expect(publish).toContainText('Publishing as')
     await expect(publish.getByTestId('review-destination').first()).toContainText('@shots_')
     await snap(page, 'write-phone-review')
+    await page.keyboard.press('Escape')
+    const previousId = page.url().match(/\/write\/([a-z0-9]+)/)![1]
+    const previous = (await apiRequest(page, `/api/v1/content-drafts/${previousId}`)).body as {
+      socialSetId: string
+    }
+    await page.getByTestId('mobile-new-draft').click()
+    await page.waitForURL(
+      (url) => /\/write\/[a-z0-9]+/.test(url.pathname) && !url.pathname.endsWith(previousId)
+    )
+    await expect(draftEditor(page)).toBeVisible({ timeout: 60_000 })
+    await expect(draftEditor(page)).not.toContainText('Written on a phone.')
+    const nextId = page.url().match(/\/write\/([a-z0-9]+)/)![1]
+    const next = (await apiRequest(page, `/api/v1/content-drafts/${nextId}`)).body as {
+      socialSetId: string
+    }
+    expect(next.socialSetId).toBe(previous.socialSetId)
+    expect(await draftPosts(nextId)).toHaveLength(0)
+    await page.goto(`/write/${previousId}`)
+    await expect(draftEditor(page)).toContainText('Written on a phone.')
   } finally {
     await workspace?.provider.close()
     await unbindTestGoOrganization(workspace?.organizationId ?? null)
@@ -591,7 +615,8 @@ test('draft text survives replacement and navigation; details, filters, archive 
     await editor.click()
     await page.keyboard.press('ControlOrMeta+End')
     await page.getByRole('button', { name: 'Emoji', exact: true }).click()
-    await page.getByRole('button', { name: 'Insert 🚀', exact: true }).click()
+    await page.getByRole('combobox', { name: 'Search emoji' }).fill(':rocket')
+    await page.getByRole('option', { name: 'Rocket :rocket:', exact: true }).click()
     await expect(editor).toBeFocused()
     await page.keyboard.type(' after emoji')
     await expect(editor).toContainText('🚀 after emoji')

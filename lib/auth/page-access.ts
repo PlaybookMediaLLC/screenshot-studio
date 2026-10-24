@@ -52,8 +52,8 @@ async function getBackendPageAccess(requestHeaders: Headers, session: SignedInSe
     // The onboarding agent (docs/rfcs/032). The backend decides it, including
     // the PLATFORM_ONBOARDING_AGENT rollback; without it onboarding is manual.
     onboardingAgentEnabled: Boolean(workspace) && features['onboarding:agent'] === true,
-    // There is no free plan: only an active paid subscription grants this.
-    hasPaidPlan: features['workspace:use'] === true,
+    hasBasicScheduling: features['content:drafts'] === true,
+    hasPaidPlan: features['workspace:paid'] === true,
     isWorkspaceOperational: Boolean(workspace),
     organization: backendPageOrganization(active, workspace),
     role: active?.role ?? 'viewer',
@@ -99,7 +99,8 @@ export async function redirectIfSignedIn(
 export async function requirePaidPageAccess(
   requestHeaders: Headers,
   locale: string,
-  returnTo: string
+  returnTo: string,
+  feature: 'workspace:paid' | 'content:drafts' = 'workspace:paid'
 ) {
   const access = await getPageAccess(requestHeaders)
   if (!access) {
@@ -107,6 +108,7 @@ export async function requirePaidPageAccess(
   }
   if (!access.hasOrganization) redirect(getLocalizedPath(locale, '/onboarding'))
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
-  if (!access.hasPaidPlan) redirect(getLocalizedPath(locale, '/pricing?subscribe=required'))
+  if (!(feature === 'content:drafts' ? access.hasBasicScheduling : access.hasPaidPlan))
+    redirect(getLocalizedPath(locale, '/pricing?subscribe=required'))
   return access
 }

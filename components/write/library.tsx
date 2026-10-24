@@ -145,6 +145,13 @@ export function WriteRail() {
         aria-label="Publishing utilities"
         className="mb-3 flex flex-wrap gap-3 px-3 text-xs text-muted-foreground"
       >
+        <Link href={data.activeSet ? `/write?set=${data.activeSet.id}` : '/write'}>Write</Link>
+        <Link href={data.activeSet ? `/write/plan?set=${data.activeSet.id}` : '/write/plan'}>
+          Plan
+        </Link>
+        <Link href={data.activeSet ? `/write/analyze?set=${data.activeSet.id}` : '/write/analyze'}>
+          Analyze
+        </Link>
         <Link
           href={`/link-preview?returnTo=${encodeURIComponent(data.activeSet ? `/write?set=${data.activeSet.id}` : '/write')}`}
         >
@@ -397,7 +404,10 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
   const channels = new Set(data.activeSet?.accounts.map((account) => account.channel) ?? [])
   const kinds: NewKind[] = [
     ...(channels.has('x') ? [{ kind: 'article' as const, label: 'X Article' }] : []),
-    ...(channels.has('x') || channels.has('linkedin')
+    ...(channels.has('x') ||
+    channels.has('linkedin') ||
+    channels.has('bluesky') ||
+    channels.has('mastodon')
       ? [{ kind: 'quote' as const, label: 'Quote a post', needs: 'url' as const }]
       : []),
     ...(channels.has('x')
@@ -494,10 +504,10 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
 }
 
 const POST_URL =
-  /^https:\/\/(?:www\.|mobile\.)?(?:(?:x|twitter)\.com\/[^/]+\/status\/\d+|linkedin\.com\/.*urn:li:(?:share|ugcPost|activity):\d+)/
+  /^https:\/\/(?:www\.|mobile\.)?(?:(?:x|twitter)\.com\/[^/]+\/status\/\d+|linkedin\.com\/.*urn:li:(?:share|ugcPost|activity):\d+|bsky\.app\/profile\/[^/]+\/post\/[A-Za-z0-9._~:-]+)/
 
 /** Ask for the post a quote or reply answers, or the published post a draft repurposes. */
-function TargetDialog({
+export function TargetDialog({
   kind,
   onClose,
   onCreate,
@@ -518,7 +528,14 @@ function TargetDialog({
       .then((body: { items: { id: string; title: string }[] }) => setPosted(body.items))
       .catch(() => setPosted([]))
   }, [data.activeSet, kind.needs])
-  const valid = kind.needs === 'source' ? /^https:\/\//.test(url) : POST_URL.test(url.trim())
+  const valid =
+    kind.needs === 'source'
+      ? /^https:\/\//.test(url)
+      : POST_URL.test(url.trim()) ||
+        (kind.kind === 'quote' &&
+          /^https:\/\/[^/@:]+\/(?:@[^/]+\/|users\/[^/]+\/statuses\/|statuses\/)\d+$/.test(
+            url.trim()
+          ))
   return (
     <Dialog onOpenChange={(open) => !open && onClose()} open>
       <DialogContent className="max-w-md">
@@ -590,7 +607,7 @@ function DraftRow({
   selected: boolean
   selecting: boolean
 }) {
-  const { data, saved } = useWrite()
+  const { data, saved, canEdit } = useWrite()
   const hydrated = useHydrated()
   const shown = { ...draft, ...saved[draft.id] }
   const channels = [
@@ -613,6 +630,11 @@ function DraftRow({
     >
       <Link
         aria-current={active ? 'page' : undefined}
+        draggable={canEdit && draft.status !== 'archived'}
+        onDragStart={(event) => {
+          event.dataTransfer.setData('application/x-shots-calendar-draft', draft.id)
+          event.dataTransfer.effectAllowed = 'copy'
+        }}
         className="block px-4 py-3 pr-10"
         href={draftHref(draft.id, data.activeSet?.id)}
         onClick={(event) => {

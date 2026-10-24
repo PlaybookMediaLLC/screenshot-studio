@@ -1,4 +1,7 @@
-import { draftVersionsQuerySchema } from '@/lib/api/contracts/content-draft-concurrency'
+import {
+  collabTokenSchema,
+  draftVersionsQuerySchema,
+} from '@/lib/api/contracts/content-draft-concurrency'
 import { z } from 'zod'
 import { defineContract, timestampSchema } from '@/lib/api/contract'
 import { scheduledPostStatusSchema } from '@/lib/api/contracts/scheduled-posts'
@@ -37,6 +40,8 @@ export const contentDraftSchema = z
   .object({
     assetIds: z.array(z.string()),
     body: plateValueSchema,
+    /** Collaborative room generation; changes after an external body replacement. */
+    collabGeneration: z.number().int().nonnegative().default(0),
     channelConnectionIds: z.array(z.string()),
     createdAt: timestampSchema,
     createdByUserId: z.string().nullable(),
@@ -110,6 +115,8 @@ export const contentDraftCreateSchema = contentDraftFieldsSchema.extend({
 /** An update: the fields it sets, based on the version the client last saw. */
 export const contentDraftUpdateSchema = contentDraftFieldsSchema.extend({
   baseVersion: z.number().int().min(1),
+  /** Current room generation for a live projection; omit when replacing the body externally. */
+  collabGeneration: z.number().int().nonnegative().optional(),
   baseCalendarVersion: z.number().int().positive().optional(),
   status: contentDraftEditableStatusSchema.optional(),
   /** The draft's own choices, which start as copies of its set's defaults. */
@@ -139,7 +146,7 @@ export const contentDraftListQuerySchema = z.object({
 export const contentDraftParamsSchema = z.object({ id: contentDraftIdSchema })
 
 const entitlement = {
-  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'pro' },
+  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'free' },
 }
 
 /** `GET /api/v1/content-drafts` */
@@ -372,12 +379,7 @@ export const scheduleContentDraftContract = defineContract({
 })
 
 /** A collaboration token: one member, one draft, a few minutes. */
-export const collabTokenSchema = z.object({
-  access: z.enum(['read', 'write']),
-  documentName: z.string(),
-  expiresAt: timestampSchema,
-  token: z.string(),
-})
+export { collabTokenSchema } from '@/lib/api/contracts/content-draft-concurrency'
 
 /**
  * `POST /api/v1/content-drafts/{id}/collab-token`: admits the signed-in member

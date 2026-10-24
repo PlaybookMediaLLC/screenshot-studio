@@ -65,7 +65,7 @@ func checkPublishingContent(caps socialidentity.XCapabilities, message string, s
 	if len(settings.TaggedUserIDs) > 0 && (mediaCount == 0 || article) {
 		return publishRejected("Photo tags require static images on a regular X post.")
 	}
-	if str(settings.QuoteTweetID) != "" {
+	if str(settings.QuoteTweetID) != "" && !socialidentity.XEnterpriseQuotesEnabled() {
 		return publishRejected("X quote posts require verified Enterprise API access, which this connection has not established.")
 	}
 	if article {

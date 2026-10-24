@@ -864,6 +864,7 @@ export type BackendContentDraftStatus = 'draft' | 'scheduled' | 'archived'
 
 /** A post written by hand in the document editor (RFC 013). */
 export type BackendContentDraft = {
+  collabGeneration?: number
   assetIds: string[]
   /** Plate JSON: the editor's value, a list of block nodes. */
   body: unknown[]
@@ -1015,7 +1016,16 @@ export type BackendContentDraftSettings = {
 }
 
 /** A draft post on the calendar or in the queue, with its draft's title. */
-export type BackendCalendarPost = BackendContentDraftPost & { draftId: string; draftTitle: string; version: number; calendarVersion: number; tagIds: string[] }
+export type BackendCalendarPost = BackendContentDraftPost & {
+  campaignId?: string | null
+  campaignTitle?: string
+  draftId: string
+  draftTitle: string
+  socialSetId: string | null
+  version: number
+  calendarVersion: number
+  tagIds: string[]
+}
 
 /** A suggested posting time and why. */
 export type BackendBestTime = { at: string; reason: string }
@@ -1093,7 +1103,11 @@ export type BackendPostAutomation = {
 }
 
 /** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
-export type BackendPoll = { durationMinutes: number; options: string[] }
+export type BackendPoll = {
+  multiple?: boolean
+  durationMinutes: number
+  options: string[]
+}
 
 /** The fields a draft is created or updated with. */
 export type BackendContentDraftFields = {
@@ -1120,6 +1134,7 @@ export type BackendContentDraftCreate = BackendContentDraftFields & {
 }
 
 export type BackendContentDraftUpdate = BackendContentDraftFields & {
+  collabGeneration?: number
   baseVersion: number
   baseCalendarVersion?: number
   status?: Exclude<BackendContentDraftStatus, 'scheduled'>
@@ -1162,7 +1177,12 @@ export type BackendContentDraftScheduleTarget = {
   caption: string
   channelConnectionId: string
   /** A thread's later posts, posted as replies to the first, each with its settings. */
-  replies?: { assetIds: string[]; caption: string; options?: BackendPublishOptions }[]
+  replies?: {
+    assetIds: string[]
+    caption: string
+    options?: BackendPublishOptions
+    poll?: { durationMinutes: number; options: string[]; multiple?: boolean }
+  }[]
   autoActions?: BackendAutoActions
   poll?: BackendPoll
   /** The first post's settings beyond its text (RFC 025). */
@@ -1176,6 +1196,14 @@ export type BackendPublishOptions = {
   taggedUserIds?: string[]
   articleCoverAssetId?: string
   articleTitle?: string
+  linkPreview?: {
+    url: string
+    title?: string
+    description?: string
+    image?: string
+    removed?: boolean
+  }
+  articleHtml?: string
   communityId?: string
   documentAssetId?: string
   documentTitle?: string
@@ -2766,9 +2794,21 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** What the set's account for a channel can mention (RFC 025). */
-  async lookupSocialSetMentions(id: string, channel: 'x' | 'linkedin', query: string) {
+  async lookupSocialSetMentions(
+    id: string,
+    channel: 'x' | 'linkedin',
+    query: string,
+    kind?: 'person' | 'organization'
+  ) {
     return this.request<{ items: BackendSocialMention[] }>(
-      `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query })}`
+      `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query, ...(kind ? { kind } : {}) })}`
+    )
+  }
+
+  /** Search communities through the social set's verified X account. */
+  async searchSocialSetCommunities(id: string, query: string) {
+    return this.request<{ items: { id: string; name: string }[] }>(
+      `v1/social-sets/${encodeURIComponent(id)}/communities?${new URLSearchParams({ q: query })}`
     )
   }
 
@@ -2908,6 +2948,22 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ post: BackendContentDraftPost }>(
       `v1/content-draft-posts/${encodeURIComponent(id)}/move`,
       { body: { scheduledFor }, method: 'POST' }
+    )
+  }
+
+  /** Atomically swap two queued posts on the same account. */
+  async swapContentDraftPosts(id: string, withId: string) {
+    return this.request<{ posts: BackendContentDraftPost[] }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/swap`,
+      { body: { withId }, method: 'POST' }
+    )
+  }
+
+  /** Publish the immutable queued snapshot once, immediately. */
+  async publishQueuedContentDraftPost(id: string) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/publish-now`,
+      { body: {}, method: 'POST' }
     )
   }
 

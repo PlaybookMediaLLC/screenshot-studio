@@ -13,6 +13,8 @@ import (
 // Capabilities is a versioned snapshot of the provider's reported publishing limits.
 // Missing limits remain unknown; they must never be replaced with invented defaults.
 type Capabilities struct {
+	MastodonAPIVersion       int                  `json:"mastodonApiVersion,omitempty"`
+	Polls                    *PollLimits          `json:"polls,omitempty"`
 	Version                  int                  `json:"version"`
 	Bluesky                  *BlueskyCapabilities `json:"bluesky,omitempty"`
 	X                        *XCapabilities       `json:"x,omitempty"`
@@ -85,9 +87,17 @@ func (v *Verification) Validate(provider, internalID string) error {
 
 // Validate rejects missing, inconsistent and unbounded remote configuration.
 func (c Capabilities) Validate() error {
+	if c.MastodonAPIVersion < 0 || c.MastodonAPIVersion > 100000 {
+		return ErrInvalid
+	}
+	if c.Polls != nil {
+		if err := c.Polls.Validate(); err != nil {
+			return err
+		}
+	}
 	if c.Bluesky != nil || c.X != nil {
 		if c.Version != 1 || c.MaxCharacters != 0 || c.MaxMediaAttachments != 0 || c.CharactersReservedPerURL != 0 || len(c.MediaMIMETypes) != 0 ||
-			c.ImageSizeLimit != 0 || c.VideoSizeLimit != 0 || c.ImageMatrixLimit != 0 || c.VideoMatrixLimit != 0 || c.VideoFrameRateLimit != 0 || c.MediaDescriptionLimit != nil {
+			c.ImageSizeLimit != 0 || c.VideoSizeLimit != 0 || c.ImageMatrixLimit != 0 || c.VideoMatrixLimit != 0 || c.VideoFrameRateLimit != 0 || c.MediaDescriptionLimit != nil || c.Polls != nil || c.MastodonAPIVersion != 0 {
 			return ErrInvalid
 		}
 		if c.X != nil {

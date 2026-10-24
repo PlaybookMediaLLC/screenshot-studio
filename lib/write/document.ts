@@ -78,6 +78,18 @@ export const communitySchema = z.strictObject({
   shareWithFollowers: z.boolean().optional(),
 })
 
+/** A persisted Open Graph card and an explicit removal choice. */
+export const linkPreviewSchema = z.strictObject({
+  url: z.url().max(2048),
+  title: z.string().max(250).optional(),
+  description: z.string().max(1000).optional(),
+  image: z.url().max(2048).optional(),
+  removed: z.boolean().optional(),
+})
+
+/** One stored card, scoped to a platform version. */
+export type LinkPreview = z.infer<typeof linkPreviewSchema>
+
 /** One of {@link communitySchema}. */
 export type Community = z.infer<typeof communitySchema>
 
@@ -147,8 +159,26 @@ export const automationSchema = z.strictObject({
 /** One of {@link automationSchema}. */
 export type Automation = z.infer<typeof automationSchema>
 
+/** Prepared Auto-DM settings. Delivery is disabled until authorized provider access is configured. */
+export const autoDmSchema = z
+  .strictObject({
+    match: z.enum(['any', 'all']),
+    reposts: z.boolean(),
+    replies: z.boolean(),
+    requireFollow: z.boolean(),
+    replyText: z.string().max(100).optional(),
+    message: z.string().min(1).max(10_000),
+  })
+  .refine((value) => value.replies || value.reposts, 'Choose replies or reposts.')
+/** One prepared campaign configuration. */
+export type AutoDm = z.infer<typeof autoDmSchema>
+
 /** A platform version's settings; each belongs to the platforms that support it. */
 export const versionOptionsSchema = z.strictObject({
+  autoDm: autoDmSchema.optional(),
+  splitOnPaste: z.boolean().optional(),
+  linkPreviews: z.array(linkPreviewSchema).max(25).optional(),
+  splitLimit: z.number().int().min(25).max(25_000).optional(),
   automation: automationSchema.optional(),
   community: communitySchema.optional(),
   document: documentAttachmentSchema.optional(),
@@ -256,9 +286,12 @@ export type Disclosures = z.infer<typeof disclosuresSchema>
  * (`lib/write/capabilities.ts`).
  */
 export const postPollSchema = z.strictObject({
-  durationMinutes: z.number().int().min(5).max(20_160),
-  options: z.array(z.string().max(30)).min(2).max(4),
-  question: z.string().max(140).optional(),
+  durationMinutes: z.number().int().min(1).max(527_040),
+  multiple: z.boolean().optional(),
+  options: z.array(z.string().max(1000)).min(2).max(20),
+  // Draft storage permits incomplete questions; provider validation uses
+  // Unicode characters and the 140-character LinkedIn limit before publishing.
+  question: z.string().max(1000).optional(),
 })
 
 /** One of {@link postPollSchema}. */

@@ -284,16 +284,16 @@ func TestCreatePostRejected(t *testing.T) {
 
 func TestComment(t *testing.T) {
 	f, _ := newFake(t, map[string]http.HandlerFunc{
-		"POST /rest/socialActions/urn:li:share:9/comments": jsonReply(map[string]any{"object": "urn:li:comment:5"}),
+		"POST /rest/socialActions/urn:li:share:9/comments": jsonReply(map[string]any{"object": "urn:li:activity:9", "id": "5"}),
 	})
 	got, err := New().Comment(context.Background(), "person1", "urn:li:share:9", "", "tok", []integrations.PostDetails{{ID: "c1", Message: "nice"}}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got[0].ReleaseURL != "https://www.linkedin.com/embed/feed/update/urn:li:comment:5" {
+	if got[0].ReleaseURL != "https://www.linkedin.com/feed/update/urn:li:activity:9?commentUrn=urn%3Ali%3Acomment%3A(urn%3Ali%3Aactivity%3A9%2C5)" {
 		t.Fatalf("got %+v", got)
 	}
-	if v := f.find("POST", "/rest/socialActions/urn:li:share:9/comments")[0].header.Get("LinkedIn-Version"); v != "202306" {
+	if v := f.find("POST", "/rest/socialActions/urn:li:share:9/comments")[0].header.Get("LinkedIn-Version"); v != Headers("", "")["LinkedIn-Version"] {
 		t.Fatalf("version %q", v)
 	}
 }

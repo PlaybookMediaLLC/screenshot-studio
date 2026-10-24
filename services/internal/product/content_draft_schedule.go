@@ -14,8 +14,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/articlebody"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
@@ -114,9 +116,12 @@ func naturalOffset(draftID string, version int, base time.Time) int {
 // AccountStanding is a display projection of verified connection capabilities.
 // Scheduling independently rechecks the current proof in its transaction.
 type AccountStanding struct {
-	Premium       bool  `json:"premium"`
-	XCaptionLimit *int  `json:"xCaptionLimit"`
-	XArticles     *bool `json:"xArticles"`
+	MastodonQuotes *bool                      `json:"mastodonQuotes"`
+	PollLimits     *socialidentity.PollLimits `json:"pollLimits"`
+	Premium        bool                       `json:"premium"`
+	XCaptionLimit  *int                       `json:"xCaptionLimit"`
+	XArticles      *bool                      `json:"xArticles"`
+	XQuotes        bool                       `json:"xQuotes"`
 }
 
 // AccountStandingReader reads an account's standing from its platform
@@ -277,6 +282,9 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 		if target.AssetIDs != nil {
 			ids = target.AssetIDs
 		}
+		if err := checkLinkPreviewMedia(target.Options, len(ids)); err != nil {
+			return nil, nil, err
+		}
 		if distinctAssetCount(ids) != len(ids) {
 			return nil, nil, invalid("Each attachment in a post must be distinct. Move the copy to another post or apply a distinct edit.")
 		}
@@ -285,6 +293,11 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 		}
 		if channel == "bluesky" {
 			if err := checkBlueskyTarget(ctx, tx, connection, target, ids); err != nil {
+				return nil, nil, err
+			}
+		}
+		if channel == "mastodon" {
+			if err := checkMastodonPolls(ctx, tx, connection, target, ids); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -415,6 +428,15 @@ func checkDraftKindTargets(kind string, targets []ContentDraftScheduleTarget) er
 		}
 		switch kind {
 		case "article":
+			assets := map[string]string{}
+			for _, id := range target.AssetIDs {
+				assets[id] = ""
+			}
+			if options.ArticleHTML != "" {
+				if _, err := articlebody.Render(options.ArticleHTML, assets); err != nil {
+					return invalid(err.Error())
+				}
+			}
 			if len(targets) != 1 {
 				return invalid("An article goes to one X account and cannot go to other platforms with it.")
 			}
@@ -433,7 +455,7 @@ func checkDraftKindTargets(kind string, targets []ContentDraftScheduleTarget) er
 				return invalid("A quote names the post it quotes.")
 			}
 		default:
-			if target.ReplyTo != "" || options.ArticleTitle != "" {
+			if target.ReplyTo != "" || options.ArticleTitle != "" || options.ArticleHTML != "" {
 				return invalid("Only a reply answers a post, and only an article has a title.")
 			}
 		}
@@ -473,7 +495,13 @@ func checkDraftReplies(ctx context.Context, tx *ent.Tx, organizationID, channel 
 		if length := draftPostLength(channel, reply.Caption); length > limit {
 			return conflict(fmt.Sprintf("Post %d is %d characters; the %s limit is %d.", index+2, length, channel, limit))
 		}
+		if err := checkLinkPreviewMedia(reply.Options, len(reply.AssetIDs)); err != nil {
+			return err
+		}
 		if err := checkPostOptions(channel, reply.Options, false); err != nil {
+			return err
+		}
+		if err := checkPoll(channel, reply.Poll, reply.Options, len(reply.AssetIDs)); err != nil {
 			return err
 		}
 		if distinctAssetCount(reply.AssetIDs) != len(reply.AssetIDs) {
@@ -581,6 +609,9 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		return nil, err
 	}
 	defer tx.Rollback()
+	if _, err := tx.PlatformExec(ctx, `SELECT id FROM organization WHERE id=$1 FOR SHARE`, actor.OrganizationID); err != nil {
+		return nil, err
+	}
 	draft, err := visibleContentDraft(ctx, tx.Client(), actor, draftID)
 	if err != nil {
 		return nil, err
@@ -608,6 +639,11 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		return nil, &ContentDraftVersionConflictError{Current: draft.Version}
 	}
 	if err := c.requireDraftApproval(ctx, draft); err != nil {
+		return nil, err
+	}
+	bound := *c
+	bound.client = tx.Client()
+	if err := bound.requireDraftSchedulingPlan(ctx, actor, draft, input); err != nil {
 		return nil, err
 	}
 	reason := "schedule"
@@ -800,6 +836,16 @@ func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, dra
 	placement.at = placement.base.Add(time.Duration(placement.offset) * time.Second)
 	if !placement.at.After(now.Add(30 * time.Second)) {
 		placement.offset = max(placement.offset, -placement.offset)
+		placement.at = placement.base.Add(time.Duration(placement.offset) * time.Second)
+	}
+	if !placement.at.After(now.Add(30 * time.Second)) {
+		if !natural {
+			return placement, invalid("Pick a time at least 30 seconds in the future.")
+		}
+		placement.offset = int(now.Add(31*time.Second).Sub(placement.base).Seconds()) + 1
+		if placement.offset > naturalOffsetLimit {
+			return placement, invalid("Pick a later natural posting time.")
+		}
 		placement.at = placement.base.Add(time.Duration(placement.offset) * time.Second)
 	}
 	return placement, nil

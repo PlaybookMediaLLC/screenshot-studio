@@ -62,6 +62,7 @@ func (e *ContentDraftVersionConflictError) Unwrap() error { return publishing.Er
 // ContentDraftRecord is a draft as the API returns it. The collaboration
 // state is not part of it.
 type ContentDraftRecord struct {
+	CollabGeneration     int               `json:"collabGeneration"`
 	AssetIDs             []string          `json:"assetIds"`
 	Body                 []any             `json:"body"`
 	ChannelConnectionIDs []string          `json:"channelConnectionIds"`
@@ -165,6 +166,8 @@ type ContentDraftInput struct {
 // ContentDraftUpdate changes the fields it sets, based on BaseVersion.
 // Status may move between draft and archived; scheduled is set by scheduling.
 type ContentDraftUpdate struct {
+	// CollabGeneration identifies a live editor projection. Omit for an external body replacement.
+	CollabGeneration     *int               `json:"collabGeneration"`
 	AssetIDs             *[]string          `json:"assetIds"`
 	BaseVersion          int                `json:"baseVersion"`
 	BaseCalendarVersion  int                `json:"baseCalendarVersion"`
@@ -187,7 +190,7 @@ type ContentDraftUpdate struct {
 }
 
 func contentDraftRecord(row *ent.ContentDraft) ContentDraftRecord {
-	return ContentDraftRecord{AssetIDs: nonNilStrings(row.AssetIds), Body: nonNilBody(row.Body),
+	return ContentDraftRecord{CollabGeneration: row.CollabGeneration, AssetIDs: nonNilStrings(row.AssetIds), Body: nonNilBody(row.Body),
 		ChannelConnectionIDs: nonNilStrings(row.ChannelConnectionIds), CreatedAt: row.CreatedAt,
 		CreatedByUserID: row.CreatedByUserID, ChannelText: nonNilChannelText(row.ChannelText), Discussions: nonNilDiscussions(row.Discussions), ID: row.ID, OrganizationID: row.OrganizationID, PlainText: row.PlainText,
 		Status: string(row.Status), Title: row.Title, UpdatedAt: row.UpdatedAt, UpdatedByUserID: row.UpdatedByUserID,
@@ -535,6 +538,9 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 		return nil, err
 	}
 	defer tx.Rollback()
+	if kind == "repurpose" && input.Target != nil && input.Target.SourceDraftID != "" {
+		return c.repurposePublishedDraft(ctx, tx, actor, input)
+	}
 	replay, creationHash, err := beginDraftCreation(ctx, tx, actor, input)
 	if err != nil {
 		return nil, err
@@ -553,11 +559,15 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 		if defaultPrimary != nil && draftPlatformChannels[*defaultPrimary] != "" {
 			primary = draftPlatformChannels[*defaultPrimary]
 		}
-		// Replies and articles are X's; a quote is the platform of the post it quotes.
-		if kind == "reply" || kind == "article" || kind == "quote" && (input.Target == nil || !strings.Contains(input.Target.URL, "linkedin.com")) {
+		if kind == "reply" || kind == "article" {
 			primary = "x"
-		} else if kind == "quote" {
-			primary = "linkedin"
+		}
+		if kind == "quote" {
+			target, err := draftTarget(kind, input.Target)
+			if err != nil {
+				return nil, err
+			}
+			primary = target.Platform
 		}
 	}
 	if err := draftKindChannel(kind, primary); err != nil {
@@ -622,6 +632,9 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 	}
 	row, err := create.Save(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if err := rememberDraftMentions(ctx, tx, row); err != nil {
 		return nil, err
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_created", "content_draft", row.ID,
@@ -921,6 +934,13 @@ func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx,
 		if err != nil {
 			return err
 		}
+		if input.CollabGeneration != nil {
+			if *input.CollabGeneration != current.CollabGeneration {
+				return conflict("The draft body was replaced. Reload it before saving.")
+			}
+		} else if !sameJSON(body, current.Body) {
+			update.ClearCollabState().AddCollabGeneration(1)
+		}
 		update.SetBody(body)
 	}
 	if input.PlainText != nil {
@@ -1090,6 +1110,11 @@ func (c *Configuration) UpdateContentDraft(ctx context.Context, actor Actor, id 
 	row, err := tx.ContentDraft.Get(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if input.Body != nil || input.PlatformVersions != nil {
+		if err := rememberDraftMentions(ctx, tx, row); err != nil {
+			return nil, err
+		}
 	}
 	if err := recordContentDraftRevision(ctx, tx, actor, row, false, "edit"); err != nil {
 		return nil, err

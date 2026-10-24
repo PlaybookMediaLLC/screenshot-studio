@@ -1318,6 +1318,8 @@ export interface components {
                 body: {
                     [key: string]: unknown;
                 }[];
+                /** @default 0 */
+                collabGeneration: number;
                 channelConnectionIds: string[];
                 createdAt: string;
                 createdByUserId: string | null;
@@ -1405,6 +1407,26 @@ export interface components {
                         /** @enum {string} */
                         mode: "synced" | "manual";
                         options?: {
+                            autoDm?: {
+                                /** @enum {string} */
+                                match: "any" | "all";
+                                reposts: boolean;
+                                replies: boolean;
+                                requireFollow: boolean;
+                                replyText?: string;
+                                message: string;
+                            };
+                            splitOnPaste?: boolean;
+                            linkPreviews?: {
+                                /** Format: uri */
+                                url: string;
+                                title?: string;
+                                description?: string;
+                                /** Format: uri */
+                                image?: string;
+                                removed?: boolean;
+                            }[];
+                            splitLimit?: number;
                             automation?: {
                                 plugAtLikes?: number;
                                 /** @enum {string} */
@@ -2144,6 +2166,8 @@ export interface components {
                 body: {
                     [key: string]: unknown;
                 }[];
+                /** @default 0 */
+                collabGeneration: number;
                 channelConnectionIds: string[];
                 createdAt: string;
                 createdByUserId: string | null;
@@ -2231,6 +2255,26 @@ export interface components {
                         /** @enum {string} */
                         mode: "synced" | "manual";
                         options?: {
+                            autoDm?: {
+                                /** @enum {string} */
+                                match: "any" | "all";
+                                reposts: boolean;
+                                replies: boolean;
+                                requireFollow: boolean;
+                                replyText?: string;
+                                message: string;
+                            };
+                            splitOnPaste?: boolean;
+                            linkPreviews?: {
+                                /** Format: uri */
+                                url: string;
+                                title?: string;
+                                description?: string;
+                                /** Format: uri */
+                                image?: string;
+                                removed?: boolean;
+                            }[];
+                            splitLimit?: number;
                             automation?: {
                                 plugAtLikes?: number;
                                 /** @enum {string} */
@@ -2295,6 +2339,8 @@ export interface components {
                 body: {
                     [key: string]: unknown;
                 }[];
+                /** @default 0 */
+                collabGeneration: number;
                 channelConnectionIds: string[];
                 createdAt: string;
                 createdByUserId: string | null;
@@ -2382,6 +2428,26 @@ export interface components {
                         /** @enum {string} */
                         mode: "synced" | "manual";
                         options?: {
+                            autoDm?: {
+                                /** @enum {string} */
+                                match: "any" | "all";
+                                reposts: boolean;
+                                replies: boolean;
+                                requireFollow: boolean;
+                                replyText?: string;
+                                message: string;
+                            };
+                            splitOnPaste?: boolean;
+                            linkPreviews?: {
+                                /** Format: uri */
+                                url: string;
+                                title?: string;
+                                description?: string;
+                                /** Format: uri */
+                                image?: string;
+                                removed?: boolean;
+                            }[];
+                            splitLimit?: number;
                             automation?: {
                                 plugAtLikes?: number;
                                 /** @enum {string} */
@@ -2459,6 +2525,26 @@ export interface components {
                     /** @enum {string} */
                     mode: "synced" | "manual";
                     options?: {
+                        autoDm?: {
+                            /** @enum {string} */
+                            match: "any" | "all";
+                            reposts: boolean;
+                            replies: boolean;
+                            requireFollow: boolean;
+                            replyText?: string;
+                            message: string;
+                        };
+                        splitOnPaste?: boolean;
+                        linkPreviews?: {
+                            /** Format: uri */
+                            url: string;
+                            title?: string;
+                            description?: string;
+                            /** Format: uri */
+                            image?: string;
+                            removed?: boolean;
+                        }[];
+                        splitLimit?: number;
                         automation?: {
                             plugAtLikes?: number;
                             /** @enum {string} */
@@ -2539,6 +2625,8 @@ export interface components {
             body: {
                 [key: string]: unknown;
             }[];
+            /** @default 0 */
+            collabGeneration: number;
             channelConnectionIds: string[];
             createdAt: string;
             createdByUserId: string | null;
@@ -2626,6 +2714,26 @@ export interface components {
                     /** @enum {string} */
                     mode: "synced" | "manual";
                     options?: {
+                        autoDm?: {
+                            /** @enum {string} */
+                            match: "any" | "all";
+                            reposts: boolean;
+                            replies: boolean;
+                            requireFollow: boolean;
+                            replyText?: string;
+                            message: string;
+                        };
+                        splitOnPaste?: boolean;
+                        linkPreviews?: {
+                            /** Format: uri */
+                            url: string;
+                            title?: string;
+                            description?: string;
+                            /** Format: uri */
+                            image?: string;
+                            removed?: boolean;
+                        }[];
+                        splitLimit?: number;
                         automation?: {
                             plugAtLikes?: number;
                             /** @enum {string} */
@@ -2702,6 +2810,26 @@ export interface components {
                     /** @enum {string} */
                     mode: "synced" | "manual";
                     options?: {
+                        autoDm?: {
+                            /** @enum {string} */
+                            match: "any" | "all";
+                            reposts: boolean;
+                            replies: boolean;
+                            requireFollow: boolean;
+                            replyText?: string;
+                            message: string;
+                        };
+                        splitOnPaste?: boolean;
+                        linkPreviews?: {
+                            /** Format: uri */
+                            url: string;
+                            title?: string;
+                            description?: string;
+                            /** Format: uri */
+                            image?: string;
+                            removed?: boolean;
+                        }[];
+                        splitLimit?: number;
                         automation?: {
                             plugAtLikes?: number;
                             /** @enum {string} */
@@ -2769,6 +2897,7 @@ export interface components {
             plainText?: string;
             title?: string;
             baseVersion: number;
+            collabGeneration?: number;
             baseCalendarVersion?: number;
             /** @enum {string} */
             status?: "draft" | "archived";
@@ -2828,6 +2957,8 @@ export interface components {
                 body: {
                     [key: string]: unknown;
                 }[];
+                /** @default 0 */
+                collabGeneration: number;
                 channelConnectionIds: string[];
                 createdAt: string;
                 createdByUserId: string | null;
@@ -2915,6 +3046,26 @@ export interface components {
                         /** @enum {string} */
                         mode: "synced" | "manual";
                         options?: {
+                            autoDm?: {
+                                /** @enum {string} */
+                                match: "any" | "all";
+                                reposts: boolean;
+                                replies: boolean;
+                                requireFollow: boolean;
+                                replyText?: string;
+                                message: string;
+                            };
+                            splitOnPaste?: boolean;
+                            linkPreviews?: {
+                                /** Format: uri */
+                                url: string;
+                                title?: string;
+                                description?: string;
+                                /** Format: uri */
+                                image?: string;
+                                removed?: boolean;
+                            }[];
+                            splitLimit?: number;
                             automation?: {
                                 plugAtLikes?: number;
                                 /** @enum {string} */
@@ -3191,7 +3342,7 @@ export interface components {
             /** @enum {string} */
             currentPlan: "free" | "pro" | "business" | "enterprise";
             /** @enum {string} */
-            feature: "asset:create" | "asset:read" | "asset:update" | "asset:delete" | "release:create" | "source-app:create" | "workspace:use" | "enterprise:audit-drain" | "enterprise:sso" | "enterprise:scim" | "campaign:workflow" | "content:drafts" | "onboarding:agent";
+            feature: "asset:create" | "asset:read" | "asset:update" | "asset:delete" | "release:create" | "source-app:create" | "workspace:use" | "workspace:paid" | "content:scheduling-advanced" | "enterprise:audit-drain" | "enterprise:sso" | "enterprise:scim" | "campaign:workflow" | "content:drafts" | "onboarding:agent";
             /** @enum {string} */
             requiredPlan: "free" | "pro" | "business" | "enterprise";
         };

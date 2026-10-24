@@ -46,8 +46,11 @@ func checkXTarget(ctx context.Context, tx *ent.Tx, connection *ent.ChannelConnec
 	if article && (caps.Articles == nil || !*caps.Articles) {
 		return nil, conflict("This connection has no verified X Articles access. Reconnect an eligible account.")
 	}
+	if target.AutoActions != nil && target.AutoActions.QuoteAfterHours > 0 && !socialidentity.XEnterpriseQuotesEnabled() {
+		return nil, conflict("X quote follow-ups require the deployed application's approved Enterprise API access.")
+	}
 	check := func(text string, selected []string, options *postoptions.PublishOptions, isArticle bool) error {
-		if options != nil && (options.QuoteRemoteID != "" || options.QuoteFirstPost) {
+		if options != nil && (options.QuoteRemoteID != "" || options.QuoteFirstPost) && !socialidentity.XEnterpriseQuotesEnabled() {
 			return conflict("X quote posts require Enterprise API access, which this connection has not verified.")
 		}
 		if !isArticle {

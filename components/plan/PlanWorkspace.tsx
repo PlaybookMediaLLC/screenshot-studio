@@ -75,6 +75,8 @@ export function PlanWorkspace({
   initialZone,
   initialWeekStart,
   initialDay,
+  initialView,
+  advancedScheduling = false,
 }: {
   sets: SocialSetWire[]
   canEdit: boolean
@@ -83,9 +85,16 @@ export function PlanWorkspace({
   initialZone: string
   initialWeekStart: 0 | 1
   initialDay?: string
+  initialView?: string
+  advancedScheduling?: boolean
 }) {
+  const router = useRouter()
   const [prefs, setPrefs] = React.useState<PlanPreferences>(() =>
-    planPreferencesSchema.parse({ zone: initialZone, weekStart: initialWeekStart })
+    planPreferencesSchema.parse({
+      zone: initialZone,
+      weekStart: initialWeekStart,
+      view: ['flex', 'month', 'week'].includes(initialView ?? '') ? initialView : 'flex',
+    })
   )
   const [anchor, setAnchor] = React.useState(
     initialDay && validDay(initialDay) ? initialDay : zonedDayKey(new Date(), initialZone)
@@ -199,12 +208,13 @@ export function PlanWorkspace({
             id: p.id,
             postId: p.id,
             draftId: p.draftId,
+            campaignId: p.campaignId,
             version: p.version,
             calendarVersion: p.calendarVersion,
             setId: p.socialSetId ?? '',
             accountId: p.channelConnectionId,
             platform: p.platform,
-            at: p.scheduledFor,
+            at: p.slotAt ?? p.scheduledFor,
             zone: p.scheduleTimeZone ?? 'UTC',
             deliveryStatus: p.status,
             status:
@@ -360,7 +370,9 @@ export function PlanWorkspace({
       return
     }
     if (
+      advancedScheduling &&
       target &&
+      !target.campaignId &&
       target.id !== item.id &&
       target.setId === item.setId &&
       ['Planned', 'Scheduled'].includes(target.status)
@@ -387,6 +399,7 @@ export function PlanWorkspace({
       aria-label={`${item.status}: ${item.text || item.title}, ${sets.find((s) => s.id === item.setId)?.name ?? 'Account'}, ${item.platform}`}
       draggable={
         !busy &&
+        !item.campaignId &&
         (item.status === 'Planned'
           ? canEdit
           : item.status === 'Scheduled' && item.deliveryStatus === 'SCHEDULED' && canPublish)
@@ -399,7 +412,9 @@ export function PlanWorkspace({
         if (e.dataTransfer.types.includes(DRAG)) e.preventDefault()
       }}
       onDrop={(e) => drop(e, itemDay(item, prefs.zone), undefined, item)}
-      onClick={() => setDetail(item)}
+      onClick={() =>
+        item.campaignId ? router.push(`/campaigns/${item.campaignId}`) : setDetail(item)
+      }
       className={`w-full rounded-lg border p-2 text-left text-xs shadow-sm ${weekly ? 'h-full overflow-hidden' : ''} ${item.status === 'Planned' ? 'border-dashed border-violet-400' : item.status === 'Published' ? 'border-emerald-500' : item.status === 'Failed' ? 'border-red-500' : 'border-sky-500'} bg-background`}
     >
       <span className="block truncate text-muted-foreground">

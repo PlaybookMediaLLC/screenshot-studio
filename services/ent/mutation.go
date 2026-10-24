@@ -65,6 +65,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmcampaign"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmdelivery"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmoptout"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
@@ -76,6 +80,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpersonalconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformsocialmention"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformworkspacecreation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
@@ -190,6 +195,10 @@ const (
 	TypeOrganizationEnterpriseSettings  = "OrganizationEnterpriseSettings"
 	TypeOutboxEvent                     = "OutboxEvent"
 	TypePageKnowledge                   = "PageKnowledge"
+	TypePlatformAutoDMCampaign          = "PlatformAutoDMCampaign"
+	TypePlatformAutoDMDelivery          = "PlatformAutoDMDelivery"
+	TypePlatformAutoDMOptOut            = "PlatformAutoDMOptOut"
+	TypePlatformAutoDMRecipient         = "PlatformAutoDMRecipient"
 	TypePlatformCreativeSet             = "PlatformCreativeSet"
 	TypePlatformCreativeSetVersion      = "PlatformCreativeSetVersion"
 	TypePlatformNotificationDelivery    = "PlatformNotificationDelivery"
@@ -201,6 +210,7 @@ const (
 	TypePlatformSlackInstallation       = "PlatformSlackInstallation"
 	TypePlatformSlackPacing             = "PlatformSlackPacing"
 	TypePlatformSlackPersonalConnection = "PlatformSlackPersonalConnection"
+	TypePlatformSocialMention           = "PlatformSocialMention"
 	TypePlatformWorkspaceCreation       = "PlatformWorkspaceCreation"
 	TypePostAutomationRun               = "PostAutomationRun"
 	TypeProductProfile                  = "ProductProfile"
@@ -24814,6 +24824,8 @@ type ContentDraftMutation struct {
 	pinned_at                    *time.Time
 	plan_time_zone               *string
 	source_draft_id              *string
+	collab_generation            *int
+	addcollab_generation         *int
 	collab_state                 *[]byte
 	created_by_user_id           *string
 	updated_by_user_id           *string
@@ -26337,6 +26349,62 @@ func (m *ContentDraftMutation) ResetSourceDraftID() {
 	delete(m.clearedFields, contentdraft.FieldSourceDraftID)
 }
 
+// SetCollabGeneration sets the "collab_generation" field.
+func (m *ContentDraftMutation) SetCollabGeneration(i int) {
+	m.collab_generation = &i
+	m.addcollab_generation = nil
+}
+
+// CollabGeneration returns the value of the "collab_generation" field in the mutation.
+func (m *ContentDraftMutation) CollabGeneration() (r int, exists bool) {
+	v := m.collab_generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCollabGeneration returns the old "collab_generation" field's value of the ContentDraft entity.
+// If the ContentDraft object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentDraftMutation) OldCollabGeneration(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCollabGeneration is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCollabGeneration requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCollabGeneration: %w", err)
+	}
+	return oldValue.CollabGeneration, nil
+}
+
+// AddCollabGeneration adds i to the "collab_generation" field.
+func (m *ContentDraftMutation) AddCollabGeneration(i int) {
+	if m.addcollab_generation != nil {
+		*m.addcollab_generation += i
+	} else {
+		m.addcollab_generation = &i
+	}
+}
+
+// AddedCollabGeneration returns the value that was added to the "collab_generation" field in this mutation.
+func (m *ContentDraftMutation) AddedCollabGeneration() (r int, exists bool) {
+	v := m.addcollab_generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCollabGeneration resets all changes to the "collab_generation" field.
+func (m *ContentDraftMutation) ResetCollabGeneration() {
+	m.collab_generation = nil
+	m.addcollab_generation = nil
+}
+
 // SetCollabState sets the "collab_state" field.
 func (m *ContentDraftMutation) SetCollabState(b []byte) {
 	m.collab_state = &b
@@ -26590,7 +26658,7 @@ func (m *ContentDraftMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ContentDraftMutation) Fields() []string {
-	fields := make([]string, 0, 36)
+	fields := make([]string, 0, 37)
 	if m.organization_id != nil {
 		fields = append(fields, contentdraft.FieldOrganizationID)
 	}
@@ -26684,6 +26752,9 @@ func (m *ContentDraftMutation) Fields() []string {
 	if m.source_draft_id != nil {
 		fields = append(fields, contentdraft.FieldSourceDraftID)
 	}
+	if m.collab_generation != nil {
+		fields = append(fields, contentdraft.FieldCollabGeneration)
+	}
 	if m.collab_state != nil {
 		fields = append(fields, contentdraft.FieldCollabState)
 	}
@@ -26769,6 +26840,8 @@ func (m *ContentDraftMutation) Field(name string) (ent.Value, bool) {
 		return m.PlanTimeZone()
 	case contentdraft.FieldSourceDraftID:
 		return m.SourceDraftID()
+	case contentdraft.FieldCollabGeneration:
+		return m.CollabGeneration()
 	case contentdraft.FieldCollabState:
 		return m.CollabState()
 	case contentdraft.FieldCreatedByUserID:
@@ -26850,6 +26923,8 @@ func (m *ContentDraftMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldPlanTimeZone(ctx)
 	case contentdraft.FieldSourceDraftID:
 		return m.OldSourceDraftID(ctx)
+	case contentdraft.FieldCollabGeneration:
+		return m.OldCollabGeneration(ctx)
 	case contentdraft.FieldCollabState:
 		return m.OldCollabState(ctx)
 	case contentdraft.FieldCreatedByUserID:
@@ -27086,6 +27161,13 @@ func (m *ContentDraftMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetSourceDraftID(v)
 		return nil
+	case contentdraft.FieldCollabGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCollabGeneration(v)
+		return nil
 	case contentdraft.FieldCollabState:
 		v, ok := value.([]byte)
 		if !ok {
@@ -27138,6 +27220,9 @@ func (m *ContentDraftMutation) AddedFields() []string {
 	if m.addversion != nil {
 		fields = append(fields, contentdraft.FieldVersion)
 	}
+	if m.addcollab_generation != nil {
+		fields = append(fields, contentdraft.FieldCollabGeneration)
+	}
 	return fields
 }
 
@@ -27152,6 +27237,8 @@ func (m *ContentDraftMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedCalendarVersion()
 	case contentdraft.FieldVersion:
 		return m.AddedVersion()
+	case contentdraft.FieldCollabGeneration:
+		return m.AddedCollabGeneration()
 	}
 	return nil, false
 }
@@ -27181,6 +27268,13 @@ func (m *ContentDraftMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddVersion(v)
+		return nil
+	case contentdraft.FieldCollabGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCollabGeneration(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ContentDraft numeric field %s", name)
@@ -27394,6 +27488,9 @@ func (m *ContentDraftMutation) ResetField(name string) error {
 		return nil
 	case contentdraft.FieldSourceDraftID:
 		m.ResetSourceDraftID()
+		return nil
+	case contentdraft.FieldCollabGeneration:
+		m.ResetCollabGeneration()
 		return nil
 	case contentdraft.FieldCollabState:
 		m.ResetCollabState()
@@ -50337,6 +50434,2414 @@ func (m *PageKnowledgeMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PageKnowledge edge %s", name)
 }
 
+// PlatformAutoDMCampaignMutation represents an operation that mutates the PlatformAutoDMCampaign nodes in the graph.
+type PlatformAutoDMCampaignMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	account_id      *string
+	post_id         *string
+	snapshot        *map[string]interface{}
+	published_at    *time.Time
+	disabled        *bool
+	source_removed  *bool
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*PlatformAutoDMCampaign, error)
+	predicates      []predicate.PlatformAutoDMCampaign
+}
+
+var _ ent.Mutation = (*PlatformAutoDMCampaignMutation)(nil)
+
+// platformautodmcampaignOption allows management of the mutation configuration using functional options.
+type platformautodmcampaignOption func(*PlatformAutoDMCampaignMutation)
+
+// newPlatformAutoDMCampaignMutation creates new mutation for the PlatformAutoDMCampaign entity.
+func newPlatformAutoDMCampaignMutation(c config, op Op, opts ...platformautodmcampaignOption) *PlatformAutoDMCampaignMutation {
+	m := &PlatformAutoDMCampaignMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformAutoDMCampaign,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformAutoDMCampaignID sets the ID field of the mutation.
+func withPlatformAutoDMCampaignID(id string) platformautodmcampaignOption {
+	return func(m *PlatformAutoDMCampaignMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformAutoDMCampaign
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformAutoDMCampaign, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformAutoDMCampaign.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformAutoDMCampaign sets the old PlatformAutoDMCampaign of the mutation.
+func withPlatformAutoDMCampaign(node *PlatformAutoDMCampaign) platformautodmcampaignOption {
+	return func(m *PlatformAutoDMCampaignMutation) {
+		m.oldValue = func(context.Context) (*PlatformAutoDMCampaign, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformAutoDMCampaignMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformAutoDMCampaignMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformAutoDMCampaign entities.
+func (m *PlatformAutoDMCampaignMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformAutoDMCampaignMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformAutoDMCampaignMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformAutoDMCampaign.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PlatformAutoDMCampaignMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PlatformAutoDMCampaignMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PlatformAutoDMCampaign entity.
+// If the PlatformAutoDMCampaign object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMCampaignMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PlatformAutoDMCampaignMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetAccountID sets the "account_id" field.
+func (m *PlatformAutoDMCampaignMutation) SetAccountID(s string) {
+	m.account_id = &s
+}
+
+// AccountID returns the value of the "account_id" field in the mutation.
+func (m *PlatformAutoDMCampaignMutation) AccountID() (r string, exists bool) {
+	v := m.account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountID returns the old "account_id" field's value of the PlatformAutoDMCampaign entity.
+// If the PlatformAutoDMCampaign object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMCampaignMutation) OldAccountID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountID: %w", err)
+	}
+	return oldValue.AccountID, nil
+}
+
+// ResetAccountID resets all changes to the "account_id" field.
+func (m *PlatformAutoDMCampaignMutation) ResetAccountID() {
+	m.account_id = nil
+}
+
+// SetPostID sets the "post_id" field.
+func (m *PlatformAutoDMCampaignMutation) SetPostID(s string) {
+	m.post_id = &s
+}
+
+// PostID returns the value of the "post_id" field in the mutation.
+func (m *PlatformAutoDMCampaignMutation) PostID() (r string, exists bool) {
+	v := m.post_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPostID returns the old "post_id" field's value of the PlatformAutoDMCampaign entity.
+// If the PlatformAutoDMCampaign object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMCampaignMutation) OldPostID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPostID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPostID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPostID: %w", err)
+	}
+	return oldValue.PostID, nil
+}
+
+// ResetPostID resets all changes to the "post_id" field.
+func (m *PlatformAutoDMCampaignMutation) ResetPostID() {
+	m.post_id = nil
+}
+
+// SetSnapshot sets the "snapshot" field.
+func (m *PlatformAutoDMCampaignMutation) SetSnapshot(value map[string]interface{}) {
+	m.snapshot = &value
+}
+
+// Snapshot returns the value of the "snapshot" field in the mutation.
+func (m *PlatformAutoDMCampaignMutation) Snapshot() (r map[string]interface{}, exists bool) {
+	v := m.snapshot
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSnapshot returns the old "snapshot" field's value of the PlatformAutoDMCampaign entity.
+// If the PlatformAutoDMCampaign object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMCampaignMutation) OldSnapshot(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSnapshot is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSnapshot requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSnapshot: %w", err)
+	}
+	return oldValue.Snapshot, nil
+}
+
+// ResetSnapshot resets all changes to the "snapshot" field.
+func (m *PlatformAutoDMCampaignMutation) ResetSnapshot() {
+	m.snapshot = nil
+}
+
+// SetPublishedAt sets the "published_at" field.
+func (m *PlatformAutoDMCampaignMutation) SetPublishedAt(t time.Time) {
+	m.published_at = &t
+}
+
+// PublishedAt returns the value of the "published_at" field in the mutation.
+func (m *PlatformAutoDMCampaignMutation) PublishedAt() (r time.Time, exists bool) {
+	v := m.published_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPublishedAt returns the old "published_at" field's value of the PlatformAutoDMCampaign entity.
+// If the PlatformAutoDMCampaign object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMCampaignMutation) OldPublishedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPublishedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPublishedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPublishedAt: %w", err)
+	}
+	return oldValue.PublishedAt, nil
+}
+
+// ResetPublishedAt resets all changes to the "published_at" field.
+func (m *PlatformAutoDMCampaignMutation) ResetPublishedAt() {
+	m.published_at = nil
+}
+
+// SetDisabled sets the "disabled" field.
+func (m *PlatformAutoDMCampaignMutation) SetDisabled(b bool) {
+	m.disabled = &b
+}
+
+// Disabled returns the value of the "disabled" field in the mutation.
+func (m *PlatformAutoDMCampaignMutation) Disabled() (r bool, exists bool) {
+	v := m.disabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisabled returns the old "disabled" field's value of the PlatformAutoDMCampaign entity.
+// If the PlatformAutoDMCampaign object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMCampaignMutation) OldDisabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisabled: %w", err)
+	}
+	return oldValue.Disabled, nil
+}
+
+// ResetDisabled resets all changes to the "disabled" field.
+func (m *PlatformAutoDMCampaignMutation) ResetDisabled() {
+	m.disabled = nil
+}
+
+// SetSourceRemoved sets the "source_removed" field.
+func (m *PlatformAutoDMCampaignMutation) SetSourceRemoved(b bool) {
+	m.source_removed = &b
+}
+
+// SourceRemoved returns the value of the "source_removed" field in the mutation.
+func (m *PlatformAutoDMCampaignMutation) SourceRemoved() (r bool, exists bool) {
+	v := m.source_removed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceRemoved returns the old "source_removed" field's value of the PlatformAutoDMCampaign entity.
+// If the PlatformAutoDMCampaign object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMCampaignMutation) OldSourceRemoved(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceRemoved is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceRemoved requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceRemoved: %w", err)
+	}
+	return oldValue.SourceRemoved, nil
+}
+
+// ResetSourceRemoved resets all changes to the "source_removed" field.
+func (m *PlatformAutoDMCampaignMutation) ResetSourceRemoved() {
+	m.source_removed = nil
+}
+
+// Where appends a list predicates to the PlatformAutoDMCampaignMutation builder.
+func (m *PlatformAutoDMCampaignMutation) Where(ps ...predicate.PlatformAutoDMCampaign) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformAutoDMCampaignMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformAutoDMCampaignMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformAutoDMCampaign, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformAutoDMCampaignMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformAutoDMCampaignMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformAutoDMCampaign).
+func (m *PlatformAutoDMCampaignMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformAutoDMCampaignMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.organization_id != nil {
+		fields = append(fields, platformautodmcampaign.FieldOrganizationID)
+	}
+	if m.account_id != nil {
+		fields = append(fields, platformautodmcampaign.FieldAccountID)
+	}
+	if m.post_id != nil {
+		fields = append(fields, platformautodmcampaign.FieldPostID)
+	}
+	if m.snapshot != nil {
+		fields = append(fields, platformautodmcampaign.FieldSnapshot)
+	}
+	if m.published_at != nil {
+		fields = append(fields, platformautodmcampaign.FieldPublishedAt)
+	}
+	if m.disabled != nil {
+		fields = append(fields, platformautodmcampaign.FieldDisabled)
+	}
+	if m.source_removed != nil {
+		fields = append(fields, platformautodmcampaign.FieldSourceRemoved)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformAutoDMCampaignMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformautodmcampaign.FieldOrganizationID:
+		return m.OrganizationID()
+	case platformautodmcampaign.FieldAccountID:
+		return m.AccountID()
+	case platformautodmcampaign.FieldPostID:
+		return m.PostID()
+	case platformautodmcampaign.FieldSnapshot:
+		return m.Snapshot()
+	case platformautodmcampaign.FieldPublishedAt:
+		return m.PublishedAt()
+	case platformautodmcampaign.FieldDisabled:
+		return m.Disabled()
+	case platformautodmcampaign.FieldSourceRemoved:
+		return m.SourceRemoved()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformAutoDMCampaignMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformautodmcampaign.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case platformautodmcampaign.FieldAccountID:
+		return m.OldAccountID(ctx)
+	case platformautodmcampaign.FieldPostID:
+		return m.OldPostID(ctx)
+	case platformautodmcampaign.FieldSnapshot:
+		return m.OldSnapshot(ctx)
+	case platformautodmcampaign.FieldPublishedAt:
+		return m.OldPublishedAt(ctx)
+	case platformautodmcampaign.FieldDisabled:
+		return m.OldDisabled(ctx)
+	case platformautodmcampaign.FieldSourceRemoved:
+		return m.OldSourceRemoved(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformAutoDMCampaign field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformAutoDMCampaignMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformautodmcampaign.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case platformautodmcampaign.FieldAccountID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountID(v)
+		return nil
+	case platformautodmcampaign.FieldPostID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPostID(v)
+		return nil
+	case platformautodmcampaign.FieldSnapshot:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSnapshot(v)
+		return nil
+	case platformautodmcampaign.FieldPublishedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPublishedAt(v)
+		return nil
+	case platformautodmcampaign.FieldDisabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisabled(v)
+		return nil
+	case platformautodmcampaign.FieldSourceRemoved:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceRemoved(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformAutoDMCampaign field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformAutoDMCampaignMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformAutoDMCampaignMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformAutoDMCampaignMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlatformAutoDMCampaign numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformAutoDMCampaignMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformAutoDMCampaignMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformAutoDMCampaignMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMCampaign nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformAutoDMCampaignMutation) ResetField(name string) error {
+	switch name {
+	case platformautodmcampaign.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case platformautodmcampaign.FieldAccountID:
+		m.ResetAccountID()
+		return nil
+	case platformautodmcampaign.FieldPostID:
+		m.ResetPostID()
+		return nil
+	case platformautodmcampaign.FieldSnapshot:
+		m.ResetSnapshot()
+		return nil
+	case platformautodmcampaign.FieldPublishedAt:
+		m.ResetPublishedAt()
+		return nil
+	case platformautodmcampaign.FieldDisabled:
+		m.ResetDisabled()
+		return nil
+	case platformautodmcampaign.FieldSourceRemoved:
+		m.ResetSourceRemoved()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformAutoDMCampaign field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformAutoDMCampaignMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformAutoDMCampaignMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformAutoDMCampaignMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformAutoDMCampaignMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformAutoDMCampaignMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformAutoDMCampaignMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformAutoDMCampaignMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMCampaign unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformAutoDMCampaignMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMCampaign edge %s", name)
+}
+
+// PlatformAutoDMDeliveryMutation represents an operation that mutates the PlatformAutoDMDelivery nodes in the graph.
+type PlatformAutoDMDeliveryMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	account_id      *string
+	campaign_id     *string
+	recipient_id    *string
+	status          *platformautodmdelivery.Status
+	remote_id       *string
+	created_at      *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*PlatformAutoDMDelivery, error)
+	predicates      []predicate.PlatformAutoDMDelivery
+}
+
+var _ ent.Mutation = (*PlatformAutoDMDeliveryMutation)(nil)
+
+// platformautodmdeliveryOption allows management of the mutation configuration using functional options.
+type platformautodmdeliveryOption func(*PlatformAutoDMDeliveryMutation)
+
+// newPlatformAutoDMDeliveryMutation creates new mutation for the PlatformAutoDMDelivery entity.
+func newPlatformAutoDMDeliveryMutation(c config, op Op, opts ...platformautodmdeliveryOption) *PlatformAutoDMDeliveryMutation {
+	m := &PlatformAutoDMDeliveryMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformAutoDMDelivery,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformAutoDMDeliveryID sets the ID field of the mutation.
+func withPlatformAutoDMDeliveryID(id string) platformautodmdeliveryOption {
+	return func(m *PlatformAutoDMDeliveryMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformAutoDMDelivery
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformAutoDMDelivery, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformAutoDMDelivery.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformAutoDMDelivery sets the old PlatformAutoDMDelivery of the mutation.
+func withPlatformAutoDMDelivery(node *PlatformAutoDMDelivery) platformautodmdeliveryOption {
+	return func(m *PlatformAutoDMDeliveryMutation) {
+		m.oldValue = func(context.Context) (*PlatformAutoDMDelivery, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformAutoDMDeliveryMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformAutoDMDeliveryMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformAutoDMDelivery entities.
+func (m *PlatformAutoDMDeliveryMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformAutoDMDeliveryMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformAutoDMDeliveryMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformAutoDMDelivery.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PlatformAutoDMDeliveryMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PlatformAutoDMDeliveryMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PlatformAutoDMDelivery entity.
+// If the PlatformAutoDMDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMDeliveryMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PlatformAutoDMDeliveryMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetAccountID sets the "account_id" field.
+func (m *PlatformAutoDMDeliveryMutation) SetAccountID(s string) {
+	m.account_id = &s
+}
+
+// AccountID returns the value of the "account_id" field in the mutation.
+func (m *PlatformAutoDMDeliveryMutation) AccountID() (r string, exists bool) {
+	v := m.account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountID returns the old "account_id" field's value of the PlatformAutoDMDelivery entity.
+// If the PlatformAutoDMDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMDeliveryMutation) OldAccountID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountID: %w", err)
+	}
+	return oldValue.AccountID, nil
+}
+
+// ResetAccountID resets all changes to the "account_id" field.
+func (m *PlatformAutoDMDeliveryMutation) ResetAccountID() {
+	m.account_id = nil
+}
+
+// SetCampaignID sets the "campaign_id" field.
+func (m *PlatformAutoDMDeliveryMutation) SetCampaignID(s string) {
+	m.campaign_id = &s
+}
+
+// CampaignID returns the value of the "campaign_id" field in the mutation.
+func (m *PlatformAutoDMDeliveryMutation) CampaignID() (r string, exists bool) {
+	v := m.campaign_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCampaignID returns the old "campaign_id" field's value of the PlatformAutoDMDelivery entity.
+// If the PlatformAutoDMDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMDeliveryMutation) OldCampaignID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCampaignID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCampaignID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCampaignID: %w", err)
+	}
+	return oldValue.CampaignID, nil
+}
+
+// ResetCampaignID resets all changes to the "campaign_id" field.
+func (m *PlatformAutoDMDeliveryMutation) ResetCampaignID() {
+	m.campaign_id = nil
+}
+
+// SetRecipientID sets the "recipient_id" field.
+func (m *PlatformAutoDMDeliveryMutation) SetRecipientID(s string) {
+	m.recipient_id = &s
+}
+
+// RecipientID returns the value of the "recipient_id" field in the mutation.
+func (m *PlatformAutoDMDeliveryMutation) RecipientID() (r string, exists bool) {
+	v := m.recipient_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRecipientID returns the old "recipient_id" field's value of the PlatformAutoDMDelivery entity.
+// If the PlatformAutoDMDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMDeliveryMutation) OldRecipientID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRecipientID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRecipientID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRecipientID: %w", err)
+	}
+	return oldValue.RecipientID, nil
+}
+
+// ResetRecipientID resets all changes to the "recipient_id" field.
+func (m *PlatformAutoDMDeliveryMutation) ResetRecipientID() {
+	m.recipient_id = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *PlatformAutoDMDeliveryMutation) SetStatus(pl platformautodmdelivery.Status) {
+	m.status = &pl
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *PlatformAutoDMDeliveryMutation) Status() (r platformautodmdelivery.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the PlatformAutoDMDelivery entity.
+// If the PlatformAutoDMDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMDeliveryMutation) OldStatus(ctx context.Context) (v platformautodmdelivery.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *PlatformAutoDMDeliveryMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetRemoteID sets the "remote_id" field.
+func (m *PlatformAutoDMDeliveryMutation) SetRemoteID(s string) {
+	m.remote_id = &s
+}
+
+// RemoteID returns the value of the "remote_id" field in the mutation.
+func (m *PlatformAutoDMDeliveryMutation) RemoteID() (r string, exists bool) {
+	v := m.remote_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRemoteID returns the old "remote_id" field's value of the PlatformAutoDMDelivery entity.
+// If the PlatformAutoDMDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMDeliveryMutation) OldRemoteID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRemoteID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRemoteID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRemoteID: %w", err)
+	}
+	return oldValue.RemoteID, nil
+}
+
+// ResetRemoteID resets all changes to the "remote_id" field.
+func (m *PlatformAutoDMDeliveryMutation) ResetRemoteID() {
+	m.remote_id = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PlatformAutoDMDeliveryMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PlatformAutoDMDeliveryMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PlatformAutoDMDelivery entity.
+// If the PlatformAutoDMDelivery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMDeliveryMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PlatformAutoDMDeliveryMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the PlatformAutoDMDeliveryMutation builder.
+func (m *PlatformAutoDMDeliveryMutation) Where(ps ...predicate.PlatformAutoDMDelivery) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformAutoDMDeliveryMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformAutoDMDeliveryMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformAutoDMDelivery, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformAutoDMDeliveryMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformAutoDMDeliveryMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformAutoDMDelivery).
+func (m *PlatformAutoDMDeliveryMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformAutoDMDeliveryMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.organization_id != nil {
+		fields = append(fields, platformautodmdelivery.FieldOrganizationID)
+	}
+	if m.account_id != nil {
+		fields = append(fields, platformautodmdelivery.FieldAccountID)
+	}
+	if m.campaign_id != nil {
+		fields = append(fields, platformautodmdelivery.FieldCampaignID)
+	}
+	if m.recipient_id != nil {
+		fields = append(fields, platformautodmdelivery.FieldRecipientID)
+	}
+	if m.status != nil {
+		fields = append(fields, platformautodmdelivery.FieldStatus)
+	}
+	if m.remote_id != nil {
+		fields = append(fields, platformautodmdelivery.FieldRemoteID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, platformautodmdelivery.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformAutoDMDeliveryMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformautodmdelivery.FieldOrganizationID:
+		return m.OrganizationID()
+	case platformautodmdelivery.FieldAccountID:
+		return m.AccountID()
+	case platformautodmdelivery.FieldCampaignID:
+		return m.CampaignID()
+	case platformautodmdelivery.FieldRecipientID:
+		return m.RecipientID()
+	case platformautodmdelivery.FieldStatus:
+		return m.Status()
+	case platformautodmdelivery.FieldRemoteID:
+		return m.RemoteID()
+	case platformautodmdelivery.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformAutoDMDeliveryMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformautodmdelivery.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case platformautodmdelivery.FieldAccountID:
+		return m.OldAccountID(ctx)
+	case platformautodmdelivery.FieldCampaignID:
+		return m.OldCampaignID(ctx)
+	case platformautodmdelivery.FieldRecipientID:
+		return m.OldRecipientID(ctx)
+	case platformautodmdelivery.FieldStatus:
+		return m.OldStatus(ctx)
+	case platformautodmdelivery.FieldRemoteID:
+		return m.OldRemoteID(ctx)
+	case platformautodmdelivery.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformAutoDMDelivery field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformAutoDMDeliveryMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformautodmdelivery.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case platformautodmdelivery.FieldAccountID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountID(v)
+		return nil
+	case platformautodmdelivery.FieldCampaignID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCampaignID(v)
+		return nil
+	case platformautodmdelivery.FieldRecipientID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRecipientID(v)
+		return nil
+	case platformautodmdelivery.FieldStatus:
+		v, ok := value.(platformautodmdelivery.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case platformautodmdelivery.FieldRemoteID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRemoteID(v)
+		return nil
+	case platformautodmdelivery.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformAutoDMDelivery field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformAutoDMDeliveryMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformAutoDMDeliveryMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformAutoDMDeliveryMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlatformAutoDMDelivery numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformAutoDMDeliveryMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformAutoDMDeliveryMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformAutoDMDeliveryMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMDelivery nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformAutoDMDeliveryMutation) ResetField(name string) error {
+	switch name {
+	case platformautodmdelivery.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case platformautodmdelivery.FieldAccountID:
+		m.ResetAccountID()
+		return nil
+	case platformautodmdelivery.FieldCampaignID:
+		m.ResetCampaignID()
+		return nil
+	case platformautodmdelivery.FieldRecipientID:
+		m.ResetRecipientID()
+		return nil
+	case platformautodmdelivery.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case platformautodmdelivery.FieldRemoteID:
+		m.ResetRemoteID()
+		return nil
+	case platformautodmdelivery.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformAutoDMDelivery field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformAutoDMDeliveryMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformAutoDMDeliveryMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformAutoDMDeliveryMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformAutoDMDeliveryMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformAutoDMDeliveryMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformAutoDMDeliveryMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformAutoDMDeliveryMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMDelivery unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformAutoDMDeliveryMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMDelivery edge %s", name)
+}
+
+// PlatformAutoDMOptOutMutation represents an operation that mutates the PlatformAutoDMOptOut nodes in the graph.
+type PlatformAutoDMOptOutMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *string
+	account_id    *string
+	recipient_id  *string
+	evidence_id   *string
+	observed_at   *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*PlatformAutoDMOptOut, error)
+	predicates    []predicate.PlatformAutoDMOptOut
+}
+
+var _ ent.Mutation = (*PlatformAutoDMOptOutMutation)(nil)
+
+// platformautodmoptoutOption allows management of the mutation configuration using functional options.
+type platformautodmoptoutOption func(*PlatformAutoDMOptOutMutation)
+
+// newPlatformAutoDMOptOutMutation creates new mutation for the PlatformAutoDMOptOut entity.
+func newPlatformAutoDMOptOutMutation(c config, op Op, opts ...platformautodmoptoutOption) *PlatformAutoDMOptOutMutation {
+	m := &PlatformAutoDMOptOutMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformAutoDMOptOut,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformAutoDMOptOutID sets the ID field of the mutation.
+func withPlatformAutoDMOptOutID(id string) platformautodmoptoutOption {
+	return func(m *PlatformAutoDMOptOutMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformAutoDMOptOut
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformAutoDMOptOut, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformAutoDMOptOut.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformAutoDMOptOut sets the old PlatformAutoDMOptOut of the mutation.
+func withPlatformAutoDMOptOut(node *PlatformAutoDMOptOut) platformautodmoptoutOption {
+	return func(m *PlatformAutoDMOptOutMutation) {
+		m.oldValue = func(context.Context) (*PlatformAutoDMOptOut, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformAutoDMOptOutMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformAutoDMOptOutMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformAutoDMOptOut entities.
+func (m *PlatformAutoDMOptOutMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformAutoDMOptOutMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformAutoDMOptOutMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformAutoDMOptOut.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAccountID sets the "account_id" field.
+func (m *PlatformAutoDMOptOutMutation) SetAccountID(s string) {
+	m.account_id = &s
+}
+
+// AccountID returns the value of the "account_id" field in the mutation.
+func (m *PlatformAutoDMOptOutMutation) AccountID() (r string, exists bool) {
+	v := m.account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountID returns the old "account_id" field's value of the PlatformAutoDMOptOut entity.
+// If the PlatformAutoDMOptOut object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMOptOutMutation) OldAccountID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountID: %w", err)
+	}
+	return oldValue.AccountID, nil
+}
+
+// ResetAccountID resets all changes to the "account_id" field.
+func (m *PlatformAutoDMOptOutMutation) ResetAccountID() {
+	m.account_id = nil
+}
+
+// SetRecipientID sets the "recipient_id" field.
+func (m *PlatformAutoDMOptOutMutation) SetRecipientID(s string) {
+	m.recipient_id = &s
+}
+
+// RecipientID returns the value of the "recipient_id" field in the mutation.
+func (m *PlatformAutoDMOptOutMutation) RecipientID() (r string, exists bool) {
+	v := m.recipient_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRecipientID returns the old "recipient_id" field's value of the PlatformAutoDMOptOut entity.
+// If the PlatformAutoDMOptOut object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMOptOutMutation) OldRecipientID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRecipientID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRecipientID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRecipientID: %w", err)
+	}
+	return oldValue.RecipientID, nil
+}
+
+// ResetRecipientID resets all changes to the "recipient_id" field.
+func (m *PlatformAutoDMOptOutMutation) ResetRecipientID() {
+	m.recipient_id = nil
+}
+
+// SetEvidenceID sets the "evidence_id" field.
+func (m *PlatformAutoDMOptOutMutation) SetEvidenceID(s string) {
+	m.evidence_id = &s
+}
+
+// EvidenceID returns the value of the "evidence_id" field in the mutation.
+func (m *PlatformAutoDMOptOutMutation) EvidenceID() (r string, exists bool) {
+	v := m.evidence_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEvidenceID returns the old "evidence_id" field's value of the PlatformAutoDMOptOut entity.
+// If the PlatformAutoDMOptOut object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMOptOutMutation) OldEvidenceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEvidenceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEvidenceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEvidenceID: %w", err)
+	}
+	return oldValue.EvidenceID, nil
+}
+
+// ResetEvidenceID resets all changes to the "evidence_id" field.
+func (m *PlatformAutoDMOptOutMutation) ResetEvidenceID() {
+	m.evidence_id = nil
+}
+
+// SetObservedAt sets the "observed_at" field.
+func (m *PlatformAutoDMOptOutMutation) SetObservedAt(t time.Time) {
+	m.observed_at = &t
+}
+
+// ObservedAt returns the value of the "observed_at" field in the mutation.
+func (m *PlatformAutoDMOptOutMutation) ObservedAt() (r time.Time, exists bool) {
+	v := m.observed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldObservedAt returns the old "observed_at" field's value of the PlatformAutoDMOptOut entity.
+// If the PlatformAutoDMOptOut object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMOptOutMutation) OldObservedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldObservedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldObservedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldObservedAt: %w", err)
+	}
+	return oldValue.ObservedAt, nil
+}
+
+// ResetObservedAt resets all changes to the "observed_at" field.
+func (m *PlatformAutoDMOptOutMutation) ResetObservedAt() {
+	m.observed_at = nil
+}
+
+// Where appends a list predicates to the PlatformAutoDMOptOutMutation builder.
+func (m *PlatformAutoDMOptOutMutation) Where(ps ...predicate.PlatformAutoDMOptOut) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformAutoDMOptOutMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformAutoDMOptOutMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformAutoDMOptOut, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformAutoDMOptOutMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformAutoDMOptOutMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformAutoDMOptOut).
+func (m *PlatformAutoDMOptOutMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformAutoDMOptOutMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.account_id != nil {
+		fields = append(fields, platformautodmoptout.FieldAccountID)
+	}
+	if m.recipient_id != nil {
+		fields = append(fields, platformautodmoptout.FieldRecipientID)
+	}
+	if m.evidence_id != nil {
+		fields = append(fields, platformautodmoptout.FieldEvidenceID)
+	}
+	if m.observed_at != nil {
+		fields = append(fields, platformautodmoptout.FieldObservedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformAutoDMOptOutMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformautodmoptout.FieldAccountID:
+		return m.AccountID()
+	case platformautodmoptout.FieldRecipientID:
+		return m.RecipientID()
+	case platformautodmoptout.FieldEvidenceID:
+		return m.EvidenceID()
+	case platformautodmoptout.FieldObservedAt:
+		return m.ObservedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformAutoDMOptOutMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformautodmoptout.FieldAccountID:
+		return m.OldAccountID(ctx)
+	case platformautodmoptout.FieldRecipientID:
+		return m.OldRecipientID(ctx)
+	case platformautodmoptout.FieldEvidenceID:
+		return m.OldEvidenceID(ctx)
+	case platformautodmoptout.FieldObservedAt:
+		return m.OldObservedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformAutoDMOptOut field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformAutoDMOptOutMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformautodmoptout.FieldAccountID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountID(v)
+		return nil
+	case platformautodmoptout.FieldRecipientID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRecipientID(v)
+		return nil
+	case platformautodmoptout.FieldEvidenceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEvidenceID(v)
+		return nil
+	case platformautodmoptout.FieldObservedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetObservedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformAutoDMOptOut field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformAutoDMOptOutMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformAutoDMOptOutMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformAutoDMOptOutMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlatformAutoDMOptOut numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformAutoDMOptOutMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformAutoDMOptOutMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformAutoDMOptOutMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMOptOut nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformAutoDMOptOutMutation) ResetField(name string) error {
+	switch name {
+	case platformautodmoptout.FieldAccountID:
+		m.ResetAccountID()
+		return nil
+	case platformautodmoptout.FieldRecipientID:
+		m.ResetRecipientID()
+		return nil
+	case platformautodmoptout.FieldEvidenceID:
+		m.ResetEvidenceID()
+		return nil
+	case platformautodmoptout.FieldObservedAt:
+		m.ResetObservedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformAutoDMOptOut field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformAutoDMOptOutMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformAutoDMOptOutMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformAutoDMOptOutMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformAutoDMOptOutMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformAutoDMOptOutMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformAutoDMOptOutMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformAutoDMOptOutMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMOptOut unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformAutoDMOptOutMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMOptOut edge %s", name)
+}
+
+// PlatformAutoDMRecipientMutation represents an operation that mutates the PlatformAutoDMRecipient nodes in the graph.
+type PlatformAutoDMRecipientMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	account_id      *string
+	campaign_id     *string
+	recipient_id    *string
+	snapshot        *map[string]interface{}
+	observed_at     *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*PlatformAutoDMRecipient, error)
+	predicates      []predicate.PlatformAutoDMRecipient
+}
+
+var _ ent.Mutation = (*PlatformAutoDMRecipientMutation)(nil)
+
+// platformautodmrecipientOption allows management of the mutation configuration using functional options.
+type platformautodmrecipientOption func(*PlatformAutoDMRecipientMutation)
+
+// newPlatformAutoDMRecipientMutation creates new mutation for the PlatformAutoDMRecipient entity.
+func newPlatformAutoDMRecipientMutation(c config, op Op, opts ...platformautodmrecipientOption) *PlatformAutoDMRecipientMutation {
+	m := &PlatformAutoDMRecipientMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformAutoDMRecipient,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformAutoDMRecipientID sets the ID field of the mutation.
+func withPlatformAutoDMRecipientID(id string) platformautodmrecipientOption {
+	return func(m *PlatformAutoDMRecipientMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformAutoDMRecipient
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformAutoDMRecipient, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformAutoDMRecipient.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformAutoDMRecipient sets the old PlatformAutoDMRecipient of the mutation.
+func withPlatformAutoDMRecipient(node *PlatformAutoDMRecipient) platformautodmrecipientOption {
+	return func(m *PlatformAutoDMRecipientMutation) {
+		m.oldValue = func(context.Context) (*PlatformAutoDMRecipient, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformAutoDMRecipientMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformAutoDMRecipientMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformAutoDMRecipient entities.
+func (m *PlatformAutoDMRecipientMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformAutoDMRecipientMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformAutoDMRecipientMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformAutoDMRecipient.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PlatformAutoDMRecipientMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PlatformAutoDMRecipientMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PlatformAutoDMRecipient entity.
+// If the PlatformAutoDMRecipient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMRecipientMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PlatformAutoDMRecipientMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetAccountID sets the "account_id" field.
+func (m *PlatformAutoDMRecipientMutation) SetAccountID(s string) {
+	m.account_id = &s
+}
+
+// AccountID returns the value of the "account_id" field in the mutation.
+func (m *PlatformAutoDMRecipientMutation) AccountID() (r string, exists bool) {
+	v := m.account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountID returns the old "account_id" field's value of the PlatformAutoDMRecipient entity.
+// If the PlatformAutoDMRecipient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMRecipientMutation) OldAccountID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountID: %w", err)
+	}
+	return oldValue.AccountID, nil
+}
+
+// ResetAccountID resets all changes to the "account_id" field.
+func (m *PlatformAutoDMRecipientMutation) ResetAccountID() {
+	m.account_id = nil
+}
+
+// SetCampaignID sets the "campaign_id" field.
+func (m *PlatformAutoDMRecipientMutation) SetCampaignID(s string) {
+	m.campaign_id = &s
+}
+
+// CampaignID returns the value of the "campaign_id" field in the mutation.
+func (m *PlatformAutoDMRecipientMutation) CampaignID() (r string, exists bool) {
+	v := m.campaign_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCampaignID returns the old "campaign_id" field's value of the PlatformAutoDMRecipient entity.
+// If the PlatformAutoDMRecipient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMRecipientMutation) OldCampaignID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCampaignID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCampaignID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCampaignID: %w", err)
+	}
+	return oldValue.CampaignID, nil
+}
+
+// ResetCampaignID resets all changes to the "campaign_id" field.
+func (m *PlatformAutoDMRecipientMutation) ResetCampaignID() {
+	m.campaign_id = nil
+}
+
+// SetRecipientID sets the "recipient_id" field.
+func (m *PlatformAutoDMRecipientMutation) SetRecipientID(s string) {
+	m.recipient_id = &s
+}
+
+// RecipientID returns the value of the "recipient_id" field in the mutation.
+func (m *PlatformAutoDMRecipientMutation) RecipientID() (r string, exists bool) {
+	v := m.recipient_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRecipientID returns the old "recipient_id" field's value of the PlatformAutoDMRecipient entity.
+// If the PlatformAutoDMRecipient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMRecipientMutation) OldRecipientID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRecipientID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRecipientID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRecipientID: %w", err)
+	}
+	return oldValue.RecipientID, nil
+}
+
+// ResetRecipientID resets all changes to the "recipient_id" field.
+func (m *PlatformAutoDMRecipientMutation) ResetRecipientID() {
+	m.recipient_id = nil
+}
+
+// SetSnapshot sets the "snapshot" field.
+func (m *PlatformAutoDMRecipientMutation) SetSnapshot(value map[string]interface{}) {
+	m.snapshot = &value
+}
+
+// Snapshot returns the value of the "snapshot" field in the mutation.
+func (m *PlatformAutoDMRecipientMutation) Snapshot() (r map[string]interface{}, exists bool) {
+	v := m.snapshot
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSnapshot returns the old "snapshot" field's value of the PlatformAutoDMRecipient entity.
+// If the PlatformAutoDMRecipient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMRecipientMutation) OldSnapshot(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSnapshot is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSnapshot requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSnapshot: %w", err)
+	}
+	return oldValue.Snapshot, nil
+}
+
+// ResetSnapshot resets all changes to the "snapshot" field.
+func (m *PlatformAutoDMRecipientMutation) ResetSnapshot() {
+	m.snapshot = nil
+}
+
+// SetObservedAt sets the "observed_at" field.
+func (m *PlatformAutoDMRecipientMutation) SetObservedAt(t time.Time) {
+	m.observed_at = &t
+}
+
+// ObservedAt returns the value of the "observed_at" field in the mutation.
+func (m *PlatformAutoDMRecipientMutation) ObservedAt() (r time.Time, exists bool) {
+	v := m.observed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldObservedAt returns the old "observed_at" field's value of the PlatformAutoDMRecipient entity.
+// If the PlatformAutoDMRecipient object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformAutoDMRecipientMutation) OldObservedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldObservedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldObservedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldObservedAt: %w", err)
+	}
+	return oldValue.ObservedAt, nil
+}
+
+// ResetObservedAt resets all changes to the "observed_at" field.
+func (m *PlatformAutoDMRecipientMutation) ResetObservedAt() {
+	m.observed_at = nil
+}
+
+// Where appends a list predicates to the PlatformAutoDMRecipientMutation builder.
+func (m *PlatformAutoDMRecipientMutation) Where(ps ...predicate.PlatformAutoDMRecipient) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformAutoDMRecipientMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformAutoDMRecipientMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformAutoDMRecipient, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformAutoDMRecipientMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformAutoDMRecipientMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformAutoDMRecipient).
+func (m *PlatformAutoDMRecipientMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformAutoDMRecipientMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.organization_id != nil {
+		fields = append(fields, platformautodmrecipient.FieldOrganizationID)
+	}
+	if m.account_id != nil {
+		fields = append(fields, platformautodmrecipient.FieldAccountID)
+	}
+	if m.campaign_id != nil {
+		fields = append(fields, platformautodmrecipient.FieldCampaignID)
+	}
+	if m.recipient_id != nil {
+		fields = append(fields, platformautodmrecipient.FieldRecipientID)
+	}
+	if m.snapshot != nil {
+		fields = append(fields, platformautodmrecipient.FieldSnapshot)
+	}
+	if m.observed_at != nil {
+		fields = append(fields, platformautodmrecipient.FieldObservedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformAutoDMRecipientMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformautodmrecipient.FieldOrganizationID:
+		return m.OrganizationID()
+	case platformautodmrecipient.FieldAccountID:
+		return m.AccountID()
+	case platformautodmrecipient.FieldCampaignID:
+		return m.CampaignID()
+	case platformautodmrecipient.FieldRecipientID:
+		return m.RecipientID()
+	case platformautodmrecipient.FieldSnapshot:
+		return m.Snapshot()
+	case platformautodmrecipient.FieldObservedAt:
+		return m.ObservedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformAutoDMRecipientMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformautodmrecipient.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case platformautodmrecipient.FieldAccountID:
+		return m.OldAccountID(ctx)
+	case platformautodmrecipient.FieldCampaignID:
+		return m.OldCampaignID(ctx)
+	case platformautodmrecipient.FieldRecipientID:
+		return m.OldRecipientID(ctx)
+	case platformautodmrecipient.FieldSnapshot:
+		return m.OldSnapshot(ctx)
+	case platformautodmrecipient.FieldObservedAt:
+		return m.OldObservedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformAutoDMRecipient field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformAutoDMRecipientMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformautodmrecipient.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case platformautodmrecipient.FieldAccountID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountID(v)
+		return nil
+	case platformautodmrecipient.FieldCampaignID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCampaignID(v)
+		return nil
+	case platformautodmrecipient.FieldRecipientID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRecipientID(v)
+		return nil
+	case platformautodmrecipient.FieldSnapshot:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSnapshot(v)
+		return nil
+	case platformautodmrecipient.FieldObservedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetObservedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformAutoDMRecipient field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformAutoDMRecipientMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformAutoDMRecipientMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformAutoDMRecipientMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlatformAutoDMRecipient numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformAutoDMRecipientMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformAutoDMRecipientMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformAutoDMRecipientMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMRecipient nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformAutoDMRecipientMutation) ResetField(name string) error {
+	switch name {
+	case platformautodmrecipient.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case platformautodmrecipient.FieldAccountID:
+		m.ResetAccountID()
+		return nil
+	case platformautodmrecipient.FieldCampaignID:
+		m.ResetCampaignID()
+		return nil
+	case platformautodmrecipient.FieldRecipientID:
+		m.ResetRecipientID()
+		return nil
+	case platformautodmrecipient.FieldSnapshot:
+		m.ResetSnapshot()
+		return nil
+	case platformautodmrecipient.FieldObservedAt:
+		m.ResetObservedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformAutoDMRecipient field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformAutoDMRecipientMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformAutoDMRecipientMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformAutoDMRecipientMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformAutoDMRecipientMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformAutoDMRecipientMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformAutoDMRecipientMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformAutoDMRecipientMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMRecipient unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformAutoDMRecipientMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformAutoDMRecipient edge %s", name)
+}
+
 // PlatformCreativeSetMutation represents an operation that mutates the PlatformCreativeSet nodes in the graph.
 type PlatformCreativeSetMutation struct {
 	config
@@ -59294,6 +61799,608 @@ func (m *PlatformSlackPersonalConnectionMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *PlatformSlackPersonalConnectionMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PlatformSlackPersonalConnection edge %s", name)
+}
+
+// PlatformSocialMentionMutation represents an operation that mutates the PlatformSocialMention nodes in the graph.
+type PlatformSocialMentionMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	social_set_id   *string
+	kind            *platformsocialmention.Kind
+	provider_id     *string
+	label           *string
+	last_used_at    *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*PlatformSocialMention, error)
+	predicates      []predicate.PlatformSocialMention
+}
+
+var _ ent.Mutation = (*PlatformSocialMentionMutation)(nil)
+
+// platformsocialmentionOption allows management of the mutation configuration using functional options.
+type platformsocialmentionOption func(*PlatformSocialMentionMutation)
+
+// newPlatformSocialMentionMutation creates new mutation for the PlatformSocialMention entity.
+func newPlatformSocialMentionMutation(c config, op Op, opts ...platformsocialmentionOption) *PlatformSocialMentionMutation {
+	m := &PlatformSocialMentionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformSocialMention,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformSocialMentionID sets the ID field of the mutation.
+func withPlatformSocialMentionID(id string) platformsocialmentionOption {
+	return func(m *PlatformSocialMentionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformSocialMention
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformSocialMention, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformSocialMention.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformSocialMention sets the old PlatformSocialMention of the mutation.
+func withPlatformSocialMention(node *PlatformSocialMention) platformsocialmentionOption {
+	return func(m *PlatformSocialMentionMutation) {
+		m.oldValue = func(context.Context) (*PlatformSocialMention, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformSocialMentionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformSocialMentionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformSocialMention entities.
+func (m *PlatformSocialMentionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformSocialMentionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformSocialMentionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformSocialMention.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PlatformSocialMentionMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PlatformSocialMentionMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PlatformSocialMentionMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetSocialSetID sets the "social_set_id" field.
+func (m *PlatformSocialMentionMutation) SetSocialSetID(s string) {
+	m.social_set_id = &s
+}
+
+// SocialSetID returns the value of the "social_set_id" field in the mutation.
+func (m *PlatformSocialMentionMutation) SocialSetID() (r string, exists bool) {
+	v := m.social_set_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSocialSetID returns the old "social_set_id" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldSocialSetID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSocialSetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSocialSetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSocialSetID: %w", err)
+	}
+	return oldValue.SocialSetID, nil
+}
+
+// ResetSocialSetID resets all changes to the "social_set_id" field.
+func (m *PlatformSocialMentionMutation) ResetSocialSetID() {
+	m.social_set_id = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *PlatformSocialMentionMutation) SetKind(pl platformsocialmention.Kind) {
+	m.kind = &pl
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *PlatformSocialMentionMutation) Kind() (r platformsocialmention.Kind, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldKind(ctx context.Context) (v platformsocialmention.Kind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *PlatformSocialMentionMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetProviderID sets the "provider_id" field.
+func (m *PlatformSocialMentionMutation) SetProviderID(s string) {
+	m.provider_id = &s
+}
+
+// ProviderID returns the value of the "provider_id" field in the mutation.
+func (m *PlatformSocialMentionMutation) ProviderID() (r string, exists bool) {
+	v := m.provider_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderID returns the old "provider_id" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldProviderID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderID: %w", err)
+	}
+	return oldValue.ProviderID, nil
+}
+
+// ResetProviderID resets all changes to the "provider_id" field.
+func (m *PlatformSocialMentionMutation) ResetProviderID() {
+	m.provider_id = nil
+}
+
+// SetLabel sets the "label" field.
+func (m *PlatformSocialMentionMutation) SetLabel(s string) {
+	m.label = &s
+}
+
+// Label returns the value of the "label" field in the mutation.
+func (m *PlatformSocialMentionMutation) Label() (r string, exists bool) {
+	v := m.label
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLabel returns the old "label" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldLabel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLabel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLabel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLabel: %w", err)
+	}
+	return oldValue.Label, nil
+}
+
+// ResetLabel resets all changes to the "label" field.
+func (m *PlatformSocialMentionMutation) ResetLabel() {
+	m.label = nil
+}
+
+// SetLastUsedAt sets the "last_used_at" field.
+func (m *PlatformSocialMentionMutation) SetLastUsedAt(t time.Time) {
+	m.last_used_at = &t
+}
+
+// LastUsedAt returns the value of the "last_used_at" field in the mutation.
+func (m *PlatformSocialMentionMutation) LastUsedAt() (r time.Time, exists bool) {
+	v := m.last_used_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastUsedAt returns the old "last_used_at" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldLastUsedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastUsedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastUsedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastUsedAt: %w", err)
+	}
+	return oldValue.LastUsedAt, nil
+}
+
+// ResetLastUsedAt resets all changes to the "last_used_at" field.
+func (m *PlatformSocialMentionMutation) ResetLastUsedAt() {
+	m.last_used_at = nil
+}
+
+// Where appends a list predicates to the PlatformSocialMentionMutation builder.
+func (m *PlatformSocialMentionMutation) Where(ps ...predicate.PlatformSocialMention) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformSocialMentionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformSocialMentionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformSocialMention, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformSocialMentionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformSocialMentionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformSocialMention).
+func (m *PlatformSocialMentionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformSocialMentionMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.organization_id != nil {
+		fields = append(fields, platformsocialmention.FieldOrganizationID)
+	}
+	if m.social_set_id != nil {
+		fields = append(fields, platformsocialmention.FieldSocialSetID)
+	}
+	if m.kind != nil {
+		fields = append(fields, platformsocialmention.FieldKind)
+	}
+	if m.provider_id != nil {
+		fields = append(fields, platformsocialmention.FieldProviderID)
+	}
+	if m.label != nil {
+		fields = append(fields, platformsocialmention.FieldLabel)
+	}
+	if m.last_used_at != nil {
+		fields = append(fields, platformsocialmention.FieldLastUsedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformSocialMentionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformsocialmention.FieldOrganizationID:
+		return m.OrganizationID()
+	case platformsocialmention.FieldSocialSetID:
+		return m.SocialSetID()
+	case platformsocialmention.FieldKind:
+		return m.Kind()
+	case platformsocialmention.FieldProviderID:
+		return m.ProviderID()
+	case platformsocialmention.FieldLabel:
+		return m.Label()
+	case platformsocialmention.FieldLastUsedAt:
+		return m.LastUsedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformSocialMentionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformsocialmention.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case platformsocialmention.FieldSocialSetID:
+		return m.OldSocialSetID(ctx)
+	case platformsocialmention.FieldKind:
+		return m.OldKind(ctx)
+	case platformsocialmention.FieldProviderID:
+		return m.OldProviderID(ctx)
+	case platformsocialmention.FieldLabel:
+		return m.OldLabel(ctx)
+	case platformsocialmention.FieldLastUsedAt:
+		return m.OldLastUsedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformSocialMention field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSocialMentionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformsocialmention.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case platformsocialmention.FieldSocialSetID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSocialSetID(v)
+		return nil
+	case platformsocialmention.FieldKind:
+		v, ok := value.(platformsocialmention.Kind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case platformsocialmention.FieldProviderID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderID(v)
+		return nil
+	case platformsocialmention.FieldLabel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLabel(v)
+		return nil
+	case platformsocialmention.FieldLastUsedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastUsedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSocialMention field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformSocialMentionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformSocialMentionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSocialMentionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlatformSocialMention numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformSocialMentionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformSocialMentionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformSocialMentionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformSocialMention nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformSocialMentionMutation) ResetField(name string) error {
+	switch name {
+	case platformsocialmention.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case platformsocialmention.FieldSocialSetID:
+		m.ResetSocialSetID()
+		return nil
+	case platformsocialmention.FieldKind:
+		m.ResetKind()
+		return nil
+	case platformsocialmention.FieldProviderID:
+		m.ResetProviderID()
+		return nil
+	case platformsocialmention.FieldLabel:
+		m.ResetLabel()
+		return nil
+	case platformsocialmention.FieldLastUsedAt:
+		m.ResetLastUsedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSocialMention field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformSocialMentionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformSocialMentionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformSocialMentionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformSocialMentionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformSocialMentionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformSocialMentionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformSocialMentionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSocialMention unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformSocialMentionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSocialMention edge %s", name)
 }
 
 // PlatformWorkspaceCreationMutation represents an operation that mutates the PlatformWorkspaceCreation nodes in the graph.

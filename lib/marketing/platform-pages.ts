@@ -250,7 +250,7 @@ export const PLATFORM_PAGES: Record<PlatformPagePath, PlatformPage> = {
     blurb: 'Plans and limits',
     group: null,
     summary:
-      'Shots workspace plans: Pro ($199 a month, or $169 billed annually), Business ($699 a month, or $594 billed annually), and Enterprise (from $3,000 a month, billed annually), with monthly AI credit, API write, concurrent job, and storage limits. There is no free plan. The editor and image tools are included in every plan. Launch intelligence is in early access for design partners.',
+      'Shots workspace plans: Pro ($199 a month, or $169 billed annually), Business ($699 a month, or $594 billed annually), and Enterprise (from $3,000 a month, billed annually), with monthly AI credit, API write, concurrent job, and storage limits. Free basic scheduling includes one seat, one connected account and 10 text/link posts a month, without AI. The image editor, media and advanced queues are included in paid plans. Launch intelligence is in early access for design partners.',
   },
   [P['/roadmap']]: {
     title: 'Roadmap: what ships now and what comes next',

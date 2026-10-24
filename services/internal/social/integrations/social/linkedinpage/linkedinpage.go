@@ -37,7 +37,7 @@ func (p *Provider) Info() integrations.Info {
 	info := p.Provider.Info()
 	info.Identifier = identifier
 	info.Name = "LinkedIn Page"
-	info.Scopes = linkedin.PageScopes
+	info.Scopes = linkedin.PageOAuthScopes()
 	info.IsBetweenSteps = true
 	info.MaxConcurrentJob = 2 // LinkedIn Page has professional posting limits
 	return info
@@ -51,14 +51,14 @@ func (p *Provider) GenerateAuthURL(context.Context, *integrations.ClientInformat
 	return &integrations.GenerateAuthURLResponse{
 		URL: "https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=" + os.Getenv("LINKEDIN_CLIENT_ID") +
 			"&redirect_uri=" + linkedin.EncodeURIComponent(os.Getenv("FRONTEND_URL")+"/integrations/social/linkedin-page") +
-			"&state=" + state + "&scope=" + linkedin.EncodeURIComponent(strings.Join(linkedin.PageScopes, " ")),
+			"&state=" + state + "&scope=" + linkedin.EncodeURIComponent(strings.Join(linkedin.PageOAuthScopes(), " ")),
 		CodeVerifier: ids.Secure(30),
 		State:        state,
 	}, nil
 }
 
 func (p *Provider) Authenticate(ctx context.Context, params integrations.AuthenticateParams, _ *integrations.ClientInformation) (*integrations.AuthTokenDetails, error) {
-	details, err := p.ExchangeCodeForScopes(ctx, params.Code, os.Getenv("FRONTEND_URL")+"/integrations/social/linkedin-page", linkedin.PageScopes)
+	details, err := p.ExchangeCodeForScopes(ctx, params.Code, os.Getenv("FRONTEND_URL")+"/integrations/social/linkedin-page", linkedin.PageOAuthScopes())
 	if err != nil {
 		return nil, err
 	}

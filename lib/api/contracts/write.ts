@@ -15,7 +15,7 @@ import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
  */
 
 const entitlement = {
-  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'pro' },
+  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'free' },
 }
 /** A draft's organizing properties; none of them is content. */
 export const draftPropertiesInputSchema = z.strictObject({

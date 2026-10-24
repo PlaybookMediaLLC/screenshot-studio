@@ -95,7 +95,11 @@ const UploadPlaceholderPlugin = MediaKit.find(
 export type DraftEditorUser = { id: string; name: string }
 
 /** A live session: the collab server's URL and the draft it edits. */
-export type DraftCollaboration = { draftId: string; url: string }
+export type DraftCollaboration = { draftId: string; url: string; generation?: number }
+
+function collaborationRoom(session: DraftCollaboration): string {
+  return `content-draft:${session.draftId}${session.generation ? `:${session.generation}` : ''}`
+}
 
 /** Hashtags the workspace uses, one click from the post. */
 function HashtagChips({ hashtags }: { hashtags: string[] }) {
@@ -188,7 +192,7 @@ function colorFor(userId: string): string {
   return `hsl(${hash} 70% 45%)`
 }
 
-async function collabToken(draftId: string): Promise<string> {
+async function collabToken(draftId: string, documentName: string): Promise<string> {
   const response = await fetch(
     `/api/v1/content-drafts/${encodeURIComponent(draftId)}/collab-token`,
     {
@@ -196,7 +200,10 @@ async function collabToken(draftId: string): Promise<string> {
     }
   )
   if (!response.ok) throw new Error(`Collaboration token refused (${response.status}).`)
-  return ((await response.json()) as { token: string }).token
+  const issued = (await response.json()) as { token: string; documentName: string }
+  if (issued.documentName !== documentName)
+    throw new Error('The draft was replaced. Reload it to continue editing.')
+  return issued.token
 }
 
 /**
@@ -614,8 +621,9 @@ export default function DraftEditor({
       ? createYjsPlugin(
           {
             access: readOnly ? 'read' : 'write',
-            documentName: documentName ?? `content-draft:${collaboration.draftId}`,
-            getToken: () => collabToken(collaboration.draftId),
+            documentName: documentName ?? collaborationRoom(collaboration),
+            getToken: () =>
+              collabToken(collaboration.draftId, documentName ?? collaborationRoom(collaboration)),
             hocuspocusUrl: collaboration.url,
             // WebRTC stays off: it would need our own signaling and TURN servers.
             webrtc: null,
@@ -760,7 +768,7 @@ export default function DraftEditor({
       void yjs
         .init({
           autoSelect: 'end',
-          id: `content-draft:${collaboration.draftId}`,
+          id: documentName ?? collaborationRoom(collaboration),
           value:
             firstValue.current.length > 0
               ? (normalizePosts(firstValue.current as PlateBody) as Value)
@@ -777,8 +785,26 @@ export default function DraftEditor({
       clearTimeout(start)
       if (started) yjs.destroy()
     }
-  }, [collaboration, draftId, editor])
+  }, [collaboration, documentName, draftId, editor])
 
+  const [keyboardInset, setKeyboardInset] = React.useState(0)
+  React.useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const resize = () =>
+      setKeyboardInset(
+        window.matchMedia('(max-width: 639px)').matches
+          ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+          : 0
+      )
+    resize()
+    viewport.addEventListener('resize', resize)
+    viewport.addEventListener('scroll', resize)
+    return () => {
+      viewport.removeEventListener('resize', resize)
+      viewport.removeEventListener('scroll', resize)
+    }
+  }, [])
   const imageInput = React.useRef<HTMLInputElement>(null)
   const postTools = React.useMemo<PostTools>(
     () => (readOnly ? {} : { addImage: () => imageInput.current?.click(), settings: postSettings }),
@@ -802,6 +828,22 @@ export default function DraftEditor({
                 <ThreadLine />
                 <Editor
                   autoFocus={false}
+                  onDragOverCapture={(event) => {
+                    if (!readOnly && event.dataTransfer.types.includes('Files')) {
+                      event.preventDefault()
+                      event.dataTransfer.dropEffect = 'copy'
+                    }
+                  }}
+                  onDropCapture={(event) => {
+                    if (readOnly || !event.dataTransfer.files.length) return
+                    // Native files can land in empty space, outside a draggable block.
+                    // Handle them once here; block-to-block dragging stays with Plate.
+                    event.preventDefault()
+                    event.stopPropagation()
+                    const range = editor.api.findEventRange(event)
+                    if (range) editor.tf.select(range)
+                    editor.getTransforms(PlaceholderPlugin).insert.media(event.dataTransfer.files)
+                  }}
                   aria-label="Draft body"
                   className={cn(
                     POST_COLUMN,
@@ -835,7 +877,10 @@ export default function DraftEditor({
               // Mount subscriptions after the shared document has loaded. Otherwise
               // media tools can retain the empty pre-connection value until an edit.
               // The formatting bar floats at the bottom of the page, out of the text's way.
-              <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center px-2">
+              <div
+                style={{ bottom: Math.max(20, keyboardInset) }}
+                className="pointer-events-none sticky z-10 flex justify-center px-2"
+              >
                 <div className="pointer-events-auto min-w-0 max-w-full">
                   <DraftToolbar
                     editor={editor}

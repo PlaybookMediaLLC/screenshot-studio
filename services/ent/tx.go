@@ -118,6 +118,14 @@ type Tx struct {
 	OutboxEvent *OutboxEventClient
 	// PageKnowledge is the client for interacting with the PageKnowledge builders.
 	PageKnowledge *PageKnowledgeClient
+	// PlatformAutoDMCampaign is the client for interacting with the PlatformAutoDMCampaign builders.
+	PlatformAutoDMCampaign *PlatformAutoDMCampaignClient
+	// PlatformAutoDMDelivery is the client for interacting with the PlatformAutoDMDelivery builders.
+	PlatformAutoDMDelivery *PlatformAutoDMDeliveryClient
+	// PlatformAutoDMOptOut is the client for interacting with the PlatformAutoDMOptOut builders.
+	PlatformAutoDMOptOut *PlatformAutoDMOptOutClient
+	// PlatformAutoDMRecipient is the client for interacting with the PlatformAutoDMRecipient builders.
+	PlatformAutoDMRecipient *PlatformAutoDMRecipientClient
 	// PlatformCreativeSet is the client for interacting with the PlatformCreativeSet builders.
 	PlatformCreativeSet *PlatformCreativeSetClient
 	// PlatformCreativeSetVersion is the client for interacting with the PlatformCreativeSetVersion builders.
@@ -140,6 +148,8 @@ type Tx struct {
 	PlatformSlackPacing *PlatformSlackPacingClient
 	// PlatformSlackPersonalConnection is the client for interacting with the PlatformSlackPersonalConnection builders.
 	PlatformSlackPersonalConnection *PlatformSlackPersonalConnectionClient
+	// PlatformSocialMention is the client for interacting with the PlatformSocialMention builders.
+	PlatformSocialMention *PlatformSocialMentionClient
 	// PlatformWorkspaceCreation is the client for interacting with the PlatformWorkspaceCreation builders.
 	PlatformWorkspaceCreation *PlatformWorkspaceCreationClient
 	// PostAutomationRun is the client for interacting with the PostAutomationRun builders.
@@ -406,6 +416,10 @@ func (tx *Tx) init() {
 	tx.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.PageKnowledge = NewPageKnowledgeClient(tx.config)
+	tx.PlatformAutoDMCampaign = NewPlatformAutoDMCampaignClient(tx.config)
+	tx.PlatformAutoDMDelivery = NewPlatformAutoDMDeliveryClient(tx.config)
+	tx.PlatformAutoDMOptOut = NewPlatformAutoDMOptOutClient(tx.config)
+	tx.PlatformAutoDMRecipient = NewPlatformAutoDMRecipientClient(tx.config)
 	tx.PlatformCreativeSet = NewPlatformCreativeSetClient(tx.config)
 	tx.PlatformCreativeSetVersion = NewPlatformCreativeSetVersionClient(tx.config)
 	tx.PlatformNotificationDelivery = NewPlatformNotificationDeliveryClient(tx.config)
@@ -417,6 +431,7 @@ func (tx *Tx) init() {
 	tx.PlatformSlackInstallation = NewPlatformSlackInstallationClient(tx.config)
 	tx.PlatformSlackPacing = NewPlatformSlackPacingClient(tx.config)
 	tx.PlatformSlackPersonalConnection = NewPlatformSlackPersonalConnectionClient(tx.config)
+	tx.PlatformSocialMention = NewPlatformSocialMentionClient(tx.config)
 	tx.PlatformWorkspaceCreation = NewPlatformWorkspaceCreationClient(tx.config)
 	tx.PostAutomationRun = NewPostAutomationRunClient(tx.config)
 	tx.ProductProfile = NewProductProfileClient(tx.config)

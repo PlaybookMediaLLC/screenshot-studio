@@ -468,6 +468,27 @@ func (_u *ContentDraftUpdate) ClearPlanTimeZone() *ContentDraftUpdate {
 	return _u
 }
 
+// SetCollabGeneration sets the "collab_generation" field.
+func (_u *ContentDraftUpdate) SetCollabGeneration(v int) *ContentDraftUpdate {
+	_u.mutation.ResetCollabGeneration()
+	_u.mutation.SetCollabGeneration(v)
+	return _u
+}
+
+// SetNillableCollabGeneration sets the "collab_generation" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableCollabGeneration(v *int) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetCollabGeneration(*v)
+	}
+	return _u
+}
+
+// AddCollabGeneration adds value to the "collab_generation" field.
+func (_u *ContentDraftUpdate) AddCollabGeneration(v int) *ContentDraftUpdate {
+	_u.mutation.AddCollabGeneration(v)
+	return _u
+}
+
 // SetCollabState sets the "collab_state" field.
 func (_u *ContentDraftUpdate) SetCollabState(v []byte) *ContentDraftUpdate {
 	_u.mutation.SetCollabState(v)
@@ -577,6 +598,11 @@ func (_u *ContentDraftUpdate) check() error {
 	if v, ok := _u.mutation.ReviewStatus(); ok {
 		if err := contentdraft.ReviewStatusValidator(v); err != nil {
 			return &ValidationError{Name: "review_status", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.review_status": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CollabGeneration(); ok {
+		if err := contentdraft.CollabGenerationValidator(v); err != nil {
+			return &ValidationError{Name: "collab_generation", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.collab_generation": %w`, err)}
 		}
 	}
 	return nil
@@ -747,6 +773,12 @@ func (_u *ContentDraftUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.SourceDraftIDCleared() {
 		_spec.ClearField(contentdraft.FieldSourceDraftID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CollabGeneration(); ok {
+		_spec.SetField(contentdraft.FieldCollabGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedCollabGeneration(); ok {
+		_spec.AddField(contentdraft.FieldCollabGeneration, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.CollabState(); ok {
 		_spec.SetField(contentdraft.FieldCollabState, field.TypeBytes, value)
@@ -1226,6 +1258,27 @@ func (_u *ContentDraftUpdateOne) ClearPlanTimeZone() *ContentDraftUpdateOne {
 	return _u
 }
 
+// SetCollabGeneration sets the "collab_generation" field.
+func (_u *ContentDraftUpdateOne) SetCollabGeneration(v int) *ContentDraftUpdateOne {
+	_u.mutation.ResetCollabGeneration()
+	_u.mutation.SetCollabGeneration(v)
+	return _u
+}
+
+// SetNillableCollabGeneration sets the "collab_generation" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableCollabGeneration(v *int) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetCollabGeneration(*v)
+	}
+	return _u
+}
+
+// AddCollabGeneration adds value to the "collab_generation" field.
+func (_u *ContentDraftUpdateOne) AddCollabGeneration(v int) *ContentDraftUpdateOne {
+	_u.mutation.AddCollabGeneration(v)
+	return _u
+}
+
 // SetCollabState sets the "collab_state" field.
 func (_u *ContentDraftUpdateOne) SetCollabState(v []byte) *ContentDraftUpdateOne {
 	_u.mutation.SetCollabState(v)
@@ -1348,6 +1401,11 @@ func (_u *ContentDraftUpdateOne) check() error {
 	if v, ok := _u.mutation.ReviewStatus(); ok {
 		if err := contentdraft.ReviewStatusValidator(v); err != nil {
 			return &ValidationError{Name: "review_status", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.review_status": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CollabGeneration(); ok {
+		if err := contentdraft.CollabGenerationValidator(v); err != nil {
+			return &ValidationError{Name: "collab_generation", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.collab_generation": %w`, err)}
 		}
 	}
 	return nil
@@ -1535,6 +1593,12 @@ func (_u *ContentDraftUpdateOne) sqlSave(ctx context.Context) (_node *ContentDra
 	}
 	if _u.mutation.SourceDraftIDCleared() {
 		_spec.ClearField(contentdraft.FieldSourceDraftID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CollabGeneration(); ok {
+		_spec.SetField(contentdraft.FieldCollabGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedCollabGeneration(); ok {
+		_spec.AddField(contentdraft.FieldCollabGeneration, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.CollabState(); ok {
 		_spec.SetField(contentdraft.FieldCollabState, field.TypeBytes, value)

@@ -429,7 +429,7 @@ func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.Schedule
 		if err != nil || missing {
 			return inactive, err
 		}
-		job.Replies = append(job.Replies, PublishReply{Assets: media, Caption: reply.Caption, Options: reply.Options})
+		job.Replies = append(job.Replies, PublishReply{Assets: media, Caption: reply.Caption, Options: reply.Options, Poll: reply.Poll})
 	}
 	if len(job.Assets) > 0 {
 		job.AssetObjectKey, job.AssetMediaType = job.Assets[0].ObjectKey, job.Assets[0].MediaType
@@ -464,7 +464,7 @@ func (r *Repository) draftMedia(ctx context.Context, organizationID string, ids 
 		if row.AltText != nil {
 			alt = *row.AltText
 		}
-		media = append(media, MediaAsset{Alt: alt, MediaType: row.MediaType, ObjectKey: row.ObjectKey})
+		media = append(media, MediaAsset{AssetID: row.ID, Alt: alt, MediaType: row.MediaType, ObjectKey: row.ObjectKey})
 	}
 	return media, false, nil
 }

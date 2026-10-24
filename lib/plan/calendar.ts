@@ -21,6 +21,7 @@ export type PlanPreferences = z.infer<typeof planPreferencesSchema>
 export type PlanItem = {
   id: string
   draftId: string
+  campaignId?: string | null
   version: number
   calendarVersion: number
   postId?: string

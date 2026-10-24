@@ -154,6 +154,59 @@ func TestCapitalize(t *testing.T) {
 	}
 }
 
+func TestPollContainerAndReplyKeepNativeOptions(t *testing.T) {
+	creates, publishes := 0, 0
+	setup(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1.0/u1/threads":
+			creates++
+			if err := r.ParseMultipartForm(1 << 20); err != nil {
+				t.Fatal(err)
+			}
+			if r.FormValue("media_type") != "TEXT" || r.FormValue("auto_publish_text") != "" {
+				t.Error("poll bypassed container lifecycle")
+			}
+			var poll map[string]string
+			if err := json.Unmarshal([]byte(r.FormValue("poll_attachment")), &poll); err != nil || poll["option_a"] != "Yes" || poll["option_b"] != "No" || len(poll) != 2 {
+				t.Errorf("wrong poll: %v %v", poll, err)
+			}
+			if creates == 2 && r.FormValue("reply_to_id") != "root" {
+				t.Error("reply relationship lost")
+			}
+			w.Write([]byte(`{"id":"c1"}`))
+		case "/v1.0/c1":
+			w.Write([]byte(`{"status":"FINISHED"}`))
+		case "/v1.0/u1/threads_publish":
+			publishes++
+			w.Write([]byte(`{"id":"p1"}`))
+		case "/v1.0/p1":
+			w.Write([]byte(`{"permalink":"https://www.threads.net/@me/post/p1"}`))
+		default:
+			t.Errorf("unexpected request %s", r.URL.Path)
+		}
+	})
+	p := New()
+	post := integrations.PostDetails{ID: "poll", Message: "Choose", Poll: &integrations.PollDetails{Options: []string{"Yes", "No"}, DurationMinutes: 1440}}
+	if _, err := p.Post(context.Background(), "u1", "tok", []integrations.PostDetails{post}, &ent.Integration{InternalID: "u1"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.Comment(context.Background(), "u1", "root", "", "tok", []integrations.PostDetails{post}, &ent.Integration{InternalID: "u1"}); err != nil {
+		t.Fatal(err)
+	}
+	if creates != 2 || publishes != 2 {
+		t.Fatalf("mutations: %d %d", creates, publishes)
+	}
+	post.Poll.DurationMinutes = 60
+	if _, err := p.PostPending(context.Background(), "u1", "tok", []integrations.PostDetails{post}, &ent.Integration{InternalID: "u1"}); err == nil || creates != 2 {
+		t.Fatal("invalid poll mutated provider")
+	}
+	post.Poll.DurationMinutes = 1440
+	post.Media = []integrations.MediaContent{{Path: "https://example.com/image.png"}}
+	if _, err := p.PostPending(context.Background(), "u1", "tok", []integrations.PostDetails{post}, &ent.Integration{InternalID: "u1"}); err == nil || creates != 2 {
+		t.Fatal("media poll mutated provider")
+	}
+}
+
 func TestPostAnalyticsFailureIsNotEmptySuccess(t *testing.T) {
 	setup(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusForbidden)

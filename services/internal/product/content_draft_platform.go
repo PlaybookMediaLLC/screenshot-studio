@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftsettings"
@@ -22,7 +23,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
 )
 
@@ -95,6 +95,11 @@ func (c *Configuration) UpdateContentDraftSettings(ctx context.Context, actor Ac
 	}
 	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, contentDraftFeature); err != nil {
 		return nil, err
+	}
+	if input.PostingSlots != nil {
+		if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+			return nil, err
+		}
 	}
 	current, err := c.draftSettings(ctx, actor.OrganizationID)
 	if err != nil {
@@ -245,6 +250,9 @@ func (c *Configuration) NextQueueSlot(ctx context.Context, actor Actor, socialSe
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return time.Time{}, err
 	}
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+		return time.Time{}, err
+	}
 	set, err := c.resolveSocialSet(ctx, actor, socialSetID)
 	if err != nil {
 		return time.Time{}, err
@@ -296,6 +304,9 @@ func (c *Configuration) BestPostingTimes(ctx context.Context, actor Actor, socia
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+		return nil, err
+	}
 	set, err := c.resolveSocialSet(ctx, actor, socialSetID)
 	if err != nil {
 		return nil, err
@@ -304,9 +315,7 @@ func (c *Configuration) BestPostingTimes(ctx context.Context, actor Actor, socia
 	query := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID),
 		scheduledpost.StatusEQ(scheduledpost.StatusPUBLISHED), scheduledpost.MetricsAtNotNil(),
 		scheduledpost.ScheduledForGTE(time.Now().AddDate(0, 0, -120)))
-	if socialSetID != "" {
-		query.Where(scheduledpost.SocialSetID(set.ID))
-	}
+	query.Where(scheduledpost.SocialSetID(set.ID))
 	posts, err := query.All(ctx)
 	if err != nil {
 		return nil, err
@@ -401,58 +410,10 @@ func (c *Configuration) moveDraftPostTx(ctx context.Context, tx *ent.Tx, actor A
 	if post.Status != scheduledpost.StatusSCHEDULED {
 		return nil, conflict("Only a queued post can move; this one is " + strings.ToLower(string(post.Status)) + ".")
 	}
-	count, err := tx.ScheduledPost.Update().Where(scheduledpost.ID(post.ID), scheduledpost.OrganizationID(actor.OrganizationID), scheduledpost.StatusEQ(scheduledpost.StatusSCHEDULED)).SetStatus(scheduledpost.StatusCANCELLED).Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if count != 1 {
-		return nil, publishing.ErrConflict
-	}
-	zone := post.ScheduleTimeZone
 	if len(zones) > 0 {
-		zone = &zones[0]
+		post.ScheduleTimeZone = &zones[0]
 	}
-	create := tx.ScheduledPost.Create().SetID(cuid.New()).SetOrganizationID(post.OrganizationID).
-		SetNillableContentDraftID(post.ContentDraftID).SetNillableAssetID(post.AssetID).
-		SetChannelConnectionID(post.ChannelConnectionID).SetScheduledFor(at.UTC()).
-		SetStatus(scheduledpost.StatusSCHEDULED).SetCaption(post.Caption).
-		SetNillableSocialSetID(post.SocialSetID).SetScheduleMode(scheduledpost.ScheduleModeExplicit).SetSlotAt(at.UTC()).
-		SetNaturalOffsetSeconds(0).SetNillableScheduleTimeZone(zone).
-		SetIdempotencyKey(fmt.Sprintf("%s:moved:%d", post.IdempotencyKey, at.Unix()))
-	if len(post.AssetIds) > 0 {
-		create.SetAssetIds(post.AssetIds)
-	}
-	if len(post.Replies) > 0 {
-		create.SetReplies(post.Replies)
-	}
-	if !post.AutoActions.Empty() {
-		create.SetAutoActions(post.AutoActions)
-	}
-	if len(post.Poll.Options) > 0 {
-		create.SetPoll(post.Poll)
-	}
-	if post.ReplyTo != nil {
-		create.SetReplyTo(*post.ReplyTo)
-	}
-	if !post.PublishOptions.Empty() {
-		create.SetPublishOptions(post.PublishOptions)
-	}
-	moved, err := create.Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if err := recordProductActivity(ctx, tx, actor, "post.moved", "post.moved", "scheduled_post", moved.ID,
-		map[string]any{"from": post.ID, "scheduledFor": at.UTC()}); err != nil {
-		return nil, err
-	}
-	movedPost := contentDraftPost(moved, post.Edges.ChannelConnection.Platform)
-	if draft, err := tx.ContentDraft.Get(ctx, *post.ContentDraftID); err != nil {
-		return nil, err
-	} else if err := emitDraftEvent(ctx, tx, draft, webhooks.DraftScheduled, map[string]any{
-		"posts": scheduledPostsData([]ContentDraftPost{movedPost}), "scheduleMode": "explicit"}); err != nil {
-		return nil, err
-	}
-	return &MovedDraftPost{Cancelled: post.ID, Post: contentDraftPost(moved, post.Edges.ChannelConnection.Platform), Scheduled: moved}, nil
+	return replaceQueuedDraftPost(ctx, tx, actor, post, at)
 }
 
 // requireVisibleDraftPost refuses a draft post whose draft the actor cannot see.
@@ -467,11 +428,14 @@ func requireVisibleDraftPost(ctx context.Context, client *ent.Client, actor Acto
 // CalendarPost is a draft post on the calendar, with its draft's title.
 type CalendarPost struct {
 	ContentDraftPost
+	CampaignID      *string  `json:"campaignId,omitempty"`
+	CampaignTitle   string   `json:"campaignTitle,omitempty"`
 	DraftID         string   `json:"draftId"`
+	DraftTitle      string   `json:"draftTitle"`
+	SocialSetID     *string  `json:"socialSetId"`
+	TagIDs          []string `json:"tagIds"`
 	Version         int      `json:"version"`
 	CalendarVersion int      `json:"calendarVersion"`
-	TagIDs          []string `json:"tagIds"`
-	DraftTitle      string   `json:"draftTitle"`
 }
 
 // ListContentDraftPostsBetween lists the workspace's draft posts due in
@@ -499,8 +463,8 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 	if socialSetID == "" {
 		inSets = scheduledpost.Or(scheduledpost.SocialSetIDIsNil(), inSets)
 	}
-	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID), inSets,
-		scheduledpost.ContentDraftIDNotNil(), scheduledpost.ScheduledForGTE(from), scheduledpost.ScheduledForLT(to),
+	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID),
+		scheduledpost.Or(scheduledpost.And(inSets, scheduledpost.ContentDraftIDNotNil()), scheduledpost.And(scheduledpost.ContentDraftIDIsNil(), scheduledpost.HasChannelConnectionWith(channelconnection.OrganizationID(actor.OrganizationID), channelconnection.SocialSetIDIn(visible...)))), scheduledpost.ScheduledForGTE(from), scheduledpost.ScheduledForLT(to),
 		scheduledpost.StatusIn(scheduledpost.StatusSCHEDULED, scheduledpost.StatusPROCESSING,
 			scheduledpost.StatusPUBLISHED, scheduledpost.StatusFAILED, scheduledpost.StatusUNKNOWN_DELIVERY)).
 		WithChannelConnection().Order(ent.Asc(scheduledpost.FieldScheduledFor)).All(ctx)
@@ -509,7 +473,9 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 	}
 	ids := map[string]bool{}
 	for _, post := range posts {
-		ids[*post.ContentDraftID] = true
+		if post.ContentDraftID != nil {
+			ids[*post.ContentDraftID] = true
+		}
 	}
 	keys := make([]string, 0, len(ids))
 	for id := range ids {
@@ -529,20 +495,28 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 	if err != nil {
 		return nil, err
 	}
-	titles := map[string]string{}
-	draftRows := map[string]*ent.ContentDraft{}
+	visibleDrafts := map[string]*ent.ContentDraft{}
 	for _, draft := range drafts {
-		titles[draft.ID] = draft.Title
-		draftRows[draft.ID] = draft
+		visibleDrafts[draft.ID] = draft
+	}
+	campaigns, err := c.calendarCampaigns(ctx, actor, posts)
+	if err != nil {
+		return nil, err
 	}
 	items := make([]CalendarPost, 0, len(posts))
 	for _, post := range posts {
-		title, visible := titles[*post.ContentDraftID]
+		if post.ContentDraftID == nil {
+			if entry, ok := campaigns[post.ID]; ok {
+				items = append(items, entry)
+			}
+			continue
+		}
+		draft, visible := visibleDrafts[*post.ContentDraftID]
 		if !visible {
 			continue
 		}
 		items = append(items, CalendarPost{ContentDraftPost: contentDraftPost(post, post.Edges.ChannelConnection.Platform),
-			DraftID: *post.ContentDraftID, DraftTitle: title, Version: draftRows[*post.ContentDraftID].Version, CalendarVersion: draftRows[*post.ContentDraftID].CalendarVersion, TagIDs: draftRows[*post.ContentDraftID].TagIds})
+			DraftID: *post.ContentDraftID, DraftTitle: draft.Title, SocialSetID: draft.SocialSetID, TagIDs: draft.TagIds, Version: draft.Version, CalendarVersion: draft.CalendarVersion})
 	}
 	return items, nil
 }

@@ -399,6 +399,33 @@ func TestPlanAnalyzeDatabase(t *testing.T) {
 			t.Fatalf("changed reuse=%v", e)
 		}
 	})
+	t.Run("calendar move and undo preserve a commitment's natural offset", func(t *testing.T) {
+		d := draft("natural calendar movement")
+		queued, err := repo.ScheduleContentDraft(ctx, owner, d.ID, ScheduleContentDraftInput{Version: d.Version, ScheduledFor: at, Targets: []ContentDraftScheduleTarget{{ChannelConnectionID: x.ID, Caption: d.PlainText}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := w.db.SQL.ExecContext(ctx, `UPDATE scheduled_post SET "slotAt"=$2,"naturalOffsetSeconds"=45,"scheduledFor"=$3 WHERE id=$1`, queued.Posts[0].ID, at, at.Add(45*time.Second)); err != nil {
+			t.Fatal(err)
+		}
+		next := at.Add(2 * time.Hour)
+		placement := place(&queued.Draft, &next)
+		placement.PostID = queued.Posts[0].ID
+		moved, err := repo.MutateCalendar(ctx, owner, CalendarCommand{Key: cuid.New(), Action: "move", Items: []CalendarPlacement{placement}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !moved.Posts[0].ScheduledFor.Equal(next.Add(45*time.Second)) || !moved.Undo[0].At.Equal(at) {
+			t.Fatalf("offset lost or duplicated: %+v", moved)
+		}
+		undone, err := repo.MutateCalendar(ctx, owner, CalendarCommand{Key: cuid.New(), Action: "move", Items: moved.Undo})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !undone.Posts[0].ScheduledFor.Equal(at.Add(45 * time.Second)) {
+			t.Fatalf("undo changed offset: %+v", undone.Posts[0])
+		}
+	})
 	t.Run("P34 P35 scheduled swap and undo replace jobs and respect publisher authority", func(t *testing.T) {
 		schedule := func(text string, when time.Time) *ScheduleContentDraftResult {
 			d := plan(draft(text), when)

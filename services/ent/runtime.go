@@ -59,6 +59,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmcampaign"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmdelivery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
@@ -482,12 +484,18 @@ func init() {
 	contentdraftDescTagIds := contentdraftFields[28].Descriptor()
 	// contentdraft.DefaultTagIds holds the default value on creation for the tag_ids field.
 	contentdraft.DefaultTagIds = contentdraftDescTagIds.Default.([]string)
+	// contentdraftDescCollabGeneration is the schema descriptor for collab_generation field.
+	contentdraftDescCollabGeneration := contentdraftFields[32].Descriptor()
+	// contentdraft.DefaultCollabGeneration holds the default value on creation for the collab_generation field.
+	contentdraft.DefaultCollabGeneration = contentdraftDescCollabGeneration.Default.(int)
+	// contentdraft.CollabGenerationValidator is a validator for the "collab_generation" field. It is called by the builders before save.
+	contentdraft.CollabGenerationValidator = contentdraftDescCollabGeneration.Validators[0].(func(int) error)
 	// contentdraftDescCreatedAt is the schema descriptor for created_at field.
-	contentdraftDescCreatedAt := contentdraftFields[35].Descriptor()
+	contentdraftDescCreatedAt := contentdraftFields[36].Descriptor()
 	// contentdraft.DefaultCreatedAt holds the default value on creation for the created_at field.
 	contentdraft.DefaultCreatedAt = contentdraftDescCreatedAt.Default.(func() time.Time)
 	// contentdraftDescUpdatedAt is the schema descriptor for updated_at field.
-	contentdraftDescUpdatedAt := contentdraftFields[36].Descriptor()
+	contentdraftDescUpdatedAt := contentdraftFields[37].Descriptor()
 	// contentdraft.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	contentdraft.DefaultUpdatedAt = contentdraftDescUpdatedAt.Default.(func() time.Time)
 	// contentdraft.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -916,6 +924,22 @@ func init() {
 	pageknowledge.DefaultUpdatedAt = pageknowledgeDescUpdatedAt.Default.(func() time.Time)
 	// pageknowledge.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	pageknowledge.UpdateDefaultUpdatedAt = pageknowledgeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	platformautodmcampaignFields := schema.PlatformAutoDMCampaign{}.Fields()
+	_ = platformautodmcampaignFields
+	// platformautodmcampaignDescDisabled is the schema descriptor for disabled field.
+	platformautodmcampaignDescDisabled := platformautodmcampaignFields[6].Descriptor()
+	// platformautodmcampaign.DefaultDisabled holds the default value on creation for the disabled field.
+	platformautodmcampaign.DefaultDisabled = platformautodmcampaignDescDisabled.Default.(bool)
+	// platformautodmcampaignDescSourceRemoved is the schema descriptor for source_removed field.
+	platformautodmcampaignDescSourceRemoved := platformautodmcampaignFields[7].Descriptor()
+	// platformautodmcampaign.DefaultSourceRemoved holds the default value on creation for the source_removed field.
+	platformautodmcampaign.DefaultSourceRemoved = platformautodmcampaignDescSourceRemoved.Default.(bool)
+	platformautodmdeliveryFields := schema.PlatformAutoDMDelivery{}.Fields()
+	_ = platformautodmdeliveryFields
+	// platformautodmdeliveryDescRemoteID is the schema descriptor for remote_id field.
+	platformautodmdeliveryDescRemoteID := platformautodmdeliveryFields[6].Descriptor()
+	// platformautodmdelivery.DefaultRemoteID holds the default value on creation for the remote_id field.
+	platformautodmdelivery.DefaultRemoteID = platformautodmdeliveryDescRemoteID.Default.(string)
 	platformcreativesetFields := schema.PlatformCreativeSet{}.Fields()
 	_ = platformcreativesetFields
 	// platformcreativesetDescRevision is the schema descriptor for revision field.

@@ -16,7 +16,12 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { CHANNEL_META } from '@/components/drafts/channel-meta'
 import { postRanges, setPostSettings } from '@/components/drafts/thread'
-import { CAPABILITIES, pollProblems } from '@/lib/write/capabilities'
+import {
+  CAPABILITIES,
+  pollProblems,
+  pollRules,
+  type AccountStanding,
+} from '@/lib/write/capabilities'
 import {
   type DraftChannel,
   type PostPoll,
@@ -24,6 +29,7 @@ import {
   replySettingsSchema,
 } from '@/lib/write/document'
 import { cn } from '@/lib/utils'
+import { copyPollOptions, type PollSource } from '@/lib/write/poll-copy'
 
 /** Who-can-reply choices as X names them. */
 const REPLY_LABELS: Record<PostSettings['replySettings'] & string, string> = {
@@ -52,10 +58,14 @@ export function PostSettingsTools({
   channel,
   number,
   settings,
+  standing,
+  pollSources,
 }: {
   channel: DraftChannel
   number: number
   settings: PostSettings
+  standing?: AccountStanding
+  pollSources?: PollSource[]
 }) {
   const editor = useEditorRef()
   const capabilities = CAPABILITIES[channel]
@@ -72,8 +82,30 @@ export function PostSettingsTools({
       />
     )
   }
-  if (capabilities.poll && number === 1) {
-    tools.push(<PollTool channel={channel} key="poll" set={set} settings={settings} />)
+  if (pollRules(channel, standing) && (number === 1 || capabilities.thread)) {
+    tools.push(
+      <PollTool
+        channel={channel}
+        standing={standing}
+        key="poll"
+        set={set}
+        settings={settings}
+        pollSources={pollSources}
+      />
+    )
+  }
+  if (['bluesky', 'mastodon'].includes(channel) && number > 1) {
+    tools.push(
+      <Button
+        key="quote"
+        size="sm"
+        variant="ghost"
+        aria-pressed={Boolean(settings.quoteFirstPost)}
+        onClick={() => set({ quoteFirstPost: !settings.quoteFirstPost })}
+      >
+        Quote the first post
+      </Button>
+    )
   }
   return <>{tools}</>
 }
@@ -196,7 +228,7 @@ function AudienceTools({
             </Label>
           </fieldset>
         ) : null}
-        {channel === 'x' && number > 1 ? (
+        {['x', 'bluesky'].includes(channel) && number > 1 ? (
           <Label className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-sm">
             <span>
               Quote the first post
@@ -218,6 +250,8 @@ function AudienceTools({
 
 /** A poll on the first post, with the platform's own rules. */
 function PollTool({
+  pollSources,
+  standing,
   channel,
   set,
   settings,
@@ -225,8 +259,10 @@ function PollTool({
   channel: DraftChannel
   set: (change: Partial<PostSettings>) => void
   settings: PostSettings
+  standing?: AccountStanding
+  pollSources?: PollSource[]
 }) {
-  const rules = CAPABILITIES[channel].poll
+  const rules = pollRules(channel, standing)
   if (!rules) return null
   const poll = settings.poll
   return (
@@ -246,13 +282,44 @@ function PollTool({
           ▤
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-3">
+      <PopoverContent
+        align="end"
+        className="max-h-[var(--radix-popover-content-available-height)] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto p-3"
+      >
         {poll ? (
-          <PollEditor
-            channel={channel}
-            onChange={(next) => set({ poll: next ?? undefined })}
-            poll={poll}
-          />
+          <>
+            <PollEditor
+              channel={channel}
+              standing={standing}
+              onChange={(next) => set({ poll: next ?? undefined })}
+              poll={poll}
+            />
+            {pollSources?.length ? (
+              <div className="mt-3 border-t border-white/10 pt-3">
+                <Select
+                  value=""
+                  onValueChange={(key) => {
+                    const source = pollSources.find((item) => item.key === key)
+                    if (source) set({ poll: copyPollOptions(source.poll, poll) })
+                  }}
+                >
+                  <SelectTrigger aria-label="Copy poll options from">
+                    <SelectValue placeholder="Copy options from…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pollSources.map((source) => (
+                      <SelectItem key={source.key} value={source.key}>
+                        {source.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-neutral-400">
+                  Replaces only the choices. Your question and duration stay as set.
+                </p>
+              </div>
+            ) : null}
+          </>
         ) : (
           <div className="grid gap-2 text-sm">
             <p className="text-neutral-300">{CHANNEL_META[channel].label} poll</p>
@@ -287,8 +354,12 @@ function PollTool({
   )
 }
 
-/** A poll's fields, validated by the platform's own rules as they are typed. */
+/** A poll's fields, validated by Unicode character count as they are typed.
+ * HTML maxLength counts UTF-16 units, so allow two units per provider character;
+ * pollProblems enforces the actual limit without rejecting valid emoji early.
+ */
 export function PollEditor({
+  standing,
   channel,
   media = 0,
   onChange,
@@ -298,10 +369,11 @@ export function PollEditor({
   media?: number
   onChange: (poll: PostPoll | null) => void
   poll: PostPoll
+  standing?: AccountStanding
 }) {
-  const rules = CAPABILITIES[channel].poll
+  const rules = pollRules(channel, standing)
   if (!rules) return null
-  const problems = pollProblems(channel, poll, media)
+  const problems = pollProblems(channel, poll, media, standing)
   return (
     <div className="grid gap-2 text-sm" data-testid={`poll-editor-${channel}`}>
       {rules.question === 'field' ? (
@@ -314,7 +386,7 @@ export function PollEditor({
           </span>
           <Input
             aria-label="Poll question"
-            maxLength={rules.questionLimit}
+            maxLength={rules.questionLimit * 2}
             onChange={(event) => onChange({ ...poll, question: event.target.value })}
             value={poll.question ?? ''}
           />
@@ -322,6 +394,16 @@ export function PollEditor({
       ) : (
         <p className="text-xs text-neutral-400">The post’s text is the question.</p>
       )}
+      {channel === 'mastodon' ? (
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={poll.multiple ?? false}
+            onChange={(event) => onChange({ ...poll, multiple: event.target.checked })}
+          />
+          Allow multiple choices
+        </label>
+      ) : null}
       {poll.options.map((option, index) => (
         <Label className="grid gap-1 text-xs text-neutral-400" key={index}>
           <span className="flex justify-between">
@@ -334,7 +416,7 @@ export function PollEditor({
             <Input
               aria-label={`Poll option ${index + 1}`}
               className="flex-1"
-              maxLength={rules.maxOptionLength}
+              maxLength={rules.maxOptionLength * 2}
               onChange={(event) =>
                 onChange({
                   ...poll,
@@ -374,21 +456,32 @@ export function PollEditor({
       ) : null}
       <Label className="grid gap-1 text-xs text-neutral-400">
         Duration
-        <Select
-          onValueChange={(value) => onChange({ ...poll, durationMinutes: Number(value) })}
-          value={String(poll.durationMinutes)}
-        >
-          <SelectTrigger aria-label="Poll duration">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {rules.durationsMinutes.map((minutes) => (
-              <SelectItem key={minutes} value={String(minutes)}>
-                {durationLabel(minutes)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {rules.durationRange ? (
+          <Input
+            aria-label="Poll duration in minutes"
+            type="number"
+            min={rules.durationRange.min}
+            max={rules.durationRange.max}
+            value={poll.durationMinutes}
+            onChange={(event) => onChange({ ...poll, durationMinutes: Number(event.target.value) })}
+          />
+        ) : (
+          <Select
+            onValueChange={(value) => onChange({ ...poll, durationMinutes: Number(value) })}
+            value={String(poll.durationMinutes)}
+          >
+            <SelectTrigger aria-label="Poll duration">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {rules.durationsMinutes.map((minutes) => (
+                <SelectItem key={minutes} value={String(minutes)}>
+                  {durationLabel(minutes)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </Label>
       {problems.length > 0 ? (
         <ul className="grid gap-0.5" role="alert">

@@ -32,6 +32,13 @@ func (s standings) Mentions(_ context.Context, _, destinationID, platform, _, qu
 	return []Mention{{Kind: "person", Label: destinationID, ProviderID: platform + ":" + query}}, nil
 }
 
+func (s standings) PeopleMentions(_ context.Context, _, destinationID, platform, _, query string) ([]Mention, error) {
+	if platform != "linkedin-page" {
+		return nil, errors.New("people lookup used a personal profile")
+	}
+	return []Mention{{Kind: "person", Label: destinationID + ":" + query, ProviderID: "urn:li:person:lookup123"}}, nil
+}
+
 // Planning, scheduling and publishing (RFC 025): the time is resolved in Go,
 // queue slots are reserved under a lock, each platform's settings are checked
 // against its own rules, an account is Premium only when its platform says
@@ -518,6 +525,39 @@ func TestWritePublishing(t *testing.T) {
 		}
 		if _, err := repo.LookupMentions(ctx, w.actor("viewer"), sets.Items[0].ID, "x", "someone"); err == nil {
 			t.Fatal("a viewer looked up mentions")
+		}
+	})
+
+	t.Run("people lookups and recent identities stay inside the authorized Page and social set", func(t *testing.T) {
+		pageSet, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: "Private Page", Visibility: "PRIVATE"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		connect("linkedin-page", "page-"+w.id, &pageSet.ID)
+		found, err := repo.LookupPeopleMentions(ctx, owner, pageSet.ID, "Anne")
+		if err != nil || len(found) != 1 || found[0].Label != "page-"+w.id+":Anne" || found[0].ProviderID != "urn:li:person:lookup123" {
+			t.Fatalf("people=%+v err=%v", found, err)
+		}
+		body := []any{map[string]any{"type": "p", "children": []any{map[string]any{"type": "social_mention", "platform": "linkedin", "kind": "person", "providerId": "urn:li:person:lookup123", "label": "Anne Doe", "children": []any{map[string]any{"text": ""}}}}}}
+		if _, err = repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: pageSet.ID, Body: body}); err != nil {
+			t.Fatal(err)
+		}
+		if recent, err := repo.LookupPeopleMentions(ctx, owner, pageSet.ID, ""); err != nil || len(recent) != 1 || recent[0].Label != "Anne Doe" {
+			t.Fatalf("recent=%+v err=%v", recent, err)
+		}
+		if recent, err := repo.LookupPeopleMentions(ctx, owner, premiumSet.ID, ""); err != nil || len(recent) != 0 {
+			t.Fatalf("other set leaked recent people: %+v %v", recent, err)
+		}
+		for _, query := range []string{"", "Anne"} {
+			if _, err := repo.LookupPeopleMentions(ctx, w.actor("viewer"), pageSet.ID, query); err == nil {
+				t.Fatal("viewer read private people")
+			}
+			if _, err := repo.LookupPeopleMentions(ctx, w.actor("member"), pageSet.ID, query); err == nil {
+				t.Fatal("another member read private people")
+			}
+		}
+		if _, err := repo.LookupPeopleMentions(ctx, owner, premiumSet.ID, "Anne"); err == nil {
+			t.Fatal("personal profile used Page directory")
 		}
 	})
 

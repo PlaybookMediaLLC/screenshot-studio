@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -35,6 +36,7 @@ var ErrInvalidToken = errors.New("invalid collaboration token")
 
 // Claims are what a token grants: one user, one draft of one workspace.
 type Claims struct {
+	Generation     int    `json:"g,omitempty"`
 	Kind           string `json:"k,omitempty"`
 	Access         Access `json:"a"`
 	DraftID        string `json:"d"`
@@ -46,6 +48,14 @@ type Claims struct {
 
 // DocumentName is the collaboration document a draft is edited in.
 func DocumentName(draftID string) string { return "content-draft:" + draftID }
+
+// DocumentNameAt isolates replacements from cached Yjs rooms and IndexedDB state.
+func DocumentNameAt(draftID string, generation int) string {
+	if generation == 0 {
+		return DocumentName(draftID)
+	}
+	return DocumentName(draftID) + ":" + strconv.Itoa(generation)
+}
 
 // DocumentNameFor keeps content draft tokens compatible and isolates Story Set presence rooms.
 func DocumentNameFor(kind, id string) string {
@@ -85,7 +95,7 @@ func Verify(key []byte, token string, now time.Time, grace time.Duration) (Claim
 	}
 	var claims Claims
 	if err := json.Unmarshal(payload, &claims); err != nil || claims.DraftID == "" || claims.OrganizationID == "" ||
-		claims.UserID == "" || claims.SessionID == "" || (claims.Access != AccessRead && claims.Access != AccessWrite) || (claims.Kind != "" && claims.Kind != "content-draft" && claims.Kind != "creative-set") {
+		claims.Generation < 0 || claims.UserID == "" || claims.SessionID == "" || (claims.Access != AccessRead && claims.Access != AccessWrite) || (claims.Kind != "" && claims.Kind != "content-draft" && claims.Kind != "creative-set") {
 		return Claims{}, ErrInvalidToken
 	}
 	if now.Add(-grace).Unix() >= claims.ExpiresAt {

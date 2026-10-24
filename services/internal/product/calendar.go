@@ -186,6 +186,11 @@ func (c *Configuration) MutateCalendar(ctx context.Context, actor Actor, input C
 			return nil, err
 		}
 	}
+	if input.Action == "swap" {
+		if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+			return nil, err
+		}
+	}
 	encoded, _ := json.Marshal(input)
 	hash := fmt.Sprintf("%x", sha256.Sum256(encoded))
 	tx, err := c.client.Tx(ctx)
@@ -256,6 +261,9 @@ func (c *Configuration) MutateCalendar(ctx context.Context, actor Actor, input C
 					return nil, notFound("Post not found.")
 				}
 				originals[i], connections[i] = p.ScheduledFor, p.ChannelConnectionID
+				if p.SlotAt != nil {
+					originals[i] = *p.SlotAt
+				}
 			} else if d.PlannedFor != nil {
 				originals[i] = *d.PlannedFor
 			} else {
@@ -347,6 +355,9 @@ func (c *Configuration) MutateCalendar(ctx context.Context, actor Actor, input C
 			}
 			inverse.PostID = moved.Post.ID
 			inverse.At = &old.ScheduledFor
+			if old.SlotAt != nil {
+				inverse.At = old.SlotAt
+			}
 			result.Posts = append(result.Posts, moved.Post)
 			result.Cancelled = append(result.Cancelled, moved.Cancelled)
 			result.Scheduled = append(result.Scheduled, moved.Scheduled)

@@ -35,6 +35,11 @@ const post = (id: string) => `/api/v1/content-draft-posts/${encodeURIComponent(i
 
 /** The Write API. */
 export const writeApi = {
+  /** Search communities without exposing the connection's credentials to the browser. */
+  communities: (setId: string, query: string) =>
+    call<{ items: { id: string; name: string }[] }>(
+      `/api/v1/social-sets/${encodeURIComponent(setId)}/communities?${new URLSearchParams({ q: query })}`
+    ),
   /** A set's engagement defaults (RFC 024), based on the set's version. */
   updateSetEngagement: (
     id: string,

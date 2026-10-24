@@ -78,6 +78,8 @@ const (
 	FieldPlanTimeZone = "planTimeZone"
 	// FieldSourceDraftID holds the string denoting the source_draft_id field in the database.
 	FieldSourceDraftID = "sourceDraftId"
+	// FieldCollabGeneration holds the string denoting the collab_generation field in the database.
+	FieldCollabGeneration = "collabGeneration"
 	// FieldCollabState holds the string denoting the collab_state field in the database.
 	FieldCollabState = "collabState"
 	// FieldCreatedByUserID holds the string denoting the created_by_user_id field in the database.
@@ -126,6 +128,7 @@ var Columns = []string{
 	FieldPinnedAt,
 	FieldPlanTimeZone,
 	FieldSourceDraftID,
+	FieldCollabGeneration,
 	FieldCollabState,
 	FieldCreatedByUserID,
 	FieldUpdatedByUserID,
@@ -164,6 +167,10 @@ var (
 	DefaultScratchpad string
 	// DefaultTagIds holds the default value on creation for the "tag_ids" field.
 	DefaultTagIds []string
+	// DefaultCollabGeneration holds the default value on creation for the "collab_generation" field.
+	DefaultCollabGeneration int
+	// CollabGenerationValidator is a validator for the "collab_generation" field. It is called by the builders before save.
+	CollabGenerationValidator func(int) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -362,6 +369,11 @@ func ByPlanTimeZone(opts ...sql.OrderTermOption) OrderOption {
 // BySourceDraftID orders the results by the source_draft_id field.
 func BySourceDraftID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSourceDraftID, opts...).ToFunc()
+}
+
+// ByCollabGeneration orders the results by the collab_generation field.
+func ByCollabGeneration(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCollabGeneration, opts...).ToFunc()
 }
 
 // ByCreatedByUserID orders the results by the created_by_user_id field.

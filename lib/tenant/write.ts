@@ -39,10 +39,21 @@ export async function lookupSocialSetMentions(
   context: TenantContext,
   id: string,
   channel: 'x' | 'linkedin',
+  query: string,
+  kind?: 'person' | 'organization'
+) {
+  const result = await orNull(backendSDK(context).lookupSocialSetMentions(id, channel, query, kind))
+  return result ? result.items : null
+}
+
+/** Search communities through a visible set's connected X account. */
+export async function searchSocialSetCommunities(
+  context: TenantContext,
+  id: string,
   query: string
 ) {
-  const result = await orNull(backendSDK(context).lookupSocialSetMentions(id, channel, query))
-  return result ? result.items : null
+  const result = await orNull(backendSDK(context).searchSocialSetCommunities(id, query))
+  return result?.items ?? null
 }
 
 /** The social sets the caller may see, the workspace's default (oldest shared) first. */

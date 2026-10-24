@@ -144,14 +144,19 @@ func articleContentState(source string, embeddedMediaIDs []string, inlineMediaID
 				ctx.length += jsLength(child.Data)
 				continue
 			}
+			if nodeName(child) == "br" {
+				ctx.text += "\n"
+				ctx.length++
+				continue
+			}
 			offset := ctx.length
 			walkInline(child, ctx)
 			length := ctx.length - offset
 			if length == 0 {
 				continue
 			}
-			if nodeName(child) == "strong" {
-				ctx.styles = append(ctx.styles, styleRange{Offset: offset, Length: length, Style: "bold"})
+			if style := map[string]string{"strong": "bold", "em": "italic", "s": "strikethrough"}[nodeName(child)]; style != "" {
+				ctx.styles = append(ctx.styles, styleRange{Offset: offset, Length: length, Style: style})
 			}
 			if nodeName(child) == "a" {
 				if href := attr(child, "href"); href != "" {
@@ -184,7 +189,7 @@ func articleContentState(source string, embeddedMediaIDs []string, inlineMediaID
 	pushBlock := func(n *html.Node, kind string) {
 		ctx := &inlineCtx{}
 		walkInline(n, ctx)
-		if strings.TrimSpace(ctx.text) != "" {
+		if strings.TrimSpace(ctx.text) != "" || nodeName(n) == "p" {
 			state.Blocks = append(state.Blocks, makeBlock(ctx.text, kind, ctx.styles, ctx.entityRanges))
 		}
 		// pictures inside the node (a list item can hold one) follow its text
@@ -196,6 +201,12 @@ func articleContentState(source string, embeddedMediaIDs []string, inlineMediaID
 	}
 
 	for _, n := range parseFragment(source) {
+		if id := attr(n, "data-x-post"); nodeName(n) == "blockquote" && regexp.MustCompile(`^[0-9]{1,30}$`).MatchString(id) {
+			key := len(state.Entities)
+			state.Entities = append(state.Entities, entity{Key: strconv.Itoa(key), Value: entityValue{Type: "post", Mutability: "immutable", Data: map[string]string{"post_id": id}}})
+			state.Blocks = append(state.Blocks, makeBlock(" ", "atomic", nil, []entityRange{{Offset: 0, Length: 1, Key: key}}))
+			continue
+		}
 		switch nodeName(n) {
 		case "h1":
 			pushBlock(n, "header-one")

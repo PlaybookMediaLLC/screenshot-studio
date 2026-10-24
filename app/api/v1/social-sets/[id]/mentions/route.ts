@@ -11,7 +11,13 @@ export const GET = route(lookupMentionsContract, {
   auth: memberAccess(lookupMentionsContract.access),
   handler: async ({ access, params, query }) => {
     if (!contentDraftsEnabled()) return notFound()
-    const items = await lookupSocialSetMentions(access, params.id, query.channel, query.q)
+    const items = await lookupSocialSetMentions(
+      access,
+      params.id,
+      query.channel,
+      query.q,
+      query.kind
+    )
     return items ? { items } : notFound()
   },
 })

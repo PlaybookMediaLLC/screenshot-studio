@@ -165,6 +165,18 @@ type OutboxEvent func(*sql.Selector)
 // PageKnowledge is the predicate function for pageknowledge builders.
 type PageKnowledge func(*sql.Selector)
 
+// PlatformAutoDMCampaign is the predicate function for platformautodmcampaign builders.
+type PlatformAutoDMCampaign func(*sql.Selector)
+
+// PlatformAutoDMDelivery is the predicate function for platformautodmdelivery builders.
+type PlatformAutoDMDelivery func(*sql.Selector)
+
+// PlatformAutoDMOptOut is the predicate function for platformautodmoptout builders.
+type PlatformAutoDMOptOut func(*sql.Selector)
+
+// PlatformAutoDMRecipient is the predicate function for platformautodmrecipient builders.
+type PlatformAutoDMRecipient func(*sql.Selector)
+
 // PlatformCreativeSet is the predicate function for platformcreativeset builders.
 type PlatformCreativeSet func(*sql.Selector)
 
@@ -197,6 +209,9 @@ type PlatformSlackPacing func(*sql.Selector)
 
 // PlatformSlackPersonalConnection is the predicate function for platformslackpersonalconnection builders.
 type PlatformSlackPersonalConnection func(*sql.Selector)
+
+// PlatformSocialMention is the predicate function for platformsocialmention builders.
+type PlatformSocialMention func(*sql.Selector)
 
 // PlatformWorkspaceCreation is the predicate function for platformworkspacecreation builders.
 type PlatformWorkspaceCreation func(*sql.Selector)

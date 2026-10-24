@@ -13,6 +13,17 @@ import { cn } from '@/lib/utils'
 import { CHANNEL_META, ChannelIcon } from './channel-meta'
 import { POST_COLUMN } from './layout'
 import { LocalTime } from './local-time'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 const POST_TONES: Partial<Record<DraftPostWire['status'], PillTone>> = {
   CANCELLED: 'gray',
@@ -100,7 +111,9 @@ export function DraftPosts({
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{post.caption}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <Pill tone={POST_TONES[post.status] ?? 'gray'}>{STATUS_LABELS[post.status] ?? post.status}</Pill>
+                  <Pill tone={POST_TONES[post.status] ?? 'gray'}>
+                    {STATUS_LABELS[post.status] ?? post.status}
+                  </Pill>
                   {post.url ? (
                     <a
                       className="text-xs text-sky-700 dark:text-sky-300 hover:text-sky-700 dark:hover:text-sky-200"
@@ -116,6 +129,46 @@ export function DraftPosts({
                       Cancel
                     </Button>
                   ) : null}
+                  {canSchedule && post.status === 'SCHEDULED' ? (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button disabled={busy !== null} size="sm" variant="outline">
+                          Publish now
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Publish this queued post now?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This publishes the content saved when you scheduled this destination and
+                            replaces its timer. Later draft edits are not included. Approval and
+                            account access will be checked again.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <p className="max-h-40 overflow-auto whitespace-pre-wrap text-sm">
+                          {post.caption}
+                        </p>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Keep scheduled</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() =>
+                              void run(
+                                post.id,
+                                async () => {
+                                  const result = await draftsApi.publishQueuedPost(post.id)
+                                  onChange({ ...post, status: 'CANCELLED' })
+                                  return result
+                                },
+                                'Publishing this destination now.'
+                              )
+                            }
+                          >
+                            Confirm publish now
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : null}
                 </div>
               </div>
               {post.status === 'FAILED' ? (
@@ -124,7 +177,13 @@ export function DraftPosts({
                   {canSchedule ? (
                     <Button
                       disabled={busy === post.id}
-                      onClick={() => void run(post.id, () => writeApi.retryPost(post.id), 'Retrying this destination now.')}
+                      onClick={() =>
+                        void run(
+                          post.id,
+                          () => writeApi.retryPost(post.id),
+                          'Retrying this destination now.'
+                        )
+                      }
                       size="sm"
                       variant="outline"
                     >
@@ -134,7 +193,10 @@ export function DraftPosts({
                 </p>
               ) : null}
               {post.status === 'UNKNOWN_DELIVERY' ? (
-                <div className="flex flex-wrap items-center gap-2 text-xs text-amber-300" role="status">
+                <div
+                  className="flex flex-wrap items-center gap-2 text-xs text-amber-300"
+                  role="status"
+                >
                   The platform did not confirm whether this went out. Check the account before doing
                   anything: retrying blindly could post twice.
                   {canSchedule ? (
@@ -144,7 +206,9 @@ export function DraftPosts({
                         void run(
                           post.id,
                           () => writeApi.reconcilePost(post.id, { live, url: url || undefined }),
-                          live ? 'Marked as published.' : 'Marked as not published; you can retry it now.'
+                          live
+                            ? 'Marked as published.'
+                            : 'Marked as not published; you can retry it now.'
                         )
                       }
                     />
@@ -157,7 +221,10 @@ export function DraftPosts({
                 </p>
               ) : null}
               {stopped ? (
-                <p className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300" role="status">
+                <p
+                  className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300"
+                  role="status"
+                >
                   {post.threadProgress.posted} of {post.threadProgress.total} replies went out.
                   {canSchedule ? (
                     <Button
@@ -182,14 +249,18 @@ export function DraftPosts({
                   {counts.length > 0 ? (
                     counts.map(([key, label]) => (
                       <span data-testid={`metric-${key}`} key={key}>
-                        <span className="text-foreground">{post.metrics?.[key]?.toLocaleString()}</span>{' '}
+                        <span className="text-foreground">
+                          {post.metrics?.[key]?.toLocaleString()}
+                        </span>{' '}
                         {label}
                       </span>
                     ))
                   ) : (
                     <span>No engagement read yet.</span>
                   )}
-                  <Button variant="custom" size={null}
+                  <Button
+                    variant="custom"
+                    size={null}
                     className="text-muted-foreground hover:text-foreground disabled:opacity-50"
                     disabled={busy === post.id}
                     onClick={() =>
@@ -215,7 +286,10 @@ export function DraftPosts({
                 <FollowUps
                   busy={busy === post.id}
                   onStop={
-                    canSchedule && post.automations.some((item) => item.status === 'pending' && item.kind !== 'unretweet')
+                    canSchedule &&
+                    post.automations.some(
+                      (item) => item.status === 'pending' && item.kind !== 'unretweet'
+                    )
                       ? () =>
                           void run(
                             post.id,
@@ -256,7 +330,15 @@ const FOLLOW_UP_STATUS: Record<DraftPostWire['automations'][number]['status'], s
 }
 
 /** A live post's follow-ups and their receipts (RFC 025). */
-function FollowUps({ busy, onStop, post }: { busy: boolean; onStop?: () => void; post: DraftPostWire }) {
+function FollowUps({
+  busy,
+  onStop,
+  post,
+}: {
+  busy: boolean
+  onStop?: () => void
+  post: DraftPostWire
+}) {
   return (
     <div className="grid gap-1 text-xs" data-testid="follow-ups">
       <p className="flex items-center justify-between text-neutral-400">
@@ -269,10 +351,19 @@ function FollowUps({ busy, onStop, post }: { busy: boolean; onStop?: () => void;
       </p>
       <ul className="grid gap-0.5">
         {post.automations.map((item) => (
-          <li className="flex items-center gap-2 text-neutral-500" data-testid="follow-up" key={item.key}>
+          <li
+            className="flex items-center gap-2 text-neutral-500"
+            data-testid="follow-up"
+            key={item.key}
+          >
             <span className="text-neutral-300">{FOLLOW_UP_LABELS[item.kind]}</span>
             <LocalTime value={item.dueAt} />
-            <span className={cn(item.status === 'failed' && 'text-red-300', item.status === 'done' && 'text-emerald-300')}>
+            <span
+              className={cn(
+                item.status === 'failed' && 'text-red-300',
+                item.status === 'done' && 'text-emerald-300'
+              )}
+            >
               {FOLLOW_UP_STATUS[item.status]}
               {item.failureCode && item.status !== 'done' ? ` (${item.failureCode})` : ''}
             </span>
@@ -284,7 +375,13 @@ function FollowUps({ busy, onStop, post }: { busy: boolean; onStop?: () => void;
 }
 
 /** Say what the platform shows for a post of unknown outcome. Nothing is sent to it. */
-function Reconcile({ busy, onSettle }: { busy: boolean; onSettle: (live: boolean, url: string) => void }) {
+function Reconcile({
+  busy,
+  onSettle,
+}: {
+  busy: boolean
+  onSettle: (live: boolean, url: string) => void
+}) {
   const [url, setUrl] = React.useState('')
   return (
     <Popover>

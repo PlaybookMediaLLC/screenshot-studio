@@ -2,10 +2,13 @@ package tenantpublishing
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
 
@@ -91,19 +94,40 @@ func (p *Publisher) Automate(ctx context.Context, input socialapi.AutomationInpu
 		id, err := replies.ReplyTo(ctx, account, post, input.Text)
 		return socialapi.AutomationResult{Done: err == nil, RemoteID: id}, err
 	case "quote":
-		link := ""
-		if input.Platform == "x" {
-			link = "https://x.com/i/status/" + post
+		settings, err = nativeQuoteSettings(input.Platform, settings, post)
+		if err != nil {
+			return socialapi.AutomationResult{}, err
 		}
 		posted, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
-			ID: post + "-quote", Message: strings.TrimSpace(input.Text + " " + link), Settings: settings,
+			ID: post + "-quote", Message: strings.TrimSpace(input.Text), Settings: settings,
 		}}, account)
 		if err != nil {
 			return socialapi.AutomationResult{}, err
 		}
+		if firstPostID(posted) == "" {
+			return socialapi.AutomationResult{}, temporalx.UnknownDelivery(input.Platform, "The provider returned no quote receipt. Reconcile before resending.")
+		}
 		return socialapi.AutomationResult{Done: true, RemoteID: firstPostID(posted)}, nil
 	}
 	return socialapi.AutomationResult{}, socialapi.ErrUnsupported
+}
+
+// Native quotes must carry the provider's reference, never a URL appended to
+// ordinary text. Unsupported providers fail before making any mutation.
+func nativeQuoteSettings(platform string, raw json.RawMessage, post string) (json.RawMessage, error) {
+	switch platform {
+	case "x", "linkedin", "linkedin-page", "bluesky", "mastodon", "mastodon-custom":
+	default:
+		return nil, socialapi.ErrUnsupported
+	}
+	if strings.TrimSpace(post) == "" {
+		return nil, socialapi.ErrUnsupported
+	}
+	var base map[string]any
+	if err := json.Unmarshal(raw, &base); err != nil {
+		return nil, err
+	}
+	return postSettings(platform, base, &postoptions.PublishOptions{QuoteRemoteID: post}, "")
 }
 
 func firstPostID(posted []integrations.PostResponse) string {

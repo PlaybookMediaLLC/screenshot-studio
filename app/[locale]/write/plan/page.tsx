@@ -20,9 +20,10 @@ export default async function WritePlanPage({
   const { locale } = await params
   const query = await searchParams
   const access = await requireDraftsPageAccess(locale, '/write/plan')
-  const [sets, preferences] = await Promise.all([
+  const [sets, preferences, advanced] = await Promise.all([
     listSocialSets(access.tenant),
     orNull(backendSDK(access.tenant).getUserPreferences()),
+    backendSDK(access.tenant).getFeatureDecision('content:scheduling-advanced'),
   ])
   return (
     <PlatformShell
@@ -38,6 +39,8 @@ export default async function WritePlanPage({
           initialZone={sets[0]?.timeZone ?? 'UTC'}
           initialWeekStart={preferences?.weekStart === 'sunday' ? 0 : 1}
           initialDay={query.day ?? query.week}
+          initialView={query.view}
+          advancedScheduling={advanced.allowed}
         />
       </div>
     </PlatformShell>

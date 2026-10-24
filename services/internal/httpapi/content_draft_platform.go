@@ -18,6 +18,8 @@ type ContentDraftPlatformStore interface {
 	NextQueueSlot(context.Context, product.Actor, string) (time.Time, error)
 	BestPostingTimes(context.Context, product.Actor, string) ([]product.BestTime, error)
 	MoveContentDraftPost(context.Context, product.Actor, string, time.Time) (*product.MovedDraftPost, error)
+	SwapContentDraftPosts(context.Context, product.Actor, string, string) ([]*product.MovedDraftPost, error)
+	PublishQueuedContentDraftPost(context.Context, product.Actor, string) (*product.MovedDraftPost, error)
 	ResumeContentDraftThread(context.Context, product.Actor, string) (*product.MovedDraftPost, error)
 	ListContentDraftPostsBetween(context.Context, product.Actor, time.Time, time.Time, string) ([]product.CalendarPost, error)
 	ReviewContentDraft(context.Context, product.Actor, string, product.ContentDraftReviewInput) (*product.ContentDraftRecord, error)
@@ -37,6 +39,8 @@ func (s *Server) registerContentDraftPlatform(mux *http.ServeMux) {
 	mux.Handle("GET /v1/content-draft-queue/best-times", s.authenticateProduct(http.HandlerFunc(s.bestPostingTimes)))
 	mux.Handle("GET /v1/content-draft-posts", s.authenticateProduct(http.HandlerFunc(s.listContentDraftPostsBetween)))
 	mux.Handle("POST /v1/content-draft-posts/{id}/move", s.authenticateProduct(http.HandlerFunc(s.moveContentDraftPost)))
+	mux.Handle("POST /v1/content-draft-posts/{id}/swap", s.authenticateProduct(http.HandlerFunc(s.swapContentDraftPosts)))
+	mux.Handle("POST /v1/content-draft-posts/{id}/publish-now", s.authenticateProduct(http.HandlerFunc(s.publishQueuedContentDraftPost)))
 	mux.Handle("POST /v1/content-draft-posts/{id}/resume", s.authenticateProduct(http.HandlerFunc(s.resumeContentDraftThread)))
 	mux.Handle("POST /v1/content-draft-posts/{id}/metrics", s.authenticateProduct(http.HandlerFunc(s.refreshDraftPostMetrics)))
 	mux.Handle("POST /v1/content-drafts/{id}/review", s.authenticateProduct(http.HandlerFunc(s.reviewContentDraft)))
@@ -127,6 +131,22 @@ func (s *Server) startMovedPost(w http.ResponseWriter, r *http.Request, moved *p
 	return true
 }
 
+func (s *Server) publishQueuedContentDraftPost(w http.ResponseWriter, r *http.Request) {
+	id, ok := contentDraftID(w, r)
+	if !ok {
+		return
+	}
+	result, err := s.configuration.PublishQueuedContentDraftPost(r.Context(), workspaceActor(r), id)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	// A replay of an already executing or completed commitment never restarts it.
+	if result.Post.Status != "SCHEDULED" || s.startMovedPost(w, r, result) {
+		writeJSON(w, http.StatusOK, result)
+	}
+}
+
 func (s *Server) moveContentDraftPost(w http.ResponseWriter, r *http.Request) {
 	id, ok := contentDraftID(w, r)
 	if !ok {
@@ -147,6 +167,33 @@ func (s *Server) moveContentDraftPost(w http.ResponseWriter, r *http.Request) {
 	if s.startMovedPost(w, r, moved) {
 		writeJSON(w, http.StatusOK, moved)
 	}
+}
+
+func (s *Server) swapContentDraftPosts(w http.ResponseWriter, r *http.Request) {
+	id, ok := contentDraftID(w, r)
+	if !ok {
+		return
+	}
+	var input struct {
+		WithID string `json:"withId"`
+	}
+	if err := decodeJSON(r, &input); err != nil || !resourceIDPattern.MatchString(input.WithID) {
+		writeError(w, http.StatusBadRequest, "invalid swap target")
+		return
+	}
+	moved, err := s.configuration.SwapContentDraftPosts(r.Context(), workspaceActor(r), id, input.WithID)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	posts := make([]product.ContentDraftPost, 0, len(moved))
+	for _, item := range moved {
+		if !s.startMovedPost(w, r, item) {
+			return
+		}
+		posts = append(posts, item.Post)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"posts": posts})
 }
 
 func (s *Server) resumeContentDraftThread(w http.ResponseWriter, r *http.Request) {

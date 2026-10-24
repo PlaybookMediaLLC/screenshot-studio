@@ -169,7 +169,10 @@ func TestAutoRepostPost(t *testing.T) {
 	plugDelay = 0
 	calls := serve(t, map[string]http.HandlerFunc{
 		"GET /v2/socialActions/urn:li:share:9": jsonReply(map[string]any{"likesSummary": map[string]any{"totalLikes": 10}}),
-		"POST /rest/posts":                     func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusCreated) },
+		"POST /rest/posts": func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("x-restli-id", "urn:li:share:10")
+			w.WriteHeader(http.StatusCreated)
+		},
 	})
 	integration := &ent.Integration{InternalID: "42", Token: "tok"}
 	if fired, err := New().AutoRepostPost(context.Background(), integration, "urn:li:share:9", map[string]string{"likesAmount": "11"}); err != nil || fired {

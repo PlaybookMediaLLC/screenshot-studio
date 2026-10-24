@@ -504,7 +504,7 @@ func TestEntitlementRefusalMatchesREST(t *testing.T) {
 	f := newFixture(t)
 	body, isError := f.call(f.session("free"), "listReleases", map[string]any{})
 	refusedWith(t, "listReleases", body, isError, "workspace_feature_not_entitled")
-	if body["status"] != float64(403) || body["feature"] != "workspace:use" || body["currentPlan"] != "free" ||
+	if body["status"] != float64(403) || body["feature"] != "workspace:paid" || body["currentPlan"] != "free" ||
 		body["requiredPlan"] != "pro" {
 		t.Fatalf("free workspace: %v", body)
 	}

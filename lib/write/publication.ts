@@ -1,9 +1,11 @@
+import { articleContent } from '@/lib/write/article'
 import type { Engagement } from 'screenshot-studio-backend-sdk'
 import { z } from 'zod'
 import {
   type BlockImages,
   type SerializedCaption,
   type SerializedPost,
+  POST_BREAK,
   serializeDraft,
 } from '@/lib/content-drafts/serialize'
 import { engagementAutomation } from '@/lib/write/automation'
@@ -23,7 +25,9 @@ import {
   type PlateBody,
   type PlatformVersions,
   type PostSettings,
+  postSettingsSchema,
   replySettingsSchema,
+  linkPreviewSchema,
 } from '@/lib/write/document'
 import { bodyFor, groupSettings, versionFor } from '@/lib/write/versions'
 
@@ -36,9 +40,14 @@ import { bodyFor, groupSettings, versionFor } from '@/lib/write/versions'
 
 /** A post's settings as the backend stores them on a scheduled post. */
 export const publishOptionsSchema = z.object({
-  taggedUserIds: z.array(z.string().regex(/^\d{1,19}$/)).max(10).optional(),
+  linkPreview: linkPreviewSchema.optional(),
+  taggedUserIds: z
+    .array(z.string().regex(/^\d{1,19}$/))
+    .max(10)
+    .optional(),
   articleCoverAssetId: z.string().optional(),
   articleTitle: z.string().optional(),
+  articleHtml: z.string().max(400_000).optional(),
   communityId: z.string().optional(),
   documentAssetId: z.string().optional(),
   documentTitle: z.string().optional(),
@@ -64,8 +73,13 @@ export type PublicationTarget = {
   options?: PublishOptions
   /** X follow-ups once live (Auto-RT, Auto-Plug). */
   autoActions?: Automation
-  poll?: { durationMinutes: number; options: string[] }
-  replies?: { assetIds: string[]; caption: string; options?: PublishOptions }[]
+  poll?: { durationMinutes: number; options: string[]; multiple?: boolean }
+  replies?: {
+    assetIds: string[]
+    caption: string
+    options?: PublishOptions
+    poll?: { durationMinutes: number; options: string[]; multiple?: boolean }
+  }[]
   replyTo?: string
 }
 
@@ -116,7 +130,8 @@ function postOptions(
     if (settings.disclosures?.madeWithAi) options.madeWithAi = true
     if (settings.disclosures?.paidPartnership) options.paidPartnership = true
   }
-  if (channel === 'x' && settings.quoteFirstPost && !first) options.quoteFirstPost = true
+  if (['x', 'bluesky', 'mastodon'].includes(channel) && settings.quoteFirstPost && !first)
+    options.quoteFirstPost = true
   return options
 }
 
@@ -145,7 +160,8 @@ export function activeAutomation(automation: Automation | undefined): Automation
 /** Options without empty fields, or undefined when nothing is set. */
 function compact(options: PublishOptions): PublishOptions | undefined {
   const entries = Object.entries(options).filter(
-    ([, value]) => value !== undefined && value !== '' && value !== false
+    ([key, value]) =>
+      value !== undefined && value !== '' && (value !== false || key === 'shareWithFollowers')
   )
   return entries.length > 0 ? (Object.fromEntries(entries) as PublishOptions) : undefined
 }
@@ -155,16 +171,18 @@ function firstPoll(
   channel: DraftChannel,
   settings: PostSettings | undefined,
   first: SerializedPost | undefined,
-  media: number
+  media: number,
+  standing?: AccountStanding
 ): { poll?: PublicationTarget['poll']; problems: string[]; question?: string } {
   const poll = settings?.poll
   if (!poll) return { problems: [] }
-  const problems = pollProblems(channel, poll, media)
+  const problems = pollProblems(channel, poll, media, standing)
   if (channel === 'x' && !first?.caption.trim())
     problems.push('An X poll asks the post’s text: write the question.')
   return {
     poll: {
       durationMinutes: poll.durationMinutes,
+      ...(poll.multiple ? { multiple: true } : {}),
       options: poll.options.map((option) => option.trim()),
     },
     problems,
@@ -191,35 +209,75 @@ export function buildPublication(
   const settings = serialized.posts.map((post) => groups[post.group] ?? {})
   const [first, ...rest] = serialized.posts
   const problems = [...serialized.errors]
+  // Tolerant editor readers may omit malformed settings, but publishing must
+  // never turn an invalid poll or audience selection into an ordinary post.
+  body.forEach((node, index) => {
+    if (node.type === POST_BREAK && !postSettingsSchema.safeParse(node).success)
+      problems.push(`Check the post settings at block ${index + 1} before publishing.`)
+  })
   const availability = kindAvailability(channel, draft.kind, account.standing)
   if (!availability.available) problems.push(availability.reason)
-  if (channel === 'x' && settings.some((setting, index) => index > 0 && setting.quoteFirstPost)) {
+  if (
+    ['x', 'mastodon'].includes(channel) &&
+    (settings.some((setting, index) => index > 0 && setting.quoteFirstPost) ||
+      (channel === 'x' && Boolean(options.automation?.quoteAfterHours)))
+  ) {
     const quote = kindAvailability(channel, 'quote', account.standing)
     if (!quote.available) problems.push(quote.reason)
   }
 
+  const cardFor = (caption: string, media: number) => {
+    const card = options.linkPreviews?.find((card) => caption.includes(card.url))
+    if (!card) return undefined
+    if (card.removed && channel !== 'bluesky')
+      problems.push('This provider has no verified API control for link preview removal.')
+    if (channel !== 'bluesky') return undefined
+    if (!card.removed && media > 0)
+      problems.push('Remove the link preview or media before publishing to Bluesky.')
+    return card
+  }
   const documentMedia = channel === 'linkedin' && options.document ? 1 : 0
   if (documentMedia && (first?.images ?? 0) > 0) {
     problems.push('A LinkedIn document goes alone: remove the images or the document.')
   }
-  const poll = firstPoll(channel, settings[0], first, (first?.images ?? 0) + documentMedia)
+  const poll = firstPoll(
+    channel,
+    settings[0],
+    first,
+    (first?.images ?? 0) + documentMedia,
+    account.standing
+  )
   problems.push(...poll.problems)
+  if (channel === 'linkedin' && draft.kind === 'quote' && settings[0]?.poll)
+    problems.push('A LinkedIn reshare cannot contain a poll.')
 
-  const photoTags = (post: SerializedPost | undefined): string[] => [...new Set(post?.media.flatMap((media) => media.photoTags.map((tag) => tag.providerId)) ?? [])]
+  const photoTags = (post: SerializedPost | undefined): string[] => [
+    ...new Set(post?.media.flatMap((media) => media.photoTags.map((tag) => tag.providerId)) ?? []),
+  ]
   for (const post of serialized.posts) {
     const tags = photoTags(post)
     if (!tags.length) continue
-    if (channel !== 'x') problems.push('Photo tags are native X metadata. Remove the tags in this platform version before publishing.')
-    if (tags.length > 10 || tags.some((id) => !/^\d{1,19}$/.test(id))) problems.push('Choose up to ten distinct X accounts for photo tags.')
-    if (post.media.some((media) => media.kind !== 'image')) problems.push('Photo tags require static images, without GIFs or video.')
-    if (process.env.NEXT_PUBLIC_PLATFORM_X_PHOTO_TAGS !== 'true') problems.push('Native X photo tagging is awaiting authorized account verification on this installation.')
+    if (channel !== 'x')
+      problems.push(
+        'Photo tags are native X metadata. Remove the tags in this platform version before publishing.'
+      )
+    if (tags.length > 10 || tags.some((id) => !/^\d{1,19}$/.test(id)))
+      problems.push('Choose up to ten distinct X accounts for photo tags.')
+    if (post.media.some((media) => media.kind !== 'image'))
+      problems.push('Photo tags require static images, without GIFs or video.')
+    if (process.env.NEXT_PUBLIC_PLATFORM_X_PHOTO_TAGS !== 'true')
+      problems.push(
+        'Native X photo tagging is awaiting authorized account verification on this installation.'
+      )
   }
   const firstOptions: PublishOptions = { ...postOptions(channel, settings[0] ?? {}, true) }
   if (channel === 'x' && photoTags(first).length) firstOptions.taggedUserIds = photoTags(first)
   if (channel === 'x' && options.community) {
     firstOptions.communityId = options.community.id
-    firstOptions.shareWithFollowers = options.community.shareWithFollowers ?? false
+    firstOptions.shareWithFollowers = options.community.shareWithFollowers ?? true
   }
+  const firstCard = cardFor(first?.caption ?? '', (first?.images ?? 0) + (first?.videos ?? 0))
+  if (firstCard) firstOptions.linkPreview = firstCard
   if (channel === 'linkedin') {
     if (options.visibility) firstOptions.visibility = options.visibility
     if (options.firstComment?.trim()) firstOptions.firstComment = options.firstComment.trim()
@@ -249,6 +307,14 @@ export function buildPublication(
       )
   }
   if (article) {
+    const rich = articleContent(body)
+    firstOptions.articleHtml = rich.html
+    problems.push(...rich.problems)
+    serialized.degradations = serialized.degradations.filter(
+      (item) => !['formatting', 'embed'].includes(item.kind)
+    )
+    if (serialized.posts.length > 1)
+      problems.push('An article has one body. Remove thread breaks before publishing.')
     if (!draft.article?.title.trim()) problems.push('Give the article a title.')
     firstOptions.articleTitle = draft.article?.title.trim()
     firstOptions.articleCoverAssetId = draft.article?.coverAssetId
@@ -264,11 +330,28 @@ export function buildPublication(
     ...(rest.length > 0
       ? {
           replies: rest.map((post, index) => {
-            const replyOptions = compact({ ...postOptions(channel, settings[index + 1] ?? {}, false), ...(channel === "x" && photoTags(post).length ? { taggedUserIds: photoTags(post) } : {}) })
+            const replyOptions = compact({
+              ...(channel === 'x' && photoTags(post).length
+                ? { taggedUserIds: photoTags(post) }
+                : {}),
+              ...postOptions(channel, settings[index + 1] ?? {}, false),
+              ...(cardFor(post.caption, post.images + post.videos)
+                ? { linkPreview: cardFor(post.caption, post.images + post.videos) }
+                : {}),
+            })
+            const replyPoll = firstPoll(
+              channel,
+              settings[index + 1],
+              post,
+              post.images,
+              account.standing
+            )
+            problems.push(...replyPoll.problems.map((problem) => `Post ${index + 2}: ${problem}`))
             return {
               assetIds: post.assetIds,
               caption: post.caption,
               ...(replyOptions ? { options: replyOptions } : {}),
+              ...(replyPoll.poll ? { poll: replyPoll.poll } : {}),
             }
           }),
         }

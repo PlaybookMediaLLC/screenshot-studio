@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { expect, type Page } from '@playwright/test'
 import { z } from 'zod'
-import { getE2EUrl } from './auth'
+import { signUpViaApi, getE2EUrl } from './auth'
 import type { E2EIdentity } from './flow'
 import { createE2EDatabase, grantWorkspacePlan } from './services'
 import { getTotpCode } from './totp'
@@ -107,23 +107,13 @@ export async function uploadSignedAsset(
 }
 
 export async function createPublishingWorkspace(identity: E2EIdentity, page: Page): Promise<void> {
-  const signup = await apiRequest(page, '/api/auth/sign-up/email', {
-    body: { email: identity.email, name: identity.name, password: identity.password },
-    method: 'POST',
-  })
-  expect(signup.status, JSON.stringify(signup.body)).toBe(200)
-  // Production sign-up does not establish a session automatically.
-  const signedIn = await apiRequest(page, '/api/auth/sign-in/email', {
-    body: { email: identity.email, password: identity.password },
-    method: 'POST',
-  })
-  expect(signedIn.status, JSON.stringify(signedIn.body)).toBe(200)
+  await signUpViaApi(identity, page)
   const workspace = await trpcMutation(page, 'workspace.create', {
     name: identity.workspaceName,
     slug: identity.workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
   })
   expect(workspace.status).toBe(200)
-  // There is no free plan; publishing needs an active subscription.
+  // Publishing fixtures default to Pro; free-tier cases explicitly replace this plan.
   await grantWorkspacePlan(await getActiveOrganizationId(page), 'pro')
 }
 

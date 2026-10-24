@@ -341,8 +341,11 @@ func multipartForm(pairs ...string) ([]byte, string) {
 	return buf.Bytes(), w.FormDataContentType()
 }
 
-func (p *Provider) createTextContent(ctx context.Context, userID, accessToken, message, replyToID, quoteID string) (string, error) {
+func (p *Provider) createTextContent(ctx context.Context, userID, accessToken, message, replyToID, quoteID string, poll string) (string, error) {
 	pairs := []string{"media_type", "TEXT", "text", message, "access_token", accessToken}
+	if poll != "" {
+		pairs = append(pairs, "poll_attachment", poll)
+	}
 	if replyToID != "" {
 		pairs = append(pairs, "reply_to_id", replyToID)
 	}
@@ -375,10 +378,14 @@ func (p *Provider) publishThread(ctx context.Context, userID, accessToken, creat
 }
 
 func (p *Provider) createThreadContent(ctx context.Context, userID, accessToken string, post integrations.PostDetails, replyToID, quoteID string) (string, error) {
+	poll, err := pollAttachment(post)
+	if err != nil {
+		return "", err
+	}
 	switch len(post.Media) {
 	case 0:
 		// Text-only content
-		return p.createTextContent(ctx, userID, accessToken, post.Message, replyToID, quoteID)
+		return p.createTextContent(ctx, userID, accessToken, post.Message, replyToID, quoteID, poll)
 	case 1:
 		// Single media content
 		return p.createSingleMediaContent(ctx, userID, accessToken, post.Media[0], post.Message, false, replyToID)
@@ -430,6 +437,10 @@ func (p *Provider) PostPending(ctx context.Context, userID, accessToken string, 
 		return []integrations.PostResponse{}, nil
 	}
 	firstPost := posts[0]
+	poll, pollErr := pollAttachment(firstPost)
+	if pollErr != nil {
+		return nil, pollErr
+	}
 
 	// Carousels: only create the child containers here, the carousel container
 	// itself is created by finalizePost once the children are processed.
@@ -456,7 +467,7 @@ func (p *Provider) PostPending(ctx context.Context, userID, accessToken string, 
 		err         error
 	)
 	if len(firstPost.Media) == 0 {
-		containerID, err = p.createTextContent(ctx, userID, accessToken, firstPost.Message, "", "")
+		containerID, err = p.createTextContent(ctx, userID, accessToken, firstPost.Message, "", "", poll)
 	} else {
 		containerID, err = p.createSingleMediaContent(ctx, userID, accessToken, firstPost.Media[0], firstPost.Message, false, "")
 	}

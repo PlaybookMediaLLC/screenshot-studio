@@ -112,7 +112,7 @@ export const WORKFLOW_ACTIONS = {
     minSchemaVersion: 2,
     permission: ADMIN,
     integrations: ['Release screenshots or a product capture', 'Canvas builder on the web'],
-    entitlement: 'workspace:use',
+    entitlement: 'workspace:paid',
     retry: 'Up to 3 attempts, 5 minutes each. A retry finds the canvas this run already made.',
     paid: false,
     humanApproval: false,

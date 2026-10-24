@@ -325,3 +325,34 @@ func TestCommentRechecksSubscriptionAfterMediaUpload(t *testing.T) {
 		t.Fatalf("reply did not recheck after upload: %v, %d reads, %d calls", err, reads.Load(), len(*calls))
 	}
 }
+
+func TestEnterpriseQuoteUsesNativeReferenceAndRevocationStopsScheduledWork(t *testing.T) {
+	t.Setenv("PLATFORM_X_ENTERPRISE_QUOTES_ENABLED", "true")
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
+		if r.path != "/2/tweets" {
+			t.Errorf("unexpected endpoint %s", r.path)
+		}
+		var body map[string]any
+		if err := json.Unmarshal(r.body, &body); err != nil {
+			t.Fatal(err)
+		}
+		if body["quote_tweet_id"] != "42" || body["text"] != "A native quote" {
+			t.Errorf("body=%s", r.body)
+		}
+		return 201, `{"data":{"id":"123456"}}`
+	})
+	defer done()
+	settings := pendingSettings{QuoteTweetID: ptr("42")}
+	_, err := New().FinalizePost(context.Background(), "a:b", marshal(pendingData{Message: "A native quote", Settings: settings, Attempting: true, Confirmed: true}), publishingAccount())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(*calls) != 2 {
+		t.Fatalf("calls=%+v", *calls)
+	}
+	t.Setenv("PLATFORM_X_ENTERPRISE_QUOTES_ENABLED", "")
+	_, err = New().FinalizePost(context.Background(), "a:b", marshal(pendingData{Message: "A native quote", Settings: settings, Attempting: true, Confirmed: true}), publishingAccount())
+	if temporalx.FailureType(err) != temporalx.TypeBadBody || len(*calls) != 3 {
+		t.Fatalf("revoked scheduled quote mutated: calls=%+v err=%v", *calls, err)
+	}
+}

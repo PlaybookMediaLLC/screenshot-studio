@@ -50,9 +50,10 @@ export const writeExperimentSchema = z.enum(['draft-tags'])
 /** Load the library for a Write page. */
 export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<string, unknown>) {
   const query = writeQuerySchema.parse(rawQuery)
-  const [sets, experimentList] = await Promise.all([
+  const [sets, experimentList, advanced] = await Promise.all([
     listSocialSets(tenant),
     orNull(backendSDK(tenant).listExperiments()),
+    backendSDK(tenant).getFeatureDecision('content:scheduling-advanced'),
   ])
   const enabled = (id: z.infer<typeof writeExperimentSchema>) =>
     experimentList?.items.some((item) => item.id === id && item.enabled) ?? false
@@ -79,7 +80,9 @@ export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<str
     listPlannedContentDrafts(tenant, now, horizon, activeSet?.id),
     activeSet && experiments.tags ? listDraftTags(tenant, activeSet.id) : Promise.resolve([]),
   ])
-  const library = [...page.pinned, ...page.items].map((draft) => libraryDraft(contentDraftSchema.parse(draft)))
+  const library = [...page.pinned, ...page.items].map((draft) =>
+    libraryDraft(contentDraftSchema.parse(draft))
+  )
   const queue = [
     ...posts
       .filter((post) => post.status === 'SCHEDULED' || post.status === 'PROCESSING')
@@ -102,6 +105,7 @@ export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<str
   ].sort((a, b) => a.at.localeCompare(b.at))
   return {
     activeSet: activeSet ?? null,
+    advancedScheduling: advanced.allowed,
     experiments,
     library,
     hasMore: page.nextCursor !== null,

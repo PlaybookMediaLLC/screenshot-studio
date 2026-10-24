@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
 /**
- * Workspace plans. There is no free plan: `free` is the state of a workspace
- * without a subscription, and it has no features and no allowances.
+ * Workspace plans. Free includes basic text/link scheduling for one account;
+ * paid plans add media, AI, automation and advanced queue controls.
  */
 export const workspacePlanSchema = z.enum(['free', 'pro', 'business', 'enterprise'])
 export type WorkspacePlan = z.infer<typeof workspacePlanSchema>
@@ -13,7 +13,7 @@ export const checkoutPlanSchema = workspacePlanSchema.extract(['pro', 'business'
 /** How often a self-serve plan is billed. */
 export const billingIntervalSchema = z.enum(['monthly', 'annual'])
 
-/** One-time AI credit packs a workspace can buy on any plan. */
+/** One-time AI credit packs a workspace can buy on a paid plan. */
 export const creditPackSchema = z.enum(['launch'])
 
 /**
@@ -36,6 +36,8 @@ export const workspaceFeatureSchema = z.enum([
   'source-app:create',
   // Using the product at all: the editor, the tools, and the API.
   'workspace:use',
+  'workspace:paid',
+  'content:scheduling-advanced',
   'enterprise:audit-drain',
   'enterprise:sso',
   'enterprise:scim',
@@ -74,7 +76,7 @@ export const featureOverrideSchema = z
   .default({})
 
 const planFeatures = {
-  free: [],
+  free: ['workspace:use', 'content:drafts'],
   pro: [
     'asset:create',
     'asset:read',
@@ -83,6 +85,8 @@ const planFeatures = {
     'release:create',
     'source-app:create',
     'workspace:use',
+    'workspace:paid',
+    'content:scheduling-advanced',
     'campaign:workflow',
     'content:drafts',
     'onboarding:agent',
@@ -95,6 +99,8 @@ const planFeatures = {
     'release:create',
     'source-app:create',
     'workspace:use',
+    'workspace:paid',
+    'content:scheduling-advanced',
     'campaign:workflow',
     'content:drafts',
     'onboarding:agent',
@@ -107,6 +113,8 @@ const planFeatures = {
     'release:create',
     'source-app:create',
     'workspace:use',
+    'workspace:paid',
+    'content:scheduling-advanced',
     'enterprise:audit-drain',
     'enterprise:sso',
     'enterprise:scim',
@@ -123,12 +131,14 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
   'asset:delete': 'pro',
   'release:create': 'pro',
   'source-app:create': 'pro',
-  'workspace:use': 'pro',
+  'workspace:use': 'free',
+  'workspace:paid': 'pro',
+  'content:scheduling-advanced': 'pro',
   'enterprise:audit-drain': 'enterprise',
   'enterprise:sso': 'enterprise',
   'enterprise:scim': 'enterprise',
   'campaign:workflow': 'pro',
-  'content:drafts': 'pro',
+  'content:drafts': 'free',
   'onboarding:agent': 'pro',
 }
 
@@ -136,10 +146,10 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
 const planQuotas = {
   free: {
     'ai:credits:monthly': 0,
-    'api:write:minute': 0,
+    'api:write:minute': 60,
     'emails:monthly': 0,
     'jobs:concurrent': 0,
-    'posts:monthly': 0,
+    'posts:monthly': 10,
     'storage:bytes': 0,
   },
   pro: {
@@ -173,7 +183,7 @@ const planQuotas = {
  * unlimited. A pending invitation holds a seat; only active social channels count.
  */
 const planLimits = {
-  free: { channels: 0, seats: 1 },
+  free: { channels: 1, seats: 1 },
   pro: { channels: 3, seats: 5 },
   business: { channels: 15, seats: 20 },
   enterprise: { channels: null, seats: null },
@@ -210,13 +220,15 @@ export function evaluateWorkspaceFeature(
   feature: WorkspaceFeature,
   now = new Date()
 ): WorkspaceFeatureDecision {
-  const currentPlan = workspacePlanSchema.catch('free').parse(entitlement?.plan)
+  const parsedPlan = workspacePlanSchema.safeParse(entitlement?.plan)
+  const currentPlan = parsedPlan.success ? parsedPlan.data : 'free'
   const overrides = featureOverrideSchema.catch({}).parse(entitlement?.featureOverrides)
   const isCurrent = !entitlement?.validUntil || entitlement.validUntil > now
   const isInBillingGrace =
     entitlement?.status === 'past_due' && !!entitlement.graceUntil && entitlement.graceUntil > now
   const isActive = entitlement
-    ? (entitlement.status === 'active' || entitlement.status === 'trialing' || isInBillingGrace) &&
+    ? parsedPlan.success &&
+      (entitlement.status === 'active' || entitlement.status === 'trialing' || isInBillingGrace) &&
       isCurrent
     : true
 

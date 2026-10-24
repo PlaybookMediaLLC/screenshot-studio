@@ -108,7 +108,7 @@ export function memberAccess(
     const access = sensitive
       ? await requireSensitiveActiveOrganizationPermission(request.headers, permission)
       : await requireActiveOrganizationPermission(request.headers, permission)
-    // There is no free plan: every tenant operation needs an active subscription.
+    // Basic workspace access precedes the operation-specific feature gate.
     await requireWorkspaceFeature(access, 'workspace:use')
     if (feature) await requireWorkspaceFeature(access, feature)
     if (quota) await consumeWorkspaceQuota(access, quota)
@@ -129,7 +129,7 @@ export function paidSessionAccess(
     const access = options.sensitive
       ? await requireSensitiveActiveOrganizationPermission(request.headers, permission)
       : await requireActiveOrganizationPermission(request.headers, permission)
-    await requireWorkspaceFeature(access, 'workspace:use')
+    await requireWorkspaceFeature(access, 'workspace:paid')
     return access
   }
 }

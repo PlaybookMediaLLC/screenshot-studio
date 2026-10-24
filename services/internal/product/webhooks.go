@@ -103,7 +103,7 @@ func (c *Configuration) authorizeWebhooks(ctx context.Context, actor Actor) erro
 	if err := c.authorizeDecision(ctx, actor, "owner", "admin"); err != nil {
 		return err
 	}
-	return c.requireWorkspaceFeature(ctx, actor.OrganizationID, "workspace:use")
+	return c.requireWorkspaceFeature(ctx, actor.OrganizationID, "workspace:paid")
 }
 
 func webhookRecord(row *ent.WebhookSubscription) WebhookRecord {

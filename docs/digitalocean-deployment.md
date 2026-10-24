@@ -96,6 +96,11 @@ components and credentials.
 
 ## Releases
 
+Work reaches `main` through an intentional release PR from `develop`, merged
+with a merge commit. Ordinary work and release-preparation PRs target `develop`.
+See [branching and releases](branching-and-releases.md). A push to `develop`
+runs validation and release preparation without deploying production.
+
 Every push to `main` deploys what it changed:
 
 1. `Social backend image` runs when the commit changes the backend. It

@@ -24,12 +24,12 @@ function readableDay(key: string, options: Intl.DateTimeFormatOptions): string {
 export type PlannedDraft = { at: string; caption: string; draftId: string; title: string }
 
 /**
- * A week of draft posts in the social set's scheduling time zone (RFC 043):
+ * A week of draft posts in the social set's scheduling time zone (RFC 024):
  * each day's posts in time order, the same for every reader. A queued post
  * drags to another day and keeps its time of day there; live posts stay put.
  * Moving the view's first weekday changes only how the week is drawn.
  * Planned drafts show dashed: they hold a time but publish nothing until
- * scheduled (RFC 042).
+ * scheduled (RFC 025).
  */
 export function DraftCalendar({
   canMove,

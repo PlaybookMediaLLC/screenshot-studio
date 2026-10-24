@@ -1,5 +1,5 @@
 /**
- * Wall-clock dates in a named time zone, without a date library (RFC 043).
+ * Wall-clock dates in a named time zone, without a date library (RFC 024).
  * A social set's calendar lays its days out in the set's scheduling zone,
  * whatever zone the reader's browser is in. The rule for clocks that skip or
  * repeat a time matches the backend's queue (resolveWallTime in Go).

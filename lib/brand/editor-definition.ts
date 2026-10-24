@@ -5,7 +5,7 @@ import { isGoogleFontId } from '@/lib/typography/google-fonts'
 
 /**
  * The editor's part of a brand kit definition: everything a kit carries
- * beyond its canonical colours, catalog fonts, and primary logo (RFC 011).
+ * beyond its canonical colours, catalog fonts, and primary logo (RFC 019).
  * It is stored as the definition's `editor` block, which the backend keeps
  * as sent and whose workspace images it checks.
  */

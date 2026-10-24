@@ -5,7 +5,7 @@ description: Test a Screenshot Studio release from intake through branded draft,
 
 # Test Release Workflow
 
-Read RFC 005, RFC 006, and RFC 007. Test one complete release story, not a set
+Read RFC 015, RFC 011, and RFC 035. Test one complete release story, not a set
 of disconnected endpoints.
 
 ## Canonical scenario

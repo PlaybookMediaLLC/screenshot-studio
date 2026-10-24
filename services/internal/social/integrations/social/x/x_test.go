@@ -446,7 +446,7 @@ func TestAPIErrorJSON(t *testing.T) {
 	}
 }
 
-// RFC 042 follow-ups: engagement reads public metrics (no 100-user cap), a
+// RFC 025 follow-ups: engagement reads public metrics (no 100-user cap), a
 // repost is removed by DELETE, and a plug reply returns its id.
 func TestFollowUps(t *testing.T) {
 	calls, done := fakePublishingX(t, func(r recorded) (int, string) {

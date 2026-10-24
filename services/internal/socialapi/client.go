@@ -43,7 +43,7 @@ type PublishInput struct {
 	// ReplyTo is the live post a resumed thread answers.
 	ReplyTo string
 	Poll    *postoptions.Poll
-	// Options are the post's settings beyond its text (RFC 042); Document is
+	// Options are the post's settings beyond its text (RFC 025); Document is
 	// a LinkedIn PDF and Cover an X article's cover.
 	Options          *postoptions.PublishOptions
 	Document         *publishing.MediaAsset
@@ -88,7 +88,7 @@ type AutoActionResult struct {
 	Reposted bool
 }
 
-// AutomationInput is one follow-up of a live post (RFC 042). Kind is a
+// AutomationInput is one follow-up of a live post (RFC 025). Kind is a
 // temporalpublishing step kind; Threshold and Metric gate a plug or a
 // like-gated repost; Text is a first comment, plug or quote.
 type AutomationInput struct {
@@ -398,7 +398,7 @@ func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error
 	if !ok || token == "" {
 		return "", &Error{message: "Social API credentials are unavailable"}
 	}
-	// A content draft post without an image publishes as text (RFC 037).
+	// A content draft post without an image publishes as text (RFC 013).
 	images, err := c.uploadAll(ctx, token, input.OrganizationID, input.Media())
 	if err != nil {
 		return "", err

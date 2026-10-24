@@ -5,7 +5,7 @@ description: Add or change a Screenshot Studio social scheduling provider. Use f
 
 # Add Scheduler Provider
 
-Read RFC 005, RFC 006, and RFC 007. Add one provider adapter behind the shared
+Read RFC 015, RFC 011, and RFC 035. Add one provider adapter behind the shared
 connection, destination, distribution, and publication-attempt model.
 
 ## Capability-first design

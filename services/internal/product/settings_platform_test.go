@@ -10,7 +10,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
 )
 
-// RFC 043: daylight saving resolves the same way every time.
+// RFC 024: daylight saving resolves the same way every time.
 func TestResolveWallTimeAcrossDaylightSaving(t *testing.T) {
 	newYork, err := time.LoadLocation("America/New_York")
 	if err != nil {
@@ -37,7 +37,7 @@ func TestResolveWallTimeAcrossDaylightSaving(t *testing.T) {
 	}
 }
 
-// RFC 043: a slot template lists each enabled weekday and time once, and a
+// RFC 024: a slot template lists each enabled weekday and time once, and a
 // time zone change moves only future occurrences.
 func TestSlotTimesFollowTheSetTimeZone(t *testing.T) {
 	slots := []schema.QueueSlot{}
@@ -59,7 +59,7 @@ func TestSlotTimesFollowTheSetTimeZone(t *testing.T) {
 	}
 }
 
-// RFC 043: the natural offset is bounded and the same for the same intent.
+// RFC 024: the natural offset is bounded and the same for the same intent.
 func TestNaturalOffsetIsBoundedAndStable(t *testing.T) {
 	base := time.Date(2026, 11, 2, 17, 0, 0, 0, time.UTC)
 	seen := map[int]bool{}
@@ -103,7 +103,7 @@ func TestAccountHealth(t *testing.T) {
 	}
 }
 
-// RFC 043: a set refines the brand voice and never removes a brand rule.
+// RFC 024: a set refines the brand voice and never removes a brand rule.
 func TestWritingContextPrecedence(t *testing.T) {
 	brandProfile := &ent.BrandProfile{Tone: "Plain", Audience: "Finance leads",
 		ProhibitedTerms: []brand.ProhibitedTerm{{Term: "guaranteed"}}}

@@ -11,7 +11,7 @@ import {
 } from '@/lib/tenant/schemas'
 
 /**
- * Campaign contracts (RFC 018, RFC 019, RFC 038). Every operation needs the
+ * Campaign contracts (RFC 022, RFC 012, RFC 026). Every operation needs the
  * campaign workflow. API keys read with `artifact:read`, create drafts with
  * `release:create`, and schedule approved posts with `post:schedule`;
  * approving stays with a person.
@@ -20,7 +20,7 @@ import {
 /** Lifecycle states of a campaign. */
 export const campaignStatusSchema = z.enum(['DRAFT', 'READY_FOR_REVIEW', 'APPROVED', 'ARCHIVED'])
 
-/** Review and delivery states of a campaign post (RFC 019). */
+/** Review and delivery states of a campaign post (RFC 012). */
 export const campaignPostStatusSchema = z.enum([
   'DRAFT',
   'READY_FOR_REVIEW',

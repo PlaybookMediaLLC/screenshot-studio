@@ -3,7 +3,7 @@ import { domToBlob } from 'modern-screenshot'
 import type { BlockImages } from '@/lib/content-drafts/serialize'
 
 /**
- * Table and math blocks as images (RFC 037). Social channels take no tables
+ * Table and math blocks as images (RFC 013). Social channels take no tables
  * or LaTeX, so at scheduling the composer renders each block as it looks in
  * the editor, in body order, and stores it as a workspace asset. A block that
  * fails to render posts as text.

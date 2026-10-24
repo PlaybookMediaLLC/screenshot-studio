@@ -604,7 +604,7 @@ type ScriptedResult = {
 }
 
 /**
- * The campaign agent's script (RFC 017): read the product, brand, and the
+ * The campaign agent's script (RFC 028): read the product, brand, and the
  * pages that match the shipped feature; ask once when several match (and the
  * question tool is offered), otherwise create the campaign on the one match
  * or the homepage, draft it, and report with the assumptions stated. "Approve"
@@ -782,7 +782,7 @@ function scriptCaptions(text: string) {
 }
 
 /**
- * Write's Refine (RFC 042): one text per <text>, plainly changed, so a
+ * Write's Refine (RFC 025): one text per <text>, plainly changed, so a
  * test can tell the refinement from the original. A title is the first
  * words of the first text.
  */

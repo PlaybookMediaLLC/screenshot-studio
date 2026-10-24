@@ -45,7 +45,7 @@ type Orchestrator struct {
 	RunMaintenance            bool
 	AuditRetentionDatabaseURL string
 	AuditDrainEncryptionKey   []byte
-	// WebhookEncryptionKey seals outbound webhook secrets (RFC 043); without
+	// WebhookEncryptionKey seals outbound webhook secrets (RFC 024); without
 	// it outbound webhooks are unavailable.
 	WebhookEncryptionKey     []byte
 	ResendAPIKey             string

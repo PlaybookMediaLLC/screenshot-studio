@@ -23,7 +23,7 @@ func (f fakeResolver) LookupNetIP(_ context.Context, _, host string) ([]netip.Ad
 	return addresses, nil
 }
 
-// RFC 043: an endpoint must be HTTPS, carry no credentials and resolve only to
+// RFC 024: an endpoint must be HTTPS, carry no credentials and resolve only to
 // public addresses.
 func TestValidateEndpointRefusesUnsafeDestinations(t *testing.T) {
 	resolver := fakeResolver{

@@ -36,7 +36,7 @@ function go(page: DrawerPage | null) {
 }
 
 /**
- * Settings beside the composer (RFC 043). The drawer is part of the draft's
+ * Settings beside the composer (RFC 024). The drawer is part of the draft's
  * page, named in its address (`?settings=scheduling`), so opening it, moving
  * between its pages and closing it never unmounts the editor: unsaved text,
  * selection, media, channel text and comments stay as they were.

@@ -10,7 +10,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
 
-// automatingPoster is a provider with every follow-up (RFC 042).
+// automatingPoster is a provider with every follow-up (RFC 025).
 type automatingPoster struct {
 	fakePoster
 	actions        []string

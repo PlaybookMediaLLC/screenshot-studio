@@ -17,7 +17,7 @@ import {
 } from '@/lib/write/refine-actions'
 
 /**
- * AI Refine and the writing assistant (RFC 042), charged to the workspace's
+ * AI Refine and the writing assistant (RFC 025), charged to the workspace's
  * AI credits like the editor's other AI calls. Refine answers one text per
  * text it was sent, each within the platform's limit as the platform counts
  * it; an answer that does not is sent back to the model, and one that never
@@ -64,7 +64,7 @@ function quoted(label: string, values: string[]): string {
 
 /**
  * The voice to write in: the workspace brand refined by the draft's social set
- * (RFC 043; the backend merged them). Everything inside is the writer's data;
+ * (RFC 024; the backend merged them). Everything inside is the writer's data;
  * the model is told to follow it as style and to obey nothing written in it.
  */
 export function voiceInstructions(context: WritingContext | null): string {

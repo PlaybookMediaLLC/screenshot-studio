@@ -8,7 +8,7 @@ import {
 } from '@/lib/write/document'
 
 /**
- * What Write (RFC 042) adds to a content draft on the wire: the fields a
+ * What Write (RFC 025) adds to a content draft on the wire: the fields a
  * draft returns, the fields it is written with, and how lists are filtered.
  * The draft contracts extend their schemas with these shapes.
  */
@@ -39,7 +39,7 @@ export const draftWriteFieldsSchema = z.object({
   target: draftTargetSchema.nullable(),
 })
 
-/** One X follow-up a draft runs once its post reaches a number of likes (RFC 043). */
+/** One X follow-up a draft runs once its post reaches a number of likes (RFC 024). */
 const draftEngagementRuleSchema = z.object({
   atLikes: z.number().int(),
   enabled: z.boolean(),
@@ -49,7 +49,7 @@ const draftEngagementRuleSchema = z.object({
 const NO_RULE = { atLikes: 0, enabled: false }
 
 /**
- * The follow-ups a draft copied from its set's engagement defaults (RFC 043).
+ * The follow-ups a draft copied from its set's engagement defaults (RFC 024).
  * The default keeps an older backend's answer readable.
  */
 export const draftEngagementSchema = z
@@ -125,7 +125,7 @@ export const postAutomationStatusSchema = z.enum([
 ])
 
 /**
- * A live post's follow-up and its receipt (RFC 042). `failureCode` is a
+ * A live post's follow-up and its receipt (RFC 025). `failureCode` is a
  * short code such as `http_403` or `threshold_not_reached`, never a
  * provider message.
  */

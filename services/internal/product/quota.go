@@ -29,7 +29,7 @@ const (
 )
 
 // planQuotas mirrors lib/billing/plans.ts. The allowances hold a 75% gross
-// margin at half use (docs/rfcs/035-pricing-and-unit-economics.md).
+// margin at half use (docs/rfcs/023-pricing-and-unit-economics.md).
 var planQuotas = map[string]map[string]int{
 	// "free" means no subscription: every allowance is zero.
 	"free": {QuotaAPIWriteMinute: 0, QuotaJobsConcurrent: 0,

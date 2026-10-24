@@ -9,7 +9,7 @@ import { createRelease } from '@/lib/tenant/releases'
 import { getProductProfile, type StoredProductProfile } from '@/lib/tenant/product-profile'
 
 /**
- * Workflow 1's setup (docs/rfcs/021-core-workflows.md): from the confirmed
+ * Workflow 1's setup (docs/rfcs/048-core-workflows.md): from the confirmed
  * product profile, a product surface for the product's URL, a release brief
  * synthesized from the profile and citing the pages onboarding read, and a
  * launch campaign. The browser then runs spec, plan, and produce on it.

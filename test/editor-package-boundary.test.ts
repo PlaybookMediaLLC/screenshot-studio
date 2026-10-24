@@ -4,7 +4,7 @@ import { join, relative } from 'node:path'
 import test from 'node:test'
 
 /**
- * The vendored editor is a library (RFC 037). It reaches nothing the app owns:
+ * The vendored editor is a library (RFC 013). It reaches nothing the app owns:
  * no app module, no environment variable, no route of ours, no upload vendor.
  * Uploads, AI and collaboration arrive through `EditorServicesProvider` and
  * the collaboration config, so this scan keeps a coupling from creeping back

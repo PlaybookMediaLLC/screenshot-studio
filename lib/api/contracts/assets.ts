@@ -155,7 +155,7 @@ export const deleteAssetContract = defineContract({
   summary: 'Delete a workspace asset',
 })
 
-/** An image's description, posted with it as alt text (RFC 042). */
+/** An image's description, posted with it as alt text (RFC 025). */
 export const assetAltTextSchema = z.object({
   altText: z.string().nullable(),
   id: z.string(),

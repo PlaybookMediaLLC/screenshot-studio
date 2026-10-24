@@ -8,7 +8,7 @@ import { organizationProcedure } from '../procedures'
 import { allowAiAction } from './launch'
 
 /**
- * Conversations with the campaign agent (docs/rfcs/017-conversational-campaign-creation.md).
+ * Conversations with the campaign agent (docs/rfcs/028-conversational-campaign-creation.md).
  * Any member reads, starts, and sends; what a turn may do is the sender's
  * role, enforced per tool, so a viewer's turn reads and creates nothing.
  * Conversations and runs are workspace-scoped: another workspace's id is a 404.

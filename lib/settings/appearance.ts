@@ -4,7 +4,7 @@ import { routing } from '@/i18n/routing'
 import { navigationLayoutSchema } from '@/lib/api/contracts/settings-platform'
 
 /**
- * Appearance (RFC 043). The platform's pages follow a person's theme; the
+ * Appearance (RFC 024). The platform's pages follow a person's theme; the
  * marketing site keeps its dark design. Editor artwork has its own colors.
  */
 

@@ -12,7 +12,7 @@ import (
 )
 
 // ContentDraft is a post a user writes by hand in the document editor, keeps
-// as a draft, and schedules to one or more channels (RFC 037). Every write
+// as a draft, and schedules to one or more channels (RFC 013). Every write
 // bumps version, so a writer holding an older version is refused instead of
 // overwriting newer work.
 type ContentDraft struct{ ent.Schema }
@@ -47,7 +47,7 @@ func (ContentDraft) Fields() []ent.Field {
 		// Comments left through that link: name, text and when.
 		field.JSON("guest_comments", []map[string]string{}).StorageKey("guestComments").Default([]map[string]string{}),
 		field.Int("version").StorageKey("version").Default(1),
-		// The set the draft belongs to (RFC 043), and what it copied from the
+		// The set the draft belongs to (RFC 024), and what it copied from the
 		// set when it was created: copies, so changing the set's defaults
 		// never changes an existing draft.
 		field.String("social_set_id").StorageKey("socialSetId").Optional().Nillable(),
@@ -56,7 +56,7 @@ func (ContentDraft) Fields() []ent.Field {
 		field.JSON("engagement", Engagement{}).StorageKey("engagement").Default(Engagement{}),
 		// A calendar placement without scheduling: nothing publishes from it.
 		field.Time("planned_for").StorageKey("plannedFor").Optional().Nillable(),
-		// Write (RFC 042): standard (a post or thread), reply, quote, repurpose or article.
+		// Write (RFC 025): standard (a post or thread), reply, quote, repurpose or article.
 		field.Enum("kind").StorageKey("kind").Values("standard", "reply", "quote", "repurpose", "article").Default("standard").Immutable(),
 		// The post a reply answers or a quote embeds, or a repurposed draft's source.
 		field.JSON("target", &draftdoc.Target{}).StorageKey("target").Optional(),

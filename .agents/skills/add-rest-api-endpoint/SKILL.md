@@ -5,7 +5,7 @@ description: This skill should be used when the user asks to "add a REST endpoin
 
 # Add REST API Endpoint
 
-Add versioned public operations to the existing Next.js application without duplicating domain logic. Read RFC 002, RFC 003, RFC 007, and RFC 034 before changing the REST surface.
+Add versioned public operations to the existing Next.js application without duplicating domain logic. Read RFC 010, RFC 009, RFC 035, and RFC 014 before changing the REST surface.
 
 ## Workflow
 

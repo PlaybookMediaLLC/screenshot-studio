@@ -1,12 +1,12 @@
 # Release-readiness implementation contracts
 
-**Design status:** Proposed, shared by RFCs 045–051. These tables, endpoints and
+**Design status:** Proposed, shared by RFCs 001–007. These tables, endpoints and
 workers do not exist yet. Existing implementation references below identify
 extension points, not completed features. Baseline: main at `19390194`.
 
 The [RFC execution order](rfcs/README.md) remains unchanged. Implement each
 contract with the first RFC that consumes it; this document does not introduce
-a prerequisite platform project. RFC 045 can start with a private ledger.
+a prerequisite platform project. RFC 001 can start with a private ledger.
 
 ## Service and ownership boundaries
 
@@ -108,7 +108,7 @@ are organization-scoped, with an explicit release-to-evidence binding.
 Use RESTRICT for reviewed records; account deletion follows the existing
 workspace deletion workflow, not ad hoc cascade deletion of evidence.
 
-RFC 046 introduces one aggregate row:
+RFC 002 introduces one aggregate row:
 
 ```text
 platform_release_readiness
@@ -220,8 +220,8 @@ provider errors in error payloads. UI copy may change independently of codes.
 
 ## Immutable hashes and source fences
 
-RFC 047 introduces immutable evidence bytes plus a mutable source head; RFC
-049 pins their transitive closure in each frozen kit. RFC 051 adds impact
+RFC 003 introduces immutable evidence bytes plus a mutable source head; RFC
+004 pins their transitive closure in each frozen kit. RFC 006 adds impact
 analysis, not the first protection against changed evidence.
 
 Use SHA-256 of bytes for assets. Hash structured manifests with RFC 8785 JSON
@@ -277,7 +277,7 @@ no new event becomes externally published merely because it enters the outbox.
 
 The current dispatcher has a 10-minute stale-claim recovery and an eight-attempt
 dead-letter budget. Preserve those semantics unless separately changed. RFCs
-048–050 define activity-specific deadlines and safe retry cases. A dead letter
+007, 004, 005 define activity-specific deadlines and safe retry cases. A dead letter
 needs an operator-visible failure and explicit replay of the same logical job;
 it must not create a second approval, charge or send intent.
 

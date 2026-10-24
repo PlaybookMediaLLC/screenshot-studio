@@ -30,7 +30,7 @@ npm run api:generate
 That writes the OpenAPI document to `services/internal/shotsapi/openapi.json`
 and regenerates `src/schema.ts` from it. CI runs the same command and fails
 when either file is out of date, and it fails a pull request that makes an
-unintended breaking change to the document (see RFC 034).
+unintended breaking change to the document (see RFC 014).
 
 The package is `private` until the npm trusted publisher for it is configured;
 `npm run build` in this directory produces `dist`.

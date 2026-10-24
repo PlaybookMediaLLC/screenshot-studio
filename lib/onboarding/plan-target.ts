@@ -4,7 +4,7 @@ import type { CampaignPlanContent, LaunchChannel } from '@/lib/launch/spec-schem
 /**
  * A fixed shape for a plan: exactly `timelineItems` posts, on `channels`
  * only. Onboarding's first campaign asks for seven posts on the channels a
- * founder can schedule (docs/rfcs/021-core-workflows.md, Workflow 1); other
+ * founder can schedule (docs/rfcs/048-core-workflows.md, Workflow 1); other
  * campaigns plan without a target. Pure, so it is testable.
  */
 export type PlanTarget = { channels: LaunchChannel[]; timelineItems: number }

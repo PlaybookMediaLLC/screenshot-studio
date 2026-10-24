@@ -353,7 +353,7 @@ func (a *Activities) SeedBrand(ctx context.Context, run Input) error {
 }
 
 // SeedSurfaces adds a product surface for each stored pricing, features,
-// docs, or changelog page no surface covers yet (behind a flag until RFC 013).
+// docs, or changelog page no surface covers yet (behind a flag until RFC 018).
 func (a *Activities) SeedSurfaces(ctx context.Context, run Input) error {
 	actor, err := a.authorize(ctx, run)
 	if err != nil {

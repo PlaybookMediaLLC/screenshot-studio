@@ -13,7 +13,7 @@ import { createE2EDatabase, queryRows } from './framework/services'
 configureE2EFlow()
 
 /**
- * Write (RFC 042) end to end: the library, the composer, platform
+ * Write (RFC 025) end to end: the library, the composer, platform
  * versions, previews, properties, planning, scheduling, backups and
  * sharing, on a desktop and a phone. Posts are scheduled for later or fail
  * against the social API mock, so nothing reaches a real account.
@@ -436,7 +436,7 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     await expect(rows().filter({ hasText: 'Pricing' })).toHaveCount(2)
 
     // A second set with the same name as the default stays a separate identity.
-    // Sets are made in workspace settings (RFC 043); the switcher links there.
+    // Sets are made in workspace settings (RFC 024); the switcher links there.
     const setName =
       (await page.getByRole('button', { name: /^Brand: / }).textContent())?.trim() ?? ''
     await page.getByRole('button', { name: /^Brand: / }).click()

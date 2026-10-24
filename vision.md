@@ -80,7 +80,7 @@ Guardrails are substantive factual corrections, release-to-approval time,
 customer labor saved, operator assistance and cost per kit, repeat use,
 payment and retention. Do not claim savings without a comparable baseline or
 hide human service time in software margins. Definitions and pilot collection
-are in [RFC 045](docs/rfcs/045-release-readiness-pilots.md).
+are in [RFC 001](docs/rfcs/001-release-readiness-pilots.md).
 
 ## Incremental path
 

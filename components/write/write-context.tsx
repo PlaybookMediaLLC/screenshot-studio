@@ -11,7 +11,7 @@ import { platformHref } from '@/lib/platform/navigation'
 import { SOCIAL_SET_COOKIE } from '@/lib/settings/appearance'
 
 /**
- * Write's shared client state (RFC 042): the library the page loaded, and
+ * Write's shared client state (RFC 025): the library the page loaded, and
  * helpers to change the URL state it is filtered by. Panels and dialogs are
  * UI state only; nothing here is saved with a draft.
  */

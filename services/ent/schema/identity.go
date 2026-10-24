@@ -125,9 +125,9 @@ func (WorkspaceSettings) Fields() []ent.Field {
 		field.String("locale").StorageKey("locale").Default("en"),
 		field.String("time_zone").StorageKey("timeZone").Default("UTC"),
 		field.String("default_publish_time").StorageKey("defaultPublishTime").Default("09:00"),
-		// The workspace AI agent kill switch (docs/rfcs/016-ai-sdk-marketing-tools.md).
+		// The workspace AI agent kill switch (docs/rfcs/027-ai-sdk-marketing-tools.md).
 		field.Bool("ai_agent_enabled").StorageKey("aiAgentEnabled").Default(true),
-		// Experiments an owner or admin turned off for everyone (RFC 043).
+		// Experiments an owner or admin turned off for everyone (RFC 024).
 		field.JSON("disabled_experiments", []string{}).StorageKey("disabledExperiments").Default([]string{}),
 		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
 		field.Time("updated_at").StorageKey("updatedAt").Default(time.Now).UpdateDefault(time.Now),

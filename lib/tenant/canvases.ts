@@ -15,7 +15,7 @@ import { getLocalDesignSources } from '@/lib/design/document'
 import { DesignError } from './designs'
 
 /**
- * Canvas workspaces (RFC 041). The backend stores them as creative sets of
+ * Canvas workspaces (RFC 032). The backend stores them as creative sets of
  * kind `canvas`: it scopes every query to the workspace, checks roles and
  * asset ownership, refuses stale revisions with a 409 (tRPC `CONFLICT`) and
  * keeps a row's kind fixed. This layer validates documents in both

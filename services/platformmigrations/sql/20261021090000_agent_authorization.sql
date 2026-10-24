@@ -1,4 +1,4 @@
--- MCP agent access (RFC 038): a member's consent for an OAuth client, held
+-- MCP agent access (RFC 026): a member's consent for an OAuth client, held
 -- until its single-use code is exchanged for a scoped workspace API key.
 -- Additive; no existing rows change.
 

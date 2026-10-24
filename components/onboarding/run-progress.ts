@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { StoredOnboardingRun } from '@/lib/tenant/onboarding-runs'
 import { useTRPCClient } from '@/lib/trpc/react'
 
-/** The run's stages and the share of the progress bar each one fills (RFC 032). */
+/** The run's stages and the share of the progress bar each one fills (RFC 034). */
 export const ONBOARDING_STAGES = [
   { from: 0, key: 'fast_path', label: 'First read', to: 20 },
   { from: 20, key: 'crawl', label: 'Reading your pages', to: 55 },

@@ -26,7 +26,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Content drafts, round two (RFC 037): the posting queue and its settings,
+// Content drafts, round two (RFC 013): the posting queue and its settings,
 // best times, moving one post, review, guest share links, revisions,
 // resuming a thread that stopped, and engagement on live posts.
 
@@ -59,7 +59,7 @@ func (c *Configuration) workspaceZone(ctx context.Context, organizationID string
 }
 
 // draftSettings is the workspace's review policy with the default social
-// set's schedule: since RFC 043 a set owns its slots and time zone, and this
+// set's schedule: since RFC 024 a set owns its slots and time zone, and this
 // older settings shape reads and writes the workspace's first set.
 func (c *Configuration) draftSettings(ctx context.Context, organizationID string) (ContentDraftSettings, error) {
 	set, err := c.defaultSocialSet(ctx, organizationID)
@@ -152,7 +152,7 @@ func queueSlots(slots []schema.QueueSlot) ([]schema.QueueSlot, error) {
 	return out, nil
 }
 
-// resolveWallTime is the instant a local wall time names in zone (RFC 043).
+// resolveWallTime is the instant a local wall time names in zone (RFC 024).
 // When the clock repeats it (autumn), it is the first occurrence. When the
 // clock skips it (spring), it is the same number of minutes after the
 // transition: 02:30 on a day that jumps from 02:00 to 03:00 is 03:30.
@@ -819,7 +819,7 @@ func recordContentDraftRevision(ctx context.Context, tx *ent.Tx, actor Actor, dr
 	return pruneContentDraftRevisions(ctx, tx, draft.ID)
 }
 
-// pruneContentDraftRevisions applies the backup retention (RFC 042): every
+// pruneContentDraftRevisions applies the backup retention (RFC 025): every
 // backup from the last 30 days, then the last one of each day for a year,
 // then none. It runs as a draft gains a backup, so a draft nobody edits
 // keeps what it had.
@@ -846,7 +846,7 @@ type ContentDraftRevisionRecord struct {
 	PlainText       string    `json:"plainText"`
 	Title           string    `json:"title"`
 	Version         int       `json:"version"`
-	// Write (RFC 042): why the backup was kept, and, in a single read, the
+	// Write (RFC 025): why the backup was kept, and, in a single read, the
 	// platform versions and article as they were.
 	Article          *draftdoc.Article          `json:"article,omitempty"`
 	PlatformVersions *draftdoc.PlatformVersions `json:"platformVersions,omitempty"`

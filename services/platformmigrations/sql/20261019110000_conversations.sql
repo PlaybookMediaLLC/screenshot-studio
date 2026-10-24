@@ -1,4 +1,4 @@
--- Conversations are a view of agent runs (docs/rfcs/017-conversational-campaign-creation.md).
+-- Conversations are a view of agent runs (docs/rfcs/028-conversational-campaign-creation.md).
 -- Losing one loses history only: the campaign survives (SET NULL), and the
 -- run trace stays on launch_run_step.
 CREATE TABLE "conversation" (

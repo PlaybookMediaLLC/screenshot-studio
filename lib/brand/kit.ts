@@ -17,9 +17,9 @@ export { type BrandFrame, type BrandLogo, type LogoTone } from './editor-definit
  * Brand kits as the editor uses them: colours, headline and body fonts,
  * logos, and the background and frame designs start from.
  *
- * A stored definition is the canonical schema-version-1 kit (RFC 011:
+ * A stored definition is the canonical schema-version-1 kit (RFC 019:
  * colours, catalog fonts, a primary logo), which every reader understands,
- * plus the editor's `editor` block for the rest. Kits saved before RFC 011
+ * plus the editor's `editor` block for the rest. Kits saved before RFC 019
  * (colours.foreground and a free-text typeface) still read.
  */
 

@@ -2,7 +2,7 @@
 
 A workspace owner or admin can send draft events to their own HTTPS
 endpoints from **Settings → API → Webhooks**. The design is in
-[RFC 043](rfcs/043-settings-platform.md#outbound-webhooks). This page is for the
+[RFC 024](rfcs/024-settings-platform.md#outbound-webhooks). This page is for the
 person writing the receiver.
 
 ## Events
@@ -63,9 +63,9 @@ X-Shots-Signature: v1=5d41…
 
 `data` carries identifiers, titles, statuses, tags, platforms and times.
 Tags are the draft's tag records in its social set, each with its id and name
-(RFC 042); `draft.tags_changed` also carries `previousTags`, the same pairs
+(RFC 025); `draft.tags_changed` also carries `previousTags`, the same pairs
 before the change. It never carries a draft's body, comments, member details or credentials. Fetch
-those with the [API](rfcs/034-rest-api-scalar-reference.md) if you need them.
+those with the [API](rfcs/014-rest-api-scalar-reference.md) if you need them.
 A breaking change to the envelope bumps `schemaVersion`; new fields can appear
 at any time.
 

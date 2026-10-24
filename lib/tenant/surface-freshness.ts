@@ -6,7 +6,7 @@ export const surfaceFreshnessSchema = z.enum(['fresh', 'stale', 'never'])
 /** How current a product page's screenshot is. */
 export type SurfaceFreshness = z.infer<typeof surfaceFreshnessSchema>
 
-/** A capture older than this is stale (RFC 013). */
+/** A capture older than this is stale (RFC 018). */
 export const SURFACE_FRESH_DAYS = 30
 
 const DAY_MS = 86_400_000

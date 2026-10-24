@@ -423,7 +423,7 @@ function SurfaceRow({
 }
 
 /**
- * The workspace's product pages (RFC 013 surfaces): what each one shows, how
+ * The workspace's product pages (RFC 018 surfaces): what each one shows, how
  * fresh its screenshot is, why the last capture failed, and every capture it
  * has had. Campaigns pick the page for a feature from these, by tag first.
  */

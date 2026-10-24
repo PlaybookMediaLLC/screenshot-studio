@@ -1,4 +1,4 @@
--- Content drafts, round two (RFC 037): review before scheduling, guest share
+-- Content drafts, round two (RFC 013): review before scheduling, guest share
 -- links, the posting queue, and what a scheduled post carries once live.
 ALTER TABLE "content_draft" ADD COLUMN "reviewStatus" TEXT NOT NULL DEFAULT 'none';
 ALTER TABLE "content_draft" ADD COLUMN "approvedVersion" INTEGER;

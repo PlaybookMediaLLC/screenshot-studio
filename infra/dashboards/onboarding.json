@@ -3,7 +3,7 @@
   "uid": "platform-onboarding",
   "schemaVersion": 39,
   "version": 2,
-  "description": "RFC 032 onboarding runs, read from onboarding_run. No page text or tenant content is queried.",
+  "description": "RFC 034 onboarding runs, read from onboarding_run. No page text or tenant content is queried.",
   "tags": [
     "platform",
     "onboarding"
@@ -28,7 +28,7 @@
       "id": 1,
       "type": "timeseries",
       "title": "Fast-path latency (p50, p95, p99)",
-      "description": "The budget is 10 seconds (RFC 032 AC 1).",
+      "description": "The budget is 10 seconds (RFC 034 AC 1).",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${datasource}"

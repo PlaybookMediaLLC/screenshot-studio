@@ -36,7 +36,7 @@ const SUPPORTED_CONTENT_TYPES = new Set([
   'font/woff2',
   'font/ttf',
   'font/otf',
-  // LinkedIn documents (RFC 042).
+  // LinkedIn documents (RFC 025).
   'application/pdf',
 ])
 

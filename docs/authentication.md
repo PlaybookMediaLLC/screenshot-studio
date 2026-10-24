@@ -97,7 +97,7 @@ release:create, source:write, asset:write, upload:sign, artifact:read, post:sche
 
 They cannot manage users, SSO, SCIM, drains, retention, or channel connections.
 They never approve content. A key with `post:schedule` may schedule what a
-person approved and cancel scheduled posts (RFC 038).
+person approved and cancel scheduled posts (RFC 026).
 
 ## Enterprise identity
 

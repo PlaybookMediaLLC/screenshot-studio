@@ -18,7 +18,7 @@ import {
 } from '@/lib/debug-log'
 
 /**
- * Development mode and debug logging (RFC 043). Development mode is a
+ * Development mode and debug logging (RFC 024). Development mode is a
  * preference that follows you; debug logging lives in this browser only.
  */
 export function DeveloperTools() {

@@ -12,7 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
-// The Write workspace (RFC 042) on the settings platform's social sets (RFC
+// The Write workspace (RFC 025) on the settings platform's social sets (RFC
 // 043): a draft posts as its set's accounts and is hidden with a private
 // set; organizing a draft never touches its content or version; copies,
 // duplicates and recovered backups are new drafts without the source's

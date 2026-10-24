@@ -9,7 +9,7 @@ import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 /**
  * Shared guard for the drafts pages: a paid workspace member, inside the
- * content drafts rollout (RFC 037). Outside the rollout the pages do not exist.
+ * content drafts rollout (RFC 013). Outside the rollout the pages do not exist.
  */
 export async function requireDraftsPageAccess(locale: string, returnTo: string) {
   const requestHeaders = await headers()

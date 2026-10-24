@@ -9,7 +9,7 @@ import type {
 import { call, type DraftPostWire, type DraftWire } from '@/lib/content-drafts/client'
 
 /**
- * Browser calls to the Write API (RFC 042) with the session cookie: a set's
+ * Browser calls to the Write API (RFC 025) with the session cookie: a set's
  * engagement defaults, tags and finishers, and a draft's properties, plan, copies,
  * backups, activity and recovery. Failures throw `DraftRequestError`.
  */
@@ -35,7 +35,7 @@ const post = (id: string) => `/api/v1/content-draft-posts/${encodeURIComponent(i
 
 /** The Write API. */
 export const writeApi = {
-  /** A set's engagement defaults (RFC 043), based on the set's version. */
+  /** A set's engagement defaults (RFC 024), based on the set's version. */
   updateSetEngagement: (
     id: string,
     baseVersion: number,

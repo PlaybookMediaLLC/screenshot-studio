@@ -66,7 +66,7 @@ export async function listPendingApprovals(
 /**
  * Move draft or needs-changes posts to review, every eligible post when
  * `postIds` is omitted. An API key with `release:create` may do this; only a
- * person approves (RFC 019).
+ * person approves (RFC 012).
  */
 export async function requestCampaignReview(
   context: TenantContext,

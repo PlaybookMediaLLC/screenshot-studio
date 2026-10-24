@@ -22,7 +22,7 @@
 | Approval              | Publishing requires an approved variant. AI tools can submit drafts for review but cannot approve. |
 | Off switch            | A workspace setting turns AI features off.                                                         |
 | Untrusted sources     | Release and website text is fenced as untrusted data in prompts.                                   |
-| Autonomous publishing | Not built (RFC 031 is not started).                                                                |
+| Autonomous publishing | Not built (RFC 044 is not started).                                                                |
 | Output labels         | None in the product yet (P13).                                                                     |
 | Provider training     | No code-level setting yet (P11).                                                                   |
 

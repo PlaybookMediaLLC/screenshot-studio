@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-/** A person's preferences (RFC 043); they follow the person across workspaces. */
+/** A person's preferences (RFC 024); they follow the person across workspaces. */
 export type UserPreferences = {
   developerMode: boolean
   dismissedTips: string[]

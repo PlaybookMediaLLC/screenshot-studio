@@ -91,7 +91,7 @@ export function tenantAccess(requirement: TenantAccessRequirement): Authenticate
  * A signed-in member of the active workspace with `requirement.permission`,
  * on a paid plan, then the optional feature and quota. An API key is refused
  * with 403 before the session is read: approving and publishing are a
- * person's decisions (RFC 019, RFC 020). `sensitive` also requires a fresh
+ * person's decisions (RFC 012, RFC 030). `sensitive` also requires a fresh
  * second factor.
  */
 export function memberAccess(

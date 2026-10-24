@@ -33,7 +33,7 @@ that the existing implementation violates its original contract.
 | Role-specific materials | [launch schema](../lib/launch/spec-schema.ts), [production pipeline](../lib/ai/launch/produce.ts), [content drafts](../services/internal/product/content_drafts.go), [announcements](../services/internal/product/announcements.go) | FAQs and limitations exist inside the spec; campaign channels include email and changelog. Drafts, email and publishing are useful outputs. Missing: one versioned kit manifest linking the fact sheet, sales and CS talking points, customer announcement, FAQ and approved screenshots to the same approved facts. |
 | Delivery into existing tools | [delivery adapters](../lib/integrations/deliver.ts), [share delivery](../lib/integrations/server.ts), [outbound webhooks](outbound-webhooks.md) | Existing delivery uploads design media to Notion, sends design shares through Slack, and comments with a share link in Figma. Figma delivery does not insert an editable design. These are not full role-specific document handoffs with durable receipts, correction lineage or downstream-use evidence. |
 | Maintenance and outcome measurement | [surface freshness](../lib/tenant/surface-freshness.ts), [revision proposals](../lib/ai/launch/revise.ts), [launch run schema](../services/ent/schema/launch.go) | Capture ages, proposed revisions, run costs and activity are useful foundations. No end-to-end source-change → affected claim → affected kit/destination review queue or adopted-release metric was found. Social analytics cannot substitute for evidence that sales, CS or customers used the kit. |
-| Billing | [plan gates](../lib/billing/plans.ts), [billing RFC](rfcs/035-pricing-and-unit-economics.md) | Paid plan entitlements and metered AI exist. The supplied pilot price and ICP are hypotheses. This documentation change does not create a new Stripe price, discount, entitlement or free plan. |
+| Billing | [plan gates](../lib/billing/plans.ts), [billing RFC](rfcs/023-pricing-and-unit-economics.md) | Paid plan entitlements and metered AI exist. The supplied pilot price and ICP are hypotheses. This documentation change does not create a new Stripe price, discount, entitlement or free plan. |
 
 ## Priority findings
 
@@ -59,13 +59,13 @@ that the existing implementation violates its original contract.
 ## Documentation drift
 
 The old README prioritized seven social posts from a URL, claimed the missing
-layer was small, and mixed source status with production assertions. RFC 009
-and RFC 021 reflect that earlier promise; RFC 039 prioritizes network parity.
+layer was small, and mixed source status with production assertions. RFC 049
+and RFC 048 reflect that earlier promise; RFC 042 prioritizes network parity.
 Those priorities are superseded by the [new execution order](rfcs/README.md).
 
-RFC 012 says nothing is built despite the product-profile and onboarding
-implementation. RFCs 011, 013 and 014 omit existing enforcement, capture history
-or versioning in their status summaries. RFC 037 and RFC 038 have implementation
+RFC 017 says nothing is built despite the product-profile and onboarding
+implementation. RFCs 019, 018 and 021 omit existing enforcement, capture history
+or versioning in their status summaries. RFC 013 and RFC 026 have implementation
 behind older “Accepted” or “Proposed” labels. The current inventory corrects
 those summaries without asserting that every original acceptance criterion is
 complete.
@@ -99,10 +99,11 @@ test skips when its test database URL is absent; its existence is not a pass.
 
 ## Resulting sequence
 
-[RFC 045](rfcs/045-release-readiness-pilots.md) establishes the product decision,
-assisted pilot and measurement contract. Then build qualification (046), claim
-verification (047), release kits and readiness (049), delivery and use (050),
-and evidence-based freshness (051). Authenticated capture (048) is conditional
+[RFC 001](rfcs/001-release-readiness-pilots.md) establishes the product decision,
+assisted pilot and measurement contract. Then build qualification (002), claim
+verification (003), release kits and readiness (004), delivery and use (005),
+and evidence-based freshness (006). Authenticated capture (007) is conditional
 on pilot needs; uploaded evidence is the initial fallback. The
 [RFC index](rfcs/README.md) assigns every older RFC a disposition and preserves
-stable IDs and links.
+an explicit priority sequence. On 2026-10-24 the RFCs were renumbered to match
+that sequence; see the [old-to-new mapping](rfcs/renumbering-2026-10-24.md).

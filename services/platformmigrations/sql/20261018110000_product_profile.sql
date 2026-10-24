@@ -1,5 +1,5 @@
 -- One product profile per workspace, with per-field provenance
--- (docs/rfcs/012-product-intelligence.md).
+-- (docs/rfcs/017-product-intelligence.md).
 CREATE TABLE "product_profile" (
     "id" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,

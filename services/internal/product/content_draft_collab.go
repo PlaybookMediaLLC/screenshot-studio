@@ -15,7 +15,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/workspaceroles"
 )
 
-// Real-time co-editing of content drafts (RFC 037). The backend issues a
+// Real-time co-editing of content drafts (RFC 013). The backend issues a
 // short-lived token per draft, user and access level; the collaboration
 // server presents it to authorize a connection and on every load and store
 // of the Yjs state. The collaboration server never reads the database.

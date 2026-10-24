@@ -160,7 +160,7 @@ jobs:
 
   # The public contract: the committed OpenAPI document and typed client must
   # match the zod contracts, and a pull request may not break the document
-  # unless the break is listed in breaking-changes-allowed.txt (RFC 034).
+  # unless the break is listed in breaking-changes-allowed.txt (RFC 014).
   openapi:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest

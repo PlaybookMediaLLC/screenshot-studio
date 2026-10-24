@@ -19,7 +19,7 @@ export const editorClientToolNames = ['inspectCanvas', 'applyChanges', 'undoLast
 export type EditorClientToolName = (typeof editorClientToolNames)[number]
 
 /**
- * RFC 016 capability records, for documentation only: the browser runs these
+ * RFC 027 capability records, for documentation only: the browser runs these
  * tools against the editor the user already has open, not the executor. A
  * turn is at most four model steps.
  */

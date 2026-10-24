@@ -93,7 +93,7 @@ export const socialOAuthReturnSchema = z
 
 /**
  * Back to where the connection started, which confirms it: the social set's
- * settings (RFC 043), or else the Channels settings.
+ * settings (RFC 024), or else the Channels settings.
  */
 function connectedRedirect(
   provider: SocialOAuthProvider,

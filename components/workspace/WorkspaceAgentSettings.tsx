@@ -28,7 +28,7 @@ const DEFAULT_AGENT_SCOPES: ApiKeyScope[] = ['artifact:read', 'release:create']
 const fieldLabel = 'text-xs font-medium text-foreground/65'
 
 /**
- * Settings → AI agents (RFC 038): the workspace's MCP server URL, a scoped
+ * Settings → AI agents (RFC 026): the workspace's MCP server URL, a scoped
  * key for agents that take one, each client's configuration, and the agents
  * connected through OAuth. Keys come from the Go backend through the API key
  * router; nothing here reaches the database.

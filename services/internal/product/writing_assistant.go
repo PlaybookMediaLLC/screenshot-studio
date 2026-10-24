@@ -16,7 +16,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// A social set's Writing Assistant (RFC 043) refines the workspace brand voice
+// A social set's Writing Assistant (RFC 024) refines the workspace brand voice
 // for one identity: its tone and audience, words to use and avoid, and
 // samples of how it writes. AI help for a draft in the set reads the merged
 // context below; the assistant suggests and the writer decides.

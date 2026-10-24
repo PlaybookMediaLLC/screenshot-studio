@@ -21,7 +21,7 @@ type oauthRequest struct {
 	Provider      string `json:"provider"`
 	State         string `json:"state"`
 	IntegrationID string `json:"integrationId"`
-	// SocialSetID is the set the account joins (RFC 043); empty is the default set.
+	// SocialSetID is the set the account joins (RFC 024); empty is the default set.
 	SocialSetID          string `json:"socialSetId"`
 	ExpectedConnectionID string `json:"expectedConnectionId"`
 	ReturnPath           string `json:"returnPath"`

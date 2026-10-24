@@ -21,7 +21,7 @@ export async function aiUnavailable(access: OrganizationAccess) {
 
 /**
  * The draft's writing context for a channel: the workspace brand refined by
- * its social set (RFC 043), when the caller may see the draft.
+ * its social set (RFC 024), when the caller may see the draft.
  */
 export async function writingContext(
   access: OrganizationAccess,

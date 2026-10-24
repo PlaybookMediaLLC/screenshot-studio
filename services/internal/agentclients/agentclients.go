@@ -1,6 +1,6 @@
 // Package agentclients reads the OAuth clients registered with the MCP
 // authorization server, the social backend's OAuthApp table, for the agent
-// consent screen (RFC 038). Both backends share the database.
+// consent screen (RFC 026). Both backends share the database.
 package agentclients
 
 import (

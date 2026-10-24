@@ -1019,8 +1019,18 @@ func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx,
 			return invalid("A draft can be set to draft or archived; scheduling sets scheduled.")
 		}
 		if *input.Status == "draft" {
-			if err := ensureDraftCanPlan(ctx, tx.Client(), current.ID); err != nil {
+			committed, err := hasDraftPublicationCommitment(ctx, tx.Client(), current.ID)
+			if err != nil {
 				return err
+			}
+			if committed {
+				if current.Status != contentdraft.StatusArchived {
+					return conflict("Unschedule active publications or duplicate published content before planning it.")
+				}
+				// Restore visibility without relabelling a retained publication as
+				// uncommitted content. Planning commands keep their own guard.
+				update.SetStatus(contentdraft.StatusScheduled)
+				return nil
 			}
 		}
 		update.SetStatus(contentdraft.Status(*input.Status))

@@ -301,6 +301,85 @@ func TestPlanAnalyzeDatabase(t *testing.T) {
 		}
 	})
 
+	t.Run("P33 archive restoration preserves publication commitments without replanning", func(t *testing.T) {
+		for _, item := range []struct {
+			name      string
+			status    scheduledpost.Status
+			remote    string
+			committed bool
+		}{
+			{name: "planned"},
+			{name: "scheduled", status: scheduledpost.StatusSCHEDULED, committed: true},
+			{name: "processing", status: scheduledpost.StatusPROCESSING, committed: true},
+			{name: "unknown", status: scheduledpost.StatusUNKNOWN_DELIVERY, committed: true},
+			{name: "published", status: scheduledpost.StatusPUBLISHED, remote: "archived-publication", committed: true},
+			{name: "partial", status: scheduledpost.StatusFAILED, remote: "partial-publication", committed: true},
+			{name: "failed", status: scheduledpost.StatusFAILED},
+			{name: "cancelled", status: scheduledpost.StatusCANCELLED},
+		} {
+			t.Run(item.name, func(t *testing.T) {
+				d := plan(draft("restore "+item.name), at)
+				postID := ""
+				if item.status != "" {
+					result, e := repo.ScheduleContentDraft(ctx, owner, d.ID, ScheduleContentDraftInput{Version: d.Version, BaseCalendarVersion: d.CalendarVersion, ScheduledFor: at, Targets: []ContentDraftScheduleTarget{{ChannelConnectionID: x.ID, Caption: d.PlainText}}})
+					if e != nil {
+						t.Fatal(e)
+					}
+					d = &result.Draft
+					postID = result.Posts[0].ID
+					// Explicit provider-outcome fixture; restoring must not change it.
+					update := repo.client.ScheduledPost.UpdateOneID(postID).SetStatus(item.status)
+					if item.remote != "" {
+						update.SetRemotePostID(item.remote)
+					}
+					if _, e = update.Save(ctx); e != nil {
+						t.Fatal(e)
+					}
+				}
+				archived, restore := "archived", "draft"
+				saved, e := repo.UpdateContentDraft(ctx, owner, d.ID, ContentDraftUpdate{BaseVersion: d.Version, Status: &archived})
+				if e != nil {
+					t.Fatal(e)
+				}
+				if item.committed {
+					clearPlan := ""
+					if _, e = repo.UpdateContentDraft(ctx, owner, d.ID, ContentDraftUpdate{BaseVersion: saved.Version, BaseCalendarVersion: saved.CalendarVersion, Status: &restore, PlannedFor: &clearPlan}); !errors.Is(e, publishing.ErrConflict) {
+						t.Fatalf("restoration bypassed the planning guard: %v", e)
+					}
+				}
+				restored, e := repo.UpdateContentDraft(ctx, w.actor("editor"), d.ID, ContentDraftUpdate{BaseVersion: saved.Version, Status: &restore})
+				if e != nil {
+					t.Fatal(e)
+				}
+				want := "draft"
+				if item.committed {
+					want = "scheduled"
+				}
+				if restored.Status != want || restored.CalendarVersion != d.CalendarVersion || !sameJSON(restored.PlannedFor, d.PlannedFor) || !sameString(restored.PlanTimeZone, d.PlanTimeZone) {
+					t.Fatalf("restoration changed publication placement: %+v", restored)
+				}
+				if _, e = repo.UpdateContentDraft(ctx, owner, d.ID, ContentDraftUpdate{BaseVersion: saved.Version, Status: &restore}); !errors.Is(e, publishing.ErrConflict) {
+					t.Fatalf("stale restoration accepted: %v", e)
+				}
+				posts, e := repo.client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(d.ID)).All(ctx)
+				if e != nil {
+					t.Fatal(e)
+				}
+				if postID == "" {
+					if len(posts) != 0 {
+						t.Fatal("restoration created a publishing job")
+					}
+				} else if len(posts) != 1 || posts[0].ID != postID || posts[0].Status != item.status || optionalText(posts[0].RemotePostID) != item.remote || !posts[0].ScheduledFor.Equal(at) {
+					t.Fatalf("restoration changed a provider commitment: %+v", posts)
+				}
+				if item.committed {
+					if _, e = repo.PlanContentDraft(ctx, owner, d.ID, ContentDraftPlanInput{BaseCalendarVersion: restored.CalendarVersion, PlannedFor: &at, TimeZone: "UTC"}); !errors.Is(e, publishing.ErrConflict) {
+						t.Fatalf("restored publication could be replanned: %v", e)
+					}
+				}
+			})
+		}
+	})
 	t.Run("P27 P29 source duplication is retry-safe and preserves the original", func(t *testing.T) {
 		d := draft("historical source")
 		key := cuid.New()

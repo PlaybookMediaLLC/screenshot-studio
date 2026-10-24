@@ -117,12 +117,16 @@ func beginDraftReuse(ctx context.Context, tx *ent.Tx, actor Actor, source, key s
 	return &result, hash, nil
 }
 
-// A draft flag alone is never evidence that a publication commitment disappeared.
-func ensureDraftCanPlan(ctx context.Context, client *ent.Client, id string) error {
-	committed, err := client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(id), scheduledpost.Or(
+func hasDraftPublicationCommitment(ctx context.Context, client *ent.Client, id string) (bool, error) {
+	return client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(id), scheduledpost.Or(
 		scheduledpost.StatusIn(scheduledpost.StatusSCHEDULED, scheduledpost.StatusPROCESSING, scheduledpost.StatusUNKNOWN_DELIVERY, scheduledpost.StatusPUBLISHED),
 		scheduledpost.RemotePostIDNEQ(""),
 	)).Exist(ctx)
+}
+
+// A draft flag alone is never evidence that a publication commitment disappeared.
+func ensureDraftCanPlan(ctx context.Context, client *ent.Client, id string) error {
+	committed, err := hasDraftPublicationCommitment(ctx, client, id)
 	if err != nil {
 		return err
 	}

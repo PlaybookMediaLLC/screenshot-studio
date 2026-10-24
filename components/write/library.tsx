@@ -876,7 +876,7 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
                         baseVersion: current.version,
                         status: 'draft',
                       })
-                    }, 'Restored to drafts.')
+                    }, 'Restored from archive.')
                   }
                 >
                   Restore draft

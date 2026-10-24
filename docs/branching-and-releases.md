@@ -32,8 +32,10 @@ bash .github/rulesets/apply.sh
 The script sets the default branch to develop and idempotently creates or
 updates the named [develop](../.github/rulesets/develop.json) and
 [main](../.github/rulesets/main.json) rulesets. It preserves unrelated rulesets.
-Both branches require PRs, resolved review conversations, the Branch policy
-and CI validate checks, and an up-to-date head. Force pushes and branch
+Both branches require PRs, resolved review conversations, and the Branch policy
+and CI validate checks. Develop requires an up-to-date work branch. Main uses
+checks on the release merge candidate without requiring a back-merge of its
+previous release-only merge commit into develop. Force pushes and branch
 deletion are prohibited. No bypass actors or new approval-count requirement
 are introduced. Main accepts merge commits only; work PRs may use squash,
 merge or rebase. Squash is the normal choice for a single work change.

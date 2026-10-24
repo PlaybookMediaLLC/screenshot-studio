@@ -2867,7 +2867,7 @@ export class ScreenshotStudioBackendSDK {
     return this.request<unknown>(`v1/internal/analytics/${encodeURIComponent(token)}?${params}`)
   }
 
-  async planContentDraft(id: string, input: { baseCalendarVersion: number; plannedFor: Date | null; timeZone?: string }) {
+  async planContentDraft(id: string, input: { baseCalendarVersion?: number; plannedFor: Date | null; timeZone?: string }) {
     return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}/plan`, {
       body: input,
       method: 'POST',

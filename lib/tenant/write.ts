@@ -142,7 +142,7 @@ export async function updateDraftProperties(
 export async function planContentDraft(
   context: TenantContext,
   id: string,
-  input: { baseCalendarVersion: number; plannedFor: string | null; timeZone?: string }
+  input: { baseCalendarVersion?: number; plannedFor: string | null; timeZone?: string }
 ) {
   const draft = await orNull(
     backendSDK(context).planContentDraft(id, {

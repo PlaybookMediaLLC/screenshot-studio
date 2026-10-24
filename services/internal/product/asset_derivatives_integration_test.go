@@ -53,6 +53,31 @@ func TestScheduledImageDerivativeRetainsOriginalDescriptionAndRetryIdentity(t *t
 	if _, err = w.repo.SetAssetAltText(w.ctx, w.owner, upload.Asset.ID, "Transparent original"); err != nil {
 		t.Fatal(err)
 	}
+	// A creator can choose a derivative-looking name and parent for unrelated
+	// bytes through both public asset APIs. Neither may populate the cache.
+	var unrelated bytes.Buffer
+	if err = png.Encode(&unrelated, image.NewNRGBA(image.Rect(0, 0, 1, 1))); err != nil {
+		t.Fatal(err)
+	}
+	spoof, err := w.repo.SignAssetUpload(w.ctx, w.owner, AssetUploadInput{
+		Bytes: unrelated.Len(), ContentType: "image/png", Classification: "derived",
+		FileName: "provider-image-v2-x-5000000-4096.png", ParentAssetID: upload.Asset.ID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	objects.files[spoof.Asset.ObjectKey] = unrelated.Bytes()
+	if _, err = w.repo.CompleteAssetUpload(w.ctx, w.owner, spoof.Asset.ID, nil); err != nil {
+		t.Fatal(err)
+	}
+	generatedSpoof, err := w.repo.StoreGeneratedAsset(w.ctx, w.owner, GeneratedAssetInput{
+		Body: unrelated.Bytes(), ContentType: "image/png", Classification: "derived",
+		FileName: "provider-image-v2-x-5000000-4096.png", ParentAssetID: upload.Asset.ID, Width: 1, Height: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	initialPuts := objects.puts
 	credential := socialCredentialFixture(t, w.ctx, w.db.SQL, w.org)
 	credential("x-"+w.id, "x")
 	connection, err := w.repo.auth.CreateConnection(w.ctx, publishing.Actor{Organization: w.org, UserID: w.owner.UserID, Type: "USER"}, publishing.CreateConnectionInput{ExternalAccountID: "x-" + w.id, Platform: "x", ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
@@ -72,7 +97,7 @@ func TestScheduledImageDerivativeRetainsOriginalDescriptionAndRetryIdentity(t *t
 	if targets[0].AssetIDs[0] != upload.Asset.ID {
 		t.Fatal("scheduling mutated caller selection")
 	}
-	derivative, err := w.db.Client.Asset.Query().Where(asset.ParentAssetID(upload.Asset.ID)).Only(w.ctx)
+	derivative, err := w.db.Client.Asset.Query().Where(asset.ParentAssetID(upload.Asset.ID), asset.ObjectKeyHasPrefix(providerImagePrefix(w.org))).Only(w.ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,6 +105,9 @@ func TestScheduledImageDerivativeRetainsOriginalDescriptionAndRetryIdentity(t *t
 		t.Fatalf("invalid derivative: %+v", derivative)
 	}
 	post := w.db.Client.ScheduledPost.GetX(w.ctx, scheduled.Posts[0].ID)
+	if post.AssetIds[0] == spoof.Asset.ID || post.AssetIds[0] == generatedSpoof.ID {
+		t.Fatal("caller-supplied bytes were substituted for the approved source")
+	}
 	if len(post.AssetIds) != 1 || post.AssetIds[0] != derivative.ID {
 		t.Fatalf("schedule did not pin derivative: %+v", post.AssetIds)
 	}
@@ -87,7 +115,7 @@ func TestScheduledImageDerivativeRetainsOriginalDescriptionAndRetryIdentity(t *t
 		t.Fatal("source image overwritten")
 	}
 	replay, err := w.repo.ScheduleContentDraft(w.ctx, w.owner, draft.ID, input)
-	if err != nil || replay.Created || replay.Posts[0].ID != scheduled.Posts[0].ID || objects.puts != 1 {
+	if err != nil || replay.Created || replay.Posts[0].ID != scheduled.Posts[0].ID || objects.puts != initialPuts+1 {
 		t.Fatalf("retry duplicated work: %+v %v puts=%d", replay, err, objects.puts)
 	}
 	if _, err = w.repo.SetAssetAltText(w.ctx, w.owner, upload.Asset.ID, ""); err != nil {
@@ -96,7 +124,7 @@ func TestScheduledImageDerivativeRetainsOriginalDescriptionAndRetryIdentity(t *t
 	if err = w.repo.prepareDraftImages(w.ctx, w.owner, targets, nil); err != nil {
 		t.Fatal(err)
 	}
-	if w.db.Client.Asset.GetX(w.ctx, derivative.ID).AltText != nil || objects.puts != 1 {
+	if w.db.Client.Asset.GetX(w.ctx, derivative.ID).AltText != nil || objects.puts != initialPuts+1 {
 		t.Fatal("cached derivative retained stale description or was uploaded twice")
 	}
 	other := newTestWorkspace(t)

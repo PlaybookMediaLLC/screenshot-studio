@@ -18,6 +18,12 @@ import (
 	"github.com/disintegration/imaging"
 )
 
+// This namespace is never used by signed uploads or caller-supplied generated
+// assets. Filenames and parent IDs alone are not evidence of a trusted conversion.
+func providerImagePrefix(organizationID string) string {
+	return "org/" + organizationID + "/derived/provider-images/"
+}
+
 // providerImage produces a bounded, oriented derivative. PNG preserves alpha;
 // JPEG re-encodes at explicit quality. The original is never overwritten.
 func providerImage(body []byte, mime string, limit int) (result []byte, resultMIME string, width, height int, err error) {
@@ -107,7 +113,7 @@ func (c *Configuration) prepareDraftImages(ctx context.Context, actor Actor, tar
 				if row.MediaType == "image/jpeg" {
 					name = strings.TrimSuffix(name, "png") + "jpg"
 				}
-				cached, err := c.client.Asset.Query().Where(asset.ParentAssetID(id), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED), asset.ObjectKeyHasSuffix("/"+name)).First(ctx)
+				cached, err := c.client.Asset.Query().Where(asset.ParentAssetID(id), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED), asset.ObjectKeyHasPrefix(providerImagePrefix(actor.OrganizationID)), asset.ObjectKeyHasSuffix("/"+name)).First(ctx)
 				if err == nil {
 					update := cached.Update()
 					if row.AltText == nil {
@@ -137,7 +143,7 @@ func (c *Configuration) prepareDraftImages(ctx context.Context, actor Actor, tar
 				if err != nil {
 					return nil, err
 				}
-				stored, err := c.storeGeneratedAsset(ctx, actor, GeneratedAssetInput{Body: body, Classification: "derived", ContentType: mime, FileName: name, Width: width, Height: height, ParentAssetID: id})
+				stored, err := c.storeGeneratedAsset(ctx, actor, GeneratedAssetInput{Body: body, Classification: "derived", ContentType: mime, FileName: name, Width: width, Height: height, ParentAssetID: id, providerDerivative: true})
 				if err != nil {
 					return nil, err
 				}

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { postRanges } from '@/components/drafts/thread'
 import {
+  attachmentEntry,
   copyAttachment,
   moveAttachment,
   moveAttachmentRelative,
@@ -158,6 +159,14 @@ export function MediaTools({
                     onAlt={() => setAlt(String(node.id))}
                     onFrame={() => setFrame(String(node.id))}
                     onTags={channel === 'x' ? () => setTags(String(node.id)) : undefined}
+                    onClearTags={
+                      channel !== 'x' && Array.isArray(node.photoTags) && node.photoTags.length
+                        ? () => {
+                            const entry = attachmentEntry(editor, String(node.id))
+                            if (entry) editor.tf.setNodes({ photoTags: [] }, { at: entry[1] })
+                          }
+                        : undefined
+                    }
                   />
                 ))}
               </section>
@@ -180,6 +189,7 @@ function AttachmentRow({
   onAlt,
   onFrame,
   onTags,
+  onClearTags,
 }: {
   node: TElement
   post: number
@@ -191,6 +201,7 @@ function AttachmentRow({
   onAlt: () => void
   onFrame: () => void
   onTags?: () => void
+  onClearTags?: () => void
 }) {
   const [destination, setDestination] = React.useState(post)
   const video = node.type === 'video'
@@ -233,6 +244,11 @@ function AttachmentRow({
           className="size-16 object-contain"
         />
       )}
+      {onClearTags ? (
+        <Button size="sm" variant="outline" onClick={onClearTags}>
+          Remove X photo tags
+        </Button>
+      ) : null}
       {!video ? (
         <>
           <Button size="sm" variant="outline" onClick={onAlt}>

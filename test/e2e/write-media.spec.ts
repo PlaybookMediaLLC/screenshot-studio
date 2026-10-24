@@ -815,18 +815,17 @@ test('TF-001 TF-007 TF-038: typed provider mentions, photo tags and ALT edits pe
     })
     expect(denied.status).toBe(409)
     expect(JSON.stringify(denied.body)).toMatch(/photo.tag|permission|enabled/i)
-    await page.getByRole('button', { name: 'Manage media', exact: true }).click()
-    await page
-      .getByTestId('media-manager')
-      .getByRole('button', { name: 'Tag people', exact: true })
-      .click()
-    await page.getByRole('button', { name: 'Remove Account shots', exact: true }).click()
-    await page.getByRole('button', { name: 'Save photo tags', exact: true }).click()
-    await page.keyboard.press('Escape')
-    await expectSaved(page)
     await page.getByTestId('platform-tab-linkedin').click()
     await page.getByRole('button', { name: 'Edit for LinkedIn independently' }).click()
     await page.getByRole('button', { name: 'Manage media', exact: true }).click()
+    // Remove inherited X metadata without changing the primary X version.
+    await page
+      .getByTestId('media-manager')
+      .getByRole('button', { name: 'Remove X photo tags', exact: true })
+      .click()
+    await expect(
+      page.getByTestId('media-manager').getByRole('button', { name: 'Remove X photo tags' })
+    ).toHaveCount(0)
     await page
       .getByTestId('media-manager')
       .getByRole('button', { name: '+ALT', exact: true })
@@ -842,7 +841,8 @@ test('TF-001 TF-007 TF-038: typed provider mentions, photo tags and ALT edits pe
     expect(saved.status).toBe(200)
     const data = saved.body as {
       body: Record<string, unknown>[]
-      platformVersions: { body?: Record<string, unknown>[] }[]
+      version: number
+      platformVersions: { versions: { channel: string; body?: Record<string, unknown>[] }[] }
     }
     expect(data.body.find((node) => node.type === 'img')?.alt).toBe(
       'Shared description from the independent LinkedIn version.'
@@ -851,6 +851,27 @@ test('TF-001 TF-007 TF-038: typed provider mentions, photo tags and ALT edits pe
       'Shared description from the independent LinkedIn version.'
     )
     expect(JSON.stringify(data.body)).toContain('123456789')
+    expect(data.body.find((node) => node.type === 'img')?.photoTags).toEqual([
+      expect.objectContaining({
+        providerId: '123456789',
+        handle: 'shots',
+        label: 'Account shots',
+      }),
+    ])
+    expect(
+      data.platformVersions.versions
+        .find((version) => version.channel === 'linkedin')
+        ?.body?.find((node) => node.type === 'img')?.photoTags
+    ).toEqual([])
+    const scheduled = await apiRequest(page, `/api/v1/content-drafts/${id}/schedule`, {
+      method: 'POST',
+      body: {
+        channelConnectionIds: [workspace.channels.linkedin],
+        scheduledFor: new Date(Date.now() + 86_400_000).toISOString(),
+        version: data.version,
+      },
+    })
+    expect(scheduled.status, JSON.stringify(scheduled.body)).toBe(201)
     await page.reload()
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     await expect(

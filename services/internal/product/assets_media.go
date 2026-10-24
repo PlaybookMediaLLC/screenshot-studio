@@ -51,6 +51,9 @@ type GeneratedAssetInput struct {
 	Height         int
 	ParentAssetID  string
 	Width          int
+	// Only the provider conversion pipeline may create trusted cache entries.
+	// Unexported so HTTP inputs cannot claim this provenance.
+	providerDerivative bool
 }
 
 type GeneratedAssetRecord struct {
@@ -444,6 +447,9 @@ func (c *Configuration) storeGeneratedAsset(ctx context.Context, actor Actor, in
 	}
 	id := uuid.NewString()
 	key := fmt.Sprintf("org/%s/%s/%s/1/%s", actor.OrganizationID, input.Classification, id, input.FileName)
+	if input.providerDerivative {
+		key = providerImagePrefix(actor.OrganizationID) + id + "/1/" + input.FileName
+	}
 	if err := c.objects.Put(ctx, key, input.ContentType, bytes.NewReader(input.Body)); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
 	}

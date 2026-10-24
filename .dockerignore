@@ -12,4 +12,6 @@ Dockerfile*
 charts
 docs
 /services
+# The browser and Go enforce the same media limits from this embedded document.
+!/services/internal/medialimits/limits.json
 *.md

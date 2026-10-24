@@ -98,10 +98,14 @@ local Docker stack, so local machines do not need a separate dependency setup.
 
 ### Branch & Commit
 
+Use `develop` as the base for all work. `main` is reserved for release
+promotions from `develop`; see [branching and releases](docs/branching-and-releases.md).
+
 ```bash
-git checkout -b feature/your-feature-name
+git fetch origin
+git checkout -b feature/your-feature-name origin/develop
 # or
-git checkout -b fix/bug-description
+git checkout -b fix/bug-description origin/develop
 ```
 
 Use conventional commits:
@@ -119,7 +123,7 @@ that do not follow this format.
 ### Pull Request
 
 1. Push your branch
-2. Open a PR with a clear description
+2. Open a PR targeting `develop` with a clear description (`gh pr create --base develop`)
 3. Include what changed, why, and how to test it
 4. Add screenshots if there are visual changes
 

@@ -85,6 +85,9 @@ keep upstream editor merges inexpensive as described in [AGENTS.md](AGENTS.md).
 
 ## Roadmap
 
+Work PRs target `develop`; releases promote `develop` into `main`. See the
+[branch and release workflow](docs/branching-and-releases.md).
+
 The [RFC index](docs/rfcs/README.md) is the authoritative build order and covers
 every RFC. Numbers and filenames now follow priority: 001–006 active delivery,
 007–008 conditional work, 009–035 existing foundations, 036–045 deferred

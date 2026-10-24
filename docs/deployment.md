@@ -19,10 +19,15 @@ Deploy the backend before the web: its image carries the schema migrations, and
 the web deploy refuses a topology that still has `web-migrate`. The Fly
 deployment workflow and configuration have been removed.
 
-Release Please reads Conventional Commit messages merged into `main`. It opens
-version and changelog pull requests, then creates Git tags and GitHub Releases.
-The `RELEASE_PLEASE_TOKEN` repository secret is required for release-created
-commits and tags to start deployment workflows.
+All work PRs target `develop`. Release Please reads its Conventional Commits
+and opens version/changelog PRs into `develop`, without publishing a release.
+An intentional `develop` → `main` PR releases those changes. Use a merge commit
+to preserve ancestry. The promotion publishes the prepared GitHub Release and
+triggers the existing production workflows; `develop` never deploys production.
+The `RELEASE_PLEASE_TOKEN` secret lets generated preparation PRs trigger CI;
+without it, a human must reopen the generated PR to start checks. See
+[branching and releases](branching-and-releases.md) for repository rules,
+tag behavior and the complete procedure.
 
 App Platform runs one `platform-migrate` predeploy job from the backend image.
 It applies product and social migrations to the same PostgreSQL database and

@@ -191,6 +191,10 @@ const REASONS: Record<RevisionWire['reason'], string> = {
   publish: 'When published',
   recovery: 'When recovered',
   schedule: 'When scheduled',
+  'calendar.move': 'When moved',
+  'calendar.swap': 'When swapped',
+  'calendar.unschedule': 'When unscheduled',
+  'calendar.remove_date': 'When the date was removed',
 }
 
 /**

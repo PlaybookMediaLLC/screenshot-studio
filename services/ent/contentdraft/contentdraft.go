@@ -46,6 +46,8 @@ const (
 	FieldShareToken = "shareToken"
 	// FieldGuestComments holds the string denoting the guest_comments field in the database.
 	FieldGuestComments = "guestComments"
+	// FieldCalendarVersion holds the string denoting the calendar_version field in the database.
+	FieldCalendarVersion = "calendarVersion"
 	// FieldVersion holds the string denoting the version field in the database.
 	FieldVersion = "version"
 	// FieldSocialSetID holds the string denoting the social_set_id field in the database.
@@ -108,6 +110,7 @@ var Columns = []string{
 	FieldReviewNote,
 	FieldShareToken,
 	FieldGuestComments,
+	FieldCalendarVersion,
 	FieldVersion,
 	FieldSocialSetID,
 	FieldPrimaryPlatform,
@@ -147,6 +150,8 @@ var (
 	DefaultChannelText map[string]string
 	// DefaultGuestComments holds the default value on creation for the "guest_comments" field.
 	DefaultGuestComments []map[string]string
+	// DefaultCalendarVersion holds the default value on creation for the "calendar_version" field.
+	DefaultCalendarVersion int
 	// DefaultVersion holds the default value on creation for the "version" field.
 	DefaultVersion int
 	// DefaultNaturalPostingTime holds the default value on creation for the "natural_posting_time" field.
@@ -302,6 +307,11 @@ func ByReviewNote(opts ...sql.OrderTermOption) OrderOption {
 // ByShareToken orders the results by the share_token field.
 func ByShareToken(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldShareToken, opts...).ToFunc()
+}
+
+// ByCalendarVersion orders the results by the calendar_version field.
+func ByCalendarVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCalendarVersion, opts...).ToFunc()
 }
 
 // ByVersion orders the results by the version field.

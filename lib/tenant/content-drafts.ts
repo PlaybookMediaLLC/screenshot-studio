@@ -89,8 +89,12 @@ export async function updateContentDraft(
 }
 
 /** Delete a draft; false when it is not in this workspace. */
-export async function deleteContentDraft(context: TenantContext, id: string) {
-  return (await orNull(backendSDK(context).deleteContentDraft(id))) !== null
+export async function deleteContentDraft(
+  context: TenantContext,
+  id: string,
+  expected?: { version?: number; calendarVersion?: number }
+) {
+  return (await orNull(backendSDK(context).deleteContentDraft(id, expected))) !== null
 }
 
 /** A draft's post with its times as Dates. */
@@ -138,6 +142,7 @@ export async function scheduleContentDraft(
     naturalPostingTime?: boolean
     scheduledFor?: Date
     timeZone?: string
+    baseCalendarVersion?: number
     version: number
   }
 ) {
@@ -194,6 +199,7 @@ export async function scheduleContentDraft(
     scheduledFor: input.scheduledFor,
     targets,
     timeZone: input.timeZone,
+    baseCalendarVersion: input.baseCalendarVersion,
     version: input.version,
   })
   return {
@@ -267,6 +273,9 @@ export async function listContentDraftPostsBetween(
     ...readPost(post),
     draftId: post.draftId,
     draftTitle: post.draftTitle,
+    version: post.version,
+    calendarVersion: post.calendarVersion,
+    tagIds: post.tagIds,
   }))
 }
 

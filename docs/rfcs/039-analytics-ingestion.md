@@ -6,8 +6,8 @@
 > See the [current execution order](README.md). Older decision text is
 > historical wherever it conflicts with that order or the audited architecture.
 
-**Status:** Not started
-**Status note (2026-10-16):** Nothing in this RFC is built.
+**Status:** Partially implemented
+**Status note (2026-10-24):** The explicitly authorized [Plan and Analyze implementation](../scheduling/typefully/plan-and-analyze/implementation.md) adds tenant-scoped raw snapshots, bounded collection/reconciliation, provider attribution, availability, and account reports through the existing social adapters. The wider matched-age aggregation, creative-learning attribution and retention design below remains planned; it is not claimed by this implementation.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Historical dependencies:** RFC 021 and RFC 030

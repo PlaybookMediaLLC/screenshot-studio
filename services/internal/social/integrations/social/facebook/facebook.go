@@ -1137,6 +1137,15 @@ func EncodeURIComponent(s string) string {
 // GetJSON is a plain `(await fetch(url)).json()`: no SSRF dispatcher, no
 // retries, and HTTP errors are not thrown — the body is decoded either way.
 func GetJSON(ctx context.Context, rawURL string, v any) error {
+	return getJSON(ctx, rawURL, v, false)
+}
+
+// GetJSONChecked propagates HTTP failures for analytics callers.
+func GetJSONChecked(ctx context.Context, rawURL string, v any) error {
+	return getJSON(ctx, rawURL, v, true)
+}
+
+func getJSON(ctx context.Context, rawURL string, v any, checked bool) error {
 	temporalx.SetHeartbeatDetails(ctx, "fetch "+temporalx.StripQuery(rawURL))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
@@ -1147,6 +1156,11 @@ func GetJSON(ctx context.Context, rawURL string, v any) error {
 		return err
 	}
 	defer res.Body.Close()
+	if checked {
+		if err := integrations.CheckResponse(res); err != nil {
+			return err
+		}
+	}
 	return json.NewDecoder(res.Body).Decode(v)
 }
 

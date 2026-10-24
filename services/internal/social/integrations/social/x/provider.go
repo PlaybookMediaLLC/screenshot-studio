@@ -5,6 +5,7 @@ package x
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"math"
 	"net/url"
@@ -379,8 +380,10 @@ func (p *Provider) Authenticate(ctx context.Context, params integrations.Authent
 }
 
 type tweet struct {
-	ID            string            `json:"id"`
-	PublicMetrics map[string]*int64 `json:"public_metrics"`
+	ID               string            `json:"id"`
+	PublicMetrics    map[string]*int64 `json:"public_metrics"`
+	OrganicMetrics   map[string]*int64 `json:"organic_metrics"`
+	NonPublicMetrics map[string]*int64 `json:"non_public_metrics"`
 }
 
 func (p *Provider) loadAllTweets(ctx context.Context, c *client, id, until, since, token string) ([]tweet, error) {
@@ -485,9 +488,15 @@ func (p *Provider) PostAnalytics(ctx context.Context, _, accessToken, postID str
 	var res struct {
 		Data *tweet `json:"data"`
 	}
-	if err := c.get(ctx, v2("tweets/"+postID), url.Values{"tweet.fields": {"public_metrics,created_at"}}, &res); err != nil {
-		log.Println("Error fetching X post analytics:", err)
-		return out, nil
+	if err := c.get(ctx, v2("tweets/"+url.PathEscape(postID)), url.Values{"tweet.fields": {"public_metrics,organic_metrics,non_public_metrics,created_at"}}, &res); err != nil {
+		var response *apiResponseError
+		if !errors.As(err, &response) || response.Code != 403 && response.Code != 400 {
+			return nil, err
+		}
+		// An account may be authorized for public counters but not private clicks.
+		if err = c.get(ctx, v2("tweets/"+url.PathEscape(postID)), url.Values{"tweet.fields": {"public_metrics,created_at"}}, &res); err != nil {
+			return nil, err
+		}
 	}
 	if res.Data == nil || res.Data.PublicMetrics == nil {
 		return out, nil
@@ -505,6 +514,15 @@ func (p *Provider) PostAnalytics(ctx context.Context, _, accessToken, postID str
 				Label: m.label,
 				Data:  []integrations.AnalyticsItem{{Total: strconv.FormatInt(*v, 10), Date: today}},
 			})
+		}
+	}
+	for source, label := range map[string]string{"user_profile_clicks": "Profile clicks", "url_link_clicks": "Link clicks"} {
+		value := res.Data.NonPublicMetrics[source]
+		if value == nil {
+			value = res.Data.OrganicMetrics[source]
+		}
+		if value != nil {
+			out = append(out, integrations.AnalyticsData{Label: label, Data: []integrations.AnalyticsItem{{Total: strconv.FormatInt(*value, 10), Date: today}}})
 		}
 	}
 	return out, nil

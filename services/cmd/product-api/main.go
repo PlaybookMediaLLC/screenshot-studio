@@ -80,7 +80,7 @@ func main() {
 	if publisher, closeShared, err := tenantpublishing.OpenShared(ctx, cfg.DatabaseURL, publishing.NewRepository(db.Client),
 		media.NewTenantObjects(objects)); err == nil {
 		defer closeShared()
-		configuration.WithPostMetrics(publisher).WithAccountStanding(publisher)
+		configuration.WithPostMetrics(publisher).WithAccountStanding(publisher).WithAnalytics(publisher)
 	} else {
 		slog.Warn("post engagement unavailable", "error", err)
 	}

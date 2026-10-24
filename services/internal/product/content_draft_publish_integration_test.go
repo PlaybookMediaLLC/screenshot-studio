@@ -181,7 +181,7 @@ func TestWritePublishing(t *testing.T) {
 	t.Run("scheduling a planned draft clears its plan", func(t *testing.T) {
 		d := draft(ContentDraftInput{})
 		plan := time.Now().Add(72 * time.Hour)
-		if _, err := repo.PlanContentDraft(ctx, owner, d.ID, ContentDraftPlanInput{PlannedFor: &plan, TimeZone: "UTC"}); err != nil {
+		if _, err := repo.PlanContentDraft(ctx, owner, d.ID, ContentDraftPlanInput{BaseCalendarVersion: d.CalendarVersion, PlannedFor: &plan, TimeZone: "UTC"}); err != nil {
 			t.Fatal(err)
 		}
 		result, err := repo.ScheduleContentDraft(ctx, owner, d.ID, ScheduleContentDraftInput{ScheduledFor: plan, Targets: target("planned", x), Version: 1})
@@ -426,6 +426,58 @@ func TestWritePublishing(t *testing.T) {
 		}
 		if n, err := w.db.Client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(d.ID)).Count(ctx); err != nil || n != 3 {
 			t.Fatalf("the draft has %d posts, want the two and one retry: %v", n, err)
+		}
+	})
+
+	t.Run("P39 cross-provider partial success retains the confirmed receipt when retrying the failed target", func(t *testing.T) {
+		d := draft(ContentDraftInput{PlainText: "partial publication"})
+		result, e := repo.ScheduleContentDraft(ctx, owner, d.ID, ScheduleContentDraftInput{PublishNow: true, Version: d.Version, Targets: append(target("X succeeded", x), target("LinkedIn failed", linkedin)...)})
+		if e != nil {
+			t.Fatal(e)
+		}
+		queue := publishing.NewRepository(w.db.Client)
+		for i, post := range result.Scheduled {
+			run := "partial-" + post.ID
+			claimed, e := queue.Claim(ctx, post.ID, run, time.Now().Add(time.Second))
+			if e != nil || !claimed {
+				t.Fatalf("claim=%v %v", claimed, e)
+			}
+			attempt, e := queue.StartAttempt(ctx, post, run, 1)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if i == 0 {
+				e = queue.Complete(ctx, post, attempt, "confirmed-x-receipt", run)
+			} else {
+				e = queue.Fail(ctx, post, attempt, "PROVIDER_REJECTED", nil, run)
+			}
+			if e != nil {
+				t.Fatal(e)
+			}
+		}
+		rows := posts(d.ID)
+		if len(rows) != 2 {
+			t.Fatalf("rows=%+v", rows)
+		}
+		var failedID string
+		for _, row := range rows {
+			if row.ChannelConnectionID == x {
+				if row.Status != "PUBLISHED" || row.URL == nil || *row.URL != "https://x.com/i/status/confirmed-x-receipt" {
+					t.Fatalf("success lost=%+v", row)
+				}
+			} else {
+				if row.Status != "FAILED" {
+					t.Fatal(row.Status)
+				}
+				failedID = row.ID
+			}
+		}
+		if _, e = repo.RetryContentDraftPost(ctx, owner, failedID); e != nil {
+			t.Fatal(e)
+		}
+		count, e := w.db.Client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(d.ID), scheduledpost.ChannelConnectionID(x), scheduledpost.StatusEQ(scheduledpost.StatusPUBLISHED), scheduledpost.RemotePostID("confirmed-x-receipt")).Count(ctx)
+		if e != nil || count != 1 {
+			t.Fatalf("successful publication changed count=%d %v", count, e)
 		}
 	})
 

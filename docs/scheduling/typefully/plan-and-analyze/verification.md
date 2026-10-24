@@ -116,6 +116,15 @@ go run github.com/oasdiff/oasdiff@v1.33.0 breaking .local/plan-analyze/base-open
 
 The exact CI compatibility check above passed without adding an exception. Local evidence is in `quality-develop.log`, `go-develop.jsonl`, `vet-develop.log`, `domain-compat.jsonl`, `compat-unit.log` and `openapi-compat.log`. The PR records subsequent GitHub build/check results; the earlier counts above remain the original implementation audit.
 
+The SDK forwarding types were also updated for the optional legacy revision; `npm run build:sdk`, `npm run typecheck` and a fresh `npm run build` passed (`sdk-compat.log`, `typecheck-compat.log`, `build-compat.log`). Automated PR review then identified receipts retained by workspace deletion because the organization tombstone survives. `TestWorkspaceCleanupRemovesPlanAnalyzeDataAndKeepsOtherTenants` reproduced that leak before the fix. Explicit tenant-scoped deletion of receipts and analytics records now passes; the test also checks the surviving tenant, tombstone, audit event and repeated cleanup. The full maintenance suite passed 17 tests, none skipped, with the race detector:
+
+```bash
+# From services, against a separate disposable, fully migrated database:
+MAINTENANCE_TEST_DATABASE_URL='postgresql://USER:PASSWORD@HOST:PORT/maintenance_test?sslmode=disable' go test -race -count=1 -json ./internal/maintenance
+```
+
+Evidence: `purge-before.log`, `purge-after.jsonl`, `maintenance-migrate.log`. This also exercises the maintenance database cases skipped in the earlier G run.
+
 ## External checks before production enablement
 
 - Use authorized provider accounts, actual granted scopes, supported API tiers and quota. X follower reads, timeline import and private click metrics require the corresponding provider access; unavailable private counters remain absent. LinkedIn personal currently lacks the installed analytics interface; do not infer support from publishing. Page/Instagram/Threads permissions are provider-specific.

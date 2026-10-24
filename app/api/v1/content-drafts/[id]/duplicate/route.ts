@@ -9,8 +9,8 @@ const notFound = () => errorResponse(404, 'Content draft not found.')
 /** Duplicate a draft in its social set. */
 export const POST = route(duplicateContentDraftContract, {
   auth: tenantAccess(duplicateContentDraftContract.access),
-  handler: async ({ access, params }) =>
+  handler: async ({ access, params, query }) =>
     contentDraftsEnabled()
-      ? ((await duplicateContentDraft(access, params.id)) ?? notFound())
+      ? ((await duplicateContentDraft(access, params.id, query.requestKey)) ?? notFound())
       : notFound(),
 })

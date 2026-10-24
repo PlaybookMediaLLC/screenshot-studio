@@ -76,10 +76,18 @@ type Poll struct {
 
 // ThreadProgress is how much of a thread is live: the replies posted, of
 // how many, and the last live reply a resumed thread answers.
+// ThreadReceipt records the exact successful continuation for attribution.
+type ThreadReceipt struct {
+	RemoteID    string    `json:"remoteId"`
+	Position    int       `json:"position"`
+	PublishedAt time.Time `json:"publishedAt"`
+}
+
 type ThreadProgress struct {
-	LastReplyID string `json:"lastReplyId,omitempty"`
-	Posted      int    `json:"posted"`
-	Total       int    `json:"total"`
+	Receipts    []ThreadReceipt `json:"receipts,omitempty"`
+	LastReplyID string          `json:"lastReplyId,omitempty"`
+	Posted      int             `json:"posted"`
+	Total       int             `json:"total"`
 }
 
 // Metrics are a live post's engagement counts by name (likes, reposts,

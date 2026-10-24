@@ -25,6 +25,7 @@ type WriteStore interface {
 	UpdateContentDraftProperties(context.Context, product.Actor, string, product.ContentDraftPropertiesInput) (*product.ContentDraftRecord, error)
 	PlanContentDraft(context.Context, product.Actor, string, product.ContentDraftPlanInput) (*product.ContentDraftRecord, error)
 	DuplicateContentDraft(context.Context, product.Actor, string) (*product.ContentDraftCopyResult, error)
+	DuplicateContentDraftWithKey(context.Context, product.Actor, string, string) (*product.ContentDraftCopyResult, error)
 	CopyContentDraftToSet(context.Context, product.Actor, string, product.ContentDraftCopyInput) (*product.ContentDraftCopyResult, error)
 	RecoverContentDraftRevision(context.Context, product.Actor, string, string) (*product.ContentDraftCopyResult, error)
 	ListContentDraftActivity(context.Context, product.Actor, string) ([]product.ContentDraftActivity, error)
@@ -196,7 +197,7 @@ func (s *Server) duplicateContentDraft(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	result, err := s.configuration.DuplicateContentDraft(r.Context(), workspaceActor(r), id)
+	result, err := s.configuration.DuplicateContentDraftWithKey(r.Context(), workspaceActor(r), id, r.URL.Query().Get("requestKey"))
 	respond(w, http.StatusCreated, result, err)
 }
 

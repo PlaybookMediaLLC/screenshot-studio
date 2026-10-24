@@ -31,7 +31,8 @@ var (
 	// x.com/<handle>/status/<id> and its twitter.com form.
 	xStatusURL = regexp.MustCompile(`^https://(?:www\.|mobile\.)?(?:x|twitter)\.com/(?:[A-Za-z0-9_]{1,15}|i(?:/web)?)/status/([0-9]{1,30})(?:[/?#].*)?$`)
 	// A LinkedIn post: its feed URL or a share, post or activity URN.
-	linkedInPostURN = regexp.MustCompile(`urn:li:(?:share|ugcPost|activity):[0-9]{1,30}`)
+	linkedInFeedPath  = regexp.MustCompile(`^/feed/update/(urn:li:(?:share|ugcPost|activity):[0-9]{1,30})/?$`)
+	linkedInSharePath = regexp.MustCompile(`^/posts/[A-Za-z0-9_-]+-activity-([0-9]{1,30})(?:-[A-Za-z0-9_-]+)?/?$`)
 	// The kinds of draft and the channels each can be written for.
 	draftKindChannels = map[string][]string{
 		"standard": {"x", "linkedin", "instagram", "threads", "bluesky", "mastodon"},
@@ -95,13 +96,13 @@ func draftTarget(kind string, target *draftdoc.Target) (*draftdoc.Target, error)
 	}
 	if parsed, err := url.Parse(clean.URL); err == nil && parsed.Scheme == "https" &&
 		(parsed.Host == "www.linkedin.com" || parsed.Host == "linkedin.com") {
-		if urn := linkedInPostURN.FindString(clean.URL); urn != "" {
-			clean.Platform, clean.RemoteID = "linkedin", urn
+		unescaped, _ := url.PathUnescape(parsed.EscapedPath())
+		if match := linkedInFeedPath.FindStringSubmatch(unescaped); match != nil {
+			clean.Platform, clean.RemoteID = "linkedin", match[1]
 			return &clean, nil
 		}
-		unescaped, _ := url.PathUnescape(parsed.Path)
-		if urn := linkedInPostURN.FindString(unescaped); urn != "" {
-			clean.Platform, clean.RemoteID = "linkedin", urn
+		if match := linkedInSharePath.FindStringSubmatch(unescaped); match != nil {
+			clean.Platform, clean.RemoteID = "linkedin", "urn:li:activity:"+match[1]
 			return &clean, nil
 		}
 	}

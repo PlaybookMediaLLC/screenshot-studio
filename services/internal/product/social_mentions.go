@@ -4,9 +4,9 @@ import (
 	"context"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 )
 
 // Mentions picked from the platform (RFC 042). A mention is looked up with
@@ -107,21 +107,9 @@ func channelLabel(channel string) string {
 	return "X"
 }
 
-// recentCompanyMentions indexes persisted mention nodes in the set's latest
-// drafts. It never reads another social set or a private set the actor cannot see.
+// recentCompanyMentions reads the durable, set-scoped directory.
 func (c *Configuration) recentCompanyMentions(ctx context.Context, actor Actor, setID, query string) ([]Mention, error) {
-	rows, err := c.client.ContentDraft.Query().Where(contentdraft.OrganizationID(actor.OrganizationID), contentdraft.SocialSetID(setID)).Order(ent.Desc(contentdraft.FieldUpdatedAt)).Limit(100).All(ctx)
-	if err != nil {
-		return nil, err
-	}
-	bodies := [][]any{}
-	for _, row := range rows {
-		bodies = append(bodies, row.Body)
-		for _, version := range row.PlatformVersions.Versions {
-			bodies = append(bodies, version.Body)
-		}
-	}
-	return storedMentions(bodies, query, "organization"), nil
+	return c.mentionDirectory(ctx, actor, setID, query, "organization")
 }
 
 func companyMentions(bodies [][]any, query string) []Mention {
@@ -145,7 +133,7 @@ func storedMentions(bodies [][]any, query, kind string) []Mention {
 			id, _ := node["providerId"].(string)
 			label, _ := node["label"].(string)
 			validIdentity := kind == "person" && node["kind"] == "person" && linkedInPersonURN.MatchString(id) || kind == "organization" && (node["kind"] == "organization" || node["kind"] == nil) && strings.HasPrefix(id, "urn:li:organization:") && numericID.MatchString(strings.TrimPrefix(id, "urn:li:organization:"))
-			if node["type"] == "social_mention" && node["platform"] == "linkedin" && validIdentity && label != "" && !seen[id] && (query == "" || strings.Contains(strings.ToLower(label), query)) && len(out) < 30 {
+			if node["type"] == "social_mention" && node["platform"] == "linkedin" && validIdentity && strings.TrimSpace(label) != "" && utf8.RuneCountInString(label) <= 500 && !seen[id] && (query == "" || strings.Contains(strings.ToLower(label), query)) {
 				out = append(out, Mention{Kind: kind, Label: label, ProviderID: id})
 				seen[id] = true
 			}
@@ -178,20 +166,14 @@ func (c *Configuration) LookupPeopleMentions(ctx context.Context, actor Actor, s
 	if len(query) > 200 {
 		return nil, invalid("Keep mention searches under 200 characters.")
 	}
-	if query == "" {
-		rows, err := c.client.ContentDraft.Query().Where(contentdraft.OrganizationID(actor.OrganizationID), contentdraft.SocialSetID(set.ID)).Order(ent.Desc(contentdraft.FieldUpdatedAt)).Limit(100).All(ctx)
-		if err != nil {
-			return nil, err
-		}
-		bodies := [][]any{}
-		for _, row := range rows {
-			bodies = append(bodies, row.Body)
-			for _, v := range row.PlatformVersions.Versions {
-				bodies = append(bodies, v.Body)
-			}
-		}
-		return storedMentions(bodies, "", "person"), nil
+	recent, err := c.mentionDirectory(ctx, actor, set.ID, query, "person")
+	if err != nil {
+		return nil, err
 	}
+	if query == "" || len(recent) > 0 {
+		return recent, nil
+	}
+
 	connection, err := setAccount(ctx, c.client, set, "linkedin-page")
 	if ent.IsNotFound(err) {
 		return nil, conflict("Connect a LinkedIn Page with follower lookup access before searching people.")

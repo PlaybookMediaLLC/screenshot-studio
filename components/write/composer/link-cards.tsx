@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { linkedInPostIdentity } from '@/lib/write/linkedin-target'
 import { Button } from '@/components/ui/button'
 import { draftsApi } from '@/lib/content-drafts/client'
 import { linkPreviewSchema, type DraftChannel, type LinkPreview } from '@/lib/write/document'
@@ -100,9 +101,11 @@ export function LinkCards({
       {links.map((url) => {
         const card = cards.find((item) => item.url === url)
         const quote =
-          /^https:\/\/(?:www\.)?(?:(?:x|twitter)\.com\/[^/]+\/status\/\d+|linkedin\.com\/.*urn:li:|bsky\.app\/profile\/[^/]+\/post\/)/.test(
+          Boolean(linkedInPostIdentity(url)) ||
+          /^https:\/\/(?:www\.)?(?:(?:x|twitter)\.com\/[^/]+\/status\/\d+|bsky\.app\/profile\/[^/]+\/post\/)/.test(
             url
-          ) || /^https:\/\/[^/@:]+\/(?:@[^/]+\/|users\/[^/]+\/statuses\/|statuses\/)\d+$/.test(url)
+          ) ||
+          /^https:\/\/[^/@:]+\/(?:@[^/]+\/|users\/[^/]+\/statuses\/|statuses\/)\d+$/.test(url)
         return (
           <div key={url}>
             {card?.removed ? (

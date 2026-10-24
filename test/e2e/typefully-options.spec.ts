@@ -92,14 +92,18 @@ test('Bluesky link cards persist removal and convert a pasted native link into a
   }
 })
 
-test('Threads and Mastodon polls retain separate provider settings after reload', async ({
+test('LinkedIn Threads and Mastodon polls copy choices and retain separate settings after reload', async ({
   identity,
   page,
 }) => {
   test.setTimeout(180_000)
   let workspace: DraftWorkspace | null = null
   try {
-    workspace = await createDraftWorkspace(identity, page, ['threads', 'mastodon-custom'])
+    workspace = await createDraftWorkspace(identity, page, [
+      'threads',
+      'mastodon-custom',
+      'linkedin',
+    ])
     await openNewDraft(page)
     await page.getByTestId('platform-tab-threads').click()
     const editThreads = page.getByRole('button', { name: 'Edit for Threads independently' })
@@ -128,10 +132,13 @@ test('Threads and Mastodon polls retain separate provider settings after reload'
       await page.getByRole('button', { name: 'Add a poll', exact: true }).first().click()
       await page.getByRole('button', { name: 'Add poll', exact: true }).click()
     }
-    await page.getByLabel('Poll option 1', { exact: true }).fill('Alpha')
-    await page.getByLabel('Poll option 2', { exact: true }).fill('Beta')
     await page.getByLabel('Allow multiple choices').check()
     await page.getByLabel('Poll duration in minutes').fill('45')
+    await page.getByRole('combobox', { name: 'Copy poll options from' }).click()
+    await page.getByRole('option', { name: 'Threads · post 1', exact: true }).click()
+    await expect(page.getByLabel('Poll option 1', { exact: true })).toHaveValue('Alpha')
+    await expect(page.getByLabel('Allow multiple choices')).toBeChecked()
+    await expect(page.getByLabel('Poll duration in minutes')).toHaveValue('45')
     await page.keyboard.press('Escape')
     await expectSaved(page)
     await page.reload()
@@ -144,6 +151,65 @@ test('Threads and Mastodon polls retain separate provider settings after reload'
     await page.getByRole('button', { name: 'Edit the poll', exact: true }).first().click()
     await expect(page.getByLabel('Poll duration', { exact: true })).toContainText('1 day')
     await expect(page.getByLabel('Poll option 1', { exact: true })).toHaveValue('Alpha')
+    await page.keyboard.press('Escape')
+    await page.getByTestId('platform-tab-linkedin').click()
+    const editLinkedIn = page.getByRole('button', { name: 'Edit for LinkedIn independently' })
+    if (await editLinkedIn.isVisible()) await editLinkedIn.click()
+    const linkedPoll = page.getByRole('button', { name: 'Edit the poll', exact: true }).first()
+    if (await linkedPoll.isVisible()) await linkedPoll.click()
+    else {
+      await page.getByRole('button', { name: 'Add a poll', exact: true }).first().click()
+      await page.getByRole('button', { name: 'Add poll', exact: true }).click()
+    }
+    await page.getByLabel('Poll question', { exact: true }).fill('Which release for LinkedIn?')
+    await page.getByRole('combobox', { name: 'Poll duration', exact: true }).click()
+    await page.getByRole('option', { name: '1 week', exact: true }).click()
+    await page.getByLabel('Poll option 1', { exact: true }).fill('😀'.repeat(30))
+    await expect(page.getByLabel('Poll option 1', { exact: true })).toHaveValue('😀'.repeat(30))
+    await page.getByRole('combobox', { name: 'Copy poll options from' }).click()
+    await page.getByRole('option', { name: 'Threads · post 1', exact: true }).click()
+    await expect(page.getByLabel('Poll question', { exact: true })).toHaveValue(
+      'Which release for LinkedIn?'
+    )
+    await expect(page.getByLabel('Poll duration', { exact: true })).toContainText('1 week')
+    await page.keyboard.press('Escape')
+    await expectSaved(page)
+    await page.reload()
+    await page.getByTestId('platform-tab-linkedin').click()
+    await page.getByRole('button', { name: 'Edit the poll', exact: true }).first().click()
+    await expect(page.getByLabel('Poll option 2', { exact: true })).toHaveValue('Beta')
+    await expect(page.getByLabel('Poll question', { exact: true })).toHaveValue(
+      'Which release for LinkedIn?'
+    )
+    await expect(page.getByLabel('Poll duration', { exact: true })).toContainText('1 week')
+    await page.keyboard.press('Escape')
+    await page.getByTestId('platform-tab-mastodon').click()
+    await page.getByRole('button', { name: 'Edit the poll', exact: true }).first().click()
+    await page
+      .getByLabel('Poll option 1', { exact: true })
+      .fill('A choice that exceeds LinkedIn limits')
+    await page.keyboard.press('Escape')
+    await page.getByTestId('platform-tab-linkedin').click()
+    await page.getByRole('button', { name: 'Edit the poll', exact: true }).first().click()
+    await page.getByRole('combobox', { name: 'Copy poll options from' }).click()
+    await page.getByRole('option', { name: 'Mastodon · post 1', exact: true }).click()
+    await expect(page.getByLabel('Poll option 1', { exact: true })).toHaveValue(
+      'A choice that exceeds LinkedIn limits'
+    )
+    await expect(page.getByTestId('poll-editor-linkedin').getByRole('alert')).toContainText(
+      'Keep each option to 30 characters.'
+    )
+    await expect(page.getByLabel('Poll duration', { exact: true })).toContainText('1 week')
+    await page.getByRole('combobox', { name: 'Copy poll options from' }).click()
+    await page.getByRole('option', { name: 'Threads · post 1', exact: true }).click()
+    await expect(page.getByTestId('poll-editor-linkedin').getByRole('alert')).toHaveCount(0)
+    await page.getByRole('textbox', { name: 'Draft title', exact: true }).click()
+    await expect(page.getByTestId('poll-editor-linkedin')).toHaveCount(0)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.getByRole('button', { name: 'Edit the poll', exact: true }).first().click()
+    const copyControl = page.getByRole('combobox', { name: 'Copy poll options from' })
+    await copyControl.scrollIntoViewIfNeeded()
+    await expect(copyControl).toBeInViewport()
     await page.screenshot({ path: '.context/shots/typefully-native-polls.png', fullPage: true })
   } finally {
     await workspace?.provider.close()

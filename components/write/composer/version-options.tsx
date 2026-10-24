@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { xLength } from '@/lib/content-drafts/x-length'
+import { serializeDraft } from '@/lib/content-drafts/serialize'
 import { CAPABILITIES } from '@/lib/write/capabilities'
 import { type DraftFinisherWire, writeApi } from '@/lib/write/client'
 import {
@@ -55,6 +55,7 @@ const STYLE_EXAMPLES: Record<Numbering['style'], string> = {
  * document. Each is stored with the version and applied when it publishes.
  */
 export function VersionOptionsBar({
+  captionLimit,
   channel,
   onApplyFinisher,
   onChange,
@@ -65,6 +66,7 @@ export function VersionOptionsBar({
   uploadFile,
 }: {
   channel: DraftChannel
+  captionLimit?: number
   onApplyFinisher?: (text: string, quoteFirstPost: boolean) => void
   onChange: (options: VersionOptions) => void
   options: VersionOptions
@@ -190,7 +192,13 @@ export function VersionOptionsBar({
         />
       ) : null}
       {dialog === 'finisher' && setId && onApplyFinisher ? (
-        <FinisherDialog onApply={onApplyFinisher} onClose={() => setDialog(null)} setId={setId} />
+        <FinisherDialog
+          channel={channel}
+          captionLimit={captionLimit}
+          onApply={onApplyFinisher}
+          onClose={() => setDialog(null)}
+          setId={setId}
+        />
       ) : null}
       {dialog === 'community' ? (
         <CommunityDialog
@@ -336,10 +344,14 @@ export function NumberingDialog({
  * to that post only after it is live.
  */
 export function FinisherDialog({
+  channel = 'x',
+  captionLimit,
   onApply,
   onClose,
   setId,
 }: {
+  channel?: DraftChannel
+  captionLimit?: number
   onApply: (text: string, quoteFirstPost: boolean) => void
   onClose: () => void
   setId: string
@@ -352,6 +364,12 @@ export function FinisherDialog({
     text: string
   } | null>(null)
   const [busy, setBusy] = React.useState(false)
+  const [search, setSearch] = React.useState('')
+  const count = serializeDraft(
+    [{ type: 'p', children: [{ text: editing?.text ?? '' }] }],
+    channel
+  ).length
+  const limit = captionLimit ?? CAPABILITIES[channel].captionLimit
   React.useEffect(() => {
     void writeApi
       .finishers(setId)
@@ -365,9 +383,14 @@ export function FinisherDialog({
     if (!editing) return
     setBusy(true)
     try {
+      const fields = {
+        name: editing.name,
+        text: editing.text,
+        quoteFirstPost: editing.quoteFirstPost,
+      }
       const saved = editing.id
-        ? await writeApi.updateFinisher(setId, editing.id, editing)
-        : await writeApi.createFinisher(setId, editing)
+        ? await writeApi.updateFinisher(setId, editing.id, fields)
+        : await writeApi.createFinisher(setId, fields)
       setItems((current) => [...(current ?? []).filter((item) => item.id !== saved.id), saved])
       setEditing(null)
     } catch (error) {
@@ -410,12 +433,13 @@ export function FinisherDialog({
             <Label className="grid gap-1 text-xs text-neutral-400">
               <span className="flex justify-between">
                 Text
-                <span className={cn(xLength(editing.text) > 280 && 'text-red-300')}>
-                  {xLength(editing.text)}/280
+                <span className={cn(count > limit && 'text-red-300')}>
+                  {count}/{limit}
                 </span>
               </span>
               <Textarea
                 className="min-h-24"
+                maxLength={25_000}
                 onChange={(event) => setEditing({ ...editing, text: event.target.value })}
                 value={editing.text}
               />
@@ -455,52 +479,64 @@ export function FinisherDialog({
             {items?.length === 0 ? (
               <p className="text-sm text-neutral-400">No finishers yet.</p>
             ) : null}
+            <Input
+              aria-label="Search finishers"
+              placeholder="Search finishers…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
             <ul className="grid gap-2">
-              {items?.map((item) => (
-                <li
-                  className="rounded-lg border border-white/[0.06] p-3"
-                  data-testid="finisher"
-                  key={item.id}
-                >
-                  <p className="flex items-center justify-between text-sm text-white">
-                    {item.name}
-                    {item.quoteFirstPost ? (
-                      <span className="text-[11px] text-sky-300">quotes the first post</span>
-                    ) : null}
-                  </p>
-                  <FinisherPreview quoteFirstPost={item.quoteFirstPost} text={item.text} />
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <Button
-                      onClick={() => {
-                        onApply(item.text, item.quoteFirstPost)
-                        onClose()
-                      }}
-                      size="sm"
-                      type="button"
-                    >
-                      Add to current draft
-                    </Button>
-                    <Button
-                      onClick={() => setEditing({ ...item })}
-                      size="sm"
-                      type="button"
-                      variant="ghost"
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      className="text-red-300"
-                      disabled={busy}
-                      onClick={() => void remove(item.id)}
-                      size="sm"
-                      type="button"
-                      variant="ghost"
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </li>
-              ))}
+              {items
+                ?.filter((item) =>
+                  `${item.name} ${item.text}`
+                    .toLocaleLowerCase()
+                    .includes(search.trim().toLocaleLowerCase())
+                )
+                .map((item) => (
+                  <li
+                    className="rounded-lg border border-white/[0.06] p-3"
+                    data-testid="finisher"
+                    key={item.id}
+                  >
+                    <p className="flex items-center justify-between text-sm text-white">
+                      {item.name}
+                      {item.quoteFirstPost ? (
+                        <span className="text-[11px] text-sky-300">quotes the first post</span>
+                      ) : null}
+                    </p>
+                    <FinisherPreview quoteFirstPost={item.quoteFirstPost} text={item.text} />
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <Button
+                        onClick={() => {
+                          onApply(item.text, item.quoteFirstPost)
+                          onClose()
+                        }}
+                        size="sm"
+                        type="button"
+                      >
+                        Add to current draft
+                      </Button>
+                      <Button
+                        onClick={() => setEditing({ ...item })}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        className="text-red-300"
+                        disabled={busy}
+                        onClick={() => void remove(item.id)}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </li>
+                ))}
             </ul>
             <DialogFooter>
               <Button

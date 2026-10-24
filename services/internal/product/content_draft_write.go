@@ -29,7 +29,6 @@ import (
 const (
 	contentDraftTagNameLimit   = 40
 	contentDraftSetTagLimit    = 100
-	contentDraftFinisherLimit  = 50
 	contentDraftFinisherLength = 25_000
 )
 
@@ -292,6 +291,9 @@ func (c *Configuration) copyDraft(ctx context.Context, tx *ent.Tx, actor Actor, 
 	}
 	row, err := create.Save(ctx)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := rememberDraftMentions(ctx, tx, row); err != nil {
 		return nil, nil, err
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_created", "content_draft", row.ID,
@@ -819,13 +821,6 @@ func (c *Configuration) CreateContentDraftFinisher(ctx context.Context, actor Ac
 	}
 	if err := finisherFields(input, true); err != nil {
 		return nil, err
-	}
-	count, err := c.client.ContentDraftFinisher.Query().Where(contentdraftfinisher.SocialSetID(setID)).Count(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if count >= contentDraftFinisherLimit {
-		return nil, conflict(fmt.Sprintf("A set can have up to %d finishers.", contentDraftFinisherLimit))
 	}
 	create := c.client.ContentDraftFinisher.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetSocialSetID(setID).
 		SetName(strings.TrimSpace(*input.Name)).SetText(strings.TrimSpace(*input.Text))

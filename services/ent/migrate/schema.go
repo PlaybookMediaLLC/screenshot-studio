@@ -1918,6 +1918,34 @@ var (
 			},
 		},
 	}
+	// PlatformSocialMentionColumns holds the columns for the "platform_social_mention" table.
+	PlatformSocialMentionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "socialSetId", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"organization", "person"}},
+		{Name: "providerId", Type: field.TypeString},
+		{Name: "label", Type: field.TypeString},
+		{Name: "lastUsedAt", Type: field.TypeTime},
+	}
+	// PlatformSocialMentionTable holds the schema information for the "platform_social_mention" table.
+	PlatformSocialMentionTable = &schema.Table{
+		Name:       "platform_social_mention",
+		Columns:    PlatformSocialMentionColumns,
+		PrimaryKey: []*schema.Column{PlatformSocialMentionColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformsocialmention_organizationId_socialSetId_kind_providerId",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformSocialMentionColumns[1], PlatformSocialMentionColumns[2], PlatformSocialMentionColumns[3], PlatformSocialMentionColumns[4]},
+			},
+			{
+				Name:    "platformsocialmention_organizationId_socialSetId_kind_lastUsedAt",
+				Unique:  false,
+				Columns: []*schema.Column{PlatformSocialMentionColumns[1], PlatformSocialMentionColumns[2], PlatformSocialMentionColumns[3], PlatformSocialMentionColumns[6]},
+			},
+		},
+	}
 	// PlatformWorkspaceCreationColumns holds the columns for the "platform_workspace_creation" table.
 	PlatformWorkspaceCreationColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -3260,6 +3288,7 @@ var (
 		PlatformSlackInstallationTable,
 		PlatformSlackPacingTable,
 		PlatformSlackPersonalConnectionTable,
+		PlatformSocialMentionTable,
 		PlatformWorkspaceCreationTable,
 		PostAutomationRunTable,
 		ProductProfileTable,
@@ -3498,6 +3527,9 @@ func init() {
 	}
 	PlatformSlackPersonalConnectionTable.Annotation = &entsql.Annotation{
 		Table: "platform_slack_personal_connection",
+	}
+	PlatformSocialMentionTable.Annotation = &entsql.Annotation{
+		Table: "platform_social_mention",
 	}
 	PlatformWorkspaceCreationTable.Annotation = &entsql.Annotation{
 		Table: "platform_workspace_creation",

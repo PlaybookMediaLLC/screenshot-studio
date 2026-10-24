@@ -140,6 +140,8 @@ type Tx struct {
 	PlatformSlackPacing *PlatformSlackPacingClient
 	// PlatformSlackPersonalConnection is the client for interacting with the PlatformSlackPersonalConnection builders.
 	PlatformSlackPersonalConnection *PlatformSlackPersonalConnectionClient
+	// PlatformSocialMention is the client for interacting with the PlatformSocialMention builders.
+	PlatformSocialMention *PlatformSocialMentionClient
 	// PlatformWorkspaceCreation is the client for interacting with the PlatformWorkspaceCreation builders.
 	PlatformWorkspaceCreation *PlatformWorkspaceCreationClient
 	// PostAutomationRun is the client for interacting with the PostAutomationRun builders.
@@ -417,6 +419,7 @@ func (tx *Tx) init() {
 	tx.PlatformSlackInstallation = NewPlatformSlackInstallationClient(tx.config)
 	tx.PlatformSlackPacing = NewPlatformSlackPacingClient(tx.config)
 	tx.PlatformSlackPersonalConnection = NewPlatformSlackPersonalConnectionClient(tx.config)
+	tx.PlatformSocialMention = NewPlatformSocialMentionClient(tx.config)
 	tx.PlatformWorkspaceCreation = NewPlatformWorkspaceCreationClient(tx.config)
 	tx.PostAutomationRun = NewPostAutomationRunClient(tx.config)
 	tx.ProductProfile = NewProductProfileClient(tx.config)

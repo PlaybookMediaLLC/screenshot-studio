@@ -53,6 +53,8 @@ test('LinkedIn recent people and companies preserve native identities from picke
       },
     })
     expect(seeded.status, JSON.stringify(seeded.body)).toBe(200)
+    const removed = await apiRequest(page, `/api/v1/content-drafts/${oldId}`, { method: 'DELETE' })
+    expect(removed.status).toBe(200)
     const id = await openNewDraft(page)
     await draftEditor(page).click()
     await page.keyboard.press('ControlOrMeta+End')

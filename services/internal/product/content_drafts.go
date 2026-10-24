@@ -624,6 +624,9 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 	if err != nil {
 		return nil, err
 	}
+	if err := rememberDraftMentions(ctx, tx, row); err != nil {
+		return nil, err
+	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_created", "content_draft", row.ID,
 		map[string]any{"kind": kind, "socialSetId": set.ID}); err != nil {
 		return nil, err
@@ -1063,6 +1066,11 @@ func (c *Configuration) UpdateContentDraft(ctx context.Context, actor Actor, id 
 	row, err := tx.ContentDraft.Get(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if input.Body != nil || input.PlatformVersions != nil {
+		if err := rememberDraftMentions(ctx, tx, row); err != nil {
+			return nil, err
+		}
 	}
 	if err := recordContentDraftRevision(ctx, tx, actor, row, false, "edit"); err != nil {
 		return nil, err

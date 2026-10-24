@@ -777,6 +777,18 @@ func (f PlatformSlackPersonalConnectionFunc) Mutate(ctx context.Context, m ent.M
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSlackPersonalConnectionMutation", m)
 }
 
+// The PlatformSocialMentionFunc type is an adapter to allow the use of ordinary
+// function as PlatformSocialMention mutator.
+type PlatformSocialMentionFunc func(context.Context, *ent.PlatformSocialMentionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformSocialMentionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformSocialMentionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSocialMentionMutation", m)
+}
+
 // The PlatformWorkspaceCreationFunc type is an adapter to allow the use of ordinary
 // function as PlatformWorkspaceCreation mutator.
 type PlatformWorkspaceCreationFunc func(context.Context, *ent.PlatformWorkspaceCreationMutation) (ent.Value, error)

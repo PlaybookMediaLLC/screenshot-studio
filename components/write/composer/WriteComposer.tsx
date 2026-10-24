@@ -66,7 +66,14 @@ import {
   type VersionOptions,
 } from '@/lib/write/document'
 import { buildPublication } from '@/lib/write/publication'
-import { bodyFor, forkVersion, versionFor, withOptions, withVersion } from '@/lib/write/versions'
+import {
+  bodyFor,
+  bodyPosts,
+  forkVersion,
+  versionFor,
+  withOptions,
+  withVersion,
+} from '@/lib/write/versions'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { SetDot } from '../sets'
@@ -577,6 +584,22 @@ export function WriteComposer({
           <PostSettingsTools
             channel={active}
             number={number}
+            pollSources={channels
+              .filter((channel) => channel !== active)
+              .flatMap((channel) =>
+                bodyPosts(bodyFor(document.value as PlateBody, document.versions, channel)).flatMap(
+                  (post, index) =>
+                    post.settings.poll
+                      ? [
+                          {
+                            key: `${channel}-${index}`,
+                            label: `${CHANNEL_META[channel].label} · post ${index + 1}`,
+                            poll: post.settings.poll,
+                          },
+                        ]
+                      : []
+                )
+              )}
             settings={settings}
             standing={{
               pollLimits: accounts.find((account) => account.channel === active)?.pollLimits,
@@ -975,8 +998,9 @@ export function WriteComposer({
         ) : null}
         <VersionOptionsBar
           channel={active}
+          captionLimit={activePublication.serialized.limit}
           onApplyFinisher={
-            canEdit && active === primary
+            canEdit && (active === primary || versionOfTab.mode === 'manual')
               ? (text, quoteFirstPost) => {
                   if (editor.current)
                     appendPost(editor.current, text, quoteFirstPost ? { quoteFirstPost: true } : {})

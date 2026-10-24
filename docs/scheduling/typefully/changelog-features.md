@@ -7,7 +7,7 @@ This file lists every entry in the Typefully changelog as a feature to build.
 - **Entries:** all 109. The RSS feed and the 6 changelog pages list the same 109 entries.
 - **Read on:** 2026-10-19
 
-The [implementation evidence for Sections 2, 4 and 5](work-items/implementation-evidence.md) records executed tests and unresolved provider gates from the October 24 implementation. These entries were explicitly reopened by the implementation assignment; other sections keep their existing scope.
+The [implementation evidence for Sections 2, 4 and 5](work-items/implementation-evidence.md) records executed tests and unresolved provider gates from the October 24 implementation. The later [work completed without live X access](work-items/implementation-evidence.md#work-completed-without-live-x-access) covers durable mentions, finisher management, LinkedIn share links and explicit poll copying. Provider-dependent outcomes remain visibly unresolved. These entries were explicitly reopened by the implementation assignment; other sections keep their existing scope.
 
 ## When to start
 

@@ -76,6 +76,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpersonalconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformsocialmention"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformworkspacecreation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
@@ -242,6 +243,7 @@ func checkColumn(t, c string) error {
 			platformslackinstallation.Table:       platformslackinstallation.ValidColumn,
 			platformslackpacing.Table:             platformslackpacing.ValidColumn,
 			platformslackpersonalconnection.Table: platformslackpersonalconnection.ValidColumn,
+			platformsocialmention.Table:           platformsocialmention.ValidColumn,
 			platformworkspacecreation.Table:       platformworkspacecreation.ValidColumn,
 			postautomationrun.Table:               postautomationrun.ValidColumn,
 			productprofile.Table:                  productprofile.ValidColumn,

@@ -76,6 +76,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpersonalconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformsocialmention"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformworkspacecreation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
@@ -201,6 +202,7 @@ const (
 	TypePlatformSlackInstallation       = "PlatformSlackInstallation"
 	TypePlatformSlackPacing             = "PlatformSlackPacing"
 	TypePlatformSlackPersonalConnection = "PlatformSlackPersonalConnection"
+	TypePlatformSocialMention           = "PlatformSocialMention"
 	TypePlatformWorkspaceCreation       = "PlatformWorkspaceCreation"
 	TypePostAutomationRun               = "PostAutomationRun"
 	TypeProductProfile                  = "ProductProfile"
@@ -58345,6 +58347,608 @@ func (m *PlatformSlackPersonalConnectionMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *PlatformSlackPersonalConnectionMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PlatformSlackPersonalConnection edge %s", name)
+}
+
+// PlatformSocialMentionMutation represents an operation that mutates the PlatformSocialMention nodes in the graph.
+type PlatformSocialMentionMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	social_set_id   *string
+	kind            *platformsocialmention.Kind
+	provider_id     *string
+	label           *string
+	last_used_at    *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*PlatformSocialMention, error)
+	predicates      []predicate.PlatformSocialMention
+}
+
+var _ ent.Mutation = (*PlatformSocialMentionMutation)(nil)
+
+// platformsocialmentionOption allows management of the mutation configuration using functional options.
+type platformsocialmentionOption func(*PlatformSocialMentionMutation)
+
+// newPlatformSocialMentionMutation creates new mutation for the PlatformSocialMention entity.
+func newPlatformSocialMentionMutation(c config, op Op, opts ...platformsocialmentionOption) *PlatformSocialMentionMutation {
+	m := &PlatformSocialMentionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePlatformSocialMention,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPlatformSocialMentionID sets the ID field of the mutation.
+func withPlatformSocialMentionID(id string) platformsocialmentionOption {
+	return func(m *PlatformSocialMentionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PlatformSocialMention
+		)
+		m.oldValue = func(ctx context.Context) (*PlatformSocialMention, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PlatformSocialMention.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPlatformSocialMention sets the old PlatformSocialMention of the mutation.
+func withPlatformSocialMention(node *PlatformSocialMention) platformsocialmentionOption {
+	return func(m *PlatformSocialMentionMutation) {
+		m.oldValue = func(context.Context) (*PlatformSocialMention, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PlatformSocialMentionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PlatformSocialMentionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of PlatformSocialMention entities.
+func (m *PlatformSocialMentionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PlatformSocialMentionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PlatformSocialMentionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PlatformSocialMention.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *PlatformSocialMentionMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *PlatformSocialMentionMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *PlatformSocialMentionMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetSocialSetID sets the "social_set_id" field.
+func (m *PlatformSocialMentionMutation) SetSocialSetID(s string) {
+	m.social_set_id = &s
+}
+
+// SocialSetID returns the value of the "social_set_id" field in the mutation.
+func (m *PlatformSocialMentionMutation) SocialSetID() (r string, exists bool) {
+	v := m.social_set_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSocialSetID returns the old "social_set_id" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldSocialSetID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSocialSetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSocialSetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSocialSetID: %w", err)
+	}
+	return oldValue.SocialSetID, nil
+}
+
+// ResetSocialSetID resets all changes to the "social_set_id" field.
+func (m *PlatformSocialMentionMutation) ResetSocialSetID() {
+	m.social_set_id = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *PlatformSocialMentionMutation) SetKind(pl platformsocialmention.Kind) {
+	m.kind = &pl
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *PlatformSocialMentionMutation) Kind() (r platformsocialmention.Kind, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldKind(ctx context.Context) (v platformsocialmention.Kind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *PlatformSocialMentionMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetProviderID sets the "provider_id" field.
+func (m *PlatformSocialMentionMutation) SetProviderID(s string) {
+	m.provider_id = &s
+}
+
+// ProviderID returns the value of the "provider_id" field in the mutation.
+func (m *PlatformSocialMentionMutation) ProviderID() (r string, exists bool) {
+	v := m.provider_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderID returns the old "provider_id" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldProviderID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderID: %w", err)
+	}
+	return oldValue.ProviderID, nil
+}
+
+// ResetProviderID resets all changes to the "provider_id" field.
+func (m *PlatformSocialMentionMutation) ResetProviderID() {
+	m.provider_id = nil
+}
+
+// SetLabel sets the "label" field.
+func (m *PlatformSocialMentionMutation) SetLabel(s string) {
+	m.label = &s
+}
+
+// Label returns the value of the "label" field in the mutation.
+func (m *PlatformSocialMentionMutation) Label() (r string, exists bool) {
+	v := m.label
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLabel returns the old "label" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldLabel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLabel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLabel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLabel: %w", err)
+	}
+	return oldValue.Label, nil
+}
+
+// ResetLabel resets all changes to the "label" field.
+func (m *PlatformSocialMentionMutation) ResetLabel() {
+	m.label = nil
+}
+
+// SetLastUsedAt sets the "last_used_at" field.
+func (m *PlatformSocialMentionMutation) SetLastUsedAt(t time.Time) {
+	m.last_used_at = &t
+}
+
+// LastUsedAt returns the value of the "last_used_at" field in the mutation.
+func (m *PlatformSocialMentionMutation) LastUsedAt() (r time.Time, exists bool) {
+	v := m.last_used_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastUsedAt returns the old "last_used_at" field's value of the PlatformSocialMention entity.
+// If the PlatformSocialMention object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlatformSocialMentionMutation) OldLastUsedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastUsedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastUsedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastUsedAt: %w", err)
+	}
+	return oldValue.LastUsedAt, nil
+}
+
+// ResetLastUsedAt resets all changes to the "last_used_at" field.
+func (m *PlatformSocialMentionMutation) ResetLastUsedAt() {
+	m.last_used_at = nil
+}
+
+// Where appends a list predicates to the PlatformSocialMentionMutation builder.
+func (m *PlatformSocialMentionMutation) Where(ps ...predicate.PlatformSocialMention) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PlatformSocialMentionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PlatformSocialMentionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PlatformSocialMention, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PlatformSocialMentionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PlatformSocialMentionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PlatformSocialMention).
+func (m *PlatformSocialMentionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PlatformSocialMentionMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.organization_id != nil {
+		fields = append(fields, platformsocialmention.FieldOrganizationID)
+	}
+	if m.social_set_id != nil {
+		fields = append(fields, platformsocialmention.FieldSocialSetID)
+	}
+	if m.kind != nil {
+		fields = append(fields, platformsocialmention.FieldKind)
+	}
+	if m.provider_id != nil {
+		fields = append(fields, platformsocialmention.FieldProviderID)
+	}
+	if m.label != nil {
+		fields = append(fields, platformsocialmention.FieldLabel)
+	}
+	if m.last_used_at != nil {
+		fields = append(fields, platformsocialmention.FieldLastUsedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PlatformSocialMentionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case platformsocialmention.FieldOrganizationID:
+		return m.OrganizationID()
+	case platformsocialmention.FieldSocialSetID:
+		return m.SocialSetID()
+	case platformsocialmention.FieldKind:
+		return m.Kind()
+	case platformsocialmention.FieldProviderID:
+		return m.ProviderID()
+	case platformsocialmention.FieldLabel:
+		return m.Label()
+	case platformsocialmention.FieldLastUsedAt:
+		return m.LastUsedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PlatformSocialMentionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case platformsocialmention.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case platformsocialmention.FieldSocialSetID:
+		return m.OldSocialSetID(ctx)
+	case platformsocialmention.FieldKind:
+		return m.OldKind(ctx)
+	case platformsocialmention.FieldProviderID:
+		return m.OldProviderID(ctx)
+	case platformsocialmention.FieldLabel:
+		return m.OldLabel(ctx)
+	case platformsocialmention.FieldLastUsedAt:
+		return m.OldLastUsedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PlatformSocialMention field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSocialMentionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case platformsocialmention.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case platformsocialmention.FieldSocialSetID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSocialSetID(v)
+		return nil
+	case platformsocialmention.FieldKind:
+		v, ok := value.(platformsocialmention.Kind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case platformsocialmention.FieldProviderID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderID(v)
+		return nil
+	case platformsocialmention.FieldLabel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLabel(v)
+		return nil
+	case platformsocialmention.FieldLastUsedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastUsedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSocialMention field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PlatformSocialMentionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PlatformSocialMentionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PlatformSocialMentionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PlatformSocialMention numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PlatformSocialMentionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PlatformSocialMentionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PlatformSocialMentionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown PlatformSocialMention nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PlatformSocialMentionMutation) ResetField(name string) error {
+	switch name {
+	case platformsocialmention.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case platformsocialmention.FieldSocialSetID:
+		m.ResetSocialSetID()
+		return nil
+	case platformsocialmention.FieldKind:
+		m.ResetKind()
+		return nil
+	case platformsocialmention.FieldProviderID:
+		m.ResetProviderID()
+		return nil
+	case platformsocialmention.FieldLabel:
+		m.ResetLabel()
+		return nil
+	case platformsocialmention.FieldLastUsedAt:
+		m.ResetLastUsedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PlatformSocialMention field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PlatformSocialMentionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PlatformSocialMentionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PlatformSocialMentionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PlatformSocialMentionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PlatformSocialMentionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PlatformSocialMentionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PlatformSocialMentionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSocialMention unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PlatformSocialMentionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PlatformSocialMention edge %s", name)
 }
 
 // PlatformWorkspaceCreationMutation represents an operation that mutates the PlatformWorkspaceCreation nodes in the graph.

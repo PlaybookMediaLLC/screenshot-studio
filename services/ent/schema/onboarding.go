@@ -14,7 +14,7 @@ import (
 )
 
 // The background onboarding agent's records
-// (docs/rfcs/032-background-onboarding-agent.md). Every row is workspace-scoped.
+// (docs/rfcs/034-background-onboarding-agent.md). Every row is workspace-scoped.
 
 // OnboardingRun mirrors one onboarding workflow for the UI: its status, the
 // stage it is on, monotonic progress, and the budgets it used.

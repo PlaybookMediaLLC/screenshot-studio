@@ -97,7 +97,7 @@ MP4, and WebM. Each format offers only the settings that apply to it.
 
 ## Canvas
 
-Canvas ([RFC 041](rfcs/041-creative-canvas.md)) places many documents on one
+Canvas ([RFC 032](rfcs/032-creative-canvas.md)) places many documents on one
 infinite board. Each artboard is a whole `DesignDocument` at a workspace
 position; workspace units are export pixels, so moving an artboard never
 changes its output. One artboard at a time is open in this editor
@@ -179,7 +179,7 @@ redacted output, and editor-versus-export pixel differences for frames.
 ## Known limits
 
 - **Integrations**: Slack, Notion, and Figma need provider apps and credentials before they connect ([integrations.md](integrations.md)). Figma's API comments; it cannot place images, so the design is pasted from the clipboard.
-- **SVG and PDF**: SVG opens in browsers, not in design tools. Editor PDF pages are images, so their text cannot be selected; Canvas can print PDFs with selectable text and vector shapes through the server renderer ([RFC 044](rfcs/044-canvas-layers-and-automation.md)).
+- **SVG and PDF**: SVG opens in browsers, not in design tools. Editor PDF pages are images, so their text cannot be selected; Canvas can print PDFs with selectable text and vector shapes through the server renderer ([RFC 033](rfcs/033-canvas-layers-and-automation.md)).
 - **GIF**: GIF has no audio. GIF, and MP4 without WebCodecs, load FFmpeg from a CDN.
 - **Render frame load**: the render frame shares the main thread with the editor, so a large batch has long tasks while it renders.
 - **Detection**: redaction can miss content. The review step and manual regions exist for that.

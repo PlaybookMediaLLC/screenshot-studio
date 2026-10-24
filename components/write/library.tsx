@@ -322,7 +322,7 @@ function LibraryFilters({ onManageTags }: { onManageTags: () => void }) {
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
-          {/* Tags are an experiment (RFC 043): shown only when it is on. */}
+          {/* Tags are an experiment (RFC 024): shown only when it is on. */}
           {data.experiments.tags ? (
             <>
               <DropdownMenuSeparator />

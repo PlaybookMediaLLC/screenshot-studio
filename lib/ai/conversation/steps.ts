@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type { ToolErrorCode } from '@/lib/ai/tools/executor'
 
 /**
- * How a conversation run's steps read in the UI (RFC 017, "Failed and
+ * How a conversation run's steps read in the UI (RFC 028, "Failed and
  * retryable steps"): the tool in plain words, a human-readable reason for a
  * failure, and what the person can do about it. A transient failure offers a
  * retry of that one step; a permanent one offers the corrective action. Pure,

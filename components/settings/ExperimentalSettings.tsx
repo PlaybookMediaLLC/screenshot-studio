@@ -91,7 +91,7 @@ function ExperimentRow({ canManage, experiment }: { canManage: boolean; experime
 }
 
 /**
- * Experimental (RFC 043): features you can try before everyone gets them.
+ * Experimental (RFC 024): features you can try before everyone gets them.
  * The list comes from the backend registry, which also enforces each one, so
  * a switch here never overrides a plan, a permission or a provider rule.
  */

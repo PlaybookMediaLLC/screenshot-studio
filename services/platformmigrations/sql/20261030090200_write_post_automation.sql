@@ -1,4 +1,4 @@
--- RFC 042: receipts of a live post's follow-ups. One row per post and step,
+-- RFC 025: receipts of a live post's follow-ups. One row per post and step,
 -- so a retried step never posts twice and cancelling stops pending ones.
 CREATE TABLE "post_automation_run" (
   "id" TEXT PRIMARY KEY,

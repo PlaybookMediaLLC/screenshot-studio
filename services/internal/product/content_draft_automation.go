@@ -9,7 +9,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 )
 
-// A live post's follow-ups (RFC 042) as the composer shows them: what is
+// A live post's follow-ups (RFC 025) as the composer shows them: what is
 // due when, what happened, and a way to stop the ones still pending.
 
 // PostAutomation is one follow-up's receipt. FailureCode is a short code

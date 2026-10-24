@@ -16,7 +16,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// The product profile (docs/rfcs/012-product-intelligence.md): one per
+// The product profile (docs/rfcs/017-product-intelligence.md): one per
 // workspace. A person's edit locks a field; an automated update skips locked
 // fields so a correction is never reverted.
 

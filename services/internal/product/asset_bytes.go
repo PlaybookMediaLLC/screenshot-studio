@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// Upload checks (RFC 042): an upload's bytes must be what it says it is,
+// Upload checks (RFC 025): an upload's bytes must be what it says it is,
 // checked from storage when it completes, so a renamed file cannot pass as
 // an image or a PDF. A PDF is also held to LinkedIn's document limits.
 

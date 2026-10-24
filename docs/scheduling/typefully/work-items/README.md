@@ -11,7 +11,7 @@ A changelog entry is a release note. It says what Typefully shipped. It does not
 
 ## Step 1: Triage each entry against Shots
 
-Give each `TF-` entry one status. Write the evidence: a code path, or a line in RFC 037 or RFC 039.
+Give each `TF-` entry one status. Write the evidence: a code path, or a line in RFC 013 or RFC 042.
 
 | Status | Meaning | Next action |
 |---|---|---|
@@ -19,7 +19,7 @@ Give each `TF-` entry one status. Write the evidence: a code path, or a line in 
 | Partial | Shots does part of it. | Write a work item for the gap only. |
 | Missing | Shots does not do it. | Write a work item. |
 | Verify | The code does not show the answer. | Test it with a real account. Then set a status. |
-| Later | RFC 039 defers it. | Keep the reason. No work item now. |
+| Later | RFC 042 defers it. | Keep the reason. No work item now. |
 | Skip | It is about Typefully, not about the product. | Keep the reason. No work item. |
 
 ## Step 2: Shape the work items
@@ -38,7 +38,7 @@ A work item is one change that a user can see. It ships alone. One person finish
 
 **Source:** TF-xxx (link)
 **Gap:** Missing | Partial. Evidence: `path:line`
-**Priority:** RFC 039 P1 to P5, or Later (reason), or Unranked
+**Priority:** RFC 042 P1 to P5, or Later (reason), or Unranked
 **Size:** S (2 days or less) | M (1 week or less) | L (split it)
 **Depends on:** other work items, provider app reviews, RFCs
 
@@ -58,7 +58,7 @@ Who needs it, and what they cannot do today.
 - Provider adapter: `services/internal/social/integrations/social/<provider>/...`
 - Data and migration
 - UI: `components/drafts/...`
-- Metering and plan gate (RFC 035)
+- Metering and plan gate (RFC 023)
 
 ### Failure behavior
 What happens when the provider rejects it.
@@ -77,17 +77,17 @@ The metric that proves it works in production.
 
 Apply these rules from the RFCs to every item:
 
-1. The composer and Go use the same limits (RFC 039).
-2. An update never publishes at once by accident (RFC 039, lesson 3).
-3. A failed extra, such as a first comment, does not fail the post (RFC 039, lesson 4).
-4. A channel without a feature shows that state, not empty data (RFC 039, lesson 5).
-5. One idempotency key for each draft, channel, and version (RFC 037).
+1. The composer and Go use the same limits (RFC 042).
+2. An update never publishes at once by accident (RFC 042, lesson 3).
+3. A failed extra, such as a first comment, does not fail the post (RFC 042, lesson 4).
+4. A channel without a feature shows that state, not empty data (RFC 042, lesson 5).
+5. One idempotency key for each draft, channel, and version (RFC 013).
 
 ## Step 4: Set the order
 
-1. Put each epic in an RFC 039 priority (P1 to P5), or in "Later" with the reason.
-2. "Unranked" means that the epic needs a product decision before it joins the RFC 039 order.
-3. Start provider app reviews first. RFC 039 says that the TikTok, Meta, and Google reviews take weeks.
+1. Put each epic in an RFC 042 priority (P1 to P5), or in "Later" with the reason.
+2. "Unranked" means that the epic needs a product decision before it joins the RFC 042 order.
+3. Start provider app reviews first. RFC 042 says that the TikTok, Meta, and Google reviews take weeks.
 
 ## Step 5: Keep the items here
 

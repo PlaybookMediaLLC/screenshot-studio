@@ -9,7 +9,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
-// ContentDraftPlatformStore is content drafts' second round (RFC 037): the
+// ContentDraftPlatformStore is content drafts' second round (RFC 013): the
 // queue and its settings, best times, moving and resuming posts, review,
 // guest share links, revisions, and live posts' engagement.
 type ContentDraftPlatformStore interface {

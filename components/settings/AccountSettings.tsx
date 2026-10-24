@@ -419,7 +419,7 @@ function AccountDeletion({ email }: { email: string }) {
 }
 
 /**
- * Your account (RFC 043): profile, sign-in email, display time zone, how you
+ * Your account (RFC 024): profile, sign-in email, display time zone, how you
  * sign in, where you are signed in, help tips and account deletion. All of it
  * is yours alone and follows you to every workspace.
  */

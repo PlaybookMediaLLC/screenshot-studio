@@ -20,7 +20,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Scheduling a content draft (RFC 037) creates one canonical scheduled post
+// Scheduling a content draft (RFC 013) creates one canonical scheduled post
 // per channel, through the same scheduled_post queue and Temporal workflow as
 // campaign posts. The web serializes the draft per channel; the backend
 // re-checks each caption before anything is queued.
@@ -67,7 +67,7 @@ type ContentDraftScheduleTarget struct {
 	AutoActions *postoptions.AutoActions `json:"autoActions"`
 	// Poll asks a question with the post (X, LinkedIn).
 	Poll *postoptions.Poll `json:"poll"`
-	// Options are the first post's settings beyond its text (RFC 042).
+	// Options are the first post's settings beyond its text (RFC 025).
 	Options *postoptions.PublishOptions `json:"options"`
 	// ReplyTo is the live X post a reply draft answers.
 	ReplyTo string `json:"replyTo"`
@@ -89,7 +89,7 @@ type ScheduleContentDraftInput struct {
 	ScheduledFor       time.Time                    `json:"scheduledFor"`
 	Targets            []ContentDraftScheduleTarget `json:"targets"`
 	Version            int                          `json:"version"`
-	// Write (RFC 042): publish now, or a wall time in a zone (the set's when
+	// Write (RFC 025): publish now, or a wall time in a zone (the set's when
 	// empty), resolved here; Disambiguation picks a repeated hour.
 	Disambiguation string `json:"disambiguation"`
 	LocalTime      string `json:"localTime"`
@@ -152,7 +152,7 @@ type ContentDraftPost struct {
 	Platform            string    `json:"platform"`
 	ScheduledFor        time.Time `json:"scheduledFor"`
 	Status              string    `json:"status"`
-	// How the instant was chosen (RFC 043): queue or explicit, the instant
+	// How the instant was chosen (RFC 024): queue or explicit, the instant
 	// before any natural offset, the offset, and the time zone it was read in.
 	NaturalOffsetSeconds *int       `json:"naturalOffsetSeconds"`
 	ScheduleMode         *string    `json:"scheduleMode"`
@@ -166,7 +166,7 @@ type ContentDraftPost struct {
 	// A thread: how many replies it has and how many went out.
 	Replies        int                        `json:"replies"`
 	ThreadProgress postoptions.ThreadProgress `json:"threadProgress"`
-	// Its follow-ups once live (RFC 042), each with its receipt.
+	// Its follow-ups once live (RFC 025), each with its receipt.
 	Automations []PostAutomation `json:"automations"`
 }
 
@@ -373,7 +373,7 @@ func checkDraftExtras(channel string, target ContentDraftScheduleTarget) error {
 	return nil
 }
 
-// checkRetweetRules checks automatic reposts (RFC 042): at most five, each
+// checkRetweetRules checks automatic reposts (RFC 025): at most five, each
 // a duration after publishing (up to 30 days) or a wall-clock time up to 30
 // days later in a real time zone, and a removal delay of up to a week.
 func checkRetweetRules(actions postoptions.AutoActions) error {
@@ -705,7 +705,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	return result, nil
 }
 
-// draftSocialSet is the draft's set, or for a draft written before RFC 043,
+// draftSocialSet is the draft's set, or for a draft written before RFC 024,
 // the workspace's default set.
 func (c *Configuration) draftSocialSet(ctx context.Context, tx *ent.Tx, draft *ent.ContentDraft) (*ent.SocialSet, error) {
 	if draft.SocialSetID == nil {
@@ -729,7 +729,7 @@ type draftPlacement struct {
 func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, draft *ent.ContentDraft,
 	input ScheduleContentDraftInput, now time.Time) (draftPlacement, error) {
 	placement := draftPlacement{base: input.ScheduledFor.UTC(), mode: scheduledpost.ScheduleModeExplicit}
-	// Write (RFC 042): publish now goes out now, with no offset; a wall time
+	// Write (RFC 025): publish now goes out now, with no offset; a wall time
 	// is resolved in its zone (the set's when it names none), refusing a time
 	// the clocks skip and asking which of a repeated hour.
 	if input.PublishNow {

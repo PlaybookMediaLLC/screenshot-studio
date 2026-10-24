@@ -5,7 +5,7 @@ description: Add or change a Screenshot Studio release source. Use for GitHub or
 
 # Add Release Intake
 
-Read RFC 005, RFC 006, and RFC 007 before changing intake. Every new source
+Read RFC 015, RFC 011, and RFC 035 before changing intake. Every new source
 must normalize into `SourceMaterial` on exactly one tenant `Release`.
 
 ## Choose the boundary

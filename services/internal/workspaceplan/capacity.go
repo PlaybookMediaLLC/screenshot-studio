@@ -19,7 +19,7 @@ const (
 	Channels = "channels"
 )
 
-// limits mirrors the Packaging table in RFC 035. An unsubscribed workspace
+// limits mirrors the Packaging table in RFC 023. An unsubscribed workspace
 // keeps its owner's seat.
 var limits = map[string]map[string]int{
 	"free":       {Seats: 1, Channels: 0},

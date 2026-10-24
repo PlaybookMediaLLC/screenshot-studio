@@ -93,7 +93,7 @@ export async function storeGeneratedAsset(
   return backendSDK(context).storeGeneratedAsset(input)
 }
 
-/** Describe an image (RFC 042); null when it is not this workspace's. */
+/** Describe an image (RFC 025); null when it is not this workspace's. */
 export async function setAssetAltText(context: TenantContext, assetId: string, altText: string) {
   return orNull(backendSDK(context).setAssetAltText(assetId, altText))
 }

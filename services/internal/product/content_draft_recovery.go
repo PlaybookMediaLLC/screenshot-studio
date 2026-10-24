@@ -13,7 +13,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Recovering a draft post (RFC 042). Each destination is its own scheduled
+// Recovering a draft post (RFC 025). Each destination is its own scheduled
 // post, so one that failed is retried alone and the others are left as they
 // are. A post whose outcome is unknown may already be live: it is never
 // retried until a person has checked the platform and said which it is.

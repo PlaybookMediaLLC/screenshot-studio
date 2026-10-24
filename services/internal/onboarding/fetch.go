@@ -1,5 +1,5 @@
 // Package onboarding reads a product's public site for the onboarding agent
-// (docs/rfcs/032-background-onboarding-agent.md): SSRF-guarded fetches,
+// (docs/rfcs/034-background-onboarding-agent.md): SSRF-guarded fetches,
 // robots and sitemap discovery, page text and brand extraction, and the
 // fenced, schema-constrained model calls that turn pages into drafts.
 package onboarding

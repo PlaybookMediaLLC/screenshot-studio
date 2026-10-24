@@ -9,7 +9,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
 
-// The follow-ups a provider can do (RFC 042); each is optional.
+// The follow-ups a provider can do (RFC 025); each is optional.
 type (
 	reposter interface {
 		RetweetPost(ctx context.Context, integration *socialent.Integration, postID string) error

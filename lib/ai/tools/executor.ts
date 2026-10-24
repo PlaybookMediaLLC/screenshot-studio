@@ -18,7 +18,7 @@ import { type AuditMetadata, sanitizeAuditMetadata } from '@/lib/audit/metadata'
 import { hasPermission, type Permission } from '@/lib/auth/permissions'
 
 /**
- * The agent tool executor (RFC 016).
+ * The agent tool executor (RFC 027).
  *
  * Every agent tool is declared with a capability record: what it does to the
  * workspace, the permission it needs, how often a run may call it, and how

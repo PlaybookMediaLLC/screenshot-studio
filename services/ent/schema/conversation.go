@@ -12,7 +12,7 @@ import (
 )
 
 // Conversation is a workspace-visible chat that drives agent runs
-// (docs/rfcs/017-conversational-campaign-creation.md). It is history, not
+// (docs/rfcs/028-conversational-campaign-creation.md). It is history, not
 // state: the campaign it produced survives it.
 type Conversation struct{ ent.Schema }
 

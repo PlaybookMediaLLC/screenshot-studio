@@ -8,7 +8,7 @@ import { idealCustomerProfileUpsertSchema } from '@/lib/tenant/ideal-customer-pr
 import { router } from '../init'
 import { organizationProcedure } from '../procedures'
 
-/** The workspace's ideal customer profile (docs/rfcs/032-background-onboarding-agent.md). */
+/** The workspace's ideal customer profile (docs/rfcs/034-background-onboarding-agent.md). */
 export const idealCustomerProfileRouter = router({
   get: organizationProcedure('workspace:read').query(async ({ ctx }) => ({
     idealCustomerProfile: await getIdealCustomerProfile(ctx.access),

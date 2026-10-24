@@ -192,7 +192,7 @@ const nextConfig: NextConfig = {
   // REQUIRED for react-konva
   webpack: (config, { isServer }) => {
     config.externals = [...(config.externals || []), { canvas: 'canvas' }]
-    // WebRTC co-editing is off (RFC 037); keep y-webrtc and its public
+    // WebRTC co-editing is off (RFC 013); keep y-webrtc and its public
     // signaling defaults out of the bundle.
     config.resolve.alias = {
       ...config.resolve.alias,

@@ -7,7 +7,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// TestSocialSetNotificationGating covers RFC 043's three gates: a per-set
+// TestSocialSetNotificationGating covers RFC 024's three gates: a per-set
 // preference, a private set's owner-only visibility, and the email master
 // switch.
 func TestSocialSetNotificationGating(t *testing.T) {

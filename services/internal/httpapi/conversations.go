@@ -6,7 +6,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 )
 
-// Conversations (docs/rfcs/017-conversational-campaign-creation.md). Roles
+// Conversations (docs/rfcs/028-conversational-campaign-creation.md). Roles
 // are checked per operation in the product layer.
 func (s *Server) registerConversations(mux *http.ServeMux) {
 	handle := func(pattern string, handler http.HandlerFunc) {

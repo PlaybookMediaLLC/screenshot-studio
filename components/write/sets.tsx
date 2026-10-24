@@ -50,7 +50,7 @@ export function SetDot({ color, className }: { color: string; className?: string
 }
 
 /**
- * The brand the library and composer write as (RFC 043). Sets with the
+ * The brand the library and composer write as (RFC 024). Sets with the
  * same name stay apart: each shows its accounts' handles, and the id is what
  * is used. Sets are created and edited in workspace settings.
  */

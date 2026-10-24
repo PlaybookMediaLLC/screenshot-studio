@@ -5,7 +5,7 @@ description: Add or change a Screenshot Studio versioned brand-kit capability. U
 
 # Add Brand Kit Capability
 
-Read RFC 002, RFC 006, and RFC 007. A brand kit is tenant-owned, versioned
+Read RFC 010, RFC 011, and RFC 035. A brand kit is tenant-owned, versioned
 configuration that guides artifacts; it is not a global theme.
 
 ## Versioning rules

@@ -65,7 +65,7 @@ async function joinIsRefused(documentName: string, token: string): Promise<boole
   })
 }
 
-// RFC 037: two members edit one draft live through the Hocuspocus server,
+// RFC 013: two members edit one draft live through the Hocuspocus server,
 // which authorizes and persists only through the Go backend. A member of
 // another workspace gets no token for the draft, and their own token does not
 // open it.

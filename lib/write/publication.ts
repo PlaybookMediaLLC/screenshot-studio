@@ -28,7 +28,7 @@ import {
 import { bodyFor, groupSettings, versionFor } from '@/lib/write/versions'
 
 /**
- * What a draft publishes to one account (RFC 042): the same normalized
+ * What a draft publishes to one account (RFC 025): the same normalized
  * content the preview shows and the schedule sends. Built from the stored
  * primary body, the channel's version and its options, the draft's kind and
  * target, and the account's standing. Go checks the result again.
@@ -72,7 +72,7 @@ export type PublicationTarget = {
 export type PublicationDraft = {
   article: Article | null
   body: PlateBody
-  /** The follow-ups the draft copied from its set (RFC 043), until its X version sets its own. */
+  /** The follow-ups the draft copied from its set (RFC 024), until its X version sets its own. */
   engagement?: Engagement
   kind: DraftKind
   platformVersions: PlatformVersions

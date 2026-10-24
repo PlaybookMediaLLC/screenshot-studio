@@ -29,7 +29,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Content drafts (RFC 037): posts written by hand in the document editor.
+// Content drafts (RFC 013): posts written by hand in the document editor.
 // Reading needs any workspace role; writing needs the roles that edit
 // artifacts. Every operation is plan-gated by contentDraftFeature.
 const (
@@ -88,13 +88,13 @@ type ContentDraftRecord struct {
 	// PublishedPosts counts the draft's live posts (lists only).
 	PublishedPosts int `json:"publishedPosts"`
 	// The draft's social set and what it copied from the set's defaults when
-	// it was created (RFC 043); later changes to the set leave these alone.
+	// it was created (RFC 024); later changes to the set leave these alone.
 	Engagement         schema.Engagement `json:"engagement"`
 	NaturalPostingTime bool              `json:"naturalPostingTime"`
 	PlannedFor         *time.Time        `json:"plannedFor"`
 	PrimaryPlatform    *string           `json:"primaryPlatform"`
 	SocialSetID        *string           `json:"socialSetId"`
-	// Write (RFC 042): the draft's kind and target, platform versions,
+	// Write (RFC 025): the draft's kind and target, platform versions,
 	// article, internal scratchpad, tags of its set, pin and plan zone.
 	Article          *draftdoc.Article         `json:"article"`
 	Kind             string                    `json:"kind"`
@@ -149,7 +149,7 @@ type ContentDraftInput struct {
 	// default set. Without ChannelConnectionIDs the draft starts with the
 	// set's default platforms.
 	SocialSetID string `json:"socialSetId"`
-	// Write (RFC 042): the kind and its target, the platform the body is
+	// Write (RFC 025): the kind and its target, the platform the body is
 	// written for (the set's primary when empty), versions, tags of the set.
 	Article          *draftdoc.Article          `json:"article"`
 	Kind             string                     `json:"kind"`
@@ -177,7 +177,7 @@ type ContentDraftUpdate struct {
 	PrimaryPlatform    *string `json:"primaryPlatform"`
 	// PlannedFor is RFC 3339, or empty to clear.
 	PlannedFor *string `json:"plannedFor"`
-	// Write (RFC 042): content that bumps the version like the body.
+	// Write (RFC 025): content that bumps the version like the body.
 	Article          *draftdoc.Article          `json:"article"`
 	PlatformVersions *draftdoc.PlatformVersions `json:"platformVersions"`
 	Target           *draftdoc.Target           `json:"target"`
@@ -351,7 +351,7 @@ func contentDraftChannels(ctx context.Context, tx *ent.Tx, organizationID string
 }
 
 // contentDraftVisible reports whether actor may see draft: a draft in no set
-// (written before RFC 043) is the workspace's, otherwise it follows its set.
+// (written before RFC 024) is the workspace's, otherwise it follows its set.
 func contentDraftVisible(ctx context.Context, client *ent.Client, actor Actor, draft *ent.ContentDraft) (bool, error) {
 	if draft.SocialSetID == nil {
 		return true, nil

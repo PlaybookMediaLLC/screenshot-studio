@@ -28,7 +28,7 @@ import {
 import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 
 /**
- * Content drafts for a workspace (RFC 037). The backend scopes every query to
+ * Content drafts for a workspace (RFC 013). The backend scopes every query to
  * the workspace, checks roles, the plan, and that attached assets and channels
  * are the workspace's, and refuses an update based on an older version with a
  * 409.

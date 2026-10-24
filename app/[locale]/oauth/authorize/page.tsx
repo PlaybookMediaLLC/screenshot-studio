@@ -47,7 +47,7 @@ function Refusal({ message }: { message: string }) {
 }
 
 /**
- * The OAuth consent page for MCP clients (RFC 038). The authorization server
+ * The OAuth consent page for MCP clients (RFC 026). The authorization server
  * metadata points clients here; approving issues a single-use code for a
  * workspace API key with exactly the scopes chosen below.
  */

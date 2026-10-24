@@ -1,7 +1,7 @@
--- Write (RFC 042) on the settings platform's social sets (RFC 043): tags and
+-- Write (RFC 025) on the settings platform's social sets (RFC 024): tags and
 -- thread finishers of a set, and a draft's kind, target, platform versions,
 -- internal notes, pin and plan zone. A set's tags are records with colours;
--- the string tags RFC 043 kept on drafts move into them.
+-- the string tags RFC 024 kept on drafts move into them.
 CREATE TABLE "content_draft_tag" (
   "id" TEXT PRIMARY KEY,
   "organizationId" TEXT NOT NULL REFERENCES "organization"("id") ON DELETE CASCADE,

@@ -259,7 +259,7 @@ reconcile remote IDs before any old worker resumes. Never run both schedulers
 for the same destination. Preserve backups until the owner signs off on the
 canaries and the rollback window closes.
 
-This plan replaces the present assumptions in RFC 002, RFC 003, RFC 020, the
+This plan replaces the present assumptions in RFC 010, RFC 009, RFC 030, the
 social deployment guide, Compose, DigitalOcean rendering, and CI. Update
 those documents and configurations as the matching phases land, then remove
 the old architecture claims at final cutover.

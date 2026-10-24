@@ -1,5 +1,5 @@
 // Package draftdoc holds the structured parts of a content draft that Go
-// stores and checks (RFC 042): its platform versions and their options, the
+// stores and checks (RFC 025): its platform versions and their options, the
 // post it replies to or quotes, and an article's title and cover. A leaf
 // package, so the ent schema can use its types.
 package draftdoc

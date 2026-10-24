@@ -49,7 +49,7 @@ func get(t *testing.T, url string, header ...string) (*http.Response, string) {
 	return response, string(body)
 }
 
-// The tool surface is RFC 038's, and every schema is the one generated from
+// The tool surface is RFC 026's, and every schema is the one generated from
 // the REST operation it names: there is no second spec to drift.
 func TestToolsMirrorTheirOpenAPIOperations(t *testing.T) {
 	tools, err := buildTools()
@@ -96,7 +96,7 @@ func TestToolsMirrorTheirOpenAPIOperations(t *testing.T) {
 			t.Errorf("%s must carry openWorldHint", tool.spec.Name)
 		}
 	}
-	// Approving stays human-only (RFC 019).
+	// Approving stays human-only (RFC 012).
 	for _, absent := range []string{"decideCampaignApproval", "transitionCampaign"} {
 		if slices.Contains(names, absent) {
 			t.Fatalf("%s must not be an agent tool", absent)

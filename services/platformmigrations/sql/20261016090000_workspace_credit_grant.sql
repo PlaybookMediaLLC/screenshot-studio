@@ -1,4 +1,4 @@
--- Purchased AI credit packs, drawn after the monthly allowance (RFC 035).
+-- Purchased AI credit packs, drawn after the monthly allowance (RFC 023).
 CREATE TABLE "workspace_credit_grant" (
     "id" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,

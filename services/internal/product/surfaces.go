@@ -20,7 +20,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// The product asset map (docs/rfcs/013-product-asset-map.md): stable surface
+// The product asset map (docs/rfcs/018-product-asset-map.md): stable surface
 // slugs, capture rows with supersession, and a deterministic feature lookup.
 
 // surfaceScreenshotLimit bounds the compatibility copy of capture asset IDs

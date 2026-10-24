@@ -1,4 +1,4 @@
--- Agent runs extend launch_run (docs/rfcs/016-ai-sdk-marketing-tools.md):
+-- Agent runs extend launch_run (docs/rfcs/027-ai-sdk-marketing-tools.md):
 -- an agent or conversation run may start before a campaign exists, records
 -- its cost counters, and keeps a step-by-step trace in launch_run_step.
 ALTER TYPE "LaunchRunStatus" ADD VALUE IF NOT EXISTS 'CANCELLED';

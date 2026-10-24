@@ -12,7 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 )
 
-// Checks for the structured parts of a draft (RFC 042): its platform
+// Checks for the structured parts of a draft (RFC 025): its platform
 // versions and their options, its target, its article. Pure functions, so
 // the rules are tested without a database.
 

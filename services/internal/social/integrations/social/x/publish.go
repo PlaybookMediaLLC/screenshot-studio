@@ -51,7 +51,7 @@ type pendingSettings struct {
 	PostType        *string `json:"post_type,omitempty"`
 	ArticleTitle    *string `json:"article_title,omitempty"`
 	ArticleStatus   *string `json:"article_status,omitempty"`
-	// Write (RFC 042). Pending data from before these fields has neither.
+	// Write (RFC 025). Pending data from before these fields has neither.
 	ShareWithFollowers *bool   `json:"share_with_followers,omitempty"`
 	QuoteTweetID       *string `json:"quote_tweet_id,omitempty"`
 }

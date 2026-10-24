@@ -9,7 +9,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
-// ContentDraftStore keeps a workspace's hand-written post drafts (RFC 037).
+// ContentDraftStore keeps a workspace's hand-written post drafts (RFC 013).
 type ContentDraftStore interface {
 	CreateContentDraft(context.Context, product.Actor, product.ContentDraftInput) (*product.ContentDraftRecord, error)
 	GetContentDraft(context.Context, product.Actor, string) (*product.ContentDraftRecord, error)

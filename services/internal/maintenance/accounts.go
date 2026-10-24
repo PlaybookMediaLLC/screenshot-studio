@@ -7,7 +7,7 @@ import (
 )
 
 // AccountDeletions carries out account deletion requests whose grace period
-// has ended (RFC 043). A person who owns a live workspace again keeps the
+// has ended (RFC 024). A person who owns a live workspace again keeps the
 // request open; it waits until they no longer do. Deletion signs the person out
 // everywhere, removes their sign-in methods, preferences and memberships, and
 // anonymizes the user row, which stays as the stable actor of audit history.

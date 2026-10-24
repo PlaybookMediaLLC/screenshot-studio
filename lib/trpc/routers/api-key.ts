@@ -12,7 +12,7 @@ import { organizationProcedure } from '../procedures'
 
 const dayInSeconds = 24 * 60 * 60
 
-/** An agent connected through OAuth keeps its client's name in the key metadata (RFC 038). */
+/** An agent connected through OAuth keeps its client's name in the key metadata (RFC 026). */
 function agentClientOf(metadata: unknown): string | null {
   try {
     const parsed: unknown = typeof metadata === 'string' ? JSON.parse(metadata) : metadata

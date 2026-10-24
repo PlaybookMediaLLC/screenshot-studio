@@ -36,7 +36,7 @@ const CUTOFFS: Partial<Record<DraftChannel, number>> = { linkedin: 210, x: 280 }
 export type PreviewItem = { account: ComposerAccount; publication: Publication }
 
 /**
- * The realistic preview (RFC 042): each destination laid out as its
+ * The realistic preview (RFC 025): each destination laid out as its
  * platform shows it, from the same publication the schedule sends, on a
  * desktop column or a chosen phone. It shows no engagement numbers: nothing
  * here is published, and the banner says so. It never publishes.

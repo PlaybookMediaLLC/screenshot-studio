@@ -9,7 +9,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
-// Experiments (RFC 043) are declared here, and only here: the web renders this
+// Experiments (RFC 024) are declared here, and only here: the web renders this
 // list and the backend enforces it where each feature is used. A browser can
 // ask to opt in; it cannot invent an experiment or turn on one it is refused.
 

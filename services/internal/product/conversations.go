@@ -16,7 +16,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Conversations (docs/rfcs/017-conversational-campaign-creation.md) are
+// Conversations (docs/rfcs/028-conversational-campaign-creation.md) are
 // visible to the whole workspace. Any member reads them, starts one, and
 // sends plain user messages. Recording agent output (assistant, tool, or
 // clarification messages) needs a role that can start agent runs, or the

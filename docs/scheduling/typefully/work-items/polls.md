@@ -1,7 +1,7 @@
 # Epic POLL: polls on more channels
 
 - **Source:** [TF-036](https://typefully.com/changelog/polls-70) (X polls, Exists) and [TF-109](https://typefully.com/changelog/polls-linkedin-threads-mastodon) (Missing)
-- **Priority:** RFC 039 P1, "More channels, with their options"
+- **Priority:** RFC 042 P1, "More channels, with their options"
 - **Goal:** A writer adds one poll to a draft. The poll goes out on every selected channel that supports polls.
 
 ## What exists
@@ -78,7 +78,7 @@ A poll is the body of the post, not an extra like a first comment. If LinkedIn r
 1. A valid LinkedIn poll publishes as a native poll.
 2. A 141-character question fails before scheduling, in the composer and in Go.
 3. A poll with an image fails before scheduling.
-4. A retry of a scheduled poll post creates one post, not two (RFC 037 idempotency key).
+4. A retry of a scheduled poll post creates one post, not two (RFC 013 idempotency key).
 
 ### Verification
 
@@ -89,7 +89,7 @@ A poll is the body of the post, not an extra like a first comment. If LinkedIn r
 ### Open questions
 
 1. Does the Shots LinkedIn app have the scope that polls need?
-2. Do LinkedIn pages (RFC 039 P1) take polls the same way?
+2. Do LinkedIn pages (RFC 042 P1) take polls the same way?
 
 ## WI-POLL-3 to WI-POLL-6
 

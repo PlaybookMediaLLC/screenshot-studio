@@ -10,7 +10,7 @@ import {
 import { articleSchema, platformVersionsSchema } from '@/lib/write/document'
 
 /**
- * Content drafts, round two (RFC 037): the posting queue and its settings,
+ * Content drafts, round two (RFC 013): the posting queue and its settings,
  * best times, the calendar, moving and resuming posts, review, guest share
  * links, revisions, live posts' engagement, AI help and link cards.
  */

@@ -9,7 +9,7 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// ContentDraftSettings is a workspace's drafts preferences (RFC 037): the
+// ContentDraftSettings is a workspace's drafts preferences (RFC 013): the
 // weekly posting slots its queue fills, and whether a draft needs approval
 // before it is scheduled. Times are in the workspace's time zone.
 type ContentDraftSettings struct{ ent.Schema }

@@ -13,7 +13,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Account deletion (RFC 043) is a request, not a switch. A person who still
+// Account deletion (RFC 024) is a request, not a switch. A person who still
 // owns a workspace must delete it or hand it over first, because a workspace
 // without an owner has nobody to pay for it or to administer it. After a grace
 // period the maintenance job signs the person out everywhere, removes their

@@ -5,7 +5,7 @@ description: Add or change Screenshot Studio request middleware. Use for request
 
 # Add Request Middleware
 
-Read RFC 003 and RFC 007. Middleware is for small, shared request controls;
+Read RFC 009 and RFC 035. Middleware is for small, shared request controls;
 tenant authorization stays in tRPC procedures and domain services.
 
 ## Choose the smallest boundary

@@ -9,7 +9,7 @@ import { type ProhibitedTermMatchMode, prohibitedTermMatchModeSchema } from '@/l
  * the accent, brand text color, and the brand catalog font. The critique and
  * the agent may still vary designs, but always within these values.
  *
- * Kits saved before RFC 011 use `colors.foreground` and a free-text
+ * Kits saved before RFC 019 use `colors.foreground` and a free-text
  * `typography.fontFamily`; both still read.
  */
 

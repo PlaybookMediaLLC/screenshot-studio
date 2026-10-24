@@ -5,6 +5,7 @@
 package draftdoc
 
 import "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+import "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/autodm"
 
 // SchemaVersion is the platform versions document this backend writes.
 const SchemaVersion = 1
@@ -41,6 +42,11 @@ type PlatformVersion struct {
 // VersionOptions are a platform version's settings. Each field belongs to
 // the platforms that support it; the backend refuses it anywhere else.
 type VersionOptions struct {
+	LinkPreviews []postoptions.LinkPreview `json:"linkPreviews,omitempty"`
+	AutoDM       *autodm.Config            `json:"autoDm,omitempty"`
+	// Preferred length when making a thread; publication still checks account limits.
+	SplitLimit   int  `json:"splitLimit,omitempty"`
+	SplitOnPaste bool `json:"splitOnPaste,omitempty"`
 	// X: post to a community instead of the timeline.
 	Community *Community `json:"community,omitempty"`
 	// X: number a thread's posts when it is serialized.

@@ -131,6 +131,18 @@ export const draftsApi = {
       body: { scheduledFor: scheduledFor.toISOString() },
       method: 'POST',
     }),
+  swapPosts: (id: string, withId: string) =>
+    call<{ posts: DraftPostWire[] }>(`/api/v1/content-draft-posts/${encodeURIComponent(id)}/swap`, {
+      body: { withId },
+      method: 'POST',
+    }),
+  publishQueuedPost: (id: string) =>
+    call<{ post: DraftPostWire }>(
+      `/api/v1/content-draft-posts/${encodeURIComponent(id)}/publish-now`,
+      {
+        method: 'POST',
+      }
+    ),
   resumeThread: (id: string) =>
     call<{ post: DraftPostWire }>(`/api/v1/content-draft-posts/${encodeURIComponent(id)}/resume`, {
       method: 'POST',

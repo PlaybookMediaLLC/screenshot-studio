@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // Checks for the structured parts of a draft (RFC 042): its platform
@@ -35,7 +36,7 @@ var (
 	draftKindChannels = map[string][]string{
 		"standard": {"x", "linkedin", "instagram", "threads", "bluesky", "mastodon"},
 		"reply":    {"x"},
-		"quote":    {"x", "linkedin"},
+		"quote":    {"x", "linkedin", "bluesky", "mastodon"},
 		// A repurposed draft is a new post made from a published one.
 		"repurpose": {"x", "linkedin", "instagram", "threads", "bluesky", "mastodon"},
 		"article":   {"x"},
@@ -103,6 +104,14 @@ func draftTarget(kind string, target *draftdoc.Target) (*draftdoc.Target, error)
 			clean.Platform, clean.RemoteID = "linkedin", urn
 			return &clean, nil
 		}
+	}
+	if socialidentity.MastodonStatusURL(clean.URL) {
+		clean.Platform, clean.RemoteID = "mastodon", clean.URL
+		return &clean, nil
+	}
+	if uri, err := socialidentity.BlueskyPostURI(clean.URL); err == nil {
+		clean.Platform, clean.RemoteID = "bluesky", uri
+		return &clean, nil
 	}
 	if kind == "repurpose" {
 		// A repurposed post may come from anywhere; it is only a reference.
@@ -207,10 +216,29 @@ func draftPlatformVersions(doc draftdoc.PlatformVersions, primary string) (draft
 
 // versionOptions checks a version's options against what its channel takes.
 func versionOptions(channel string, options *draftdoc.VersionOptions) (*draftdoc.VersionOptions, error) {
+	if options != nil && options.SplitLimit != 0 && (options.SplitLimit < 25 || options.SplitLimit > 25000) {
+		return nil, invalid("Choose a post length from 25 to 25,000.")
+	}
 	if options == nil {
 		return nil, nil
 	}
 	clean := *options
+	if len(clean.LinkPreviews) > 25 {
+		return nil, invalid("A draft can store at most 25 link previews.")
+	}
+	for _, preview := range clean.LinkPreviews {
+		if err := preview.Validate(); err != nil {
+			return nil, invalid(err.Error())
+		}
+	}
+	if clean.AutoDM != nil {
+		if channel != "x" {
+			return nil, invalid("Auto-DM settings belong to X.")
+		}
+		if err := clean.AutoDM.Validate(); err != nil {
+			return nil, invalid(err.Error())
+		}
+	}
 	if clean.Community != nil {
 		if channel != "x" {
 			return nil, invalid("Communities are for X posts.")

@@ -70,9 +70,7 @@ export function SocialSetSwitcher() {
           variant="custom"
         >
           {active ? <SetDot color={active.color} /> : null}
-          <span className="min-w-0 flex-1 truncate font-medium">
-            {active?.name ?? 'No brand'}
-          </span>
+          <span className="min-w-0 flex-1 truncate font-medium">{active?.name ?? 'No brand'}</span>
           {active ? <SetAccounts set={active} /> : null}
           {active?.needsAttention ? (
             <span className="text-xs text-amber-300" title="An account needs attention">
@@ -97,6 +95,7 @@ export function SocialSetSwitcher() {
                 activeId &&
                 activeId !== 'plan' &&
                 activeId !== 'settings' &&
+                activeId !== 'analyze' &&
                 set.id !== data.activeSet?.id
               )
                 router.push(`/write?set=${encodeURIComponent(set.id)}`)

@@ -27,7 +27,7 @@ func TestPostSettingsMapEachPlatformsFields(t *testing.T) {
 	}
 	got := decode(t, x)
 	if got["who_can_reply_post"] != "following" || got["made_with_ai"] != true || got["paid_partnership"] != nil ||
-		got["community"] != "https://x.com/i/communities/1493446837214187523" || got["share_with_followers"] != false ||
+		got["community"] != "https://x.com/i/communities/1493446837214187523" || got["share_with_followers"] != nil ||
 		got["quote_tweet_id"] != "42" || got["custom"] != "kept" {
 		t.Fatalf("x settings: %v", got)
 	}
@@ -92,4 +92,16 @@ func must(raw json.RawMessage, err error) json.RawMessage {
 		panic(err)
 	}
 	return raw
+}
+
+func TestBlueskyFinisherRequiresVerifiedRoot(t *testing.T) {
+	options := &postoptions.PublishOptions{QuoteFirstPost: true}
+	if _, err := postSettings("bluesky", nil, options, ""); err == nil {
+		t.Fatal("unconfirmed root accepted")
+	}
+	root := "at://did:plc:abcdefghijklmnopqrstuvwx/app.bsky.feed.post/root"
+	settings, err := postSettings("bluesky", nil, options, root)
+	if err != nil || decode(t, settings)["quote_uri"] != root {
+		t.Fatalf("lost root: %s %v", settings, err)
+	}
 }

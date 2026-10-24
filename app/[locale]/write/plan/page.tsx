@@ -7,11 +7,12 @@ import { hasPermission } from '@/lib/auth/permissions'
 import { backendSDK, orNull } from '@/lib/backend/sdk'
 import { draftPlainText } from '@/lib/content-drafts/serialize'
 import { weekStartDaySchema } from '@/lib/settings/appearance'
-import { addDays, dayOfWeek, zonedDayKey, zonedInstant } from '@/lib/settings/zoned-time'
+import { zonedDayKey, zonedInstant } from '@/lib/settings/zoned-time'
 import { listContentDraftPostsBetween } from '@/lib/tenant/content-drafts'
-import { listPlannedContentDrafts } from '@/lib/tenant/write'
+import { listDraftTags, listPlannedContentDrafts } from '@/lib/tenant/write'
 import { requireDraftsPageAccess } from '../../drafts/page-access'
 import { loadWrite } from '../write-data'
+import { calendarRange } from '@/lib/write/calendar'
 
 export const metadata: Metadata = { title: 'Calendar' }
 
@@ -36,12 +37,22 @@ export default async function WritePlanPage({ params, searchParams }: PlanPagePr
   const week = query.week
   const asked = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? week : zonedDayKey(new Date(), zone)
   const first = weekStartDaySchema.parse(preferences?.weekStart ?? 'monday')
-  const start = addDays(asked, -((dayOfWeek(asked) - first + 7) % 7))
+  const view = query.view === 'month' || query.view === 'queue' ? query.view : 'week'
+  const range = calendarRange(asked, view, first)
+  const start = range.start
+  const setId = query.scope === 'workspace' ? undefined : data.activeSet?.id
   const from = zonedInstant(start, 0, 0, zone)
-  const end = zonedInstant(addDays(start, 7), 0, 0, zone)
-  const [posts, planned] = await Promise.all([
-    listContentDraftPostsBetween(access.tenant, from, end, data.activeSet?.id),
-    listPlannedContentDrafts(access.tenant, from, end, data.activeSet?.id),
+  const end = zonedInstant(range.end, 0, 0, zone)
+  const [posts, planned, tags] = await Promise.all([
+    listContentDraftPostsBetween(access.tenant, from, end, setId),
+    listPlannedContentDrafts(access.tenant, from, end, setId),
+    data.experiments.tags
+      ? Promise.all(
+          data.sets
+            .filter((set) => !setId || set.id === setId)
+            .map((set) => listDraftTags(access.tenant, set.id))
+        ).then((groups) => groups.flat())
+      : Promise.resolve([]),
   ])
   return (
     <PlatformShell
@@ -58,6 +69,14 @@ export default async function WritePlanPage({ params, searchParams }: PlanPagePr
         data={data}
       >
         <DraftCalendar
+          view={view}
+          anchor={asked}
+          dayCount={range.days}
+          workspaceScope={query.scope === 'workspace'}
+          sets={data.sets.map((set) => ({ id: set.id, name: set.name }))}
+          tags={tags.flatMap((tag) =>
+            tag ? [{ id: tag.id, name: tag.name, color: tag.color }] : []
+          )}
           canPlan={hasPermission(access.role, 'artifact:edit')}
           postingSlots={data.activeSet?.postingSlots ?? []}
           canMove={hasPermission(access.role, 'publish:manage')}
@@ -69,6 +88,9 @@ export default async function WritePlanPage({ params, searchParams }: PlanPagePr
                     caption: (draft.plainText || draftPlainText(draft.body)).slice(0, 180),
                     draftId: draft.id,
                     title: draft.title,
+                    tagIds: draft.tagIds,
+                    socialSetId: draft.socialSetId,
+                    platform: draft.primaryPlatform,
                   },
                 ]
               : []

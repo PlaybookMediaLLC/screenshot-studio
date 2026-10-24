@@ -74,6 +74,7 @@ function insertMention(editor: PlateEditor, channel: DraftChannel, mention: Foun
     children: [{ text: '' }],
     handle: mention.handle,
     label: mention.label,
+    kind: mention.kind,
     platform: channel,
     providerId: mention.providerId,
     type: SOCIAL_MENTION,
@@ -106,12 +107,12 @@ export function MentionPicker({
   const [results, setResults] = React.useState<FoundMention[] | null>(null)
   const [busy, setBusy] = React.useState(false)
   if (!setId || lookups.length === 0) return null
-  const search = async () => {
-    if (!query.trim()) return
+  const search = async (term = query) => {
+    if (!term.trim() && channel !== 'linkedin') return
     setBusy(true)
     try {
       const found = await call<{ items: FoundMention[] }>(
-        `/api/v1/social-sets/${encodeURIComponent(setId)}/mentions?${new URLSearchParams({ channel, q: query.trim() })}`
+        `/api/v1/social-sets/${encodeURIComponent(setId)}/mentions?${new URLSearchParams({ channel, q: term.trim() })}`
       )
       setResults(found.items)
     } catch (error) {
@@ -190,6 +191,11 @@ export function MentionPicker({
             ? 'Looked up on X with this set’s account, by exact username.'
             : 'Company pages only: LinkedIn does not let this connection look people up. Elsewhere the mention is written as the plain name.'}
         </p>
+        {channel === 'linkedin' ? (
+          <Button disabled={busy} variant="ghost" size="sm" onClick={() => void search('')}>
+            Recently mentioned companies
+          </Button>
+        ) : null}
         {results?.length === 0 ? (
           <p className="text-xs text-neutral-400">No account by that name.</p>
         ) : null}

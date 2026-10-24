@@ -171,6 +171,8 @@ export async function scheduleContentDraft(
         standing: {
           maxWeightedCharacters: accounts.get(channelConnectionId)?.xCaptionLimit,
           articles: accounts.get(channelConnectionId)?.xArticles,
+          pollLimits: accounts.get(channelConnectionId)?.pollLimits,
+          mastodonQuotes: accounts.get(channelConnectionId)?.mastodonQuotes,
         },
       },
       input.blockImages
@@ -267,12 +269,26 @@ export async function listContentDraftPostsBetween(
     ...readPost(post),
     draftId: post.draftId,
     draftTitle: post.draftTitle,
+    socialSetId: post.socialSetId,
+    tagIds: post.tagIds,
   }))
 }
 
 /** Move one queued post; null when it is not in this workspace. */
 export async function moveContentDraftPost(context: TenantContext, id: string, scheduledFor: Date) {
   const result = await orNull(backendSDK(context).moveContentDraftPost(id, scheduledFor))
+  return result ? readPost(result.post) : null
+}
+
+/** Swap two immutable queued commitments; the backend enforces visibility and account compatibility. */
+export async function swapContentDraftPosts(context: TenantContext, id: string, withId: string) {
+  const result = await orNull(backendSDK(context).swapContentDraftPosts(id, withId))
+  return result ? result.posts.map(readPost) : null
+}
+
+/** Publish one queued snapshot now; null when it is outside this workspace. */
+export async function publishQueuedContentDraftPost(context: TenantContext, id: string) {
+  const result = await orNull(backendSDK(context).publishQueuedContentDraftPost(id))
   return result ? readPost(result.post) : null
 }
 

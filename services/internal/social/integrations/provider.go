@@ -73,6 +73,7 @@ type MediaContent struct {
 }
 
 type PollDetails struct {
+	Multiple bool     `json:"multiple,omitempty"`
 	Options  []string `json:"options"`
 	Duration int      `json:"duration"` // hours
 	// DurationMinutes, when set, is the exact length (X takes minutes).

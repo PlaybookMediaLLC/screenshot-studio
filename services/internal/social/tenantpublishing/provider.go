@@ -15,6 +15,7 @@ import (
 	"time"
 
 	productent "github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/articlebody"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	socialdatabase "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database"
@@ -186,8 +187,23 @@ func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishIn
 	if err != nil {
 		return socialapi.Receipt{}, err
 	}
+	message := input.Caption
+	if input.Options != nil && input.Options.ArticleHTML != "" {
+		signed := map[string]string{}
+		for i, asset := range assets {
+			if i < len(media) {
+				signed[asset.AssetID] = media[i].Path
+			}
+		}
+		message, err = articlebody.Render(input.Options.ArticleHTML, signed)
+		if err != nil {
+			return socialapi.Receipt{}, socialapi.NewError(http.StatusBadRequest, false, err.Error())
+		}
+		// Images are now in the article body; do not append them a second time.
+		media = nil
+	}
 	details := []integrations.PostDetails{{
-		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media, Poll: pollFor(input.Poll, input.Options),
+		ID: input.PostID, Message: message, Settings: settings, Media: media, Poll: pollFor(input.Poll, input.Options),
 	}}
 	var response []integrations.PostResponse
 	if input.ReplyTo != "" {
@@ -357,7 +373,7 @@ func (p *Publisher) postReplies(ctx context.Context, provider poster, account *s
 		if err == nil {
 			var response []integrations.PostResponse
 			response, err = commenter.Comment(ctx, account.InternalID, postID, last, account.Token, []integrations.PostDetails{{
-				ID: fmt.Sprintf("%s-reply-%d", input.PostID, index+1), Message: reply.Caption, Settings: replySettings, Media: media,
+				ID: fmt.Sprintf("%s-reply-%d", input.PostID, index+1), Message: reply.Caption, Settings: replySettings, Media: media, Poll: pollFor(reply.Poll, reply.Options),
 			}}, account)
 			if err == nil && (len(response) == 0 || response[0].PostID == "") {
 				err = errors.New("provider returned no reply receipt")

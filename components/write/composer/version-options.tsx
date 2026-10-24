@@ -36,6 +36,7 @@ import {
 import { threadLabels } from '@/lib/write/numbering'
 import { cn } from '@/lib/utils'
 import { PdfCarousel } from './pdf-carousel'
+import { AutoDmDraft } from './auto-dm-draft'
 
 /** A numbering style as the dialog shows it. */
 const STYLE_EXAMPLES: Record<Numbering['style'], string> = {
@@ -93,7 +94,7 @@ export function VersionOptionsBar({
       </Button>
     )
   }
-  if (channel === 'x' && onApplyFinisher && setId) {
+  if (['x', 'bluesky', 'mastodon'].includes(channel) && onApplyFinisher && setId) {
     tools.push(
       <Button
         className={button}
@@ -173,6 +174,13 @@ export function VersionOptionsBar({
       data-testid={`version-options-${channel}`}
     >
       {tools}
+      {channel === 'x' ? (
+        <AutoDmDraft
+          value={options.autoDm}
+          onChange={(autoDm) => onChange({ ...options, autoDm })}
+          readOnly={readOnly}
+        />
+      ) : null}
       {dialog === 'numbering' ? (
         <NumberingDialog
           numbering={options.numbering}
@@ -186,6 +194,7 @@ export function VersionOptionsBar({
       ) : null}
       {dialog === 'community' ? (
         <CommunityDialog
+          setId={setId}
           community={options.community}
           onChange={(community) => onChange({ ...options, community })}
           onClose={() => setDialog(null)}
@@ -530,17 +539,22 @@ const COMMUNITY_URL = /^(?:https:\/\/(?:x|twitter)\.com\/i\/communities\/)?(\d{1
 
 /** Post the X version to a community, by its URL or id, and choose whether followers see it too. */
 function CommunityDialog({
+  setId,
   community,
   onChange,
   onClose,
 }: {
+  setId: string | null
   community?: VersionOptions['community']
   onChange: (community: VersionOptions['community']) => void
   onClose: () => void
 }) {
   const [value, setValue] = React.useState(community?.id ?? '')
   const [name, setName] = React.useState(community?.name ?? '')
-  const [share, setShare] = React.useState(community?.shareWithFollowers ?? false)
+  const [query, setQuery] = React.useState('')
+  const [results, setResults] = React.useState<{ id: string; name: string }[] | null>(null)
+  const [searching, setSearching] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
   const id = COMMUNITY_URL.exec(value.trim())?.[1]
   return (
     <Dialog onOpenChange={(open) => !open && onClose()} open>
@@ -548,8 +562,8 @@ function CommunityDialog({
         <DialogHeader>
           <DialogTitle>Audience</DialogTitle>
           <DialogDescription>
-            Post to everyone, or to an X community you belong to. This is where the post appears;
-            who can reply is set per post.
+            Everyone (Anyone on X) is the default audience. Community posts remain visible to
+            everyone on X. Who can reply is set per post.
           </DialogDescription>
         </DialogHeader>
         <Label className="grid gap-1 text-xs text-neutral-400">
@@ -563,18 +577,75 @@ function CommunityDialog({
         {value && !id ? (
           <p className="text-xs text-amber-300">Use a community’s URL or its numeric id.</p>
         ) : null}
+        {setId ? (
+          <form
+            className="grid gap-2"
+            onSubmit={async (event) => {
+              event.preventDefault()
+              if (searching) return
+              setSearching(true)
+              setError(null)
+              try {
+                setResults((await writeApi.communities(setId, query)).items)
+              } catch (error) {
+                setResults(null)
+                setError(
+                  error instanceof Error ? error.message : 'Community search is unavailable.'
+                )
+              } finally {
+                setSearching(false)
+              }
+            }}
+          >
+            <Label htmlFor="community-search">Search X communities</Label>
+            <div className="flex gap-2">
+              <Input
+                id="community-search"
+                maxLength={200}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search by topic or name"
+              />
+              <Button disabled={searching || !query.trim()} type="submit">
+                {searching ? 'Searching…' : 'Search'}
+              </Button>
+            </div>
+            {error ? (
+              <p role="alert" className="text-xs text-red-300">
+                {error}
+              </p>
+            ) : null}
+            {results?.length === 0 ? (
+              <p role="status" className="text-xs">
+                No communities found.
+              </p>
+            ) : null}
+            <div className="grid max-h-36 gap-1 overflow-auto">
+              {results?.map((item) => (
+                <Button
+                  className="justify-start"
+                  variant="ghost"
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setValue(item.id)
+                    setName(item.name)
+                  }}
+                >
+                  {item.name}
+                </Button>
+              ))}
+            </div>
+          </form>
+        ) : null}
         <Label className="grid gap-1 text-xs text-neutral-400">
           Name, for your reference
           <Input maxLength={200} onChange={(event) => setName(event.target.value)} value={name} />
         </Label>
-        <Label className="flex items-center justify-between text-sm">
-          Share with my followers too
-          <Switch
-            aria-label="Share with followers"
-            checked={share}
-            onCheckedChange={(checked) => setShare(checked === true)}
-          />
-        </Label>
+        <p className="text-xs text-muted-foreground">
+          Share to timeline is unavailable: X’s documented API field does not establish
+          community-only visibility.
+        </p>
         <DialogFooter>
           {community ? (
             <Button
@@ -592,7 +663,7 @@ function CommunityDialog({
           <Button
             disabled={!id}
             onClick={() => {
-              if (id) onChange({ id, name: name.trim() || undefined, shareWithFollowers: share })
+              if (id) onChange({ id, name: name.trim() || undefined })
               onClose()
             }}
             type="button"

@@ -30,7 +30,7 @@ export const lookupMentionsContract = defineContract({
   path: '/api/v1/social-sets/{id}/mentions',
   query: z.object({
     channel: z.enum(['x', 'linkedin']),
-    q: z.string().trim().min(1).max(200),
+    q: z.string().trim().max(200),
   }),
   summary:
     "Look up a mention with the set's own account: an X user by exact username, or a LinkedIn company page by the name in its address",

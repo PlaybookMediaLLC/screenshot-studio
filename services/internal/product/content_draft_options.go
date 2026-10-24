@@ -17,18 +17,11 @@ import (
 // paid_partnership, quote_tweet_id, poll), the LinkedIn Posts, Poll and
 // Documents APIs (visibility, poll, document), and X's article endpoints.
 
-const (
-	linkedInPollQuestion     = 140
-	linkedInPollOptionLength = 30
-	xPollOptionLength        = 25
-)
-
 var (
-	xReplySettings      = []string{"following", "mentionedUsers", "subscribers", "verified"}
-	linkedInVisibility  = []string{"PUBLIC", "CONNECTIONS"}
-	linkedInPollMinutes = []int{24 * 60, 3 * 24 * 60, 7 * 24 * 60, 14 * 24 * 60}
-	numericID           = regexp.MustCompile(`^[0-9]{1,30}$`)
-	linkedInPostID      = regexp.MustCompile(`^urn:li:(?:share|ugcPost|activity):[0-9]{1,30}$`)
+	xReplySettings     = []string{"following", "mentionedUsers", "subscribers", "verified"}
+	linkedInVisibility = []string{"PUBLIC", "CONNECTIONS"}
+	numericID          = regexp.MustCompile(`^[0-9]{1,30}$`)
+	linkedInPostID     = regexp.MustCompile(`^urn:li:(?:share|ugcPost|activity):[0-9]{1,30}$`)
 )
 
 // checkPostOptions checks one post's settings against its channel. First is
@@ -38,16 +31,27 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 		return nil
 	}
 	o := *options
-	xOnly := o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" || o.QuoteFirstPost ||
-		o.ArticleTitle != "" || o.ArticleCoverAssetID != ""
-	linkedInOnly := o.Visibility != "" || o.FirstComment != "" || o.DocumentAssetID != "" || o.PollQuestion != ""
+	if o.LinkPreview != nil {
+		if err := o.LinkPreview.Validate(); err != nil {
+			return invalid(err.Error())
+		}
+		if channel != "bluesky" {
+			return invalid("This provider has no verified API control for link preview removal.")
+		}
+	}
+	if o.ShareWithFollowers {
+		return invalid("Share to timeline has no verified X API mapping. Select the community again to clear this option.")
+	}
+	xOnly := o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" || o.ShareWithFollowers ||
+		o.ArticleTitle != "" || o.ArticleCoverAssetID != "" || o.ArticleHTML != ""
+	linkedInOnly := o.Visibility != "" || o.FirstComment != "" || o.DocumentAssetID != "" || o.DocumentTitle != "" || o.PollQuestion != ""
 	switch {
 	case xOnly && channel != "x":
 		return invalid("Reply settings, labels, communities and articles are X settings.")
 	case linkedInOnly && channel != "linkedin":
 		return invalid("Visibility, first comments, documents and poll questions are LinkedIn settings here.")
-	case o.QuoteRemoteID != "" && channel != "x" && channel != "linkedin":
-		return invalid("Quotes are for X and LinkedIn posts.")
+	case (o.QuoteRemoteID != "" || o.QuoteFirstPost) && channel != "x" && channel != "linkedin" && channel != "bluesky" && channel != "mastodon":
+		return invalid("Quotes are for X, LinkedIn, Bluesky and supported Mastodon servers.")
 	}
 	if o.ReplySettings != "" && !slices.Contains(xReplySettings, o.ReplySettings) {
 		return invalid("Replies are open to everyone, or limited to following, mentionedUsers, subscribers or verified.")
@@ -63,8 +67,22 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 			return invalid("The quoted post's id is not valid for " + channel + ".")
 		}
 	}
+	if o.QuoteRemoteID != "" && channel == "bluesky" {
+		if _, err := socialidentity.BlueskyPostURI(o.QuoteRemoteID); err != nil {
+			return invalid("Choose a valid Bluesky post to quote.")
+		}
+	}
+	if o.QuoteRemoteID != "" && channel == "mastodon" && !socialidentity.MastodonStatusURL(o.QuoteRemoteID) {
+		return invalid("Choose a native Mastodon status URL.")
+	}
+	if o.QuoteFirstPost && channel == "linkedin" {
+		return invalid("LinkedIn does not support thread finishers.")
+	}
 	if o.QuoteFirstPost && first {
 		return invalid("The first post cannot quote itself.")
+	}
+	if o.DocumentTitle != "" && o.DocumentAssetID == "" {
+		return invalid("A document title needs a PDF attachment.")
 	}
 	if o.Visibility != "" && !slices.Contains(linkedInVisibility, o.Visibility) {
 		return invalid("A LinkedIn post is visible to anyone (PUBLIC) or connections (CONNECTIONS).")
@@ -87,9 +105,21 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 // LinkedIn asks its own question of 140 characters, with 2 to 4 options of 30
 // characters, open 1, 3, 7 or 14 days. Neither takes media beside a poll.
 func checkPoll(channel string, poll *postoptions.Poll, options *postoptions.PublishOptions, media int) error {
-	if poll == nil || len(poll.Options) == 0 {
+	if poll == nil {
 		if options != nil && options.PollQuestion != "" {
 			return invalid("A poll question needs the poll's options.")
+		}
+		return nil
+	}
+	if poll.Multiple && channel != "mastodon" {
+		return invalid("Multiple-choice polls are supported only on Mastodon.")
+	}
+	if channel == "mastodon" {
+		if options != nil && options.PollQuestion != "" {
+			return invalid("Mastodon uses the post text as its poll question.")
+		}
+		if media > 0 {
+			return invalid("A poll cannot have media.")
 		}
 		return nil
 	}
@@ -99,32 +129,41 @@ func checkPoll(channel string, poll *postoptions.Poll, options *postoptions.Publ
 	if media > 0 {
 		return invalid(fmt.Sprintf("A %s poll cannot have images, video or a document; remove them or the poll.", channel))
 	}
-	optionLimit := xPollOptionLength
 	switch channel {
 	case "x":
 		if err := socialidentity.CheckXPoll(poll.Options, poll.DurationMinutes, media, false); err != nil {
 			return invalid(err.Error())
 		}
 		return nil
+	case "threads":
+		if options != nil && options.PollQuestion != "" {
+			return invalid("Threads uses the post text as its poll question.")
+		}
+		if err := socialidentity.CheckThreadsPoll(poll.Options, poll.DurationMinutes, media, poll.Multiple); err != nil {
+			return invalid(err.Error())
+		}
+		return nil
 	case "linkedin":
-		optionLimit = linkedInPollOptionLength
+		if options != nil && options.QuoteRemoteID != "" {
+			return invalid("A LinkedIn reshare cannot contain a poll.")
+		}
 		question := ""
 		if options != nil {
-			question = strings.TrimSpace(options.PollQuestion)
+			question = options.PollQuestion
 		}
-		if question == "" || utf8.RuneCountInString(question) > linkedInPollQuestion {
-			return invalid("A LinkedIn poll asks a question of 1 to 140 characters.")
+		if err := socialidentity.CheckLinkedInPoll(question, poll.Options, poll.DurationMinutes, media, poll.Multiple); err != nil {
+			return invalid(err.Error())
 		}
-		if !slices.Contains(linkedInPollMinutes, poll.DurationMinutes) {
-			return invalid("A LinkedIn poll stays open 1 day, 3 days, 1 week or 2 weeks.")
-		}
+		return nil
 	default:
-		return invalid("Polls are for X and LinkedIn posts.")
+		return invalid("This platform does not support polls.")
 	}
-	for _, option := range poll.Options {
-		if strings.TrimSpace(option) == "" || utf8.RuneCountInString(option) > optionLimit {
-			return invalid(fmt.Sprintf("Each poll choice is 1 to %d characters.", optionLimit))
-		}
+}
+
+// Bluesky permits one media embed; an external card cannot displace attachments.
+func checkLinkPreviewMedia(options *postoptions.PublishOptions, media int) error {
+	if options != nil && options.LinkPreview != nil && !options.LinkPreview.Removed && media > 0 {
+		return invalid("Remove the link preview or the attachments before publishing.")
 	}
 	return nil
 }

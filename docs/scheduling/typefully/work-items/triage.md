@@ -6,6 +6,8 @@ This file applies Step 1 (status) and Step 2 (epic) of the [method](README.md) t
 - **Sources:** the draft code (`components/drafts`, `lib/content-drafts`, `lib/api/contracts/content-drafts.ts`, `services/internal/product/content_draft*.go`, `services/internal/postoptions`), the social adapters, RFC 037, RFC 038, and RFC 039.
 - **Limit:** the triage used code search. A feature with an unusual name can hide from a search. Before you write a work item, confirm the status in the code.
 
+**October 24 update:** [implementation-evidence.md](implementation-evidence.md) supersedes the historical statuses below for the 42 entries in Sections 2, 4 and 5. It records actual implementation, executed browser/backend tests and remaining gates. The remaining 67 entries have not been re-triaged by this assignment.
+
 ## Epics
 
 | Epic | Name | Partial or Missing | RFC 039 priority |

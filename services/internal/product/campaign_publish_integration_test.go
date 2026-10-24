@@ -84,10 +84,14 @@ func TestCampaignPublishing(t *testing.T) {
 	exec(`INSERT INTO design (id,"organizationId","campaignId",name,document,"renderedAssetId","updatedAt") VALUES ($1,$5,$6,'Hero','{"version":1}',$7,now()),($2,$5,$6,'Blank','{"version":1}',NULL,now()),($3,$5,$8,'B','{"version":1}',$9,now()),($4,$5,$10,'C','{"version":1}',$11,now())`,
 		hero, unrendered, designB, designC, org, campaignA, render, campaignB, renderB, campaignC, renderC)
 	linkedin, x, published := "post_li_"+id, "post_x_"+id, "post_pub_"+id
+	calendarSet, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: "Campaign publishing"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	exec(`INSERT INTO campaign_post (id,"organizationId","campaignId",channel,copy,status,"updatedAt") VALUES ($1,$4,$5,'linkedin','Ship faster','READY_FOR_REVIEW',now()),($2,$4,$5,'x','Ship faster','READY_FOR_REVIEW',now()),($3,$4,$5,'linkedin','Shipped','PUBLISHED',now())`,
 		linkedin, x, published, org, campaignA)
 	connection, err := repo.auth.CreateConnection(ctx, publishing.Actor{Organization: org, UserID: owner.UserID, RequestID: owner.RequestID, Type: "USER"},
-		publishing.CreateConnectionInput{ExternalAccountID: "li-" + id, Platform: "linkedin", ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY"})
+		publishing.CreateConnectionInput{ExternalAccountID: "li-" + id, Platform: "linkedin", ProviderSettings: map[string]any{}, SecretReference: "SOCIAL_API_KEY", SocialSetID: &calendarSet.ID})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,6 +174,24 @@ func TestCampaignPublishing(t *testing.T) {
 		t.Fatalf("schedule=%+v err=%v", first, err)
 	}
 	firstID := first.ScheduledPost.ID
+	// The workspace calendar includes authorized campaign commitments and
+	// retains their campaign identity instead of inventing a draft id.
+	calendar, err := repo.ListContentDraftPostsBetween(ctx, owner, at.Add(-time.Hour), at.Add(time.Hour), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, entry := range calendar {
+		if entry.ID == firstID {
+			found = true
+			if entry.CampaignID == nil || *entry.CampaignID != campaignA || entry.DraftID != "" {
+				t.Fatalf("campaign identity lost: %+v", entry)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("scheduled campaign missing from calendar")
+	}
 
 	// The publish worker reads a design variant like any other.
 	exec(`UPDATE scheduled_post SET status='PROCESSING',"triggerRunId"=$2 WHERE id=$1`, firstID, "run_"+id)

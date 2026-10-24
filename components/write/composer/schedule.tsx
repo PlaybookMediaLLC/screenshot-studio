@@ -50,7 +50,7 @@ export type ScheduleContext = {
   canPublish: boolean
   draft: DraftWire
   flush: () => Promise<void>
-  onDone: (result: { draft: DraftWire }) => void
+  onDone: (result: { draft: DraftWire; newDraft?: boolean }) => void
   onToggle: (accountId: string, on: boolean) => void
   requireApproval: boolean
   setTimeZone: string | null
@@ -122,6 +122,7 @@ export function ScheduleDialog({
     initialTime && /^([01]\d|2[0-3]):[0-5]\d$/.test(initialTime) ? initialTime : '09:00'
   )
   const [queue, setQueue] = React.useState(Boolean(initialQueue))
+  const [continueWriting, setContinueWriting] = React.useState(context.draft.status === 'draft')
   // The draft's own choice, copied from its set when it was created (RFC 043).
   const [natural, setNatural] = React.useState(context.draft.naturalPostingTime)
   const [when, setWhen] = React.useState('')
@@ -173,7 +174,7 @@ export function ScheduleDialog({
         version: context.versionRef.current,
       })
       context.versionRef.current = result.draft.version
-      context.onDone(result)
+      context.onDone({ ...result, newDraft: continueWriting })
       const first = result.posts[0]
       toast.success(
         result.created
@@ -331,7 +332,10 @@ export function ScheduleDialog({
             type="button"
             variant="outline"
           >
-            Next free slot{nextSlot ? ` · ${new Date(nextSlot.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: zone, timeZoneName: 'short' })}` : ' · none available'}
+            Next free slot
+            {nextSlot
+              ? ` · ${new Date(nextSlot.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: zone, timeZoneName: 'short' })}`
+              : ' · none available'}
           </Button>
         </div>
         <details className="rounded-lg border border-white/10 p-3" open={initialQueue || undefined}>
@@ -467,6 +471,14 @@ export function ScheduleDialog({
         </p>
         {past && !queue ? <p className="text-xs text-red-300">That time has passed.</p> : null}
         <Problems problems={problems} />
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={continueWriting}
+            onChange={(event) => setContinueWriting(event.target.checked)}
+          />
+          Open a new draft after scheduling
+        </label>
         <DialogFooter className="flex-wrap gap-2">
           {context.draft.plannedFor ? (
             <Button

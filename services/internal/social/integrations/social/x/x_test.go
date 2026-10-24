@@ -534,3 +534,17 @@ func TestAltTextGoesOnTheMedia(t *testing.T) {
 		t.Fatalf("metadata = %+v (found %v)", metadata, found)
 	}
 }
+
+func TestArticlePreservesStylesEmptyParagraphsAndEmbeddedPosts(t *testing.T) {
+	state := articleContentState(`<p><strong>😀</strong><em>italic</em><s>strike</s><br>next</p><p></p><blockquote data-x-post="123"><a href="https://x.com/i/status/123">post</a></blockquote>`, nil, nil)
+	if len(state.Blocks) != 3 || state.Blocks[0].Text != "😀italicstrike\nnext" || state.Blocks[1].Text != "" || state.Blocks[2].Type != "atomic" {
+		t.Fatalf("blocks: %+v", state.Blocks)
+	}
+	styles := state.Blocks[0].InlineStyleRanges
+	if len(styles) != 3 || styles[0].Length != 2 || styles[1].Offset != 2 || styles[1].Style != "italic" || styles[2].Style != "strikethrough" {
+		t.Fatalf("styles: %+v", styles)
+	}
+	if len(state.Entities) != 1 || state.Entities[0].Value.Type != "post" || state.Entities[0].Value.Data.(map[string]string)["post_id"] != "123" {
+		t.Fatalf("entities: %+v", state.Entities)
+	}
+}

@@ -727,6 +727,24 @@ export default function DraftEditor({
     }
   }, [collaboration, draftId, editor])
 
+  const [keyboardInset, setKeyboardInset] = React.useState(0)
+  React.useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const resize = () =>
+      setKeyboardInset(
+        window.matchMedia('(max-width: 639px)').matches
+          ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+          : 0
+      )
+    resize()
+    viewport.addEventListener('resize', resize)
+    viewport.addEventListener('scroll', resize)
+    return () => {
+      viewport.removeEventListener('resize', resize)
+      viewport.removeEventListener('scroll', resize)
+    }
+  }, [])
   const imageInput = React.useRef<HTMLInputElement>(null)
   const postTools = React.useMemo<PostTools>(
     () => (readOnly ? {} : { addImage: () => imageInput.current?.click(), settings: postSettings }),
@@ -750,6 +768,22 @@ export default function DraftEditor({
                 <ThreadLine />
                 <Editor
                   autoFocus={false}
+                  onDragOverCapture={(event) => {
+                    if (!readOnly && event.dataTransfer.types.includes('Files')) {
+                      event.preventDefault()
+                      event.dataTransfer.dropEffect = 'copy'
+                    }
+                  }}
+                  onDropCapture={(event) => {
+                    if (readOnly || !event.dataTransfer.files.length) return
+                    // Native files can land in empty space, outside a draggable block.
+                    // Handle them once here; block-to-block dragging stays with Plate.
+                    event.preventDefault()
+                    event.stopPropagation()
+                    const range = editor.api.findEventRange(event)
+                    if (range) editor.tf.select(range)
+                    editor.getTransforms(PlaceholderPlugin).insert.media(event.dataTransfer.files)
+                  }}
                   aria-label="Draft body"
                   className={cn(
                     POST_COLUMN,
@@ -781,7 +815,10 @@ export default function DraftEditor({
             {readOnly || hashtags.length === 0 ? null : <HashtagChips hashtags={hashtags} />}
             {readOnly ? null : (
               // The formatting bar floats at the bottom of the page, out of the text's way.
-              <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center px-2">
+              <div
+                style={{ bottom: Math.max(20, keyboardInset) }}
+                className="pointer-events-none sticky z-10 flex justify-center px-2"
+              >
                 <div className="pointer-events-auto min-w-0 max-w-full">
                   <DraftToolbar
                     editor={editor}

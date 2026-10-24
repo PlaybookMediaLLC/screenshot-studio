@@ -11,4 +11,5 @@ type Reply struct {
 	AssetIDs []string                    `json:"assetIds"`
 	Caption  string                      `json:"caption"`
 	Options  *postoptions.PublishOptions `json:"options,omitempty"`
+	Poll     *postoptions.Poll           `json:"poll,omitempty"`
 }

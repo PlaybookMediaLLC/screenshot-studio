@@ -16,7 +16,12 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { CHANNEL_META } from '@/components/drafts/channel-meta'
 import { postRanges, setPostSettings } from '@/components/drafts/thread'
-import { CAPABILITIES, pollProblems } from '@/lib/write/capabilities'
+import {
+  CAPABILITIES,
+  pollProblems,
+  pollRules,
+  type AccountStanding,
+} from '@/lib/write/capabilities'
 import {
   type DraftChannel,
   type PostPoll,
@@ -52,10 +57,12 @@ export function PostSettingsTools({
   channel,
   number,
   settings,
+  standing,
 }: {
   channel: DraftChannel
   number: number
   settings: PostSettings
+  standing?: AccountStanding
 }) {
   const editor = useEditorRef()
   const capabilities = CAPABILITIES[channel]
@@ -72,8 +79,23 @@ export function PostSettingsTools({
       />
     )
   }
-  if (capabilities.poll && number === 1) {
-    tools.push(<PollTool channel={channel} key="poll" set={set} settings={settings} />)
+  if (pollRules(channel, standing) && (number === 1 || capabilities.thread)) {
+    tools.push(
+      <PollTool channel={channel} standing={standing} key="poll" set={set} settings={settings} />
+    )
+  }
+  if (['bluesky', 'mastodon'].includes(channel) && number > 1) {
+    tools.push(
+      <Button
+        key="quote"
+        size="sm"
+        variant="ghost"
+        aria-pressed={Boolean(settings.quoteFirstPost)}
+        onClick={() => set({ quoteFirstPost: !settings.quoteFirstPost })}
+      >
+        Quote the first post
+      </Button>
+    )
   }
   return <>{tools}</>
 }
@@ -196,7 +218,7 @@ function AudienceTools({
             </Label>
           </fieldset>
         ) : null}
-        {channel === 'x' && number > 1 ? (
+        {['x', 'bluesky'].includes(channel) && number > 1 ? (
           <Label className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-sm">
             <span>
               Quote the first post
@@ -218,6 +240,7 @@ function AudienceTools({
 
 /** A poll on the first post, with the platform's own rules. */
 function PollTool({
+  standing,
   channel,
   set,
   settings,
@@ -225,8 +248,9 @@ function PollTool({
   channel: DraftChannel
   set: (change: Partial<PostSettings>) => void
   settings: PostSettings
+  standing?: AccountStanding
 }) {
-  const rules = CAPABILITIES[channel].poll
+  const rules = pollRules(channel, standing)
   if (!rules) return null
   const poll = settings.poll
   return (
@@ -250,6 +274,7 @@ function PollTool({
         {poll ? (
           <PollEditor
             channel={channel}
+            standing={standing}
             onChange={(next) => set({ poll: next ?? undefined })}
             poll={poll}
           />
@@ -289,6 +314,7 @@ function PollTool({
 
 /** A poll's fields, validated by the platform's own rules as they are typed. */
 export function PollEditor({
+  standing,
   channel,
   media = 0,
   onChange,
@@ -298,10 +324,11 @@ export function PollEditor({
   media?: number
   onChange: (poll: PostPoll | null) => void
   poll: PostPoll
+  standing?: AccountStanding
 }) {
-  const rules = CAPABILITIES[channel].poll
+  const rules = pollRules(channel, standing)
   if (!rules) return null
-  const problems = pollProblems(channel, poll, media)
+  const problems = pollProblems(channel, poll, media, standing)
   return (
     <div className="grid gap-2 text-sm" data-testid={`poll-editor-${channel}`}>
       {rules.question === 'field' ? (
@@ -322,6 +349,16 @@ export function PollEditor({
       ) : (
         <p className="text-xs text-neutral-400">The post’s text is the question.</p>
       )}
+      {channel === 'mastodon' ? (
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={poll.multiple ?? false}
+            onChange={(event) => onChange({ ...poll, multiple: event.target.checked })}
+          />
+          Allow multiple choices
+        </label>
+      ) : null}
       {poll.options.map((option, index) => (
         <Label className="grid gap-1 text-xs text-neutral-400" key={index}>
           <span className="flex justify-between">
@@ -374,21 +411,32 @@ export function PollEditor({
       ) : null}
       <Label className="grid gap-1 text-xs text-neutral-400">
         Duration
-        <Select
-          onValueChange={(value) => onChange({ ...poll, durationMinutes: Number(value) })}
-          value={String(poll.durationMinutes)}
-        >
-          <SelectTrigger aria-label="Poll duration">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {rules.durationsMinutes.map((minutes) => (
-              <SelectItem key={minutes} value={String(minutes)}>
-                {durationLabel(minutes)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {rules.durationRange ? (
+          <Input
+            aria-label="Poll duration in minutes"
+            type="number"
+            min={rules.durationRange.min}
+            max={rules.durationRange.max}
+            value={poll.durationMinutes}
+            onChange={(event) => onChange({ ...poll, durationMinutes: Number(event.target.value) })}
+          />
+        ) : (
+          <Select
+            onValueChange={(value) => onChange({ ...poll, durationMinutes: Number(value) })}
+            value={String(poll.durationMinutes)}
+          >
+            <SelectTrigger aria-label="Poll duration">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {rules.durationsMinutes.map((minutes) => (
+                <SelectItem key={minutes} value={String(minutes)}>
+                  {durationLabel(minutes)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </Label>
       {problems.length > 0 ? (
         <ul className="grid gap-0.5" role="alert">

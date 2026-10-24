@@ -1774,6 +1774,26 @@ export interface components {
                         /** @enum {string} */
                         mode: "synced" | "manual";
                         options?: {
+                            autoDm?: {
+                                /** @enum {string} */
+                                match: "any" | "all";
+                                reposts: boolean;
+                                replies: boolean;
+                                requireFollow: boolean;
+                                replyText?: string;
+                                message: string;
+                            };
+                            splitOnPaste?: boolean;
+                            linkPreviews?: {
+                                /** Format: uri */
+                                url: string;
+                                title?: string;
+                                description?: string;
+                                /** Format: uri */
+                                image?: string;
+                                removed?: boolean;
+                            }[];
+                            splitLimit?: number;
                             automation?: {
                                 plugAtLikes?: number;
                                 /** @enum {string} */
@@ -1923,6 +1943,26 @@ export interface components {
                         /** @enum {string} */
                         mode: "synced" | "manual";
                         options?: {
+                            autoDm?: {
+                                /** @enum {string} */
+                                match: "any" | "all";
+                                reposts: boolean;
+                                replies: boolean;
+                                requireFollow: boolean;
+                                replyText?: string;
+                                message: string;
+                            };
+                            splitOnPaste?: boolean;
+                            linkPreviews?: {
+                                /** Format: uri */
+                                url: string;
+                                title?: string;
+                                description?: string;
+                                /** Format: uri */
+                                image?: string;
+                                removed?: boolean;
+                            }[];
+                            splitLimit?: number;
                             automation?: {
                                 plugAtLikes?: number;
                                 /** @enum {string} */
@@ -2000,6 +2040,26 @@ export interface components {
                     /** @enum {string} */
                     mode: "synced" | "manual";
                     options?: {
+                        autoDm?: {
+                            /** @enum {string} */
+                            match: "any" | "all";
+                            reposts: boolean;
+                            replies: boolean;
+                            requireFollow: boolean;
+                            replyText?: string;
+                            message: string;
+                        };
+                        splitOnPaste?: boolean;
+                        linkPreviews?: {
+                            /** Format: uri */
+                            url: string;
+                            title?: string;
+                            description?: string;
+                            /** Format: uri */
+                            image?: string;
+                            removed?: boolean;
+                        }[];
+                        splitLimit?: number;
                         automation?: {
                             plugAtLikes?: number;
                             /** @enum {string} */
@@ -2164,6 +2224,26 @@ export interface components {
                     /** @enum {string} */
                     mode: "synced" | "manual";
                     options?: {
+                        autoDm?: {
+                            /** @enum {string} */
+                            match: "any" | "all";
+                            reposts: boolean;
+                            replies: boolean;
+                            requireFollow: boolean;
+                            replyText?: string;
+                            message: string;
+                        };
+                        splitOnPaste?: boolean;
+                        linkPreviews?: {
+                            /** Format: uri */
+                            url: string;
+                            title?: string;
+                            description?: string;
+                            /** Format: uri */
+                            image?: string;
+                            removed?: boolean;
+                        }[];
+                        splitLimit?: number;
                         automation?: {
                             plugAtLikes?: number;
                             /** @enum {string} */
@@ -2240,6 +2320,26 @@ export interface components {
                     /** @enum {string} */
                     mode: "synced" | "manual";
                     options?: {
+                        autoDm?: {
+                            /** @enum {string} */
+                            match: "any" | "all";
+                            reposts: boolean;
+                            replies: boolean;
+                            requireFollow: boolean;
+                            replyText?: string;
+                            message: string;
+                        };
+                        splitOnPaste?: boolean;
+                        linkPreviews?: {
+                            /** Format: uri */
+                            url: string;
+                            title?: string;
+                            description?: string;
+                            /** Format: uri */
+                            image?: string;
+                            removed?: boolean;
+                        }[];
+                        splitLimit?: number;
                         automation?: {
                             plugAtLikes?: number;
                             /** @enum {string} */
@@ -2450,6 +2550,26 @@ export interface components {
                         /** @enum {string} */
                         mode: "synced" | "manual";
                         options?: {
+                            autoDm?: {
+                                /** @enum {string} */
+                                match: "any" | "all";
+                                reposts: boolean;
+                                replies: boolean;
+                                requireFollow: boolean;
+                                replyText?: string;
+                                message: string;
+                            };
+                            splitOnPaste?: boolean;
+                            linkPreviews?: {
+                                /** Format: uri */
+                                url: string;
+                                title?: string;
+                                description?: string;
+                                /** Format: uri */
+                                image?: string;
+                                removed?: boolean;
+                            }[];
+                            splitLimit?: number;
                             automation?: {
                                 plugAtLikes?: number;
                                 /** @enum {string} */

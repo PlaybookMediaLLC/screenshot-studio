@@ -3,6 +3,7 @@
 import { useWriteRouter } from '@/components/write/write-context'
 
 import * as React from 'react'
+import { LinkCards } from './link-cards'
 import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
 import { EyeIcon as Eye } from '@phosphor-icons/react/dist/ssr/Eye'
@@ -65,7 +66,7 @@ import {
   type VersionOptions,
 } from '@/lib/write/document'
 import { buildPublication } from '@/lib/write/publication'
-import { forkVersion, versionFor, withOptions, withVersion } from '@/lib/write/versions'
+import { bodyFor, forkVersion, versionFor, withOptions, withVersion } from '@/lib/write/versions'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { SetDot } from '../sets'
@@ -73,6 +74,9 @@ import { useKeys, useShortcuts } from '../shortcuts'
 import { DraftsDrawerButton } from '../WriteFrame'
 import { useWrite, type WriteSet } from '../write-context'
 import { CommentsPanel } from './comments'
+import { ComposerEmojiPicker } from './emoji-picker'
+import { ThreadTools } from './thread-tools'
+import { ArticleTools } from './article-tools'
 import { MemberComments } from './member-comments'
 import {
   CompareDialog,
@@ -105,34 +109,6 @@ type Panel = 'properties' | 'preview' | 'comments' | 'assistant'
 
 /** The dialogs the composer opens. */
 type Dialog = 'schedule' | 'queue' | 'publish' | 'manage' | 'share' | 'backups' | 'compare' | null
-
-/** A handful of emoji, one click from the post; the system picker has the rest. */
-const EMOJI = [
-  '🚀',
-  '✨',
-  '🎉',
-  '🔥',
-  '✅',
-  '👀',
-  '💡',
-  '📈',
-  '🛠️',
-  '🧵',
-  '👇',
-  '🙌',
-  '❤️',
-  '😂',
-  '🤔',
-  '⚡',
-  '📣',
-  '🧪',
-  '🐛',
-  '📦',
-  '🔗',
-  '🗓️',
-  '💬',
-  '👋',
-]
 
 /** Plugins Write adds to the editor; stable, so the editor is built once. */
 const WRITE_PLUGINS = [SocialMentionPlugin]
@@ -222,6 +198,8 @@ export function WriteComposer({
     }
   }, [beforeLeaveRef, flush])
   const textDirection = usePreferences().preferences?.textDirection ?? 'ltr'
+  const [panelWidth, setPanelWidth] = React.useState(320)
+  const resize = React.useRef<{ x: number; width: number } | null>(null)
   const [tab, setTab] = React.useState<DraftChannel>(() => primaryChannel(initial.primaryPlatform))
   const [panel, setPanel] = React.useState<Panel | null>(() => {
     const asked = params.get('panel')
@@ -242,6 +220,35 @@ export function WriteComposer({
           : null
   )
   const [focus, setFocus] = React.useState(false)
+  const focusRoot = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    if (!focus || !focusRoot.current) return
+    // Hide the library and application chrome without remounting the editor.
+    // Inert also removes their controls from keyboard and accessibility focus.
+    const hidden: { element: HTMLElement; hidden: boolean; inert: boolean }[] = []
+    let branch: HTMLElement = focusRoot.current
+    while (branch.parentElement) {
+      for (const sibling of branch.parentElement.children) {
+        if (
+          sibling === branch ||
+          !(sibling instanceof HTMLElement) ||
+          ['SCRIPT', 'STYLE', 'LINK'].includes(sibling.tagName)
+        )
+          continue
+        hidden.push({ element: sibling, hidden: sibling.hidden, inert: sibling.inert })
+        sibling.hidden = true
+        sibling.inert = true
+      }
+      if (branch.parentElement === branch.ownerDocument.body) break
+      branch = branch.parentElement
+    }
+    return () => {
+      for (const previous of hidden) {
+        previous.element.hidden = previous.hidden
+        previous.element.inert = previous.inert
+      }
+    }
+  }, [focus])
   const [compact, setCompact] = React.useState(false)
   const shareButton = React.useRef<HTMLButtonElement>(null)
   const [posts, setPosts] = React.useState(initialPosts)
@@ -268,6 +275,7 @@ export function WriteComposer({
     () => ''
   )
   const bodyArea = React.useRef<HTMLDivElement>(null)
+  const [pasteNotice, setPasteNotice] = React.useState(false)
   const renderBlocks = async (): Promise<BlockImages> => {
     if (pendingBlocks.length === 0 || !services.uploadFile) return []
     if (active !== primary || !bodyArea.current) {
@@ -288,7 +296,12 @@ export function WriteComposer({
         {
           channel: account.channel,
           connectionId: account.id,
-          standing: { maxWeightedCharacters: account.xCaptionLimit, articles: account.xArticles },
+          standing: {
+            maxWeightedCharacters: account.xCaptionLimit,
+            articles: account.xArticles,
+            pollLimits: account.pollLimits,
+            mastodonQuotes: account.mastodonQuotes,
+          },
         },
         pendingBlocks
       ),
@@ -323,9 +336,18 @@ export function WriteComposer({
     draft: server,
     flush,
     items,
-    onDone: ({ draft }) => {
+    onDone: ({ draft, newDraft }) => {
       setServer(draft)
       void refreshPosts()
+      if (newDraft)
+        void draftsApi
+          .create({ socialSetId: draft.socialSetId ?? undefined })
+          .then((next) => router.push(`/write/${next.id}`))
+          .catch(() =>
+            toast.error(
+              'Scheduled successfully, but the next draft could not be opened. Create one from the sidebar.'
+            )
+          )
     },
     onToggle: toggle,
     requireApproval,
@@ -527,7 +549,16 @@ export function WriteComposer({
         }: {
           number: number
           settings: Parameters<typeof PostSettingsTools>[0]['settings']
-        }) => <PostSettingsTools channel={active} number={number} settings={settings} />
+        }) => (
+          <PostSettingsTools
+            channel={active}
+            number={number}
+            settings={settings}
+            standing={{
+              pollLimits: accounts.find((account) => account.channel === active)?.pollLimits,
+            }}
+          />
+        )
       : undefined,
     readOnly: !canEdit,
     services,
@@ -611,7 +642,15 @@ export function WriteComposer({
             ? 'Planned'
             : null
   return (
-    <div className={cn('flex min-h-full', compact && 'write-compact')} data-testid="write-composer">
+    <div
+      ref={focusRoot}
+      className={cn(
+        'flex min-h-full',
+        compact && 'write-compact',
+        focus && 'fixed inset-0 z-40 overflow-y-auto bg-[#111111]'
+      )}
+      data-testid="write-composer"
+    >
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-white/[0.06] bg-[#111111]/90 px-3 py-2 backdrop-blur">
           <DraftsDrawerButton />
@@ -865,6 +904,51 @@ export function WriteComposer({
           versions={document.versions}
         />
         <TargetBanner draft={server} />
+        {canEdit && server.kind === 'article' ? (
+          <ArticleTools
+            article={document.article}
+            onChange={(article) => update(() => ({ article }))}
+            editor={editor}
+            upload={services.uploadFile}
+          />
+        ) : null}
+        {canEdit && server.kind !== 'article' ? (
+          <LinkCards
+            text={activePublication.serialized.posts.map((post) => post.caption).join('\n')}
+            channel={active}
+            cards={versionOfTab.options?.linkPreviews ?? []}
+            onChange={(card) =>
+              update((current) => {
+                const options = versionFor(current.versions, active).options ?? {}
+                return {
+                  versions: withOptions(current.versions, active, {
+                    ...options,
+                    linkPreviews: [
+                      ...(options.linkPreviews ?? []).filter((item) => item.url !== card.url),
+                      card,
+                    ].slice(-25),
+                  }),
+                }
+              })
+            }
+            onQuote={(url) => {
+              void (async () => {
+                await flush()
+                const next = await draftsApi.create({
+                  kind: 'quote',
+                  socialSetId: server.socialSetId ?? undefined,
+                  target: { url },
+                  body: bodyFor(document.value as PlateBody, document.versions, active),
+                })
+                router.push(`/write/${next.id}`)
+              })().catch((error) =>
+                toast.error(
+                  error instanceof Error ? error.message : 'The quote draft could not be created.'
+                )
+              )
+            }}
+          />
+        ) : null}
         <VersionOptionsBar
           channel={active}
           onApplyFinisher={
@@ -886,7 +970,26 @@ export function WriteComposer({
               : undefined
           }
         />
-        <div className="relative flex-1" data-testid="composer-body" ref={bodyArea}>
+        {canEdit &&
+        server.kind !== 'article' &&
+        CAPABILITIES[active].thread &&
+        (active === primary || versionOfTab.mode === 'manual') ? (
+          <ThreadTools
+            pasted={pasteNotice}
+            onSplit={() => setPasteNotice(false)}
+            editor={editor}
+            channel={active}
+            limit={activePublication.serialized.limit}
+            options={versionOfTab.options ?? {}}
+            onChange={(options) => setOptions(active, options)}
+          />
+        ) : null}
+        <div
+          className="relative flex-1"
+          data-testid="composer-body"
+          ref={bodyArea}
+          onPasteCapture={() => setPasteNotice(true)}
+        >
           {active === primary ? (
             <DraftEditor
               {...editorProps}
@@ -1025,8 +1128,46 @@ export function WriteComposer({
       {panel && !focus && !narrow && !params.has('settings') ? (
         <aside
           aria-label={PANEL_TITLES[panel]}
-          className="w-80 shrink-0 overflow-y-auto border-l border-white/[0.06]"
+          className="relative shrink-0 overflow-y-auto border-l border-white/[0.06] animate-in fade-in duration-150"
+          style={{ width: panelWidth }}
         >
+          <div
+            role="separator"
+            aria-label="Resize preview sidebar"
+            aria-orientation="vertical"
+            aria-valuemin={256}
+            aria-valuemax={640}
+            aria-valuenow={panelWidth}
+            tabIndex={0}
+            className="absolute inset-y-0 left-0 z-10 w-1 cursor-col-resize touch-none hover:bg-sky-400 focus:bg-sky-400"
+            onPointerDown={(event) => {
+              resize.current = { x: event.clientX, width: panelWidth }
+              event.currentTarget.setPointerCapture(event.pointerId)
+            }}
+            onPointerMove={(event) => {
+              if (resize.current)
+                setPanelWidth(
+                  Math.min(
+                    640,
+                    Math.max(256, resize.current.width + resize.current.x - event.clientX)
+                  )
+                )
+            }}
+            onPointerUp={() => {
+              resize.current = null
+            }}
+            onPointerCancel={() => {
+              resize.current = null
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                event.preventDefault()
+                setPanelWidth((width) =>
+                  Math.min(640, Math.max(256, width + (event.key === 'ArrowLeft' ? 32 : -32)))
+                )
+              }
+            }}
+          />
           <PanelHeader onClose={() => setPanel(null)} title={PANEL_TITLES[panel]} />
           {panelContent}
         </aside>
@@ -1287,37 +1428,23 @@ function ToolbarExtras({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="grid w-64 grid-cols-8 gap-1 p-2"
+          className="w-80 p-2"
           onCloseAutoFocus={(event) => {
             event.preventDefault()
             editor.current?.tf.focus()
           }}
           side="top"
         >
-          {EMOJI.map((emoji) => (
-            <Button
-              aria-label={`Insert ${emoji}`}
-              className="h-7 text-lg"
-              key={emoji}
-              onClick={() => {
-                const current = editor.current
-                if (!current) return
-                if (!current.selection) current.tf.select(current.api.end([]))
-                current.tf.insertText(emoji)
-                current.tf.focus()
-                setOpen(false)
-              }}
-              onMouseDown={(event) => event.preventDefault()}
-              size={null}
-              type="button"
-              variant="ghost"
-            >
-              {emoji}
-            </Button>
-          ))}
-          <p className="col-span-8 text-[10px] text-neutral-400">
-            More: your system’s emoji picker.
-          </p>
+          <ComposerEmojiPicker
+            onSelect={(emoji) => {
+              const current = editor.current
+              if (!current) return
+              if (!current.selection) current.tf.select(current.api.end([]))
+              current.tf.insertText(emoji)
+              current.tf.focus()
+              setOpen(false)
+            }}
+          />
         </PopoverContent>
       </Popover>
     </>

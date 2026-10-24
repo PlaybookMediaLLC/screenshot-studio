@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 )
 
 // Mentions picked from the platform (RFC 042). A mention is looked up with
@@ -65,11 +66,23 @@ func (c *Configuration) LookupMentions(ctx context.Context, actor Actor, setID, 
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
 		return nil, err
 	}
-	normalized, err := mentionQuery(channel, query)
+	set, err := visibleSocialSet(ctx, c.client, actor, setID)
 	if err != nil {
 		return nil, err
 	}
-	set, err := visibleSocialSet(ctx, c.client, actor, setID)
+	if len(query) > 200 {
+		return nil, invalid("Keep mention searches under 200 characters.")
+	}
+	if channel == "linkedin" {
+		recent, err := c.recentCompanyMentions(ctx, actor, set.ID, query)
+		if err != nil {
+			return nil, err
+		}
+		if len(recent) > 0 || strings.TrimSpace(query) == "" {
+			return recent, nil
+		}
+	}
+	normalized, err := mentionQuery(channel, query)
 	if err != nil {
 		return nil, err
 	}
@@ -93,4 +106,48 @@ func channelLabel(channel string) string {
 		return "LinkedIn"
 	}
 	return "X"
+}
+
+// recentCompanyMentions indexes persisted mention nodes in the set's latest
+// drafts. It never reads another social set or a private set the actor cannot see.
+func (c *Configuration) recentCompanyMentions(ctx context.Context, actor Actor, setID, query string) ([]Mention, error) {
+	rows, err := c.client.ContentDraft.Query().Where(contentdraft.OrganizationID(actor.OrganizationID), contentdraft.SocialSetID(setID)).Order(ent.Desc(contentdraft.FieldUpdatedAt)).Limit(100).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	bodies := [][]any{}
+	for _, row := range rows {
+		bodies = append(bodies, row.Body)
+		for _, version := range row.PlatformVersions.Versions {
+			bodies = append(bodies, version.Body)
+		}
+	}
+	return companyMentions(bodies, query), nil
+}
+
+func companyMentions(bodies [][]any, query string) []Mention {
+	out := []Mention{}
+	seen := map[string]bool{}
+	query = strings.ToLower(strings.TrimSpace(query))
+	var walk func(any)
+	walk = func(raw any) {
+		switch node := raw.(type) {
+		case []any:
+			for _, child := range node {
+				walk(child)
+			}
+		case map[string]any:
+			id, _ := node["providerId"].(string)
+			label, _ := node["label"].(string)
+			if node["type"] == "social_mention" && node["platform"] == "linkedin" && (node["kind"] == "organization" || node["kind"] == nil) && strings.HasPrefix(id, "urn:li:organization:") && numericID.MatchString(strings.TrimPrefix(id, "urn:li:organization:")) && label != "" && !seen[id] && (query == "" || strings.Contains(strings.ToLower(label), query)) && len(out) < 30 {
+				out = append(out, Mention{Kind: "organization", Label: label, ProviderID: id})
+				seen[id] = true
+			}
+			walk(node["children"])
+		}
+	}
+	for _, body := range bodies {
+		walk(body)
+	}
+	return out
 }

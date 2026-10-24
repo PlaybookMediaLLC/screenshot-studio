@@ -12,6 +12,7 @@ import (
 // finishers and mention lookups, and a draft's properties, plan, copies,
 // recovered backups, activity and follow-ups.
 type WriteStore interface {
+	LookupCommunities(context.Context, product.Actor, string, string) ([]product.Community, error)
 	LookupMentions(ctx context.Context, actor product.Actor, setID, channel, query string) ([]product.Mention, error)
 	SetAssetAltText(ctx context.Context, actor product.Actor, assetID, altText string) (*product.AssetAltText, error)
 	ListContentDraftTags(context.Context, product.Actor, string) ([]product.ContentDraftTagRecord, error)
@@ -36,6 +37,7 @@ type WriteStore interface {
 
 func (s *Server) registerWrite(mux *http.ServeMux) {
 	mux.Handle("GET /v1/social-sets/{id}/mentions", s.authenticateProduct(http.HandlerFunc(s.lookupMentions)))
+	mux.Handle("GET /v1/social-sets/{id}/communities", s.authenticateProduct(http.HandlerFunc(s.lookupCommunities)))
 	mux.Handle("PUT /v1/assets/{id}/alt-text", s.authenticateProduct(http.HandlerFunc(s.setAssetAltText)))
 	mux.Handle("GET /v1/social-sets/{id}/tags", s.authenticateProduct(http.HandlerFunc(s.listDraftTags)))
 	mux.Handle("POST /v1/social-sets/{id}/tags", s.authenticateProduct(http.HandlerFunc(s.createDraftTag)))
@@ -292,6 +294,19 @@ func (s *Server) cancelContentDraftPostAutomations(w http.ResponseWriter, r *htt
 }
 
 // lookupMentions finds what the set's account for a channel can mention.
+func (s *Server) lookupCommunities(w http.ResponseWriter, r *http.Request) {
+	ids, ok := pathIDs(w, r, "id")
+	if !ok {
+		return
+	}
+	items, err := s.configuration.LookupCommunities(r.Context(), workspaceActor(r), ids[0], r.URL.Query().Get("q"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
 func (s *Server) lookupMentions(w http.ResponseWriter, r *http.Request) {
 	ids, ok := pathIDs(w, r, "id")
 	if !ok {

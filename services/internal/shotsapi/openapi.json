@@ -13344,6 +13344,86 @@
                           "options": {
                             "type": "object",
                             "properties": {
+                              "autoDm": {
+                                "type": "object",
+                                "properties": {
+                                  "match": {
+                                    "type": "string",
+                                    "enum": [
+                                      "any",
+                                      "all"
+                                    ]
+                                  },
+                                  "reposts": {
+                                    "type": "boolean"
+                                  },
+                                  "replies": {
+                                    "type": "boolean"
+                                  },
+                                  "requireFollow": {
+                                    "type": "boolean"
+                                  },
+                                  "replyText": {
+                                    "type": "string",
+                                    "maxLength": 100
+                                  },
+                                  "message": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 10000
+                                  }
+                                },
+                                "required": [
+                                  "match",
+                                  "reposts",
+                                  "replies",
+                                  "requireFollow",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "splitOnPaste": {
+                                "type": "boolean"
+                              },
+                              "linkPreviews": {
+                                "maxItems": 25,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "url": {
+                                      "type": "string",
+                                      "maxLength": 2048,
+                                      "format": "uri"
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "maxLength": 250
+                                    },
+                                    "description": {
+                                      "type": "string",
+                                      "maxLength": 1000
+                                    },
+                                    "image": {
+                                      "type": "string",
+                                      "maxLength": 2048,
+                                      "format": "uri"
+                                    },
+                                    "removed": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "url"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "splitLimit": {
+                                "type": "integer",
+                                "minimum": 25,
+                                "maximum": 25000
+                              },
                               "automation": {
                                 "type": "object",
                                 "properties": {
@@ -14013,6 +14093,86 @@
                           "options": {
                             "type": "object",
                             "properties": {
+                              "autoDm": {
+                                "type": "object",
+                                "properties": {
+                                  "match": {
+                                    "type": "string",
+                                    "enum": [
+                                      "any",
+                                      "all"
+                                    ]
+                                  },
+                                  "reposts": {
+                                    "type": "boolean"
+                                  },
+                                  "replies": {
+                                    "type": "boolean"
+                                  },
+                                  "requireFollow": {
+                                    "type": "boolean"
+                                  },
+                                  "replyText": {
+                                    "type": "string",
+                                    "maxLength": 100
+                                  },
+                                  "message": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 10000
+                                  }
+                                },
+                                "required": [
+                                  "match",
+                                  "reposts",
+                                  "replies",
+                                  "requireFollow",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "splitOnPaste": {
+                                "type": "boolean"
+                              },
+                              "linkPreviews": {
+                                "maxItems": 25,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "url": {
+                                      "type": "string",
+                                      "maxLength": 2048,
+                                      "format": "uri"
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "maxLength": 250
+                                    },
+                                    "description": {
+                                      "type": "string",
+                                      "maxLength": 1000
+                                    },
+                                    "image": {
+                                      "type": "string",
+                                      "maxLength": 2048,
+                                      "format": "uri"
+                                    },
+                                    "removed": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "url"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "splitLimit": {
+                                "type": "integer",
+                                "minimum": 25,
+                                "maximum": 25000
+                              },
                               "automation": {
                                 "type": "object",
                                 "properties": {
@@ -14406,6 +14566,86 @@
                     "options": {
                       "type": "object",
                       "properties": {
+                        "autoDm": {
+                          "type": "object",
+                          "properties": {
+                            "match": {
+                              "type": "string",
+                              "enum": [
+                                "any",
+                                "all"
+                              ]
+                            },
+                            "reposts": {
+                              "type": "boolean"
+                            },
+                            "replies": {
+                              "type": "boolean"
+                            },
+                            "requireFollow": {
+                              "type": "boolean"
+                            },
+                            "replyText": {
+                              "type": "string",
+                              "maxLength": 100
+                            },
+                            "message": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 10000
+                            }
+                          },
+                          "required": [
+                            "match",
+                            "reposts",
+                            "replies",
+                            "requireFollow",
+                            "message"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "splitOnPaste": {
+                          "type": "boolean"
+                        },
+                        "linkPreviews": {
+                          "maxItems": 25,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string",
+                                "maxLength": 2048,
+                                "format": "uri"
+                              },
+                              "title": {
+                                "type": "string",
+                                "maxLength": 250
+                              },
+                              "description": {
+                                "type": "string",
+                                "maxLength": 1000
+                              },
+                              "image": {
+                                "type": "string",
+                                "maxLength": 2048,
+                                "format": "uri"
+                              },
+                              "removed": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "splitLimit": {
+                          "type": "integer",
+                          "minimum": 25,
+                          "maximum": 25000
+                        },
                         "automation": {
                           "type": "object",
                           "properties": {
@@ -15094,6 +15334,86 @@
                     "options": {
                       "type": "object",
                       "properties": {
+                        "autoDm": {
+                          "type": "object",
+                          "properties": {
+                            "match": {
+                              "type": "string",
+                              "enum": [
+                                "any",
+                                "all"
+                              ]
+                            },
+                            "reposts": {
+                              "type": "boolean"
+                            },
+                            "replies": {
+                              "type": "boolean"
+                            },
+                            "requireFollow": {
+                              "type": "boolean"
+                            },
+                            "replyText": {
+                              "type": "string",
+                              "maxLength": 100
+                            },
+                            "message": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 10000
+                            }
+                          },
+                          "required": [
+                            "match",
+                            "reposts",
+                            "replies",
+                            "requireFollow",
+                            "message"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "splitOnPaste": {
+                          "type": "boolean"
+                        },
+                        "linkPreviews": {
+                          "maxItems": 25,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string",
+                                "maxLength": 2048,
+                                "format": "uri"
+                              },
+                              "title": {
+                                "type": "string",
+                                "maxLength": 250
+                              },
+                              "description": {
+                                "type": "string",
+                                "maxLength": 1000
+                              },
+                              "image": {
+                                "type": "string",
+                                "maxLength": 2048,
+                                "format": "uri"
+                              },
+                              "removed": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "splitLimit": {
+                          "type": "integer",
+                          "minimum": 25,
+                          "maximum": 25000
+                        },
                         "automation": {
                           "type": "object",
                           "properties": {
@@ -15478,6 +15798,86 @@
                     "options": {
                       "type": "object",
                       "properties": {
+                        "autoDm": {
+                          "type": "object",
+                          "properties": {
+                            "match": {
+                              "type": "string",
+                              "enum": [
+                                "any",
+                                "all"
+                              ]
+                            },
+                            "reposts": {
+                              "type": "boolean"
+                            },
+                            "replies": {
+                              "type": "boolean"
+                            },
+                            "requireFollow": {
+                              "type": "boolean"
+                            },
+                            "replyText": {
+                              "type": "string",
+                              "maxLength": 100
+                            },
+                            "message": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 10000
+                            }
+                          },
+                          "required": [
+                            "match",
+                            "reposts",
+                            "replies",
+                            "requireFollow",
+                            "message"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "splitOnPaste": {
+                          "type": "boolean"
+                        },
+                        "linkPreviews": {
+                          "maxItems": 25,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string",
+                                "maxLength": 2048,
+                                "format": "uri"
+                              },
+                              "title": {
+                                "type": "string",
+                                "maxLength": 250
+                              },
+                              "description": {
+                                "type": "string",
+                                "maxLength": 1000
+                              },
+                              "image": {
+                                "type": "string",
+                                "maxLength": 2048,
+                                "format": "uri"
+                              },
+                              "removed": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "url"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "splitLimit": {
+                          "type": "integer",
+                          "minimum": 25,
+                          "maximum": 25000
+                        },
                         "automation": {
                           "type": "object",
                           "properties": {
@@ -16423,6 +16823,86 @@
                         "options": {
                           "type": "object",
                           "properties": {
+                            "autoDm": {
+                              "type": "object",
+                              "properties": {
+                                "match": {
+                                  "type": "string",
+                                  "enum": [
+                                    "any",
+                                    "all"
+                                  ]
+                                },
+                                "reposts": {
+                                  "type": "boolean"
+                                },
+                                "replies": {
+                                  "type": "boolean"
+                                },
+                                "requireFollow": {
+                                  "type": "boolean"
+                                },
+                                "replyText": {
+                                  "type": "string",
+                                  "maxLength": 100
+                                },
+                                "message": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 10000
+                                }
+                              },
+                              "required": [
+                                "match",
+                                "reposts",
+                                "replies",
+                                "requireFollow",
+                                "message"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "splitOnPaste": {
+                              "type": "boolean"
+                            },
+                            "linkPreviews": {
+                              "maxItems": 25,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string",
+                                    "maxLength": 2048,
+                                    "format": "uri"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "maxLength": 250
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
+                                  "image": {
+                                    "type": "string",
+                                    "maxLength": 2048,
+                                    "format": "uri"
+                                  },
+                                  "removed": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "url"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "splitLimit": {
+                              "type": "integer",
+                              "minimum": 25,
+                              "maximum": 25000
+                            },
                             "automation": {
                               "type": "object",
                               "properties": {

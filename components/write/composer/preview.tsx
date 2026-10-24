@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { LinkPreviewCard } from './link-cards'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -106,7 +107,9 @@ export function PreviewPanel({
         data-testid={`preview-${item.account.channel}`}
         style={size ? { height: Math.min(size.height, 720), width: size.width } : undefined}
       >
-        {item.account.channel === 'linkedin' ? (
+        {item.publication.target.options?.articleTitle ? (
+          <ArticlePreview item={item} />
+        ) : item.account.channel === 'linkedin' ? (
           <LinkedInPost item={item} target={target} />
         ) : (
           <ThreadPreview item={item} target={target} />
@@ -213,7 +216,15 @@ function Mentions({ channel, text }: { channel: DraftChannel; text: string }) {
 }
 
 /** A post's images in the platform's grid. */
-function Media({ assetIds, channel }: { assetIds: string[]; channel: DraftChannel }) {
+function Media({
+  assetIds,
+  channel,
+  videos = 0,
+}: {
+  assetIds: string[]
+  channel: DraftChannel
+  videos?: number
+}) {
   const shown = assetIds.slice(0, CAPABILITIES[channel].media.imageLimit)
   if (shown.length === 0) return null
   return (
@@ -223,15 +234,27 @@ function Media({ assetIds, channel }: { assetIds: string[]; channel: DraftChanne
         shown.length > 1 && 'grid-cols-2'
       )}
     >
-      {shown.map((assetId) => (
-        // biome-ignore lint/performance/noImgElement: signed asset redirects
-        <img
-          alt=""
-          className="aspect-video w-full bg-white/5 object-cover"
-          key={assetId}
-          src={assetContentUrl(assetId)}
-        />
-      ))}
+      {shown.map((assetId) =>
+        videos > 0 ? (
+          <video
+            key={assetId}
+            controls
+            playsInline
+            preload="metadata"
+            className="aspect-video w-full bg-black object-contain"
+            src={assetContentUrl(assetId)}
+            aria-label="Attached video preview"
+          />
+        ) : (
+          // biome-ignore lint/performance/noImgElement: signed asset redirects
+          <img
+            alt=""
+            className="aspect-video w-full bg-white/5 object-cover"
+            key={assetId}
+            src={assetContentUrl(assetId)}
+          />
+        )
+      )}
     </div>
   )
 }
@@ -319,9 +342,20 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
                 <span className="ml-1 text-neutral-400">· now</span>
               </p>
               <Truncated channel={channel} text={post.caption} />
-              <Media assetIds={post.assetIds} channel={channel} />
-              {index === 0 && publication.target.poll ? (
-                <Poll channel={channel} poll={publication.target.poll} />
+              <Media assetIds={post.assetIds} channel={channel} videos={post.videos} />
+              {settings.poll ? <Poll channel={channel} poll={settings.poll} /> : null}
+              {(
+                index === 0
+                  ? publication.target.options?.linkPreview
+                  : publication.target.replies?.[index - 1]?.options?.linkPreview
+              ) ? (
+                <LinkPreviewCard
+                  card={
+                    (index === 0
+                      ? publication.target.options?.linkPreview
+                      : publication.target.replies?.[index - 1]?.options?.linkPreview)!
+                  }
+                />
               ) : null}
               {index === 0 && target?.kind === 'quote' ? <TargetCard target={target} /> : null}
               {settings.quoteFirstPost ? (
@@ -371,7 +405,7 @@ function LinkedInPost({ item, target }: { item: PreviewItem; target: DraftTarget
       <div className="mt-2">
         <Truncated channel="linkedin" text={post?.caption ?? ''} />
       </div>
-      {post ? <Media assetIds={post.assetIds} channel="linkedin" /> : null}
+      {post ? <Media assetIds={post.assetIds} channel="linkedin" videos={post.videos} /> : null}
       {publication.target.poll ? (
         <Poll channel="linkedin" poll={publication.target.poll} question={options?.pollQuestion} />
       ) : null}
@@ -387,6 +421,34 @@ function LinkedInPost({ item, target }: { item: PreviewItem; target: DraftTarget
           {options.firstComment}
         </div>
       ) : null}
+    </article>
+  )
+}
+
+/** The article body comes exclusively from articleContent's escaped allowlisted serializer. */
+function ArticlePreview({ item }: { item: PreviewItem }) {
+  const options = item.publication.target.options!
+  const html = (options.articleHtml ?? '').replace(
+    /data-asset-id="([a-z0-9-]+)"/g,
+    (_, id: string) => `src="${assetContentUrl(id)}"`
+  )
+  return (
+    <article className="p-4" data-testid="article-preview">
+      {options.articleCoverAssetId ? (
+        <img
+          alt="Article cover"
+          className="mb-4 aspect-video rounded-lg object-cover"
+          src={assetContentUrl(options.articleCoverAssetId)}
+        />
+      ) : null}
+      <h1 className="mb-3 text-2xl font-bold">{options.articleTitle}</h1>
+      <p className="mb-4 text-sm text-neutral-400">
+        {item.account.displayName ?? item.account.handle}
+      </p>
+      <div
+        className="prose prose-invert max-w-none [&_p]:mb-3 [&_h1]:text-2xl [&_h2]:text-xl [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-5 [&_a]:text-sky-400 [&_img]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:pl-3"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </article>
   )
 }

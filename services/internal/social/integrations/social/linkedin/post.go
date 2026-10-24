@@ -12,6 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ids"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // pollInterval is the legacy Post loop's wait between checks (timer(20000)).
@@ -61,22 +62,22 @@ var linkedInPollDurations = map[int]string{1: "ONE_DAY", 3: "THREE_DAYS", 7: "SE
 
 // pollContent is a poll as the Posts API takes it: a question, 2 to 4
 // options, and one of its durations.
-func pollContent(poll *integrations.PollDetails) map[string]any {
+func pollContent(poll *integrations.PollDetails, media int) (map[string]any, error) {
 	minutes := poll.DurationMinutes
 	if minutes == 0 {
 		minutes = poll.Duration * 60
 	}
-	duration, ok := linkedInPollDurations[minutes/(24*60)]
-	if !ok || minutes%(24*60) != 0 {
-		duration = "SEVEN_DAYS"
+	if err := socialidentity.CheckLinkedInPoll(poll.Question, poll.Options, minutes, media, poll.Multiple); err != nil {
+		return nil, err
 	}
+	duration := linkedInPollDurations[minutes/(24*60)]
 	options := make([]map[string]string, 0, len(poll.Options))
 	for _, option := range poll.Options {
 		options = append(options, map[string]string{"text": option})
 	}
 	return map[string]any{"poll": map[string]any{
 		"question": poll.Question, "options": options, "settings": map[string]string{"duration": duration},
-	}}
+	}}, nil
 }
 
 func authorURN(postType, id string) string {
@@ -363,8 +364,15 @@ func (p *Provider) createMainPost(ctx context.Context, data *pendingData, access
 		}
 	}
 	payload.Content = buildPostContent(data.IsPdf, mediaIDs, data.PdfTitle, alts...)
-	if data.Question != nil && len(data.Question.Options) >= 2 {
-		payload.Content = pollContent(data.Question)
+	if data.Question != nil {
+		content, err := pollContent(data.Question, len(mediaIDs))
+		if err != nil {
+			return "", temporalx.BadBody(p.identifier, "{}", "{}", err.Error())
+		}
+		if data.ReshareParent != "" {
+			return "", temporalx.BadBody(p.identifier, "{}", "{}", "A LinkedIn reshare cannot contain a poll.")
+		}
+		payload.Content = content
 	}
 	if data.ReshareParent != "" {
 		payload.ReshareContext = map[string]string{"parent": data.ReshareParent}
@@ -436,6 +444,14 @@ func (p *Provider) PostPendingAs(ctx context.Context, id, accessToken string, po
 	}
 	first := posts[0]
 	settings := decodeSettings(first.Settings)
+	if first.Poll != nil {
+		if _, err := pollContent(first.Poll, len(first.Media)); err != nil {
+			return nil, temporalx.BadBody(p.identifier, "{}", "{}", err.Error())
+		}
+		if parent, _ := settings.ReshareParent.(string); parent != "" {
+			return nil, temporalx.BadBody(p.identifier, "{}", "{}", "A LinkedIn reshare cannot contain a poll.")
+		}
+	}
 	isPdf := integrations.AssetBoolean(settings.PostAsImagesCarousel)
 
 	var media []mediaItem

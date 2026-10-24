@@ -532,6 +532,9 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 		return nil, err
 	}
 	defer tx.Rollback()
+	if kind == "repurpose" && input.Target != nil && input.Target.SourceDraftID != "" {
+		return c.repurposePublishedDraft(ctx, tx, actor, input)
+	}
 	set, defaults, defaultPrimary, err := c.draftDefaults(ctx, tx, actor, input.SocialSetID)
 	if err != nil {
 		return nil, err
@@ -543,11 +546,15 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 		if defaultPrimary != nil && draftPlatformChannels[*defaultPrimary] != "" {
 			primary = draftPlatformChannels[*defaultPrimary]
 		}
-		// Replies and articles are X's; a quote is the platform of the post it quotes.
-		if kind == "reply" || kind == "article" || kind == "quote" && (input.Target == nil || !strings.Contains(input.Target.URL, "linkedin.com")) {
+		if kind == "reply" || kind == "article" {
 			primary = "x"
-		} else if kind == "quote" {
-			primary = "linkedin"
+		}
+		if kind == "quote" {
+			target, err := draftTarget(kind, input.Target)
+			if err != nil {
+				return nil, err
+			}
+			primary = target.Platform
 		}
 	}
 	if err := draftKindChannel(kind, primary); err != nil {

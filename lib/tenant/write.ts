@@ -45,6 +45,16 @@ export async function lookupSocialSetMentions(
   return result ? result.items : null
 }
 
+/** Search communities through a visible set's connected X account. */
+export async function searchSocialSetCommunities(
+  context: TenantContext,
+  id: string,
+  query: string
+) {
+  const result = await orNull(backendSDK(context).searchSocialSetCommunities(id, query))
+  return result?.items ?? null
+}
+
 /** The social sets the caller may see, the workspace's default (oldest shared) first. */
 export async function listSocialSets(context: TenantContext) {
   return (await backendSDK(context).listSocialSets()).items.map(readSet)

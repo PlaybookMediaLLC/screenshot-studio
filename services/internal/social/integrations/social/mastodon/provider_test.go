@@ -31,6 +31,8 @@ func newFakeInstance(t *testing.T) *fakeInstance {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		switch {
+		case r.URL.Path == "/api/v2/instance":
+			_, _ = w.Write([]byte(`{"configuration":{"polls":{"max_options":6,"max_characters_per_option":80,"min_expiration":300,"max_expiration":604800}}}`))
 		case r.URL.Path == "/oauth/token":
 			_ = r.ParseMultipartForm(1 << 20)
 			if r.FormValue("code") != "good" || r.FormValue("grant_type") != "authorization_code" || r.FormValue("scope") != "write:statuses profile write:media" {
@@ -166,5 +168,40 @@ func TestCheckAndFinalizeErrors(t *testing.T) {
 	_, err = p.FinalizePost(ctx, "tok", pending, nil)
 	if temporalx.FailureType(err) != temporalx.TypeRefreshToken || temporalx.FailureMessage(err) != "Your login is currently disabled" {
 		t.Fatalf("want refresh_token, got %v", err)
+	}
+}
+
+func TestNativePollSurvivesPendingAndReplyAndRejectsInvalidBeforeMutation(t *testing.T) {
+	f := newFakeInstance(t)
+	p := New()
+	ctx := context.Background()
+	post := integrations.PostDetails{ID: "poll-job", Message: "Choose", Poll: &integrations.PollDetails{Options: []string{"A", "B", "C", "D", "E"}, DurationMinutes: 60, Multiple: true}}
+	pending, err := p.DynamicPostPending(ctx, "42", "tok", f.URL, []integrations.PostDetails{post})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.forms) != 0 {
+		t.Fatal("pending poll published")
+	}
+	if _, err = p.FinalizePost(ctx, "tok", pending[0].PendingData, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = p.DynamicComment(ctx, "42", "root", "last", "tok", f.URL, []integrations.PostDetails{post}); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.forms) != 2 {
+		t.Fatalf("forms=%d", len(f.forms))
+	}
+	for _, form := range f.forms {
+		if len(form["poll[options][]"]) != 5 || form["poll[expires_in]"][0] != "3600" || form["poll[multiple]"][0] != "true" {
+			t.Fatalf("%+v", form)
+		}
+	}
+	if f.forms[1]["in_reply_to_id"][0] != "last" {
+		t.Fatal("reply target changed")
+	}
+	post.Poll.DurationMinutes = 1
+	if _, err = p.DynamicPostPending(ctx, "42", "tok", f.URL, []integrations.PostDetails{post}); err == nil || len(f.forms) != 2 {
+		t.Fatal("invalid poll reached mutation")
 	}
 }

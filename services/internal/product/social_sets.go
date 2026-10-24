@@ -60,10 +60,12 @@ const (
 
 // SocialAccount is one connected account as a set shows it.
 type SocialAccount struct {
-	AvatarURL   *string   `json:"avatarUrl"`
-	CreatedAt   time.Time `json:"createdAt"`
-	DisplayName *string   `json:"displayName"`
-	Handle      *string   `json:"handle"`
+	MastodonQuotes *bool                      `json:"mastodonQuotes"`
+	PollLimits     *socialidentity.PollLimits `json:"pollLimits"`
+	AvatarURL      *string                    `json:"avatarUrl"`
+	CreatedAt      time.Time                  `json:"createdAt"`
+	DisplayName    *string                    `json:"displayName"`
+	Handle         *string                    `json:"handle"`
 	// Health is connected, unverified, reconnect_required, expired, revoked, removed or permission_required.
 	Health      string  `json:"health"`
 	ID          string  `json:"id"`
@@ -431,9 +433,10 @@ func (c *Configuration) socialSetRecords(ctx context.Context, actor Actor, sets 
 	accounts := map[string][]SocialAccount{}
 	for _, connection := range connections {
 		account := socialAccount(connection, health[connection.ID])
-		if connection.Platform == "x" && account.Health == AccountConnected {
+		if (connection.Platform == "x" || connection.Platform == "mastodon-custom") && account.Health == AccountConnected {
 			standing := c.accountStanding(ctx, connection)
-			account.Premium, account.XCaptionLimit, account.XArticles = standing.Premium, standing.XCaptionLimit, standing.XArticles
+			account.Premium, account.XCaptionLimit, account.XArticles, account.PollLimits = standing.Premium, standing.XCaptionLimit, standing.XArticles, standing.PollLimits
+			account.MastodonQuotes = standing.MastodonQuotes
 		}
 		accounts[*connection.SocialSetID] = append(accounts[*connection.SocialSetID], account)
 	}

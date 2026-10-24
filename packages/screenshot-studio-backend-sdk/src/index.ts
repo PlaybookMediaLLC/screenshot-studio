@@ -1013,7 +1013,14 @@ export type BackendContentDraftSettings = {
 }
 
 /** A draft post on the calendar or in the queue, with its draft's title. */
-export type BackendCalendarPost = BackendContentDraftPost & { draftId: string; draftTitle: string }
+export type BackendCalendarPost = BackendContentDraftPost & {
+  campaignId?: string | null
+  campaignTitle?: string
+  draftId: string
+  draftTitle: string
+  socialSetId: string | null
+  tagIds: string[]
+}
 
 /** A suggested posting time and why. */
 export type BackendBestTime = { at: string; reason: string }
@@ -1091,7 +1098,11 @@ export type BackendPostAutomation = {
 }
 
 /** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
-export type BackendPoll = { durationMinutes: number; options: string[] }
+export type BackendPoll = {
+  multiple?: boolean
+  durationMinutes: number
+  options: string[]
+}
 
 /** The fields a draft is created or updated with. */
 export type BackendContentDraftFields = {
@@ -1158,7 +1169,12 @@ export type BackendContentDraftScheduleTarget = {
   caption: string
   channelConnectionId: string
   /** A thread's later posts, posted as replies to the first, each with its settings. */
-  replies?: { assetIds: string[]; caption: string; options?: BackendPublishOptions }[]
+  replies?: {
+    assetIds: string[]
+    caption: string
+    options?: BackendPublishOptions
+    poll?: { durationMinutes: number; options: string[]; multiple?: boolean }
+  }[]
   autoActions?: BackendAutoActions
   poll?: BackendPoll
   /** The first post's settings beyond its text (RFC 042). */
@@ -1171,6 +1187,14 @@ export type BackendContentDraftScheduleTarget = {
 export type BackendPublishOptions = {
   articleCoverAssetId?: string
   articleTitle?: string
+  linkPreview?: {
+    url: string
+    title?: string
+    description?: string
+    image?: string
+    removed?: boolean
+  }
+  articleHtml?: string
   communityId?: string
   documentAssetId?: string
   documentTitle?: string
@@ -2767,6 +2791,13 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
+  /** Search communities through the social set's verified X account. */
+  async searchSocialSetCommunities(id: string, query: string) {
+    return this.request<{ items: { id: string; name: string }[] }>(
+      `v1/social-sets/${encodeURIComponent(id)}/communities?${new URLSearchParams({ q: query })}`
+    )
+  }
+
   async listDraftTags(setId: string) {
     return this.request<{ items: BackendDraftTag[] }>(
       `v1/social-sets/${encodeURIComponent(setId)}/tags`
@@ -2885,6 +2916,22 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ post: BackendContentDraftPost }>(
       `v1/content-draft-posts/${encodeURIComponent(id)}/move`,
       { body: { scheduledFor }, method: 'POST' }
+    )
+  }
+
+  /** Atomically swap two queued posts on the same account. */
+  async swapContentDraftPosts(id: string, withId: string) {
+    return this.request<{ posts: BackendContentDraftPost[] }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/swap`,
+      { body: { withId }, method: 'POST' }
+    )
+  }
+
+  /** Publish the immutable queued snapshot once, immediately. */
+  async publishQueuedContentDraftPost(id: string) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/publish-now`,
+      { body: {}, method: 'POST' }
     )
   }
 

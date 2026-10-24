@@ -3,7 +3,7 @@ package tenantpublishing
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
+	"fmt"
 	"maps"
 	"strings"
 
@@ -13,6 +13,7 @@ import (
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // Write (RFC 042): a post's settings become its adapter's settings JSON on
@@ -27,9 +28,28 @@ func postSettings(platform string, base map[string]any, options *postoptions.Pub
 		settings = map[string]any{}
 	}
 	if options != nil {
+		if options.LinkPreview != nil {
+			if platform != "bluesky" {
+				return nil, fmt.Errorf("this provider has no verified link preview control")
+			}
+			settings["link_preview"] = options.LinkPreview
+		}
+
+		if options.ShareWithFollowers {
+			return nil, fmt.Errorf("share to timeline has no verified X API mapping")
+		}
 		switch platform {
 		case "x":
 			xSettings(settings, *options, rootID)
+		case "bluesky", "mastodon", "mastodon-custom":
+			if options.QuoteRemoteID != "" {
+				settings["quote_uri"] = options.QuoteRemoteID
+			} else if options.QuoteFirstPost {
+				if rootID == "" {
+					return nil, fmt.Errorf("the first post has no confirmed provider identity")
+				}
+				settings["quote_uri"] = rootID
+			}
 		case "linkedin":
 			if options.Visibility != "" {
 				settings["visibility"] = options.Visibility
@@ -63,7 +83,6 @@ func xSettings(settings map[string]any, options postoptions.PublishOptions, root
 	}
 	if options.CommunityID != "" {
 		settings["community"] = "https://x.com/i/communities/" + options.CommunityID
-		settings["share_with_followers"] = options.ShareWithFollowers
 	}
 	switch {
 	case options.QuoteRemoteID != "":
@@ -104,6 +123,7 @@ func pollFor(poll *postoptions.Poll, options *postoptions.PublishOptions) *integ
 		return nil
 	}
 	details.DurationMinutes = poll.DurationMinutes
+	details.Multiple = poll.Multiple
 	if options != nil {
 		details.Question = strings.TrimSpace(options.PollQuestion)
 	}
@@ -113,12 +133,16 @@ func pollFor(poll *postoptions.Poll, options *postoptions.PublishOptions) *integ
 // AccountStanding projects verified account capabilities. Editable settings
 // and workspace plans never establish account-specific publishing access.
 func (p *Publisher) AccountStanding(ctx context.Context, organizationID, destinationID, platform, secretReference string) (product.AccountStanding, error) {
-	if platform != "x" {
+	if platform != "x" && platform != "mastodon-custom" {
 		return product.AccountStanding{}, nil
 	}
 	account, _, _, err := p.account(ctx, organizationID, destinationID, platform, secretReference, nil)
 	if err != nil {
 		return product.AccountStanding{}, err
+	}
+	if platform == "mastodon-custom" {
+		quotes := socialidentity.CanQuoteMastodon(*account.VerifiedCapabilities, account.VerifiedScopes)
+		return product.AccountStanding{PollLimits: account.VerifiedCapabilities.Polls, MastodonQuotes: &quotes}, nil
 	}
 	caps := account.VerifiedCapabilities.X
 	limit := caps.PostTextLimit()
@@ -137,13 +161,11 @@ func (p *Publisher) Mentions(ctx context.Context, organizationID, destinationID,
 		Mention(context.Context, string, string, string, *socialent.Integration) ([]integrations.MentionResult, bool, error)
 	})
 	if !ok {
-		return []product.Mention{}, nil
+		return nil, socialapi.NewError(409, false, "This provider connection does not support mention lookup.")
 	}
 	found, _, err := finder.Mention(ctx, account.Token, query, account.InternalID, account)
 	if err != nil {
-		// LinkedIn answers an unknown vanity name with an error, not an empty list.
-		slog.InfoContext(ctx, "mention lookup found nothing", "platform", platform, "error", err)
-		return []product.Mention{}, nil
+		return nil, socialapi.NewError(502, false, "Mention lookup was refused or unavailable. Check the connection permissions and try again.")
 	}
 	mentions := make([]product.Mention, 0, len(found))
 	for _, item := range found {

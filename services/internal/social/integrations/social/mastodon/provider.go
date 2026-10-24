@@ -303,10 +303,12 @@ func (p *Provider) UploadFile(ctx context.Context, instanceURL, fileURL, accessT
 // media ids and the status content). The url makes CheckPostStatus /
 // FinalizePost work the same for the default instance and custom instances.
 type PendingData struct {
-	URL            string   `json:"url"`
-	Message        string   `json:"message"`
-	MediaIDs       []string `json:"mediaIds"`
-	IdempotencyKey string   `json:"idempotencyKey"`
+	QuoteID        string      `json:"quoteId,omitempty"`
+	Poll           *NativePoll `json:"poll,omitempty"`
+	URL            string      `json:"url"`
+	Message        string      `json:"message"`
+	MediaIDs       []string    `json:"mediaIds"`
+	IdempotencyKey string      `json:"idempotencyKey"`
 }
 
 func (p *Provider) uploadAll(ctx context.Context, url, accessToken string, media []integrations.MediaContent) ([]string, error) {
@@ -324,7 +326,18 @@ func (p *Provider) uploadAll(ctx context.Context, url, accessToken string, media
 }
 
 func (p *Provider) DynamicPostPending(ctx context.Context, _, accessToken, url string, posts []integrations.PostDetails) ([]integrations.PostResponse, error) {
+	if len(posts) == 0 {
+		return nil, fmt.Errorf("Choose a post to publish")
+	}
 	firstPost := posts[0]
+	quote, err := p.quoteTarget(ctx, url, accessToken, firstPost.Settings)
+	if err != nil {
+		return nil, err
+	}
+	poll, err := p.checkedPoll(ctx, url, firstPost.Poll, len(firstPost.Media))
+	if err != nil {
+		return nil, err
+	}
 
 	// Upload the media now; a 202 means the instance is still processing it
 	// (videos, large GIFs) and attaching it to a status too early fails with
@@ -335,6 +348,7 @@ func (p *Provider) DynamicPostPending(ctx context.Context, _, accessToken, url s
 		return nil, err
 	}
 	pending, _ := json.Marshal(PendingData{
+		QuoteID: quote, Poll: poll,
 		URL:      url,
 		Message:  firstPost.Message,
 		MediaIDs: mediaIDs,
@@ -415,6 +429,18 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 		return nil, err
 	}
 	pairs := []string{"status", pending.Message, "visibility", "public"}
+	if pending.QuoteID != "" {
+		if _, err := p.checkedQuote(ctx, pending.URL, accessToken, pending.QuoteID); err != nil {
+			return nil, err
+		}
+		pairs = append(pairs, "quoted_status_id", pending.QuoteID)
+	}
+	if pending.Poll != nil {
+		if _, err := p.checkedPoll(ctx, pending.URL, &integrations.PollDetails{Options: pending.Poll.Options, DurationMinutes: pending.Poll.Minutes, Multiple: pending.Poll.Multiple}, len(pending.MediaIDs)); err != nil {
+			return nil, err
+		}
+	}
+	pairs = append(pairs, pollPairs(pending.Poll)...)
 	for _, file := range pending.MediaIDs {
 		pairs = append(pairs, "media_ids[]", file)
 	}
@@ -432,10 +458,18 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 		return nil, err
 	}
 	var post struct {
-		ID string `json:"id"`
+		ID    string `json:"id"`
+		Quote struct {
+			State string `json:"state"`
+		} `json:"quote"`
 	}
 	if err := res.JSON(&post); err != nil {
 		return nil, err
+	}
+	if pending.QuoteID != "" {
+		if err := p.confirmQuote(post.ID, post.Quote.State, pending.URL); err != nil {
+			return nil, err
+		}
 	}
 	return &integrations.PendingCheckResponse{Status: "completed", PostID: post.ID, ReleaseURL: pending.URL + "/statuses/" + post.ID}, nil
 }
@@ -494,7 +528,18 @@ func (p *Provider) DynamicPost(ctx context.Context, id, accessToken, url string,
 }
 
 func (p *Provider) DynamicComment(ctx context.Context, _, postID, lastCommentID, accessToken, url string, posts []integrations.PostDetails) ([]integrations.PostResponse, error) {
+	if len(posts) == 0 {
+		return nil, fmt.Errorf("Choose a reply to publish")
+	}
 	commentPost := posts[0]
+	quote, err := p.quoteTarget(ctx, url, accessToken, commentPost.Settings)
+	if err != nil {
+		return nil, err
+	}
+	poll, err := p.checkedPoll(ctx, url, commentPost.Poll, len(commentPost.Media))
+	if err != nil {
+		return nil, err
+	}
 	replyToID := lastCommentID
 	if replyToID == "" {
 		replyToID = postID
@@ -504,6 +549,10 @@ func (p *Provider) DynamicComment(ctx context.Context, _, postID, lastCommentID,
 		return nil, err
 	}
 	pairs := []string{"status", commentPost.Message, "visibility", "public", "in_reply_to_id", replyToID}
+	if quote != "" {
+		pairs = append(pairs, "quoted_status_id", quote)
+	}
+	pairs = append(pairs, pollPairs(poll)...)
 	for _, file := range mediaIDs {
 		pairs = append(pairs, "media_ids[]", file)
 	}
@@ -517,10 +566,18 @@ func (p *Provider) DynamicComment(ctx context.Context, _, postID, lastCommentID,
 		return nil, err
 	}
 	var post struct {
-		ID string `json:"id"`
+		ID    string `json:"id"`
+		Quote struct {
+			State string `json:"state"`
+		} `json:"quote"`
 	}
 	if err := res.JSON(&post); err != nil {
 		return nil, err
+	}
+	if quote != "" {
+		if err := p.confirmQuote(post.ID, post.Quote.State, url); err != nil {
+			return nil, err
+		}
 	}
 	return []integrations.PostResponse{{ID: commentPost.ID, PostID: post.ID, ReleaseURL: url + "/statuses/" + post.ID, Status: "completed"}}, nil
 }

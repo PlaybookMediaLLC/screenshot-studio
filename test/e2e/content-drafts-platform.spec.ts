@@ -157,7 +157,7 @@ test('the queue takes the next slot, and the calendar moves a post to another da
     await untilPosted(page, '/move', () =>
       card.dragTo(page.getByTestId(`calendar-day-${target.getDate()}`))
     )
-    await expect(page.getByText(/Moved to/)).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText('Calendar updated.')).toBeVisible({ timeout: 20_000 })
     const posts = await draftPosts(second)
     expect(posts.map((post) => post.status)).toEqual(['CANCELLED', 'SCHEDULED'])
     expect(new Date(posts[1].scheduledFor).getDate()).toBe(target.getDate())

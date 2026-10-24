@@ -5,6 +5,7 @@ package postoptions
 
 import (
 	"fmt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	"strings"
 	"time"
 )
@@ -70,6 +71,7 @@ func (r RetweetRule) When(publishedAt time.Time) (time.Time, error) {
 
 // Poll is a question's choices and how long it stays open.
 type Poll struct {
+	Multiple        bool     `json:"multiple,omitempty"`
 	DurationMinutes int      `json:"durationMinutes"`
 	Options         []string `json:"options"`
 }
@@ -91,6 +93,7 @@ type Metrics map[string]float64
 // belongs to the platforms whose adapter sends it; scheduling refuses it
 // anywhere else. Zero values are off.
 type PublishOptions struct {
+	LinkPreview *LinkPreview `json:"linkPreview,omitempty"`
 	// X: who can reply (following, mentionedUsers, subscribers, verified);
 	// empty is everyone. Replies never change who can see the post.
 	ReplySettings string `json:"replySettings,omitempty"`
@@ -105,6 +108,7 @@ type PublishOptions struct {
 	// X: this reply quotes the thread's first post, once it is live.
 	QuoteFirstPost bool `json:"quoteFirstPost,omitempty"`
 	// X articles: the title and cover; the caption is the body.
+	ArticleHTML         string `json:"articleHtml,omitempty"`
 	ArticleTitle        string `json:"articleTitle,omitempty"`
 	ArticleCoverAssetID string `json:"articleCoverAssetId,omitempty"`
 	// LinkedIn: PUBLIC or CONNECTIONS; empty is PUBLIC.
@@ -133,7 +137,12 @@ func LivePostURL(platform string, remoteID *string) *string {
 		url = "https://x.com/i/status/" + *remoteID
 	case "linkedin":
 		url = "https://www.linkedin.com/feed/update/" + *remoteID
-	case "threads", "bluesky", "mastodon":
+	case "bluesky":
+		if uri, err := socialidentity.BlueskyPostURI(*remoteID); err == nil {
+			parts := strings.Split(strings.TrimPrefix(uri, "at://"), "/")
+			url = "https://bsky.app/profile/" + parts[0] + "/post/" + parts[2]
+		}
+	case "threads", "mastodon", "mastodon-custom":
 		// These providers report a post's address as its id.
 		if strings.HasPrefix(*remoteID, "https://") {
 			url = *remoteID

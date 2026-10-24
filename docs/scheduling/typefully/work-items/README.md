@@ -6,8 +6,9 @@ A changelog entry is a release note. It says what Typefully shipped. It does not
 
 | File | Content |
 |---|---|
+| [implementation-evidence.md](implementation-evidence.md) | October 24 implementation and executed verification for all 42 entries in Sections 2, 4 and 5; supersedes their earlier triage. |
 | [triage.md](triage.md) | Step 1 and Step 2 for all 109 entries: status, evidence, and epic |
-| [polls.md](polls.md) | The first epic, written with the template below. Use it as the model. |
+| [polls.md](polls.md) | Cross-platform poll implementation, provider contracts, executed tests and live verification gates. |
 
 ## Step 1: Triage each entry against Shots
 
